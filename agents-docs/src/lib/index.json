@@ -2868,7 +2868,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of agent agent retrieved successfully",
+            "description": "List of agent retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3088,7 +3088,7 @@
         },
         "responses": {
           "201": {
-            "description": "Agent agent created successfully",
+            "description": "Agent created successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3251,7 +3251,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Agent agent found",
+            "description": "Agent found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3471,7 +3471,7 @@
         },
         "responses": {
           "200": {
-            "description": "Agent agent updated successfully",
+            "description": "Agent updated successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3631,9 +3631,9 @@
           }
         ],
         "responses": {
-          "204": { "description": "Agent agent deleted successfully" },
+          "204": { "description": "Agent deleted successfully" },
           "404": {
-            "description": "Agent agent not found",
+            "description": "Agent not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -13199,7 +13199,7 @@
         "summary": "Create Full Agent",
         "operationId": "create-full-agent",
         "tags": ["Full Agent"],
-        "description": "Create a complete agent agent with all agents, tools, and relationships from JSON definition",
+        "description": "Create a complete agent with all agents, tools, and relationships from JSON definition",
         "parameters": [
           {
             "schema": {
@@ -14174,7 +14174,7 @@
         "summary": "Get Full Agent",
         "operationId": "get-full-agent",
         "tags": ["Full Agent"],
-        "description": "Retrieve a complete agent agent definition with all agents, tools, and relationships",
+        "description": "Retrieve a complete agent definition with all agents, tools, and relationships",
         "parameters": [
           {
             "schema": {
@@ -14726,7 +14726,7 @@
         "summary": "Update Full Agent",
         "operationId": "update-full-agent",
         "tags": ["Full Agent"],
-        "description": "Update or create a complete agent agent with all agents, tools, and relationships from JSON definition",
+        "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
         "parameters": [
           {
             "schema": {

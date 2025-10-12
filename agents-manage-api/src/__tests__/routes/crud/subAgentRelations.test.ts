@@ -83,23 +83,23 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     });
     expect(agentRes.status).toBe(201);
     const agentBody = await agentRes.json();
-    const agentAgentId = agentBody.data.id;
+    const agentId = agentBody.data.id;
 
     // Now create agents with the agentId
     const { subAgentId: sourceSubAgentId } = await createTestAgent({
       tenantId,
-      agentId: agentAgentId,
+      agentId,
       suffix: ' Source',
     });
     const { subAgentId: targetSubAgentId } = await createTestAgent({
       tenantId,
-      agentId: agentAgentId,
+      agentId,
       suffix: ' Target',
     });
 
     // Update the agent with a defaultSubAgentId if needed
     const updateRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: sourceSubAgentId }),
@@ -107,24 +107,23 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     );
     expect(updateRes.status).toBe(200);
 
-    return { sourceSubAgentId, targetSubAgentId, agentAgentId };
+    return { sourceSubAgentId, targetSubAgentId, agentId };
   };
 
   describe('POST /', () => {
     it('should create a new agent relation', async () => {
       const tenantId = createTestTenantId('agent-relations-create-success');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const agentRelationData = createTestAgentRelationData({
-        agentId: agentAgentId,
+        agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(agentRelationData),
@@ -144,9 +143,9 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agent-relations-create-validation');
       await ensureTestProject(tenantId, projectId);
-      const { agentAgentId } = await setupTestEnvironment(tenantId);
+      const { agentId } = await setupTestEnvironment(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -159,19 +158,18 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should reject invalid relation types', async () => {
       const tenantId = createTestTenantId('agent-relations-invalid-type');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const invalidRelationData = {
         id: nanoid(),
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
         relationType: 'invalid-type',
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`,
         {
           method: 'POST',
           body: JSON.stringify(invalidRelationData),
@@ -187,21 +185,20 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should create transfer relation type', async () => {
       const tenantId = createTestTenantId('agent-relations-transfer-type');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createTestAgentRelationData({
-        agentId: agentAgentId,
+      const agentRelationData = createTestAgentRelationData({
+        agentId,
         sourceSubAgentId,
         targetSubAgentId,
         relationType: 'transfer',
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`,
         {
           method: 'POST',
-          body: JSON.stringify(relationData),
+          body: JSON.stringify(agentRelationData),
         }
       );
 
@@ -213,21 +210,20 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should create delegate relation type', async () => {
       const tenantId = createTestTenantId('agent-relations-delegate-type');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createTestAgentRelationData({
-        agentId: agentAgentId,
+      const agentRelationData = createTestAgentRelationData({
+        agentId,
         sourceSubAgentId,
         targetSubAgentId,
         relationType: 'delegate',
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`,
         {
           method: 'POST',
-          body: JSON.stringify(relationData),
+          body: JSON.stringify(agentRelationData),
         }
       );
 
@@ -241,9 +237,9 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should list agent relations with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-relations-list-empty');
       await ensureTestProject(tenantId, projectId);
-      const { agentAgentId } = await setupTestEnvironment(tenantId);
+      const { agentId } = await setupTestEnvironment(tenantId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`
       );
       expect(res.status).toBe(200);
 
@@ -255,17 +251,16 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should list agent relations with pagination (single item)', async () => {
       const tenantId = createTestTenantId('agent-relations-list-single');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations`
       );
       expect(res.status).toBe(200);
 
@@ -280,29 +275,28 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should filter by sourceSubAgentId', async () => {
       const tenantId = createTestTenantId('agent-relations-filter-source');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { subAgentId: otherSourceAgentId } = await createTestAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         suffix: ' Other Source',
       });
 
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId: otherSourceAgentId,
         targetSubAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations?sourceSubAgentId=${sourceSubAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations?sourceSubAgentId=${sourceSubAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -314,29 +308,28 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should filter by targetSubAgentId', async () => {
       const tenantId = createTestTenantId('agent-relations-filter-target');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { subAgentId: otherTargetAgentId } = await createTestAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         suffix: ' Other Target',
       });
 
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId: otherTargetAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations?targetSubAgentId=${targetSubAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations?targetSubAgentId=${targetSubAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -348,25 +341,24 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should filter by relation type', async () => {
       const tenantId = createTestTenantId('agent-relations-filter-type');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { subAgentId: otherTargetId } = await createTestAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         suffix: ' Other Target',
       });
 
       // Create both transfer and delegate relations
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
         relationType: 'transfer',
       });
       await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId: otherTargetId,
         relationType: 'delegate',
@@ -374,7 +366,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
 
       // Filter for transfer relations only
       const transferRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations?sourceSubAgentId=${sourceSubAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations?sourceSubAgentId=${sourceSubAgentId}`
       );
       expect(transferRes.status).toBe(200);
 
@@ -392,17 +384,16 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should get an agent relation by id', async () => {
       const tenantId = createTestTenantId('agent-relations-get-by-id');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { agentRelationId } = await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations/${agentRelationId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`
       );
       expect(res.status).toBe(200);
 
@@ -428,11 +419,10 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should update an existing agent relation', async () => {
       const tenantId = createTestTenantId('agent-relations-update-success');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { agentRelationId } = await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
         relationType: 'transfer',
@@ -443,7 +433,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -478,11 +468,10 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should reject invalid relation type in updates', async () => {
       const tenantId = createTestTenantId('agent-relations-update-invalid-type');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { agentRelationId } = await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
@@ -492,7 +481,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(invalidUpdateData),
@@ -510,17 +499,16 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
     it('should delete an existing agent relation', async () => {
       const tenantId = createTestTenantId('agent-relations-delete-success');
       await ensureTestProject(tenantId, projectId);
-      const { sourceSubAgentId, targetSubAgentId, agentAgentId } =
-        await setupTestEnvironment(tenantId);
+      const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
       const { agentRelationId } = await createTestAgentRelation({
         tenantId,
-        agentId: agentAgentId,
+        agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations/${agentRelationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`,
         {
           method: 'DELETE',
         }
@@ -529,7 +517,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(204);
 
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agent-relations/${agentRelationId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-relations/${agentRelationId}`
       );
       expect(getRes.status).toBe(404);
     });

@@ -398,7 +398,7 @@ export class Agent implements AgentInterface {
         agentId: this.agentId,
         agentCount: this.subAgents.length,
       },
-      'Initializing agent agent using new agent endpoint'
+      'Initializing agent using new agent endpoint'
     );
 
     try {
@@ -435,7 +435,7 @@ export class Agent implements AgentInterface {
           agentId: this.agentId,
           agentCount: Object.keys(createdAgent.subAgents || {}).length,
         },
-        'Agent agent initialized successfully using agent endpoint'
+        'Agent initialized successfully using agent endpoint'
       );
 
       this.initialized = true;
@@ -445,7 +445,7 @@ export class Agent implements AgentInterface {
           agentId: this.agentId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to initialize agent agent using agent endpoint'
+        'Failed to initialize agent using agent endpoint'
       );
       throw error;
     }
@@ -466,7 +466,7 @@ export class Agent implements AgentInterface {
         agentId: this.agentId,
         agentCount: this.subAgents.length,
       },
-      'Initializing agent agent'
+      'Initializing agent'
     );
 
     try {
@@ -513,7 +513,7 @@ export class Agent implements AgentInterface {
 
       await Promise.all(initPromises);
 
-      // Step 2: Create agent agent in database (now that agents exist)
+      // Step 2: Create agent in database (now that agents exist)
       await this.saveToDatabase();
 
       // Step 3: Create external agents in database
@@ -532,7 +532,7 @@ export class Agent implements AgentInterface {
           agentId: this.agentId,
           agentCount: this.subAgents.length,
         },
-        'Agent agent initialized successfully'
+        'Agent initialized successfully'
       );
     } catch (error) {
       logger.error(
@@ -540,7 +540,7 @@ export class Agent implements AgentInterface {
           agentId: this.agentId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to initialize agent agent'
+        'Failed to initialize agent'
       );
       throw error;
     }

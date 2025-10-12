@@ -47,7 +47,7 @@ app.openapi(
     operationId: 'create-full-agent',
     tags: ['Full Agent'],
     description:
-      'Create a complete agent agent with all agents, tools, and relationships from JSON definition',
+      'Create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -103,8 +103,7 @@ app.openapi(
     summary: 'Get Full Agent',
     operationId: 'get-full-agent',
     tags: ['Full Agent'],
-    description:
-      'Retrieve a complete agent agent definition with all agents, tools, and relationships',
+    description: 'Retrieve a complete agent definition with all agents, tools, and relationships',
     request: {
       params: AgentIdParamsSchema,
     },
@@ -164,7 +163,7 @@ app.openapi(
     operationId: 'update-full-agent',
     tags: ['Full Agent'],
     description:
-      'Update or create a complete agent agent with all agents, tools, and relationships from JSON definition',
+      'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
       params: AgentIdParamsSchema,
       body: {

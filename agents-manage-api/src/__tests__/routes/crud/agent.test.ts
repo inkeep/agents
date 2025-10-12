@@ -1,7 +1,5 @@
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
-import { createTestAgentData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -25,7 +23,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
     };
   };
 
-  // Helper function to create an agent (needed for agent agent)
+  // Helper function to create an agent (needed for agent)
   const createTestSubAgent = async ({
     tenantId,
     agentId,
@@ -49,7 +47,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
     return { agentData, subAgentId: createBody.data.id };
   };
 
-  // Helper function to create an agent agent and return its ID
+  // Helper function to create an agent and return its ID
   const createTestAgent = async ({
     tenantId,
     defaultSubAgentId = null,
@@ -69,7 +67,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
     return { agentData, agentId: createBody.data.id };
   };
 
-  // Helper function to create multiple agent agent
+  // Helper function to create multiple agents
   const createMultipleAgents = async ({ tenantId, count }: { tenantId: string; count: number }) => {
     const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
@@ -95,7 +93,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
   };
 
   describe('GET /', () => {
-    it('should list agent agent with pagination (empty initially)', async () => {
+    it('should list agents with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-agent-list-empty');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
@@ -115,20 +113,20 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       });
     });
 
-    it('should list agent agent with pagination (single item)', async () => {
+    it('should list agents with pagination (single item)', async () => {
       const tenantId = createTestTenantId('agent-agent-list-single');
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({
+      const { agentData, agentId } = await createTestAgent({
         tenantId,
       });
 
       // Create agent with the agentId
-      const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
@@ -141,7 +139,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data).toHaveLength(1);
       expect(body.data[0]).toMatchObject({
-        id: agentAgentId,
+        id: agentId,
         defaultSubAgentId: subAgentId,
         tenantId,
       });
@@ -173,38 +171,36 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
         pages: 3,
       });
 
-      // Verify all agent agent are present
+      // Verify all agents are present
       expect(page1Body.data.every((g: any) => g.tenantId === tenantId)).toBe(true);
     });
   });
 
   describe('GET /{id}', () => {
-    it('should get an agent agent by id', async () => {
+    it('should get an agent by id', async () => {
       const tenantId = createTestTenantId('agent-agent-get-by-id');
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentData: agentAgentData, agentId: agentAgentId } = await createTestAgent({
+      const { agentData, agentId } = await createTestAgent({
         tenantId,
       });
 
       // Create agent with the agentId
-      const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`);
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: agentAgentId,
+        id: agentId,
         defaultSubAgentId: subAgentId,
         tenantId,
       });
@@ -212,7 +208,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       expect(body.data.updatedAt).toBeDefined();
     });
 
-    it('should return 404 when agent agent not found', async () => {
+    it('should return 404 when agent not found', async () => {
       const tenantId = createTestTenantId('agent-agent-get-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
@@ -223,10 +219,10 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body).toEqual({
         code: 'not_found',
-        detail: 'Agent agent not found',
+        detail: 'Agent not found',
         error: {
           code: 'not_found',
-          message: 'Agent agent not found',
+          message: 'Agent not found',
         },
         status: 404,
         title: 'Not Found',
@@ -257,26 +253,26 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
   });
 
   describe('POST /', () => {
-    it('should create a new agent agent', async () => {
+    it('should create a new agent', async () => {
       const tenantId = createTestTenantId('agent-agent-create-success');
       await ensureTestProject(tenantId, projectId);
 
       // Create a temporary agent first for the agent
       const tempAgent = await createTestAgent({ tenantId });
       const { subAgentId } = await createTestSubAgent({ tenantId, agentId: tempAgent.agentId });
-      const agentAgentData = createAgentData({ defaultSubAgentId: subAgentId });
+      const agentData = createAgentData({ defaultSubAgentId: subAgentId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
         method: 'POST',
-        body: JSON.stringify(agentAgentData),
+        body: JSON.stringify(agentData),
       });
 
       expect(res.status).toBe(201);
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: agentAgentData.id,
-        defaultSubAgentId: agentAgentData.defaultSubAgentId,
+        id: agentData.id,
+        defaultSubAgentId: agentData.defaultSubAgentId,
         tenantId,
       });
       expect(body.data.createdAt).toBeDefined();
@@ -296,22 +292,22 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
   });
 
   describe('PUT /{id}', () => {
-    it('should update an existing agent agent', async () => {
+    it('should update an existing agent', async () => {
       const tenantId = createTestTenantId('agent-agent-update-success');
       await ensureTestProject(tenantId, projectId);
 
       // Create the agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create agents with the agentId
       const { subAgentId: originalAgentId } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' Original',
       });
       const { subAgentId: newAgentId } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' New',
       });
 
@@ -320,7 +316,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -331,13 +327,13 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: agentAgentId,
+        id: agentId,
         defaultSubAgentId: newAgentId,
         tenantId,
       });
     });
 
-    it('should return 404 when updating non-existent agent agent', async () => {
+    it('should return 404 when updating non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-agent-update-not-found');
       await ensureTestProject(tenantId, projectId);
 
@@ -361,24 +357,24 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
   });
 
   describe('DELETE /{id}', () => {
-    it('should delete an existing agent agent', async () => {
+    it('should delete an existing agent', async () => {
       const tenantId = createTestTenantId('agent-agent-delete-success');
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create agent with the agentId
-      const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
         {
           method: 'DELETE',
         }
@@ -386,14 +382,14 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(204);
 
-      // Verify the agent agent is deleted
+      // Verify the agent is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
       );
       expect(getRes.status).toBe(404);
     });
 
-    it('should return 404 when deleting non-existent agent agent', async () => {
+    it('should return 404 when deleting non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-agent-delete-not-found');
       await ensureTestProject(tenantId, projectId);
       const res = await makeRequest(
@@ -414,19 +410,19 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create agent with the agentId
-      const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/sub-agents/${subAgentId}/related`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agents/${subAgentId}/related`
       );
       expect(res.status).toBe(200);
 
@@ -449,27 +445,27 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create agent with the agentId
-      const { subAgentId } = await createTestSubAgent({ tenantId, agentId: agentAgentId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/full`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/full`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body).toHaveProperty('data');
       expect(body.data).toMatchObject({
-        id: agentAgentId,
-        name: agentAgentId, // Using agentId as name
+        id: agentId,
+        name: agentId,
         defaultSubAgentId: subAgentId,
       });
 
@@ -500,10 +496,10 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body).toEqual({
         code: 'not_found',
-        detail: 'Agent agent not found',
+        detail: 'Agent not found',
         error: {
           code: 'not_found',
-          message: 'Agent agent not found',
+          message: 'Agent not found',
         },
         status: 404,
         title: 'Not Found',
@@ -515,27 +511,27 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create the agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create multiple agents with the agentId
       const { subAgentId: agent1Id } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' 1',
       });
       const { subAgentId: agent2Id } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' 2',
       });
       const { subAgentId: agent3Id } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' 3',
       });
 
       // Update agent with agent1 as default
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: agent1Id }),
       });
@@ -546,7 +542,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
         await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-relations`, {
           method: 'POST',
           body: JSON.stringify({
-            agentId: agentAgentId,
+            agentId,
             sourceSubAgentId: agent1Id,
             targetSubAgentId: agent2Id,
             relationType: 'transfer',
@@ -556,7 +552,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
         await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent-relations`, {
           method: 'POST',
           body: JSON.stringify({
-            agentId: agentAgentId,
+            agentId,
             sourceSubAgentId: agent2Id,
             targetSubAgentId: agent3Id,
             relationType: 'transfer',
@@ -569,7 +565,7 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       }
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/full`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/full`
       );
       expect(res.status).toBe(200);
 
@@ -601,23 +597,23 @@ describe('Agent Agent CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create the agent first
-      const { agentId: agentAgentId } = await createTestAgent({ tenantId });
+      const { agentId } = await createTestAgent({ tenantId });
 
       // Create agent with the agentId
       const { subAgentId } = await createTestSubAgent({
         tenantId,
-        agentId: agentAgentId,
+        agentId,
         suffix: ' Default',
       });
 
       // Update agent with default agent
-      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}`, {
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`, {
         method: 'PUT',
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentAgentId}/full`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/full`
       );
       expect(res.status).toBe(200);
 
