@@ -140,7 +140,7 @@ Use header values to fetch dynamic data from external APIs:
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     auth_token: z.string(),
@@ -153,14 +153,14 @@ const userDataFetcher = fetchDefinition({
   id: "user-data",
   name: "User Data",
   fetchConfig: {
-    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}/profile`,
+    url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}/profile`,
     headers: {
-      Authorization: `Bearer ${personalGraphHeaders.toTemplate('auth_token')}`,
-      "X-Organization": personalGraphHeaders.toTemplate('org_name')
+      Authorization: `Bearer ${personalAgentHeaders.toTemplate('auth_token')}`,
+      "X-Organization": personalAgentHeaders.toTemplate('org_name')
     },
     body: {
       includePreferences: true,
-      userId: personalGraphHeaders.toTemplate('user_id')
+      userId: personalAgentHeaders.toTemplate('user_id')
     }
   },
   responseSchema: z.object({
@@ -172,7 +172,7 @@ const userDataFetcher = fetchDefinition({
 // Configure context for your agent
 // You must include the headers schema and fetchers in your context config.
 const personalAgentContext = contextConfig({
-  headers: personalGraphHeaders,
+  headers: personalAgentHeaders,
   contextVariables: {
     user: userFetcher,
   },
@@ -209,7 +209,7 @@ Configure external agents or MCP servers with dynamic headers using the headers 
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     auth_token: z.string(),
@@ -222,15 +222,15 @@ const externalAgent = externalAgent({
   id: "external-service",
   baseUrl: "https://external.api.com",
   headers: {
-    Authorization: `Bearer ${personalGraphHeaders.toTemplate('auth_token')}`,
-    "X-User-Context": personalGraphHeaders.toTemplate('user_id'),
-    "X-Org": personalGraphHeaders.toTemplate('org_name')
+    Authorization: `Bearer ${personalAgentHeaders.toTemplate('auth_token')}`,
+    "X-User-Context": personalAgentHeaders.toTemplate('user_id'),
+    "X-Org": personalAgentHeaders.toTemplate('org_name')
   }
 });
 
 // Configure context for your agent with your headers schema.
 const personalAgentContext = contextConfig({
-  headers: personalGraphHeaders,
+  headers: personalAgentHeaders,
 });
 ```
 
