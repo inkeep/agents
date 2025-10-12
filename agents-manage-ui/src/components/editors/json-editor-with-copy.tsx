@@ -1,10 +1,10 @@
 import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
-import { JsonEditor } from './json-editor';
-import { Button } from '@/components/ui/button';
 import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import type * as monaco from 'monaco-editor';
+import { JsonEditor } from './json-editor';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import './json-editor-with-copy.css';
 
 const handleCopyFieldValue =
