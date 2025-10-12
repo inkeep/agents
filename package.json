@@ -29,6 +29,7 @@
     "format": "biome format --write",
     "format:check": "biome format",
     "typecheck": "turbo typecheck",
+    "typecheck:watch": "turbo typecheck:watch",
     "precheck": "pnpm install --frozen-lockfile",
     "check": "turbo check",
     "check:husky": "turbo check:husky",

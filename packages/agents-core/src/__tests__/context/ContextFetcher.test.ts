@@ -771,10 +771,10 @@ describe('ContextFetcher', () => {
   describe('GraphQL error handling', () => {
     it('should detect and throw on GraphQL errors in response', async () => {
       const definition: ContextFetchDefinition = {
-        id: 'test-graphql-fetch',
+        id: 'test-agentql-fetch',
         trigger: 'initialization',
         fetchConfig: {
-          url: 'https://api.example.com/graphql',
+          url: 'https://api.example.com/agentql',
           method: 'POST',
           body: { query: '{ user { id name } }' },
           headers: {
@@ -795,7 +795,7 @@ describe('ContextFetcher', () => {
               message: 'Cannot query field "name" on type "User".',
               locations: [{ line: 1, column: 15 }],
               extensions: {
-                code: 'GRAPHQL_VALIDATION_FAILED',
+                code: 'AGENTQL_VALIDATION_FAILED',
               },
             },
             {
@@ -816,10 +816,10 @@ describe('ContextFetcher', () => {
 
     it('should not throw on successful GraphQL response without errors', async () => {
       const definition: ContextFetchDefinition = {
-        id: 'test-graphql-fetch',
+        id: 'test-agentql-fetch',
         trigger: 'initialization',
         fetchConfig: {
-          url: 'https://api.example.com/graphql',
+          url: 'https://api.example.com/agentql',
           method: 'POST',
           body: { query: '{ user { id name } }' },
           headers: {
@@ -857,10 +857,10 @@ describe('ContextFetcher', () => {
 
     it('should handle GraphQL response with empty errors array', async () => {
       const definition: ContextFetchDefinition = {
-        id: 'test-graphql-fetch',
+        id: 'test-agentql-fetch',
         trigger: 'initialization',
         fetchConfig: {
-          url: 'https://api.example.com/graphql',
+          url: 'https://api.example.com/agentql',
           method: 'POST',
           body: { query: '{ user { id } }' },
         },
@@ -887,10 +887,10 @@ describe('ContextFetcher', () => {
 
     it('should handle GraphQL errors without message field', async () => {
       const definition: ContextFetchDefinition = {
-        id: 'test-graphql-fetch',
+        id: 'test-agentql-fetch',
         trigger: 'initialization',
         fetchConfig: {
-          url: 'https://api.example.com/graphql',
+          url: 'https://api.example.com/agentql',
           method: 'POST',
           body: { query: '{ user { id } }' },
         },

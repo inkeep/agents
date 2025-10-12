@@ -35,7 +35,7 @@ Let's create a simple context fetcher that retrieves user information:
 
 ```typescript
 import { z } from "zod";
-import { agent, agentGraph } from "@inkeep/agents-manage-api/builders";
+import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
 import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 
 // 1. Define a schema for headers validation. All header keys are converted to lowercase.
@@ -78,7 +78,7 @@ const personalGraphContext = contextConfig({
 });
 
 // 4. Create and use the agent
-const personalAgent = agent({
+const personalAgent = subAgent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
@@ -86,11 +86,11 @@ const personalAgent = agent({
 });
 
 // Initialize the graph
-export const graph = agentGraph({
+export const graph = agent({
   id: "personal-graph",
   name: "Personal Assistant Graph",
   defaultSubAgent: personalAgent,
-  agents: () => [personalAgent],
+  subAgents: () => [personalAgent],
   contextConfig: personalGraphContext,
 });
 ```
@@ -108,7 +108,7 @@ const personalGraphContext = contextConfig({
   },
 });
 
-const personalAgent = agent({
+const personalAgent = subAgent({
   id: "personal-agent",
   name: "Personal Assistant",
   description: "A personalized AI assistant",

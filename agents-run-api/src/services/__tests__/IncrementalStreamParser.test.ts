@@ -5,8 +5,8 @@ import { IncrementalStreamParser } from '../IncrementalStreamParser';
 
 // Mock dependencies
 vi.mock('../ArtifactParser');
-vi.mock('../GraphSession', () => ({
-  graphSessionManager: {
+vi.mock('../AgentSession', () => ({
+  agentSessionManager: {
     getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },
 }));

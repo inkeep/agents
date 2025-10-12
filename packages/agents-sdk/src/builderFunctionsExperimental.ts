@@ -2,7 +2,7 @@
  * Creates an agent relation configuration.
  *
  * Relations define how agents can interact with each other.
- * Transfer relations allow handoffs, while delegate relations
+ * Transfer relations allow transfers, while delegate relations
  * allow temporary task delegation.
  *
  * @param targetAgent - The ID of the target agent

@@ -279,13 +279,13 @@ export async function getFormattedConversationHistory({
         (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
       ) {
         // For agent messages, include sender and recipient info when available
-        const fromAgent = msg.fromAgentId || msg.fromExternalAgentId || 'unknown';
-        const toAgent = msg.toAgentId || msg.toExternalAgentId || 'unknown';
+        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
 
-        roleLabel = `${fromAgent} to ${toAgent}`;
+        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
-        const fromAgent = msg.fromAgentId || 'unknown';
-        roleLabel = `${fromAgent} to User`;
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to User`;
       } else {
         // System or other message types
         roleLabel = msg.role || 'system';

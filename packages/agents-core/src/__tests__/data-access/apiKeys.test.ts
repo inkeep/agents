@@ -1,3 +1,4 @@
+import type { ApiKeyInsert } from '@inkeep/agents-core/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   countApiKeys,
@@ -26,7 +27,7 @@ describe('API Keys Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -39,11 +40,11 @@ describe('API Keys Data Access', () => {
         id: apiKeyId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         publicId: 'pub-1',
         keyPrefix: 'ik_test',
         keyHash: 'hash123',
-      };
+      } satisfies ApiKeyInsert;
 
       const mockQuery = {
         apiKeys: {
@@ -138,10 +139,10 @@ describe('API Keys Data Access', () => {
   });
 
   describe('listApiKeys', () => {
-    it('should list API keys with graphId filter', async () => {
+    it('should list API keys with agentId filter', async () => {
       const expectedApiKeys = [
-        { id: 'key-1', graphId: testGraphId, keyPrefix: 'ik_test_1' },
-        { id: 'key-2', graphId: testGraphId, keyPrefix: 'ik_test_2' },
+        { id: 'key-1', agentId: testAgentId, keyPrefix: 'ik_test_1' },
+        { id: 'key-2', agentId: testAgentId, keyPrefix: 'ik_test_2' },
       ];
 
       const mockQuery = {
@@ -160,17 +161,17 @@ describe('API Keys Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
         },
-        graphId: testGraphId,
+        agentId: testAgentId,
       });
 
       expect(mockQuery.apiKeys.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedApiKeys);
     });
 
-    it('should list API keys without graphId filter', async () => {
+    it('should list API keys without agentId filter', async () => {
       const expectedApiKeys = [
-        { id: 'key-1', graphId: 'graph-1', keyPrefix: 'ik_test_1' },
-        { id: 'key-2', graphId: 'graph-2', keyPrefix: 'ik_test_2' },
+        { id: 'key-1', agentId: 'agent-1', keyPrefix: 'ik_test_1' },
+        { id: 'key-2', agentId: 'agent-2', keyPrefix: 'ik_test_2' },
       ];
 
       const mockQuery = {
@@ -237,7 +238,7 @@ describe('API Keys Data Access', () => {
           page: 1,
           limit: 10,
         },
-        graphId: testGraphId,
+        agentId: testAgentId,
       });
 
       expect(result).toEqual({
@@ -328,12 +329,12 @@ describe('API Keys Data Access', () => {
         id: 'key-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
         expiresAt: '2024-12-31T23:59:59Z',
-      };
+      } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
         ...apiKeyData,
@@ -365,11 +366,11 @@ describe('API Keys Data Access', () => {
         id: 'key-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
+        agentId: testAgentId,
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
-      };
+      } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
         ...apiKeyData,
@@ -621,7 +622,7 @@ describe('API Keys Data Access', () => {
   });
 
   describe('countApiKeys', () => {
-    it('should count API keys with graphId filter', async () => {
+    it('should count API keys with agentId filter', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 5 }]),
@@ -638,14 +639,14 @@ describe('API Keys Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
         },
-        graphId: testGraphId,
+        agentId: testAgentId,
       });
 
       expect(mockSelect).toHaveBeenCalled();
       expect(result).toBe(5);
     });
 
-    it('should count API keys without graphId filter', async () => {
+    it('should count API keys without agentId filter', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 10 }]),

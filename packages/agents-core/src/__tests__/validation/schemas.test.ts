@@ -45,15 +45,15 @@ describe('Validation Schemas', () => {
     });
   });
 
-  describe('AgentInsertSchema', () => {
-    it('should validate a complete agent insert object', () => {
-      const validAgent = {
-        id: 'test-agent',
+  describe('SubAgentInsertSchema', () => {
+    it('should validate a complete sub-agent insert object', () => {
+      const validSubAgent = {
+        id: 'test-sub-agent',
         tenantId: 'tenant-1',
         projectId: 'project-1',
-        graphId: 'graph-1',
-        name: 'Test Agent',
-        description: 'A test agent',
+        agentId: 'agent-1',
+        name: 'Test Sub-Agent',
+        description: 'A test sub-agent',
         prompt: 'Test prompt',
         models: {
           base: {
@@ -70,35 +70,35 @@ describe('Validation Schemas', () => {
         },
       };
 
-      expect(() => SubAgentInsertSchema.parse(validAgent)).not.toThrow();
+      expect(() => SubAgentInsertSchema.parse(validSubAgent)).not.toThrow();
     });
 
-    it('should validate minimal agent insert object', () => {
-      const minimalAgent = {
-        id: 'test-agent',
+    it('should validate minimal sub-agent insert object', () => {
+      const minimalSubAgent = {
+        id: 'test-sub-agent',
         tenantId: 'tenant-1',
         projectId: 'project-1',
-        graphId: 'graph-1',
-        name: 'Test Agent',
-        description: 'A test agent',
+        agentId: 'agent-1',
+        name: 'Test Sub-Agent',
+        description: 'A test sub-agent',
         prompt: 'Test prompt',
       };
 
-      expect(() => SubAgentInsertSchema.parse(minimalAgent)).not.toThrow();
+      expect(() => SubAgentInsertSchema.parse(minimalSubAgent)).not.toThrow();
     });
 
-    it('should reject invalid agent insert object', () => {
-      const invalidAgent = {
+    it('should reject invalid sub-agent insert object', () => {
+      const invalidSubAgent = {
         // missing required fields
-        id: 'test-agent',
-        name: 'Test Agent',
+        id: 'test-sub-agent',
+        name: 'Test Sub-Agent',
       };
 
-      expect(() => SubAgentInsertSchema.parse(invalidAgent)).toThrow();
+      expect(() => SubAgentInsertSchema.parse(invalidSubAgent)).toThrow();
     });
   });
 
-  describe('AgentUpdateSchema', () => {
+  describe('SubAgentApiUpdateSchema', () => {
     it('should allow partial updates', () => {
       const partialUpdate = {
         name: 'Updated Name',
@@ -124,28 +124,28 @@ describe('Validation Schemas', () => {
     });
   });
 
-  describe('AgentApiInsertSchema', () => {
-    it('should accept agent data without tenant/project IDs', () => {
-      const apiAgent = {
-        id: 'test-agent',
-        name: 'Test Agent',
-        description: 'A test agent',
+  describe('SubAgentApiInsertSchema', () => {
+    it('should accept sub-agent data without tenant/project IDs', () => {
+      const apiSubAgent = {
+        id: 'test-sub-agent',
+        name: 'Test Sub-Agent',
+        description: 'A test sub-agent',
         prompt: 'Test prompt',
       };
 
-      expect(() => SubAgentApiInsertSchema.parse(apiAgent)).not.toThrow();
+      expect(() => SubAgentApiInsertSchema.parse(apiSubAgent)).not.toThrow();
     });
 
-    it('should reject agent data with tenant/project IDs', () => {
-      const apiAgent = {
-        id: 'test-agent',
+    it('should reject sub-agent data with tenant/project IDs', () => {
+      const apiSubAgent = {
+        id: 'test-sub-agent',
         tenantId: 'tenant-1', // Should be omitted in API schema
-        name: 'Test Agent',
-        description: 'A test agent',
+        name: 'Test Sub-Agent',
+        description: 'A test sub-agent',
         prompt: 'Test prompt',
       };
 
-      const result = SubAgentApiInsertSchema.parse(apiAgent);
+      const result = SubAgentApiInsertSchema.parse(apiSubAgent);
       expect(result).not.toHaveProperty('tenantId');
     });
   });
@@ -156,8 +156,8 @@ describe('Validation Schemas', () => {
         id: 'task-1',
         tenantId: 'tenant-1',
         projectId: 'project-1',
-        graphId: 'graph-1',
-        subAgentId: 'agent-1',
+        agentId: 'agent-1',
+        subAgentId: 'sub-agent-1',
         contextId: 'context-1',
         status: 'pending',
         metadata: {
@@ -174,8 +174,8 @@ describe('Validation Schemas', () => {
         id: 'task-1',
         tenantId: 'tenant-1',
         projectId: 'project-1',
-        graphId: 'graph-1',
-        subAgentId: 'agent-1',
+        agentId: 'agent-1',
+        subAgentId: 'sub-agent-1',
         contextId: 'context-1',
         status: 'pending',
       };
@@ -191,7 +191,7 @@ describe('Validation Schemas', () => {
         tenantId: 'tenant-1',
         projectId: 'project-1',
         userId: 'user-1',
-        activeSubAgentId: 'agent-1',
+        activeSubAgentId: 'sub-agent-1',
         title: 'Test Conversation',
         metadata: {
           source: 'web',

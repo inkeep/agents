@@ -40,7 +40,7 @@ pnpm db:check        # Check database schema
 
 # Running examples (from the examples directory)
 # Note: Use the globally installed inkeep CLI, not npx
-inkeep push agent-configurations/graph.graph.ts
+inkeep push
 inkeep chat
 
 # Documentation development (from agents-docs directory)

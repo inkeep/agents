@@ -30,7 +30,7 @@ export function useAutoPrefillIdZustand({
     currentIdValue.current = idValue;
   }, [onIdChange, idValue]);
 
-  // Reset manual edit tracking when switching between graphs
+  // Reset manual edit tracking when switching between agent
   useEffect(() => {
     if (isEditing) {
       hasManuallyEditedId.current = false;

@@ -43,7 +43,7 @@ const calculateBMI = functionTool({
   },
 });
 
-const healthAgent = agent({
+const healthAgent = subAgent({
   id: "health-agent",
   name: "Health Assistant",
   prompt: "I help with health calculations using available tools.",

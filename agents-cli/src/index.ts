@@ -7,7 +7,7 @@ import { addCommand } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
-import { listGraphsCommand } from './commands/list-graphs';
+import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
 
@@ -119,28 +119,28 @@ program
 
 // Chat command
 program
-  .command('chat [graph-id]')
+  .command('chat [agent-id]')
   .description(
-    'Start an interactive chat session with a graph (interactive selection if no ID provided)'
+    'Start an interactive chat session with an agent (interactive selection if no ID provided)'
   )
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--agents-run-api-url <url>', 'Agents run API URL')
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (graphId, options) => {
+  .action(async (agentId, options) => {
     // Import the enhanced version with autocomplete
     const { chatCommandEnhanced } = await import('./commands/chat-enhanced.js');
     // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
-    await chatCommandEnhanced(graphId, { ...options, config });
+    await chatCommandEnhanced(agentId, { ...options, config });
   });
 
-// List graphs command
+// List agent command
 program
-  .command('list-graphs')
-  .description('List all available graphs for a specific project')
-  .requiredOption('--project <project-id>', 'Project ID to list graphs for')
+  .command('list-agent')
+  .description('List all available agent for a specific project')
+  .requiredOption('--project <project-id>', 'Project ID to list agent for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--config <path>', 'Path to configuration file')
@@ -148,7 +148,7 @@ program
   .action(async (options) => {
     // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
-    await listGraphsCommand({ ...options, config });
+    await listAgentsCommand({ ...options, config });
   });
 
 // Dev command

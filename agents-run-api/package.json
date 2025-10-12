@@ -23,7 +23,8 @@
     "test:ci": "vitest --run --config vitest.config.ci.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.2",

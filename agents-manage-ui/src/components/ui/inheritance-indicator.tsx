@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 export interface InheritanceIndicatorProps {
   /** Whether this value is explicitly set (not inherited) */
   isExplicit?: boolean;
-  /** The source of inheritance (e.g., "Project", "Graph") */
+  /** The source of inheritance (e.g., "Project", "Agent") */
   inheritedFrom?: string;
   /** Additional tooltip information */
   tooltip?: string;
@@ -104,7 +104,7 @@ export function InheritanceIndicator({
 
 // Helper function to determine inheritance status for models
 export function getModelInheritanceStatus(
-  currentLevel: 'project' | 'graph' | 'agent',
+  currentLevel: 'project' | 'agent' | 'subagent',
   currentValue: any,
   parentValue: any,
   grandparentValue?: any
@@ -123,7 +123,7 @@ export function getModelInheritanceStatus(
   // This handles the case where the builder resolves inheritance and stores the actual values
   if (currentLevel !== 'project') {
     if (hasCurrentValue && hasParentValue && currentValue === parentValue) {
-      const inheritedFromLevel = currentLevel === 'agent' ? 'Graph' : 'Project';
+      const inheritedFromLevel = currentLevel === 'agent' ? 'Agent' : 'Project';
       return {
         isExplicit: false,
         inheritedFrom: inheritedFromLevel,
@@ -131,7 +131,7 @@ export function getModelInheritanceStatus(
       };
     }
 
-    // For agent level: also check if it matches grandparent (when graph doesn't have it set)
+    // For agent level: also check if it matches grandparent (when agent doesn't have it set)
     if (
       currentLevel === 'agent' &&
       hasCurrentValue &&
@@ -157,12 +157,12 @@ export function getModelInheritanceStatus(
 
   // No current value - show what would be inherited
   switch (currentLevel) {
-    case 'agent':
+    case 'subagent':
       if (hasParentValue) {
         return {
           isExplicit: false,
-          inheritedFrom: 'Graph',
-          tooltip: 'Will inherit from the graph level',
+          inheritedFrom: 'Agent',
+          tooltip: 'Will inherit from the agent level',
         };
       }
       if (hasGrandparentValue) {
@@ -173,8 +173,7 @@ export function getModelInheritanceStatus(
         };
       }
       break;
-
-    case 'graph':
+    case 'agent':
       if (hasParentValue) {
         return {
           isExplicit: false,
@@ -198,7 +197,7 @@ export function getModelInheritanceStatus(
 
 // Helper function for execution limits inheritance
 export function getExecutionLimitInheritanceStatus(
-  currentLevel: 'project' | 'graph' | 'agent',
+  currentLevel: 'project' | 'agent' | 'agent',
   limitType: 'transferCountIs' | 'stepCountIs',
   currentValue: any,
   parentValue: any
@@ -213,7 +212,7 @@ export function getExecutionLimitInheritanceStatus(
   // Check if current value matches parent value (indicating inheritance after builder resolution)
   if (hasCurrentValue && hasParentValue && currentValue === parentValue) {
     // Inheritance rules for execution limits
-    if (limitType === 'transferCountIs' && currentLevel === 'graph') {
+    if (limitType === 'transferCountIs' && currentLevel === 'agent') {
       return {
         isExplicit: false,
         inheritedFrom: 'Project',
@@ -239,8 +238,8 @@ export function getExecutionLimitInheritanceStatus(
 
   // No current value - check what would be inherited
   if (limitType === 'transferCountIs') {
-    // transferCountIs: Project → Graph only
-    if (currentLevel === 'graph' && hasParentValue) {
+    // transferCountIs: Project → Agent only
+    if (currentLevel === 'agent' && hasParentValue) {
       return {
         isExplicit: false,
         inheritedFrom: 'Project',

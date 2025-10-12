@@ -102,7 +102,7 @@ export const QUERY_EXPRESSIONS = {
   CONTEXT_ERRORS: 'contextErrors',
   AGENT_GENERATION_ERRORS: 'agentGenerationErrors',
   USER_MESSAGES: 'userMessages',
-  UNIQUE_GRAPHS: 'uniqueGraphs',
+  UNIQUE_AGENTS: 'uniqueAgents',
   UNIQUE_MODELS: 'uniqueModels',
   // Route-specific query names
   TOOL_CALLS: 'toolCalls',
@@ -144,7 +144,7 @@ export const QUERY_TYPES = {
 export const PANEL_TYPES = {
   LIST: 'list',
   TABLE: 'table',
-  GRAPH: 'graph',
+  AGENT: 'agent',
   VALUE: 'value',
 } as const;
 

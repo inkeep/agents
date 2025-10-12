@@ -116,10 +116,10 @@ describe('Push Command - Project Validation', () => {
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
       getStats: vi.fn().mockReturnValue({
-        graphCount: 1,
+        agentCount: 1,
         tenantId: 'test-tenant',
       }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getAgents: vi.fn().mockReturnValue([]),
     };
 
     // Mock config module
@@ -194,8 +194,8 @@ describe('Push Command - Project Validation', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
       getCredentialTracking: vi.fn().mockResolvedValue({
         credentials: {},
         usage: {},
@@ -235,7 +235,7 @@ describe('Push Command - Project Validation', () => {
     (existsSync as Mock).mockReturnValue(true);
 
     const mockProjectDefinition = {
-      graphs: {},
+      agent: {},
       tools: {},
     };
 
@@ -247,8 +247,8 @@ describe('Push Command - Project Validation', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
       getCredentialTracking: vi.fn().mockResolvedValue({
         credentials: {},
         usage: {},
@@ -340,8 +340,8 @@ describe('Push Command - Output Messages', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
       getCredentialTracking: vi.fn().mockResolvedValue({
         credentials: {},
         usage: {},
@@ -366,8 +366,8 @@ describe('Push Command - Output Messages', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
       getCredentialTracking: vi.fn().mockResolvedValue({
         credentials: {},
         usage: {},
@@ -392,8 +392,8 @@ describe('Push Command - Output Messages', () => {
       init: vi.fn().mockRejectedValue(new Error('Push failed')),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
     };
 
     (importWithTypeScriptSupport as Mock).mockResolvedValueOnce({ default: mockProject });
@@ -414,8 +414,8 @@ describe('Push Command - Output Messages', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
       getCredentialTracking: vi.fn().mockResolvedValue({
         credentials: {},
         usage: {},

@@ -245,11 +245,11 @@ PROJECT JSON DATA:
       expect(promptTemplate).toContain('getTypeDefinitions()');
     });
 
-    it('should be included in graph generation prompts', () => {
-      const promptTemplate = `GRAPH DATA:
+    it('should be included in agent generation prompts', () => {
+      const promptTemplate = `AGENT DATA:
 {{DATA}}
 
-GRAPH ID: {{GRAPH_ID}}
+AGENT ID: {{AGENT_ID}}
 
 \${getTypeDefinitions()}
 

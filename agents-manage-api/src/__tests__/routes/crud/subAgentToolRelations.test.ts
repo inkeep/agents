@@ -1,6 +1,7 @@
 import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
+import { createTestAgentToolRelationData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -88,34 +89,31 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
   const createTestAgent = async ({
     tenantId,
     suffix = '',
-    graphId = undefined,
+    agentId = undefined,
   }: {
     tenantId: string;
     suffix?: string;
-    graphId?: string;
+    agentId?: string;
   }) => {
-    // Create a graph if not provided
-    let effectiveGraphId = graphId;
-    if (!effectiveGraphId) {
-      effectiveGraphId = nanoid();
-      const graphData = {
-        id: effectiveGraphId,
-        name: `Test Graph${suffix}`,
+    // Create an agent if not provided
+    let effectiveAgentId = agentId;
+    if (!effectiveAgentId) {
+      effectiveAgentId = nanoid();
+      const agentData = {
+        id: effectiveAgentId,
+        name: `Test Agent${suffix}`,
         defaultSubAgentId: null,
       };
-      const graphRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
-        {
-          method: 'POST',
-          body: JSON.stringify(graphData),
-        }
-      );
-      expect(graphRes.status).toBe(201);
+      const agentRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      });
+      expect(agentRes.status).toBe(201);
     }
 
     const agentData = { ...createTestSubAgentData({ suffix }) };
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${effectiveGraphId}/sub-agents`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${effectiveAgentId}/sub-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -124,7 +122,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
-    return { agentData, subAgentId: createBody.data.id, graphId: effectiveGraphId };
+    return { agentData, subAgentId: createBody.data.id, agentId: effectiveAgentId };
   };
 
   // Helper function to create a tool
@@ -146,37 +144,21 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     return { toolData, toolId: createBody.data.id };
   };
 
-  // Helper function to create test agent tool relation data
-  const createAgentToolRelationData = ({
-    graphId,
-    subAgentId,
-    toolId,
-  }: {
-    graphId: string;
-    subAgentId: string;
-    toolId: string;
-  }) => ({
-    id: nanoid(),
-    graphId,
-    subAgentId,
-    toolId,
-  });
-
   // Helper function to create an agent tool relation
   const createTestAgentToolRelation = async ({
     tenantId,
-    graphId,
+    agentId,
     subAgentId,
     toolId,
   }: {
     tenantId: string;
-    graphId: string;
+    agentId: string;
     subAgentId: string;
     toolId: string;
   }) => {
-    const relationData = createAgentToolRelationData({ subAgentId, toolId, graphId });
+    const relationData = createTestAgentToolRelationData({ subAgentId, toolId, agentId: agentId });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+      `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
       {
         method: 'POST',
         body: JSON.stringify(relationData),
@@ -192,21 +174,25 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   // Setup function for tests
   const setupTestEnvironment = async (tenantId: string) => {
-    const { subAgentId, graphId } = await createTestAgent({ tenantId, suffix: ' Agent' });
+    const { subAgentId, agentId } = await createTestAgent({ tenantId, suffix: ' Agent' });
     const { toolId } = await createTestTool({ tenantId, suffix: ' Tool' });
-    return { subAgentId, toolId, graphId };
+    return { subAgentId, toolId, agentId };
   };
 
   describe('POST /', () => {
     it('should create a new agent tool relation', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-create-success');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
 
-      const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const relationData = createTestAgentToolRelationData({
+        agentId: agentId,
+        subAgentId,
+        toolId,
+      });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -226,12 +212,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should prevent duplicate agent tool relations', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-create-duplicate');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create first relation
-      const relationData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const relationData = createTestAgentToolRelationData({
+        agentId: agentId,
+        subAgentId,
+        toolId,
+      });
       const firstRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -240,9 +230,13 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       expect(firstRes.status).toBe(201);
 
       // Try to create duplicate
-      const duplicateData = createAgentToolRelationData({ graphId, subAgentId, toolId });
+      const duplicateData = createTestAgentToolRelationData({
+        agentId: agentId,
+        subAgentId,
+        toolId,
+      });
       const duplicateRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(duplicateData),
@@ -254,9 +248,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-create-validation');
       await ensureTestProject(tenantId, 'default');
-      const graphId = 'default';
+      const agentId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify({}),
@@ -271,9 +265,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should list agent tool relations with pagination (empty initially)', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-list-empty');
       await ensureTestProject(tenantId, 'default');
-      const graphId = 'default';
+      const agentId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`
       );
       expect(res.status).toBe(200);
 
@@ -285,16 +279,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should list agent tool relations with pagination (single item)', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-list-single');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
-      const { relationData } = await createTestAgentToolRelation({
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
+      await createTestAgentToolRelation({
         tenantId,
+        agentId,
         subAgentId,
         toolId,
-        graphId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`
       );
       expect(res.status).toBe(200);
 
@@ -309,19 +303,24 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should filter by subAgentId', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-filter-agent');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { subAgentId: otherAgentId } = await createTestAgent({
         tenantId,
         suffix: ' Other Agent',
-        graphId,
+        agentId,
       });
 
       // Create relations with different agents
-      await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
-      await createTestAgentToolRelation({ tenantId, subAgentId: otherAgentId, toolId, graphId });
+      await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
+      await createTestAgentToolRelation({
+        tenantId,
+        agentId,
+        subAgentId: otherAgentId,
+        toolId,
+      });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?subAgentId=${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?subAgentId=${subAgentId}`
       );
       expect(res.status).toBe(200);
 
@@ -333,18 +332,23 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should filter by toolId', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-filter-tool');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { toolId: otherToolId } = await createTestTool({
         tenantId,
         suffix: ' Other Tool',
       });
 
       // Create relations with different tools
-      await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
-      await createTestAgentToolRelation({ tenantId, subAgentId, toolId: otherToolId, graphId });
+      await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
+      await createTestAgentToolRelation({
+        tenantId,
+        agentId,
+        subAgentId,
+        toolId: otherToolId,
+      });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?toolId=${toolId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?toolId=${toolId}`
       );
       expect(res.status).toBe(200);
 
@@ -356,19 +360,19 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should handle pagination with multiple pages', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-list-multipages');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, graphId } = await createTestAgent({ tenantId });
+      const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
       // Create multiple tools and relations
       const toolIds: string[] = [];
       for (let i = 1; i <= 5; i++) {
         const { toolId } = await createTestTool({ tenantId, suffix: ` ${i}` });
         toolIds.push(toolId);
-        await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
+        await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
       }
 
       // Test first page with limit 2
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -383,7 +387,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -402,16 +406,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should get an agent tool relation by id', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-get-by-id');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
-      const { relationData, relationId } = await createTestAgentToolRelation({
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
+      const { relationId } = await createTestAgentToolRelation({
         tenantId,
+        agentId,
         subAgentId,
         toolId,
-        graphId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`
       );
       expect(res.status).toBe(200);
 
@@ -424,9 +428,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should return 404 when agent tool relation not found', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-get-not-found');
       await ensureTestProject(tenantId, 'default');
-      const graphId = 'default';
+      const agentId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`
       );
       expect(res.status).toBe(404);
     });
@@ -437,22 +441,32 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-tool-relations-get-agents-for-tool');
       await ensureTestProject(tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
-      const { subAgentId: subAgentId1, graphId } = await createTestAgent({
+      const { subAgentId: subAgentId1, agentId } = await createTestAgent({
         tenantId,
         suffix: ' 1',
       });
       const { subAgentId: subAgentId2 } = await createTestAgent({
         tenantId,
         suffix: ' 2',
-        graphId,
+        agentId,
       });
 
       // Create relations
-      await createTestAgentToolRelation({ tenantId, subAgentId: subAgentId1, toolId, graphId });
-      await createTestAgentToolRelation({ tenantId, subAgentId: subAgentId2, toolId, graphId });
+      await createTestAgentToolRelation({
+        tenantId,
+        agentId,
+        subAgentId: subAgentId1,
+        toolId,
+      });
+      await createTestAgentToolRelation({
+        tenantId,
+        agentId,
+        subAgentId: subAgentId2,
+        toolId,
+      });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
       );
       expect(res.status).toBe(200);
 
@@ -465,10 +479,10 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-tool-relations-get-agents-empty');
       await ensureTestProject(tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
-      const graphId = 'default';
+      const agentId = 'default';
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/tool/${toolId}/sub-agents`
       );
       expect(res.status).toBe(200);
 
@@ -481,12 +495,12 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should update an existing agent tool relation', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-update-success');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
+        agentId,
         subAgentId,
         toolId,
-        graphId,
       });
 
       // Create a new tool to update the relation
@@ -496,7 +510,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -511,9 +525,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should return 404 when agent tool relation not found for update', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-update-not-found');
       await ensureTestProject(tenantId, 'default');
-      const graphId = 'default';
+      const agentId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify({ toolId: 'some-tool-id' }),
@@ -525,16 +539,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should return 400 when no fields to update', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-update-empty');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
+        agentId,
         subAgentId,
         toolId,
-        graphId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'PUT',
           body: JSON.stringify({}),
@@ -548,16 +562,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should delete an existing agent tool relation', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-delete-success');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
+        agentId,
         subAgentId,
         toolId,
-        graphId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`,
         {
           method: 'DELETE',
         }
@@ -566,7 +580,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
       // Verify it's deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/${relationId}`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/${relationId}`
       );
       expect(getRes.status).toBe(404);
     });
@@ -574,9 +588,9 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should return 404 when agent tool relation not found for deletion', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-delete-not-found');
       await ensureTestProject(tenantId, 'default');
-      const graphId = 'default';
+      const agentId = 'default';
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`,
         {
           method: 'DELETE',
         }
@@ -590,16 +604,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-tool-relations-invalid-agent');
       await ensureTestProject(tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
-      const graphId = 'default';
+      const agentId = 'default';
 
-      const relationData = createAgentToolRelationData({
-        graphId: 'default',
+      const relationData = createTestAgentToolRelationData({
+        agentId: 'default',
         subAgentId: 'non-existent-agent',
         toolId,
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -613,16 +627,16 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should handle invalid tool ID in relation creation', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-invalid-tool');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, graphId } = await createTestAgent({ tenantId });
+      const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
-      const relationData = createAgentToolRelationData({
-        graphId,
+      const relationData = createTestAgentToolRelationData({
+        agentId: agentId,
         subAgentId,
         toolId: 'non-existent-tool',
       });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations`,
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
         {
           method: 'POST',
           body: JSON.stringify(relationData),
@@ -636,11 +650,11 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should handle large page sizes gracefully', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-large-page');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
-      await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
+      await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=1&limit=100`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?page=1&limit=100`
       );
       expect(res.status).toBe(200);
 
@@ -652,11 +666,11 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     it('should return empty data for page beyond available data', async () => {
       const tenantId = createTestTenantId('agent-tool-relations-beyond-pages');
       await ensureTestProject(tenantId, 'default');
-      const { subAgentId, toolId, graphId } = await setupTestEnvironment(tenantId);
-      await createTestAgentToolRelation({ tenantId, subAgentId, toolId, graphId });
+      const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
+      await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/graphs/${graphId}/sub-agent-tool-relations?page=10&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations?page=10&limit=10`
       );
       expect(res.status).toBe(200);
 

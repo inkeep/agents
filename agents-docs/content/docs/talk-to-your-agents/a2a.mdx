@@ -1,21 +1,21 @@
 ---
-title: Talk to your agent graph via A2A (JSON-RPC)
+title: Talk to your agent via A2A (JSON-RPC)
 sidebarTitle: Via A2A protocol
-description: Use the A2A JSON-RPC protocol to send messages to your agent graph and receive results, with optional streaming.
+description: Use the A2A JSON-RPC protocol to send messages to your agent and receive results, with optional streaming.
 icon: "LuNetwork"
 ---
 
-The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your agent graph using a JSON-RPC 2.0 protocol compatible with Google's A2A schema.
+The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your agent using a JSON-RPC 2.0 protocol compatible with Google's A2A schema.
 
 <Snippet file="auth/RunApiAuthModes.mdx" />
 
 ## Endpoints
 
-- **Agent card discovery (graph or agent-level):** `GET /agents/.well-known/agent.json`
-- **A2A protocol (graph or agent-level):** `POST /agents/a2a`
+- **Agent card discovery (agent or sub-agent-level):** `GET /agents/.well-known/agent.json`
+- **A2A protocol (agent or sub-agent-level):** `POST /agents/a2a`
 
 Notes:
-- If you supply `x-inkeep-agent-id` in headers, requests target that specific agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the graph’s default agent. API keys bound to a specific agent are not yet supported.
+- If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the graph’s default agent. API keys bound to a specific agent are not yet supported.
 
 ## Message Send (Blocking)
 
@@ -161,8 +161,8 @@ Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/r
 
 ## Agent Card Discovery
 
-- **Graph-level:** `GET /agents/.well-known/agent.json` (uses graph default agent)
-- **Agent-level (dev/bypass only):** Provide `x-inkeep-agent-id` in headers to target a specific agent for discovery
+- **Graph-level:** `GET /agents/.well-known/agent.json` (uses agent default sub-agent)
+- **Agent-level (dev/bypass only):** Provide `x-inkeep-sub-agent-id` in headers to target a specific agent for discovery
 
 ## Notes & Behavior
 

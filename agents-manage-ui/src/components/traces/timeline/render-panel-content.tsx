@@ -198,10 +198,10 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentGraphId && (
-              <LabeledBlock label="Agent graph id">
+            {a.contextAgentAgentId && (
+              <LabeledBlock label="Agent agent id">
                 <Badge variant="code">
-                  {a.contextAgentGraphId}
+                  {a.contextAgentAgentId}
                 </Badge>
               </LabeledBlock>
             )}

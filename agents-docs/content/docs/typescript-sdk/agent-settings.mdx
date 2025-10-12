@@ -4,16 +4,16 @@ description: Learn how to configure your agents
 icon: "LuUser"
 ---
 
-Agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's agent graph architecture, each agent can seamlessly delegate tasks, share context, and work together using structured data components.
+Agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's agent architecture, each agent can seamlessly delegate tasks, share context, and work together using structured data components.
 
 ## Creating an Agent
 
 Every agent needs an id, name, and clear prompt that define its behavior:
 
 ```typescript
-import { agent } from "@inkeep/agents-sdk";
+import { subAgent } from "@inkeep/agents-sdk";
 
-const supportAgent = agent({
+const supportAgent = subAgent({
   id: "customer-support",
   name: "Customer Support Agent",
   prompt: `You are a customer support specialist. Always be helpful, professional, and empathetic.`,
@@ -124,7 +124,7 @@ const agent = agent({
 | `name`               | string   | Yes      | Human-readable name for the agent                                                                                                                                       |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the agent                                                                                                            |
 | `description`        | string   | No      | Brief description of the agent's purpose and capabilities                                                                                                               |
-| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.                                                                              |
+| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the agent will inherit the models settings from its agent, which may inherit from the project settings.                                                                              |
 | `models.base`        | object   | No       | Primary model for conversational text generation and reasoning                                                                                                          |
 | `models.structuredOutput` | object | No       | Model used for structured JSON output only (falls back to base if not configured)                                                                                    |
 | `models.summarizer`  | object   | No       | Model used for summaries and status updates (falls back to base if not configured)                                                                                     |
@@ -322,7 +322,7 @@ When using the Inkeep CLI, the following defaults are applied based on your chos
 
 ### Inheritance
 
-If no `models` settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.
+If no `models` settings are specified, the agent will inherit the models settings from its agent, which may inherit from the project settings.
 
 ## Graph Prompt Integration
 
@@ -330,11 +330,11 @@ Agents automatically receive any graph-level prompt configuration in addition to
 
 ```typescript
 // Graph-level prompt that gets added to all agents
-const graph = agentGraph({
+const graph = agent({
   id: "support-graph",
   graphPrompt: `You work for Acme Corp. Always be professional and helpful. 
 Follow company policies and escalate complex issues appropriately.`,
-  agents: () => [supportAgent, escalationAgent],
+  subAgents: () => [supportAgent, escalationAgent],
 });
 ```
 

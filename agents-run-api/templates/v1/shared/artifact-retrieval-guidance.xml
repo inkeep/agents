@@ -54,4 +54,4 @@ When you use delegation tools, the response may include artifacts in the parts a
 These artifacts become immediately available for you to reference using the artifactId and toolCallId from the response.
 Present delegation results naturally without mentioning the delegation process itself.
 
-IMPORTANT: All agents can retrieve and use information from existing artifacts when the graph has artifact components, regardless of whether the individual agent can create new artifacts.
+IMPORTANT: All sub-agents can retrieve and use information from existing artifacts when the agent has artifact components, regardless of whether the individual agent or sub-agents can create new artifacts.

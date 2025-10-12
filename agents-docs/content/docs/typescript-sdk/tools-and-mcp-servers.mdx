@@ -20,7 +20,7 @@ const knowledgeBaseTool = mcpTool({
   serverUrl: "https://kb.yourcompany.com/mcp",
 });
 
-const qaAgent = agent({
+const qaAgent = subAgent({
   id: "qa-agent",
   name: "QA Agent",
   description: "Responsible for answering questions about the company knowledge base.",

@@ -1,7 +1,6 @@
 import { setActiveAgentForThread } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import type { TransferResponse } from './types';
 
 const logger = getLogger('Transfer');
 /**
@@ -21,20 +20,30 @@ export async function executeTransfer({
   success: boolean;
   targetSubAgentId: string;
 }> {
-  logger.info({ targetAgent: targetSubAgentId }, 'Executing transfer to agent');
-  await setActiveAgentForThread(dbClient)({
-    scopes: { tenantId, projectId },
+  logger.info({
+    targetAgent: targetSubAgentId,
     threadId,
-    subAgentId: targetSubAgentId,
-  });
+    tenantId,
+    projectId,
+  }, 'Executing transfer - calling setActiveAgentForThread');
+
+  try {
+    await setActiveAgentForThread(dbClient)({
+      scopes: { tenantId, projectId },
+      threadId,
+      subAgentId: targetSubAgentId,
+    });
+    logger.info({ targetAgent: targetSubAgentId, threadId }, 'Successfully updated active_sub_agent_id in database');
+  } catch (error) {
+    logger.error({ error, targetAgent: targetSubAgentId, threadId }, 'Failed to update active_sub_agent_id');
+    throw error;
+  }
+
   return { success: true, targetSubAgentId };
 }
 
 /**
  * Checks if a response is a transfer response
+ * Re-exported from types.ts for backward compatibility
  */
-export function isTransferResponse(result: any): result is TransferResponse {
-  return result?.artifacts.some((artifact: any) =>
-    artifact.parts.some((part: any) => part.kind === 'data' && part.data?.type === 'transfer')
-  );
-}
+export { isTransferTask as isTransferResponse, extractTransferData } from './types';

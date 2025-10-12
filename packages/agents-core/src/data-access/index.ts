@@ -1,7 +1,7 @@
 // Re-export all data access functions
 
 export * from '../db/client';
-export * from './agentGraphs';
+export * from './agents';
 export * from './apiKeys';
 export * from './artifactComponents';
 export * from './contextCache';
@@ -12,7 +12,7 @@ export * from './dataComponents';
 export * from './externalAgents';
 export * from './functions';
 export * from './functionTools';
-export * from './graphFull';
+export * from './agentFull';
 export * from './ledgerArtifacts';
 export * from './messages';
 export * from './projectFull';
