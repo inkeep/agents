@@ -1,14 +1,14 @@
 ---
-title: Sub-Agent Settings
-description: Learn how to configure your sub-agents
+title: Sub Agent Settings
+description: Learn how to configure your Sub Agents
 icon: "LuUser"
 ---
 
-Sub-agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's agent architecture, each sub-agent can seamlessly delegate tasks, share context, and work together using structured data components.
+Sub Agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's agent architecture, each Sub Agent can seamlessly delegate tasks, share context, and work together using structured data components.
 
-## Creating a Sub-Agent
+## Creating a Sub Agent
 
-Every sub-agent needs an id, name, and clear prompt that define its behavior:
+Every Sub Agent needs an id, name, and clear prompt that define its behavior:
 
 ```typescript
 import { subAgent } from "@inkeep/agents-sdk";
@@ -20,26 +20,26 @@ const supportAgent = subAgent({
 });
 ```
 
-## Sub-Agent Options
+## Sub Agent Options
 
-The framework supports rich sub-agent configuration. Here are the options you can configure:
+The framework supports rich Sub Agent configuration. Here are the options you can configure:
 
 ```typescript
 const mySubAgent = subAgent({
   // Required
-  id: "my-sub-agent-id", // Stable sub-agent identifier
-  name: "My Sub-Agent", // Human-readable sub-agent name provided to other sub-agents which have a relationship with this sub-agent
-  prompt: "Detailed behavior guidelines", // System prompt. Not given to other sub-agents which have a relationship with this sub-agent
+  id: "my-sub-agent-id", // Stable Sub Agent identifier
+  name: "My Sub Agent", // Human-readable Sub Agent name provided to other Sub Agents which have a relationship with this Sub Agent
+  prompt: "Detailed behavior guidelines", // System prompt. Not given to other Sub Agents which have a relationship with this Sub Agent
 
-  // Optional - Sub-Agent Description
-  description: "Sub-agent description", // Brief description of the sub-agent's purpose provided to other sub-agents which have a relationship with this sub-agent
+  // Optional - Sub Agent Description
+  description: "Sub Agent description", // Brief description of the Sub Agent's purpose provided to other Sub Agents which have a relationship with this Sub Agent
 
   // Optional - Tools Integration
   canUse: () => [searchTool, mcpTool],
 
-  // Optional - Sub-Agent Relationships (for multi-agent systems)
-  canTransferTo: () => [subAgent1], // Sub-agents this can hand off to
-  canDelegateTo: () => [subAgent2], // Sub-agents this can delegate to
+  // Optional - Sub Agent Relationships (for multi-agent systems)
+  canTransferTo: () => [subAgent1], // Sub Agents this can hand off to
+  canDelegateTo: () => [subAgent2], // Sub Agents this can delegate to
 
   // Optional - AI Model Settings (Vercel AI SDK v5)
   models: {
@@ -92,7 +92,7 @@ const mySubAgent = subAgent({
     },
   ],
 
-  // Optional - Artifact Components (Structured Outputs from tools or sub-agents)
+  // Optional - Artifact Components (Structured Outputs from tools or Sub Agents)
   artifactComponents: [
     {
       id: "customer-info",
@@ -120,19 +120,19 @@ const mySubAgent = subAgent({
 
 | Parameter            | Type     | Required | Description                                                                                                                                                             |
 | -------------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                 | string   | Yes      | Stable sub-agent identifier used for consistency and persistence                                                                                                            |
-| `name`               | string   | Yes      | Human-readable name for the sub-agent                                                                                                                                       |
-| `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the sub-agent                                                                                                            |
-| `description`        | string   | No      | Brief description of the sub-agent's purpose and capabilities                                                                                                               |
-| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the sub-agent will inherit the models settings from its parent agent, which may inherit from the project settings.                                                                              |
+| `id`                 | string   | Yes      | Stable Sub Agent identifier used for consistency and persistence                                                                                                            |
+| `name`               | string   | Yes      | Human-readable name for the Sub Agent                                                                                                                                       |
+| `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the Sub Agent                                                                                                            |
+| `description`        | string   | No      | Brief description of the Sub Agent's purpose and capabilities                                                                                                               |
+| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the Sub Agent will inherit the models settings from its parent agent, which may inherit from the project settings.                                                                              |
 | `models.base`        | object   | No       | Primary model for conversational text generation and reasoning                                                                                                          |
 | `models.structuredOutput` | object | No       | Model used for structured JSON output only (falls back to base if not configured)                                                                                    |
 | `models.summarizer`  | object   | No       | Model used for summaries and status updates (falls back to base if not configured)                                                                                     |
-| `canUse`              | object   | No       | MCP tools that the sub-agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
+| `canUse`              | object   | No       | MCP tools that the Sub Agent can use. See [MCP Servers](/typescript-sdk/tools-and-mcp-servers) for details                                                                  |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/data-components) for details                                        |
-| `artifactComponents` | array    | No       | Components for handling tool or sub-agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details                                               |
-| `canTransferTo`      | function | No       | Function returning array of sub-agents this sub-agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |
-| `canDelegateTo`      | function | No       | Function returning array of sub-agents this sub-agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
+| `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/artifact-components) for details                                               |
+| `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) for details     |
+| `canDelegateTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) for details |
 
 ## Model Settings
 
@@ -322,14 +322,14 @@ When using the Inkeep CLI, the following defaults are applied based on your chos
 
 ### Inheritance
 
-If no `models` settings are specified, the sub-agent will inherit the models settings from its parent agent, which may inherit from the project settings.
+If no `models` settings are specified, the Sub Agent will inherit the models settings from its parent agent, which may inherit from the project settings.
 
 ## Agent Prompt Integration
 
-Sub-agents automatically receive any agent-level prompt configuration in addition to their individual prompt:
+Sub Agents automatically receive any agent-level prompt configuration in addition to their individual prompt:
 
 ```typescript
-// Agent-level prompt that gets added to all sub-agents
+// Agent-level prompt that gets added to all Sub Agents
 const customerSupportAgent = agent({
   id: "support-agent",
   agentPrompt: `You work for Acme Corp. Always be professional and helpful.
@@ -338,6 +338,6 @@ Follow company policies and escalate complex issues appropriately.`,
 });
 ```
 
-The `agentPrompt` is injected into each sub-agent's system prompt, providing consistent context and behavior guidelines across all sub-agents in the agent.
+The `agentPrompt` is injected into each Sub Agent's system prompt, providing consistent context and behavior guidelines across all Sub Agents in the agent.
 
 <Note>`openai/gpt-5-2025-08-07`, `openai/gpt-5-mini-2025-08-07`, and `openai/gpt-5-nano-2025-08-07` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>

@@ -1,30 +1,30 @@
 ---
-title: Sub-Agent Relationships
-description: Learn how to add sub-agent relationships to your agent
+title: Sub Agent Relationships
+description: Learn how to add Sub Agent relationships to your agent
 icon: "LuUsers"
 ---
 
-Sub-agent relationships are used to coordinate specialized sub-agents for complex workflows. This framework implements sub-agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent sub-agent to automatically coordinate specialized sub-agents for complex workflows.
+Sub Agent relationships are used to coordinate specialized Sub Agents for complex workflows. This framework implements Sub Agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent Sub Agent to automatically coordinate specialized Sub Agents for complex workflows.
 
-## Understanding Sub-Agent Relationships
+## Understanding Sub Agent Relationships
 
-The framework supports two types of sub-agent relationships:
+The framework supports two types of Sub Agent relationships:
 
 ### Transfer Relationships
 
-Transfer relationships **completely relinquish control** from one sub-agent to another. When a sub-agent hands off to another:
+Transfer relationships **completely relinquish control** from one Sub Agent to another. When a Sub Agent hands off to another:
 
-- The source sub-agent stops processing
-- The target sub-agent takes full control of the conversation
-- Control is permanently transferred until the target sub-agent hands back
+- The source Sub Agent stops processing
+- The target Sub Agent takes full control of the conversation
+- Control is permanently transferred until the target Sub Agent hands back
 
 ```typescript
 import { subAgent, agent } from "agent-sdk";
 
-// Create specialized sub-agents first
+// Create specialized Sub Agents first
 const qaSubAgent = subAgent({
   id: "qa-sub-agent",
-  name: "QA Sub-Agent",
+  name: "QA Sub Agent",
   description: "Answers product and service questions",
   prompt: "Provide accurate information using available tools. Hand back to router if unable to help.",
   canUse: () => [knowledgeBaseTool],
@@ -33,21 +33,21 @@ const qaSubAgent = subAgent({
 
 const orderSubAgent = subAgent({
   id: "order-sub-agent",
-  name: "Order Sub-Agent",
+  name: "Order Sub Agent",
   description: "Handles order-related inquiries and actions",
   prompt: "Assist with order tracking, modifications, and management.",
   canUse: () => [orderSystemTool],
   canTransferTo: () => [routerSubAgent],
 });
 
-// Create router sub-agent that coordinates other sub-agents
+// Create router Sub Agent that coordinates other Sub Agents
 const routerSubAgent = subAgent({
   id: "router-sub-agent",
-  name: "Router Sub-Agent",
-  description: "Routes customer inquiries to specialized sub-agents",
+  name: "Router Sub Agent",
+  description: "Routes customer inquiries to specialized Sub Agents",
   prompt: `Analyze customer inquiries and route them appropriately:
-    - Product questions → Hand off to QA Sub-Agent
-    - Order issues → Hand off to Order Sub-Agent
+    - Product questions → Hand off to QA Sub Agent
+    - Order issues → Hand off to Order Sub Agent
     - Complex issues → Handle directly or escalate`,
   canTransferTo: () => [qaSubAgent, orderSubAgent],
 });
@@ -69,15 +69,15 @@ const supportAgent = agent({
 
 ### Delegation Relationships
 
-Delegation relationships are used to **pass a task** from one sub-agent to another while maintaining oversight:
+Delegation relationships are used to **pass a task** from one Sub Agent to another while maintaining oversight:
 
-- The source sub-agent remains in control
-- The target sub-agent executes a specific task
-- Results are returned to the source sub-agent
-- The source sub-agent continues processing
+- The source Sub Agent remains in control
+- The target Sub Agent executes a specific task
+- Results are returned to the source Sub Agent
+- The source Sub Agent continues processing
 
 ```typescript
-// Sub-agents for specific tasks
+// Sub Agents for specific tasks
 const numberProducerA = subAgent({
   id: "number-producer-a",
   name: "Number Producer A",
@@ -92,7 +92,7 @@ const numberProducerB = subAgent({
   prompt: "Generate numbers between 50 and 100. Respond with a single integer.",
 });
 
-// Coordinating sub-agent that delegates tasks
+// Coordinating Sub Agent that delegates tasks
 const mathSupervisor = subAgent({
   id: "math-supervisor",
   name: "Math Supervisor",
@@ -121,7 +121,7 @@ const mathAgent = agent({
 
 ### Use Transfers for Complex Tasks
 
-Use `canTransferTo` when the task is complex and the user will likely want to ask follow-up questions to the specialized sub-agent:
+Use `canTransferTo` when the task is complex and the user will likely want to ask follow-up questions to the specialized Sub Agent:
 
 - **Customer support conversations** - User may have multiple related questions
 - **Technical troubleshooting** - Requires back-and-forth interaction
