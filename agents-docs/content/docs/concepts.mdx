@@ -18,7 +18,9 @@ In a simple Agent, there may be only one Sub Agent with a few tools available to
 
 **Tools** are actions that a Sub Agent can take, like looking up information or performing a task on apps and APIs.
 
-In Inkeep, tools are added to Sub Agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own and register them and their associated **Credentials** on Inkeep for Agents to use.
+In Inkeep, tools can be added to Sub Agents as:
+- **MCP Servers**: A common way to connect to external services and APIs. Many SaaS providers provide out-of-the-box MCP Servers, but you can also create your own and register them with their associated **Credentials** on Inkeep for Agents to use.
+- **Function Tools**: Custom JavaScript functions that Agents can execute directly without the need for standing up an MCP server. 
 
 Typically, you want a Sub Agent to handle narrow, well-defined tasks. As a general rule of thumb, only add up to 5-7 tools to a Sub Agent.
 
@@ -112,6 +114,9 @@ Quick reference to the key docs for building with the Visual Builder or the Type
       <Card title="MCP Servers" icon="LuHammer" href="/typescript-sdk/tools-and-mcp-servers">
         Add tools as MCP servers.
       </Card>
+      <Card title="Function Tools" icon="LuCode" href="/typescript-sdk/function-tools">
+        Create custom JavaScript functions that run in secure sandboxes.
+      </Card>
       <Card title="Sub Agent Relationships" icon="LuUsers" href="/typescript-sdk/agent-relationships">
         Define how Sub Agents transfer and delegate tasks.
       </Card>
@@ -166,4 +171,26 @@ Push and pull operate at the project level (not individual agents). Define agent
 
 See the [CLI Reference](/typescript-sdk/cli-reference) for full command details.
 
+## Deployment
 
+Once you've built your Agents, you can deploy them using:
+
+<Cards>
+  <Card title="Deploy with Docker" icon="LuContainer" href="/self-hosting/docker">
+    Self-host your Agents using Docker for full control and flexibility.
+  </Card>
+  <Card title="Deploy to Vercel" icon="LuRocket" href="/self-hosting/vercel">
+    Deploy your Agents to Vercel for easy serverless hosting.
+  </Card>
+</Cards>
+
+## Architecture
+
+The Inkeep Agent Platform is composed of several key services and libraries that work together:
+
+- **agents-manage-api**: An API that handles configuration of Agents, Sub Agents, MCP Servers, Credentials, and Projects with a REST API.
+- **agents-manage-ui**: Visual Builder web interface for creating and managing Agents. Writes to the `agents-manage-api`.
+- **agents-sdk**: TypeScript SDK (`@inkeep/agents-sdk`) for declaratively defining Agents and custom tools in code. Writes to `agents-manage-api`.
+- **agents-cli**: Includes various handy utilities, including `inkeep push` and `inkeep pull` which sync your TypeScript SDK code with the Visual Builder.
+- **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
+- **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.

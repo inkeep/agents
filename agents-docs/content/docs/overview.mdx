@@ -21,13 +21,14 @@ Agents can also be used for **agentic workflow automation** like:
 
 ## Inkeep Open Source
 
-Inkeep **Open Source** (this docs site) includes:
+Inkeep **Open Source** includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture (teams of Sub-Agents working together)
+- Multi-Agent Architecture to support Teams of Agents
 - MCP Tools with Credential Management
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via Traces UI & OpenTelemetry
+- Easy deployment to Vercel and Docker
 
 For unified search (managed RAG) and integration with Slack and support platforms, learn about [Inkeep Cloud](https://inkeep.com/get-started).
 
@@ -49,7 +50,7 @@ A no-code interface designed to let both technical and non-technical teams creat
 A code-first approach for building and managing teams of Agents. Build with the tools your engineering team expects.
 
    ```typescript
-   import { subAgent, agent } from "@inkeep/agents-sdk";
+   import { agent, subAgent } from "@inkeep/agents-sdk";
 
    const helloAgent = subAgent({
      id: "hello-agent",
