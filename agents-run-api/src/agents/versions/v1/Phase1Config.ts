@@ -68,9 +68,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     // Replace core prompt
     systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
 
-    // Replace graph context section
-    const graphContextSection = this.generateGraphContextSection(config.graphPrompt);
-    systemPrompt = systemPrompt.replace('{{GRAPH_CONTEXT_SECTION}}', graphContextSection);
+    // Replace agent context section
+    const agentContextSection = this.generateAgentContextSection(config.agentPrompt);
+    systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
     // Handle both McpTool[] and ToolData[] formats
     const toolData = this.isToolDataArray(config.tools)
@@ -84,7 +84,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifacts,
       hasArtifactComponents,
       config.artifactComponents,
-      config.hasGraphArtifactComponents
+      config.hasAgentArtifactComponents
     );
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
@@ -111,15 +111,15 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return systemPrompt;
   }
 
-  private generateGraphContextSection(graphPrompt?: string): string {
-    if (!graphPrompt) {
+  private generateAgentContextSection(agentPrompt?: string): string {
+    if (!agentPrompt) {
       return '';
     }
 
     return `
-  <graph_context>
-    ${graphPrompt}
-  </graph_context>`;
+  <agent_context>
+    ${agentPrompt}
+  </agent_context>`;
   }
 
   private generateThinkingPreparationSection(
@@ -145,7 +145,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     return `- You have transfer_to_* tools that seamlessly continue the conversation
 - NEVER announce transfers - just call the tool when needed
-- The conversation continues naturally without any handoff language`;
+- The conversation continues naturally without any transfer language`;
   }
 
   private generateDelegationInstructions(hasDelegateRelations?: boolean): string {
@@ -419,10 +419,10 @@ ${typeDescriptions}
     artifacts: Artifact[],
     hasArtifactComponents: boolean = false,
     artifactComponents?: any[],
-    hasGraphArtifactComponents?: boolean
+    hasAgentArtifactComponents?: boolean
   ): string {
-    // Show referencing rules if any agent in graph has artifact components OR if artifacts exist
-    const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
+    // Show referencing rules if any agent in agent has artifact components OR if artifacts exist
+    const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const rules = this.getArtifactReferencingRules(
       hasArtifactComponents,
       templates,

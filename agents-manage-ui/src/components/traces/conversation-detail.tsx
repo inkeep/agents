@@ -136,11 +136,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {(conversation.graphId || conversation.graphName) && (
+          {(conversation.agentId || conversation.agentName) && (
             <ExternalLink
-              href={`/${tenantId}/projects/${projectId}/graphs/${conversation.graphId}`}
+              href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
             >
-              {conversation.graphName ? `${conversation.graphName}` : conversation.graphId}
+              {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
             </ExternalLink>
           )}
           <Button

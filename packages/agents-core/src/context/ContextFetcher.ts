@@ -20,8 +20,8 @@ const checkGraphQLErrors: ResponseErrorChecker = (data: unknown) => {
   if (data && typeof data === 'object' && 'errors' in data) {
     const errorObj = data as any;
     if (Array.isArray(errorObj.errors) && errorObj.errors.length > 0) {
-      const graphqlErrors = errorObj.errors;
-      const errorMessage = `GraphQL request failed with ${graphqlErrors.length} errors: ${graphqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
+      const agentqlErrors = errorObj.errors;
+      const errorMessage = `GraphQL request failed with ${agentqlErrors.length} errors: ${agentqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
       throw new Error(errorMessage);
     }
   }

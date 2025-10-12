@@ -15,6 +15,6 @@
     "declarationMap": true,
     "noEmit": false
   },
-  "include": ["src/**/*", "examples/**/*.graph.ts"],
+  "include": ["src/**/*", "examples/**/*.ts"],
   "exclude": ["node_modules", "dist", "../sdk/src"]
 }

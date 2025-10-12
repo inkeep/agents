@@ -18,19 +18,19 @@ export function normalizeBaseUrl(url: string): string {
 }
 
 /**
- * Constructs a graph view URL for the management UI
+ * Constructs an agent view URL for the management UI
  * @param manageUiUrl The base management UI URL
  * @param tenantId The tenant ID
  * @param projectId The project ID
- * @param graphId The graph ID
- * @returns The complete graph view URL
+ * @param agentId The agent ID
+ * @returns The complete agent view URL
  */
-export function buildGraphViewUrl(
+export function buildAgentViewUrl(
   manageUiUrl: string | undefined,
   tenantId: string,
   projectId: string,
-  graphId: string
+  agentId: string
 ): string {
   const baseUrl = normalizeBaseUrl(manageUiUrl || 'http://localhost:3000');
-  return `${baseUrl}/${tenantId}/projects/${projectId}/graphs/${graphId}`;
+  return `${baseUrl}/${tenantId}/projects/${projectId}/agents/${agentId}`;
 }

@@ -28,7 +28,7 @@ describe('projectFullClient', () => {
       stepCountIs: 50,
     },
     tools: {},
-    graphs: {},
+    agents: {},
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

@@ -2,14 +2,13 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
-  getAgentGraphWithDefaultSubAgent,
+  getAgentWithDefaultSubAgent,
   getRequestExecutionContext,
   HeadersScopeSchema,
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { z } from 'zod';
 import { a2aHandler } from '../a2a/handlers';
-import { getRegisteredGraph } from '../data/agentGraph';
 import { getRegisteredAgent } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -71,7 +70,7 @@ app.openapi(
 
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId, subAgentId } = executionContext;
+    const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
     console.dir('executionContext', executionContext);
     // If subAgentId is defined in execution context, run agent-level logic
@@ -81,7 +80,7 @@ app.openapi(
           message: 'getRegisteredAgent (agent-level)',
           tenantId,
           projectId,
-          graphId,
+          agentId,
           subAgentId,
         },
         'agent-level well-known agent.json'
@@ -99,31 +98,31 @@ app.openapi(
 
       return c.json(agent.agentCard);
     } else {
-      // Run graph-level logic
+      // Run agent-level logic
       logger.info(
         {
-          message: 'getRegisteredGraph (graph-level)',
+          message: 'getRegisteredAgent (agent-level)',
           tenantId,
           projectId,
-          graphId,
+          agentId,
         },
-        'graph-level well-known agent.json'
+        'agent-level well-known agent.json'
       );
 
-      const graph = await getRegisteredGraph(executionContext);
-      if (!graph) {
+      const agent = await getRegisteredAgent(executionContext);
+      if (!agent) {
         throw createApiError({
           code: 'not_found',
-          message: 'Graph not found',
+          message: 'Agent not found',
         });
       }
 
-      return c.json(graph.agentCard);
+      return c.json(agent.agentCard);
     }
   }
 );
 
-// A2A Protocol Handler (supports both agent-level and graph-level)
+// A2A Protocol Handler (supports both agent-level and agent-level)
 app.post('/a2a', async (c: Context) => {
   const otelHeaders = {
     traceparent: c.req.header('traceparent'),
@@ -142,7 +141,7 @@ app.post('/a2a', async (c: Context) => {
 
   // Get execution context from API key authentication
   const executionContext = getRequestExecutionContext(c);
-  const { tenantId, projectId, graphId, subAgentId } = executionContext;
+  const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
   // If subAgentId is defined in execution context, run agent-level logic
   if (subAgentId) {
@@ -151,7 +150,7 @@ app.post('/a2a', async (c: Context) => {
         message: 'a2a (agent-level)',
         tenantId,
         projectId,
-        graphId,
+        agentId,
         subAgentId,
       },
       'agent-level a2a endpoint'
@@ -174,23 +173,23 @@ app.post('/a2a', async (c: Context) => {
 
     return a2aHandler(c, agent);
   } else {
-    // Run graph-level logic
+    // Run agent-level logic
     logger.info(
       {
-        message: 'a2a (graph-level)',
+        message: 'a2a (agent-level)',
         tenantId,
         projectId,
-        graphId,
+        agentId,
       },
-      'graph-level a2a endpoint'
+      'agent-level a2a endpoint'
     );
 
-    // fetch the graph and the default agent
-    const graph = await getAgentGraphWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+    // fetch the agent and the default agent
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
     });
 
-    if (!graph) {
+    if (!agent) {
       return c.json(
         {
           jsonrpc: '2.0',
@@ -200,18 +199,18 @@ app.post('/a2a', async (c: Context) => {
         404
       );
     }
-    if (!graph.defaultSubAgentId) {
+    if (!agent.defaultSubAgentId) {
       return c.json(
         {
           jsonrpc: '2.0',
-          error: { code: -32004, message: 'Graph does not have a default agent configured' },
+          error: { code: -32004, message: 'Agent does not have a default agent configured' },
           id: null,
         },
         400
       );
     }
-    executionContext.subAgentId = graph.defaultSubAgentId;
-    // fetch the default agent and use it as entry point for the graph
+    executionContext.subAgentId = agent.defaultSubAgentId;
+    // fetch the default agent and use it as entry point for the agent
     const credentialStores = c.get('credentialStores');
     const defaultSubAgent = await getRegisteredAgent(executionContext, credentialStores);
 

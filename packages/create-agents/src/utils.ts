@@ -395,7 +395,7 @@ export const myProject = project({
   id: "${config.projectId}",
   name: "${config.projectId}",
   description: "",
-  graphs: () => [],
+  agent: () => [],
   models: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
     await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);

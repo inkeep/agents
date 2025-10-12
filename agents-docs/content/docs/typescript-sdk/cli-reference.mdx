@@ -58,7 +58,7 @@ inkeep init --config ./template-config.ts
 
 ### `inkeep push`
 
-**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all graphs, agents, and tools.
+**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all agents, sub-agents, and tools.
 
 ```bash
 inkeep push
@@ -144,7 +144,7 @@ The `inkeep push` command follows this discovery process:
    ├── inkeep.config.ts          # Inkeep configuration file
    ├── my-project/               # Individual project directory
    │   ├── index.ts              # Project entry point
-   │   ├── graphs/               # Agent graph definitions
+   │   ├── agents/               # Agent definitions
    │   │   └── *.ts
    │   ├── tools/                # Tool definitions
    │   │   └── *.ts
@@ -160,7 +160,7 @@ The `inkeep push` command follows this discovery process:
 3. **Resource Compilation**: Automatically discovers and compiles:
    - All project directories containing `index.ts`
    - All TypeScript files within each project directory
-   - Categorizes files by type (graphs, agents, tools, data components)
+   - Categorizes files by type (agents, sub-agents, tools, data components)
    - Resolves dependencies and relationships within each project
 
 #### Push Behavior
@@ -171,7 +171,7 @@ When pushing, the CLI:
 - Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
 - Compiles all project resources defined in each project's `index.ts`
-- Validates agent relationships and tool configurations across all projects
+- Validates sub-agent relationships and tool configurations across all projects
 - Deploys all projects to the management API
 - Prints deployment summary with resource counts per project
 
@@ -197,10 +197,10 @@ inkeep pull
 The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
 
 1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
-2. **Smart Categorization**: Categorizes files as index, graphs, agents, tools, or other files
+2. **Smart Categorization**: Categorizes files as index, agents, sub-agents, tools, or other files
 3. **Context-Aware Updates**: Updates each file with relevant context from the server:
-   - **Graph files**: Updated with specific graph data
-   - **Agent files**: Updated with specific agent configurations
+   - **Agent files**: Updated with specific agent data
+   - **Sub-agent files**: Updated with specific sub-agent configurations
    - **Tool files**: Updated with specific tool definitions
    - **Other files**: Updated with full project context
 4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
@@ -211,7 +211,7 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 
 1. **Context Preservation**: Maintains your existing code structure and patterns
 2. **Selective Updates**: Only updates relevant parts based on server configuration changes
-3. **File-Specific Context**: Each file type receives appropriate context (graphs get graph data, agents get agent data, etc.)
+3. **File-Specific Context**: Each file type receives appropriate context (agents get agent data, sub-agents get sub-agent data, etc.)
 
 **Examples:**
 
@@ -256,10 +256,10 @@ The `inkeep pull` command currently uses a fixed model for LLM generation: `anth
 
 ### `inkeep chat`
 
-Start an interactive chat session with a graph.
+Start an interactive chat session with an agent.
 
 ```bash
-inkeep chat [graph-id]
+inkeep chat [agent-id]
 ```
 
 **Options:**
@@ -273,11 +273,11 @@ inkeep chat [graph-id]
 **Examples:**
 
 ```bash
-# Interactive graph selection
+# Interactive agent selection
 inkeep chat
 
-# Chat with specific graph
-inkeep chat my-graph-id
+# Chat with specific agent
+inkeep chat my-agent-id
 
 # Use a specific config file
 inkeep chat --config ./inkeep.config.ts
@@ -286,17 +286,17 @@ inkeep chat --config ./inkeep.config.ts
 inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
-### `inkeep list-graphs`
+### `inkeep list-agents`
 
-List all available graphs for a specific project.
+List all available agents for a specific project.
 
 ```bash
-inkeep list-graphs --project <project-id>
+inkeep list-agents --project <project-id>
 ```
 
 **Options:**
 
-- `--project <project-id>` - **Required.** Project ID to list graphs for
+- `--project <project-id>` - **Required.** Project ID to list agents for
 - `--tenant-id <tenant-id>` - Tenant ID
 - `--agents-manage-api-url <url>` - Agents manage API URL
 - `--config <path>` - Path to configuration file
@@ -305,14 +305,14 @@ inkeep list-graphs --project <project-id>
 **Examples:**
 
 ```bash
-# List graphs for a specific project
-inkeep list-graphs --project my-project
+# List agents for a specific project
+inkeep list-agents --project my-project
 
-# List graphs using a specific config file
-inkeep list-graphs --project my-project --config ./inkeep.config.ts
+# List agents using a specific config file
+inkeep list-agents --project my-project --config ./inkeep.config.ts
 
 # Override tenant and API URL
-inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
+inkeep list-agents --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`

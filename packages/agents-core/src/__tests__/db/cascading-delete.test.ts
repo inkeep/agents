@@ -1,9 +1,14 @@
-import type { SubAgentDataComponentInsert, TaskInsert } from '@inkeep/agents-core';
+import type {
+  ApiKeyInsert,
+  ExternalAgentInsert,
+  SubAgentDataComponentInsert,
+  TaskInsert,
+} from '@inkeep/agents-core';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
-  agentGraph,
+  agents,
   apiKeys,
   artifactComponents,
   contextCache,
@@ -39,7 +44,7 @@ describe('Cascading Delete Tests', () => {
     // Clean up all tables
     await dbClient.delete(projects);
     await dbClient.delete(subAgents);
-    await dbClient.delete(agentGraph);
+    await dbClient.delete(agents);
     await dbClient.delete(contextConfigs);
     await dbClient.delete(contextCache);
     await dbClient.delete(conversations);
@@ -69,36 +74,36 @@ describe('Cascading Delete Tests', () => {
     };
     await dbClient.insert(projects).values(project);
 
-    // Create an agent graph first
-    const graphId = nanoid();
+    // Create an agent agent first
+    const agentId = nanoid();
     const subAgentId = nanoid();
-    const graph = {
-      tenantId,
-      projectId,
-      id: graphId,
-      name: 'Test Graph',
-      description: 'Test graph',
-      defaultSubAgentId: subAgentId,
-    };
-    await dbClient.insert(agentGraph).values(graph);
-
-    // Create an agent (now with graphId)
     const agent = {
       tenantId,
       projectId,
-      graphId,
+      id: agentId,
+      name: 'Test Agent',
+      description: 'Test agent',
+      defaultSubAgentId: subAgentId,
+    };
+    await dbClient.insert(agents).values(agent);
+
+    // Create a subagent (now with agentId)
+    const subAgent = {
+      tenantId,
+      projectId,
+      agentId,
       id: subAgentId,
       name: 'Test Agent',
       description: 'Test agent',
       prompt: 'You are a test agent',
     };
-    await dbClient.insert(subAgents).values(agent);
+    await dbClient.insert(subAgents).values(subAgent);
 
     // Create context config
     const contextConfig = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: nanoid(),
       name: 'Test Context Config',
       description: 'Test context configuration',
@@ -143,7 +148,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
-      graphId: graphId,
+      agentId: agentId,
       contextId: nanoid(),
       status: 'pending',
       subAgentId: subAgentId,
@@ -196,12 +201,12 @@ describe('Cascading Delete Tests', () => {
     const externalAgent = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: nanoid(),
       name: 'Test External Agent',
       description: 'Test external agent',
       baseUrl: 'https://example.com',
-    };
+    } satisfies ExternalAgentInsert;
     await dbClient.insert(externalAgents).values(externalAgent);
 
     // Create API key
@@ -209,11 +214,11 @@ describe('Cascading Delete Tests', () => {
       id: nanoid(),
       tenantId,
       projectId,
-      graphId: graphId,
+      agentId,
       publicId: nanoid(),
       keyHash: 'test-hash',
       keyPrefix: 'sk_test_',
-    };
+    } satisfies ApiKeyInsert;
     await dbClient.insert(apiKeys).values(apiKey);
 
     // Create ledger artifact
@@ -241,7 +246,7 @@ describe('Cascading Delete Tests', () => {
     const agentDataComponentRelation: SubAgentDataComponentInsert = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: nanoid(),
       subAgentId: subAgentId,
       dataComponentId: dataComponent.id,
@@ -251,7 +256,7 @@ describe('Cascading Delete Tests', () => {
     const agentArtifactComponentRelation = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: nanoid(),
       subAgentId: subAgentId,
       artifactComponentId: artifactComponent.id,
@@ -261,7 +266,7 @@ describe('Cascading Delete Tests', () => {
     const agentToolRelation = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       id: nanoid(),
       subAgentId: subAgentId,
       toolId: tool.id,
@@ -272,7 +277,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: nanoid(),
-      graphId: graphId,
+      agentId,
       sourceSubAgentId: subAgentId,
       targetSubAgentId: subAgentId,
     };
@@ -298,17 +303,17 @@ describe('Cascading Delete Tests', () => {
       .where(eq(projects.id, projectId));
     expect(remainingProjects).toHaveLength(0);
 
-    const remainingAgents = await dbClient
+    const remainingSubAgents = await dbClient
       .select()
       .from(subAgents)
       .where(eq(subAgents.projectId, projectId));
-    expect(remainingAgents).toHaveLength(0);
+    expect(remainingSubAgents).toHaveLength(0);
 
-    const remainingGraphs = await dbClient
+    const remainingAgents = await dbClient
       .select()
-      .from(agentGraph)
-      .where(eq(agentGraph.projectId, projectId));
-    expect(remainingGraphs).toHaveLength(0);
+      .from(agents)
+      .where(eq(agents.projectId, projectId));
+    expect(remainingAgents).toHaveLength(0);
 
     const remainingContextConfigs = await dbClient
       .select()
@@ -428,37 +433,36 @@ describe('Cascading Delete Tests', () => {
       },
     ]);
 
-    // Create graphs for both projects
-    const graph1Id = nanoid();
-    const graph2Id = nanoid();
+    // Create agents for both projects
     const agent1Id = nanoid();
     const agent2Id = nanoid();
+    const subAgent1Id = nanoid();
+    const subAgent2Id = nanoid();
 
-    await dbClient.insert(agentGraph).values([
+    await dbClient.insert(agents).values([
       {
         tenantId,
         projectId: project1Id,
-        id: graph1Id,
-        name: 'Graph 1',
-        description: 'Graph for project 1',
-        defaultSubAgentId: agent1Id,
+        id: agent1Id,
+        name: 'Agent 1',
+        description: 'Agent for project 1',
+        defaultSubAgentId: subAgent1Id,
       },
       {
         tenantId,
         projectId: project2Id,
-        id: graph2Id,
-        name: 'Graph 2',
-        description: 'Graph for project 2',
-        defaultSubAgentId: agent2Id,
+        id: agent2Id,
+        name: 'Agent 2',
+        description: 'Agent for project 2',
+        defaultSubAgentId: subAgent2Id,
       },
     ]);
 
-    // Create agents for both projects (now with graphId)
     const agent1 = {
       tenantId,
       projectId: project1Id,
-      graphId: graph1Id,
-      id: agent1Id,
+      agentId: agent1Id,
+      id: subAgent1Id,
       name: 'Agent 1',
       description: 'Agent for project 1',
       prompt: 'You are agent 1',
@@ -466,8 +470,8 @@ describe('Cascading Delete Tests', () => {
     const agent2 = {
       tenantId,
       projectId: project2Id,
-      graphId: graph2Id,
-      id: agent2Id,
+      agentId: agent2Id,
+      id: subAgent2Id,
       name: 'Agent 2',
       description: 'Agent for project 2',
       prompt: 'You are agent 2',

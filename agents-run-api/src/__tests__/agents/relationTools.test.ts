@@ -37,7 +37,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -140,8 +140,8 @@ vi.mock('../../server.js', () => ({
 }));
 
 // Mock the session managers to prevent loading heavy dependencies
-vi.mock('../../utils/graph-session.js', () => ({
-  graphSessionManager: {
+vi.mock('../../utils/agent-session.js', () => ({
+  agentSessionManager: {
     getSession: vi.fn(),
     createSession: vi.fn(),
   },
@@ -173,7 +173,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-agent',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
@@ -192,7 +192,7 @@ describe('Relationship Tools', () => {
     callingAgentId: 'test-calling-agent',
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-agent',
     contextId: 'test-context',
     metadata: {
       conversationId: 'test-conversation',
@@ -225,7 +225,7 @@ describe('Relationship Tools', () => {
       id: 'target-agent',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       baseUrl: 'http://localhost:3000',
       name: 'Target Agent',
       description: 'A target agent for testing',
@@ -460,7 +460,7 @@ describe('Relationship Tools', () => {
           },
           visibility: 'external',
           messageType: 'a2a-request',
-          fromAgentId: 'test-calling-agent',
+          fromSubAgentId: 'test-calling-agent',
           toExternalAgentId: 'external-agent',
         })
       );
@@ -483,7 +483,7 @@ describe('Relationship Tools', () => {
         conversationId: 'test-context',
         messageType: 'a2a-response',
         visibility: 'external',
-        toAgentId: 'test-calling-agent',
+        toSubAgentId: 'test-calling-agent',
         fromExternalAgentId: 'external-agent',
       });
     });
@@ -549,7 +549,7 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
-            fromAgentId: 'test-calling-agent',
+            fromSubAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
           },
@@ -583,8 +583,8 @@ describe('Relationship Tools', () => {
           },
           visibility: 'internal',
           messageType: 'a2a-request',
-          fromAgentId: 'test-calling-agent',
-          toAgentId: 'target-agent',
+          fromSubAgentId: 'test-calling-agent',
+          toSubAgentId: 'target-agent',
         })
       );
     });

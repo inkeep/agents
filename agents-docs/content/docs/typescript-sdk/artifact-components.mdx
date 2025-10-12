@@ -162,7 +162,7 @@ import { agent } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 import { preview } from '@inkeep/agents-core';
 
-const searchAgent = agent({
+const searchAgent = subAgent({
   id: "search",
   canUse: () => [searchTool],
   prompt: "Search for information and cite sources using artifacts.",
@@ -184,7 +184,7 @@ const searchAgent = agent({
 ## No Schema Example
 
 ```typescript
-const rawDataAgent = agent({
+const rawDataAgent = subAgent({
   id: "raw-data",
   canUse: () => [apiTool],
   prompt: "Fetch data and save complete responses.",

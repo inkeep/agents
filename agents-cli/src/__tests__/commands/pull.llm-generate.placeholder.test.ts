@@ -269,8 +269,8 @@ describe('generateTextWithPlaceholders', () => {
 
   it('should handle complex nested data structures', async () => {
     const complexData = {
-      graphs: {
-        'test-graph': {
+      agent: {
+        'test-agent': {
           agents: {
             agent1: {
               prompt: 'Long prompt 1',
@@ -290,15 +290,15 @@ describe('generateTextWithPlaceholders', () => {
     };
 
     const processedData = {
-      graphs: {
-        'test-graph': {
+      agent: {
+        'test-agent': {
           agents: {
             agent1: {
-              prompt: '<{{graphs.test-graph.agents.agent1.prompt.abc123}}>',
+              prompt: '<{{agent.test-agent.agents.agent1.prompt.abc123}}>',
               config: { nested: { value: 'deep value' } },
             },
             agent2: {
-              prompt: '<{{graphs.test-graph.agents.agent2.prompt.def456}}>',
+              prompt: '<{{agent.test-agent.agents.agent2.prompt.def456}}>',
             },
           },
         },
@@ -311,8 +311,8 @@ describe('generateTextWithPlaceholders', () => {
     };
 
     const replacements = {
-      '<{{graphs.test-graph.agents.agent1.prompt.abc123}}>': 'Long prompt 1',
-      '<{{graphs.test-graph.agents.agent2.prompt.def456}}>': 'Long prompt 2',
+      '<{{agent.test-agent.agents.agent1.prompt.abc123}}>': 'Long prompt 1',
+      '<{{agent.test-agent.agents.agent2.prompt.def456}}>': 'Long prompt 2',
     };
 
     mockCreatePlaceholders.mockReturnValue({

@@ -8,7 +8,7 @@
     {{CORE_INSTRUCTIONS}}
   </core_instructions>
 
-  {{GRAPH_CONTEXT_SECTION}}
+  {{AGENT_CONTEXT_SECTION}}
 
   {{ARTIFACTS_SECTION}}
   {{TOOLS_SECTION}}

@@ -8,7 +8,7 @@ keywords: headers, context fetchers, prompt variables, personalization
 
 ## Overview
 
-Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent graph at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
+Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
 
 - **Context Fetchers**: Dynamic data retrieval based on request values
 - **External Tools**: Authentication and personalization for API calls
@@ -38,12 +38,12 @@ curl -N \
 
 ## Configuring headers
 
-Define a schema for your headers and configure how it's used in your agent graph.
+Define a schema for your headers and configure how it's used in your agent.
 You must include the headers schema in your context config.
 
 ```typescript
 import { z } from "zod";
-import { agent, agentGraph } from "@inkeep/agents-sdk";
+import { subAgent, agent } from "@inkeep/agents-sdk";
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 
 
@@ -99,11 +99,11 @@ const personalAssistant = agent({
 });
 
 // Attach context to your graph
-const graph = agentGraph({
+const graph = agent({
   id: "personal-graph",
   name: "Personal Assistant Graph",
   defaultSubAgent: personalAssistant,
-  agents: () => [personalAssistant],
+  subAgents: () => [personalAssistant],
   contextConfig: personalGraphContext,
 });
 ```
@@ -192,7 +192,7 @@ const userContext = contextConfig({
   },
 });
 
-const assistantAgent = agent({
+const assistantAgent = subAgent({
   prompt: `You are an assistant for ${userContext.toTemplate('userName')} from ${requestHeaders.toTemplate('org_name')}.
 
   User context:

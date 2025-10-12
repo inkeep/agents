@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createAgentGraph } from '../../../data-access/agentGraphs';
+import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,
@@ -10,7 +10,7 @@ import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
 import { createTestDatabaseClient } from '../../../db/test-client';
 import type { ConversationInsert } from '../../../types/index';
-import { createTestAgentData, createTestGraphData } from '../helpers';
+import { createTestAgentData, createTestSubAgentData } from '../helpers';
 
 const createTestConversationData = (
   tenantId: string,
@@ -43,7 +43,7 @@ describe('Conversations Data Access - Integration Tests', () => {
     // Create fresh in-memory database for each test
     db = await createTestDatabaseClient();
 
-    // Create test projects and graphs for all tenant IDs used in tests
+    // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       await db
@@ -56,30 +56,30 @@ describe('Conversations Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create test graphs for each project
+      // Create test agent for each project
       for (let i = 1; i <= 3; i++) {
-        const graphId = `test-graph-${i}`;
+        const agentId = `test-agent-${i}`;
         const defaultSubAgentId = `test-agent-${i}`;
 
         await db
-          .insert(schema.agentGraph)
+          .insert(schema.agents)
           .values({
             tenantId: tenantId,
             projectId: testProjectId,
-            id: graphId,
-            name: `Test Graph ${i}`,
-            description: 'Graph for testing',
+            id: agentId,
+            name: `Test Agent ${i}`,
+            description: 'Agent for testing',
             defaultSubAgentId: defaultSubAgentId,
           })
           .onConflictDoNothing();
 
-        // Create the default agent for the graph
+        // Create the default agent for the agent
         await db
           .insert(schema.subAgents)
           .values({
             tenantId: tenantId,
             projectId: testProjectId,
-            graphId: graphId,
+            agentId,
             id: defaultSubAgentId,
             name: `Default Agent ${i}`,
             description: 'Default agent for testing',
@@ -92,13 +92,13 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-1');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-1');
+      await createAgent(db)(agentData);
 
-      // Create an agent with graphId
+      // Create an agent with agentId
       const _agent = await createSubAgent(db)(
-        createTestAgentData(testTenantId, testProjectId, '1', graphData.id)
+        createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id)
       );
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
@@ -175,15 +175,20 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('updateConversationActiveAgent', () => {
     it('should update active agent and timestamp', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-2');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-2');
+      await createAgent(db)(agentData);
 
-      // Create agents with graphId
-      const initialAgentData = createTestAgentData(testTenantId, testProjectId, '1', graphData.id);
+      // Create agents with agentId
+      const initialAgentData = createTestSubAgentData(
+        testTenantId,
+        testProjectId,
+        '1',
+        agentData.id
+      );
       const initialAgent = await createSubAgent(db)(initialAgentData);
 
-      const newAgentData = createTestAgentData(testTenantId, testProjectId, '2', graphData.id);
+      const newAgentData = createTestSubAgentData(testTenantId, testProjectId, '2', agentData.id);
       const newAgent = await createSubAgent(db)(newAgentData);
 
       // Create conversation with initial agent
@@ -213,13 +218,13 @@ describe('Conversations Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during agent updates', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-3');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-3');
+      await createAgent(db)(agentData);
 
       // Create agent and conversation for tenant 1
-      const agentData = createTestAgentData(testTenantId, testProjectId, '1', graphData.id);
-      const agent = await createSubAgent(db)(agentData);
+      const subAgentData = createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id);
+      const agent = await createSubAgent(db)(subAgentData);
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
       conversationData.activeSubAgentId = agent.id;

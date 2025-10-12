@@ -63,7 +63,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     );
   }
 
-  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  // Set context (tenantId, projectId, and baseURL) from external source (agent, agent, CLI, etc)
   setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;

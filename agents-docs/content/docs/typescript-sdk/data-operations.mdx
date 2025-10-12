@@ -155,7 +155,7 @@ Emitted when control is transferred from one agent to another.
       "timestamp": 1726247200000,
       "agentId": "search-agent",
       "data": {
-        "fromAgent": "search-agent",
+        "fromSubAgent": "search-agent",
         "targetAgent": "analysis-agent",
         "reason": "Specialized analysis required",
         "context": {
@@ -182,7 +182,7 @@ Emitted when an agent delegates a task to another agent.
       "agentId": "coordinator-agent",
       "data": {
         "delegationId": "deleg_xyz789",
-        "fromAgent": "coordinator-agent",
+        "fromSubAgent": "coordinator-agent",
         "targetAgent": "search-agent",
         "taskDescription": "Search for information about machine learning",
         "context": {
@@ -209,7 +209,7 @@ Emitted when a delegated task is completed and returned.
       "agentId": "search-agent",
       "data": {
         "delegationId": "deleg_xyz789",
-        "fromAgent": "search-agent",
+        "fromSubAgent": "search-agent",
         "targetAgent": "coordinator-agent",
         "result": {
           "status": "completed",
@@ -271,7 +271,7 @@ Emitted when the agent runtime is starting up.
     "type": "agent_initializing",
     "details": {
       "sessionId": "session_abc123",
-      "graphId": "graph_xyz789"
+      "agentId": "graph_xyz789"
     }
   }
 }
@@ -330,7 +330,7 @@ curl -N \
 
 **Response Stream:**
 ```text
-data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","graphId":"graph_xyz789"}}
+data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","agentId":"graph_xyz789"}}
 
 data: {"type":"data-operation","data":{"type":"agent_reasoning","label":"Agent coordinator-agent reasoning through request","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"parts":[{"type":"text","content":"I need to create a sales report for Q4. This will require gathering data and generating a chart."}]}}}}
 

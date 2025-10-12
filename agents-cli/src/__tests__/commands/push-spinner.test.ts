@@ -105,8 +105,8 @@ describe('Push Command - TypeScript Loading', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
     };
 
     // Mock config module
@@ -162,8 +162,8 @@ describe('Push Command - TypeScript Loading', () => {
       init: vi.fn().mockResolvedValue(undefined),
       getId: vi.fn().mockReturnValue('test-project'),
       getName: vi.fn().mockReturnValue('Test Project'),
-      getStats: vi.fn().mockReturnValue({ graphCount: 1, tenantId: 'test-tenant' }),
-      getGraphs: vi.fn().mockReturnValue([]),
+      getStats: vi.fn().mockReturnValue({ agentCount: 1, tenantId: 'test-tenant' }),
+      getAgents: vi.fn().mockReturnValue([]),
     };
 
     // Mock config module

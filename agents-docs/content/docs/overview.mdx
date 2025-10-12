@@ -35,7 +35,7 @@ For unified search (managed RAG) and integration with Slack and support platform
 
 ### No-Code Visual Builder
 
-A no-code interface designed to let both technical and non-technical teams create and manage agents.
+A no-code interface designed to let both technical and non-technical teams create and manage sub-agents.
 
 <img
   src="/gifs/visual-builder.gif"
@@ -46,28 +46,28 @@ A no-code interface designed to let both technical and non-technical teams creat
 
 ### TypeScript SDK
 
-A code-first approach for building and managing agents, allowing you to build complex multi-agent systems and workflows with the tools your engineering team expects.
+A code-first approach for building and managing sub-agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
 
    ```typescript
-   import { agent, agentGraph } from "@inkeep/agents-sdk";
+   import { subAgent, agent } from "@inkeep/agents-sdk";
 
-   const helloAgent = agent({
-     id: "hello-agent",
-     name: "Hello Agent",
-     description: "A basic agent",
-     prompt: 'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+   const helloSubAgent = subAgent({
+     id: "hello-sub-agent",
+     name: "Hello Sub-Agent",
+     description: "A basic sub-agent",
+     prompt: 'You are a basic sub-agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
-   export const graph = agentGraph({
-     id: "basic-graph",
-     name: "Basic Graph Example",
-     description: "A basic graph",
-     defaultSubAgent: helloAgent,
-     agents: () => [helloAgent],
+   export const myAgent = agent({
+     id: "basic-agent",
+     name: "Basic Agent Example",
+     description: "A basic agent",
+     defaultSubAgent: helloSubAgent,
+     subAgents: () => [helloSubAgent],
    });
    ```
 
-The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage agents in either format and switch or collaborate with others at any time.
+The **Visual Builder and Agents TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage sub-agents in either format and switch or collaborate with others at any time.
 
 ## Next Steps
 

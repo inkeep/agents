@@ -8,7 +8,7 @@ const {
   updateTaskMock,
   createMessageMock,
   getActiveAgentForConversationMock,
-  getFullGraphMock,
+  getFullAgentMock,
 } = vi.hoisted(() => {
   const createTaskMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
@@ -32,7 +32,7 @@ const {
       conversationId: 'conv-123',
     })
   );
-  const getFullGraphMock = vi.fn(() =>
+  const getFullAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       agents: [],
       relations: [],
@@ -44,7 +44,7 @@ const {
     updateTaskMock,
     createMessageMock,
     getActiveAgentForConversationMock,
-    getFullGraphMock,
+    getFullAgentMock,
   };
 });
 
@@ -55,7 +55,7 @@ vi.mock('@inkeep/agents-core', () => ({
   updateTask: updateTaskMock,
   createMessage: createMessageMock,
   getActiveAgentForConversation: getActiveAgentForConversationMock,
-  getFullGraph: getFullGraphMock,
+  getFullAgent: getFullAgentMock,
   getTracer: vi.fn(() => ({
     startActiveSpan: vi.fn((name, options, fn) => {
       // Handle both 2 and 3 argument versions
@@ -123,8 +123,8 @@ vi.mock('../../utils/stream-registry.js', () => ({
   unregisterStreamHelper: vi.fn(),
 }));
 
-vi.mock('../../utils/graph-session.js', () => ({
-  graphSessionManager: {
+vi.mock('../../utils/agent-session.js', () => ({
+  agentSessionManager: {
     createSession: vi.fn(),
     endSession: vi.fn(),
     getSession: vi.fn().mockReturnValue(null),
@@ -184,7 +184,7 @@ describe('Integration Tests', () => {
         apiKey: 'test-api-key',
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         apiKeyId: 'test-key',
         baseUrl: 'http://localhost:3003',
       });

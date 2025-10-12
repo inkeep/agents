@@ -53,7 +53,7 @@ export default {
       group: 'Visual Builder',
       icon: 'LuPalette',
       pages: [
-        'visual-builder/graphs',
+        'visual-builder/sub-agents',
         'visual-builder/mcp-servers',
         'visual-builder/function-tools',
         'visual-builder/headers',

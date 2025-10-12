@@ -13,8 +13,8 @@ import {
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
-  TenantProjectGraphIdParamsSchema,
-  TenantProjectGraphParamsSchema,
+  TenantProjectAgentIdParamsSchema,
+  TenantProjectAgentParamsSchema,
   updateSubAgent,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -30,7 +30,7 @@ app.openapi(
     operationId: 'list-subagents',
     tags: ['SubAgent'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -46,12 +46,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     const result = await listSubAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
     // Add type field to all subAgents in the response
@@ -75,7 +75,7 @@ app.openapi(
     operationId: 'get-subagent-by-id',
     tags: ['SubAgent'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
@@ -90,9 +90,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const subAgent = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
 
@@ -121,7 +121,7 @@ app.openapi(
     operationId: 'create-subagent',
     tags: ['SubAgent'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -143,7 +143,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const subAgentId = body.id ? String(body.id) : nanoid();
     const subAgent = await createSubAgent(dbClient)({
@@ -151,7 +151,7 @@ app.openapi(
       id: subAgentId,
       tenantId,
       projectId,
-      graphId,
+      agentId,
     });
 
     // Add type field to the sub-agent response
@@ -172,7 +172,7 @@ app.openapi(
     operationId: 'update-subagent',
     tags: ['SubAgent'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -194,11 +194,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedSubAgent = await updateSubAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       subAgentId: id,
       data: body,
     });
@@ -228,7 +228,7 @@ app.openapi(
     operationId: 'delete-subagent',
     tags: ['SubAgent'],
     request: {
-      params: TenantProjectGraphIdParamsSchema,
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {
@@ -245,10 +245,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     const deleted = await deleteSubAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
 
