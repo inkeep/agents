@@ -38,14 +38,15 @@ function tryJsonParse(json = ''): object {
 }
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.plaintext`;
+  uri?: `${string}.template`;
 }
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.template` as `${string}.template`, [id]);
 
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>();
+  const [monaco, setMonaco] = useState<typeof import('monaco-editor')>();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
 
   // Generate suggestions from context config
@@ -59,12 +60,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     });
   }, [contextConfig]);
 
-  const handleOnMount = useCallback<NonNullable<ComponentProps<typeof MonacoEditor>['onMount']>>(
-    (editorInstance, { languages }) => {
-      setEditor(editorInstance);
+  useEffect(() => {
+    if (!monaco || !editor) {
+      return;
+    }
 
+    const disposables = [
       // Register completion provider for template variables
-      const completionProvider = languages.registerCompletionItemProvider('plaintext', {
+      monaco.languages.registerCompletionItemProvider('plaintext', {
+        triggerCharacters: ['{'],
         provideCompletionItems(model, position) {
           const textUntilPosition = model.getValueInRange({
             startLineNumber: 1,
@@ -73,11 +77,35 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             endColumn: position.column,
           });
 
+          console.log('Completion triggered:', { textUntilPosition, position });
+
           // Check if we're inside a template variable
           const match = textUntilPosition.match(/\{\{([^}]*)$/);
           if (!match) {
-            return { suggestions: [] };
+            console.log('No template variable match found');
+            // Test: always return a suggestion to see if popup works
+            const word = model.getWordUntilPosition(position);
+            const range = {
+              startLineNumber: position.lineNumber,
+              startColumn: word.startColumn,
+              endLineNumber: position.lineNumber,
+              endColumn: word.endColumn,
+            };
+            return {
+              suggestions: [
+                {
+                  label: 'test-suggestion',
+                  kind: monaco.languages.CompletionItemKind.Text,
+                  insertText: 'test-suggestion',
+                  range,
+                  documentation: 'Test suggestion',
+                  sortText: '0',
+                },
+              ],
+            };
           }
+
+          console.log('Template variable match:', match);
 
           const query = match[1].toLowerCase();
           const filteredSuggestions = suggestions.filter((s) => s.toLowerCase().includes(query));
@@ -94,7 +122,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             // Add environment variables
             {
               label: '$env.',
-              kind: languages.CompletionItemKind.Variable,
+              kind: monaco.languages.CompletionItemKind.Variable,
               insertText: '$env.',
               documentation: 'Environment variable',
               sortText: '0',
@@ -103,7 +131,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             // Add reserved keys
             ...Array.from(RESERVED_KEYS).map((key) => ({
               label: key,
-              kind: languages.CompletionItemKind.Keyword,
+              kind: monaco.languages.CompletionItemKind.Keyword,
               insertText: key,
               documentation: `Reserved variable: ${key}`,
               sortText: '1',
@@ -112,7 +140,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             // Add context suggestions
             ...filteredSuggestions.map((suggestion) => ({
               label: suggestion,
-              kind: languages.CompletionItemKind.Variable,
+              kind: monaco.languages.CompletionItemKind.Variable,
               insertText: suggestion,
               documentation: `Context variable: ${suggestion}`,
               sortText: '2',
@@ -120,24 +148,89 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             })),
           ];
 
+          console.log('Returning completion items:', completionItems);
           return { suggestions: completionItems };
         },
-      });
+      }),
+      // Add keybinding to trigger suggestions manually
+      editor.addAction({
+        id: 'trigger-suggestions',
+        label: 'Trigger Suggestions',
+        keybindings: [monaco.KeyCode.F1], // F1 key
+        run() {
+          console.log('Manually triggering suggestions');
+          editor.trigger('trigger-suggestions', 'editor.action.triggerSuggest', {});
+        },
+      }),
+      // Add auto-closing for { character
+      // editor.addAction({
+      //   id: 'auto-close-brace',
+      //   label: 'Auto Close Brace',
+      //   keybindings: [monaco.KeyCode.US_OPEN_BRACKET], // { key
+      //   run: (editorInstance) => {
+      //     const position = editorInstance.getPosition();
+      //     if (!position) return;
+      //
+      //     const model = editorInstance.getModel();
+      //     if (!model) return;
+      //
+      //     const textBeforeCursor = model.getValueInRange({
+      //       startLineNumber: position.lineNumber,
+      //       startColumn: 1,
+      //       endLineNumber: position.lineNumber,
+      //       endColumn: position.column,
+      //     });
+      //
+      //     // Check if we just typed a single {
+      //     if (textBeforeCursor.endsWith('{')) {
+      //       editorInstance.executeEdits('auto-close-brace', [
+      //         {
+      //           range: {
+      //             startLineNumber: position.lineNumber,
+      //             startColumn: position.column,
+      //             endLineNumber: position.lineNumber,
+      //             endColumn: position.column,
+      //           },
+      //           text: '}',
+      //           forceMoveMarkers: true,
+      //         },
+      //       ]);
+      //       // Move cursor back between the braces
+      //       editorInstance.setPosition({
+      //         lineNumber: position.lineNumber,
+      //         column: position.column,
+      //       });
+      //     }
+      //   },
+      // }),
+    ];
 
-      // Store the provider for cleanup
-      (editorInstance as any)._completionProvider = completionProvider;
+    // Configure editor to show suggestions
+    editor.updateOptions({
+      quickSuggestions: true,
+      suggestOnTriggerCharacters: true,
+      acceptSuggestionOnEnter: 'on',
+      tabCompletion: 'on',
+      wordBasedSuggestions: 'off',
+    });
+
+    console.log('Completion provider registered for plaintext language');
+
+    return () => {
+      for (const disposable of disposables) {
+        disposable.dispose();
+      }
+    };
+  }, [suggestions]);
+
+  const handleOnMount = useCallback<NonNullable<ComponentProps<typeof MonacoEditor>['onMount']>>(
+    (editorInstance, monaco) => {
+      setEditor(editorInstance);
+      setMonaco(monaco);
     },
     [suggestions]
   );
 
-  // Cleanup completion provider when component unmounts
-  useEffect(() => {
-    return () => {
-      if (editor && (editor as any)._completionProvider) {
-        (editor as any)._completionProvider.dispose();
-      }
-    };
-  }, [editor]);
 
   return <MonacoEditor uri={uri} onMount={handleOnMount} {...props} />;
 };
