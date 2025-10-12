@@ -3,7 +3,8 @@
 import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle } from 'react';
 import { useTheme } from 'next-themes';
-import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
+import type { IDisposable, editor } from 'monaco-editor';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
 import {
@@ -37,7 +38,7 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
    * @default true
    */
   hasDynamicHeight?: boolean;
-  onMount?: (editor: editor.IStandaloneCodeEditor) => void;
+  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => void;
 }
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
@@ -121,7 +122,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       editorInstance.addAction({
         id: 'disable-command-palette',
         label: 'Disable Command Palette',
-        keybindings: [KeyCode.F1],
+        keybindings: [monaco.KeyCode.F1],
         run() {}, // Do nothing - prevents command palette from opening
       }),
       editorInstance.onKeyDown((event) => {
@@ -155,7 +156,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
 
-    onMount?.(editorInstance);
+    onMount?.(editorInstance, monaco);
 
     return cleanupDisposables(disposables);
   }, []);
