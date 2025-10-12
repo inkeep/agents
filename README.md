@@ -47,7 +47,7 @@ Inkeep **Open Source** includes:
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via Traces UI & OpenTelemetry
-- Easy deployment to Vercel and Dcoker
+- Easy deployment to Vercel and Docker
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
 
@@ -62,7 +62,7 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 - **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
 - **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.
 
-Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs an chat stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primatives for custom UIs.
+Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs an chat stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
 
 ## Contributing to the Inkeep Agent Framework
 
