@@ -77,6 +77,20 @@ export function getOrCreateModel({ uri: $uri, value }: { uri: string; value: str
 editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
 editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
 
+// Define tokens for template variables
+languages.setMonarchTokensProvider('plaintext', {
+  tokenizer: {
+    root: [
+      // Template variables: {{variable}}
+      [/\{\{([^}]+)}}/, 'template-variable'],
+      // Regular text
+      [/[^{]+/, 'text'],
+      // Single { without closing }
+      [/\{/, 'text'],
+    ],
+  },
+});
+
 languages.json.jsonDefaults.setDiagnosticsOptions({
   // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
   // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator

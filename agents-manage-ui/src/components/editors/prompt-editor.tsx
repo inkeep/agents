@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { type ComponentProps, type FC, useId, useMemo } from 'react';
+import { type ComponentProps, type FC, useCallback, useId, useMemo, useState } from 'react';
+import type * as monaco from 'monaco-editor';
 
 /**
  * Purpose:
@@ -20,5 +21,14 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const id = useId();
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
 
-  return <MonacoEditor uri={uri} {...props} />;
+  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>();
+
+  const handleOnMount = useCallback<NonNullable<ComponentProps<typeof MonacoEditor>['onMount']>>(
+    (editor) => {
+      setEditor(editor);
+    },
+    []
+  );
+
+  return <MonacoEditor uri={uri} onMount={handleOnMount} {...props} />;
 };
