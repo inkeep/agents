@@ -1,14 +1,14 @@
 ---
 title: Headers
 sidebarTitle: Headers
-description: Pass dynamic context to your agents via HTTP headers for personalized interactions
+description: Pass dynamic context to your Agents via HTTP headers for personalized interactions
 icon: LuBoxes
 keywords: headers, context fetchers, prompt variables, personalization
 ---
 
 ## Overview
 
-Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
+Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your Agent at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your Agent system for:
 
 - **Context Fetchers**: Dynamic data retrieval based on request values
 - **External Tools**: Authentication and personalization for API calls
@@ -98,7 +98,7 @@ const personalAssistant = subAgent({
   Provide personalized assistance based on their context.`,
 });
 
-// Attach context to your agent
+// Attach context to your Agent
 const myAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant Agent",
@@ -169,7 +169,7 @@ const userDataFetcher = fetchDefinition({
   })
 });
 
-// Configure context for your agent
+// Configure context for your Agent
 // You must include the headers schema and fetchers in your context config.
 const personalAgentContext = contextConfig({
   headers: personalAgentHeaders,
@@ -228,7 +228,7 @@ const externalAgent = externalAgent({
   }
 });
 
-// Configure context for your agent with your headers schema.
+// Configure context for your Agent with your headers schema.
 const personalAgentContext = contextConfig({
   headers: personalAgentHeaders,
 });
@@ -291,12 +291,12 @@ If context values aren't available in subsequent requests:
 
 1. Ensure you're using the same `conversationId` across requests
 2. Verify headers are being sent correctly
-3. Check that your context config is properly attached to the agent
+3. Check that your context config is properly attached to the Agent
 
 ## Related documentation
 
 - [Context Fetchers](/typescript-sdk/context-fetchers) - Learn about fetching and caching external data
 - [External Agents](/typescript-sdk/external-agents) - Configure external agent integrations
-- [Credentials](/typescript-sdk/credentials) - Manage secure credentials for your agents
+- [Credentials](/typescript-sdk/credentials) - Manage secure credentials for your Agents
 
 

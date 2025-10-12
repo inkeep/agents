@@ -4,7 +4,7 @@ description: Learn how to configure your Sub Agents
 icon: "LuUser"
 ---
 
-Sub Agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's agent architecture, each Sub Agent can seamlessly delegate tasks, share context, and work together using structured data components.
+Sub Agents are the core building blocks of our framework, designed to be both powerful individual workers and collaborative team members in multi-agent systems. Through the framework's Agent architecture, each Sub Agent can seamlessly delegate tasks, share context, and work together using structured data components.
 
 ## Creating a Sub Agent
 
@@ -124,7 +124,7 @@ const mySubAgent = subAgent({
 | `name`               | string   | Yes      | Human-readable name for the Sub Agent                                                                                                                                       |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the Sub Agent                                                                                                            |
 | `description`        | string   | No      | Brief description of the Sub Agent's purpose and capabilities                                                                                                               |
-| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the Sub Agent will inherit the models settings from its parent agent, which may inherit from the project settings.                                                                              |
+| `models`             | object   | No       | AI model settings with separate settings for base, structuredOutput, and summarizer models. <br /><br /> If no models settings are specified, the Sub Agent will inherit the models settings from its parent Agent, which may inherit from the project settings.                                                                              |
 | `models.base`        | object   | No       | Primary model for conversational text generation and reasoning                                                                                                          |
 | `models.structuredOutput` | object | No       | Model used for structured JSON output only (falls back to base if not configured)                                                                                    |
 | `models.summarizer`  | object   | No       | Model used for summaries and status updates (falls back to base if not configured)                                                                                     |
@@ -322,7 +322,7 @@ When using the Inkeep CLI, the following defaults are applied based on your chos
 
 ### Inheritance
 
-If no `models` settings are specified, the Sub Agent will inherit the models settings from its parent agent, which may inherit from the project settings.
+If no `models` settings are specified, the Sub Agent will inherit the models settings from its parent Agent, which may inherit from the project settings.
 
 ## Agent Prompt Integration
 
@@ -338,6 +338,6 @@ Follow company policies and escalate complex issues appropriately.`,
 });
 ```
 
-The `agentPrompt` is injected into each Sub Agent's system prompt, providing consistent context and behavior guidelines across all Sub Agents in the agent.
+The `agentPrompt` is injected into each Sub Agent's system prompt, providing consistent context and behavior guidelines across all Sub Agents in the Agent.
 
 <Note>`openai/gpt-5-2025-08-07`, `openai/gpt-5-mini-2025-08-07`, and `openai/gpt-5-nano-2025-08-07` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>

@@ -51,7 +51,7 @@ const personalAgentHeaders = headers({
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
-  trigger: "initialization", // Fetch only once when a conversation is started with the agent. When set to "invocation", the fetch will be executed every time a request is made to the agent.
+  trigger: "initialization", // Fetch only once when a conversation is started with the Agent. When set to "invocation", the fetch will be executed every time a request is made to the Agent.
   fetchConfig: {
     url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}`,
     method: "GET",
@@ -85,7 +85,7 @@ const personalAssistant = subAgent({
   prompt: `Hello ${personalAgentContext.toTemplate('user.name')}! I'm your personal assistant.`,
 });
 
-// Initialize the agent
+// Initialize the Agent
 export const myAgent = agent({
   id: "personal-agent",
   name: "Personal Assistant Agent",

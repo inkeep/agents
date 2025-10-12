@@ -198,7 +198,7 @@ The CLI automatically discovers files using these patterns:
 4. **File Categorization**:
    - **Index files**: `index.ts`, `main.ts` (project entry points)
    - **Agent files**: Files in `/agents/` directory
-   - **Sub Agent files**: Files containing sub agent definitions
+   - **Sub Agent files**: Files containing Sub Agent definitions
    - **Tool files**: Files in `/tools/` directory
    - **Data component files**: Files in `/data-components/` directory
    - **Environment files**: Files in `/environments/` directory
@@ -214,7 +214,7 @@ The CLI automatically discovers files using these patterns:
 ### File Organization
 
 - **One primary export per file**: Each file should export one main resource
-- **Group related functionality**: Keep related Sub Agents in the same agent file
+- **Group related functionality**: Keep related Sub Agents in the same Agent file
 - **Separate concerns**: Keep tools, data components, and agents in separate directories
 - **Environment isolation**: Use separate files for different environments
 
@@ -241,7 +241,7 @@ Error: Could not find inkeep.config.ts in current directory or parent directorie
 Warning: No agents found in project
 ```
 - Check that you're running from within a project directory (containing `index.ts`)
-- Verify agent files are in the project's `/agents/` subdirectory
+- Verify Agent files are in the project's `/agents/` subdirectory
 - Ensure exports are properly named and typed
 
 **Missing dependencies:**

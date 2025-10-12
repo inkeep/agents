@@ -136,7 +136,7 @@ Agent: {
 Sub Agent: {
   models: {
     summarizer: { model: "claude-3.5-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from agent (gpt-4.1)
+    // base: INHERITED from Agent (gpt-4.1)
     // structuredOutput: INHERITED from project (gpt-4.1-mini)
   }
 }
@@ -146,7 +146,7 @@ Sub Agent: {
 
 In the above example, the Sub Agent ends up with:
 
-- **base**: `gpt-4.1` (from agent)
+- **base**: `gpt-4.1` (from Agent)
 - **structuredOutput**: `gpt-4.1-mini` (from project)
 - **summarizer**: `claude-3.5-haiku` (from Sub Agent)
 
@@ -222,9 +222,9 @@ Sub Agent: {
 
 **Final Resolution with Fallback:**
 
-- **base**: `gpt-4.1-2025-04-14` with specified provider options (from agent)
-- **structuredOutput**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
-- **summarizer**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
+- **base**: `gpt-4.1-2025-04-14` with specified provider options (from Agent)
+- **structuredOutput**: `gpt-4.1-2025-04-14` with same provider options (falls back to Agent's base)
+- **summarizer**: `gpt-4.1-2025-04-14` with same provider options (falls back to Agent's base)
 
 **Contrast with Inheritance:**
 
@@ -272,7 +272,7 @@ Project: {
 // Agent can override transfer limit, inherits step limit
 Agent: {
   stopWhen: {
-    transferCountIs: 8    // Override: allow more transfers in this agent
+    transferCountIs: 8    // Override: allow more transfers in this Agent
     // stepCountIs: 15 (inherited from project)
   }
 }
@@ -338,6 +338,6 @@ DELETE /tenants/{tenantId}/crud/projects/{projectId}
 
 After creating a project, you can:
 
-- [Create your first agent](/visual-builder/sub-agents)
+- [Create your first Agent](/visual-builder/sub-agents)
 - [Configure MCP servers for tools](/visual-builder/mcp-servers)
 - [Set up API keys for external access](/api-keys)
