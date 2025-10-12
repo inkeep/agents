@@ -34,6 +34,39 @@ interface VerificationResult {
 }
 
 /**
+ * Detect if current directory contains a project by looking for index.ts with project export
+ * Returns the project ID if found, null otherwise
+ */
+async function detectCurrentProject(): Promise<string | null> {
+  const indexPath = join(process.cwd(), 'index.ts');
+
+  if (!existsSync(indexPath)) {
+    return null;
+  }
+
+  try {
+    // Import the module with TypeScript support
+    const module = await importWithTypeScriptSupport(indexPath);
+
+    // Find the first export with __type = "project"
+    const exports = Object.keys(module);
+    for (const exportKey of exports) {
+      const value = module[exportKey];
+      if (value && typeof value === 'object' && value.__type === 'project') {
+        // Get the project ID
+        if (typeof value.getId === 'function') {
+          return value.getId();
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    // If we can't load the file, it's not a valid project directory
+    return null;
+  }
+}
+
+/**
  * Verify that the generated TypeScript files can reconstruct the original project JSON
  */
 async function verifyGeneratedFiles(
@@ -264,7 +297,8 @@ function ensureDirectoryExists(dirPath: string): void {
  */
 function createProjectStructure(
   projectDir: string,
-  projectId: string
+  projectId: string,
+  useCurrentDirectory: boolean = false
 ): {
   projectRoot: string;
   agentsDir: string;
@@ -273,9 +307,15 @@ function createProjectStructure(
   artifactComponentsDir: string;
   environmentsDir: string;
 } {
-  // Check if projectDir already ends with projectId to avoid nested folders
-  const dirName = projectDir.split('/').pop() || projectDir;
-  const projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
+  // In directory-aware mode, use the current directory as-is
+  let projectRoot: string;
+  if (useCurrentDirectory) {
+    projectRoot = projectDir;
+  } else {
+    // Check if projectDir already ends with projectId to avoid nested folders
+    const dirName = projectDir.split('/').pop() || projectDir;
+    projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
+  }
 
   const agentsDir = join(projectRoot, 'agents');
   const toolsDir = join(projectRoot, 'tools');
@@ -594,8 +634,35 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       agentsManageApiKey: config.agentsManageApi.apiKey,
     };
 
-    // Prompt for project ID if not provided
-    if (!options.project) {
+    // Detect if current directory is a project directory
+    spinner.text = 'Detecting project in current directory...';
+    const currentProjectId = await detectCurrentProject();
+    let useCurrentDirectory = false;
+
+    // Determine project ID based on directory awareness
+    if (options.project) {
+      // If --project arg is provided AND we're in a project directory, show error
+      if (currentProjectId) {
+        spinner.fail('Conflicting project specification');
+        console.error(chalk.red('Error: Cannot specify --project argument when in a project directory'));
+        console.error(chalk.yellow(`  • Current directory project: ${currentProjectId}`));
+        console.error(chalk.yellow(`  • Specified project argument: ${options.project}`));
+        console.error(chalk.gray('\nTo pull to this directory, run without --project argument:'));
+        console.error(chalk.gray('  inkeep pull'));
+        console.error(chalk.gray('\nTo pull a different project, run from a non-project directory.'));
+        process.exit(1);
+      }
+      // Extract project ID from path if it's a directory name
+      const projectIdFromPath = options.project.split('/').pop() || options.project;
+      finalConfig.projectId = projectIdFromPath;
+    } else if (currentProjectId) {
+      // If no --project arg but we're in a project directory, use that project
+      finalConfig.projectId = currentProjectId;
+      useCurrentDirectory = true;
+      spinner.succeed(`Detected project in current directory: ${currentProjectId}`);
+      console.log(chalk.gray(`  • Will pull to current directory (directory-aware mode)`));
+    } else {
+      // No --project arg and not in a project directory, prompt for project ID
       spinner.stop();
       const response = await prompts({
         type: 'text',
@@ -610,10 +677,6 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       }
       finalConfig.projectId = response.projectId;
       spinner.start('Configuration loaded');
-    } else {
-      // Extract project ID from path if it's a directory name
-      const projectIdFromPath = options.project.split('/').pop() || options.project;
-      finalConfig.projectId = projectIdFromPath;
     }
 
     spinner.succeed('Configuration loaded');
@@ -698,7 +761,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Create project directory structure
     spinner.start('Creating project structure...');
-    const dirs = createProjectStructure(baseDir, finalConfig.projectId);
+    const dirs = createProjectStructure(baseDir, finalConfig.projectId, useCurrentDirectory);
     spinner.succeed('Project structure created');
 
     if (options.json) {
