@@ -1,6 +1,6 @@
 ---
 title: Artifact Components
-description: Artifact components are used to add artifacts to the graph.
+description: Artifact components are used to add artifacts to the agent.
 icon: "TbInputSpark"
 ---
 
@@ -60,8 +60,8 @@ const researchAgent = subAgent({
 
 Artifact generation follows the same model inheritance rules:
 
-- **Default**: Agent uses graph's summarizer model (if configured)
-- **Fallback**: If no summarizer configured at project/graph level, falls back to agent's base model
+- **Default**: Sub Agent uses the Agent's summarizer model (if configured)
+- **Fallback**: If no summarizer configured at project/agent level, falls back to Sub Agent's base model
 - **Override**: Agent can specify its own summarizer model
 
 ### Best Practices

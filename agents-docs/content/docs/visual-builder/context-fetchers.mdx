@@ -31,7 +31,7 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 
 ## Basic Usage
 
-1. Go to the Graphs tab in the left sidebar. Then click on the graph you want to configure.
+1. Go to the Agents tab in the left sidebar. Then click on the agent you want to configure.
 2. On the right pane scroll down to the "Context Variables" section.
 3. Add your context variables in JSON format.
 4. Click on the "Save" button.
@@ -44,8 +44,8 @@ Each key in the JSON should map to a fetch definition with the following propert
 - **`id`** (required): Unique identifier for the fetch definition
 - **`name`** (optional): Human-readable name for the fetch definition
 - **`trigger`** (required): When to execute the fetch:
-  - `"initialization"`: Fetch only once when a conversation is started with the graph
-  - `"invocation"`: Fetch every time a request is made to the graph
+  - `"initialization"`: Fetch only once when a conversation is started with the agent
+  - `"invocation"`: Fetch every time a request is made to the agent
 - **`fetchConfig`** (required): HTTP request configuration:
   - **`url`** (required): The API endpoint URL (supports template variables)
   - **`method`** (optional): HTTP method - `GET`, `POST`, `PUT`, `DELETE`, or `PATCH` (defaults to `GET`)

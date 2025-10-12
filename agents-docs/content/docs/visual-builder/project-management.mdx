@@ -6,7 +6,7 @@ icon: "LuFolder"
 
 ## Overview
 
-Projects are the top-level organizational unit in the Inkeep Agent Framework. Each project contains its own agents, graphs, tools, and resources. This allows you to separate different applications or environments within a single tenant.
+Projects are the top-level organizational unit in the Inkeep Agent Framework. Each project contains its own agents, tools, and resources. This allows you to separate different applications or environments within a single tenant.
 
 ## Creating a Project
 
@@ -48,11 +48,11 @@ Each project can contain:
 
 ## Project-Level Configuration
 
-Projects can define default configurations that cascade down to all graphs and agents within the project. This provides a consistent baseline while allowing specific overrides where needed.
+Projects can define default configurations that cascade down to all agents and Sub Agents within the project. This provides a consistent baseline while allowing specific overrides where needed.
 
 ### Model Settings
 
-Define default models at the project level that all graphs and agents will inherit:
+Define default models at the project level that all agents and Sub Agents will inherit:
 
 ```typescript
 // Project configuration
@@ -105,7 +105,7 @@ The framework uses a cascading inheritance system with specific rules for differ
 
 ### Model Inheritance - Partial Cascading
 
-**Project** → **Graph** → **Agent**
+**Project** → **Agent** → **Sub Agent**
 
 The framework supports **partial cascading**, meaning each level can override specific model types while inheriting others. This provides maximum flexibility while maintaining sensible defaults.
 
@@ -114,7 +114,7 @@ The framework supports **partial cascading**, meaning each level can override sp
 Each model type (`base`, `structuredOutput`, `summarizer`) cascades independently:
 
 ```typescript
-// Project Level - Sets defaults for all graphs
+// Project Level - Sets defaults for all agents
 Project: {
   models: {
     base: { model: "claude-sonnet-4" },
@@ -123,8 +123,8 @@ Project: {
   }
 }
 
-// Graph Level - Partially overrides project defaults
-Graph: {
+// Agent Level - Partially overrides project defaults
+Agent: {
   models: {
     base: { model: "gpt-4.1" }  // Override: use different base model
     // structuredOutput: INHERITED from project (gpt-4.1-mini)
@@ -132,11 +132,11 @@ Graph: {
   }
 }
 
-// Agent Level - Can override any inherited model
-Agent: {
+// Sub Agent Level - Can override any inherited model
+Sub Agent: {
   models: {
     summarizer: { model: "claude-3.5-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from graph (gpt-4.1)
+    // base: INHERITED from agent (gpt-4.1)
     // structuredOutput: INHERITED from project (gpt-4.1-mini)
   }
 }
@@ -144,11 +144,11 @@ Agent: {
 
 #### Final Resolution Example
 
-In the above example, the agent ends up with:
+In the above example, the Sub Agent ends up with:
 
-- **base**: `gpt-4.1` (from graph)
+- **base**: `gpt-4.1` (from agent)
 - **structuredOutput**: `gpt-4.1-mini` (from project)
-- **summarizer**: `claude-3.5-haiku` (from agent)
+- **summarizer**: `claude-3.5-haiku` (from Sub Agent)
 
 #### Provider Options Override
 
@@ -184,7 +184,7 @@ Agent: {
 
 #### Fallback to Base Model
 
-**Important**: `structuredOutput` and `summarizer` only fall back to the `base` model when there's nothing to inherit from higher levels (project/graph).
+**Important**: `structuredOutput` and `summarizer` only fall back to the `base` model when there's nothing to inherit from higher levels (project/agent).
 
 #### System Defaults
 
@@ -238,7 +238,7 @@ Project: {
   }
 }
 
-Agent: {
+Sub Agent: {
   models: {
     base: {
       model: "gpt-4.1-2025-04-14";
@@ -249,39 +249,39 @@ Agent: {
 
 **Final Resolution with Inheritance:**
 
-- **base**: `gpt-4.1-2025-04-14` (from agent)
-- **summarizer**: `gpt-4.1-mini-2025-04-14` (inherited from project - NO fallback to agent's base)
-- **structuredOutput**: Falls back to agent's base `gpt-4.1-2025-04-14` (no inheritance available, so fallback occurs)
+- **base**: `gpt-4.1-2025-04-14` (from Sub Agent)
+- **summarizer**: `gpt-4.1-mini-2025-04-14` (inherited from project - NO fallback to Sub Agent's base)
+- **structuredOutput**: Falls back to Sub Agent's base `gpt-4.1-2025-04-14` (no inheritance available, so fallback occurs)
 
 ### StopWhen Inheritance
 
 Different cascade rules apply based on the control scope:
 
-- **`transferCountIs`**: Controls graph-level behavior → **Project** → **Graph** only
-- **`stepCountIs`**: Controls individual agent behavior → **Project** → **Graph** → **Agent**
+- **`transferCountIs`**: Controls agent-level behavior → **Project** → **Agent** only
+- **`stepCountIs`**: Controls individual Sub Agent behavior → **Project** → **Agent** → **Sub Agent**
 
 ```typescript
 // Project sets defaults
 Project: {
   stopWhen: {
     transferCountIs: 5,   // Max transfers per conversation
-    stepCountIs: 15      // Max steps per agent
+    stepCountIs: 15      // Max steps per Sub Agent
   }
 }
 
-// Graph can override transfer limit, inherits step limit
-Graph: {
+// Agent can override transfer limit, inherits step limit
+Agent: {
   stopWhen: {
-    transferCountIs: 8    // Override: allow more transfers in this graph
+    transferCountIs: 8    // Override: allow more transfers in this agent
     // stepCountIs: 15 (inherited from project)
   }
 }
 
-// Individual agent can override its own step limit
-Agent: {
+// Individual Sub Agent can override its own step limit
+Sub Agent: {
   stopWhen: {
-    stepCountIs: 25      // This agent can take more steps
-    // transferCountIs not applicable at agent level
+    stepCountIs: 25      // This Sub Agent can take more steps
+    // transferCountIs not applicable at Sub Agent level
   }
 }
 ```
