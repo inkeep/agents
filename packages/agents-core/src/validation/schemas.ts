@@ -871,22 +871,28 @@ export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
     data: itemSchema,
   });
 
-export const ErrorResponseSchema = z.object({
-  error: z.string(),
-  message: z.string().optional(),
-  details: z.any().optional().openapi({
-    description: 'Additional error details',
-  }),
-});
+export const ErrorResponseSchema = z
+  .object({
+    error: z.string(),
+    message: z.string().optional(),
+    details: z.any().optional().openapi({
+      description: 'Additional error details',
+    }),
+  })
+  .openapi('ErrorResponse');
 
-export const ExistsResponseSchema = z.object({
-  exists: z.boolean(),
-});
+export const ExistsResponseSchema = z
+  .object({
+    exists: z.boolean(),
+  })
+  .openapi('ExistsResponse');
 
-export const RemovedResponseSchema = z.object({
-  message: z.string(),
-  removed: z.boolean(),
-});
+export const RemovedResponseSchema = z
+  .object({
+    message: z.string(),
+    removed: z.boolean(),
+  })
+  .openapi('RemovedResponse');
 
 // === Project Schemas ===
 export const ProjectSelectSchema = createSelectSchema(projects);
