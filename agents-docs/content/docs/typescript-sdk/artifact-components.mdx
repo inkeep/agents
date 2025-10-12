@@ -8,92 +8,91 @@ icon: "TbInputSpark"
 
 ## Defining Artifact Components
 
-Artifact components are defined when creating an agent using the `artifactComponents` property. You can use either JSON Schema or Zod schemas:
+Artifact components are defined using the `artifactComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
+
+<Callout>
+**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`, providing a ready-to-use example.
+</Callout>
 
 ### Using Zod Schemas (Recommended)
 
 ```typescript
+import { artifactComponent } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 import { preview } from '@inkeep/agents-core';
 
-const agent = agent({
-  // ... other agent config
-  artifactComponents: [
-    {
-      id: "citation",
-      name: "Citation",
-      description: "Structured factual information extracted from search results",
-      props: z.object({
-        title: preview(z.string().describe("Title of the source document")),
-        url: preview(z.string().describe("URL of the source document")),
-        record_type: preview(
-          z.string().describe("Type of record (documentation, blog, guide, etc.)")
-        ),
-        content: z
-          .array(
-            z.object({
-              type: z.string().describe("Type of content (text, image, video, etc.)"),
-              text: z.string().describe("The actual text content"),
-            })
-          )
-          .describe("Array of structured content blocks extracted from the document"),
-      }),
-    },
-  ],
+export const citation = artifactComponent({
+  id: "citation",
+  name: "Citation",
+  description: "Structured factual information extracted from search results",
+  props: z.object({
+    title: preview(z.string().describe("Title of the source document")),
+    url: preview(z.string().describe("URL of the source document")),
+    record_type: preview(
+      z.string().describe("Type of record (documentation, blog, guide, etc.)")
+    ),
+    content: z
+      .array(
+        z.object({
+          type: z.string().describe("Type of content (text, image, video, etc.)"),
+          text: z.string().describe("The actual text content"),
+        })
+      )
+      .describe("Array of structured content blocks extracted from the document"),
+  }),
 });
 ```
 
-### Using JSON Schema
+### Alternative: JSON Schema
+
+If you prefer JSON Schema, you can still use it:
 
 ```typescript
-const agent = agent({
-  // ... other agent config
-  artifactComponents: [
-    {
-      id: "citation",
-      name: "Citation",
-      description: "Structured factual information extracted from search results",
-      props: {
-        type: "object",
-        properties: {
-          title: {
-            type: "string",
-            description: "Title of the source document",
-            inPreview: true,
-          },
-          url: { 
-            type: "string", 
-            description: "URL of the source document",
-            inPreview: true,
-          },
-          record_type: {
-            type: "string",
-            description: "Type of record (documentation, blog, guide, etc.)",
-            inPreview: true,
-          },
-          content: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                type: {
-                  type: "string",
-                  description: "Type of content (text, image, video, etc.)",
-                },
-                text: {
-                  type: "string",
-                  description: "The actual text content",
-                },
-              },
-              required: ["type", "text"],
+import { artifactComponent } from '@inkeep/agents-sdk';
+
+export const citation = artifactComponent({
+  id: "citation",
+  name: "Citation",
+  description: "Structured factual information extracted from search results",
+  props: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description: "Title of the source document",
+        inPreview: true,
+      },
+      url: { 
+        type: "string", 
+        description: "URL of the source document",
+        inPreview: true,
+      },
+      record_type: {
+        type: "string",
+        description: "Type of record (documentation, blog, guide, etc.)",
+        inPreview: true,
+      },
+      content: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type: {
+              type: "string",
+              description: "Type of content (text, image, video, etc.)",
             },
-            description: "Array of structured content blocks extracted from the document",
+            text: {
+              type: "string",
+              description: "The actual text content",
+            },
           },
+          required: ["type", "text"],
         },
-        required: ["title", "url", "record_type", "content"],
+        description: "Array of structured content blocks extracted from the document",
       },
     },
-  ],
+    required: ["title", "url", "record_type", "content"],
+  },
 });
 ```
 
@@ -138,13 +137,32 @@ When an agent uses a tool:
 
 Artifacts provide the source citations that back up information in data components.
 
-## Example Flow
+## Using in Agents
+
+After defining your artifact component, use it in an agent:
 
 ```typescript
+import { agent } from '@inkeep/agents-sdk';
+import { citation } from './artifact-components/citation';
+
+const searchAgent = agent({
+  id: "search-agent",
+  canUse: () => [searchTool],
+  prompt: "Search for information and cite sources using artifacts.",
+  artifactComponents: () => [citation],
+});
+```
+
+## Example Flow
+
+Here's a complete example with inline artifact component definition:
+
+```typescript
+import { agent } from '@inkeep/agents-sdk';
 import { z } from 'zod';
 import { preview } from '@inkeep/agents-core';
 
-const searchAgent = agent({
+const searchAgent = subAgent({
   id: "search",
   canUse: () => [searchTool],
   prompt: "Search for information and cite sources using artifacts.",
@@ -166,7 +184,7 @@ const searchAgent = agent({
 ## No Schema Example
 
 ```typescript
-const rawDataAgent = agent({
+const rawDataAgent = subAgent({
   id: "raw-data",
   canUse: () => [apiTool],
   prompt: "Fetch data and save complete responses.",

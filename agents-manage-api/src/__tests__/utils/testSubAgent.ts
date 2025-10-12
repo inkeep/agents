@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
  * @param options - Configuration options for the test sub-agent
  * @param options.id - Optional custom ID (defaults to nanoid())
  * @param options.suffix - Optional suffix to append to name/description/prompt
- * @param options.graphId - Optional graph ID
+ * @param options.agentId - Optional agent ID
  * @param options.tenantId - Optional tenant ID
  * @param options.projectId - Optional project ID
  * @param options.tools - Optional array of tool IDs
@@ -19,13 +19,13 @@ import { nanoid } from 'nanoid';
  *
  * @example
  * ```typescript
- * const subAgent = createTestSubAgentData({ suffix: ' QA', graphId: 'my-graph' });
+ * const subAgent = createTestSubAgentData({ suffix: ' QA', agentId: 'my-agent' });
  * ```
  */
 export function createTestSubAgentData({
   id,
   suffix = '',
-  graphId,
+  agentId,
   tenantId,
   projectId,
   tools = [],
@@ -37,20 +37,24 @@ export function createTestSubAgentData({
 }: {
   id?: string;
   suffix?: string;
-  graphId?: string;
+  agentId?: string;
   tenantId?: string;
   projectId?: string;
   tools?: string[];
-  canUse?: Array<{ toolId: string; toolSelection?: string[] | null; headers?: Record<string, string> | null }>;
+  canUse?: Array<{
+    toolId: string;
+    toolSelection?: string[] | null;
+    headers?: Record<string, string> | null;
+  }>;
   canDelegateTo?: string[];
   canTransferTo?: string[];
   dataComponents?: string[];
   artifactComponents?: string[];
 } = {}) {
-  const agentId = id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+  const subAgentId = id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
-    id: agentId,
+    id: subAgentId,
     name: `Test Agent${suffix}`,
     description: `Test agent description${suffix}`,
     prompt: `You are a helpful assistant${suffix}.`,
@@ -59,7 +63,7 @@ export function createTestSubAgentData({
   };
 
   // Only add optional fields if they're provided
-  if (graphId !== undefined) baseData.graphId = graphId;
+  if (agentId !== undefined) baseData.agentId = agentId;
   if (tenantId !== undefined) baseData.tenantId = tenantId;
   if (projectId !== undefined) baseData.projectId = projectId;
   if (tools.length > 0 || canUse.length === 0) baseData.tools = tools;
@@ -79,7 +83,7 @@ export function createTestSubAgentData({
  * @param options.suffix - Optional suffix to append to name/description
  * @param options.tenantId - Optional tenant ID
  * @param options.projectId - Optional project ID
- * @param options.graphId - Optional graph ID
+ * @param options.agentId - Optional agent ID
  * @param options.baseUrl - Base URL for the external agent (defaults to example URL)
  * @param options.headers - Optional headers for the external agent
  * @param options.credentialReferenceId - Optional credential reference ID
@@ -90,7 +94,7 @@ export function createTestSubAgentData({
  * const externalAgent = createTestExternalAgentData({
  *   id: 'ext-agent-1',
  *   suffix: ' External',
- *   graphId: 'my-graph',
+ *   agentId: 'my-agent',
  *   baseUrl: 'https://api.example.com'
  * });
  * ```
@@ -100,7 +104,7 @@ export function createTestExternalAgentData({
   suffix = '',
   tenantId,
   projectId,
-  graphId,
+  agentId,
   baseUrl,
   headers,
   credentialReferenceId,
@@ -109,25 +113,28 @@ export function createTestExternalAgentData({
   suffix?: string;
   tenantId?: string;
   projectId?: string;
-  graphId?: string;
+  agentId?: string;
   baseUrl?: string;
   headers?: Record<string, string> | null;
   credentialReferenceId?: string | null;
 } = {}) {
-  const agentId = id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+  const subAgentId =
+    id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
-    id: agentId,
+    id: subAgentId,
     name: `Test External Agent${suffix}`,
     description: `Test external agent description${suffix}`,
-    baseUrl: baseUrl || `https://api.example.com/external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}`,
+    baseUrl:
+      baseUrl ||
+      `https://api.example.com/external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}`,
     type: 'external' as const,
   };
 
   // Only add optional fields if they're provided
   if (tenantId !== undefined) baseData.tenantId = tenantId;
   if (projectId !== undefined) baseData.projectId = projectId;
-  if (graphId !== undefined) baseData.graphId = graphId;
+  if (agentId !== undefined) baseData.agentId = agentId;
   if (headers !== undefined) baseData.headers = headers;
   if (credentialReferenceId !== undefined) baseData.credentialReferenceId = credentialReferenceId;
 
@@ -138,7 +145,7 @@ export function createTestExternalAgentData({
  * Creates test data for an agent relation.
  *
  * @param options - Configuration options for the agent relation
- * @param options.graphId - The graph ID for the relation
+ * @param options.agentId - The agent ID for the relation
  * @param options.sourceSubAgentId - The source sub-agent ID
  * @param options.targetSubAgentId - The target sub-agent ID
  * @param options.relationType - The type of relation ('transfer' or 'delegate')
@@ -147,7 +154,7 @@ export function createTestExternalAgentData({
  * @example
  * ```typescript
  * const relation = createTestAgentRelationData({
- *   graphId: 'my-graph',
+ *   agentId: 'my-agent',
  *   sourceSubAgentId: 'agent-1',
  *   targetSubAgentId: 'agent-2',
  *   relationType: 'transfer'
@@ -155,19 +162,19 @@ export function createTestExternalAgentData({
  * ```
  */
 export function createTestAgentRelationData({
-  graphId,
+  agentId,
   sourceSubAgentId,
   targetSubAgentId,
   relationType = 'transfer',
 }: {
-  graphId: string;
+  agentId: string;
   sourceSubAgentId: string;
   targetSubAgentId: string;
   relationType?: 'transfer' | 'delegate';
 }) {
   return {
     id: nanoid(),
-    graphId,
+    agentId,
     sourceSubAgentId,
     targetSubAgentId,
     relationType,

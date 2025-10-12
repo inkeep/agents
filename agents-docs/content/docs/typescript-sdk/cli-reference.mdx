@@ -58,7 +58,7 @@ inkeep init --config ./template-config.ts
 
 ### `inkeep push`
 
-**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all agents, sub agents, and tools.
+**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all agents, sub-agents, and tools.
 
 ```bash
 inkeep push
@@ -160,7 +160,7 @@ The `inkeep push` command follows this discovery process:
 3. **Resource Compilation**: Automatically discovers and compiles:
    - All project directories containing `index.ts`
    - All TypeScript files within each project directory
-   - Categorizes files by type (agents, sub agents, tools, data components)
+   - Categorizes files by type (agents, sub-agents, tools, data components)
    - Resolves dependencies and relationships within each project
 
 #### Push Behavior
@@ -171,7 +171,7 @@ When pushing, the CLI:
 - Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
 - Compiles all project resources defined in each project's `index.ts`
-- Validates agent relationships and tool configurations across all projects
+- Validates sub-agent relationships and tool configurations across all projects
 - Deploys all projects to the management API
 - Prints deployment summary with resource counts per project
 
@@ -192,15 +192,32 @@ inkeep pull
 - `--json` - Save project data as JSON file instead of updating TypeScript files
 - `--debug` - Enable debug logging for LLM generation
 
+**Directory-Aware Pull (Mirrors `inkeep push` behavior):**
+
+The pull command automatically detects if you're in a project directory and pulls to that location:
+
+1. **Automatic Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Current Directory Pull**: Files are pulled directly to your current directory (no subdirectory is created)
+3. **Conflict Prevention**: If you specify `--project` while in a project directory, an error is shown to prevent confusion
+
+**Pull Modes:**
+
+| Scenario | Command | Behavior |
+|----------|---------|----------|
+| In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
+| In project directory | `inkeep pull --project <id>` | ❌ Error: Cannot specify --project when in project directory |
+| Not in project directory | `inkeep pull` | Prompts for project ID, creates subdirectory |
+| Not in project directory | `inkeep pull --project <id>` | Pulls specified project to subdirectory |
+
 **How it Works:**
 
 The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
 
 1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
-2. **Smart Categorization**: Categorizes files as index, agents, sub agents, tools, or other files
+2. **Smart Categorization**: Categorizes files as index, agents, sub-agents, tools, or other files
 3. **Context-Aware Updates**: Updates each file with relevant context from the server:
    - **Agent files**: Updated with specific agent data
-   - **Sub Agent files**: Updated with specific sub agent configurations
+   - **Sub-agent files**: Updated with specific sub-agent configurations
    - **Tool files**: Updated with specific tool definitions
    - **Other files**: Updated with full project context
 4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
@@ -211,16 +228,26 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 
 1. **Context Preservation**: Maintains your existing code structure and patterns
 2. **Selective Updates**: Only updates relevant parts based on server configuration changes
-3. **File-Specific Context**: Each file type receives appropriate context (agents get agent data, sub agents get sub agent data, etc.)
+3. **File-Specific Context**: Each file type receives appropriate context (agents get agent data, sub-agents get sub-agent data, etc.)
 
 **Examples:**
 
 ```bash
-# Pull and update all project files from current directory
-inkeep pull
+# Directory-aware pull: Automatically detects project from current directory
+cd my-project  # Directory contains index.ts with project export
+inkeep pull    # Pulls to current directory, no subdirectory created
 
-# Pull specific project directory
-inkeep pull --project ./my-project
+# Pull when NOT in a project directory (prompts for project ID)
+cd ~/projects
+inkeep pull    # Prompts for project ID, creates subdirectory
+
+# Pull specific project (only works when NOT in a project directory)
+cd ~/projects
+inkeep pull --project my-project  # Creates my-project/ subdirectory
+
+# Error case: --project flag in project directory
+cd my-project  # Directory contains index.ts
+inkeep pull --project my-project  # ERROR: Cannot specify --project in project directory
 
 # Save project data as JSON file instead of updating files
 inkeep pull --json
@@ -231,8 +258,8 @@ inkeep pull --agents-manage-api-url https://api.example.com
 # Enable debug logging
 inkeep pull --debug
 
-# Override tenant ID when using custom API URL
-inkeep pull --agents-manage-api-url https://api.example.com --env production
+# Generate environment-specific credentials
+inkeep pull --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
@@ -286,12 +313,12 @@ inkeep chat --config ./inkeep.config.ts
 inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
-### `inkeep list-graphs`
+### `inkeep list-agents`
 
 List all available agents for a specific project.
 
 ```bash
-inkeep list-graphs --project <project-id>
+inkeep list-agents --project <project-id>
 ```
 
 **Options:**
@@ -306,13 +333,13 @@ inkeep list-graphs --project <project-id>
 
 ```bash
 # List agents for a specific project
-inkeep list-graphs --project my-project
+inkeep list-agents --project my-project
 
 # List agents using a specific config file
-inkeep list-graphs --project my-project --config ./inkeep.config.ts
+inkeep list-agents --project my-project --config ./inkeep.config.ts
 
 # Override tenant and API URL
-inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
+inkeep list-agents --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`

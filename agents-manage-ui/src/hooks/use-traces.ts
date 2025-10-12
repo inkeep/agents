@@ -38,7 +38,7 @@ export interface UseConversationStatsOptions {
     pageSize?: number;
   };
   searchQuery?: string;
-  graphId?: string;
+  agentId?: string;
 }
 
 export function useConversationStats(
@@ -77,7 +77,7 @@ export function useConversationStats(
           options?.projectId,
           paginationParams,
           options?.searchQuery,
-          options?.graphId
+          options?.agentId
         );
 
         if (paginationEnabled && typeof result === 'object' && 'data' in result) {
@@ -105,7 +105,7 @@ export function useConversationStats(
       options?.filters,
       options?.projectId,
       options?.searchQuery,
-      options?.graphId,
+      options?.agentId,
       paginationEnabled,
       pageSize,
       currentPage,
@@ -187,7 +187,7 @@ export function useAggregateStats(options?: {
   endTime?: number;
   filters?: SpanFilterOptions;
   projectId?: string;
-  graphId?: string;
+  agentId?: string;
 }) {
   const [aggregateStats, setAggregateStats] = useState({
     totalToolCalls: 0,
@@ -213,7 +213,7 @@ export function useAggregateStats(options?: {
         currentEndTime,
         options?.filters,
         options?.projectId,
-        options?.graphId
+        options?.agentId
       );
 
       setAggregateStats(stats);
@@ -229,7 +229,7 @@ export function useAggregateStats(options?: {
     options?.endTime,
     options?.filters,
     options?.projectId,
-    options?.graphId,
+    options?.agentId,
   ]);
 
   useEffect(() => {

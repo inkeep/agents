@@ -1,5 +1,10 @@
 // Import shared API client from agents-core
-import { type AgentGraphApiInsert, type AgentGraphApiSelect, apiFetch } from '@inkeep/agents-core';
+import {
+  type AgentApiInsert,
+  type AgentApiSelect,
+  apiFetch,
+  OPENAI_MODELS,
+} from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -87,52 +92,52 @@ export class ManagementApiClient extends BaseApiClient {
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
-  async listGraphs(): Promise<AgentGraphApiSelect[]> {
+  async listAgents(): Promise<AgentApiSelect[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`,
       {
         method: 'GET',
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to list graphs: ${response.statusText}`);
+      throw new Error(`Failed to list agents: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.data || [];
   }
 
-  async getGraph(graphId: string): Promise<AgentGraphApiSelect | null> {
-    // Since there's no dedicated GET endpoint for graphs,
-    // we check if the graph exists in the CRUD endpoint
-    const graphs = await this.listGraphs();
-    const graph = graphs.find((g) => g.id === graphId);
+  async getAgent(agentId: string): Promise<AgentApiSelect | null> {
+    // Since there's no dedicated GET endpoint for agents,
+    // we check if the agent exists in the CRUD endpoint
+    const agents = await this.listAgents();
+    const agent = agents.find((g) => g.id === agentId);
 
-    // If found in CRUD, return it as a valid graph
-    // The graph is usable for chat even without a dedicated GET endpoint
-    return graph || null;
+    // If found in CRUD, return it as a valid agent
+    // The agent is usable for chat even without a dedicated GET endpoint
+    return agent || null;
   }
 
-  async pushGraph(graphDefinition: AgentGraphApiInsert): Promise<any> {
+  async pushAgent(agentDefinition: AgentApiInsert): Promise<any> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
-    const graphId = graphDefinition.id;
-    if (!graphId) {
-      throw new Error('Graph must have an id property');
+    const agentId = agentDefinition.id;
+    if (!agentId) {
+      throw new Error('Agent must have an id property');
     }
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
         body: JSON.stringify({
-          ...graphDefinition,
+          ...agentDefinition,
           tenantId,
         }),
       }
@@ -140,16 +145,13 @@ export class ManagementApiClient extends BaseApiClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to push graph: ${response.statusText}\n${errorText}`);
+      throw new Error(`Failed to push agent: ${response.statusText}\n${errorText}`);
     }
 
     const data = await response.json();
     return data.data;
   }
 
-  /**
-   * Fetch full project data including all graphs, tools, and components
-   */
   async getFullProject(projectId: string): Promise<any> {
     const tenantId = this.checkTenantId();
 
@@ -204,7 +206,7 @@ export class ExecutionApiClient extends BaseApiClient {
   }
 
   async chatCompletion(
-    graphId: string,
+    agentId: string,
     messages: any[],
     conversationId?: string,
     emitOperations?: boolean
@@ -215,11 +217,11 @@ export class ExecutionApiClient extends BaseApiClient {
         Accept: 'text/event-stream',
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,
-        'x-inkeep-graph-id': graphId,
+        'x-inkeep-agent-id': agentId,
         ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Required but will be overridden by graph config
+        model: OPENAI_MODELS.GPT_4_1_MINI, // Required but will be overridden by graph config
         messages,
         conversationId,
         stream: true,

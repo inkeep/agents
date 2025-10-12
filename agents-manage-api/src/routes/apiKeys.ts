@@ -4,6 +4,8 @@ import {
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
   ApiKeyApiUpdateSchema,
+  ApiKeyListResponse,
+  ApiKeyResponse,
   commonGetErrorResponses,
   createApiError,
   createApiKey,
@@ -11,10 +13,8 @@ import {
   ErrorResponseSchema,
   generateApiKey,
   getApiKeyById,
-  ListResponseSchema,
   listApiKeysPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateApiKey,
@@ -35,7 +35,7 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        graphId: z.string().optional().describe('Filter by graph ID'),
+        agentId: z.string().optional().describe('Filter by agent ID'),
       }),
     },
     responses: {
@@ -43,7 +43,7 @@ app.openapi(
         description: 'List of API keys retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyListResponse,
           },
         },
       },
@@ -54,12 +54,12 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const graphId = c.req.query('graphId');
+    const agentId = c.req.query('agentId');
 
     const result = await listApiKeysPaginated(dbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
-      graphId,
+      agentId: agentId,
     });
     // Remove sensitive fields from response
     const sanitizedData = result.data.map(({ keyHash, tenantId, projectId, ...apiKey }) => apiKey);
@@ -87,7 +87,7 @@ app.openapi(
         description: 'API key found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyResponse,
           },
         },
       },
@@ -126,7 +126,7 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create API Key',
-    description: 'Create a new API key for a graph. Returns the full key (shown only once).',
+    description: 'Create a new API key for an agent. Returns the full key (shown only once).',
     operationId: 'create-api-key',
     tags: ['API Keys'],
     request: {
@@ -161,7 +161,7 @@ app.openapi(
       tenantId,
       projectId,
       name: body.name,
-      graphId: body.graphId,
+      agentId: body.agentId,
       ...keyDataWithoutKey,
       expiresAt: body.expiresAt || undefined,
     };
@@ -185,11 +185,11 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle foreign key constraint violations (invalid graphId)
+      // Handle foreign key constraint violations (invalid agentId)
       if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
         throw createApiError({
           code: 'bad_request',
-          message: 'Invalid graphId - graph does not exist',
+          message: 'Invalid agentId - agent does not exist',
         });
       }
 
@@ -222,7 +222,7 @@ app.openapi(
         description: 'API key updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyResponse,
           },
         },
       },

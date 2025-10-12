@@ -12,17 +12,17 @@ import { parseEmbeddedJson } from '../../utils/json-parser';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {
-  getRelatedAgentsForGraphMock,
+  getRelatedAgentsForAgentMock,
   getToolsForAgentMock,
   getSubAgentByIdMock: getAgentByIdMock,
-  getAgentGraphMock,
-  getAgentGraphByIdMock,
+  getAgentAgentMock,
+  getAgentAgentByIdMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
 } = vi.hoisted(() => {
-  const getRelatedAgentsForGraphMock = vi.fn(() =>
+  const getRelatedAgentsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       internalRelations: [
         {
@@ -79,16 +79,16 @@ const {
     })
   );
 
-  const getAgentGraphMock = vi.fn(() =>
+  const getAgentAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       contextConfigId: 'context-123',
       models: null,
     })
   );
-  const getAgentGraphByIdMock = vi.fn(() =>
+  const getAgentAgentByIdMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       contextConfigId: 'context-123',
       models: {
         base: { model: 'openai/gpt-4' },
@@ -184,11 +184,11 @@ const {
   );
 
   return {
-    getRelatedAgentsForGraphMock,
+    getRelatedAgentsForAgentMock,
     getToolsForAgentMock,
     getSubAgentByIdMock,
-    getAgentGraphMock,
-    getAgentGraphByIdMock,
+    getAgentAgentMock,
+    getAgentAgentByIdMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
     getProjectMock,
@@ -197,11 +197,12 @@ const {
 });
 
 vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForGraph: getRelatedAgentsForGraphMock,
+  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
   getToolsForAgent: getToolsForAgentMock,
   getSubAgentById: getAgentByIdMock,
-  getAgentGraph: getAgentGraphMock,
-  getAgentGraphById: getAgentGraphByIdMock,
+  getAgentById: getAgentAgentMock,
+  getAgentAgent: getAgentAgentMock,
+  getAgentAgentById: getAgentAgentByIdMock,
   getTracer: vi.fn().mockReturnValue({
     startSpan: vi.fn().mockReturnValue({
       setAttributes: vi.fn(),
@@ -263,7 +264,8 @@ vi.mock('../../agents/Agent.js', () => ({
                   toolCallId: 'call-123',
                   output: {
                     type: 'transfer',
-                    target: 'refund-agent',
+                    targetSubAgentId: 'refund-agent',
+                    fromSubAgentId: 'test-agent',
                     reason: 'User needs refund assistance',
                   },
                 },
@@ -331,7 +333,7 @@ describe('generateTaskHandler', () => {
   const mockConfig: TaskHandlerConfig = {
     tenantId: 'test-tenant',
     projectId: 'test-project',
-    graphId: 'test-graph',
+    agentId: 'test-agent',
     subAgentId: 'test-agent',
     baseUrl: 'http://localhost:3000',
     agentSchema: {
@@ -574,7 +576,7 @@ describe('generateTaskHandler', () => {
       expect(result.status.state).toBe(TaskState.Completed);
       expect(result.status.message).toBe('Transfer requested to refund-agent');
       expect((result.artifacts?.[0].parts[0] as any).data.type).toBe('transfer');
-      expect((result.artifacts?.[0].parts[0] as any).data.target).toBe('refund-agent');
+      expect((result.artifacts?.[0].parts[0] as any).data.targetSubAgentId).toBe('refund-agent');
       expect((result.artifacts?.[0].parts[0] as any).data.reason).toBe(
         'Transferring to refund agent'
       );
@@ -657,17 +659,17 @@ describe('generateTaskHandler', () => {
       await taskHandler(task);
 
       // Verify that relations and tools were fetched
-      expect(getRelatedAgentsForGraphMock).toHaveBeenCalledWith(expect.anything());
+      expect(getRelatedAgentsForAgentMock).toHaveBeenCalledWith(expect.anything());
       expect(getToolsForAgentMock).toHaveBeenCalledWith(expect.anything());
       expect(getDataComponentsForAgentMock).toHaveBeenCalledWith(expect.anything());
 
       // Verify the inner function was called with correct parameters
-      const relationsInnerMock = getRelatedAgentsForGraphMock.mock.results[0]?.value;
+      const relationsInnerMock = getRelatedAgentsForAgentMock.mock.results[0]?.value;
       expect(relationsInnerMock).toHaveBeenCalledWith({
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-agent',
         },
         subAgentId: 'test-agent',
       });
@@ -677,7 +679,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'test-agent',
         },
       });
@@ -687,7 +689,7 @@ describe('generateTaskHandler', () => {
         scopes: {
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'test-agent',
         },
       });
@@ -699,7 +701,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -707,7 +709,7 @@ describe('generateTaskHandler', () => {
       expect(config).toEqual({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         agentSchema: {
           id: 'test-agent',
@@ -753,7 +755,7 @@ describe('generateTaskHandler', () => {
         createTaskHandlerConfig({
           tenantId: 'test-tenant',
           projectId: 'test-project',
-          graphId: 'test-graph',
+          agentId: 'test-agent',
           subAgentId: 'non-existent',
           baseUrl: 'https://test.com',
         })
@@ -791,7 +793,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -848,7 +850,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -898,7 +900,7 @@ describe('generateTaskHandler', () => {
       const config = await createTaskHandlerConfig({
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });

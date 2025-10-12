@@ -3,16 +3,16 @@ import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
+  ArtifactComponentListResponse,
+  ArtifactComponentResponse,
   commonGetErrorResponses,
   createApiError,
   createArtifactComponent,
   deleteArtifactComponent,
   ErrorResponseSchema,
   getArtifactComponentById,
-  ListResponseSchema,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateArtifactComponent,
@@ -39,7 +39,7 @@ app.openapi(
         description: 'List of artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentListResponse,
           },
         },
       },
@@ -74,7 +74,7 @@ app.openapi(
         description: 'Artifact component found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -121,7 +121,7 @@ app.openapi(
         description: 'Artifact component created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -199,7 +199,7 @@ app.openapi(
         description: 'Artifact component updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },

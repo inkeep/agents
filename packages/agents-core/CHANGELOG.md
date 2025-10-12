@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- 849c6e9: added new cosntants for model and inkeep pull
+
 ## 0.18.1
 
 ### Patch Changes

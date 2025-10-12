@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentGraph } from '../graph';
+import { Agent } from '../agent';
 import type { ProjectConfig } from '../project';
 import { Project } from '../project';
-import type { GraphConfig } from '../types';
+import type { AgentConfig } from '../types';
 
 // Mock the logger
 vi.mock('../logger', () => ({
@@ -28,14 +28,14 @@ global.fetch = mockFetch as any;
 
 describe('Project', () => {
   let projectConfig: ProjectConfig;
-  let graphConfig: GraphConfig;
+  let agentConfig: AgentConfig;
 
   // Mock project data for API responses
   const mockProjectData = {
     id: 'test-project',
     name: 'Test Project',
     description: 'A test project',
-    graphs: {},
+    agents: {},
   };
 
   beforeEach(() => {
@@ -45,10 +45,10 @@ describe('Project', () => {
     process.env.ENVIRONMENT = 'test';
     process.env.INKEEP_API_URL = 'http://localhost:3002';
 
-    graphConfig = {
-      id: 'test-graph',
-      name: 'Test Graph',
-      description: 'A test graph',
+    agentConfig = {
+      id: 'test-agent',
+      name: 'Test Agent',
+      description: 'A test agent',
     };
 
     projectConfig = {
@@ -104,21 +104,21 @@ describe('Project', () => {
       expect(project.getStopWhen()).toBeUndefined();
     });
 
-    it('should initialize graphs if provided in config', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+    it('should initialize agents if provided in config', () => {
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph],
+        agents: () => [mockAgent],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
 
-      expect(project.getGraphs()).toHaveLength(1);
-      expect(project.getGraph('test-graph')).toBe(mockGraph);
-      // Graphs are initially set with defaults, setConfig is called with 'default' tenantId
-      expect(mockGraph.setConfig).toHaveBeenCalledWith(
+      expect(project.getAgents()).toHaveLength(1);
+      expect(project.getAgent('test-agent')).toBe(mockAgent);
+      // Agent are initially set with defaults, setConfig is called with 'default' tenantId
+      expect(mockAgent.setConfig).toHaveBeenCalledWith(
         'default',
         'test-project',
         'http://localhost:3002'
@@ -135,26 +135,26 @@ describe('Project', () => {
       expect(project.getTenantId()).toBe('new-tenant');
     });
 
-    it('should propagate config changes to all graphs', () => {
-      const mockGraph1 = new AgentGraph(graphConfig);
-      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
-      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+    it('should propagate config changes to all agent', () => {
+      const mockAgent1 = new Agent(agentConfig);
+      const mockAgent2 = new Agent({ ...agentConfig, id: 'test-agent-2' });
+      vi.spyOn(mockAgent1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent2, 'setConfig').mockImplementation(() => {});
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph1, mockGraph2],
+        agents: () => [mockAgent1, mockAgent2],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
       project.setConfig('new-tenant', 'http://new-api.com');
 
-      expect(mockGraph1.setConfig).toHaveBeenCalledWith(
+      expect(mockAgent1.setConfig).toHaveBeenCalledWith(
         'new-tenant',
         'test-project',
         'http://new-api.com'
       );
-      expect(mockGraph2.setConfig).toHaveBeenCalledWith(
+      expect(mockAgent2.setConfig).toHaveBeenCalledWith(
         'new-tenant',
         'test-project',
         'http://new-api.com'
@@ -268,7 +268,7 @@ describe('Project', () => {
     });
   });
 
-  describe('graph management', () => {
+  describe('agent management', () => {
     let project: Project;
 
     beforeEach(() => {
@@ -277,36 +277,36 @@ describe('Project', () => {
       project.setConfig('test-tenant', 'http://localhost:3002');
     });
 
-    it('should add a graph to the project', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+    it('should add an agent to the project', () => {
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 
-      project.addGraph(mockGraph);
+      project.addAgent(mockAgent);
 
-      expect(project.getGraphs()).toHaveLength(1);
-      expect(project.getGraph('test-graph')).toBe(mockGraph);
-      expect(mockGraph.setConfig).toHaveBeenCalledWith(
+      expect(project.getAgents()).toHaveLength(1);
+      expect(project.getAgent('test-agent')).toBe(mockAgent);
+      expect(mockAgent.setConfig).toHaveBeenCalledWith(
         'test-tenant',
         'test-project',
         'http://localhost:3002'
       );
     });
 
-    it('should remove a graph from the project', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+    it('should remove an agent from the project', () => {
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 
-      project.addGraph(mockGraph);
-      expect(project.getGraphs()).toHaveLength(1);
+      project.addAgent(mockAgent);
+      expect(project.getAgents()).toHaveLength(1);
 
-      const removed = project.removeGraph('test-graph');
+      const removed = project.removeAgent('test-agent');
       expect(removed).toBe(true);
-      expect(project.getGraphs()).toHaveLength(0);
-      expect(project.getGraph('test-graph')).toBeUndefined();
+      expect(project.getAgents()).toHaveLength(0);
+      expect(project.getAgent('test-agent')).toBeUndefined();
     });
 
-    it('should return false when removing non-existent graph', () => {
-      const removed = project.removeGraph('non-existent-graph');
+    it('should return false when removing non-existent agent', () => {
+      const removed = project.removeAgent('non-existent-agent');
       expect(removed).toBe(false);
     });
   });
@@ -341,21 +341,21 @@ describe('Project', () => {
 
   describe('getStats', () => {
     it('should return project statistics', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph],
+        agents: () => [mockAgent],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
       // Set config to provide tenantId
       project.setConfig('test-tenant', 'http://localhost:3002');
       const stats = project.getStats();
 
       expect(stats).toEqual({
-        graphCount: 1,
+        agentCount: 1,
         initialized: false,
         projectId: 'test-project',
         tenantId: 'test-tenant',
@@ -365,16 +365,16 @@ describe('Project', () => {
 
   describe('validate', () => {
     it('should validate a valid project', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph, 'validate').mockReturnValue({ valid: true, errors: [] });
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent, 'validate').mockReturnValue({ valid: true, errors: [] });
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph],
+        agents: () => [mockAgent],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
       const validation = project.validate();
 
       expect(validation.valid).toBe(true);
@@ -403,43 +403,43 @@ describe('Project', () => {
       expect(validation.errors).toContain('Project must have a name');
     });
 
-    it('should detect duplicate graph IDs', () => {
-      const mockGraph1 = new AgentGraph(graphConfig);
-      const mockGraph2 = new AgentGraph(graphConfig); // Same ID
-      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+    it('should detect duplicate agent IDs', () => {
+      const mockAgent1 = new Agent(agentConfig);
+      const mockAgent2 = new Agent(agentConfig); // Same ID
+      vi.spyOn(mockAgent1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent2, 'setConfig').mockImplementation(() => {});
 
-      const configWithDuplicateGraphs: ProjectConfig = {
+      const configWithDuplicateAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph1, mockGraph2],
+        agents: () => [mockAgent1, mockAgent2],
       };
 
-      const project = new Project(configWithDuplicateGraphs);
+      const project = new Project(configWithDuplicateAgents);
       const validation = project.validate();
 
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain('Duplicate graph ID: test-graph');
+      expect(validation.errors).toContain('Duplicate agent ID: test-agent');
     });
 
-    it('should propagate graph validation errors', () => {
-      const mockGraph = new AgentGraph(graphConfig);
-      vi.spyOn(mockGraph, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph, 'validate').mockReturnValue({
+    it('should propagate agent validation errors', () => {
+      const mockAgent = new Agent(agentConfig);
+      vi.spyOn(mockAgent, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent, 'validate').mockReturnValue({
         valid: false,
-        errors: ['Graph has no agents', 'No default agent configured'],
+        errors: ['Agent has no agents', 'No default agent configured'],
       });
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph],
+        agents: () => [mockAgent],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
       const validation = project.validate();
 
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain("Graph 'test-graph': Graph has no agents");
-      expect(validation.errors).toContain("Graph 'test-graph': No default agent configured");
+      expect(validation.errors).toContain("Agent 'test-agent': Agent has no agents");
+      expect(validation.errors).toContain("Agent 'test-agent': No default agent configured");
     });
   });
 
@@ -470,37 +470,37 @@ describe('Project', () => {
 
   describe('toFullProjectDefinition', () => {
     it('should convert project to full project definition format', async () => {
-      const mockGraph1 = new AgentGraph(graphConfig);
-      const mockGraph2 = new AgentGraph({ ...graphConfig, id: 'test-graph-2' });
+      const mockAgent1 = new Agent(agentConfig);
+      const mockAgent2 = new Agent({ ...agentConfig, id: 'test-agent-2' });
 
-      vi.spyOn(mockGraph1, 'setConfig').mockImplementation(() => {});
-      vi.spyOn(mockGraph2, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent1, 'setConfig').mockImplementation(() => {});
+      vi.spyOn(mockAgent2, 'setConfig').mockImplementation(() => {});
 
-      // Mock the toFullGraphDefinition method
-      const mockGraphDef1 = {
-        id: 'test-graph',
-        name: 'Test Graph',
-        description: 'A test graph',
+      // Mock the toFullAgentDefinition method
+      const mockAgentDef1 = {
+        id: 'test-agent',
+        name: 'Test Agent',
+        description: 'A test agent',
         agents: {},
         tools: {},
       };
-      const mockGraphDef2 = {
-        id: 'test-graph-2',
-        name: 'Test Graph 2',
-        description: 'Another test graph',
+      const mockAgentDef2 = {
+        id: 'test-agent-2',
+        name: 'Test Agent 2',
+        description: 'Another test agent',
         agents: {},
         tools: {},
       };
 
-      vi.spyOn(mockGraph1 as any, 'toFullGraphDefinition').mockResolvedValue(mockGraphDef1);
-      vi.spyOn(mockGraph2 as any, 'toFullGraphDefinition').mockResolvedValue(mockGraphDef2);
+      vi.spyOn(mockAgent1 as any, 'toFullAgentDefinition').mockResolvedValue(mockAgentDef1);
+      vi.spyOn(mockAgent2 as any, 'toFullAgentDefinition').mockResolvedValue(mockAgentDef2);
 
-      const configWithGraphs: ProjectConfig = {
+      const configWithAgents: ProjectConfig = {
         ...projectConfig,
-        graphs: () => [mockGraph1, mockGraph2],
+        agents: () => [mockAgent1, mockAgent2],
       };
 
-      const project = new Project(configWithGraphs);
+      const project = new Project(configWithAgents);
       const fullProjectDef = await (project as any).toFullProjectDefinition();
 
       expect(fullProjectDef).toMatchObject({
@@ -509,9 +509,9 @@ describe('Project', () => {
         description: 'A test project',
         models: projectConfig.models,
         stopWhen: projectConfig.stopWhen,
-        graphs: {
-          'test-graph': mockGraphDef1,
-          'test-graph-2': mockGraphDef2,
+        agents: {
+          'test-agent': mockAgentDef1,
+          'test-agent-2': mockAgentDef2,
         },
         credentialReferences: undefined,
       });
@@ -520,7 +520,7 @@ describe('Project', () => {
       expect(fullProjectDef.updatedAt).toBeDefined();
     });
 
-    it('should handle projects with no graphs', async () => {
+    it('should handle projects with no agents', async () => {
       const project = new Project(projectConfig);
       const fullProjectDef = await (project as any).toFullProjectDefinition();
 
@@ -530,7 +530,7 @@ describe('Project', () => {
         description: 'A test project',
         models: projectConfig.models,
         stopWhen: projectConfig.stopWhen,
-        graphs: {},
+        agents: {},
         credentialReferences: undefined,
       });
     });

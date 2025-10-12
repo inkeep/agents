@@ -3,6 +3,8 @@ import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
   CredentialReferenceApiUpdateSchema,
+  CredentialReferenceListResponse,
+  CredentialReferenceResponse,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
@@ -15,7 +17,6 @@ import {
   ListResponseSchema,
   listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateCredentialReference,
@@ -44,7 +45,7 @@ app.openapi(
         description: 'List of credentials retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceListResponse,
           },
         },
       },
@@ -81,7 +82,7 @@ app.openapi(
         description: 'Credential found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },
@@ -129,7 +130,7 @@ app.openapi(
         description: 'Credential created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },
@@ -174,7 +175,7 @@ app.openapi(
         description: 'Credential updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },

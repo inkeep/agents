@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * MCP Runner - Loads and starts MCP servers from a graph file
+ * MCP Runner - Loads and starts MCP servers from an agent file
  * This is executed as a subprocess by the CLI
  */
 
@@ -20,7 +20,7 @@ if (!existsSync(MCP_DIR)) {
 
 interface McpServer {
   pid: number;
-  graphId: string;
+  agentId: string;
   toolId: string;
   name: string;
   port?: number;
@@ -32,18 +32,18 @@ interface McpServer {
   description?: string;
 }
 
-async function startServers(graphPath: string) {
+async function startServers(agentPath: string) {
   try {
-    // Import the graph module
-    const module = await import(graphPath);
+    // Import the agent module
+    const module = await import(agentPath);
 
     // Get servers
     const servers = module.servers || module.tools || [];
 
-    // Get graph ID
-    let graphId = 'unknown';
-    if (module.graph && typeof module.graph.getId === 'function') {
-      graphId = module.graph.getId();
+    // Get agent ID
+    let agentId = 'unknown';
+    if (module.agent && typeof module.agent.getId === 'function') {
+      agentId = module.agent.getId();
     }
 
     const registeredServers: McpServer[] = [];
@@ -110,13 +110,13 @@ async function startServers(graphPath: string) {
 
         registeredServers.push({
           pid: process.pid,
-          graphId,
+          agentId,
           toolId: id,
           name,
           port,
           deployment: 'local',
           transport: 'http',
-          command: graphPath,
+          command: agentPath,
           startedAt: new Date().toISOString(),
           description,
         });
@@ -124,13 +124,13 @@ async function startServers(graphPath: string) {
         // Register remote server
         registeredServers.push({
           pid: process.pid,
-          graphId,
+          agentId,
           toolId: id,
           name,
           serverUrl: server.serverUrl || server.getServerUrl?.(),
           deployment: 'remote',
           transport: server.transport || 'http',
-          command: graphPath,
+          command: agentPath,
           startedAt: new Date().toISOString(),
           description,
         });
@@ -175,16 +175,16 @@ async function startServers(graphPath: string) {
   }
 }
 
-// Get graph path from command line
-const graphPath = process.argv[2];
-if (!graphPath) {
+// Get agent path from command line
+const agentPath = process.argv[2];
+if (!agentPath) {
   console.error(
     JSON.stringify({
       type: 'error',
-      message: 'Graph path is required',
+      message: 'Agent path is required',
     })
   );
   process.exit(1);
 }
 
-startServers(graphPath);
+startServers(agentPath);

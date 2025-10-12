@@ -1,11 +1,11 @@
 ---
-title: Add External Agents to your Graph
+title: Add External Agents to your Agent
 sidebarTitle: External Agents
 description: Learn how to configure and use external agents using the A2A protocol
 icon: "LuGlobe"
 ---
 
-External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Graph. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep agents can delegate tasks to them as if they were native.
+External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native.
 
 <Note>
   Any agent that exposes an A2A‑compatible HTTP endpoint can be integrated by providing its `baseUrl` plus headers/auth (static or dynamic).
@@ -40,24 +40,24 @@ const technicalSupportAgent = externalAgent({
 Agents can be configured to delegate tasks to external agents.
 
 ```typescript
-import { agent } from "@inkeep/agents-manage-api/builders";
+import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
 
-// Define the customer support agent with delegation capabilities
-const supportAgent = agent({
-  id: "support-agent",
-  name: "Customer Support Agent",
+// Define the customer support sub-agent with delegation capabilities
+const supportSubAgent = subAgent({
+  id: "support-sub-agent",
+  name: "Customer Support Sub-Agent",
   description: "Handles customer inquiries and escalates technical issues",
-  prompt: `You are a customer support agent that handles general customer inquiries.`,
+  prompt: `You are a customer support sub-agent that handles general customer inquiries.`,
   canDelegateTo: () => [technicalSupportAgent],
 });
 
-// Create the customer support graph with external agent capabilities
-export const supportGraph = agentGraph({
-  id: "customer-support-graph",
+// Create the customer support agent with external agent capabilities
+export const supportAgent = subAgent({
+  id: "customer-support-agent",
   name: "Customer Support System",
   description: "Handles customer inquiries and escalates to technical teams when needed",
-  defaultSubAgent: supportAgent,
-  agents: () => [supportAgent, technicalSupportAgent],
+  defaultSubAgent: supportSubAgent,
+  subAgents: () => [supportSubAgent, technicalSupportAgent],
 });
 ```
 

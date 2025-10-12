@@ -10,8 +10,8 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
-import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
+import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 
 const JsonEditorWithCopy = dynamic(
@@ -154,7 +154,10 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="Message content" value={a.messageContent || 'Message content not available'} />
+            <Info
+              label="Message content"
+              value={a.messageContent || 'Message content not available'}
+            />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -198,11 +201,9 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentGraphId && (
-              <LabeledBlock label="Agent graph id">
-                <Badge variant="code">
-                  {a.contextAgentGraphId}
-                </Badge>
+            {a.contextAgentId && (
+              <LabeledBlock label="Agent id">
+                <Badge variant="code">{a.contextAgentId}</Badge>
               </LabeledBlock>
             )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
@@ -231,8 +232,8 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-              <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
-              <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
+            <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
+            <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -414,25 +415,16 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
-            {a.artifactAgentId && <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />}
+            {a.artifactAgentId && (
+              <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />
+            )}
             {a.artifactId && (
-              <Info
-                label="Artifact ID"
-                value={
-                  <Badge variant="code">
-                    {a.artifactId}
-                  </Badge>
-                }
-              />
+              <Info label="Artifact ID" value={<Badge variant="code">{a.artifactId}</Badge>} />
             )}
             {a.artifactToolCallId && (
               <Info
                 label="Tool call ID"
-                value={
-                  <Badge variant="code">
-                    {a.artifactToolCallId}
-                  </Badge>
-                }
+                value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />

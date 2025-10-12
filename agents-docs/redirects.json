@@ -5,7 +5,7 @@
   },
   {
     "source": "/visual-builder/graphs",
-    "destination": "/visual-builder/agents",
+    "destination": "/visual-builder/sub-agents",
     "permanent": true
   }
 ]

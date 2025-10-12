@@ -39,7 +39,7 @@ Each agent uses its configured summarizer model for artifact generation:
 
 ```typescript
 // Agent with custom summarizer for artifact generation
-const researchAgent = agent({
+const researchAgent = subAgent({
   id: "research-agent",
   name: "Research Agent",
   prompt: "You are a research agent that can generate artifact names and descriptions",

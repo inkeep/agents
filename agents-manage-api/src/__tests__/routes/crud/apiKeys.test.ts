@@ -1,4 +1,4 @@
-import { createFullGraphServerSide, extractPublicId } from '@inkeep/agents-core';
+import { createFullAgentServerSide, extractPublicId } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
@@ -9,56 +9,56 @@ import { createTestTenantId } from '../../utils/testTenant';
 
 describe('API Key CRUD Routes - Integration Tests', () => {
 
-  // Helper function to create full graph data with optional enhanced features
-  const createFullGraphData = (graphId: string) => {
-    const id = graphId || nanoid();
+  // Helper function to create full agent data with optional enhanced features
+  const createFullAgentData = (agentId: string) => {
+    const id = agentId || nanoid();
 
     const agent = createTestSubAgentData();
 
-    const graphData: any = {
+    const agentData: any = {
       id,
-      name: `Test Graph ${id}`,
-      description: `Test graph description for ${id}`,
+      name: `Test Agent ${id}`,
+      description: `Test agent description for ${id}`,
       defaultSubAgentId: agent.id,
       subAgents: {
         [agent.id]: agent, // Agents should be an object keyed by ID
       },
-      // Note: tools are now project-scoped and not part of the graph definition
+      // Note: tools are now project-scoped and not part of the agent definition
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    return graphData;
+    return agentData;
   };
 
-  // Helper function to create test graph and agent
-  const createTestGraphAndAgent = async (
+  // Helper function to create test agent and agent
+  const createtestAgentAndAgent = async (
     tenantId: string,
     projectId: string = 'default-project'
   ) => {
-    // Ensure the project exists for this tenant before creating the graph
+    // Ensure the project exists for this tenant before creating the agent
     await ensureTestProject(tenantId, projectId);
 
-    const graphId = `test-graph${nanoid(6)}`;
-    const graphData = createFullGraphData(graphId);
-    await createFullGraphServerSide(dbClient)({ tenantId, projectId }, graphData);
-    return { graphId, projectId }; // Return projectId as well
+    const agentId = `test-agent${nanoid(6)}`;
+    const agentData = createFullAgentData(agentId);
+    await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
+    return { agentId, projectId }; // Return projectId as well
   };
 
   // Helper function to create a test API key
   const createTestApiKey = async ({
     tenantId,
     projectId = 'default-project',
-    graphId,
+    agentId,
     expiresAt,
   }: {
     tenantId: string;
     projectId?: string;
-    graphId: string;
+    agentId: string;
     expiresAt?: string;
   }) => {
     const createData = {
-      graphId,
+      agentId: agentId,
       ...(expiresAt && { expiresAt }),
     };
 
@@ -101,11 +101,11 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should list API keys with pagination', async () => {
       const tenantId = createTestTenantId('api-keys-list');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create multiple API keys
-      const _apiKey1 = await createTestApiKey({ tenantId, projectId, graphId });
-      const _apiKey2 = await createTestApiKey({ tenantId, projectId, graphId });
+      const _apiKey1 = await createTestApiKey({ tenantId, projectId, agentId });
+      const _apiKey2 = await createTestApiKey({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys?page=1&limit=10`
@@ -124,7 +124,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       // Verify API key structure (should not include keyHash or actual key)
       const firstApiKey = body.data[0];
       expect(firstApiKey).toHaveProperty('id');
-      expect(firstApiKey).toHaveProperty('graphId', graphId);
+      expect(firstApiKey).toHaveProperty('agentId', agentId);
       expect(firstApiKey).toHaveProperty('publicId');
       expect(firstApiKey).toHaveProperty('keyPrefix');
       expect(firstApiKey).toHaveProperty('createdAt');
@@ -134,34 +134,34 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       expect(firstApiKey).not.toHaveProperty('projectId'); // Should not expose projectId in API
     });
 
-    it('should filter API keys by graphId', async () => {
-      const tenantId = createTestTenantId('api-keys-filter-graph');
+    it('should filter API keys by agentId', async () => {
+      const tenantId = createTestTenantId('api-keys-filter-agent');
       await ensureTestProject(tenantId, 'project-1');
-      const { graphId: graph1, projectId } = await createTestGraphAndAgent(tenantId, 'project-1');
-      const { graphId: graph2 } = await createTestGraphAndAgent(tenantId, 'project-1');
+      const { agentId: agent1, projectId } = await createtestAgentAndAgent(tenantId, 'project-1');
+      const { agentId: agent2 } = await createtestAgentAndAgent(tenantId, 'project-1');
 
-      // Create API keys for different graphs
-      await createTestApiKey({ tenantId, projectId, graphId: graph1 });
-      await createTestApiKey({ tenantId, projectId, graphId: graph2 });
+      // Create API keys for different agent
+      await createTestApiKey({ tenantId, projectId, agentId: agent1 });
+      await createTestApiKey({ tenantId, projectId, agentId: agent2 });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/api-keys?graphId=${graph1}`
+        `/tenants/${tenantId}/projects/${projectId}/api-keys?agentId=${agent1}`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].graphId).toBe(graph1);
+      expect(body.data[0].agentId).toBe(agent1);
     });
 
     it('should handle pagination correctly', async () => {
       const tenantId = createTestTenantId('api-keys-pagination');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create 5 API keys
       for (let i = 0; i < 5; i++) {
-        await createTestApiKey({ tenantId, projectId, graphId });
+        await createTestApiKey({ tenantId, projectId, agentId });
       }
 
       const res = await makeRequest(
@@ -184,8 +184,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should get API key by ID', async () => {
       const tenantId = createTestTenantId('api-keys-get-by-id');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
-      const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
+      const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`
@@ -194,7 +194,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data.id).toBe(apiKey.id);
-      expect(body.data.graphId).toBe(graphId);
+      expect(body.data.agentId).toBe(agentId);
       expect(body.data.publicId).toBe(apiKey.publicId);
       expect(body.data).not.toHaveProperty('keyHash'); // Should never expose hash
     });
@@ -220,8 +220,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const projectId = 'default-project';
 
       await ensureTestProject(tenantId1, projectId);
-      const { graphId } = await createTestGraphAndAgent(tenantId1, projectId);
-      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, graphId });
+      const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
+      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
       // Try to access from different tenant
       const res = await makeRequest(
@@ -235,10 +235,10 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should create API key successfully', async () => {
       const tenantId = createTestTenantId('api-keys-create');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       const createData = {
-        graphId,
+        agentId: agentId,
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -255,7 +255,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
       // Verify API key structure
       const apiKey = body.data.apiKey;
-      expect(apiKey.graphId).toBe(graphId);
+      expect(apiKey.agentId).toBe(agentId);
       expect(apiKey.publicId).toBeDefined();
       expect(apiKey.publicId).toHaveLength(12);
       expect(apiKey.keyPrefix).toBeDefined();
@@ -282,11 +282,11 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should create API key with expiration date', async () => {
       const tenantId = createTestTenantId('api-keys-create-expires');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       const expiresAt = '2025-12-31T23:59:59Z';
       const createData = {
-        graphId,
+        agentId: agentId,
         expiresAt,
       };
 
@@ -301,14 +301,14 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       expect(body.data.apiKey.expiresAt).toBe(expiresAt);
     });
 
-    it('should handle invalid graphId', async () => {
-      const tenantId = createTestTenantId('api-keys-create-invalid-graph');
+    it('should handle invalid agentId', async () => {
+      const tenantId = createTestTenantId('api-keys-create-invalid-agent');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
-      const invalidGraphId = `invalid-${nanoid()}`;
+      const invalidAgentId = `invalid-${nanoid()}`;
 
       const createData = {
-        graphId: invalidGraphId,
+        agentId: invalidAgentId,
       };
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
@@ -317,7 +317,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
         expectError: true,
       });
 
-      expect(res.status).toBe(400); // Invalid graphId returns Bad Request
+      expect(res.status).toBe(400); // Invalid agentId returns Bad Request
     });
   });
 
@@ -325,8 +325,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should update API key expiration date', async () => {
       const tenantId = createTestTenantId('api-keys-update');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
-      const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
+      const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
       // Wait 1ms to ensure updatedAt will be different
       await new Promise((resolve) => setTimeout(resolve, 1));
@@ -354,11 +354,11 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should clear API key expiration date', async () => {
       const tenantId = createTestTenantId('api-keys-update-clear');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({
         tenantId,
         projectId,
-        graphId,
+        agentId,
         expiresAt: '2025-12-31T23:59:59Z',
       });
 
@@ -407,8 +407,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const projectId = 'default-project';
 
       await ensureTestProject(tenantId1, projectId);
-      const { graphId } = await createTestGraphAndAgent(tenantId1, projectId);
-      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, graphId });
+      const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
+      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
       const updateData = {
         expiresAt: '2025-12-31T23:59:59Z',
@@ -431,8 +431,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should delete API key successfully', async () => {
       const tenantId = createTestTenantId('api-keys-delete');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
-      const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
+      const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys/${apiKey.id}`,
@@ -472,8 +472,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const projectId = 'default-project';
 
       await ensureTestProject(tenantId1, projectId);
-      const { graphId } = await createTestGraphAndAgent(tenantId1, projectId);
-      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, graphId });
+      const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
+      const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
       // Try to delete from different tenant
       const res = await makeRequest(
@@ -491,8 +491,8 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should never expose keyHash in any response', async () => {
       const tenantId = createTestTenantId('api-keys-security');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
-      const { apiKey } = await createTestApiKey({ tenantId, projectId, graphId });
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
+      const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
       // Test all endpoints
       const endpoints = [
@@ -521,12 +521,12 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should only return full key once during creation', async () => {
       const tenantId = createTestTenantId('api-keys-security-key-once');
       await ensureTestProject(tenantId, 'default-project');
-      const { graphId, projectId } = await createTestGraphAndAgent(tenantId);
+      const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create API key
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/api-keys`, {
         method: 'POST',
-        body: JSON.stringify({ graphId }),
+        body: JSON.stringify({ agentId: agentId }),
       });
 
       const createBody = await createRes.json();

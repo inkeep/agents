@@ -8,13 +8,13 @@ import {
   type DataComponentApiInsert,
   getContextConfigById,
   getCredentialReference,
-  getFullGraphDefinition,
+  getFullAgentDefinition,
   getFunction,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
   getProject,
   getToolsForAgent,
-  graphHasArtifactComponents,
+  agentHasArtifactComponents,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -46,7 +46,7 @@ import {
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import { generateToolId } from '../utils/agent-operations';
@@ -103,7 +103,7 @@ export type AgentConfig = {
   id: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
@@ -356,7 +356,7 @@ export class Agent {
   }
 
   /**
-   * Wraps a tool with streaming lifecycle tracking (start, complete, error) and GraphSession recording
+   * Wraps a tool with streaming lifecycle tracking (start, complete, error) and AgentSession recording
    */
   private wrapToolWithStreaming(
     toolName: string,
@@ -383,7 +383,7 @@ export class Agent {
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
             'ai.agentName': this.config.name || 'unknown',
-            'graph.id': this.config.graphId || 'unknown',
+            'agent.id': this.config.agentId || 'unknown',
           });
         }
 
@@ -398,9 +398,9 @@ export class Agent {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
-          // Record complete tool execution in GraphSession (skip internal tools)
+          // Record complete tool execution in AgentSession (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
               toolName,
               args,
               result,
@@ -416,7 +416,7 @@ export class Agent {
 
           // Record tool execution with error (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
               toolName,
               args,
               result: { error: errorMessage },
@@ -477,7 +477,7 @@ export class Agent {
               callingAgentId: this.config.id,
               tenantId: this.config.tenantId,
               projectId: this.config.projectId,
-              graphId: this.config.graphId,
+              agentId: this.config.agentId,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -622,7 +622,7 @@ export class Agent {
       scopes: {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
-        graphId: this.config.graphId,
+        agentId: this.config.agentId,
         subAgentId: this.config.id,
       },
     });
@@ -756,26 +756,26 @@ export class Agent {
               'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
               'ai.toolCall.result': JSON.stringify({
                 status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
                 originalToolName: tool.name,
               }),
               'ai.toolType': 'mcp',
               'ai.agentName': this.config.name || 'unknown',
               'conversation.id': this.conversationId || 'unknown',
-              'graph.id': this.config.graphId || 'unknown',
+              'agent.id': this.config.agentId || 'unknown',
               'tenant.id': this.config.tenantId || 'unknown',
               'project.id': this.config.projectId || 'unknown',
             },
           },
           (span) => {
             setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
-            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
               toolName: tool.name,
               args: { operation: 'mcp_tool_discovery' },
               result: {
                 status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
               },
             });
@@ -835,7 +835,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
         subAgentId: this.config.id,
       });
@@ -953,7 +953,7 @@ export class Agent {
   ): Promise<Record<string, unknown> | null> {
     try {
       if (!this.config.contextConfigId) {
-        logger.debug({ graphId: this.config.graphId }, 'No context config found for graph');
+        logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
@@ -962,7 +962,7 @@ export class Agent {
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
         id: this.config.contextConfigId,
       });
@@ -1017,50 +1017,50 @@ export class Agent {
   }
 
   /**
-   * Get the graph prompt for this agent's graph
+   * Get the agent prompt for this agent's agent
    */
-  private async getGraphPrompt(): Promise<string | undefined> {
+  private async getAgentPrompt(): Promise<string | undefined> {
     try {
-      const graphDefinition = await getFullGraphDefinition(dbClient)({
+      const agentDefinition = await getFullAgentDefinition(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
-      return graphDefinition?.graphPrompt || undefined;
+      return agentDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to get graph prompt'
+        'Failed to get agent prompt'
       );
       return undefined;
     }
   }
 
   /**
-   * Check if any agent in the graph has artifact components configured
+   * Check if any agent in the agent has artifact components configured
    */
-  private async hasGraphArtifactComponents(): Promise<boolean> {
+  private async hasAgentArtifactComponents(): Promise<boolean> {
     try {
-      const graphDefinition = await getFullGraphDefinition(dbClient)({
+      const agentDefinition = await getFullAgentDefinition(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
-      if (!graphDefinition) {
+      if (!agentDefinition) {
         return false;
       }
 
-      // Check if any agent in the graph has artifact components
-      return Object.values(graphDefinition.subAgents).some(
+      // Check if any agent in the agent has artifact components
+      return Object.values(agentDefinition.subAgents).some(
         (subAgent) =>
           'artifactComponents' in subAgent &&
           subAgent.artifactComponents &&
@@ -1069,21 +1069,21 @@ export class Agent {
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to check graph artifact components, assuming none exist'
+        'Failed to check agent artifact components, assuming none exist'
       );
-      // Fallback to current agent's artifact components if graph query fails
+      // Fallback to current agent's artifact components if agent query fails
       return this.artifactComponents.length > 0;
     }
   }
 
   /**
    * Build adaptive system prompt for Phase 2 structured output generation
-   * based on configured data components and artifact components across the graph
+   * based on configured data components and artifact components across the agent
    */
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
@@ -1095,7 +1095,7 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
     // Get resolved context using ContextResolver
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
@@ -1143,7 +1143,7 @@ export class Agent {
       dataComponents: this.config.dataComponents || [],
       artifactComponents: this.artifactComponents,
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
-      hasGraphArtifactComponents,
+      hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
     });
   }
@@ -1244,13 +1244,13 @@ export class Agent {
     const isThinkingPreparation =
       this.config.dataComponents && this.config.dataComponents.length > 0 && excludeDataComponents;
 
-    // Get graph prompt for additional context
-    let graphPrompt = await this.getGraphPrompt();
+    // Get agent prompt for additional context
+    let agentPrompt = await this.getAgentPrompt();
 
-    // Process graph prompt with context variables
-    if (graphPrompt && resolvedContext) {
+    // Process agent prompt with context variables
+    if (agentPrompt && resolvedContext) {
       try {
-        graphPrompt = TemplateEngine.render(graphPrompt, resolvedContext, {
+        agentPrompt = TemplateEngine.render(agentPrompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1260,9 +1260,9 @@ export class Agent {
             conversationId,
             error: error instanceof Error ? error.message : 'Unknown error',
           },
-          'Failed to process graph prompt with context, using original'
+          'Failed to process agent prompt with context, using original'
         );
-        // graphPrompt remains unchanged if processing fails
+        // agentPrompt remains unchanged if processing fails
       }
     }
 
@@ -1270,17 +1270,17 @@ export class Agent {
     // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    // Check if any agent in the graph has artifact components (for referencing guidance)
-    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+    // Check if any agent in the agent has artifact components (for referencing guidance)
+    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
-      graphPrompt,
+      agentPrompt,
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
-      hasGraphArtifactComponents,
+      hasAgentArtifactComponents,
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -1299,9 +1299,9 @@ export class Agent {
       execute: async ({ artifactId, toolCallId }) => {
         logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
 
-        // Use shared ArtifactService from GraphSessionManager
+        // Use shared ArtifactService from AgentSessionManager
         const streamRequestId = this.getStreamRequestId();
-        const artifactService = graphSessionManager.getArtifactService(streamRequestId);
+        const artifactService = agentSessionManager.getArtifactService(streamRequestId);
 
         if (!artifactService) {
           throw new Error(`ArtifactService not found for session ${streamRequestId}`);
@@ -1344,9 +1344,9 @@ export class Agent {
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the graph has artifact components
-    // This enables cross-agent artifact collaboration within the same graph
-    if (await this.graphHasArtifactComponents()) {
+    // Add get_reference_artifact if any agent in the agent has artifact components
+    // This enables cross-agent artifact collaboration within the same agent
+    if (await this.agentHasArtifactComponents()) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
@@ -1643,20 +1643,20 @@ export class Agent {
     }
   }
 
-  // Check if any agents in the graph have artifact components
-  private async graphHasArtifactComponents(): Promise<boolean> {
+  // Check if any agents in the agent have artifact components
+  private async agentHasArtifactComponents(): Promise<boolean> {
     try {
-      return await graphHasArtifactComponents(dbClient)({
+      return await agentHasArtifactComponents(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
     } catch (error) {
       logger.error(
-        { error, graphId: this.config.graphId },
-        'Failed to check graph artifact components'
+        { error, agentId: this.config.agentId },
+        'Failed to check agent artifact components'
       );
       return false;
     }
@@ -1676,14 +1676,14 @@ export class Agent {
     }
   ) {
     return tracer.startActiveSpan('agent.generate', async (span) => {
-      // Use the ToolSession created by GraphSession
+      // Use the ToolSession created by AgentSession
       // All agents in this execution share the same session
       const contextId = runtimeContext?.contextId || 'default';
       const taskId = runtimeContext?.metadata?.taskId || 'unknown';
       const streamRequestId = runtimeContext?.metadata?.streamRequestId;
       const sessionId = streamRequestId || 'fallback-session';
 
-      // Note: ToolSession is now created by GraphSession, not by agents
+      // Note: ToolSession is now created by AgentSession, not by agents
       // This ensures proper lifecycle management and session coordination
 
       try {
@@ -1850,7 +1850,7 @@ export class Agent {
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
-                  await graphSessionManager.recordEvent(
+                  await agentSessionManager.recordEvent(
                     this.getStreamRequestId(),
                     'agent_reasoning',
                     this.config.id,
@@ -1863,10 +1863,18 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
+              // Check if the previous step had a transfer tool call AND has results
+              // This ensures we stop AFTER the tool executes, not before
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasTransferCall = previousStep.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
+                  if (hasTransferCall && 'toolResults' in previousStep && previousStep.toolResults) {
+                    return true; // Stop after transfer tool has executed
+                  }
+                }
               }
+
               // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },
@@ -1986,7 +1994,7 @@ export class Agent {
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
-                  await graphSessionManager.recordEvent(
+                  await agentSessionManager.recordEvent(
                     this.getStreamRequestId(),
                     'agent_reasoning',
                     this.config.id,
@@ -1999,13 +2007,21 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some(
-                  (tc: any) =>
-                    tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
-                );
+              // Check if the previous step had a transfer/thinking_complete tool call AND has results
+              // This ensures we stop AFTER the tool executes, not before
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasStopTool = previousStep.toolCalls.some(
+                    (tc: any) =>
+                      tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
+                  );
+                  if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
+                    return true; // Stop after transfer/thinking_complete tool has executed
+                  }
+                }
               }
+
               // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },
@@ -2357,11 +2373,11 @@ ${output}${structureHintsFormatted}`;
           formattedContent: formattedContent,
         };
 
-        // Record agent generation in GraphSession
+        // Record agent generation in AgentSession
         if (streamRequestId) {
           const generationType = response.object ? 'object_generation' : 'text_generation';
 
-          graphSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
+          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
             parts: (formattedContent?.parts || []).map((part) => ({
               type:
                 part.kind === 'text'
@@ -2376,7 +2392,7 @@ ${output}${structureHintsFormatted}`;
         }
 
         // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
-        // The ToolSession might still be needed by other agents in the graph execution
+        // The ToolSession might still be needed by other agents in the agent execution
 
         return formattedResponse;
       } catch (error) {

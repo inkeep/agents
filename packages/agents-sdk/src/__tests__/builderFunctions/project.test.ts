@@ -60,18 +60,18 @@ describe('project builder function', () => {
     expect(projectInstance.getTenantId()).toBe('default');
   });
 
-  it('should create a Project instance with graphs', () => {
-    // Note: This test is simplified since we can't easily mock AgentGraph in this context
+  it('should create a Project instance with agent', () => {
+    // Note: This test is simplified since we can't easily mock Agent in this context
     // The main functionality is tested in the Project class tests
     const config: ProjectConfig = {
-      id: 'project-with-graphs',
-      name: 'Project with Graphs',
-      graphs: () => [], // Empty array for this test
+      id: 'project-with-agent',
+      name: 'Project with Agent',
+      agents: () => [], // Empty array for this test
     };
 
     const projectInstance = project(config);
 
     expect(projectInstance).toBeInstanceOf(Project);
-    expect(projectInstance.getGraphs()).toHaveLength(0);
+    expect(projectInstance.getAgents()).toHaveLength(0);
   });
 });

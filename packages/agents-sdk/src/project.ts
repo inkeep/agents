@@ -9,10 +9,10 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
+import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
-import type { AgentGraph } from './graph';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
 import type { AgentTool, ModelSettings, SandboxConfig } from './types';
@@ -31,7 +31,7 @@ export interface ProjectConfig {
   };
   stopWhen?: StopWhen;
   sandboxConfig?: SandboxConfig;
-  graphs?: () => AgentGraph[];
+  agents?: () => Agent[];
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
@@ -50,13 +50,13 @@ export interface ProjectInterface {
   getTenantId(): string;
   getModels(): ProjectConfig['models'];
   getStopWhen(): ProjectConfig['stopWhen'];
-  getGraphs(): AgentGraph[];
-  addGraph(graph: AgentGraph): void;
-  removeGraph(id: string): boolean;
+  getAgents(): Agent[];
+  addAgent(agent: Agent): void;
+  removeAgent(id: string): boolean;
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   };
   validate(): { valid: boolean; errors: string[] };
@@ -65,8 +65,8 @@ export interface ProjectInterface {
 /**
  * Project class for managing agent projects
  *
- * Projects are the top-level organizational unit that contains graphs, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to graphs and agents.
+ * Projects are the top-level organizational unit that contains agent, agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to agent and agents.
  *
  * @example
  * ```typescript
@@ -75,8 +75,8 @@ export interface ProjectInterface {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4o-mini' },
- *     structuredOutput: { model: 'gpt-4o' }
+ *     base: { model: 'gpt-4.1-mini' },
+ *     structuredOutput: { model: 'gpt-4.1' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,
@@ -103,8 +103,8 @@ export class Project implements ProjectInterface {
   };
   private stopWhen?: StopWhen;
   private sandboxConfig?: SandboxConfig;
-  private graphs: AgentGraph[] = [];
-  private graphMap: Map<string, AgentGraph> = new Map();
+  private agents: Agent[] = [];
+  private agentMap: Map<string, Agent> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
@@ -121,14 +121,14 @@ export class Project implements ProjectInterface {
     this.stopWhen = config.stopWhen;
     this.sandboxConfig = config.sandboxConfig;
 
-    // Initialize graphs if provided
-    if (config.graphs) {
-      this.graphs = config.graphs();
-      this.graphMap = new Map(this.graphs.map((graph) => [graph.getId(), graph]));
+    // Initialize agent if provided
+    if (config.agents) {
+      this.agents = config.agents();
+      this.agentMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
 
-      // Set project context on graphs
-      for (const graph of this.graphs) {
-        graph.setConfig(this.tenantId, this.projectId, this.baseURL);
+      // Set project context on agent
+      for (const agent of this.agents) {
+        agent.setConfig(this.tenantId, this.projectId, this.baseURL);
       }
     }
 
@@ -156,7 +156,7 @@ export class Project implements ProjectInterface {
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.graphs.length,
+        agentCount: this.agents.length,
       },
       'Project created'
     );
@@ -185,9 +185,9 @@ export class Project implements ProjectInterface {
       this.models = models;
     }
 
-    // Update all graphs with new config
-    for (const graph of this.graphs) {
-      graph.setConfig(tenantId, this.projectId, apiUrl);
+    // Update all agent with new config
+    for (const agent of this.agents) {
+      agent.setConfig(tenantId, this.projectId, apiUrl);
     }
 
     logger.info(
@@ -231,7 +231,7 @@ export class Project implements ProjectInterface {
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.graphs.length,
+        agentCount: this.agents.length,
       },
       'Initializing project using full project endpoint'
     );
@@ -265,7 +265,7 @@ export class Project implements ProjectInterface {
         {
           projectId: this.projectId,
           tenantId: this.tenantId,
-          graphCount: Object.keys((createdProject as any).graphs || {}).length,
+          agentCount: Object.keys((createdProject as any).agent || {}).length,
         },
         'Project initialized successfully using full project endpoint'
       );
@@ -342,11 +342,11 @@ export class Project implements ProjectInterface {
    */
   async getCredentialTracking(): Promise<{
     credentials: Record<string, any>;
-    usage: Record<string, Array<{ type: string; id: string; graphId?: string }>>;
+    usage: Record<string, Array<{ type: string; id: string; agentId?: string }>>;
   }> {
     const fullDef = await this.toFullProjectDefinition();
     const credentials = fullDef.credentialReferences || {};
-    const usage: Record<string, Array<{ type: string; id: string; graphId?: string }>> = {};
+    const usage: Record<string, Array<{ type: string; id: string; agentId?: string }>> = {};
 
     // Extract usage information from credentials
     for (const [credId, credData] of Object.entries(credentials)) {
@@ -363,53 +363,53 @@ export class Project implements ProjectInterface {
   }
 
   /**
-   * Get all graphs in the project
+   * Get all agent in the project
    */
-  getGraphs(): AgentGraph[] {
-    return this.graphs;
+  getAgents(): Agent[] {
+    return this.agents;
   }
 
   /**
-   * Get a graph by ID
+   * Get an agent by ID
    */
-  getGraph(id: string): AgentGraph | undefined {
-    return this.graphMap.get(id);
+  getAgent(id: string): Agent | undefined {
+    return this.agentMap.get(id);
   }
 
   /**
-   * Add a graph to the project
+   * Add an agent to the project
    */
-  addGraph(graph: AgentGraph): void {
-    this.graphs.push(graph);
-    this.graphMap.set(graph.getId(), graph);
+  addAgent(agent: Agent): void {
+    this.agents.push(agent);
+    this.agentMap.set(agent.getId(), agent);
 
-    // Set project context on the graph
-    graph.setConfig(this.tenantId, this.projectId, this.baseURL);
+    // Set project context on the agent
+    agent.setConfig(this.tenantId, this.projectId, this.baseURL);
 
     logger.info(
       {
         projectId: this.projectId,
-        graphId: graph.getId(),
+        agentId: agent.getId(),
       },
-      'Graph added to project'
+      'Agent added to project'
     );
   }
 
   /**
-   * Remove a graph from the project
+   * Remove an agent from the project
    */
-  removeGraph(id: string): boolean {
-    const graphToRemove = this.graphMap.get(id);
-    if (graphToRemove) {
-      this.graphMap.delete(id);
-      this.graphs = this.graphs.filter((graph) => graph.getId() !== id);
+  removeAgent(id: string): boolean {
+    const agentToRemove = this.agentMap.get(id);
+    if (agentToRemove) {
+      this.agentMap.delete(id);
+      this.agents = this.agents.filter((agent) => agent.getId() !== id);
 
       logger.info(
         {
           projectId: this.projectId,
-          graphId: id,
+          agentId: id,
         },
-        'Graph removed from project'
+        'Agent removed from project'
       );
 
       return true;
@@ -424,13 +424,13 @@ export class Project implements ProjectInterface {
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   } {
     return {
       projectId: this.projectId,
       tenantId: this.tenantId,
-      graphCount: this.graphs.length,
+      agentCount: this.agents.length,
       initialized: this.initialized,
     };
   }
@@ -449,21 +449,21 @@ export class Project implements ProjectInterface {
       errors.push('Project must have a name');
     }
 
-    // Validate graph IDs are unique
-    const graphIds = new Set<string>();
-    for (const graph of this.graphs) {
-      const id = graph.getId();
-      if (graphIds.has(id)) {
-        errors.push(`Duplicate graph ID: ${id}`);
+    // Validate agent IDs are unique
+    const agentIds = new Set<string>();
+    for (const agent of this.agents) {
+      const id = agent.getId();
+      if (agentIds.has(id)) {
+        errors.push(`Duplicate agent ID: ${id}`);
       }
-      graphIds.add(id);
+      agentIds.add(id);
     }
 
-    // Validate individual graphs
-    for (const graph of this.graphs) {
-      const graphValidation = graph.validate();
-      if (!graphValidation.valid) {
-        errors.push(...graphValidation.errors.map((error) => `Graph '${graph.getId()}': ${error}`));
+    // Validate individual agent
+    for (const agent of this.agents) {
+      const agentValidation = agent.validate();
+      if (!agentValidation.valid) {
+        errors.push(...agentValidation.errors.map((error) => `Agent '${agent.getId()}': ${error}`));
       }
     }
 
@@ -477,7 +477,7 @@ export class Project implements ProjectInterface {
    * Convert the Project to FullProjectDefinition format
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
-    const graphsObject: Record<string, any> = {};
+    const agentsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
@@ -487,19 +487,19 @@ export class Project implements ProjectInterface {
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
-      Array<{ type: string; id: string; graphId?: string }>
+      Array<{ type: string; id: string; agentId?: string }>
     > = {};
 
-    // Convert all graphs to FullGraphDefinition format and collect components
-    for (const graph of this.graphs) {
-      // Get the graph's full definition
-      const graphDefinition = await graph.toFullGraphDefinition();
-      graphsObject[graph.getId()] = graphDefinition;
+    // Convert all agent to FullAgentDefinition format and collect components
+    for (const agent of this.agents) {
+      // Get the agent's full definition
+      const agentDefinition = await agent.toFullAgentDefinition();
+      agentsObject[agent.getId()] = agentDefinition;
 
-      // Collect credentials from this graph
-      const graphCredentials = (graph as any).credentials;
-      if (graphCredentials && Array.isArray(graphCredentials)) {
-        for (const credential of graphCredentials) {
+      // Collect credentials from this agent
+      const agentCredentials = (agent as any).credentials;
+      if (agentCredentials && Array.isArray(agentCredentials)) {
+        for (const credential of agentCredentials) {
           // Skip credential references - they don't define credentials
           if (credential?.__type === 'credential-ref') {
             continue;
@@ -516,20 +516,20 @@ export class Project implements ProjectInterface {
               };
               credentialUsageMap[credential.id] = [];
             }
-            // Track that this graph uses this credential
+            // Track that this agent uses this credential
             credentialUsageMap[credential.id].push({
-              type: 'graph',
-              id: graph.getId(),
+              type: 'agent',
+              id: agent.getId(),
             });
           }
         }
       }
 
       // Check context config for credentials
-      const graphContextConfig = (graph as any).contextConfig;
-      if (graphContextConfig) {
+      const agentContextConfig = (agent as any).contextConfig;
+      if (agentContextConfig) {
         const contextVariables =
-          graphContextConfig.getContextVariables?.() || graphContextConfig.contextVariables;
+          agentContextConfig.getContextVariables?.() || agentContextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions
@@ -564,7 +564,7 @@ export class Project implements ProjectInterface {
                 credentialUsageMap[credId].push({
                   type: 'contextVariable',
                   id: key,
-                  graphId: graph.getId(),
+                  agentId: agent.getId(),
                 });
               }
             }
@@ -577,20 +577,20 @@ export class Project implements ProjectInterface {
               credentialUsageMap[credId].push({
                 type: 'contextVariable',
                 id: key,
-                graphId: graph.getId(),
+                agentId: agent.getId(),
               });
             }
           }
         }
       }
 
-      // Collect tools from all agents in this graph
-      for (const agent of graph.getSubAgents()) {
-        if (agent.type === 'external') {
+      // Collect tools from all agents in this agent
+      for (const subAgent of agent.getSubAgents()) {
+        if (subAgent.type === 'external') {
           continue; // Skip external agents
         }
 
-        const agentTools = agent.getTools();
+        const agentTools = subAgent.getTools();
         for (const [, toolInstance] of Object.entries(agentTools)) {
           // toolInstance is now properly typed as AgentTool from getTools()
           const actualTool: AgentTool | FunctionTool = toolInstance;
@@ -662,7 +662,7 @@ export class Project implements ProjectInterface {
         }
 
         // Collect data components from this agent
-        const subAgentDataComponents = (agent as any).getDataComponents?.();
+        const subAgentDataComponents = (subAgent as any).getDataComponents?.();
         if (subAgentDataComponents) {
           for (const dataComponent of subAgentDataComponents) {
             // Handle both DataComponent instances and plain objects
@@ -700,7 +700,7 @@ export class Project implements ProjectInterface {
         }
 
         // Collect artifact components from this agent
-        const subAgentArtifactComponents = (agent as any).getArtifactComponents?.();
+        const subAgentArtifactComponents = subAgent.getArtifactComponents();
         if (subAgentArtifactComponents) {
           for (const artifactComponent of subAgentArtifactComponents) {
             // Handle both ArtifactComponent instances and plain objects
@@ -709,12 +709,13 @@ export class Project implements ProjectInterface {
             let artifactComponentDescription: string;
             let artifactComponentProps: any;
 
-            if (artifactComponent.getId) {
-              // ArtifactComponent instance
-              artifactComponentId = artifactComponent.getId();
-              artifactComponentName = artifactComponent.getName();
-              artifactComponentDescription = artifactComponent.getDescription() || '';
-              artifactComponentProps = artifactComponent.getProps() || {};
+            if ('getId' in artifactComponent && typeof artifactComponent.getId === 'function') {
+              // ArtifactComponent instance - cast to access methods
+              const component = artifactComponent as any;
+              artifactComponentId = component.getId();
+              artifactComponentName = component.getName();
+              artifactComponentDescription = component.getDescription() || '';
+              artifactComponentProps = component.getProps() || {};
             } else {
               // Plain object from agent config
               artifactComponentId =
@@ -838,7 +839,7 @@ export class Project implements ProjectInterface {
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
       sandboxConfig: this.sandboxConfig,
-      graphs: graphsObject,
+      agents: agentsObject,
       tools: toolsObject,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
