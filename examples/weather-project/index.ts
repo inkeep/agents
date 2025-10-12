@@ -1,9 +1,9 @@
 import { project } from '@inkeep/agents-sdk';
-import { weatherForecast } from './data-components/weather-forecast';
+import { dataWorkshopAgent } from './agents/data-workshop-agent';
 import { weatherAgent } from './agents/weather-agent';
+import { weatherForecast } from './data-components/weather-forecast';
 import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
 import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
-import { dataWorkshopAgent } from './agents/data-workshop.agent';
 
 export const myProject3 = project({
   id: 'my-weather-project',
