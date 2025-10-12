@@ -1,36 +1,38 @@
 'use client';
 
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'react';
 import { JsonEditor } from '@/components/form/json-editor';
 import { JsonEditor as JsonEditor2 } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
-import { formatJson } from '@/lib/utils';
+import { cn, formatJson } from '@/lib/utils';
 import { ExpandableField } from './expandable-field';
+
+type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor2>;
 
 interface ExpandableJsonEditorProps {
   name: string;
-  value: string;
-  onChange: (value: string) => void;
-  className?: string;
+  value: NonNullable<JsonEditorProps['value']>;
+  onChange: NonNullable<JsonEditorProps['onChange']>;
+  className: JsonEditorProps['className'];
   label?: string;
   error?: string;
-  placeholder?: string;
+  placeholder: JsonEditorProps['placeholder'];
 }
 
 // Shared JSON validation logic
-const useJsonValidation = (value: string) => {
-  const [error, setError] = useState<string | null>(null);
+const useJsonValidation = (value = '') => {
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!value?.trim()) {
-      setError(null);
+    if (!value.trim()) {
+      setError('');
       return;
     }
 
     try {
       JSON.parse(value);
-      setError(null);
-    } catch (_error) {
+      setError('');
+    } catch {
       setError('Invalid JSON syntax');
     }
   }, [value]);
@@ -50,13 +52,13 @@ const useJsonFormat = (value: string, onChange: (value: string) => void, hasErro
   return { handleFormat, canFormat: !hasError && !!value?.trim() };
 };
 
-interface ExpandedJsonEditorProps
-  extends Pick<ComponentProps<typeof JsonEditor2>, 'value' | 'onChange' | 'placeholder'> {
-  name: string;
-}
+type ExpandedJsonEditorProps = Pick<
+  ExpandableJsonEditorProps,
+  'value' | 'onChange' | 'placeholder' | 'name'
+>;
 
 const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
-  value = '',
+  value,
   onChange,
   placeholder,
   name,
@@ -73,14 +75,6 @@ const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
         className="h-full!"
         aria-invalid={!!error}
       />
-      {/*<JsonEditor*/}
-      {/*  id={`${name}-expanded`}*/}
-      {/*  autoFocus*/}
-      {/*  value={value || ''}*/}
-      {/*  onChange={onChange}*/}
-      {/*  placeholder={placeholder}*/}
-      {/*  className="[&>.cm-editor]:h-full"*/}
-      {/*/>*/}
       {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
   );
@@ -131,7 +125,7 @@ export function ExpandableJsonEditor({
             value={value || ''}
             onChange={onChange}
             placeholder={placeholder}
-            className={`font-mono bg-background text-sm max-h-96 ${error ? 'mb-6' : ''}`}
+            className={cn('font-mono bg-background text-sm max-h-96', error && 'mb-6')}
           />
           {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
         </>

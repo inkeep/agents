@@ -48,7 +48,13 @@ export const JsonEditorWithCopy: FC<Props> = ({ title, uri, value }) => {
         {title}
         <Badge variant="sky">JSON</Badge>
       </h3>
-      <JsonEditor ref={editorRef} uri={uri} value={value} readOnly>
+      <JsonEditor
+        ref={editorRef}
+        uri={uri}
+        value={value}
+        readOnly
+        className="inkeep-readonly-monaco-editor"
+      >
         <div className="absolute end-2 top-2 flex gap-1 z-1">
           <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
             <Download />
