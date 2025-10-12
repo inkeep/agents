@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-api
 
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- Updated dependencies [849c6e9]
+- Updated dependencies [71a9f03]
+  - @inkeep/agents-core@0.19.0
+
 ## 0.18.1
 
 ### Patch Changes
