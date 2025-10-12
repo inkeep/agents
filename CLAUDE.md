@@ -63,13 +63,29 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 
 #### Database Schema (SQLite + Drizzle ORM)
 - **Shared Database**: Single SQLite database (`./local.db`) at monorepo root shared by both APIs
-- **sub_agents**: Individual AI agents with instructions and capabilities
-- **agents**: Collections of agents with default entry points  
-- **sub_agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships
+- **projects**: Top-level tenant/project scope with default models, stopWhen config, and sandbox settings
+- **agents**: Collections of sub-agents with default entry points, context config, models, status updates, and stopWhen config
+- **sub_agents**: Individual AI agents with instructions, conversation history config, models, and stopWhen settings
+- **sub_agent_relations**: Transfer and delegation relationships between internal and external agents
+- **external_agents**: External agent definitions with base URLs, credentials, and headers for inter-agent communication
 - **tasks**: Work units with hierarchical parent-child relationships via `task_relations`
-- **conversations**: User sessions with active agent tracking
-- **messages**: Unified format supporting both OpenAI Chat and A2A protocols
-- **tools**: MCP servers and hosted tools with configuration
+- **task_relations**: Parent-child task relationships for tracking delegation chains
+- **conversations**: User sessions with active agent tracking, title, context resolution, and metadata
+- **messages**: Unified format supporting both OpenAI Chat and A2A protocols with agent tracking and visibility
+- **context_configs**: Shared context configurations with headers schema and context variables (agent-scoped)
+- **context_cache**: Cached fetched context data (conversation-scoped) with request hash for invalidation
+- **tools**: MCP servers with configuration, credentials, headers, capabilities, and custom icons
+- **function_tools**: Agent-scoped function tool definitions linking to functions
+- **functions**: Project-scoped executable functions with input schema, code, and dependencies
+- **sub_agent_tool_relations**: Junction table for agent-tool associations with selected tools and headers
+- **agent_function_tool_relations**: Junction table for agent-function tool associations
+- **data_components**: Project-scoped data components with props
+- **sub_agent_data_components**: Junction table for agent-data component associations
+- **artifact_components**: Project-scoped artifact components with props
+- **sub_agent_artifact_components**: Junction table for agent-artifact component associations
+- **ledger_artifacts**: Artifact ledger with task/tool call tracking, parts, metadata, and visibility controls
+- **api_keys**: API key authentication with hashing, prefixes, expiration, and usage tracking
+- **credential_references**: References to CredentialStore implementations with retrieval params
 
 #### Key Patterns
 
