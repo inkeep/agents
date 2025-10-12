@@ -6,7 +6,7 @@ icon: "LuFolder"
 
 ## Overview
 
-Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your sub-agents, agents, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
+Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your Sub Agents, agents, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
 
 ## Standard Project Layout
 
@@ -108,7 +108,7 @@ export const customerSupportAgent = agent({
 
 ### `/tools/`
 
-Tool definitions that can be used by sub-agents:
+Tool definitions that can be used by Sub Agents:
 
 ```typescript
 // tools/database-query.ts
@@ -214,7 +214,7 @@ The CLI automatically discovers files using these patterns:
 ### File Organization
 
 - **One primary export per file**: Each file should export one main resource
-- **Group related functionality**: Keep related sub-agents in the same agent file
+- **Group related functionality**: Keep related Sub Agents in the same agent file
 - **Separate concerns**: Keep tools, data components, and agents in separate directories
 - **Environment isolation**: Use separate files for different environments
 
