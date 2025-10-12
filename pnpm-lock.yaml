@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
-    hash: 57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1
+    hash: 4o4xvnq62nkojrm2vwqdgdti6i
     path: patches/@changesets__assemble-release-plan.patch
 
 importers:
@@ -292,6 +292,9 @@ importers:
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
+      schema-dts:
+        specifier: ^1.1.5
+        version: 1.1.5
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.14
@@ -343,6 +346,10 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
@@ -374,10 +381,6 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
 
   agents-manage-ui:
     dependencies:
@@ -730,6 +733,10 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
@@ -773,10 +780,6 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
 
   agents-ui:
     dependencies:
@@ -938,6 +941,10 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
     devDependencies:
       '@types/jmespath':
         specifier: ^0.15.2
@@ -960,10 +967,6 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
 
   packages/agents-sdk:
     dependencies:
@@ -7097,6 +7100,7 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
+    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -8551,6 +8555,9 @@ packages:
 
   scheduler@0.26.0:
     resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
+
+  schema-dts@1.1.5:
+    resolution: {integrity: sha512-RJr9EaCmsLzBX2NDiO5Z3ux2BVosNZN5jo0gWgsyKvxKIUL5R3swNvoorulAeL9kLB0iTSX7V6aokhla2m7xbg==}
 
   scroll-into-view-if-needed@3.1.0:
     resolution: {integrity: sha512-49oNpRjWRvnU8NyGVmUaYG4jtTkNonFZI86MmGRDqBphEK2EXT9gdEUoQPZhuBM8yWHxCWbobltqYO5M4XrUvQ==}
@@ -10084,7 +10091,7 @@ snapshots:
       resolve-from: 5.0.0
       semver: 7.7.3
 
-  '@changesets/assemble-release-plan@6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)':
+  '@changesets/assemble-release-plan@6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)':
     dependencies:
       '@changesets/errors': 0.2.0
       '@changesets/get-dependents-graph': 2.1.3
@@ -10100,7 +10107,7 @@ snapshots:
   '@changesets/cli@2.29.7(@types/node@24.7.0)':
     dependencies:
       '@changesets/apply-release-plan': 7.0.13
-      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)
       '@changesets/changelog-git': 0.2.1
       '@changesets/config': 3.1.1
       '@changesets/errors': 0.2.0
@@ -10153,7 +10160,7 @@ snapshots:
 
   '@changesets/get-release-plan@4.0.13':
     dependencies:
-      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)
       '@changesets/config': 3.1.1
       '@changesets/pre': 2.0.2
       '@changesets/read': 0.6.5
@@ -18978,6 +18985,8 @@ snapshots:
       xmlchars: 2.2.0
 
   scheduler@0.26.0: {}
+
+  schema-dts@1.1.5: {}
 
   scroll-into-view-if-needed@3.1.0:
     dependencies:

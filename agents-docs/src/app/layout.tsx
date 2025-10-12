@@ -3,6 +3,7 @@ import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import type { ReactNode } from 'react';
+import type { WebSite, WithContext } from 'schema-dts';
 import { InkeepScript } from '@/components/inkeep/inkeep-script';
 import { Navbar } from '@/components/navbar';
 import { AppSidebar } from '@/components/sidebar';
@@ -14,10 +15,10 @@ const inter = Inter({
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const jsonLd = {
+  const jsonLd: WithContext<WebSite> = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Inkeep Agents',
+    name: 'Inkeep Docs',
     url: 'https://docs.inkeep.com',
     alternateName: 'Inkeep',
   };
