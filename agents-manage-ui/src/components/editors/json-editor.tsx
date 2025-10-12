@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 export type { JsonEditorRef } from './json-editor-base';
 

@@ -1,3 +1,5 @@
+'use client';
+
 import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle, useId, useMemo } from 'react';
 import { useTheme } from 'next-themes';
@@ -117,6 +119,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
       model,
       readOnly,
       placeholder,
+      fontSize,
     });
     editorRef.current = editorInstance;
 

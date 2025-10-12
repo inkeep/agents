@@ -1,7 +1,6 @@
 'use client';
 
 import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'react';
-import { JsonEditor as LegacyJsonEditor } from '@/components/form/json-editor';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
@@ -119,14 +118,6 @@ export function ExpandableJsonEditor({
       actions={formatButton}
       compactView={
         <>
-          <LegacyJsonEditor
-            aria-invalid={!!error}
-            id={name}
-            value={value || ''}
-            onChange={onChange}
-            placeholder={placeholder}
-            className={cn('font-mono bg-background text-sm max-h-96', error && 'mb-6')}
-          />
           <JsonEditor
             aria-invalid={!!error}
             id={name}
