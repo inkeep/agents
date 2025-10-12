@@ -1,18 +1,18 @@
 ---
 title: API Key Management
-description: Secure API key management for agent graph authentication
+description: Secure API key management for agent authentication
 ---
 
 # API Key Management
 
-The Inkeep Agent Framework provides a comprehensive API key management system for authenticating access to agent graphs. API keys are securely hashed and stored, with support for expiration and revocation.
+The Inkeep Agent Framework provides a comprehensive API key management system for authenticating access to agents. API keys are securely hashed and stored, with support for expiration and revocation.
 
 ## Overview
 
-API keys provide a secure way to authenticate programmatic access to your agent graphs. Each API key is:
+API keys provide a secure way to authenticate programmatic access to your agents. Each API key is:
 
 - **Securely hashed** using scrypt algorithm before storage
-- **Scoped to a specific tenant and graph**
+- **Scoped to a specific tenant and agent**
 - **Revocable** at any time
 - **Expirable** with optional expiration dates
 
@@ -25,7 +25,7 @@ import { createApiKey } from '@inkeep/agents-core';
 
 const result = await createApiKey({
   tenantId: 'your-tenant-id',
-  agentId: 'your-graph-id',
+  agentId: 'your-agent-id',
   expiresAt: '2025-12-31T23:59:59Z', // Optional expiration
 });
 

@@ -49,19 +49,19 @@ _openapi:
       title: Update Agent Relation
       url: '#update-agent-relation'
     - depth: 2
-      title: List Agent Graphs
+      title: List Agents
       url: '#list-agent-graphs'
     - depth: 2
-      title: Create Agent Graph
+      title: Create Agent
       url: '#create-agent-graph'
     - depth: 2
-      title: Get Agent Graph
+      title: Get Agent
       url: '#get-agent-graph'
     - depth: 2
-      title: Delete Agent Graph
+      title: Delete Agent
       url: '#delete-agent-graph'
     - depth: 2
-      title: Update Agent Graph
+      title: Update Agent
       url: '#update-agent-graph'
     - depth: 2
       title: Get Related Agent Infos
@@ -314,15 +314,15 @@ _openapi:
         id: delete-agent-relation
       - content: Update Agent Relation
         id: update-agent-relation
-      - content: List Agent Graphs
+      - content: List Agents
         id: list-agent-graphs
-      - content: Create Agent Graph
+      - content: Create Agent
         id: create-agent-graph
-      - content: Get Agent Graph
+      - content: Get Agent
         id: get-agent-graph
-      - content: Delete Agent Graph
+      - content: Delete Agent
         id: delete-agent-graph
-      - content: Update Agent Graph
+      - content: Update Agent
         id: update-agent-graph
       - content: Get Related Agent Infos
         id: get-related-agent-infos
@@ -495,11 +495,11 @@ _openapi:
       - content: Update an API key (currently only expiration date can be changed)
         heading: update-api-key
       - content: >-
-          Create a complete agent graph with all agents, tools, and
+          Create a complete agent with all sub-agents, tools, and
           relationships from JSON definition
         heading: create-full-graph
       - content: >-
-          Retrieve a complete agent graph definition with all agents, tools, and
+          Retrieve a complete agent definition with all agents, tools, and
           relationships
         heading: get-full-graph
       - content: >-
@@ -507,7 +507,7 @@ _openapi:
           (relationships, not other agents/tools)
         heading: delete-full-agent
       - content: >-
-          Update or create a complete agent graph with all agents, tools, and
+          Update or create a complete agent with all sub-agents, tools, and
           relationships from JSON definition
         heading: update-full-graph
       - content: >-
