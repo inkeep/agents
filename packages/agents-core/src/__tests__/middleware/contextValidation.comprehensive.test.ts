@@ -18,14 +18,14 @@ vi.mock('../../data-access/contextConfigs', () => ({
 }));
 
 describe('ContextValidation - Headers Only Implementation', () => {
-  let _getAgentAgentWithDefaultSubAgent: any;
+  let _getAgentWithDefaultSubAgent: any;
   let _getContextConfigById: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const agentAgentModule = await import('../../data-access/agents');
+    const agentModule = await import('../../data-access/agents');
     const contextConfigModule = await import('../../data-access/contextConfigs');
-    _getAgentAgentWithDefaultSubAgent = agentAgentModule.getAgentWithDefaultSubAgent;
+    _getAgentWithDefaultSubAgent = agentModule.getAgentWithDefaultSubAgent;
     _getContextConfigById = contextConfigModule.getContextConfigById;
   });
 

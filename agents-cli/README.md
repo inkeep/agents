@@ -305,30 +305,26 @@ inkeep push --project my-project-id --tenant-id my-tenant-id
 **Example graph configuration:**
 
 ```javascript
-// customer-support.graph.ts
-import { agent, agentGraph, tool } from "@inkeep/agents-manage-api/builder";
+// customer-support.agent.ts
+import { agent, subAgent, tool } from "@inkeep/agents-sdk";
 
-const assistantAgent = agent({
+const assistantSubAgent = subAgent({
   id: "assistant",
   name: "Assistant",
-  instructions: "Help users with their questions",
-  tools: {
-    search: searchTool,
-  },
+  prompt: "Help users with their questions",
+  canUse: () => [searchTool],
   // No tenantId needed - injected by CLI
 });
 
-// Must export exactly one graph
-export const graph = agentGraph({
+// Must export exactly one agent
+export const myAgent = agent({
   id: "my-assistant",
-  name: "My Assistant Graph",
-  defaultSubAgent: assistantAgent,
-  agents: {
-    assistant: assistantAgent,
-  },
+  name: "My Assistant",
+  defaultSubAgent: assistantSubAgent,
+  subAgents: () => [assistantSubAgent],
   // No tenantId or apiUrl needed - CLI injects from config
 });
-// No graph.init() call - CLI handles initialization
+// No agent.init() call - CLI handles initialization
 ```
 
 ### `inkeep chat [graph-id]`
@@ -466,9 +462,9 @@ inkeep init
 ```typescript
 import {
   agent,
-  agentGraph,
+  subAgent,
   mcpServer,
-} from "@inkeep/agents-manage-api/builder";
+} from "@inkeep/agents-sdk";
 
 // Define MCP servers (tools)
 const randomNumberServer = mcpServer({
@@ -483,23 +479,20 @@ const weatherServer = mcpServer({
   serverUrl: "https://api.weather.example.com/mcp",
 });
 
-// Define agents
-const assistantAgent = agent({
+// Define sub-agents
+const assistantSubAgent = subAgent({
   id: "assistant",
   name: "Assistant",
-  instructions: "Help users with various tasks",
-  tools: {
-    random: randomNumberServer,
-    weather: weatherServer,
-  },
+  prompt: "Help users with various tasks",
+  canUse: () => [randomNumberServer, weatherServer],
 });
 
-// Export the graph
-export const graph = agentGraph({
+// Export the agent
+export const myAgent = agent({
   id: "my-assistant",
   name: "My Assistant",
-  defaultSubAgent: assistantAgent,
-  agents: { assistant: assistantAgent },
+  defaultSubAgent: assistantSubAgent,
+  subAgents: () => [assistantSubAgent],
 });
 
 // Export servers for MCP management

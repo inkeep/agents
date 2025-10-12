@@ -245,10 +245,10 @@ Define any relationships with existing tables:
 
 ```typescript
 export const workflowRelations = relations(workflows, ({ one, many }) => ({
-  // Example: A workflow belongs to an agent graph
-  agentGraph: one(agentGraphs, {
-    fields: [workflows.agentAgentId],
-    references: [agentGraphs.id],
+  // Example: A workflow belongs to an agent
+  agent: one(agents, {
+    fields: [workflows.agentId],
+    references: [agents.id],
   }),
   // Example: A workflow can have many tasks
   tasks: many(tasks),

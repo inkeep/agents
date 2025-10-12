@@ -310,7 +310,7 @@ const getServer = async (
   });
 
   if (!agent) {
-    throw new Error('Agent agent not found');
+    throw new Error('Agent not found');
   }
 
   const server = new McpServer(
@@ -473,7 +473,7 @@ const handleInitializationRequest = async (
     return c.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent agent not found' },
+        error: { code: -32001, message: 'Agent not found' },
         id: body.id || null,
       },
       { status: 404 }
@@ -646,7 +646,7 @@ app.openapi(
         description: 'Unauthorized - API key authentication required',
       },
       404: {
-        description: 'Not Found - Agent agent not found',
+        description: 'Not Found - Agent not found',
       },
       500: {
         description: 'Internal Server Error',

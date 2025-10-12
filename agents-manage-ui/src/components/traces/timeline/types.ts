@@ -65,7 +65,7 @@ export interface ActivityItem {
   toolType?: string;
   toolPurpose?: string;
   contextConfigId?: string;
-  contextAgentAgentId?: string;
+  contextAgentId?: string;
   contextRequestKeys?: string[];
   contextTrigger?: string;
   contextStatusDescription?: string;

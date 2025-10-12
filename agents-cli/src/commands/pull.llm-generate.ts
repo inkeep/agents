@@ -429,7 +429,7 @@ export async function generateAgentFile(
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const promptTemplate = `Generate a TypeScript file for an Inkeep agent agent.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep agent.
 
 AGENT DATA:
 {{DATA}}
@@ -1073,7 +1073,7 @@ CRITICAL: This is a retry attempt. You must be extremely careful to match the ex
 
   if (!fileExists) {
     // Create new file
-    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent agent configuration.${retryInstructions}
+    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent configuration.${retryInstructions}
 
 AGENT DATA (JSON):
 ${agentDataJson}

@@ -312,7 +312,7 @@ describe('MCP Routes', () => {
       expect(responseData).toHaveProperty('result');
     });
 
-    it('should handle agent agent not found during initialization', async () => {
+    it('should handle agent not found during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
       vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValue(null)
@@ -331,7 +331,7 @@ describe('MCP Routes', () => {
       expect(response.status).toBe(404);
       const result = await response.json();
       expect(result.error).toHaveProperty('code', -32001);
-      expect(result.error.message).toContain('Agent agent not found');
+      expect(result.error.message).toContain('Agent not found');
     });
 
     it('should handle server errors during initialization', async () => {

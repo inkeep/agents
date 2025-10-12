@@ -98,12 +98,14 @@ const agent = agent({
     tools: { search: searchTool }
 });
 
-export const graph = agentGraph({
+export const myAgent = agent({
+    id: 'my-agent',
+    name: 'My Agent',
     defaultSubAgent: routerAgent,
     subAgents: () => [routerAgent, qaAgent, orderAgent]
     // No tenantId or apiUrl needed - CLI injects from inkeep.config.ts
 });
-// No graph.init() call - CLI handles initialization when pushing
+// No agent.init() call - CLI handles initialization when pushing
 ```
 
 ## Key Implementation Details
@@ -226,7 +228,7 @@ LOG_LEVEL=debug|info|warn|error
 
 ### When Working with Agents
 1. **Always call `graph.init()`** after creating agent relationships to persist to database
-2. **Use builder patterns** (`agent()`, `agentGraph()`, `tool()`) instead of direct database manipulation
+2. **Use builder patterns** (`agent()`, `subAgent()`, `tool()`) instead of direct database manipulation
 3. **Preserve contextId** when implementing transfer/delegation logic - extract from task IDs if needed
 4. **Validate tool results** with proper type guards instead of unsafe casting
 5. **Test A2A communication end-to-end** when adding new agent relationships

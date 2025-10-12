@@ -52,7 +52,7 @@ After running `@inkeep/create-agents`, you'll have a complete Agent Framework Di
 my-agent-directory/
 ├── src/
 │   └── <project-id>/           # Agent configurations
-│       ├── hello.graph.ts      # Example agent graph
+│       ├── hello.graph.ts      # Example agent configuration
 │       ├── inkeep.config.ts    # Inkeep CLI configuration
 │       └── .env                # CLI environment variables
 ├── apps/

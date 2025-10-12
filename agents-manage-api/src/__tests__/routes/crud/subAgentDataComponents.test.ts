@@ -50,7 +50,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
     return { agentData, subAgentId: createBody.data.id, agentId: effectiveAgentId };
   };
 
-  // Helper function to create test agent agent data
+  // Helper function to create test agent data
   const _createAgentAgentData = ({
     defaultSubAgentId,
     suffix = '',

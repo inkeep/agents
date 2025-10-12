@@ -130,7 +130,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     expect(calledAgentData).toMatchObject({
       id: agentId,
       name: agentId,
-      description: `Agent agent ${agentId}`,
+      description: `Agent ${agentId}`,
       defaultSubAgentId: 'agent-1', // Agent IDs are converted to kebab-case
       agents: expect.objectContaining({
         'agent-1': expect.objectContaining({

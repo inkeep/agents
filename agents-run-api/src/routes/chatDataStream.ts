@@ -117,7 +117,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent agent not found',
+        message: 'Agent not found',
       });
     }
 

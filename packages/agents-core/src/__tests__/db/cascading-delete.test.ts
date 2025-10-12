@@ -74,7 +74,7 @@ describe('Cascading Delete Tests', () => {
     };
     await dbClient.insert(projects).values(project);
 
-    // Create an agent agent first
+    // Create an agent first
     const agentId = nanoid();
     const subAgentId = nanoid();
     const agent = {

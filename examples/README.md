@@ -46,12 +46,12 @@ npx inkeep chat
 
 ## Example Categories
 
-### Graph Configurations (`/graphs`)
+### Agent Configurations (`/graphs`)
 
-Complete graph examples ready to be pushed to the Inkeep platform:
+Complete agent examples ready to be pushed to the Inkeep platform:
 
-- **basic.graph.ts** - Basic multi-agent graph with hello/goodbye agents
-- **weather-graph.graph.ts** - Weather assistant with MCP tools for geocoding and forecasting
+- **basic.graph.ts** - Basic multi-agent configuration with hello/goodbye agents
+- **weather-graph.graph.ts** - Weather assistant agent with MCP tools for geocoding and forecasting
 
 ### Environment Configurations (`/environments`)
 
@@ -99,27 +99,27 @@ examples/
 
 ## Development Workflow
 
-1. **Create a new graph configuration**:
+1. **Create a new agent configuration**:
 
    ```typescript
-   // graphs/my-graph.graph.ts
-   import { agent, agentGraph } from "@inkeep/agents-sdk";
+   // agents/my-agent.ts
+   import { agent, subAgent } from "@inkeep/agents-sdk";
 
-   const myAgent = agent({
-     id: "my-agent",
-     name: "My Agent",
+   const mySubAgent = subAgent({
+     id: "my-sub-agent",
+     name: "My Sub Agent",
      prompt: "You are a helpful assistant",
      // No tenantId needed - CLI will inject it from inkeep.config.ts
    });
 
-   export const myGraph = agentGraph({
-     id: "my-graph",
-     name: "My Graph",
-     defaultSubAgent: myAgent,
-     subAgents: () => [myAgent],
+   export const myAgent = agent({
+     id: "my-agent",
+     name: "My Agent",
+     defaultSubAgent: mySubAgent,
+     subAgents: () => [mySubAgent],
      // No tenantId or apiUrl needed - CLI will inject them
    });
-   // No graph.init() call - CLI handles initialization
+   // No agent.init() call - CLI handles initialization
    ```
 
 2. **Push the project** (deploys all graphs to the Inkeep platform):
