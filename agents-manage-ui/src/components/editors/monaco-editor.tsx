@@ -1,7 +1,7 @@
 'use client';
 
 import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
-import { useEffect, useRef, useImperativeHandle, useId, useMemo } from 'react';
+import { useEffect, useRef, useImperativeHandle } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
 import { MONACO_THEME_NAME } from '@/constants/theme';
@@ -13,22 +13,22 @@ import {
 } from '@/lib/monaco-editor/monaco-utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
-export interface JsonEditorRef {
+export interface MonacoEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
 }
 
-interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
+interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
   value?: string;
   /**
    * Virtual file system path
    * @see https://github.com/microsoft/monaco-editor?tab=readme-ov-file#uris
    */
-  uri?: `${string}.json`;
+  uri: string;
   readOnly?: boolean;
   disabled?: boolean;
   onChange?: (value: string) => void;
-  ref?: Ref<JsonEditorRef>;
+  ref?: Ref<MonacoEditorRef>;
   placeholder?: string;
   /** @default 12 */
   fontSize?: number;
@@ -40,7 +40,7 @@ interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChang
   onMount?: (editor: editor.IStandaloneCodeEditor) => void;
 }
 
-export const JsonEditor: FC<JsonEditorProps> = ({
+export const MonacoEditor: FC<MonacoEditorProps> = ({
   ref,
   value = '',
   uri,
@@ -56,9 +56,6 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   onMount,
   ...props
 }) => {
-  const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.json` as `${string}.json`, [id]);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
@@ -135,6 +132,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         event.browserEvent.stopPropagation();
       }),
     ];
+
     if (autoFocus) {
       requestAnimationFrame(() => {
         editorInstance.focus();
@@ -156,7 +154,9 @@ export const JsonEditor: FC<JsonEditorProps> = ({
 
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
+
     onMount?.(editorInstance);
+
     return cleanupDisposables(disposables);
   }, []);
 
