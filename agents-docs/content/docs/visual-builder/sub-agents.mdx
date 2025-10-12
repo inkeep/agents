@@ -25,8 +25,8 @@ The following are configurable options for the sub-agent through the Visual Buil
 | `prompt`              | string | Yes      | Detailed behavior guidelines and system prompt for the sub-agent                                                             |
 | `model`               | string | No       | AI model identifier (e.g., "anthropic/claude-sonnet-4-20250514") Choose a model that you prefer                              |
 | `providerOptions`     | object | No       | Model-specific configuration options (temperature, maxTokens, etc.)                                                          |
-| `Data components`     | object | No       | Data components that the sub-agent can use. See [Data Components](/visual-builder/data-components) for details               |
-| `Artifact components` | array  | No       | Artifact components that the sub-agent can use. See [Artifact Components](/visual-builder/artifact-components) for details   |
+| `Data components`     | object | No       | Data components that the sub-agent can use. See [Data Components](/visual-builder/structured-outputs/data-components) for details               |
+| `Artifact components` | array  | No       | Artifact components that the sub-agent can use. See [Artifact Components](/visual-builder/structured-outputs/artifact-components) for details   |
 
 ### Agent Prompt
 
@@ -54,7 +54,7 @@ Then, click the "Try it" button in the top right corner and type into the chat i
 
 ## Adding tools
 
-Tools are used to perform actions in the agent. You can create MCP tools in the Visual Builder, see the [MCP Servers](/visual-builder/mcp-servers) page for more information.
+Tools are used to perform actions in the agent. You can create MCP tools in the Visual Builder, see the [MCP Servers](/visual-builder/tools/mcp-servers) page for more information.
 
 Once you have a tool, add the tool to the agent by dragging and dropping the MCP tool box into the agent.
 
@@ -82,13 +82,13 @@ When connected, a line will appear showing the relationship between the sub-agen
 
 ## Adding data components
 
-Data components are used to render rich UI components directly in the chat. Before adding a data component you will first need to create a data component, see the [Data Components](/visual-builder/data-components) page for more information.
+Data components are used to render rich UI components directly in the chat. Before adding a data component you will first need to create a data component, see the [Data Components](/visual-builder/structured-outputs/data-components) page for more information.
 
 Then, add the data component to your sub-agent by clicking on the sub-agent box, and then selecting which data components you want to add.
 
 ## Adding artifact components
 
-To create artifact components, see the [Artifact Components](/visual-builder/artifact-components) page for details.
+To create artifact components, see the [Artifact Components](/visual-builder/structured-outputs/artifact-components) page for details.
 
 Add the artifact component to your sub-agent by clicking on the sub-agent box in the agent, then selecting which artifact components you want to add.
 

@@ -239,7 +239,7 @@ const personalAgentContext = contextConfig({
 - **Use lowercase keys**: Always define schema properties in lowercase and reference them as lowercase in templates
 - **Validate early**: Test your schema configuration with sample headers before deploying
 - **Cache wisely**: Remember that context persists per conversation - design accordingly
-- **Secure sensitive data**: For long-lived secrets, use the [Credentials](/typescript-sdk/credentials) system instead of headers
+- **Secure sensitive data**: For long-lived secrets, use the [Credentials](/typescript-sdk/tools/credentials) system instead of headers
 - **Keep it minimal**: Only include context values that are actually needed by your agents
 
 ## Common use cases
@@ -297,6 +297,6 @@ If context values aren't available in subsequent requests:
 
 - [Context Fetchers](/typescript-sdk/context-fetchers) - Learn about fetching and caching external data
 - [External Agents](/typescript-sdk/external-agents) - Configure external agent integrations
-- [Credentials](/typescript-sdk/credentials) - Manage secure credentials for your Agents
+- [Credentials](/typescript-sdk/tools/credentials) - Manage secure credentials for your Agents
 
 
