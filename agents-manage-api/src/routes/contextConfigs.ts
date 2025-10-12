@@ -3,6 +3,8 @@ import {
   ContextConfigApiInsertSchema,
   ContextConfigApiSelectSchema,
   ContextConfigApiUpdateSchema,
+  ContextConfigListResponse,
+  ContextConfigResponse,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   commonUpdateErrorResponses,
@@ -10,10 +12,8 @@ import {
   createContextConfig,
   deleteContextConfig,
   getContextConfigById,
-  ListResponseSchema,
   listContextConfigsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateContextConfig,
@@ -38,7 +38,7 @@ app.openapi(
         description: 'List of context configurations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigListResponse,
           },
         },
       },
@@ -73,7 +73,7 @@ app.openapi(
         description: 'Context configuration found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },
@@ -120,7 +120,7 @@ app.openapi(
         description: 'Context configuration created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },
@@ -165,7 +165,7 @@ app.openapi(
         description: 'Context configuration updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },

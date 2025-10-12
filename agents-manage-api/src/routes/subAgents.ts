@@ -6,13 +6,13 @@ import {
   deleteSubAgent,
   ErrorResponseSchema,
   getSubAgentById,
-  ListResponseSchema,
   listSubAgentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
+  SubAgentListResponse,
+  SubAgentResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateSubAgent,
@@ -38,7 +38,7 @@ app.openapi(
         description: 'List of subAgents retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentApiSelectSchema),
+            schema: SubAgentListResponse,
           },
         },
       },
@@ -82,7 +82,7 @@ app.openapi(
         description: 'SubAgent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentApiSelectSchema),
+            schema: SubAgentResponse,
           },
         },
       },
@@ -135,7 +135,7 @@ app.openapi(
         description: 'SubAgent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentApiSelectSchema),
+            schema: SubAgentResponse,
           },
         },
       },
@@ -186,7 +186,7 @@ app.openapi(
         description: 'SubAgent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentApiSelectSchema),
+            schema: SubAgentResponse,
           },
         },
       },

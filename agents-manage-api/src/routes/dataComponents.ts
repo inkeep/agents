@@ -9,10 +9,11 @@ import {
   deleteDataComponent,
   ErrorResponseSchema,
   getDataComponent,
-  ListResponseSchema,
+  DataComponentListResponse,
+  DataComponentResponse,
   listDataComponentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateDataComponent,
@@ -38,7 +39,7 @@ app.openapi(
         description: 'List of data components retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentListResponse,
           },
         },
       },
@@ -73,7 +74,7 @@ app.openapi(
         description: 'Data component found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
@@ -120,7 +121,7 @@ app.openapi(
         description: 'Data component created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
@@ -179,7 +180,7 @@ app.openapi(
         description: 'Data component updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
