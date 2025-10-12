@@ -14,9 +14,23 @@ const inter = Inter({
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Inkeep Agents',
+    url: 'https://docs.inkeep.com',
+    alternateName: 'Inkeep',
+  };
+
   return (
     <html lang="en" className={`${inter.className} antialiased`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

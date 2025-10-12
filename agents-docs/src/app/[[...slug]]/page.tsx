@@ -82,7 +82,7 @@ export async function generateMetadata(props: { params: Promise<{ slug?: string[
 
   return createMetadata(
     metadataImage.withImage(page.slugs, {
-      title: `${page.data.title} - Inkeep Docs ~ Open Source Agent Builder`,
+      title: `${page.data.title} - Inkeep Docs`,
       description: page.data.description,
       openGraph: {
         url: page.url,
