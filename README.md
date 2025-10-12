@@ -20,9 +20,9 @@ To get started, see the [docs](https://docs.inkeep.com).
 1. **TypeScript SDK**: A code-first approach for building and managing agents, allowing you to build complex agent systems with everything you expect as a developer.
 
    ```javascript
-    import { agent, agentGraph } from '@inkeep/agents-sdk';
+    import { agent, subAgent } from '@inkeep/agents-sdk';
 
-    const helloAgent = agent({
+    const helloSubAgent = subAgent({
       id: 'hello-agent',
       name: 'Hello Agent',
       description: 'A basic agent',
@@ -30,12 +30,12 @@ To get started, see the [docs](https://docs.inkeep.com).
         'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
     });
 
-    export const graph = agentGraph({
-      id: 'basic-graph',
-      name: 'Basic Graph Example',
-      description: 'A basic graph',
-      defaultSubAgent: helloAgent,
-      subAgents: () => [helloAgent],
+    export const myAgent = agent({
+      id: 'basic-agent',
+      name: 'Basic Agent Example',
+      description: 'A basic agent',
+      defaultSubAgent: helloSubAgent,
+      subAgents: () => [helloSubAgent],
     });
    ```
 

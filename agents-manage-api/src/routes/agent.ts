@@ -27,21 +27,21 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agent agent
+// List agents
 app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Agent Agent',
-    operationId: 'list-agent-agent',
-    tags: ['Agent Agent'],
+    summary: 'List Agents',
+    operationId: 'list-agents',
+    tags: ['Agents'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
-        description: 'List of agent agent retrieved successfully',
+        description: 'List of agents retrieved successfully',
         content: {
           'application/json': {
             schema: ListResponseSchema(AgentApiSelectSchema),
@@ -69,20 +69,20 @@ app.openapi(
   }
 );
 
-// Get agent agent by ID
+// Get agent by ID
 app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Agent Agent',
-    operationId: 'get-agent-agent',
-    tags: ['Agent Agent'],
+    summary: 'Get Agent',
+    operationId: 'get-agent',
+    tags: ['Agents'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Agent agent found',
+        description: 'Agent found',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -101,7 +101,7 @@ app.openapi(
     if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent agent not found',
+        message: 'Agent not found',
       });
     }
 
@@ -195,7 +195,7 @@ app.openapi(
     if (!fullAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent agent not found',
+        message: 'Agent not found',
       });
     }
 
@@ -203,14 +203,14 @@ app.openapi(
   }
 );
 
-// Create agent agent
+// Create agent
 app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Agent Agent',
-    operationId: 'create-agent-agent',
-    tags: ['Agent Agent'],
+    summary: 'Create Agent',
+    operationId: 'create-agent',
+    tags: ['Agents'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
@@ -223,7 +223,7 @@ app.openapi(
     },
     responses: {
       201: {
-        description: 'Agent agent created successfully',
+        description: 'Agent created successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -250,14 +250,14 @@ app.openapi(
   }
 );
 
-// Update agent agent
+// Update agent
 app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Agent Agent',
-    operationId: 'update-agent-agent',
-    tags: ['Agent Agent'],
+    summary: 'Update Agent',
+    operationId: 'update-agent',
+    tags: ['Agents'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
@@ -270,7 +270,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Agent agent updated successfully',
+        description: 'Agent updated successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(AgentApiSelectSchema),
@@ -295,7 +295,7 @@ app.openapi(
     if (!updatedAgent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent agent not found',
+        message: 'Agent not found',
       });
     }
 
@@ -303,23 +303,23 @@ app.openapi(
   }
 );
 
-// Delete agent agent
+// Delete agent
 app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Agent Agent',
-    operationId: 'delete-agent-agent',
-    tags: ['Agent Agent'],
+    summary: 'Delete Agent',
+    operationId: 'delete-agent',
+    tags: ['Agents'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
-        description: 'Agent agent deleted successfully',
+        description: 'Agent deleted successfully',
       },
       404: {
-        description: 'Agent agent not found',
+        description: 'Agent not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -337,7 +337,7 @@ app.openapi(
     if (!deleted) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent agent not found',
+        message: 'Agent not found',
       });
     }
 

@@ -43,8 +43,8 @@ describe('Agent Agent Data Access - Integration Tests', () => {
   });
 
   describe('createAgentAgent & getAgentAgentById', () => {
-    it('should create and retrieve an agent agent with default agent', async () => {
-      // Create agent agent first (before agents, as they need agentId)
+    it('should create and retrieve an agent with default agent', async () => {
+      // Create agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, '1');
       const createdAgent = await createAgent(db)(agentData);
 
@@ -311,7 +311,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       const _createdAgent = await createAgent(db)(agentData);
 
       // Create agents with agentId
-      const routerAgentData = createTestSubAgentData(testTenantId, testProjectId, '10', agentData.id);
+      const routerAgentData = createTestSubAgentData(
+        testTenantId,
+        testProjectId,
+        '10',
+        agentData.id
+      );
       const routerAgent = await createSubAgent(db)(routerAgentData);
 
       const qaAgentData = createTestSubAgentData(testTenantId, testProjectId, '11', agentData.id);

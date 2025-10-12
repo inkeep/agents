@@ -50,7 +50,7 @@ async function hydrateAgent({
     // Create AgentCard for the agent (representing it as a single agent)
     const agentCard: AgentCard = {
       name: dbAgent.name,
-      description: dbAgent.description || `Agent agent: ${dbAgent.name}`,
+      description: dbAgent.description || `Agent: ${dbAgent.name}`,
       url: baseUrl ? `${baseUrl}/a2a` : '',
       version: '1.0.0',
       capabilities: {

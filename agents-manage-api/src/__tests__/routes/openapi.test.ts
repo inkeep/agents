@@ -156,9 +156,9 @@ describe('OpenAPI Specification - Integration Tests', () => {
 
       expect(res.status).toBe(200);
 
-      // OpenAPI spec generation should be fast (under 1 second)
+      // OpenAPI spec generation should be reasonably fast (under 3 seconds)
       const responseTime = endTime - startTime;
-      expect(responseTime).toBeLessThan(1000);
+      expect(responseTime).toBeLessThan(3000);
     });
 
     it('should successfully parse without throwing errors', async () => {

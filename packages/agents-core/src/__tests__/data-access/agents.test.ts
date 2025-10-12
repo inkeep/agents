@@ -21,7 +21,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('getAgentAgentById', () => {
-    it('should retrieve an agent agent by tenant and agent ID', async () => {
+    it('should retrieve an agent by tenant and agent ID', async () => {
       const agentId = 'agent-1';
       const expectedAgent = {
         id: agentId,
@@ -70,7 +70,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('getAgentAgentById', () => {
-    it('should retrieve an agent agent by full parameters', async () => {
+    it('should retrieve an agent by full parameters', async () => {
       const agentId = 'agent-1';
       const expectedAgent = {
         id: agentId,
@@ -101,7 +101,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('getAgentAgentWithDefaultSubAgent', () => {
-    it('should retrieve an agent agent with default agent relation', async () => {
+    it('should retrieve an agent with default agent relation', async () => {
       const agentId = 'agent-1';
       const expectedAgent = {
         id: agentId,
@@ -132,7 +132,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('listAgentAgents', () => {
-    it('should list all agent agent', async () => {
+    it('should list all agents', async () => {
       const expectedAgents = [
         { id: 'agent-1', name: 'Agent 1' },
         { id: 'agent-2', name: 'Agent 2' },
@@ -214,7 +214,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('createAgentAgent', () => {
-    it('should create a new agent agent', async () => {
+    it('should create a new agent', async () => {
       const agentData = {
         id: 'agent-1',
         tenantId: testTenantId,
@@ -248,7 +248,7 @@ describe('Agent Agent Data Access', () => {
       });
     });
 
-    it('should create an agent agent without optional fields', async () => {
+    it('should create an agent without optional fields', async () => {
       const agentData = {
         id: 'agent-1',
         tenantId: testTenantId,
@@ -279,7 +279,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('updateAgentAgent', () => {
-    it('should update an agent agent', async () => {
+    it('should update an agent', async () => {
       const agentId = 'agent-1';
       const updateData = {
         name: 'Updated Agent Name',
@@ -350,7 +350,7 @@ describe('Agent Agent Data Access', () => {
   });
 
   describe('deleteAgentAgent', () => {
-    it('should delete an agent agent', async () => {
+    it('should delete an agent', async () => {
       const agentId = 'agent-1';
 
       const mockDelete = vi.fn().mockReturnValue({

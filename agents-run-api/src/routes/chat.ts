@@ -41,7 +41,7 @@ const chatCompletionsRoute = createRoute({
   tags: ['chat'],
   summary: 'Create chat completion',
   description:
-    'Creates a new chat completion with streaming SSE response using the configured agent agent',
+    'Creates a new chat completion with streaming SSE response using the configured agent',
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -127,7 +127,7 @@ const chatCompletionsRoute = createRoute({
       },
     },
     404: {
-      description: 'Agent agent or agent not found',
+      description: 'Agent or agent not found',
       content: {
         'application/json': {
           schema: z.object({
@@ -222,7 +222,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       if (!agent) {
         throw createApiError({
           code: 'not_found',
-          message: 'Agent agent not found',
+          message: 'Agent not found',
         });
       }
       defaultSubAgentId = agent.defaultSubAgentId || '';

@@ -200,7 +200,7 @@ export const createFullAgentServerSide =
       let finalAgentId: string;
       try {
         const agentId = typed.id || nanoid();
-        logger.info({ agentId: agentId }, 'Creating agent agent metadata');
+        logger.info({ agentId: agentId }, 'Creating agent metadata');
         const agent = await upsertAgent(db)({
           data: {
             id: agentId,
@@ -220,7 +220,7 @@ export const createFullAgentServerSide =
           throw new Error('Failed to create agent: no ID returned');
         }
         finalAgentId = agent.id;
-        logger.info({ agentId: finalAgentId }, 'Agent agent metadata created successfully');
+        logger.info({ agentId: finalAgentId }, 'Agent metadata created successfully');
       } catch (error) {
         logger.error({ agentId: typed.id, error }, 'Failed to create/update agent metadata');
         throw error;
@@ -815,7 +815,7 @@ export const updateFullAgentServerSide =
           throw new Error('Failed to upsert agent: no ID returned');
         }
         finalAgentId = agent.id;
-        logger.info({ agentId: finalAgentId }, 'Agent agent metadata ready');
+        logger.info({ agentId: finalAgentId }, 'Agent metadata ready');
       } catch (error) {
         logger.error(
           { agentId: typedAgentDefinition.id, error },

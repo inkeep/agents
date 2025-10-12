@@ -80,17 +80,18 @@ const qaAgent = agent({
 });
 ```
 
-### Graph Builder
+### Agent Builder
 ```typescript
-import { agentGraph } from '@inkeep/agents-manage-api';
+import { agent } from '@inkeep/agents-sdk';
 
-const graph = agentGraph({
+const myAgent = agent({
   id: 'customer-support',
+  name: 'Customer Support Agent',
   defaultSubAgent: routerAgent,
   subAgents: () => [routerAgent, qaAgent, orderAgent]
 });
 
-await graph.init(); // Persist to database
+await myAgent.init(); // Persist to database
 ```
 
 ### Tool Builder
