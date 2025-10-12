@@ -16,6 +16,9 @@ import {
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
+  if (model.isDisposed()) {
+    return;
+  }
   const { element, position } = e.target;
   if (!element?.classList.contains('copy-button-icon') || !position) {
     return;
@@ -60,6 +63,11 @@ interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChang
   placeholder?: string;
   /** @default 12 */
   fontSize?: number;
+  /**
+   * Stretches the editor height to fit its content.
+   * @default true
+   */
+  hasDynamicHeight?: boolean;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
@@ -74,6 +82,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   placeholder,
   autoFocus,
   fontSize = 12,
+  hasDynamicHeight = true,
   ...props
 }) => {
   const id = useId();
@@ -127,18 +136,6 @@ export const JsonEditor: FC<JsonEditorProps> = ({
     });
     editorRef.current = editorInstance;
 
-    // Auto-resize editor based on content
-    function updateHeight() {
-      if (model.isDisposed()) {
-        return;
-      }
-      // Update height based on content
-      const contentHeight = editorInstance.getContentHeight();
-      if (container) {
-        container.style.height = `${contentHeight}px`;
-      }
-    }
-
     // Set up disposables for cleanup
     const disposables: IDisposable[] = [
       model,
@@ -152,7 +149,6 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         currentOnChange(newValue); // Calls the current onChange, not a stale one
       }),
       editorInstance,
-      editorInstance.onDidContentSizeChange(updateHeight),
       // Disable command palette
       editorInstance.addAction({
         id: 'disable-command-palette',
@@ -193,18 +189,30 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         editorInstance.onMouseDown(handleCopyFieldValue(model))
       );
     }
+
+    if (hasDynamicHeight) {
+      // Auto-resize editor based on content
+      function updateHeight() {
+        if (model.isDisposed()) {
+          return;
+        }
+        // Update height based on content
+        const contentHeight = editorInstance.getContentHeight();
+        if (container) {
+          container.style.height = `${contentHeight}px`;
+        }
+      }
+
+      disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
+    }
     return cleanupDisposables(disposables);
   }, []);
-
-  // h-full
-  // [&>.cm-editor]:max-h-[inherit]
-  // [&>.cm-editor]:px-3
-  // [&>.cm-editor]:py-2
 
   return (
     <div
       ref={containerRef}
       className={cn(
+        !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled

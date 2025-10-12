@@ -12,10 +12,10 @@ interface ExpandableJsonEditorProps {
   name: string;
   value: NonNullable<JsonEditorProps['value']>;
   onChange: NonNullable<JsonEditorProps['onChange']>;
-  className: JsonEditorProps['className'];
+  className?: JsonEditorProps['className'];
   label?: string;
   error?: string;
-  placeholder: JsonEditorProps['placeholder'];
+  placeholder?: JsonEditorProps['placeholder'];
 }
 
 // Shared JSON validation logic
@@ -71,8 +71,8 @@ const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="h-full!"
         aria-invalid={!!error}
+        hasDynamicHeight={false}
       />
       {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
