@@ -1,5 +1,14 @@
 # @inkeep/agents-cli
 
+## 0.19.1
+
+### Patch Changes
+
+- 507fe0c: inkeep pull is now directory aware, leave off the project argument when you run within a project dir
+  - @inkeep/agents-manage-ui@0.19.1
+  - @inkeep/agents-core@0.19.1
+  - @inkeep/agents-sdk@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes
