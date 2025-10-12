@@ -1,13 +1,13 @@
 'use client';
 
 import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'react';
-import { JsonEditor } from '@/components/form/json-editor';
-import { JsonEditor as JsonEditor2 } from '@/components/editors/json-editor';
+import { JsonEditor as LegacyJsonEditor } from '@/components/form/json-editor';
+import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
 import { ExpandableField } from './expandable-field';
 
-type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor2>;
+type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
 
 interface ExpandableJsonEditorProps {
   name: string;
@@ -66,7 +66,7 @@ const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
   const { error } = useJsonValidation(value);
   return (
     <div className="h-full">
-      <JsonEditor2
+      <JsonEditor
         id={`${name}-expanded`}
         autoFocus
         value={value}
@@ -119,13 +119,22 @@ export function ExpandableJsonEditor({
       actions={formatButton}
       compactView={
         <>
-          <JsonEditor
+          <LegacyJsonEditor
             aria-invalid={!!error}
             id={name}
             value={value || ''}
             onChange={onChange}
             placeholder={placeholder}
             className={cn('font-mono bg-background text-sm max-h-96', error && 'mb-6')}
+          />
+          <JsonEditor
+            aria-invalid={!!error}
+            id={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={cn(error && 'max-h-96 mb-6')}
+            fontSize={14}
           />
           {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
         </>

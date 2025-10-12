@@ -124,7 +124,8 @@ export function createEditor(
       useShadows: false, // Disable shadow effects
       alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
     },
-    // stickyScroll: { enabled: false }, // Disable sticky scroll widget
+    stickyScroll: { enabled: false }, // Disable sticky scroll widget
+    tabSize: 2,
     // scrollbar: {
     //   verticalScrollbarSize: 10,
     // },

@@ -44,13 +44,16 @@ export interface JsonEditorRef {
 }
 
 interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
+  /** @default '' */
   value?: string;
   uri?: `${string}.json`;
   readOnly?: boolean;
   disabled?: boolean;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   ref?: Ref<JsonEditorRef>;
   placeholder?: string;
+  /** @default 12 */
+  fontSize?: number;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
@@ -63,6 +66,8 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   disabled,
   onChange,
   placeholder,
+  autoFocus,
+  fontSize = 12,
   ...props
 }) => {
   const id = useId();
@@ -149,6 +154,11 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         run() {}, // Do nothing - prevents command palette from opening
       }),
     ];
+    if (autoFocus) {
+      requestAnimationFrame(() => {
+        editorInstance.focus();
+      });
+    }
 
     // Add read-only specific features
     if (readOnly) {
@@ -176,15 +186,12 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   // [&>.cm-editor]:max-h-[inherit]
   // [&>.cm-editor]:px-3
   // [&>.cm-editor]:py-2
-  // leading-2
-  // font-mono
-  // rounded-md
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'rounded-[7px] relative dark:bg-input/30 transition-colors',
+        'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
