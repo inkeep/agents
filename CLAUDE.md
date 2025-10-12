@@ -63,9 +63,9 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 
 #### Database Schema (SQLite + Drizzle ORM)
 - **Shared Database**: Single SQLite database (`./local.db`) at monorepo root shared by both APIs
-- **agents**: Individual AI agents with instructions and capabilities
-- **agent_graphs**: Collections of agents with default entry points  
-- **agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships
+- **sub_agents**: Individual AI agents with instructions and capabilities
+- **agents**: Collections of agents with default entry points  
+- **sub_agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships
 - **tasks**: Work units with hierarchical parent-child relationships via `task_relations`
 - **conversations**: User sessions with active agent tracking
 - **messages**: Unified format supporting both OpenAI Chat and A2A protocols

@@ -50,8 +50,8 @@ npx inkeep chat
 
 Complete agent examples ready to be pushed to the Inkeep platform:
 
-- **basic.graph.ts** - Basic multi-agent configuration with hello/goodbye agents
-- **weather-graph.graph.ts** - Weather assistant agent with MCP tools for geocoding and forecasting
+- **basic-agent.ts** - Basic multi-agent configuration with hello/goodbye agents
+- **weather-agent.ts** - Weather assistant agent with MCP tools for geocoding and forecasting
 
 ### Environment Configurations (`/environments`)
 
@@ -88,8 +88,8 @@ examples/
 ├── index.ts                 # Main entry point
 ├── tsconfig.json           # TypeScript configuration
 ├── graphs/                  # Graph configuration examples
-│   ├── basic.graph.ts      # Basic multi-agent example
-│   └── weather-graph.graph.ts # Weather assistant example
+│   ├── basic-agent.ts      # Basic multi-agent example
+│   └── weather-agent.ts # Weather assistant example
 └── environments/            # Environment configurations
     ├── development.env.ts  # Development environment settings
     ├── development.validation.ts # Development validation
