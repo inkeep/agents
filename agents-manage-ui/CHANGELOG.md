@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.19.1
+- @inkeep/agents-run-api@0.19.1
+- @inkeep/agents-core@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes
