@@ -28,35 +28,35 @@ describe('projectFull data access', () => {
       stepCountIs: 50,
     },
     tools: {},
-    graphs: {}, // Start with empty graphs for basic testing
+    agents: {}, // Start with empty agent for basic testing
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
 
-  const createTestProjectWithGraphs = (projectId: string): FullProjectDefinition => {
-    const graphId = `graph-${nanoid()}`;
+  const createTestProjectWithAgents = (projectId: string): FullProjectDefinition => {
     const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const toolId = `tool-${nanoid()}`;
 
     return {
       id: projectId,
-      name: 'Test Project with Graphs',
-      description: 'A test project with graphs',
+      name: 'Test Project with Agent',
+      description: 'A test project with agent',
       models: {
         base: { model: 'gpt-4o-mini' },
       },
       stopWhen: {
         transferCountIs: 5,
       },
-      graphs: {
-        [graphId]: {
-          id: graphId,
-          name: 'Test Graph',
-          description: 'A test graph',
-          defaultAgentId: agentId,
-          agents: {
-            [agentId]: {
-              id: agentId,
+      agents: {
+        [agentId]: {
+          id: agentId,
+          name: 'Test Agent',
+          description: 'A test agent',
+          defaultSubAgentId: subAgentId,
+          subAgents: {
+            [subAgentId]: {
+              id: subAgentId,
               name: 'Test Agent',
               description: 'A test agent',
               prompt: 'You are a helpful assistant.',
@@ -108,9 +108,9 @@ describe('projectFull data access', () => {
       expect(result.stopWhen).toEqual(projectData.stopWhen);
     });
 
-    it('should create a project with graphs and nested resources', async () => {
+    it('should create a project with agent and nested resources', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
       const result = await createFullProjectServerSide(db, logger)(
         { tenantId, projectId },
@@ -119,8 +119,8 @@ describe('projectFull data access', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
-      expect(result.graphs).toBeDefined();
-      expect(Object.keys(result.graphs)).toHaveLength(1);
+      expect(result.agents).toBeDefined();
+      expect(Object.keys(result.agents)).toHaveLength(1);
     });
 
     it('should handle projects with minimal data', async () => {
@@ -135,7 +135,7 @@ describe('projectFull data access', () => {
             providerOptions: {},
           },
         },
-        graphs: {},
+        agents: {},
         tools: {},
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -149,7 +149,7 @@ describe('projectFull data access', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
       expect(result.name).toBe('Minimal Project');
-      expect(result.graphs).toEqual({});
+      expect(result.agents).toEqual({});
     });
   });
 
@@ -190,11 +190,11 @@ describe('projectFull data access', () => {
       expect(result).toBeNull();
     });
 
-    it('should include all graphs in the project', async () => {
+    it('should include all agent in the project', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
-      // Create the project with graphs
+      // Create the project with agent
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Retrieve it
@@ -207,17 +207,17 @@ describe('projectFull data access', () => {
 
       expect(result).toBeDefined();
       if (result) {
-        expect(result.graphs).toBeDefined();
+        expect(result.agents).toBeDefined();
       }
-      // Note: The actual graph count depends on implementation
+      // Note: The actual agent count depends on implementation
       // This test verifies structure, not exact content
     });
 
-    it('should have tools at project level, not in graphs', async () => {
+    it('should have tools at project level, not in agent', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
-      // Create the project with graphs and tools
+      // Create the project with agent and tools
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Retrieve it
@@ -361,9 +361,9 @@ describe('projectFull data access', () => {
 
     it('should cascade delete all project resources', async () => {
       const projectId = `project-${nanoid()}`;
-      const projectData = createTestProjectWithGraphs(projectId);
+      const projectData = createTestProjectWithAgents(projectId);
 
-      // Create the project with graphs
+      // Create the project with agent
       await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
 
       // Verify the project exists

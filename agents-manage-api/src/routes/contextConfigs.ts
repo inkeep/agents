@@ -3,6 +3,8 @@ import {
   ContextConfigApiInsertSchema,
   ContextConfigApiSelectSchema,
   ContextConfigApiUpdateSchema,
+  ContextConfigListResponse,
+  ContextConfigResponse,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   commonUpdateErrorResponses,
@@ -10,12 +12,10 @@ import {
   createContextConfig,
   deleteContextConfig,
   getContextConfigById,
-  IdParamsSchema,
-  ListResponseSchema,
   listContextConfigsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
-  TenantProjectGraphParamsSchema,
+  TenantProjectAgentIdParamsSchema,
+  TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
@@ -30,7 +30,7 @@ app.openapi(
     operationId: 'list-context-configs',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -38,7 +38,7 @@ app.openapi(
         description: 'List of context configurations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigListResponse,
           },
         },
       },
@@ -46,12 +46,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     const result = await listContextConfigsPaginated(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
     return c.json(result);
@@ -66,14 +66,14 @@ app.openapi(
     operationId: 'get-context-config-by-id',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Context configuration found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },
@@ -81,9 +81,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const contextConfig = await getContextConfigById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       id,
     });
 
@@ -106,7 +106,7 @@ app.openapi(
     operationId: 'create-context-config',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -120,7 +120,7 @@ app.openapi(
         description: 'Context configuration created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },
@@ -128,13 +128,13 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId } = c.req.valid('param');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const configData = {
       tenantId,
       projectId,
-      graphId,
+      agentId,
       ...body,
     };
     const contextConfig = await createContextConfig(dbClient)(configData);
@@ -151,7 +151,7 @@ app.openapi(
     operationId: 'update-context-config',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -165,7 +165,7 @@ app.openapi(
         description: 'Context configuration updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ContextConfigApiSelectSchema),
+            schema: ContextConfigResponse,
           },
         },
       },
@@ -173,11 +173,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedContextConfig = await updateContextConfig(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       id,
       data: body,
     });
@@ -201,7 +201,7 @@ app.openapi(
     operationId: 'delete-context-config',
     tags: ['Context Config'],
     request: {
-      params: TenantProjectGraphParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {
@@ -211,10 +211,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, graphId, id } = c.req.valid('param');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     const deleted = await deleteContextConfig(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+      scopes: { tenantId, projectId, agentId },
       id,
     });
 

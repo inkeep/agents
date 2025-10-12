@@ -52,10 +52,10 @@ describe('A2A Handlers', () => {
       apiKey: 'test-api-key',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       apiKeyId: 'test-key',
       baseUrl: 'http://localhost:3003',
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
     };
 
     // Mock context with proper get/set methods
@@ -65,7 +65,7 @@ describe('A2A Handlers', () => {
     mockContext = {
       req: {
         json: vi.fn(),
-        param: vi.fn().mockReturnValue('test-graph'),
+        param: vi.fn().mockReturnValue('test-agent'),
       },
       json: vi.fn().mockImplementation((data) => new Response(JSON.stringify(data))),
       text: vi.fn().mockImplementation((text) => new Response(text)),
@@ -82,7 +82,7 @@ describe('A2A Handlers', () => {
 
     // Mock registered agent
     mockAgent = {
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
       tenantId: 'test-tenant',
       agentCard: {
         capabilities: {
@@ -274,7 +274,8 @@ describe('A2A Handlers', () => {
                 kind: 'data',
                 data: {
                   type: 'transfer',
-                  target: 'support-agent',
+                  targetSubAgentId: 'support-agent',
+                  fromSubAgentId: 'test-agent',
                   reason: 'User needs support',
                 },
               },
@@ -290,7 +291,7 @@ describe('A2A Handlers', () => {
       const result = await response.json();
 
       expect(result.result.artifacts[0].parts[0].data.type).toBe('transfer');
-      expect(result.result.artifacts[0].parts[0].data.targetAgentId).toBe('support-agent');
+      expect(result.result.artifacts[0].parts[0].data.targetSubAgentId).toBe('support-agent');
     });
 
     it('should handle contextId resolution for delegation', async () => {
@@ -345,7 +346,7 @@ describe('A2A Handlers', () => {
             role: 'agent',
             contextId: 'conv-123',
             metadata: {
-              fromAgentId: 'source-agent',
+              fromSubAgentId: 'source-agent',
             },
             kind: 'message',
           },
@@ -370,8 +371,8 @@ describe('A2A Handlers', () => {
           tenantId: 'test-tenant',
           conversationId: 'conv-123',
           role: 'agent',
-          fromAgentId: 'source-agent',
-          toAgentId: 'test-agent',
+          fromSubAgentId: 'source-agent',
+          toSubAgentId: 'test-agent',
           messageType: 'a2a-request',
         })
       );
@@ -488,7 +489,7 @@ describe('A2A Handlers', () => {
 
       expect(result.jsonrpc).toBe('2.0');
       expect(result.result.status).toBe('ready');
-      expect(result.result.agentId).toBe('test-agent');
+      expect(result.result.subAgentId).toBe('test-agent');
     });
   });
 

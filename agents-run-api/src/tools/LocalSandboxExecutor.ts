@@ -46,7 +46,7 @@
  * across all tool executions, otherwise caching doesn't work.
  */
 
-import { getLogger } from '@inkeep/agents-core';
+import { getLogger, type SandboxConfig } from '@inkeep/agents-core';
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
@@ -55,17 +55,82 @@ import { join } from 'path';
 
 const logger = getLogger('local-sandbox-executor');
 
+/**
+ * Semaphore for limiting concurrent executions based on vCPU allocation
+ */
+class ExecutionSemaphore {
+  private permits: number;
+  private waitQueue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+  private readonly maxWaitTime: number;
+
+  constructor(permits: number, maxWaitTimeMs = 30000) {
+    this.permits = Math.max(1, permits); // Ensure at least 1 permit
+    this.maxWaitTime = maxWaitTimeMs;
+  }
+
+  async acquire<T>(fn: () => Promise<T>): Promise<T> {
+    // Wait for a permit to become available
+    await new Promise<void>((resolve, reject) => {
+      if (this.permits > 0) {
+        this.permits--;
+        resolve();
+        return;
+      }
+
+      // Add to wait queue with timeout
+      const timeoutId = setTimeout(() => {
+        // Remove from queue and reject
+        const index = this.waitQueue.findIndex((item) => item.resolve === resolve);
+        if (index !== -1) {
+          this.waitQueue.splice(index, 1);
+          reject(
+            new Error(
+              `Function execution queue timeout after ${this.maxWaitTime}ms. Too many concurrent executions.`
+            )
+          );
+        }
+      }, this.maxWaitTime);
+
+      this.waitQueue.push({
+        resolve: () => {
+          clearTimeout(timeoutId);
+          this.permits--;
+          resolve();
+        },
+        reject,
+      });
+    });
+
+    // Execute the function
+    try {
+      return await fn();
+    } finally {
+      // Release the permit
+      this.permits++;
+
+      // Wake up next waiting function
+      const next = this.waitQueue.shift();
+      if (next) {
+        next.resolve();
+      }
+    }
+  }
+
+  getAvailablePermits(): number {
+    return this.permits;
+  }
+
+  getQueueLength(): number {
+    return this.waitQueue.length;
+  }
+}
+
 export interface FunctionToolConfig {
   description: string;
   inputSchema: Record<string, unknown>;
   executeCode: string;
   dependencies: Record<string, string>;
-  sandboxConfig?: {
-    provider: 'vercel' | 'daytona' | 'local';
-    runtime: 'node22' | 'typescript';
-    timeout?: number;
-    vcpus?: number;
-  };
+  sandboxConfig?: SandboxConfig;
 }
 
 interface SandboxPool {
@@ -83,6 +148,7 @@ export class LocalSandboxExecutor {
   private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly MAX_USE_COUNT = 50;
   private static instance: LocalSandboxExecutor | null = null;
+  private executionSemaphores: Map<number, ExecutionSemaphore> = new Map();
 
   constructor() {
     // Use system temp directory instead of project root
@@ -96,6 +162,41 @@ export class LocalSandboxExecutor {
       LocalSandboxExecutor.instance = new LocalSandboxExecutor();
     }
     return LocalSandboxExecutor.instance;
+  }
+
+  /**
+   * Get or create a semaphore for the specified vCPU limit
+   */
+  private getSemaphore(vcpus: number): ExecutionSemaphore {
+    const effectiveVcpus = Math.max(1, vcpus || 1); // Default to 1 if not specified
+
+    if (!this.executionSemaphores.has(effectiveVcpus)) {
+      logger.debug({ vcpus: effectiveVcpus }, 'Creating new execution semaphore');
+      this.executionSemaphores.set(effectiveVcpus, new ExecutionSemaphore(effectiveVcpus));
+    }
+
+    const semaphore = this.executionSemaphores.get(effectiveVcpus);
+    if (!semaphore) {
+      throw new Error(`Failed to create semaphore for ${effectiveVcpus} vCPUs`);
+    }
+
+    return semaphore;
+  }
+
+  /**
+   * Get execution statistics for monitoring and debugging
+   */
+  getExecutionStats(): Record<string, { availablePermits: number; queueLength: number }> {
+    const stats: Record<string, { availablePermits: number; queueLength: number }> = {};
+
+    for (const [vcpus, semaphore] of this.executionSemaphores.entries()) {
+      stats[`vcpu_${vcpus}`] = {
+        availablePermits: semaphore.getAvailablePermits(),
+        queueLength: semaphore.getQueueLength(),
+      };
+    }
+
+    return stats;
   }
 
   private ensureTempDir() {
@@ -198,8 +299,11 @@ export class LocalSandboxExecutor {
     }, 60000);
   }
 
-  private detectModuleType(executeCode: string): 'cjs' | 'esm' {
-    // Check for ES module syntax patterns
+  private detectModuleType(
+    executeCode: string,
+    configuredRuntime?: 'node22' | 'typescript'
+  ): 'cjs' | 'esm' {
+    // Define patterns once and reuse
     const esmPatterns = [
       /import\s+.*\s+from\s+['"]/g, // import ... from '...'
       /import\s*\(/g, // import(...)
@@ -207,7 +311,6 @@ export class LocalSandboxExecutor {
       /export\s*\{/g, // export { ... }
     ];
 
-    // Check for CommonJS patterns
     const cjsPatterns = [
       /require\s*\(/g, // require(...)
       /module\.exports/g, // module.exports
@@ -216,6 +319,12 @@ export class LocalSandboxExecutor {
 
     const hasEsmSyntax = esmPatterns.some((pattern) => pattern.test(executeCode));
     const hasCjsSyntax = cjsPatterns.some((pattern) => pattern.test(executeCode));
+
+    // If TypeScript runtime is configured, prefer ESM (modern TypeScript uses ESM)
+    if (configuredRuntime === 'typescript') {
+      // Only use CJS if explicit CJS patterns are found
+      return hasCjsSyntax ? 'cjs' : 'esm';
+    }
 
     // If both are present, prefer ESM
     if (hasEsmSyntax && hasCjsSyntax) {
@@ -241,6 +350,31 @@ export class LocalSandboxExecutor {
   }
 
   async executeFunctionTool(toolId: string, args: any, config: FunctionToolConfig): Promise<any> {
+    const vcpus = config.sandboxConfig?.vcpus || 1;
+    const semaphore = this.getSemaphore(vcpus);
+
+    logger.debug(
+      {
+        toolId,
+        vcpus,
+        availablePermits: semaphore.getAvailablePermits(),
+        queueLength: semaphore.getQueueLength(),
+        sandboxConfig: config.sandboxConfig,
+        poolSize: Object.keys(this.sandboxPool).length,
+      },
+      'Acquiring execution slot for function tool'
+    );
+
+    return semaphore.acquire(async () => {
+      return this.executeInSandbox_Internal(toolId, args, config);
+    });
+  }
+
+  private async executeInSandbox_Internal(
+    toolId: string,
+    args: any,
+    config: FunctionToolConfig
+  ): Promise<any> {
     const dependencies = config.dependencies || {};
     const dependencyHash = this.generateDependencyHash(dependencies);
 
@@ -249,6 +383,7 @@ export class LocalSandboxExecutor {
         toolId,
         dependencies,
         dependencyHash,
+        sandboxConfig: config.sandboxConfig,
         poolSize: Object.keys(this.sandboxPool).length,
       },
       'Executing function tool'
@@ -274,8 +409,8 @@ export class LocalSandboxExecutor {
         'Creating new sandbox'
       );
 
-      // Detect module type from executeCode
-      const moduleType = this.detectModuleType(config.executeCode);
+      // Detect module type from executeCode, considering runtime config
+      const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
       // Create package.json with dependencies
       const packageJson = {
@@ -300,8 +435,8 @@ export class LocalSandboxExecutor {
     }
 
     try {
-      // Detect module type from executeCode
-      const moduleType = this.detectModuleType(config.executeCode);
+      // Detect module type from executeCode, considering runtime config
+      const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
       // Create the function execution file with appropriate extension
       const executionCode = this.wrapFunctionCode(config.executeCode, args);
@@ -312,7 +447,8 @@ export class LocalSandboxExecutor {
       const result = await this.executeInSandbox(
         sandboxDir,
         config.sandboxConfig?.timeout || 30000,
-        moduleType
+        moduleType,
+        config.sandboxConfig
       );
 
       return result;
@@ -364,7 +500,8 @@ export class LocalSandboxExecutor {
   private async executeInSandbox(
     sandboxDir: string,
     timeout: number,
-    moduleType: 'cjs' | 'esm'
+    moduleType: 'cjs' | 'esm',
+    _sandboxConfig?: FunctionToolConfig['sandboxConfig']
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
@@ -383,7 +520,8 @@ export class LocalSandboxExecutor {
       let stdout = '';
       let stderr = '';
       let outputSize = 0;
-      const MAX_OUTPUT_SIZE = 1024 * 1024; // 1MB limit
+      // Use configurable output limit, default to 1MB
+      const MAX_OUTPUT_SIZE = 1024 * 1024; // Could be made configurable in future
 
       node.stdout?.on('data', (data: Buffer) => {
         const dataStr = data.toString();
@@ -416,14 +554,15 @@ export class LocalSandboxExecutor {
         logger.warn({ sandboxDir, timeout }, 'Function execution timed out, killing process');
         node.kill('SIGTERM');
 
-        // Force kill after 5 seconds if SIGTERM doesn't work
+        // Force kill timeout - use configured timeout/10 or default to 5 seconds
+        const forceKillTimeout = Math.min(Math.max(timeout / 10, 2000), 5000);
         setTimeout(() => {
           try {
             node.kill('SIGKILL');
           } catch {
             // Process might already be dead
           }
-        }, 5000);
+        }, forceKillTimeout);
 
         reject(new Error(`Function execution timed out after ${timeout}ms`));
       }, timeout);
@@ -466,13 +605,26 @@ export class LocalSandboxExecutor {
 const execute = ${executeCode};
 const args = ${JSON.stringify(args)};
 
-execute(args)
-  .then(result => {
+try {
+  const result = execute(args);
+  
+  // Handle both sync and async functions
+  if (result && typeof result.then === 'function') {
+    // Async function - result is a Promise
+    result
+      .then(result => {
+        console.log(JSON.stringify({ success: true, result }));
+      })
+      .catch(error => {
+        console.log(JSON.stringify({ success: false, error: error.message }));
+      });
+  } else {
+    // Sync function - result is immediate
     console.log(JSON.stringify({ success: true, result }));
-  })
-  .catch(error => {
-    console.log(JSON.stringify({ success: false, error: error.message }));
-  });
+  }
+} catch (error) {
+  console.log(JSON.stringify({ success: false, error: error.message }));
+}
 `;
   }
 }

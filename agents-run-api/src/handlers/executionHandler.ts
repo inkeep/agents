@@ -3,7 +3,7 @@ import {
   createTask,
   type ExecutionContext,
   getActiveAgentForConversation,
-  getFullGraph,
+  getFullAgent,
   getTask,
   type SendMessageResponse,
   setSpanWithError,
@@ -12,10 +12,11 @@ import {
 import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
-import { executeTransfer, isTransferResponse } from '../a2a/transfer.js';
+import { executeTransfer } from '../a2a/transfer.js';
+import { isTransferTask, extractTransferData } from '../a2a/types.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
-import { graphSessionManager } from '../services/GraphSession.js';
+import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { MCPStreamHelper } from '../utils/stream-helpers.js';
@@ -69,35 +70,37 @@ export class ExecutionHandler {
       emitOperations,
     } = params;
 
-    const { tenantId, projectId, graphId, apiKey, baseUrl } = executionContext;
+    const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
 
     // Register streamHelper so agents can access it via requestId
     registerStreamHelper(requestId, sseHelper);
 
-    // Create GraphSession for this entire message execution using requestId as the session ID
+    // Create AgentSession for this entire message execution using requestId as the session ID
 
-    graphSessionManager.createSession(requestId, graphId, tenantId, projectId, conversationId);
+    agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
 
     // Enable emit operations if requested
     if (emitOperations) {
-      graphSessionManager.enableEmitOperations(requestId);
+      agentSessionManager.enableEmitOperations(requestId);
     }
 
     logger.info(
-      { sessionId: requestId, graphId, conversationId, emitOperations },
-      'Created GraphSession for message execution'
+      { sessionId: requestId, agentId, conversationId, emitOperations },
+      'Created AgentSession for message execution'
     );
 
     // Initialize status updates if configured
-    let graphConfig: any = null;
+    let agentConfig: any = null;
     try {
-      graphConfig = await getFullGraph(dbClient)({ scopes: { tenantId, projectId, graphId } });
+      agentConfig = await getFullAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+      });
 
-      if (graphConfig?.statusUpdates && graphConfig.statusUpdates.enabled !== false) {
-        graphSessionManager.initializeStatusUpdates(
+      if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
+        agentSessionManager.initializeStatusUpdates(
           requestId,
-          graphConfig.statusUpdates,
-          graphConfig.models?.summarizer
+          agentConfig.statusUpdates,
+          agentConfig.models?.summarizer
         );
       }
     } catch (error) {
@@ -114,11 +117,11 @@ export class ExecutionHandler {
     let iterations = 0;
     let errorCount = 0;
     let task: any = null;
-    let fromAgentId: string | undefined; // Track the agent that executed a transfer
+    let fromSubAgentId: string | undefined; // Track the agent that executed a transfer
 
     try {
       // Send agent initializing and ready operations immediately to ensure UI rendering
-      await sseHelper.writeOperation(agentInitializingOp(requestId, graphId));
+      await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
 
       // Use atomic upsert pattern to handle race conditions properly
       const taskId = `task_${conversationId}-${requestId}`;
@@ -134,18 +137,18 @@ export class ExecutionHandler {
           id: taskId,
           tenantId,
           projectId,
-          graphId,
-          agentId: currentAgentId,
+          agentId,
+          subAgentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',
           metadata: {
             conversation_id: conversationId,
             message_id: requestId,
-            stream_request_id: requestId, // This also serves as the GraphSession ID
+            stream_request_id: requestId, // This also serves as the AgentSession ID
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            root_agent_id: initialAgentId,
-            agent_id: currentAgentId,
+            root_sub_agent_id: initialAgentId,
+            sub_agent_id: currentAgentId,
           },
         });
 
@@ -194,6 +197,7 @@ export class ExecutionHandler {
           timestamp: new Date().toISOString(),
           executionType: 'create_initial_task',
           conversationId,
+          agentId,
           requestId,
           currentAgentId,
           taskId: Array.isArray(task) ? task[0]?.id : task?.id,
@@ -206,8 +210,8 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      // Get transfer limit from graph configuration
-      const maxTransfers = graphConfig?.stopWhen?.transferCountIs ?? 10;
+      // Get transfer limit from agent configuration
+      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
 
       // Start execution loop
       while (iterations < maxTransfers) {
@@ -217,8 +221,8 @@ export class ExecutionHandler {
         // Iteration start (data operations removed)
 
         logger.info(
-          { iterations, currentAgentId, graphId, conversationId, fromAgentId },
-          `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromAgentId || 'none'}`
+          { iterations, currentAgentId, agentId, conversationId, fromSubAgentId },
+          `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
         );
 
         // Step 1: Determine which agent should handle the message
@@ -227,8 +231,8 @@ export class ExecutionHandler {
           conversationId,
         });
         logger.info({ activeAgent }, 'activeAgent');
-        if (activeAgent && activeAgent.activeAgentId !== currentAgentId) {
-          currentAgentId = activeAgent.activeAgentId;
+        if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
+          currentAgentId = activeAgent.activeSubAgentId;
           logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
 
           // Stream agent selection update
@@ -242,8 +246,8 @@ export class ExecutionHandler {
             Authorization: `Bearer ${apiKey}`,
             'x-inkeep-tenant-id': tenantId,
             'x-inkeep-project-id': projectId,
-            'x-inkeep-graph-id': graphId,
-            'x-inkeep-agent-id': currentAgentId,
+            'x-inkeep-agent-id': agentId,
+            'x-inkeep-sub-agent-id': currentAgentId,
           },
         });
 
@@ -251,12 +255,12 @@ export class ExecutionHandler {
         // const agentCard = await a2aClient.getAgentCard();
         let messageResponse: SendMessageResponse | null = null;
 
-        // Build message metadata - include fromAgentId only if this is a transfer
+        // Build message metadata - include fromSubAgentId only if this is a transfer
         const messageMetadata: any = {
-          stream_request_id: requestId, // This also serves as the GraphSession ID
+          stream_request_id: requestId, // This also serves as the AgentSession ID
         };
-        if (fromAgentId) {
-          messageMetadata.fromAgentId = fromAgentId;
+        if (fromSubAgentId) {
+          messageMetadata.fromSubAgentId = fromSubAgentId;
         }
 
         messageResponse = await a2aClient.sendMessage({
@@ -308,7 +312,7 @@ export class ExecutionHandler {
               });
             }
 
-            graphSessionManager.endSession(requestId);
+            agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -317,41 +321,54 @@ export class ExecutionHandler {
         }
 
         // Step 4: Handle transfer messages
-        if (isTransferResponse(messageResponse.result)) {
-          const transferResponse = messageResponse.result;
+        if (isTransferTask(messageResponse.result)) {
+          const transferData = extractTransferData(messageResponse.result);
 
-          // Extract targetAgentId from transfer response artifacts
-          const targetAgentId = (transferResponse as any).artifacts?.[0]?.parts?.[0]?.data
-            ?.targetAgentId;
+          if (!transferData) {
+            logger.error(
+              { result: messageResponse.result },
+              'Transfer detected but no transfer data found'
+            );
+            continue;
+          }
 
-          const transferReason = (transferResponse as any).artifacts?.[0]?.parts?.[1]?.text;
+          const { targetSubAgentId, fromSubAgentId: transferFromAgent } = transferData;
 
-          // Transfer operation (data operations removed)
+          // Extract transfer reason from second part if available (optional text explanation)
+          const firstArtifact = messageResponse.result.artifacts[0];
+          const transferReason =
+            firstArtifact?.parts[1]?.kind === 'text'
+              ? firstArtifact.parts[1].text
+              : 'Transfer initiated';
 
-          logger.info({ targetAgentId, transferReason }, 'transfer response');
+          logger.info(
+            { targetSubAgentId, transferReason, transferFromAgent },
+            'Transfer response'
+          );
 
           // Update the current message to the transfer reason so as not to duplicate the user message on every transfer
-          // including the xml because the fromAgent does not always directly adress the toAgent in its text
+          // including the xml because the fromSubAgent does not always directly adress the toSubAgent in its text
           currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
 
-          const { success, targetAgentId: newAgentId } = await executeTransfer({
+          const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,
             tenantId,
             threadId: conversationId,
-            targetAgentId,
+            targetSubAgentId,
           });
+
           if (success) {
-            // Set fromAgentId to track which agent executed this transfer
-            fromAgentId = currentAgentId;
+            // Set fromSubAgentId to track which agent executed this transfer
+            fromSubAgentId = currentAgentId;
             currentAgentId = newAgentId;
 
             logger.info(
               {
-                transferFrom: fromAgentId,
+                transferFrom: fromSubAgentId,
                 transferTo: currentAgentId,
                 reason: transferReason,
               },
-              'Transfer executed, tracking fromAgentId for next iteration'
+              'Transfer executed, tracking fromSubAgentId for next iteration'
             );
           }
 
@@ -359,16 +376,34 @@ export class ExecutionHandler {
           continue;
         }
 
-        const responseParts =
-          (messageResponse.result as any).artifacts?.flatMap(
-            (artifact: any) => artifact.parts || []
-          ) || [];
+        // Use streamed content for conversation history (what was actually sent to the user)
+        let responseParts = [];
+
+        // Check if we have streamed content from the IncrementalStreamParser
+        if ((messageResponse.result as any).streamedContent?.parts) {
+          responseParts = (messageResponse.result as any).streamedContent.parts;
+          logger.info(
+            { partsCount: responseParts.length },
+            'Using streamed content for conversation history'
+          );
+        } else {
+          // Fallback to artifacts if no streamed content available
+          responseParts =
+            (messageResponse.result as any).artifacts?.flatMap(
+              (artifact: any) => artifact.parts || []
+            ) || [];
+          logger.info(
+            { partsCount: responseParts.length },
+            'Using artifacts for conversation history (fallback)'
+          );
+        }
+
         if (responseParts && responseParts.length > 0) {
-          // Log graph session data after completion response
-          const graphSessionData = graphSessionManager.getSession(requestId);
-          if (graphSessionData) {
-            const sessionSummary = graphSessionData.getSummary();
-            logger.info(sessionSummary, 'GraphSession data after completion');
+          // Log agent session data after completion response
+          const agentSessionData = agentSessionManager.getSession(requestId);
+          if (agentSessionData) {
+            const sessionSummary = agentSessionData.getSummary();
+            logger.info(sessionSummary, 'AgentSession data after completion');
           }
 
           // Process response parts for database storage and A2A protocol
@@ -410,8 +445,7 @@ export class ExecutionHandler {
                 },
                 visibility: 'user-facing',
                 messageType: 'chat',
-                agentId: currentAgentId,
-                fromAgentId: currentAgentId,
+                fromSubAgentId: currentAgentId,
                 taskId: task.id,
               });
 
@@ -445,9 +479,9 @@ export class ExecutionHandler {
               // Complete the stream to flush any queued operations
               await sseHelper.complete();
 
-              // End the GraphSession and clean up resources
-              logger.info({}, 'Ending GraphSession and cleaning up');
-              graphSessionManager.endSession(requestId);
+              // End the AgentSession and clean up resources
+              logger.info({}, 'Ending AgentSession and cleaning up');
+              agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -499,7 +533,7 @@ export class ExecutionHandler {
             });
           }
 
-          graphSessionManager.endSession(requestId);
+          agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -526,8 +560,8 @@ export class ExecutionHandler {
           },
         });
       }
-      // Clean up GraphSession and streamHelper on error
-      graphSessionManager.endSession(requestId);
+      // Clean up AgentSession and streamHelper on error
+      agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -554,8 +588,8 @@ export class ExecutionHandler {
           },
         });
       }
-      // Clean up GraphSession and streamHelper on exception
-      graphSessionManager.endSession(requestId);
+      // Clean up AgentSession and streamHelper on exception
+      agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

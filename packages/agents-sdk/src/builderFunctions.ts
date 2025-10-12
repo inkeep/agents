@@ -4,7 +4,7 @@ import {
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
-import { Agent } from './agent';
+import { SubAgent } from './subAgent';
 import { ArtifactComponent } from './artifact-component';
 import type {
   AgentMcpConfig,
@@ -14,26 +14,26 @@ import type {
 } from './builders';
 import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
-import { AgentGraph } from './graph';
+import { Agent } from './agent';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
 import { Tool } from './tool';
-import type { AgentConfig, FunctionToolConfig, GraphConfig } from './types';
+import type { FunctionToolConfig, AgentConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
- * Helper function to create graphs - OpenAI style
+ * Helper function to create agent - OpenAI style
  */
 
-export function agentGraph(config: GraphConfig): AgentGraph {
-  return new AgentGraph(config);
+export function agent(config: AgentConfig): Agent {
+  return new Agent(config);
 }
 
 /**
  * Helper function to create projects - OpenAI style
  *
- * Projects are the top-level organizational unit that contains graphs, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to graphs and agents.
+ * Projects are the top-level organizational unit that contains agent, agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to agent and agents.
  *
  * @param config - Project configuration
  * @returns A new Project instance
@@ -45,18 +45,18 @@ export function agentGraph(config: GraphConfig): AgentGraph {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4o-mini' },
- *     structuredOutput: { model: 'gpt-4o' }
+ *     base: { model: 'gpt-4.1-mini' },
+ *     structuredOutput: { model: 'gpt-4.1' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,
  *     stepCountIs: 50
  *   },
- *   graphs: () => [
- *     agentGraph({
- *       id: 'support-graph',
- *       name: 'Support Graph',
- *       // ... graph config
+ *   agent: () => [
+ *     agent({
+ *       id: 'support-agent',
+ *       name: 'Support Agent',
+ *       // ... agent config
  *     })
  *   ]
  * });
@@ -89,13 +89,13 @@ export function project(config: ProjectConfig): Project {
  * ```
  */
 
-export function agent(config: AgentConfig): Agent {
+export function subAgent(config: SubAgentConfig): SubAgent {
   if (!config.id) {
     throw new Error(
-      'Agent ID is required. Agents must have stable IDs for consistency across deployments.'
+      'Sub-Agent ID is required. Sub-Agents must have stable IDs for consistency across deployments.'
     );
   }
-  return new Agent(config);
+  return new SubAgent(config);
 } // ============================================================================
 // Credential Builders
 // ============================================================================

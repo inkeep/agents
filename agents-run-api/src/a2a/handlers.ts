@@ -92,7 +92,7 @@ async function handleMessageSend(
   try {
     const params = request.params as MessageSendParams;
     const executionContext = getRequestExecutionContext(c);
-    const { graphId } = executionContext;
+    const { agentId } = executionContext;
 
     // Convert to our internal task format
     const task: A2ATask = {
@@ -108,7 +108,7 @@ async function handleMessageSend(
         conversationId: params.message.contextId,
         metadata: {
           blocking: params.configuration?.blocking ?? false,
-          custom: { graph_id: graphId || '' },
+          custom: { agent_id: agentId || '' },
           // Pass through streaming metadata from the original message
           ...params.message.metadata,
         },
@@ -155,7 +155,7 @@ async function handleMessageSend(
         logger.warn(
           {
             taskId: task.id,
-            agentId: agent.agentId,
+            subAgentId: agent.subAgentId,
             originalMessage: params.message,
           },
           'Created fallback message content for empty delegation message'
@@ -177,7 +177,7 @@ async function handleMessageSend(
         taskContextId: task.context?.conversationId,
         metadataContextId: params.message.metadata?.conversationId,
         finalContextId: effectiveContextId,
-        agentId: agent.agentId,
+        subAgentId: agent.subAgentId,
       },
       'A2A contextId resolution for delegation'
     );
@@ -187,7 +187,7 @@ async function handleMessageSend(
       id: task.id,
       tenantId: agent.tenantId,
       projectId: agent.projectId,
-      graphId: graphId || '',
+      agentId: agentId || '',
       contextId: effectiveContextId,
       status: 'working',
       metadata: {
@@ -195,11 +195,11 @@ async function handleMessageSend(
         message_id: params.message.messageId || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        agent_id: agent.agentId,
-        graph_id: graphId || '',
+        sub_agent_id: agent.subAgentId,
+        agent_id: agentId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
-      agentId: agent.agentId,
+      subAgentId: agent.subAgentId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -208,7 +208,7 @@ async function handleMessageSend(
 
     // --- Store A2A message in database if this is agent-to-agent communication ---
     // TODO: we need to identify external agent requests through propoer auth headers
-    if (params.message.metadata?.fromAgentId || params.message.metadata?.fromExternalAgentId) {
+    if (params.message.metadata?.fromSubAgentId || params.message.metadata?.fromExternalAgentId) {
       const messageText = params.message.parts
         .filter((part) => part.kind === 'text' && 'text' in part && part.text)
         .map((part) => (part as any).text)
@@ -230,23 +230,23 @@ async function handleMessageSend(
         };
 
         // Set appropriate agent tracking fields
-        if (params.message.metadata?.fromAgentId) {
+        if (params.message.metadata?.fromSubAgentId) {
           // Internal agent communication
-          messageData.fromAgentId = params.message.metadata.fromAgentId;
-          messageData.toAgentId = agent.agentId;
+          messageData.fromSubAgentId = params.message.metadata.fromSubAgentId;
+          messageData.toSubAgentId = agent.subAgentId;
         } else if (params.message.metadata?.fromExternalAgentId) {
           // External agent communication
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
-          messageData.toAgentId = agent.agentId;
+          messageData.toSubAgentId = agent.subAgentId;
         }
 
         await createMessage(dbClient)(messageData);
 
         logger.info(
           {
-            fromAgentId: params.message.metadata.fromAgentId,
+            fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.agentId,
+            toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
             messageType: 'a2a-request',
             taskId: task.id,
@@ -257,9 +257,9 @@ async function handleMessageSend(
         logger.error(
           {
             error,
-            fromAgentId: params.message.metadata.fromAgentId,
+            fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
-            toAgentId: agent.agentId,
+            toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
           },
           'Failed to store A2A message in database'
@@ -280,8 +280,8 @@ async function handleMessageSend(
           message_id: params.message.messageId || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          agent_id: agent.agentId,
-          graph_id: graphId || '',
+          sub_agent_id: agent.subAgentId,
+          agent_id: agentId || '',
         },
       },
     });
@@ -327,7 +327,8 @@ async function handleMessageSend(
                     kind: 'data',
                     data: {
                       type: 'transfer',
-                      targetAgentId: transferPart.data.target,
+                      targetSubAgentId: transferPart.data.targetSubAgentId,
+                      fromSubAgentId: transferPart.data.fromSubAgentId,
                     },
                   },
                   {
@@ -408,7 +409,7 @@ async function handleMessageStream(
   try {
     const params = request.params as MessageSendParams;
     const executionContext = getRequestExecutionContext(c);
-    const { graphId } = executionContext;
+    const { agentId } = executionContext;
 
     // Check if agent supports streaming
     if (!agent.agentCard.capabilities.streaming) {
@@ -436,7 +437,7 @@ async function handleMessageStream(
         conversationId: params.message.contextId,
         metadata: {
           blocking: false, // Streaming is always non-blocking
-          custom: { graph_id: graphId || '' },
+          custom: { agent_id: agentId || '' },
         },
       },
     };
@@ -495,7 +496,7 @@ async function handleMessageStream(
                 jsonrpc: '2.0',
                 result: {
                   type: 'transfer',
-                  target: transferPart.data.target,
+                  target: transferPart.data.targetSubAgentId,
                   task_id: task.id,
                   reason: transferPart.data.reason || 'Agent requested transfer',
                   original_message: transferPart.data.original_message,
@@ -703,7 +704,7 @@ async function handleGetStatus(
 ): Promise<Response> {
   return c.json({
     jsonrpc: '2.0',
-    result: { status: 'ready', agentId: agent.agentId },
+    result: { status: 'ready', subAgentId: agent.subAgentId },
     id: request.id,
   } satisfies JsonRpcResponse);
 }

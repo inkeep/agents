@@ -3,6 +3,7 @@ import type { DatabaseClient } from '../db/client';
 import { functions } from '../db/schema';
 import type { FunctionApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
+import { autoDetectDependencies } from '../utils/detectDependencies';
 
 /**
  * Create or update a function (project-scoped)
@@ -12,6 +13,12 @@ export const upsertFunction =
   async (params: { data: FunctionApiInsert; scopes: ProjectScopeConfig }): Promise<void> => {
     const { data, scopes } = params;
     const { tenantId, projectId } = scopes;
+
+    // Auto-detect dependencies if not provided
+    let dependencies = data.dependencies;
+    if (!dependencies || Object.keys(dependencies).length === 0) {
+      dependencies = autoDetectDependencies(data.executeCode);
+    }
 
     // Check if function exists
     const existingFunction = await db
@@ -33,7 +40,7 @@ export const upsertFunction =
         .set({
           inputSchema: data.inputSchema,
           executeCode: data.executeCode,
-          dependencies: data.dependencies,
+          dependencies: dependencies,
           updatedAt: new Date().toISOString(),
         })
         .where(
@@ -51,7 +58,7 @@ export const upsertFunction =
         id: data.id,
         inputSchema: data.inputSchema,
         executeCode: data.executeCode,
-        dependencies: data.dependencies,
+        dependencies: dependencies,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });

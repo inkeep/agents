@@ -5,7 +5,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock the app import with credential stores in context
-vi.mock('../../../index.js', async (importOriginal) => {
+vi.mock('../../../index', async (importOriginal) => {
   const { createManagementHono } = (await importOriginal()) as any;
 
   const mockCredentialStore = {
@@ -102,7 +102,6 @@ declare global {
 }
 
 // Now import the app after mocking
-import app from '../../../index';
 
 describe('Credential CRUD Routes - Integration Tests', () => {
   const projectId = 'default';

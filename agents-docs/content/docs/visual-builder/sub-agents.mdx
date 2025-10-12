@@ -1,0 +1,95 @@
+---
+title: Agents
+description: Agents define the relationships between sub-agents and tools.
+icon: "LuSpline"
+---
+
+## Creating your first agent
+
+<Video src="/videos/create-an-agent.mp4" />
+
+1. Go to the Agents tab in the left sidebar. Then select "Create Agent".
+
+2. After you create a new agent, it will start with a default sub-agent. Add prompt to the sub-agent, which is a mandatory field.
+
+<Note>
+  To delete a sub-agent, click on the sub-agent box and then hit the backspace key.
+</Note>
+
+The following are configurable options for the sub-agent through the Visual Builder:
+
+| Parameter             | Type   | Required | Description                                                                                                                  |
+| --------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `name`                | string | Yes      | Human-readable name for the sub-agent                                                                                        |
+| `description`         | string | No       | Brief description of the sub-agent's purpose and capabilities                                                                |
+| `prompt`              | string | Yes      | Detailed behavior guidelines and system prompt for the sub-agent                                                             |
+| `model`               | string | No       | AI model identifier (e.g., "anthropic/claude-sonnet-4-20250514") Choose a model that you prefer                              |
+| `providerOptions`     | object | No       | Model-specific configuration options (temperature, maxTokens, etc.)                                                          |
+| `Data components`     | object | No       | Data components that the sub-agent can use. See [Data Components](/visual-builder/data-components) for details               |
+| `Artifact components` | array  | No       | Artifact components that the sub-agent can use. See [Artifact Components](/visual-builder/artifact-components) for details   |
+
+### Agent Prompt
+
+You can configure an agent-level prompt that gets automatically added to all sub-agents in your agent. This provides consistent context and behavior guidelines across your entire sub-agent network.
+
+**To add an agent prompt:**
+
+1. Click on the agent settings/configuration area
+2. Add your agent prompt in the "Agent Prompt" field
+3. This prompt will be injected into each sub-agent's system prompt
+
+**Example uses:**
+
+- Company-wide policies and tone guidelines
+- Domain-specific context that applies to all sub-agents
+- Consistent behavior rules across the sub-agent network
+
+## Trying the agent
+
+To try the agent, first save the agent by clicking the "Save changes" button in the top right corner.
+
+Then, click the "Try it" button in the top right corner and type into the chat input.
+
+<Video src="/videos/try-an-agent.mp4" />
+
+## Adding tools
+
+Tools are used to perform actions in the agent. You can create MCP tools in the Visual Builder, see the [MCP Servers](/visual-builder/mcp-servers) page for more information.
+
+Once you have a tool, add the tool to the agent by dragging and dropping the MCP tool box into the agent.
+
+To connect the tool to the sub-agent, click on connector at the top of the MCP tool box, and then drag the connector to the sub-agent. A line will appear, indicating that the tool is connected to the sub-agent.
+
+<Video src="/videos/add-tool-vb.mp4" />
+
+<Note>
+  To delete a tool, click on the tool box and then hit the backspace key.
+</Note>
+
+## Adding sub-agents
+
+Sub-agents are specialized sub-agents that handle specific tasks within your main sub-agent's workflow. They allow you to delegate focused responsibilities to separate sub-agents with their own prompt and capabilities.
+
+To add a sub-agent:
+
+1. Drag and drop a sub-agent box from the toolbar into the agent
+2. Configure the sub-agent with its own prompt and settings
+3. Connect it to the parent sub-agent by clicking the connector at the top of the sub-agent box and dragging it to the main sub-agent
+
+When connected, a line will appear showing the relationship between the sub-agents.
+
+<Video src="/videos/add-sub-agent-vb.mp4" />
+
+## Adding data components
+
+Data components are used to render rich UI components directly in the chat. Before adding a data component you will first need to create a data component, see the [Data Components](/visual-builder/data-components) page for more information.
+
+Then, add the data component to your sub-agent by clicking on the sub-agent box, and then selecting which data components you want to add.
+
+## Adding artifact components
+
+To create artifact components, see the [Artifact Components](/visual-builder/artifact-components) page for details.
+
+Add the artifact component to your sub-agent by clicking on the sub-agent box in the agent, then selecting which artifact components you want to add.
+
+When the sub-agent uses tools or delegates to other sub-agents, artifacts will be automatically created according to your defined schema, capturing the source and content of each interaction.

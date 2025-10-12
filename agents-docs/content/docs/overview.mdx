@@ -4,32 +4,38 @@ sidebarTitle: Overview
 icon: "LuBookOpen"
 ---
 
-With Inkeep, you can create and manage Agents with a **No-Code Visual Builder** or a **TypeScript Developer SDK**. With **full 2-way sync**, both technical and non-technical teams can create and edit Agents collaboratively in either format.
+Inkeep is a platform to build and manage AI Agents with a **No-Code Visual Builder** or **TypeScript Agents SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform.
 
-Inkeep Agents are often rolled out as:
-- A **Customer-facing Agent** that you embed as a support assistant in your help center, copilot in your app, or chatbot on your marketing site.
-- An **Internal Agent** accessible from Slack, Zendesk, Claude, ChatGPT, Cursor, and other apps your teams uses.
-- A **Workflow Agent** used to automate repetitive tasks at scale, like updating docs, creating blog posts, summarizing sales calls, and more.
+Inkeep Agents connect to your knowledge sources to answer questions and use tools to perform tasks across your apps and APIs.
 
-Agents are flexible and customizable - they can take on the role you need them with access to tools that integrate with your systems so they can take action.
+## Use Cases
+
+With Inkeep you can build **real-time chat assistants** like:
+- a **customer experience agent** for support, docs, or in-app copilots
+- an **internal copilot** to do work for your support, sales, marketing, ops, and other teams
+
+Agents can also be used for **agentic workflow automation** like:
+- Creating and updating knowledge bases, docs, and blogs
+- Updating CRMs, filling out RFPs, etc.
+- Automating back-office tasks for operations teams
 
 ## Inkeep Open Source
 
 Inkeep **Open Source** (this docs site) includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture (Teams of Agents)
+- Multi-Agent Architecture (teams of Sub-Agents working together)
 - MCP Tools with Credential Management
-- A Chat UI Component Library
-- Chat with Agents in MCP, A2A, or Vercel SDK formats
+- A UI Component Library for dynamic AI chat experiences
+- Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via Traces UI & OpenTelemetry
 
-For cloud hosting, managed data connectors & RAG, integration with Slack and support platforms, and more, learn about [Inkeep Cloud](https://inkeep.com/get-started).
+For unified search (managed RAG) and integration with Slack and support platforms, learn about [Inkeep Cloud](https://inkeep.com/get-started).
 
 ## Two ways to build Agents
 
 ### No-Code Visual Builder
 
-A no-code interface designed to let both technical and non-technical teams create and manage agents.
+A no-code interface designed to let both technical and non-technical teams create and manage Agents.
 
 <img
   src="/gifs/visual-builder.gif"
@@ -38,39 +44,38 @@ A no-code interface designed to let both technical and non-technical teams creat
   style={{ borderRadius: "10px" }}
 />
 
-### TypeScript Agents SDK
+### TypeScript SDK
 
-A code-first approach for building and managing agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
+A code-first approach for building and managing teams of Agents. Build with the tools your engineering team expects.
 
    ```typescript
-   import { agent, agentGraph } from "@inkeep/agents-sdk";
+   import { subAgent, agent } from "@inkeep/agents-sdk";
 
-   const helloAgent = agent({
+   const helloAgent = subAgent({
      id: "hello-agent",
      name: "Hello Agent",
-     description: "A basic agent",
-     prompt: 'You are a basic agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+     description: "Says hello",
+     prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
-   export const graph = agentGraph({
-     id: "basic-graph",
-     name: "Basic Graph Example",
-     description: "A basic graph",
-     defaultAgent: helloAgent,
-     agents: () => [helloAgent],
+   export const basicAgent = agent({
+     id: "basic-agent",
+     name: "Basic Agent Example",
+     description: "A basic agent",
+     defaultSubAgent: helloAgent,
+     subAgents: () => [helloAgent],
    });
    ```
 
-The **Visual Builder and Agents SDK are fully interoperable**: your technical and non-technical teams can edit and manage agents in either format and switch or collaborate with others at any time.
+The **Visual Builder and Agents TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Sub Agents in either format and switch or collaborate with others at any time.
 
 ## Next Steps
 
 <Cards>
   <Card title="Follow the Quick Start" icon="LuZap" href="/quick-start">
-    Get started with the visual builder and SDK in under 5 minutes.
+    Get started with the Visual Builder and SDK in under 5 minutes.
   </Card>
   <Card title="Conceptual Overview" icon="LuLightbulb" href="/concepts">
     Learn about the key concepts of building Agents with Inkeep.
   </Card>
 </Cards>
-

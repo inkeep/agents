@@ -2,11 +2,11 @@ import { getLogger } from '@inkeep/agents-core';
 import type {
   AgentInterface,
   GenerateOptions,
-  GraphInterface,
   Message,
   MessageInput,
   RunResult,
   StreamResponse,
+  SubAgentInterface,
   ToolCall,
 } from './types';
 import { MaxTurnsExceededError } from './types';
@@ -15,12 +15,12 @@ const logger = getLogger('runner');
 
 export class Runner {
   /**
-   * Run a graph until completion, handling transfers and tool calls
+   * Run an agent until completion, handling transfers and tool calls
    * Similar to OpenAI's Runner.run() pattern
-   * NOTE: This now requires a graph instead of an agent
+   * NOTE: This now requires an agent instead of an agent
    */
   static async run(
-    graph: GraphInterface,
+    agent: AgentInterface,
     messages: MessageInput,
     options?: GenerateOptions
   ): Promise<RunResult> {
@@ -32,48 +32,48 @@ export class Runner {
 
     logger.info(
       {
-        graphId: graph.getId(),
-        defaultAgent: graph.getDefaultAgent()?.getName(),
+        agentId: agent.getId(),
+        defaultSubAgent: agent.getDefaultSubAgent()?.getName(),
         maxTurns,
         initialMessageCount: messageHistory.length,
       },
-      'Starting graph run'
+      'Starting agent run'
     );
 
     while (turnCount < maxTurns) {
       logger.debug(
         {
-          graphId: graph.getId(),
+          agentId: agent.getId(),
           turnCount,
           messageHistoryLength: messageHistory.length,
         },
         'Starting turn'
       );
 
-      // Use graph.generate to handle agent orchestration
-      const response = await graph.generate(messageHistory, options);
+      // Use agent.generate to handle agent orchestration
+      const response = await agent.generate(messageHistory, options);
       turnCount++;
 
-      // Since graph.generate returns a string (the final response),
+      // Since agent.generate returns a string (the final response),
       // we need to treat this as a completed generation
       logger.info(
         {
-          graphId: graph.getId(),
+          agentId: agent.getId(),
           turnCount,
           responseLength: response.length,
         },
-        'Graph generation completed'
+        'Agent generation completed'
       );
 
       // Return the result wrapped in RunResult format
       return {
         finalOutput: response,
-        agent: graph.getDefaultAgent() || ({} as AgentInterface),
+        agent: agent.getDefaultSubAgent() || ({} as SubAgentInterface),
         turnCount,
         usage: { inputTokens: 0, outputTokens: 0 },
         metadata: {
           toolCalls: allToolCalls,
-          transfers: [], // Graph handles transfers internally
+          transfers: [], // Agent handles transfers internally
         },
       };
     }
@@ -81,7 +81,7 @@ export class Runner {
     // Max turns exceeded
     logger.error(
       {
-        graphId: graph.getId(),
+        agentId: agent.getId(),
         maxTurns,
         finalTurnCount: turnCount,
       },
@@ -92,56 +92,56 @@ export class Runner {
   }
 
   /**
-   * Stream a graph's response
+   * Stream an agent's response
    */
   static async stream(
-    graph: GraphInterface,
+    agent: AgentInterface,
     messages: MessageInput,
     options?: GenerateOptions
   ): Promise<StreamResponse> {
     logger.info(
       {
-        graphId: graph.getId(),
-        defaultAgent: graph.getDefaultAgent()?.getName(),
+        agentId: agent.getId(),
+        defaultSubAgent: agent.getDefaultSubAgent()?.getName(),
       },
-      'Starting graph stream'
+      'Starting agent stream'
     );
 
-    // Delegate to graph's stream method
-    return graph.stream(messages, options);
+    // Delegate to agent's stream method
+    return agent.stream(messages, options);
   }
 
   /**
-   * Execute multiple graphs in parallel and return the first successful result
+   * Execute multiple agent in parallel and return the first successful result
    */
-  static async raceGraphs(
-    graphs: GraphInterface[],
+  static async raceAgents(
+    agent: AgentInterface[],
     messages: MessageInput,
     options?: GenerateOptions
   ): Promise<RunResult> {
-    if (graphs.length === 0) {
-      throw new Error('No graphs provided for race');
+    if (agent.length === 0) {
+      throw new Error('No agent provided for race');
     }
 
     logger.info(
       {
-        graphCount: graphs.length,
-        graphIds: graphs.map((g) => g.getId()),
+        agentCount: agent.length,
+        agentIds: agent.map((g) => g.getId()),
       },
-      'Starting graph race'
+      'Starting agent race'
     );
 
-    const promises = graphs.map(async (graph, index) => {
+    const promises = agent.map(async (agent, index) => {
       try {
-        const result = await Runner.run(graph, messages, options);
+        const result = await Runner.run(agent, messages, options);
         return { ...result, raceIndex: index };
       } catch (error) {
         logger.error(
           {
-            graphId: graph.getId(),
+            agentId: agent.getId(),
             error: error instanceof Error ? error.message : 'Unknown error',
           },
-          'Graph failed in race'
+          'Agent failed in race'
         );
         throw error;
       }
@@ -151,10 +151,10 @@ export class Runner {
 
     logger.info(
       {
-        winningGraphId: (result as any).graphId || 'unknown',
+        winningAgentId: (result as any).agentId || 'unknown',
         raceIndex: (result as any).raceIndex,
       },
-      'Graph race completed'
+      'Agent race completed'
     );
 
     return result;
@@ -174,38 +174,38 @@ export class Runner {
   }
 
   /**
-   * Validate graph configuration before running
+   * Validate agent configuration before running
    */
-  static validateGraph(graph: GraphInterface): {
+  static validateAgent(agent: AgentInterface): {
     valid: boolean;
     errors: string[];
   } {
     const errors: string[] = [];
 
-    if (!graph.getId()) {
-      errors.push('Graph ID is required');
+    if (!agent.getId()) {
+      errors.push('Agent ID is required');
     }
 
-    const defaultAgent = graph.getDefaultAgent();
-    if (!defaultAgent) {
+    const defaultSubAgent = agent.getDefaultSubAgent();
+    if (!defaultSubAgent) {
       errors.push('Default agent is required');
     } else {
-      if (!defaultAgent.getName()) {
+      if (!defaultSubAgent.getName()) {
         errors.push('Default agent name is required');
       }
-      if (!defaultAgent.getInstructions()) {
+      if (!defaultSubAgent.getInstructions()) {
         errors.push('Default agent instructions are required');
       }
     }
 
-    // Validate all agents in the graph
-    const agents = graph.getAgents();
-    if (agents.length === 0) {
-      errors.push('Graph must contain at least one agent');
+    // Validate all agents in the agent
+    const subAgents = agent.getSubAgents();
+    if (subAgents.length === 0) {
+      errors.push('Agent must contain at least one subagent');
     }
 
-    for (const agent of agents) {
-      if (!agent.getName()) {
+    for (const subAgent of subAgents) {
+      if (!subAgent.getName()) {
         errors.push(`Agent missing name`);
       }
     }
@@ -217,27 +217,27 @@ export class Runner {
   }
 
   /**
-   * Get execution statistics for a graph
+   * Get execution statistics for an agent
    */
   static async getExecutionStats(
-    graph: GraphInterface,
+    agent: AgentInterface,
     messages: MessageInput,
     options?: GenerateOptions
   ): Promise<{
     estimatedTurns: number;
     estimatedTokens: number;
-    agentCount: number;
-    defaultAgent: string | undefined;
+    subAgentCount: number;
+    defaultSubAgent: string | undefined;
   }> {
-    const agents = graph.getAgents();
-    const defaultAgent = graph.getDefaultAgent();
+    const subAgents = agent.getSubAgents();
+    const defaultSubAgent = agent.getDefaultSubAgent();
     const messageCount = Array.isArray(messages) ? messages.length : 1;
 
     return {
       estimatedTurns: Math.min(Math.max(messageCount, 1), options?.maxTurns || 10),
       estimatedTokens: messageCount * 100, // Rough estimate
-      agentCount: agents.length,
-      defaultAgent: defaultAgent?.getName(),
+      subAgentCount: subAgents.length,
+      defaultSubAgent: defaultSubAgent?.getName(),
     };
   }
 }
@@ -245,4 +245,4 @@ export class Runner {
 // Export convenience functions that match OpenAI's pattern
 export const run = Runner.run.bind(Runner);
 export const stream = Runner.stream.bind(Runner);
-export const raceGraphs = Runner.raceGraphs.bind(Runner);
+export const raceAgents = Runner.raceAgents.bind(Runner);

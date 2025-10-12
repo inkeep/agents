@@ -35,7 +35,7 @@ All data access functions follow a consistent functional pattern with dependency
 export const getAgentById = (db: DatabaseClient) => async (params: {
   tenantId: string;
   projectId: string;
-  agentId: string;
+  subAgentId: string;
 }) => {
   // Implementation
 };
@@ -76,7 +76,7 @@ const getAgent = getAgentById(db);
 const agent = await getAgent({
   tenantId: 'tenant-1',
   projectId: 'project-1',
-  agentId: 'agent-1'
+  subAgentId: 'agent-1'
 });
 ```
 
@@ -245,10 +245,10 @@ Define any relationships with existing tables:
 
 ```typescript
 export const workflowRelations = relations(workflows, ({ one, many }) => ({
-  // Example: A workflow belongs to an agent graph
-  agentGraph: one(agentGraphs, {
-    fields: [workflows.agentGraphId],
-    references: [agentGraphs.id],
+  // Example: A workflow belongs to an agent
+  agent: one(agents, {
+    fields: [workflows.agentId],
+    references: [agents.id],
   }),
   // Example: A workflow can have many tasks
   tasks: many(tasks),

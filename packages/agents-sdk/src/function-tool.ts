@@ -26,7 +26,15 @@ export class FunctionTool implements FunctionToolInterface {
     if (!config.dependencies) {
       const executeCode =
         typeof config.execute === 'string' ? config.execute : config.execute.toString();
-      this.config.dependencies = getFunctionToolDeps(config.name, executeCode);
+      ``;
+      const deps = getFunctionToolDeps(config.name, executeCode);
+      for (const dep in deps) {
+        if (deps[dep] === false) {
+          delete deps[dep];
+          throw new Error(`Dependency \x1b[1;32m${dep}\x1b[0m used in function tool \x1b[1;32m${config.name}\x1b[0m is neither installed nor in dependencies object.`);
+        }
+      }
+      this.config.dependencies = deps as Record<string, string>;
     }
 
     logger.info(
@@ -76,7 +84,6 @@ export class FunctionTool implements FunctionToolInterface {
     executeCode: string;
     dependencies: Record<string, string>;
   } {
-
     const executeCode =
       typeof this.config.execute === 'string'
         ? this.config.execute

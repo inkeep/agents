@@ -40,7 +40,7 @@ pnpm db:check        # Check database schema
 
 # Running examples (from the examples directory)
 # Note: Use the globally installed inkeep CLI, not npx
-inkeep push agent-configurations/graph.graph.ts
+inkeep push
 inkeep chat
 
 # Documentation development (from agents-docs directory)
@@ -63,9 +63,9 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 
 #### Database Schema (SQLite + Drizzle ORM)
 - **Shared Database**: Single SQLite database (`./local.db`) at monorepo root shared by both APIs
-- **agents**: Individual AI agents with instructions and capabilities
-- **agent_graphs**: Collections of agents with default entry points  
-- **agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships
+- **sub_agents**: Individual AI agents with instructions and capabilities
+- **agents**: Collections of agents with default entry points  
+- **sub_agent_relations**: Transfer (`complete control transfer`) and delegation (`task assignment with return`) relationships
 - **tasks**: Work units with hierarchical parent-child relationships via `task_relations`
 - **conversations**: User sessions with active agent tracking
 - **messages**: Unified format supporting both OpenAI Chat and A2A protocols
@@ -80,7 +80,7 @@ This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent
 **Task Communication:**
 ```typescript
 // A2A JSON-RPC methods
-POST /a2a/{agentId}
+POST /a2a/{subAgentId}
 {
     method: 'tasks/send' | 'tasks/get' | 'tasks/cancel'
     params: { message, taskId, etc. }
@@ -98,12 +98,14 @@ const agent = agent({
     tools: { search: searchTool }
 });
 
-export const graph = agentGraph({
-    defaultAgent: routerAgent,
-    agents: [routerAgent, qaAgent, orderAgent]
+export const myAgent = agent({
+    id: 'my-agent',
+    name: 'My Agent',
+    defaultSubAgent: routerAgent,
+    subAgents: () => [routerAgent, qaAgent, orderAgent]
     // No tenantId or apiUrl needed - CLI injects from inkeep.config.ts
 });
-// No graph.init() call - CLI handles initialization when pushing
+// No agent.init() call - CLI handles initialization when pushing
 ```
 
 ## Key Implementation Details
@@ -226,7 +228,7 @@ LOG_LEVEL=debug|info|warn|error
 
 ### When Working with Agents
 1. **Always call `graph.init()`** after creating agent relationships to persist to database
-2. **Use builder patterns** (`agent()`, `agentGraph()`, `tool()`) instead of direct database manipulation
+2. **Use builder patterns** (`agent()`, `subAgent()`, `tool()`) instead of direct database manipulation
 3. **Preserve contextId** when implementing transfer/delegation logic - extract from task IDs if needed
 4. **Validate tool results** with proper type guards instead of unsafe casting
 5. **Test A2A communication end-to-end** when adding new agent relationships
@@ -241,7 +243,7 @@ LOG_LEVEL=debug|info|warn|error
 - **Empty Task Messages**: Ensure task messages contain actual text content
 - **Context Extraction**: For delegation scenarios, extract contextId from task ID patterns like `task_math-demo-123456-chatcmpl-789`
 - **Tool Health**: MCP tools require health checks before use
-- **Agent Discovery**: Agents register capabilities via `/.well-known/{agentId}/agent.json` endpoints
+- **Agent Discovery**: Agents register capabilities via `/.well-known/{subAgentId}/agent.json` endpoints
 
 ### File Locations
 - **Core Agents**: `/execution/src/agents/Agent.ts`, `/inkeep-chat/src/agents/generateTaskHandler.ts`

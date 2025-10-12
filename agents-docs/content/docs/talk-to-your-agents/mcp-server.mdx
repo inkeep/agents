@@ -18,22 +18,22 @@ The MCP server exposes one core tool:
 
 ### send-query-to-agent
 
-Sends a query to your agent graph's default agent. This tool:
+Sends a query to your agent's default sub-agent. This tool:
 
 - **Name**: `send-query-to-agent`
-- **Description**: Dynamically generated based on your agent graph's name and description
+- **Description**: Dynamically generated based on your agent's name and description
 - **Parameters**:
   - `query` (string): The query to send to the agent
 - **Returns**: The agent's response as text content
 
 **Example usage in Cursor:**
-When the MCP server is configured, Cursor will automatically discover this tool and you can use it by asking questions. The tool will route your query to the appropriate agent in your graph and return the response.
+When the MCP server is configured, Cursor will automatically discover this tool and you can use it by asking questions. The tool will route your query to the appropriate sub-agent in your agent and return the response.
 
 The tool handles:
 
 - Message creation and conversation management
-- Agent execution with your configured tools and capabilities
-- Context resolution if your graph has context configuration
+- Sub-agent execution with your configured tools and capabilities
+- Context resolution if your agent has context configuration
 - Error handling and response formatting
 
 ## Using with Cursor
@@ -50,7 +50,7 @@ Example when using an API key for auth:
     "type": "mcp",
     "url": "http://<your-run-api-url>/v1/mcp",
     "headers": {
-      "Authorization": "Bearer <graph_api_key>"
+      "Authorization": "Bearer <agent_api_key>"
     }
   }
 }

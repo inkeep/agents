@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { Agent } from '../../agent';
-import type { AgentConfig } from '../../types';
+import { SubAgent } from '../../subAgent';
+import type { SubAgentConfig } from '../../types';
 import { createTestTenantId } from '../utils/testTenant';
 
 describe('Agent with DataComponents Integration', () => {
   const _tenantId = createTestTenantId('agent-datacomponents');
 
   it('should handle agents with data components configuration', () => {
-    const agentConfig: AgentConfig = {
+    const agentConfig: SubAgentConfig = {
       id: 'test-agent-with-datacomponents',
       name: 'TestAgentWithDataComponents',
       description: 'An agent that has data components',
@@ -47,7 +47,7 @@ describe('Agent with DataComponents Integration', () => {
       ],
     };
 
-    const agent = new Agent(agentConfig);
+    const agent = new SubAgent(agentConfig);
 
     expect(agent.getName()).toBe('TestAgentWithDataComponents');
     expect(agent.config.description).toBe('An agent that has data components');
@@ -67,14 +67,14 @@ describe('Agent with DataComponents Integration', () => {
       prompt: 'You are a simple helpful agent.',
     };
 
-    const agent = new Agent(agentConfig);
+    const agent = new SubAgent(agentConfig);
 
     expect(agent.getName()).toBe('SimpleAgent');
     expect(agent.config.dataComponents).toBeUndefined();
   });
 
   it('should handle agents with empty data components array', () => {
-    const agentConfig: AgentConfig = {
+    const agentConfig: SubAgentConfig = {
       id: 'empty-datacomponents-agent',
       name: 'EmptyDataComponentsAgent',
       description: 'Agent with empty data components',
@@ -82,7 +82,7 @@ describe('Agent with DataComponents Integration', () => {
       dataComponents: () => [],
     };
 
-    const agent = new Agent(agentConfig);
+    const agent = new SubAgent(agentConfig);
 
     expect(agent.getName()).toBe('EmptyDataComponentsAgent');
     expect(agent.config.dataComponents?.()).toEqual([]);

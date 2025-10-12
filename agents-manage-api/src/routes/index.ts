@@ -1,12 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-
-import agentArtifactComponentsRoutes from './agentArtifactComponents';
-import agentDataComponentsRoutes from './agentDataComponents';
-import agentGraphRoutes from './agentGraph';
-import agentRelationsRoutes from './agentRelations';
-// Import existing route modules (others can be added as they're created)
-import agentsRoutes from './agents';
-import agentToolRelationsRoutes from './agentToolRelations';
+import agentRoutes from './agent';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
 import contextConfigsRoutes from './contextConfigs';
@@ -14,8 +7,15 @@ import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
-import graphFullRoutes from './graphFull';
+import functionToolsRoutes from './functionTools';
+import agentFullRoutes from './agentFull';
 import projectsRoutes from './projects';
+import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
+import subAgentDataComponentsRoutes from './subAgentDataComponents';
+import subAgentRelationsRoutes from './subAgentRelations';
+// Import existing route modules (others can be added as they're created)
+import subAgentsRoutes from './subAgents';
+import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import toolsRoutes from './tools';
 
 const app = new OpenAPIHono();
@@ -24,25 +24,32 @@ const app = new OpenAPIHono();
 app.route('/projects', projectsRoutes);
 
 // Mount existing routes under project scope
-app.route('/projects/:projectId/graphs/:graphId/agents', agentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/agent-relations', agentRelationsRoutes);
-app.route('/projects/:projectId/agent-graphs', agentGraphRoutes);
-app.route('/projects/:projectId/graphs/:graphId/agent-tool-relations', agentToolRelationsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
+app.route('/projects/:projectId/agents', agentRoutes);
 app.route(
-  '/projects/:projectId/graphs/:graphId/agent-artifact-components',
-  agentArtifactComponentsRoutes
+  '/projects/:projectId/agents/:agentId/sub-agent-tool-relations',
+  subAgentToolRelationsRoutes
 );
-app.route('/projects/:projectId/graphs/:graphId/agent-data-components', agentDataComponentsRoutes);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agent-artifact-components',
+  subAgentArtifactComponentsRoutes
+);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agent-data-components',
+  subAgentDataComponentsRoutes
+);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/context-configs', contextConfigsRoutes);
+app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
-app.route('/projects/:projectId/graphs/:graphId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/agents/:agentId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRoutes);
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
 
-// Mount new full graph routes
-app.route('/projects/:projectId/graph', graphFullRoutes);
+// Mount new full agent routes
+app.route('/projects/:projectId/agent', agentFullRoutes);
 
 export default app;

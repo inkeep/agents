@@ -3,14 +3,35 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock modules before importing
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      existsSync: vi.fn(() => true),
+      readFileSync: vi.fn(),
+      writeFileSync: vi.fn(),
+    },
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    existsSync: vi.fn(() => true),
+  };
+});
 
-vi.mock('node:path', () => ({
-  join: vi.fn((...args: string[]) => args.join('/')),
-}));
+vi.mock('node:path', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      resolve: vi.fn((...args: string[]) => args.join('/')),
+      join: vi.fn((...args: string[]) => args.join('/')),
+    },
+    join: vi.fn((...args: string[]) => args.join('/')),
+    resolve: vi.fn((...args: string[]) => args.join('/')),
+  };
+});
 
 const mockReadFileSync = vi.mocked(readFileSync);
 const mockJoin = vi.mocked(join);
@@ -224,11 +245,11 @@ PROJECT JSON DATA:
       expect(promptTemplate).toContain('getTypeDefinitions()');
     });
 
-    it('should be included in graph generation prompts', () => {
-      const promptTemplate = `GRAPH DATA:
+    it('should be included in agent generation prompts', () => {
+      const promptTemplate = `AGENT DATA:
 {{DATA}}
 
-GRAPH ID: {{GRAPH_ID}}
+AGENT ID: {{AGENT_ID}}
 
 \${getTypeDefinitions()}
 

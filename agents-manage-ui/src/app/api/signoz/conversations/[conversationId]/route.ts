@@ -18,7 +18,6 @@ import {
   QUERY_TYPES,
   SPAN_KEYS,
   SPAN_NAMES,
-  TOOL_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
@@ -210,25 +209,25 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_FROM_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.DELEGATION_TO_AGENT_ID,
+              key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_FROM_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.TRANSFER_TO_AGENT_ID,
+              key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.TOOL_PURPOSE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
@@ -240,8 +239,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-            { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
         ),
 
@@ -293,7 +292,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID,
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -351,7 +350,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID,
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -464,8 +463,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.MESSAGE_TIMESTAMP,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-            { key: SPAN_KEYS.GRAPH_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.GRAPH_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
         ),
 
@@ -512,7 +511,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_AGENT_NAME_ALT,
+              key: SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -618,8 +617,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
-            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -715,6 +714,58 @@ function buildConversationListPayload(
             },
           ]
         ),
+
+        artifactProcessing: listQuery(
+          QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.ARTIFACT_PROCESSING,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TYPE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DATA,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -752,6 +803,7 @@ export async function GET(
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
+    const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
 
     // Categorize spans with errors into critical errors vs warnings
     const CRITICAL_ERROR_SPAN_NAMES = [
@@ -761,9 +813,9 @@ export async function GET(
       'context.resolve',
       'agent.generate',
       'context-resolver.resolve_single_fetch_definition',
-      'graph_session.generate_structured_update',
-      'graph_session.process_artifact',
-      'graph_session.generate_artifact_metadata',
+      'agent_session.generate_structured_update',
+      'agent_session.process_artifact',
+      'agent_session.generate_artifact_metadata',
       'response.format_object_response',
       'response.format_response',
     ];
@@ -780,12 +832,12 @@ export async function GET(
       }
     }
 
-    let graphId: string | null = null;
-    let graphName: string | null = null;
+    let agentId: string | null = null;
+    let agentName: string | null = null;
     for (const s of userMessageSpans) {
-      graphId = getString(s, SPAN_KEYS.GRAPH_ID, '') || null;
-      graphName = getString(s, SPAN_KEYS.GRAPH_NAME, '') || null;
-      if (graphId || graphName) break;
+      agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
+      agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
+      if (agentId || agentName) break;
     }
     // activities
     type Activity = {
@@ -798,13 +850,14 @@ export async function GET(
         | 'context_resolution'
         | 'user_message'
         | 'ai_assistant_message'
-        | 'ai_model_streamed_text';
+        | 'ai_model_streamed_text'
+        | 'artifact_processing';
       name: string;
       description: string;
       timestamp: string;
       status: 'success' | 'error' | 'pending';
-      agentId?: string;
-      agentName?: string;
+      subAgentId?: string;
+      subAgentName?: string;
       result?: string;
       // ai
       aiModel?: string;
@@ -818,7 +871,7 @@ export async function GET(
       messageContent?: string;
       // context resolution
       contextConfigId?: string;
-      contextAgentGraphId?: string;
+      contextAgentAgentId?: string;
       contextHeadersKeys?: string[];
       contextTrigger?: string;
       contextStatusDescription?: string;
@@ -828,6 +881,7 @@ export async function GET(
       toolPurpose?: string;
       toolCallArgs?: string;
       toolCallResult?: string;
+      aiTelemetryFunctionId?: string;
       // delegation/transfer
       delegationFromAgentId?: string;
       delegationToAgentId?: string;
@@ -840,19 +894,14 @@ export async function GET(
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
-      // save_tool_result specifics
-      saveResultSaved?: boolean;
-      saveArtifactType?: string;
-      saveArtifactName?: string;
-      saveArtifactDescription?: string;
-      saveSummaryData?: Record<string, any>;
-      saveTotalArtifacts?: number;
-      saveOperationId?: string;
-      saveToolCallId?: string;
-      saveFunctionId?: string;
-      saveFacts?: string;
-      saveToolArgs?: Record<string, any>;
-      saveFullResult?: Record<string, any>;
+      // artifact processing specifics
+      artifactId?: string;
+      artifactType?: string;
+      artifactName?: string;
+      artifactDescription?: string;
+      artifactData?: string;
+      artifactAgentId?: string;
+      artifactToolCallId?: string;
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
@@ -874,71 +923,28 @@ export async function GET(
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
-      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_AGENT_ID, '');
-      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_AGENT_ID, '');
-      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_AGENT_ID, '');
-      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_AGENT_ID, '');
+      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
+      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
+      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
       // Extract tool call args and result for ALL tool calls
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
       const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
 
-      // Parse save_tool_result JSON if present
-      let saveFields: any = {};
-      if (name === TOOL_NAMES.SAVE_TOOL_RESULT) {
-        const operationId = getString(span, SPAN_KEYS.AI_OPERATION_ID, '');
-        const toolCallId = getString(span, SPAN_KEYS.AI_TOOL_CALL_ID, '');
-        const functionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
-
-        // Parse tool arguments
-        let parsedArgs: any = {};
-        try {
-          parsedArgs = JSON.parse(toolCallArgs);
-        } catch (_e) {
-          // Keep empty if parsing fails
-        }
-
-        // Parse tool result
-        try {
-          const parsed = JSON.parse(toolCallResult);
-          // Extract first artifact info if available
-          const firstArtifact = parsed.artifacts
-            ? (Object.values(parsed.artifacts)[0] as any)
-            : null;
-
-          saveFields = {
-            saveResultSaved: parsed.saved === true,
-            saveArtifactType: parsed.artifactType || parsedArgs.artifactType || undefined,
-            saveArtifactName: firstArtifact?.name || parsedArgs.name || undefined,
-            saveArtifactDescription:
-              firstArtifact?.description || parsedArgs.description || undefined,
-            saveSummaryData: firstArtifact?.summaryData || undefined,
-            saveTotalArtifacts: parsed.totalArtifacts || undefined,
-            saveOperationId: operationId || undefined,
-            saveToolCallId: toolCallId || undefined,
-            saveFunctionId: functionId || undefined,
-            saveToolArgs: parsedArgs,
-            saveFullResult: parsed,
-          };
-        } catch (_e) {
-          // If parsing fails, assume not saved
-          saveFields = {
-            saveResultSaved: false,
-            saveOperationId: operationId || undefined,
-            saveToolCallId: toolCallId || undefined,
-            saveFunctionId: functionId || undefined,
-          };
-        }
-      }
+      const statusMessage = hasError
+        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') ||
+          getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
+        : '';
 
       activities.push({
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.TOOL_CALL,
         name,
-        description: `Called ${name}`,
+        description: hasError && statusMessage ? statusMessage : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
@@ -949,7 +955,6 @@ export async function GET(
         transferToAgentId: transferToAgentId || undefined,
         toolCallArgs: toolCallArgs || undefined,
         toolCallResult: toolCallResult || undefined,
-        ...saveFields, // Include save_tool_result specific fields
       });
     }
 
@@ -978,7 +983,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1008,7 +1013,7 @@ export async function GET(
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
         contextConfigId: getString(span, SPAN_KEYS.CONTEXT_CONFIG_ID, '') || undefined,
-        contextAgentGraphId: getString(span, SPAN_KEYS.CONTEXT_AGENT_GRAPH_ID, '') || undefined,
+        contextAgentAgentId: getString(span, SPAN_KEYS.CONTEXT_AGENT_ID, '') || undefined,
         contextHeadersKeys: keys,
       });
     }
@@ -1024,8 +1029,8 @@ export async function GET(
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: AGENT_IDS.USER,
-        agentName: ACTIVITY_NAMES.USER,
+        subAgentId: AGENT_IDS.USER,
+        subAgentName: ACTIVITY_NAMES.USER,
         result: hasError
           ? 'Message processing failed'
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
@@ -1044,8 +1049,8 @@ export async function GET(
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: AGENT_IDS.AI_ASSISTANT,
-        agentName: getString(span, SPAN_KEYS.AI_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: AGENT_IDS.AI_ASSISTANT,
+        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
@@ -1070,8 +1075,8 @@ export async function GET(
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        agentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
+        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
@@ -1119,8 +1124,8 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        agentName: getString(span, SPAN_KEYS.AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
@@ -1142,11 +1147,39 @@ export async function GET(
         description: '',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        agentId: UNKNOWN_VALUE,
-        agentName: 'Context Fetcher',
+        subAgentId: UNKNOWN_VALUE,
+        subAgentName: 'Context Fetcher',
         result: hasError
           ? 'Context fetch failed'
           : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
+      });
+    }
+
+    // artifact processing
+    for (const span of artifactProcessingSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const artifactName = getString(span, SPAN_KEYS.ARTIFACT_NAME, '');
+      const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
+      const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
+
+      activities.push({
+        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        type: 'artifact_processing',
+        name: 'Artifact Processing',
+        description: 'Artifact processed',
+        timestamp: span.timestamp,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || 'Unknown Agent',
+        result: hasError
+          ? 'Artifact processing failed'
+          : 'Artifact processed successfully',
+        artifactId: getString(span, SPAN_KEYS.ARTIFACT_ID, '') || undefined,
+        artifactType: artifactType || undefined,
+        artifactName: artifactName || undefined,
+        artifactDescription: artifactDescription || undefined,
+        artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
+        artifactAgentId: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || undefined,
+        artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
       });
     }
 
@@ -1258,8 +1291,8 @@ export async function GET(
       totalInputTokens,
       totalOutputTokens,
       mcpToolErrors: [],
-      graphId,
-      graphName,
+      agentId,
+      agentName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount,

@@ -1,20 +1,16 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createAgentGraph } from '../../../data-access/agentGraphs';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,
   updateConversationActiveAgent,
 } from '../../../data-access/conversations';
+import { createSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import {
-  cleanupTestDatabase,
-  closeTestDatabase,
-  createTestDatabaseClient,
-} from '../../../db/test-client';
+import { createTestDatabaseClient } from '../../../db/test-client';
 import type { ConversationInsert } from '../../../types/index';
-import { createTestAgentData, createTestGraphData } from '../helpers';
+import { createTestAgentData, createTestSubAgentData } from '../helpers';
 
 const createTestConversationData = (
   tenantId: string,
@@ -27,7 +23,7 @@ const createTestConversationData = (
     projectId,
     userId: `user-${suffix}`,
     title: `Test Conversation ${suffix}`,
-    activeAgentId: `test-agent-${suffix}`,
+    activeSubAgentId: `test-agent-${suffix}`,
     metadata: {
       userContext: {
         name: `Test User ${suffix}`,
@@ -40,17 +36,14 @@ const createTestConversationData = (
 
 describe('Conversations Data Access - Integration Tests', () => {
   let db: DatabaseClient;
-  let dbPath: string;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeAll(async () => {
-    // Create one database for the entire test suite
-    const dbInfo = await createTestDatabaseClient('conversations-integration');
-    db = dbInfo.client;
-    dbPath = dbInfo.path;
+  beforeEach(async () => {
+    // Create fresh in-memory database for each test
+    db = await createTestDatabaseClient();
 
-    // Create test projects and graphs for all tenant IDs used in tests
+    // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       await db
@@ -63,31 +56,31 @@ describe('Conversations Data Access - Integration Tests', () => {
         })
         .onConflictDoNothing();
 
-      // Create test graphs for each project
+      // Create test agent for each project
       for (let i = 1; i <= 3; i++) {
-        const graphId = `test-graph-${i}`;
-        const defaultAgentId = `test-agent-${i}`;
+        const agentId = `test-agent-${i}`;
+        const defaultSubAgentId = `test-agent-${i}`;
 
-        await db
-          .insert(schema.agentGraph)
-          .values({
-            tenantId: tenantId,
-            projectId: testProjectId,
-            id: graphId,
-            name: `Test Graph ${i}`,
-            description: 'Graph for testing',
-            defaultAgentId: defaultAgentId,
-          })
-          .onConflictDoNothing();
-
-        // Create the default agent for the graph
         await db
           .insert(schema.agents)
           .values({
             tenantId: tenantId,
             projectId: testProjectId,
-            graphId: graphId,
-            id: defaultAgentId,
+            id: agentId,
+            name: `Test Agent ${i}`,
+            description: 'Agent for testing',
+            defaultSubAgentId: defaultSubAgentId,
+          })
+          .onConflictDoNothing();
+
+        // Create the default agent for the agent
+        await db
+          .insert(schema.subAgents)
+          .values({
+            tenantId: tenantId,
+            projectId: testProjectId,
+            agentId,
+            id: defaultSubAgentId,
             name: `Default Agent ${i}`,
             description: 'Default agent for testing',
             prompt: 'You are a test agent',
@@ -95,73 +88,17 @@ describe('Conversations Data Access - Integration Tests', () => {
           .onConflictDoNothing();
       }
     }
-  });
-
-  afterEach(async () => {
-    // Clean up data between tests but keep the database file
-    await cleanupTestDatabase(db);
-
-    // Recreate test projects and graphs for all tenant IDs for next test
-    const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
-    for (const tenantId of tenantIds) {
-      await db
-        .insert(schema.projects)
-        .values({
-          tenantId: tenantId,
-          id: testProjectId,
-          name: 'Test Project',
-          description: 'Project for testing',
-        })
-        .onConflictDoNothing();
-
-      // Create test graphs for each project
-      for (let i = 1; i <= 3; i++) {
-        const graphId = `test-graph-${i}`;
-        const defaultAgentId = `test-agent-${i}`;
-
-        await db
-          .insert(schema.agentGraph)
-          .values({
-            tenantId: tenantId,
-            projectId: testProjectId,
-            id: graphId,
-            name: `Test Graph ${i}`,
-            description: 'Graph for testing',
-            defaultAgentId: defaultAgentId,
-          })
-          .onConflictDoNothing();
-
-        // Create the default agent for the graph
-        await db
-          .insert(schema.agents)
-          .values({
-            tenantId: tenantId,
-            projectId: testProjectId,
-            graphId: graphId,
-            id: defaultAgentId,
-            name: `Default Agent ${i}`,
-            description: 'Default agent for testing',
-            prompt: 'You are a test agent',
-          })
-          .onConflictDoNothing();
-      }
-    }
-  });
-
-  afterAll(async () => {
-    // Close database and delete the file after all tests
-    await closeTestDatabase(db, dbPath);
   });
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-1');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-1');
+      await createAgent(db)(agentData);
 
-      // Create an agent with graphId
-      const _agent = await createAgent(db)(
-        createTestAgentData(testTenantId, testProjectId, '1', graphData.id)
+      // Create an agent with agentId
+      const _agent = await createSubAgent(db)(
+        createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id)
       );
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
@@ -192,7 +129,7 @@ describe('Conversations Data Access - Integration Tests', () => {
         projectId: testProjectId,
         userId: 'user-minimal',
         title: 'Minimal Conversation',
-        activeAgentId: 'test-agent-1',
+        activeSubAgentId: 'test-agent-1',
       };
 
       const createdConversation = await createConversation(db)(minimalConversationData);
@@ -238,37 +175,42 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('updateConversationActiveAgent', () => {
     it('should update active agent and timestamp', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-2');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-2');
+      await createAgent(db)(agentData);
 
-      // Create agents with graphId
-      const initialAgentData = createTestAgentData(testTenantId, testProjectId, '1', graphData.id);
-      const initialAgent = await createAgent(db)(initialAgentData);
+      // Create agents with agentId
+      const initialAgentData = createTestSubAgentData(
+        testTenantId,
+        testProjectId,
+        '1',
+        agentData.id
+      );
+      const initialAgent = await createSubAgent(db)(initialAgentData);
 
-      const newAgentData = createTestAgentData(testTenantId, testProjectId, '2', graphData.id);
-      const newAgent = await createAgent(db)(newAgentData);
+      const newAgentData = createTestSubAgentData(testTenantId, testProjectId, '2', agentData.id);
+      const newAgent = await createSubAgent(db)(newAgentData);
 
       // Create conversation with initial agent
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
-      conversationData.activeAgentId = initialAgent.id;
+      conversationData.activeSubAgentId = initialAgent.id;
 
       const createdConversation = await createConversation(db)(conversationData);
 
-      expect(createdConversation.activeAgentId).toBe(initialAgent.id);
+      expect(createdConversation.activeSubAgentId).toBe(initialAgent.id);
       const originalUpdatedAt = createdConversation.updatedAt;
 
       // Wait a moment to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Update active agent
       const updatedConversation = await updateConversationActiveAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: conversationData.id,
-        activeAgentId: newAgent.id,
+        activeSubAgentId: newAgent.id,
       });
 
-      expect(updatedConversation.activeAgentId).toBe(newAgent.id);
+      expect(updatedConversation.activeSubAgentId).toBe(newAgent.id);
       expect(updatedConversation.updatedAt).not.toBe(originalUpdatedAt);
       expect(updatedConversation.createdAt).toBe(createdConversation.createdAt); // Should remain unchanged
       expect(updatedConversation.id).toBe(conversationData.id);
@@ -276,16 +218,16 @@ describe('Conversations Data Access - Integration Tests', () => {
     });
 
     it('should maintain tenant isolation during agent updates', async () => {
-      // Create a graph first (before agents, as they need graphId)
-      const graphData = createTestGraphData(testTenantId, testProjectId, 'conv-3');
-      await createAgentGraph(db)(graphData);
+      // Create an agent first (before agents, as they need agentId)
+      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-3');
+      await createAgent(db)(agentData);
 
       // Create agent and conversation for tenant 1
-      const agentData = createTestAgentData(testTenantId, testProjectId, '1', graphData.id);
-      const agent = await createAgent(db)(agentData);
+      const subAgentData = createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id);
+      const agent = await createSubAgent(db)(subAgentData);
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
-      conversationData.activeAgentId = agent.id;
+      conversationData.activeSubAgentId = agent.id;
 
       await createConversation(db)(conversationData);
 
@@ -293,7 +235,7 @@ describe('Conversations Data Access - Integration Tests', () => {
       const result = await updateConversationActiveAgent(db)({
         scopes: { tenantId: 'tenant-2', projectId: testProjectId },
         conversationId: conversationData.id,
-        activeAgentId: 'non-existent-agent',
+        activeSubAgentId: 'non-existent-agent',
       });
 
       expect(result).toBeUndefined();
@@ -305,14 +247,14 @@ describe('Conversations Data Access - Integration Tests', () => {
       });
 
       expect(originalConversation).not.toBeUndefined();
-      expect(originalConversation?.activeAgentId).toBe(agent.id);
+      expect(originalConversation?.activeSubAgentId).toBe(agent.id);
     });
 
     it('should return undefined when updating non-existent conversation', async () => {
       const result = await updateConversationActiveAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: 'non-existent-conversation',
-        activeAgentId: 'non-existent-agent',
+        activeSubAgentId: 'non-existent-agent',
       });
 
       expect(result).toBeUndefined();

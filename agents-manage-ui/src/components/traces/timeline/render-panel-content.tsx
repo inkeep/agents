@@ -9,8 +9,8 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
-import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
+import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
@@ -146,10 +146,10 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="Message content">
-              <Bubble>{a.messageContent || 'Message content not available'}</Bubble>
-            </LabeledBlock>
-            <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
+            <Info
+              label="Message content"
+              value={a.messageContent || 'Message content not available'}
+            />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -171,7 +171,6 @@ export function renderPanelContent({
             <Info label="Agent" value={a.agentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
-            <Info label="Message id" value={<Badge variant="code">{a.id}</Badge>} />
           </Section>
           <Divider />
           {SignozButton}
@@ -194,9 +193,9 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentGraphId && (
-              <LabeledBlock label="Agent graph id">
-                <Badge variant="code">{a.contextAgentGraphId}</Badge>
+            {a.contextAgentId && (
+              <LabeledBlock label="Agent id">
+                <Badge variant="code">{a.contextAgentId}</Badge>
               </LabeledBlock>
             )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
@@ -225,18 +224,8 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
-              <Badge variant="code">
-                {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
-              </Badge>
-            </LabeledBlock>
-            <LabeledBlock label="To agent">
-              <Badge variant="code">
-                {a.delegationToAgentId ||
-                  a.toolName?.replace('delegate_to_', '') ||
-                  'Unknown Target'}
-              </Badge>
-            </LabeledBlock>
+            <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
+            <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -320,9 +309,7 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
-            <LabeledBlock label="Purpose">
-              <Bubble className="b">{a.toolPurpose || 'No purpose information available'}</Bubble>
-            </LabeledBlock>
+            <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Agent" value={a.agentName || 'Unknown agent'} />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
@@ -397,6 +384,41 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'artifact_processing':
+      return (
+        <>
+          <Section>
+            {a.artifactName && <Info label="Name" value={a.artifactName} />}
+            {a.artifactType && <Info label="Type" value={a.artifactType} />}
+            {a.artifactDescription && <Info label="Description" value={a.artifactDescription} />}
+            {a.artifactData && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.artifactData)}
+                title="Artifact data"
+                uri="artifact-data.json"
+              />
+            )}
+            <StatusBadge status={a.status} />
+            {a.artifactAgentId && (
+              <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />
+            )}
+            {a.artifactId && (
+              <Info label="Artifact ID" value={<Badge variant="code">{a.artifactId}</Badge>} />
+            )}
+            {a.artifactToolCallId && (
+              <Info
+                label="Tool call ID"
+                value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

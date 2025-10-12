@@ -1,4 +1,4 @@
-import { agents, createTask, tasks } from '@inkeep/agents-core';
+import { createTask, subAgents, tasks } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
@@ -14,27 +14,27 @@ describe('Delegation Task Creation Fixes', () => {
     await ensureTestProject(tenantId, projectId);
 
     // Import necessary modules
-    const { agentGraph } = await import('@inkeep/agents-core');
+    const { agents: agent } = await import('@inkeep/agents-core');
 
-    // Create a test graph first
-    const graphId = 'test-graph';
-    await dbClient.insert(agentGraph).values({
-      id: graphId,
+    // Create a test agent first
+    const agentId = 'test-agent';
+    await dbClient.insert(agent).values({
+      id: agentId,
       tenantId: tenantId,
       projectId: projectId,
-      name: 'Test Graph',
-      defaultAgentId: 'math-supervisor',
+      name: 'Test Agent',
+      defaultSubAgentId: 'math-supervisor',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    // Create test agents with graphId
-    await dbClient.insert(agents).values([
+    // Create test agents with agentId
+    await dbClient.insert(subAgents).values([
       {
         id: 'math-supervisor',
         tenantId: tenantId,
         projectId: projectId,
-        graphId: graphId,
+        agentId: agentId,
         name: 'Math Supervisor',
         description: 'Supervises math operations',
         prompt: 'Handle math supervision tasks',
@@ -45,7 +45,7 @@ describe('Delegation Task Creation Fixes', () => {
         id: 'number-producer-a',
         tenantId: tenantId,
         projectId: projectId,
-        graphId: graphId,
+        agentId: agentId,
         name: 'Number Producer A',
         description: 'Produces numbers for math operations',
         prompt: 'Generate numbers as needed',
@@ -62,7 +62,7 @@ describe('Delegation Task Creation Fixes', () => {
   afterAll(async () => {
     // Clean up test data
     await dbClient.delete(tasks);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   it('should create tasks with correct contextId and message content', async () => {
@@ -74,8 +74,8 @@ describe('Delegation Task Creation Fixes', () => {
       id: taskId,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
-      graphId: 'test-graph',
-      agentId: 'math-supervisor', // Use existing agent from database
+      agentId: 'test-agent',
+      subAgentId: 'math-supervisor', // Use existing agent from database
       contextId: conversationId,
       status: 'pending',
       metadata: {
@@ -83,7 +83,7 @@ describe('Delegation Task Creation Fixes', () => {
         message_id: 'test-msg-123',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        agent_id: 'math-supervisor',
+        sub_agent_id: 'math-supervisor',
       },
     });
 
@@ -175,8 +175,8 @@ describe('Delegation Task Creation Fixes', () => {
       id: `delegation-test-${nanoid()}`,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
-      graphId: 'test-graph',
-      agentId: 'number-producer-a',
+      agentId: 'test-agent',
+      subAgentId: 'number-producer-a',
       contextId: testContextId,
       status: 'working',
       metadata: {
@@ -184,8 +184,8 @@ describe('Delegation Task Creation Fixes', () => {
         message_id: 'test-msg-456',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        agent_id: 'number-producer-a',
-        graph_id: 'test-delegation-graph',
+        sub_agent_id: 'number-producer-a',
+        agent_id: 'test-delegation-agent',
       },
     });
 

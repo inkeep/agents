@@ -17,7 +17,7 @@ const obj = {
   emptyString: '',
 };
 
-describe('Span Attributes Copy Functionality', () => {
+describe('Monaco-Editor Functionality', () => {
   let editor: monaco.editor.IStandaloneCodeEditor;
   let model: monaco.editor.ITextModel;
   let container: HTMLDivElement;
@@ -47,7 +47,7 @@ describe('Span Attributes Copy Functionality', () => {
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
     // Wait for Monaco workers to initialize
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchInlineSnapshot(`
       [

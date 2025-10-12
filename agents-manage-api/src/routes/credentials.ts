@@ -3,6 +3,8 @@ import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
   CredentialReferenceApiUpdateSchema,
+  CredentialReferenceListResponse,
+  CredentialReferenceResponse,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
@@ -12,11 +14,10 @@ import {
   getCredentialReferenceById,
   getCredentialReferenceWithTools,
   getCredentialStoreLookupKeyFromRetrievalParams,
-  IdParamsSchema,
   ListResponseSchema,
   listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
@@ -44,7 +45,7 @@ app.openapi(
         description: 'List of credentials retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceListResponse,
           },
         },
       },
@@ -74,14 +75,14 @@ app.openapi(
     operationId: 'get-credential-by-id',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Credential found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },
@@ -129,7 +130,7 @@ app.openapi(
         description: 'Credential created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },
@@ -160,7 +161,7 @@ app.openapi(
     operationId: 'update-credential',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -174,7 +175,7 @@ app.openapi(
         description: 'Credential updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(CredentialReferenceApiSelectSchema),
+            schema: CredentialReferenceResponse,
           },
         },
       },
@@ -211,7 +212,7 @@ app.openapi(
     operationId: 'delete-credential',
     tags: ['Credential'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

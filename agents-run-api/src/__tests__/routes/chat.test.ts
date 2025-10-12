@@ -29,27 +29,27 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'default-agent',
+        defaultSubAgentId: 'default-agent',
       })
     ),
-    getFullGraph: vi.fn().mockReturnValue(
+    getFullAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'default-agent',
+        defaultSubAgentId: 'default-agent',
         agents: [],
         relations: [],
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'default-agent',
         tenantId: 'test-tenant',
@@ -64,7 +64,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       vi.fn().mockResolvedValue({
         id: 'conv-123',
         tenantId: 'test-tenant',
-        activeAgentId: 'default-agent',
+        activeSubAgentId: 'default-agent',
       })
     ),
     createMessage: vi.fn().mockReturnValue(
@@ -78,7 +78,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     getActiveAgentForConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        activeAgentId: 'default-agent',
+        activeSubAgentId: 'default-agent',
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
@@ -150,37 +150,39 @@ describe('Chat Routes', () => {
   beforeEach(async () => {
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
-    const { getAgentGraphWithDefaultAgent } = await import('@inkeep/agents-core');
-    (vi.mocked(getAgentGraphWithDefaultAgent) as any).mockImplementation(async (params: any) => ({
-      id: 'test-graph',
-      name: 'Test Graph',
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      description: 'Test graph description',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      contextConfigId: null,
-      models: null,
-      agents: null,
-      defaultAgentId: 'default-agent',
-      defaultAgent: {
+    const { getAgentWithDefaultSubAgent } = await import('@inkeep/agents-core');
+    (vi.mocked(getAgentWithDefaultSubAgent) as any).mockReturnValue(
+      vi.fn().mockResolvedValue({
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
-        id: 'default-agent',
-        name: 'Default Agent',
-        description: 'A helpful assistant',
-        prompt: 'You are a helpful assistant.',
+        projectId: 'test-project',
+        description: 'Test agent description',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        model: 'claude-3-sonnet',
-        providerOptions: {},
-        conversationHistoryConfig: {
-          mode: 'full' as const,
-          limit: 10,
-          maxOutputTokens: 1000,
-          includeInternal: false,
+        contextConfigId: null,
+        models: null,
+        agents: null,
+        defaultSubAgentId: 'default-agent',
+        defaultSubAgent: {
+          tenantId: 'test-tenant',
+          id: 'default-agent',
+          name: 'Default Agent',
+          description: 'A helpful assistant',
+          prompt: 'You are a helpful assistant.',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          model: 'claude-3-sonnet',
+          providerOptions: {},
+          conversationHistoryConfig: {
+            mode: 'full' as const,
+            limit: 10,
+            maxOutputTokens: 1000,
+            includeInternal: false,
+          },
         },
-      },
-    }));
+      })
+    );
 
     // Mock ExecutionHandler.prototype.execute like the working dataChat test
     vi.spyOn(execModule.ExecutionHandler.prototype, 'execute').mockImplementation(
@@ -262,12 +264,14 @@ describe('Chat Routes', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('should handle missing graph', async () => {
-      const { getAgentGraphWithDefaultAgent, getFullGraph } = await import('@inkeep/agents-core');
-      vi.mocked(getAgentGraphWithDefaultAgent).mockReturnValueOnce(
+    it('should handle missing agent', async () => {
+      const { getAgentWithDefaultSubAgent, getFullAgent: getFullAgent } = await import(
+        '@inkeep/agents-core'
+      );
+      vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValueOnce(undefined)
       );
-      vi.mocked(getFullGraph).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
+      vi.mocked(getFullAgent).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
 
       const response = await makeRequest('/v1/chat/completions', {
         method: 'POST',

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-sdk",
-  "version": "0.16.2",
+  "version": "0.19.0",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
   "main": "src/index.ts",
   "type": "module",
@@ -10,6 +10,7 @@
     "test:watch": "ENVIRONMENT=test vitest",
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
     "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "lint": "biome lint .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
@@ -23,6 +24,7 @@
     "esbuild": "^0.25.10",
     "js-yaml": "^4.1.0",
     "nanoid": "^5.1.5",
+    "typescript": "^5.3.3",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -32,7 +34,6 @@
     "@vitest/coverage-v8": "^2.0.0",
     "clean-package": "^2.2.0",
     "tsx": "^4.7.1",
-    "typescript": "^5.3.3",
     "vitest": "^3.1.4"
   },
   "packageManager": "pnpm@10.11.0",

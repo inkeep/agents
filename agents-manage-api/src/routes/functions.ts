@@ -6,12 +6,12 @@ import {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  FunctionListResponse,
+  FunctionResponse,
   getFunction,
-  IdParamsSchema,
-  ListResponseSchema,
   listFunctions,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of functions',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionListResponse,
           },
         },
       },
@@ -81,14 +81,14 @@ app.openapi(
     operationId: 'get-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Function details',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },
@@ -146,7 +146,7 @@ app.openapi(
         description: 'Function created',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },
@@ -195,7 +195,7 @@ app.openapi(
     operationId: 'update-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -209,7 +209,7 @@ app.openapi(
         description: 'Function updated',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },
@@ -268,7 +268,7 @@ app.openapi(
     operationId: 'delete-function',
     tags: ['Functions'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

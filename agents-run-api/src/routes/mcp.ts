@@ -16,11 +16,11 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
@@ -127,7 +127,7 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  graphId: string
+  agentId: string
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -168,15 +168,15 @@ const validateSession = async (
       sessionId,
       conversationFound: !!conversation,
       sessionType: conversation?.metadata?.sessionData?.sessionType,
-      storedGraphId: conversation?.metadata?.sessionData?.graphId,
-      requestGraphId: graphId,
+      storedAgentId: conversation?.metadata?.sessionData?.agentId,
+      requestAgentId: agentId,
     },
     'Conversation lookup result'
   );
   if (
     !conversation ||
     conversation.metadata?.sessionData?.sessionType !== 'mcp' ||
-    conversation.metadata?.sessionData?.graphId !== graphId
+    conversation.metadata?.sessionData?.agentId !== agentId
   ) {
     logger.info(
       { sessionId, conversationId: conversation?.id },
@@ -200,13 +200,13 @@ const validateSession = async (
 /**
  * Sets up tracing attributes for the active span
  */
-const setupTracing = (conversationId: string, tenantId: string, graphId: string): void => {
+const setupTracing = (conversationId: string, tenantId: string, agentId: string): void => {
   const activeSpan = trace.getActiveSpan();
   if (activeSpan) {
     activeSpan.setAttributes({
       'conversation.id': conversationId,
       'tenant.id': tenantId,
-      'graph.id': graphId,
+      'agent.id': agentId,
     });
   }
 };
@@ -249,7 +249,7 @@ const executeAgentQuery = async (
   executionContext: ExecutionContext,
   conversationId: string,
   query: string,
-  defaultAgentId: string
+  defaultSubAgentId: string
 ): Promise<CallToolResult> => {
   const requestId = `mcp-${Date.now()}`;
   const mcpStreamHelper = createMCPStreamHelper();
@@ -259,7 +259,7 @@ const executeAgentQuery = async (
     executionContext,
     conversationId,
     userMessage: query,
-    initialAgentId: defaultAgentId,
+    initialAgentId: defaultSubAgentId,
     requestId,
     sseHelper: mcpStreamHelper,
   });
@@ -302,15 +302,15 @@ const getServer = async (
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
-  setupTracing(conversationId, tenantId, graphId);
+  const { tenantId, projectId, agentId } = executionContext;
+  setupTracing(conversationId, tenantId, agentId);
 
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
   });
 
-  if (!agentGraph) {
-    throw new Error('Agent graph not found');
+  if (!agent) {
+    throw new Error('Agent not found');
   }
 
   const server = new McpServer(
@@ -324,28 +324,28 @@ const getServer = async (
   // Register tools and prompts
   server.tool(
     'send-query-to-agent',
-    `Send a query to the ${agentGraph.name} agent. The agent has the following description: ${agentGraph.description}`,
+    `Send a query to the ${agent.name} agent. The agent has the following description: ${agent.description}`,
     {
       query: createMCPSchema(z.string().describe('The query to send to the agent')),
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
-        if (!agentGraph.defaultAgentId) {
+        if (!agent.defaultSubAgentId) {
           return {
             content: [
               {
                 type: 'text',
-                text: `Graph does not have a default agent configured`,
+                text: `Agent does not have a default agent configured`,
               },
             ],
             isError: true,
           };
         }
-        const defaultAgentId = agentGraph.defaultAgentId;
+        const defaultSubAgentId = agent.defaultSubAgentId;
 
-        const agentInfo = await getAgentById(dbClient)({
-          scopes: { tenantId, projectId, graphId },
-          agentId: defaultAgentId,
+        const agentInfo = await getSubAgentById(dbClient)({
+          scopes: { tenantId, projectId, agentId },
+          subAgentId: defaultSubAgentId,
         });
         if (!agentInfo) {
           return {
@@ -362,7 +362,7 @@ const getServer = async (
         const resolvedContext = await handleContextResolution({
           tenantId,
           projectId,
-          graphId,
+          agentId,
           conversationId,
           headers,
           dbClient,
@@ -373,9 +373,9 @@ const getServer = async (
           {
             tenantId,
             projectId,
-            graphId,
+            agentId,
             conversationId,
-            hasContextConfig: !!agentGraph.contextConfigId,
+            hasContextConfig: !!agent.contextConfigId,
             hasHeaders: !!headers,
             hasValidatedContext: !!resolvedContext,
           },
@@ -384,7 +384,7 @@ const getServer = async (
 
         await processUserMessage(tenantId, projectId, conversationId, query);
 
-        return executeAgentQuery(executionContext, conversationId, query, defaultAgentId);
+        return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
         return {
           content: [
@@ -425,9 +425,9 @@ const validateRequestParameters = (
 ): { valid: true; executionContext: ExecutionContext } | { valid: false; response: Response } => {
   try {
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
-    getLogger('mcp').debug({ tenantId, projectId, graphId }, 'Extracted MCP entity parameters');
+    getLogger('mcp').debug({ tenantId, projectId, agentId }, 'Extracted MCP entity parameters');
 
     return { valid: true, executionContext };
   } catch (error) {
@@ -461,30 +461,30 @@ const handleInitializationRequest = async (
   c: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
-  // Get the default agent for the graph
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
+  // Get the default agent for the agent
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
   });
-  if (!agentGraph) {
+  if (!agent) {
     return c.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent graph not found' },
+        error: { code: -32001, message: 'Agent not found' },
         id: body.id || null,
       },
       { status: 404 }
     );
   }
 
-  if (!agentGraph.defaultAgentId) {
+  if (!agent.defaultSubAgentId) {
     return c.json(
       {
         jsonrpc: '2.0',
-        error: { code: -32001, message: 'Graph does not have a default agent configured' },
+        error: { code: -32001, message: 'Agent does not have a default agent configured' },
         id: body.id || null,
       },
       { status: 400 }
@@ -496,10 +496,10 @@ const handleInitializationRequest = async (
     id: sessionId,
     tenantId,
     projectId,
-    activeAgentId: agentGraph.defaultAgentId,
+    activeSubAgentId: agent.defaultSubAgentId,
     metadata: {
       sessionData: {
-        graphId,
+        agentId,
         sessionType: 'mcp',
         mcpProtocolVersion: c.req.header('mcp-protocol-version'),
         initialized: false, // Track initialization state
@@ -550,9 +550,9 @@ const handleExistingSessionRequest = async (
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   // Validate the session id
-  const conversation = await validateSession(req, res, body, tenantId, projectId, graphId);
+  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
   if (!conversation) {
     return toFetchResponse(res);
   }
@@ -646,7 +646,7 @@ app.openapi(
         description: 'Unauthorized - API key authentication required',
       },
       404: {
-        description: 'Not Found - Agent graph not found',
+        description: 'Not Found - Agent not found',
       },
       500: {
         description: 'Internal Server Error',

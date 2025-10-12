@@ -1,18 +1,12 @@
 import {
-  type AgentSelect,
   type CredentialStoreRegistry,
   type ExecutionContext,
-  getAgentById,
-  getLogger,
-  getRelatedAgentsForGraph,
+  getSubAgentById,
+  type SubAgentSelect,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
-
-// Agent hydration functions
-
-const logger = getLogger('agents');
 
 /**
  * Create an AgentCard from database agent data
@@ -23,7 +17,7 @@ export function createAgentCard({
   dbAgent,
   baseUrl,
 }: {
-  dbAgent: AgentSelect;
+  dbAgent: SubAgentSelect;
   baseUrl: string;
 }): AgentCard {
   // Use the agent's base description for external discovery
@@ -117,13 +111,13 @@ export function generateDescriptionWithTransfers(
  */
 async function hydrateAgent({
   dbAgent,
-  graphId,
+  agentId,
   baseUrl,
   apiKey,
   credentialStoreRegistry,
 }: {
-  dbAgent: AgentSelect;
-  graphId: string;
+  dbAgent: SubAgentSelect;
+  agentId: string;
   baseUrl: string;
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
@@ -133,8 +127,8 @@ async function hydrateAgent({
     const taskHandlerConfig = await createTaskHandlerConfig({
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId: graphId,
-      agentId: dbAgent.id,
+      agentId: agentId,
+      subAgentId: dbAgent.id,
       baseUrl: baseUrl,
       apiKey: apiKey,
     });
@@ -147,10 +141,10 @@ async function hydrateAgent({
     });
 
     return {
-      agentId: dbAgent.id,
+      subAgentId: dbAgent.id,
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
-      graphId,
+      agentId: agentId,
       agentCard,
       taskHandler,
     };
@@ -166,15 +160,15 @@ export async function getRegisteredAgent(
   executionContext: ExecutionContext,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, graphId, agentId, baseUrl, apiKey } = executionContext;
+  const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
 
-  if (!agentId) {
+  if (!subAgentId) {
     throw new Error('Agent ID is required');
   }
 
-  const dbAgent = await getAgentById(dbClient)({
-    scopes: { tenantId, projectId, graphId: graphId },
-    agentId,
+  const dbAgent = await getSubAgentById(dbClient)({
+    scopes: { tenantId, projectId, agentId },
+    subAgentId: subAgentId,
   });
   if (!dbAgent) {
     return null;
@@ -184,7 +178,7 @@ export async function getRegisteredAgent(
 
   return hydrateAgent({
     dbAgent,
-    graphId,
+    agentId,
     baseUrl: agentFrameworkBaseUrl,
     credentialStoreRegistry,
     apiKey,

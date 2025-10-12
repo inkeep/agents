@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
+import { ANTHROPIC_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
@@ -14,7 +15,7 @@ import {
   generateArtifactComponentFile,
   generateDataComponentFile,
   generateEnvironmentFiles,
-  generateGraphFile,
+  generateAgentFile,
   generateIndexFile,
   generateToolFile,
 } from './pull.llm-generate';
@@ -30,6 +31,39 @@ interface VerificationResult {
   success: boolean;
   errors: string[];
   warnings: string[];
+}
+
+/**
+ * Detect if current directory contains a project by looking for index.ts with project export
+ * Returns the project ID if found, null otherwise
+ */
+async function detectCurrentProject(): Promise<string | null> {
+  const indexPath = join(process.cwd(), 'index.ts');
+
+  if (!existsSync(indexPath)) {
+    return null;
+  }
+
+  try {
+    // Import the module with TypeScript support
+    const module = await importWithTypeScriptSupport(indexPath);
+
+    // Find the first export with __type = "project"
+    const exports = Object.keys(module);
+    for (const exportKey of exports) {
+      const value = module[exportKey];
+      if (value && typeof value === 'object' && value.__type === 'project') {
+        // Get the project ID
+        if (typeof value.getId === 'function') {
+          return value.getId();
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    // If we can't load the file, it's not a valid project directory
+    return null;
+  }
 }
 
 /**
@@ -188,7 +222,7 @@ async function verifyGeneratedFiles(
       console.log(chalk.gray('\n🔍 Structural Verification Summary:'));
       console.log(chalk.gray(`  • Project loaded successfully: ${!!project}`));
       console.log(
-        chalk.gray(`  • Expected graphs: ${Object.keys(originalProjectData.graphs || {}).length}`)
+        chalk.gray(`  • Expected agents: ${Object.keys(originalProjectData.agents || {}).length}`)
       );
       console.log(
         chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`)
@@ -263,20 +297,27 @@ function ensureDirectoryExists(dirPath: string): void {
  */
 function createProjectStructure(
   projectDir: string,
-  projectId: string
+  projectId: string,
+  useCurrentDirectory: boolean = false
 ): {
   projectRoot: string;
-  graphsDir: string;
+  agentsDir: string;
   toolsDir: string;
   dataComponentsDir: string;
   artifactComponentsDir: string;
   environmentsDir: string;
 } {
-  // Check if projectDir already ends with projectId to avoid nested folders
-  const dirName = projectDir.split('/').pop() || projectDir;
-  const projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
+  // In directory-aware mode, use the current directory as-is
+  let projectRoot: string;
+  if (useCurrentDirectory) {
+    projectRoot = projectDir;
+  } else {
+    // Check if projectDir already ends with projectId to avoid nested folders
+    const dirName = projectDir.split('/').pop() || projectDir;
+    projectRoot = dirName === projectId ? projectDir : join(projectDir, projectId);
+  }
 
-  const graphsDir = join(projectRoot, 'graphs');
+  const agentsDir = join(projectRoot, 'agents');
   const toolsDir = join(projectRoot, 'tools');
   const dataComponentsDir = join(projectRoot, 'data-components');
   const artifactComponentsDir = join(projectRoot, 'artifact-components');
@@ -284,7 +325,7 @@ function createProjectStructure(
 
   // Create all directories
   ensureDirectoryExists(projectRoot);
-  ensureDirectoryExists(graphsDir);
+  ensureDirectoryExists(agentsDir);
   ensureDirectoryExists(toolsDir);
   ensureDirectoryExists(dataComponentsDir);
   ensureDirectoryExists(artifactComponentsDir);
@@ -292,7 +333,7 @@ function createProjectStructure(
 
   return {
     projectRoot,
-    graphsDir,
+    agentsDir,
     toolsDir,
     dataComponentsDir,
     artifactComponentsDir,
@@ -306,18 +347,18 @@ function createProjectStructure(
 async function generateProjectFiles(
   dirs: {
     projectRoot: string;
-    graphsDir: string;
+    agentsDir: string;
     toolsDir: string;
     dataComponentsDir: string;
     artifactComponentsDir: string;
     environmentsDir: string;
   },
-  projectData: any,
+  projectData: FullProjectDefinition,
   modelSettings: ModelSettings,
   environment: string = 'development',
   debug: boolean = false
 ): Promise<void> {
-  const { graphs, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
+  const { agents, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
 
   // Prepare all generation tasks
   const generationTasks: Promise<void>[] = [];
@@ -328,12 +369,12 @@ async function generateProjectFiles(
   generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
   fileInfo.push({ type: 'config', name: 'index.ts' });
 
-  // Add graph generation tasks
-  if (graphs && Object.keys(graphs).length > 0) {
-    for (const [graphId, graphData] of Object.entries(graphs)) {
-      const graphPath = join(dirs.graphsDir, `${graphId}.ts`);
-      generationTasks.push(generateGraphFile(graphData, graphId, graphPath, modelSettings));
-      fileInfo.push({ type: 'graph', name: `${graphId}.ts` });
+  // Add agent generation tasks
+  if (agents && Object.keys(agents).length > 0) {
+    for (const [agentId, agentData] of Object.entries(agents)) {
+      const agentPath = join(dirs.agentsDir, `${agentId}.ts`);
+      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings));
+      fileInfo.push({ type: 'agent', name: `${agentId}.ts` });
     }
   }
 
@@ -389,8 +430,8 @@ async function generateProjectFiles(
   if (filesByType.config) {
     console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
   }
-  if (filesByType.graph) {
-    console.log(chalk.gray(`     • Graphs: ${filesByType.graph.join(', ')}`));
+  if (filesByType.agent) {
+    console.log(chalk.gray(`     • Agent: ${filesByType.agent.join(', ')}`));
   }
   if (filesByType.tool) {
     console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
@@ -593,8 +634,36 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       agentsManageApiKey: config.agentsManageApi.apiKey,
     };
 
-    // Prompt for project ID if not provided
-    if (!options.project) {
+    // Detect if current directory is a project directory
+    spinner.text = 'Detecting project in current directory...';
+    const currentProjectId = await detectCurrentProject();
+    let useCurrentDirectory = false;
+
+    // Determine project ID based on directory awareness
+    if (options.project) {
+      // If --project arg is provided AND we're in a project directory, show error
+      if (currentProjectId) {
+        spinner.fail('Conflicting project specification');
+        console.error(chalk.red('Error: Cannot specify --project argument when in a project directory'));
+        console.error(chalk.yellow(`  • Current directory project: ${currentProjectId}`));
+        console.error(chalk.yellow(`  • Specified project argument: ${options.project}`));
+        console.error(chalk.gray('\nTo pull to this directory, run without --project argument:'));
+        console.error(chalk.gray('  inkeep pull'));
+        console.error(chalk.gray('\nTo pull a different project, run from a non-project directory.'));
+        process.exit(1);
+      }
+      // Extract project ID from path if it's a directory name
+      const projectIdFromPath = options.project.split('/').pop() || options.project;
+      finalConfig.projectId = projectIdFromPath;
+    } else if (currentProjectId) {
+      // If no --project arg but we're in a project directory, use that project
+      finalConfig.projectId = currentProjectId;
+      useCurrentDirectory = true;
+      baseDir = process.cwd(); // Override baseDir to use current directory, not parent where config was found
+      spinner.succeed(`Detected project in current directory: ${currentProjectId}`);
+      console.log(chalk.gray(`  • Will pull to current directory (directory-aware mode)`));
+    } else {
+      // No --project arg and not in a project directory, prompt for project ID
       spinner.stop();
       const response = await prompts({
         type: 'text',
@@ -609,10 +678,6 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       }
       finalConfig.projectId = response.projectId;
       spinner.start('Configuration loaded');
-    } else {
-      // Extract project ID from path if it's a directory name
-      const projectIdFromPath = options.project.split('/').pop() || options.project;
-      finalConfig.projectId = projectIdFromPath;
     }
 
     spinner.succeed('Configuration loaded');
@@ -629,18 +694,17 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       finalConfig.tenantId,
       finalConfig.projectId
     );
-    const projectData = await apiClient.getFullProject(finalConfig.projectId);
+    const projectData: FullProjectDefinition = await apiClient.getFullProject(
+      finalConfig.projectId
+    );
     spinner.succeed('Project data fetched');
 
     // Show project summary
-    const graphCount = Object.keys(projectData.graphs || {}).length;
+    const agentCount = Object.keys(projectData.agents || {}).length;
     const toolCount = Object.keys(projectData.tools || {}).length;
-    const agentCount = Object.values(projectData.graphs || {}).reduce(
-      (total: number, graph: any) => {
-        return total + Object.keys(graph.agents || {}).length;
-      },
-      0
-    );
+    const subAgentCount = Object.values(projectData.agents || {}).reduce((total, agent) => {
+      return total + Object.keys(agent.subAgents || {}).length;
+    }, 0);
 
     const dataComponentCount = Object.keys(projectData.dataComponents || {}).length;
     const artifactComponentCount = Object.keys(projectData.artifactComponents || {}).length;
@@ -648,9 +712,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
-    console.log(chalk.gray(`  • Graphs: ${graphCount}`));
-    console.log(chalk.gray(`  • Tools: ${toolCount}`));
     console.log(chalk.gray(`  • Agents: ${agentCount}`));
+    console.log(chalk.gray(`  • Tools: ${toolCount}`));
+    console.log(chalk.gray(`  • SubAgents: ${subAgentCount}`));
     if (dataComponentCount > 0) {
       console.log(chalk.gray(`  • Data Components: ${dataComponentCount}`));
     }
@@ -698,7 +762,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Create project directory structure
     spinner.start('Creating project structure...');
-    const dirs = createProjectStructure(baseDir, finalConfig.projectId);
+    const dirs = createProjectStructure(baseDir, finalConfig.projectId, useCurrentDirectory);
     spinner.succeed('Project structure created');
 
     if (options.json) {
@@ -715,7 +779,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Get model settings from config or use default
     const modelSettings: ModelSettings = {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4,
     };
 
     await generateProjectFiles(
@@ -728,13 +792,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Count generated files for summary
     const fileCount = {
-      graphs: Object.keys(projectData.graphs || {}).length,
+      agents: Object.keys(projectData.agents || {}).length,
       tools: Object.keys(projectData.tools || {}).length,
       dataComponents: Object.keys(projectData.dataComponents || {}).length,
       artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
     };
     const totalFiles =
-      fileCount.graphs +
+      fileCount.agents +
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
@@ -789,8 +853,8 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     console.log(chalk.cyan('\n📁 Generated structure:'));
     console.log(chalk.gray(`  ${dirs.projectRoot}/`));
     console.log(chalk.gray(`  ├── index.ts`));
-    if (fileCount.graphs > 0) {
-      console.log(chalk.gray(`  ├── graphs/ (${fileCount.graphs} files)`));
+    if (fileCount.agents > 0) {
+      console.log(chalk.gray(`  ├── agents/ (${fileCount.agents} files)`));
     }
     if (fileCount.tools > 0) {
       console.log(chalk.gray(`  ├── tools/ (${fileCount.tools} files)`));

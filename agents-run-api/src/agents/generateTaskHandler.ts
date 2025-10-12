@@ -1,16 +1,16 @@
 import {
-  type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
   getAgentById,
-  getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
-  getRelatedAgentsForGraph,
+  getRelatedAgentsForAgent,
+  getSubAgentById,
   getToolsForAgent,
   type McpTool,
   type Part,
+  type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -18,7 +18,7 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
@@ -31,9 +31,9 @@ const logger = getLogger('generateTaskHandler');
 export interface TaskHandlerConfig {
   tenantId: string;
   projectId: string;
-  graphId: string;
   agentId: string;
-  agentSchema: AgentApiSelect;
+  subAgentId: string;
+  agentSchema: SubAgentApiSelect;
   name: string;
   baseUrl: string;
   apiKey?: string;
@@ -70,36 +70,36 @@ export const createTaskHandler = (
         dataComponents,
         artifactComponents,
       ] = await Promise.all([
-        getRelatedAgentsForGraph(dbClient)({
+        getRelatedAgentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
+          subAgentId: config.subAgentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getDataComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getArtifactComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
       ]);
@@ -107,28 +107,28 @@ export const createTaskHandler = (
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
       // Enhance internal relation descriptions with their transfer/delegation info
-      // This allows agents to see the full capability graph for routing decisions
+      // This allows agents to see the full capability agent for routing decisions
       // We batch the operations to be more efficient than the original N+1 approach
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
           try {
-            const relatedAgent = await getAgentById(dbClient)({
+            const relatedAgent = await getSubAgentById(dbClient)({
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
-                graphId: config.graphId,
+                agentId: config.agentId,
               },
-              agentId: relation.id,
+              subAgentId: relation.id,
             });
             if (relatedAgent) {
               // Get this agent's relations for enhanced description
-              const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
+              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
                 scopes: {
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.agentId,
                 },
-                agentId: relation.id,
+                subAgentId: relation.id,
               });
 
               // Use the optimized version that accepts pre-computed relations
@@ -140,7 +140,7 @@ export const createTaskHandler = (
               return { ...relation, description: enhancedDescription };
             }
           } catch (error) {
-            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
+            logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
           }
           return relation;
         })
@@ -160,10 +160,10 @@ export const createTaskHandler = (
 
       const agent = new Agent(
         {
-          id: config.agentId,
+          id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
-          graphId: config.graphId,
+          agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           name: config.name,
@@ -171,18 +171,18 @@ export const createTaskHandler = (
           agentPrompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: enhancedInternalRelations.map((relation) => ({
+          subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.agentId,
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
             description: relation.description,
             agentPrompt: '',
             delegateRelations: [],
-            agentRelations: [],
+            subAgentRelations: [],
             transferRelations: [],
           })),
           transferRelations: enhancedInternalRelations
@@ -193,12 +193,12 @@ export const createTaskHandler = (
               id: relation.id,
               tenantId: config.tenantId,
               projectId: config.projectId,
-              graphId: config.graphId,
+              agentId: config.agentId,
               name: relation.name,
               description: relation.description,
               agentPrompt: '',
               delegateRelations: [],
-              agentRelations: [],
+              subAgentRelations: [],
               transferRelations: [],
             })),
           delegateRelations: [
@@ -211,14 +211,14 @@ export const createTaskHandler = (
                   id: relation.id,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
                   description: relation.description,
                   agentPrompt: '',
                   delegateRelations: [],
-                  agentRelations: [],
+                  subAgentRelations: [],
                   transferRelations: [],
                 },
               })),
@@ -247,7 +247,7 @@ export const createTaskHandler = (
       // Update the shared ArtifactService with artifact components for this agent
       const artifactStreamRequestId = task.context?.metadata?.streamRequestId;
       if (artifactStreamRequestId && artifactComponents.length > 0) {
-        graphSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
+        agentSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
       }
 
       // More robust contextId resolution for delegation scenarios
@@ -263,7 +263,7 @@ export const createTaskHandler = (
             {
               taskId: task.id,
               extractedContextId: contextId,
-              agentId: config.agentId,
+              subAgentId: config.subAgentId,
             },
             'Extracted contextId from task ID for delegation'
           );
@@ -281,14 +281,14 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
         logger.info(
-          { agentId: config.agentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
 
         // Ensure ToolSession exists for delegated agents
-        // Use streamRequestId as sessionId to match the parent GraphSession
+        // Use streamRequestId as sessionId to match the parent AgentSession
         if (streamRequestId && config.tenantId && config.projectId) {
-          toolSessionManager.ensureGraphSession(
+          toolSessionManager.ensureAgentSession(
             streamRequestId,
             config.tenantId,
             config.projectId,
@@ -333,21 +333,29 @@ export const createTaskHandler = (
               (result: any) => result.toolCallId === toolCall.toolCallId
             );
 
+            logger.info({
+              toolCallName: toolCall.toolName,
+              toolCallId: toolCall.toolCallId,
+              hasToolResult: !!toolResult,
+              toolResultOutput: toolResult?.output,
+              toolResultKeys: toolResult?.output ? Object.keys(toolResult.output) : [],
+            }, '[DEBUG] Transfer tool result found');
+
             // Validate transfer result with proper type checking
             const isValidTransferResult = (
               output: unknown
             ): output is {
               type: 'transfer';
-              target: string;
+              targetSubAgentId: string;
+              fromSubAgentId?: string;
             } => {
               return (
                 typeof output === 'object' &&
                 output !== null &&
                 'type' in output &&
-                'target' in output &&
+                'targetSubAgentId' in output &&
                 (output as any).type === 'transfer' &&
-                typeof (output as any).target === 'string' &&
-                ((output as any).reason === undefined || typeof (output as any).reason === 'string')
+                typeof (output as any).targetSubAgentId === 'string'
               );
             };
 
@@ -363,11 +371,33 @@ export const createTaskHandler = (
             if (toolResult?.output && isValidTransferResult(toolResult.output)) {
               const transferResult = toolResult.output;
 
+              logger.info({
+                validationPassed: true,
+                transferResult,
+                targetSubAgentId: transferResult.targetSubAgentId,
+                fromSubAgentId: transferResult.fromSubAgentId,
+              }, '[DEBUG] Transfer validation passed, extracted data');
+
+              // Build the artifact data
+              const artifactData = {
+                type: 'transfer',
+                targetSubAgentId: transferResult.targetSubAgentId,
+                fromSubAgentId: transferResult.fromSubAgentId,
+                task_id: task.id,
+                reason: transferReason,
+                original_message: userMessage,
+              };
+
+              logger.info({
+                artifactData,
+                artifactDataKeys: Object.keys(artifactData),
+              }, '[DEBUG] Artifact data being returned');
+
               // Return transfer indication in A2A format
               return {
                 status: {
                   state: TaskState.Completed,
-                  message: `Transfer requested to ${transferResult.target}`,
+                  message: `Transfer requested to ${transferResult.targetSubAgentId}`,
                 },
                 artifacts: [
                   {
@@ -375,18 +405,19 @@ export const createTaskHandler = (
                     parts: [
                       {
                         kind: 'data',
-                        data: {
-                          type: 'transfer',
-                          target: transferResult.target,
-                          task_id: task.id,
-                          reason: transferReason,
-                          original_message: userMessage,
-                        },
+                        data: artifactData,
                       },
                     ],
                   },
                 ],
               };
+            } else {
+              logger.warn({
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              }, '[DEBUG] Transfer validation FAILED');
             }
           }
         }
@@ -442,57 +473,57 @@ export const deserializeTaskHandlerConfig = (configJson: string): TaskHandlerCon
 export const createTaskHandlerConfig = async (params: {
   tenantId: string;
   projectId: string;
-  graphId: string;
   agentId: string;
+  subAgentId: string;
   baseUrl: string;
   apiKey?: string;
 }): Promise<TaskHandlerConfig> => {
+  const subAgent = await getSubAgentById(dbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    subAgentId: params.subAgentId,
+  });
+
   const agent = await getAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
-    },
-    agentId: params.agentId,
-  });
-
-  const agentGraph = await getAgentGraphById(dbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.agentId,
     },
   });
 
-  if (!agent) {
-    throw new Error(`Agent not found: ${params.agentId}`);
+  if (!subAgent) {
+    throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
-  // Inherit graph models if agent doesn't have one
-  const effectiveModels = await resolveModelConfig(params.graphId, agent);
-  const effectiveConversationHistoryConfig = agent.conversationHistoryConfig || { mode: 'full' };
+  // Inherit agent models if agent doesn't have one
+  const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
 
   return {
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.graphId,
     agentId: params.agentId,
+    subAgentId: params.subAgentId,
     agentSchema: {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description,
-      prompt: agent.prompt,
+      id: subAgent.id,
+      name: subAgent.name,
+      description: subAgent.description,
+      prompt: subAgent.prompt,
       models: effectiveModels,
       conversationHistoryConfig: effectiveConversationHistoryConfig || null,
-      stopWhen: agent.stopWhen || null,
-      createdAt: agent.createdAt,
-      updatedAt: agent.updatedAt,
+      stopWhen: subAgent.stopWhen || null,
+      createdAt: subAgent.createdAt,
+      updatedAt: subAgent.updatedAt,
     },
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
-    name: agent.name,
-    description: agent.description,
+    name: subAgent.name,
+    description: subAgent.description,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
-    contextConfigId: agentGraph?.contextConfigId || undefined,
+    contextConfigId: agent?.contextConfigId || undefined,
   };
 };

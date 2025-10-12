@@ -19,7 +19,7 @@ vi.mock('../../../handlers/executionHandler', () => {
   };
 });
 
-import { createAgent, createAgentGraph } from '@inkeep/agents-core';
+import { createAgent, createSubAgent } from '@inkeep/agents-core';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -30,16 +30,16 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphWithDefaultAgent: vi.fn().mockReturnValue(
+    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        id: 'test-graph',
-        name: 'Test Graph',
+        id: 'test-agent',
+        name: 'Test Agent',
         tenantId: 'test-tenant',
         projectId: 'default',
-        defaultAgentId: 'test-agent',
+        defaultSubAgentId: 'test-agent',
       })
     ),
-    getAgentById: vi.fn().mockReturnValue(
+    getSubAgentById: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',
         tenantId: 'test-tenant',
@@ -61,13 +61,13 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ),
     getActiveAgentForConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
-        activeAgentId: 'test-agent',
+        activeSubAgentId: 'test-agent',
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -82,28 +82,28 @@ describe('Chat Data Stream Route', () => {
   it('should stream response using Vercel data stream protocol', async () => {
     const tenantId = createTestTenantId('chat-data-stream');
     const projectId = 'default';
-    const graphId = nanoid();
-    const agentId = 'test-agent';
+    const agentId = nanoid();
+    const subAgentId = 'test-agent';
 
     // Ensure project exists first
     await ensureTestProject(tenantId, projectId);
 
-    // Create graph first
-    await createAgentGraph(dbClient)({
-      id: graphId,
-      tenantId,
-      projectId,
-      name: 'Test Graph',
-      description: 'Test graph for data chat',
-      defaultAgentId: agentId,
-    });
-
-    // Then create agent with graphId
+    // Create agent first
     await createAgent(dbClient)({
       id: agentId,
       tenantId,
       projectId,
-      graphId,
+      name: 'Test Agent',
+      description: 'Test agent for data chat',
+      defaultSubAgentId: subAgentId,
+    });
+
+    // Then create agent with agentId
+    await createSubAgent(dbClient)({
+      id: subAgentId,
+      tenantId,
+      projectId,
+      agentId: agentId,
       name: 'Test Agent',
       description: 'Test agent for streaming',
       prompt: 'You are a helpful assistant.',

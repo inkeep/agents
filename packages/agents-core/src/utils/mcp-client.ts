@@ -173,24 +173,33 @@ export class McpClient {
 
     const { selectedTools, activeTools } = this.serverConfig;
 
-    // Priority: selectedTools > activeTools > all tools
-    let toolsToFilter: string[] | undefined;
+    // Step 1: Determine the universe of available tools
+    let availableTools: Tool[];
 
-    if (selectedTools && selectedTools.length > 0) {
-      // Use selectedTools (user's specific selection from UI)
-      toolsToFilter = selectedTools;
-    } else if (activeTools && activeTools.length > 0) {
-      // Fall back to activeTools (available tools)
-      toolsToFilter = activeTools;
+    if (activeTools === undefined) {
+      // activeTools undefined = all tools are available
+      availableTools = tools;
+    } else if (activeTools.length === 0) {
+      // activeTools empty = no tools available (regardless of selectedTools)
+      return [];
     } else {
-      // No filtering - return all tools
-      return tools;
+      // activeTools defined with items = filter to only those tools
+      availableTools = tools.filter((tool: Tool) => activeTools.includes(tool.name));
     }
 
-    const toolNames = tools.map((tool: Tool) => tool.name);
-    this.validateSelectedTools(toolNames, toolsToFilter);
-
-    return tools.filter((tool: Tool) => toolsToFilter.includes(tool.name));
+    // Step 2: Apply selectedTools filtering to available tools
+    if (selectedTools === undefined) {
+      // selectedTools undefined = use all available tools
+      return availableTools;
+    } else if (selectedTools.length === 0) {
+      // selectedTools empty array = no tools selected
+      return [];
+    } else {
+      // selectedTools has items = filter available tools by selection
+      const toolNames = availableTools.map((tool: Tool) => tool.name);
+      this.validateSelectedTools(toolNames, selectedTools);
+      return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
+    }
   }
 
   async tools() {

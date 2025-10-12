@@ -49,10 +49,79 @@ function shouldReplaceString(value: string, placeholder: string): boolean {
   return value.length >= MIN_REPLACEMENT_LENGTH && placeholder.length < value.length;
 }
 
+function containsTemplateLiterals(value: string): boolean {
+  return /\{\{([^}]+)\}\}/.test(value);
+}
+
+function generateMultiPlaceholderString(
+  value: string,
+  jsonPath: string,
+  tracker: PlaceholderTracker
+): string {
+  const templateLiterals = value.match(/\{\{([^}]+)\}\}/g);
+  if (!templateLiterals) {
+    return value;
+  }
+
+  // Split the string by template literals
+  // This gives us the surrounding text parts
+  const parts = value.split(/\{\{[^}]+\}\}/);
+
+  // Build the placeholder version and track temporary mappings
+  let result = '';
+  let partIndex = 0;
+  const tempMappings: Array<{ placeholder: string; value: string }> = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+
+    // Only replace non-empty parts
+    if (part.length > 0) {
+      // Check if we already have a placeholder for this text
+      const existingPlaceholder = tracker.valueToPlaceholder.get(part);
+      if (existingPlaceholder) {
+        result += existingPlaceholder;
+      } else {
+        // Generate a new placeholder for this text part
+        const placeholder = generatePlaceholder(`${jsonPath}.part${partIndex}`);
+        tempMappings.push({ placeholder, value: part });
+        result += placeholder;
+      }
+      partIndex++;
+    }
+
+    // Add the template literal back (except after the last part)
+    if (i < templateLiterals.length) {
+      result += templateLiterals[i];
+    }
+  }
+
+  // Only use the placeholder version if it saves space overall
+  if (result.length < value.length) {
+    // Commit the temporary mappings to the tracker
+    for (const mapping of tempMappings) {
+      updateTracker(tracker, mapping.placeholder, mapping.value);
+    }
+    return result;
+  }
+
+  // Return original string if placeholders don't save space
+  return value;
+}
+
 function isJsonSchemaPath(path: string): boolean {
   if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
     return true;
   }
+  
+  // Convert artifact component and data component props from JSON Schema to Zod
+  if (path.includes('artifactComponents') && path.endsWith('props')) {
+    return true;
+  }
+  if (path.includes('dataComponents') && path.endsWith('props')) {
+    return true;
+  }
+  
   return false;
 }
 
@@ -66,30 +135,34 @@ function updateTracker(tracker: PlaceholderTracker, placeholder: string, value: 
  */
 function processObject(obj: any, tracker: PlaceholderTracker, path: string = ''): any {
   if (typeof obj === 'string') {
-    // Check if we already have a placeholder for this exact value
-    const existingPlaceholder = tracker.valueToPlaceholder.get(obj);
-    if (existingPlaceholder) {
-      return existingPlaceholder;
-    }
-
-    // Generate a new placeholder
-    const placeholder = generatePlaceholder(path);
-
-    // Only use the placeholder if it saves space
-    if (shouldReplaceString(obj, placeholder)) {
-      // Check for collision (same placeholder, different value)
-      const existingValue = tracker.placeholderToValue.get(placeholder);
-      if (existingValue && existingValue !== obj) {
-        throw new Error(
-          `Placeholder collision detected: placeholder '${placeholder}' already exists with different value. ` +
-            `Existing value length: ${existingValue.length}, New value length: ${obj.length}`
-        );
+    if (containsTemplateLiterals(obj)) {
+      return generateMultiPlaceholderString(obj, path, tracker);
+    } else {
+      // Check if we already have a placeholder for this exact value
+      const existingPlaceholder = tracker.valueToPlaceholder.get(obj);
+      if (existingPlaceholder) {
+        return existingPlaceholder;
       }
 
-      // Store the mapping both ways for efficient lookup
-      updateTracker(tracker, placeholder, obj);
+      // Generate a new placeholder
+      const placeholder = generatePlaceholder(path);
 
-      return placeholder;
+      // Only use the placeholder if it saves space
+      if (shouldReplaceString(obj, placeholder)) {
+        // Check for collision (same placeholder, different value)
+        const existingValue = tracker.placeholderToValue.get(placeholder);
+        if (existingValue && existingValue !== obj) {
+          throw new Error(
+            `Placeholder collision detected: placeholder '${placeholder}' already exists with different value. ` +
+              `Existing value length: ${existingValue.length}, New value length: ${obj.length}`
+          );
+        }
+
+        // Store the mapping both ways for efficient lookup
+        updateTracker(tracker, placeholder, obj);
+
+        return placeholder;
+      }
     }
 
     // Return original string if not worth replacing

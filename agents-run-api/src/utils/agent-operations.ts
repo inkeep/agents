@@ -1,3 +1,4 @@
+import type { DataOperationEvent } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 
 // =============================================================================
@@ -11,7 +12,7 @@ export interface AgentInitializingEvent {
   type: 'agent_initializing';
   details: {
     sessionId: string;
-    graphId: string;
+    agentId: string;
   };
 }
 
@@ -40,19 +41,6 @@ export interface ErrorEvent {
 }
 
 /**
- * Data operation event (for emit operations)
- */
-export interface DataOperationEvent {
-  type: string;
-  label: string;
-  details: {
-    timestamp: number;
-    agentId: string;
-    data: any;
-  };
-}
-
-/**
  * Discriminated union of all operation events
  */
 export type OperationEvent =
@@ -68,12 +56,12 @@ export type OperationEvent =
 /**
  * Creates an agent initializing operation
  */
-export function agentInitializingOp(sessionId: string, graphId: string): AgentInitializingEvent {
+export function agentInitializingOp(sessionId: string, agentId: string): AgentInitializingEvent {
   return {
     type: 'agent_initializing',
     details: {
       sessionId,
-      graphId,
+      agentId,
     },
   };
 }
@@ -81,11 +69,11 @@ export function agentInitializingOp(sessionId: string, graphId: string): AgentIn
 /**
  * Creates a completion operation
  */
-export function completionOp(agentId: string, iterations: number): CompletionEvent {
+export function completionOp(subAgentId: string, iterations: number): CompletionEvent {
   return {
     type: 'completion',
     details: {
-      agent: agentId,
+      agent: subAgentId,
       iteration: iterations,
     },
   };
@@ -94,20 +82,20 @@ export function completionOp(agentId: string, iterations: number): CompletionEve
 /**
  * Creates a unified error event
  * @param message - Error message
- * @param agentId - Optional agent ID for context
+ * @param subAgentId - Optional agent ID for context
  * @param severity - Error severity level
  * @param code - Optional error code
  */
 export function errorOp(
   message: string,
-  agentId?: string,
+  subAgentId?: string,
   severity: 'error' | 'warning' | 'info' = 'error',
   code?: string
 ): ErrorEvent {
   return {
     type: 'error',
     message,
-    agent: agentId,
+    agent: subAgentId,
     severity,
     code,
     timestamp: Date.now(),

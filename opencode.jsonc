@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Theme configuration
+  "theme": "opencode",
+  "autoupdate": true,
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "deepseek-r1:1.5b": {
+          "name": "DeepSeek R1 1.5B"
+        },
+        "qwen3-coder:30b": {
+          "name": "Qwen3 Coder 30B"
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { AgentGraphSelect, AgentSelect, ProjectSelect } from '@inkeep/agents-core';
+import type { AgentSelect, ProjectSelect, SubAgentSelect } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
@@ -12,34 +12,34 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    getAgentGraphById: vi.fn(),
+    getAgentById: vi.fn(),
     getProject: vi.fn(),
   };
 });
 
 // Import mocked functions
-const mockGetAgentGraphById = vi.mocked(await import('@inkeep/agents-core')).getAgentGraphById;
+const mockGetAgentById = vi.mocked(await import('@inkeep/agents-core')).getAgentById;
 const mockGetProject = vi.mocked(await import('@inkeep/agents-core')).getProject;
 
 describe('resolveModelConfig', () => {
-  const mockGraphId = 'graph-123';
+  const mockAgentId = 'agent-123';
   const baseAgent = {
     id: 'agent-123',
     tenantId: 'tenant-123',
     projectId: 'project-123',
     name: 'Test Agent',
-  } as AgentSelect;
+  } as SubAgentSelect;
 
   beforeEach(() => {
     // Clear all mock calls and implementations
     vi.clearAllMocks();
-    
+
     // Reset mock implementations to default
-    mockGetAgentGraphById.mockReset();
+    mockGetAgentById.mockReset();
     mockGetProject.mockReset();
 
     // Setup default mock implementations that return functions
-    mockGetAgentGraphById.mockReturnValue(vi.fn());
+    mockGetAgentById.mockReturnValue(vi.fn());
     mockGetProject.mockReturnValue(vi.fn());
   });
 
@@ -50,14 +50,14 @@ describe('resolveModelConfig', () => {
 
   describe('when agent has base model defined', () => {
     it('should use agent base model for all model types when only base is defined', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -65,22 +65,22 @@ describe('resolveModelConfig', () => {
         summarizer: { model: 'gpt-4' },
       });
 
-      // Should not call graph or project functions
-      expect(mockGetAgentGraphById).not.toHaveBeenCalled();
+      // Should not call agent or project functions
+      expect(mockGetAgentById).not.toHaveBeenCalled();
       expect(mockGetProject).not.toHaveBeenCalled();
     });
 
     it('should use specific models when defined, fallback to base for undefined ones', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -90,16 +90,16 @@ describe('resolveModelConfig', () => {
     });
 
     it('should use all specific models when all are defined', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -110,14 +110,14 @@ describe('resolveModelConfig', () => {
   });
 
   describe('when agent does not have base model defined', () => {
-    it('should use graph model config when available', async () => {
-      const agent: AgentSelect = {
+    it('should use agent model config when available', async () => {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         tenantId: 'tenant-123',
         projectId: 'project-123',
         models: {
@@ -125,12 +125,12 @@ describe('resolveModelConfig', () => {
           structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: undefined,
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -138,28 +138,28 @@ describe('resolveModelConfig', () => {
         summarizer: { model: 'claude-3-sonnet' },
       });
 
-      expect(mockGetAgentGraphById).toHaveBeenCalledWith('mock-db-client');
-      expect(mockGraphFn).toHaveBeenCalledWith({
+      expect(mockGetAgentById).toHaveBeenCalledWith('mock-db-client');
+      expect(mockAgentFn).toHaveBeenCalledWith({
         scopes: {
           tenantId: 'tenant-123',
           projectId: 'project-123',
-          graphId: 'graph-123',
+          agentId: 'agent-123',
         },
       });
     });
 
-    it('should respect agent-specific models even when using graph base model', async () => {
-      const agent: AgentSelect = {
+    it('should respect agent-specific models even when using agent base model', async () => {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         tenantId: 'tenant-123',
         projectId: 'project-123',
         models: {
@@ -167,30 +167,30 @@ describe('resolveModelConfig', () => {
           structuredOutput: { model: 'claude-3.5-haiku' },
           summarizer: { model: 'claude-3-opus' },
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
-        summarizer: { model: 'claude-3-opus' }, // Falls back to graph
+        summarizer: { model: 'claude-3-opus' }, // Falls back to agent
       });
     });
 
-    it('should fallback to project config when graph has no base model', async () => {
-      const agent: AgentSelect = {
+    it('should fallback to project config when agent has no base model', async () => {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -202,13 +202,13 @@ describe('resolveModelConfig', () => {
         },
       } as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-3.5-turbo' },
@@ -223,19 +223,19 @@ describe('resolveModelConfig', () => {
     });
 
     it('should respect agent-specific models when using project base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -247,13 +247,13 @@ describe('resolveModelConfig', () => {
         },
       } as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -265,42 +265,42 @@ describe('resolveModelConfig', () => {
 
   describe('error handling', () => {
     it('should throw error when no base model is configured anywhere', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
         models: null,
       } as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
 
     it('should throw error when project models exist but no base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         models: null,
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -311,22 +311,22 @@ describe('resolveModelConfig', () => {
         },
       } as unknown as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
 
-    it('should handle null graph gracefully', async () => {
-      const agent: AgentSelect = {
+    it('should handle null agent gracefully', async () => {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -338,13 +338,13 @@ describe('resolveModelConfig', () => {
         },
       } as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(null);
+      const mockAgentFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -354,18 +354,18 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle null project gracefully', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: null,
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(null);
+      const mockAgentFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(null);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockGraphId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
@@ -373,45 +373,45 @@ describe('resolveModelConfig', () => {
 
   describe('edge cases', () => {
     it('should handle agent models with null base model', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: null as any,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
-      const mockGraph: AgentGraphSelect = {
-        id: 'graph-123',
+      const mockAgent: AgentSelect = {
+        id: 'agent-123',
         models: {
           base: { model: 'claude-3-sonnet' },
           structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as AgentGraphSelect;
+      } as AgentSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(mockGraph);
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
-        summarizer: { model: 'claude-3.5-haiku' }, // Falls back to graph
+        summarizer: { model: 'claude-3.5-haiku' }, // Falls back to agent
       });
     });
 
     it('should handle mixed null and undefined values', async () => {
-      const agent: AgentSelect = {
+      const agent: SubAgentSelect = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: null as any,
           summarizer: { model: 'custom-summarizer' },
         },
-      } as AgentSelect;
+      } as SubAgentSelect;
 
       const mockProject: ProjectSelect = {
         id: 'project-123',
@@ -423,13 +423,13 @@ describe('resolveModelConfig', () => {
         },
       } as ProjectSelect;
 
-      const mockGraphFn = vi.fn().mockResolvedValue(null);
+      const mockAgentFn = vi.fn().mockResolvedValue(null);
       const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
 
-      mockGetAgentGraphById.mockReturnValue(mockGraphFn);
+      mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockGraphId, agent);
+      const result = await resolveModelConfig(mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'base-model' },

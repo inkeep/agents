@@ -1,14 +1,14 @@
 ---
-title: How to call your AI Agent Graph via a Vercel AI SDK format API
+title: How to call your AI Agent via a Vercel AI SDK format API
 sidebarTitle: Via API
-description: Use a raw HTTP request to stream responses from your agent graph over the Vercel AI SDK data stream protocol.
+description: Use a raw HTTP request to stream responses from your agent over the Vercel AI SDK data stream protocol.
 icon: LuNetwork
 keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
 ---
 
 ## Overview
 
-This guide shows how to call your agent graph directly over HTTP and stream responses using the Vercel AI SDK data stream format. It covers the exact endpoint, headers, request body, and the event stream response you should expect.
+This guide shows how to call your agent directly over HTTP and stream responses using the Vercel AI SDK data stream format. It covers the exact endpoint, headers, request body, and the event stream response you should expect.
 
 <Tip>
   If you are building a React UI, consider our prebuilt components under [React UI Components](/talk-to-your-agents/react/chat-button). This page is for low-level HTTP usage.
@@ -44,9 +44,6 @@ This guide shows how to call your agent graph directly over HTTP and stream resp
 - **`content`** — Can be a string or an object with `parts` for multi-part content
 - **`conversationId`** — Optional; server generates one if omitted
 
-<Note>
-  Provide request context via HTTP headers only (validated against your Context Config). Do not include it in the JSON body. See [Request context](/typescript-sdk/request-context).
-</Note>
 
 ### Optional Headers
 
@@ -179,7 +176,7 @@ Validation failures and other errors return JSON with an appropriate HTTP status
 
 - **`200`** — Stream opened successfully
 - **`401`** — Missing/invalid authentication
-- **`404`** — Graph or agent not found
+- **`404`** — Agent not found
 - **`400`** — Invalid request body/context
 - **`500`** — Internal server error
 

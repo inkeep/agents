@@ -8,7 +8,7 @@ Choose the authentication method:
 **Create an API Key:**
 1. Open the Visual Builder Dashboard
 2. Go to your Project → **API Keys**
-3. Click **Create**, select the target agent graph
+3. Click **Create**, select the target agent
 4. Copy the API key (it will be shown once) and store it securely
 
 **Request Header:**
@@ -25,7 +25,7 @@ When running the API server locally with `pnpm dev`, authentication is automatic
 ```http
 x-inkeep-tenant-id: <tenant-id>
 x-inkeep-project-id: <project-id>
-x-inkeep-graph-id: <graph-id>
+x-inkeep-agent-id: <agent-id>
 ```
 
 <Warning>

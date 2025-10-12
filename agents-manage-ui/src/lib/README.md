@@ -28,14 +28,14 @@ import {
 } from '@/lib';
 ```
 
-### Create a new graph
+### Create a new agent
 
 ```typescript
 const result = await createFullGraphAction('tenant-123', {
-  id: 'my-graph',
-  name: 'My Customer Service Graph',
-  description: 'A graph for customer service operations',
-  defaultAgentId: 'support-agent',
+  id: 'my-agent',
+  name: 'My Customer Service Agent',
+  description: 'A agent for customer service operations',
+  defaultSubAgentId: 'support-agent',
   agents: {
     'support-agent': {
       id: 'support-agent',
@@ -55,55 +55,55 @@ const result = await createFullGraphAction('tenant-123', {
 });
 
 if (result.success) {
-  console.log('Graph created:', result.data);
+  console.log('Agent created:', result.data);
 } else {
   console.error('Error:', result.error);
 }
 ```
 
-### Get an existing graph
+### Get an existing agent
 
 ```typescript
-const result = await getFullGraphAction('tenant-123', 'my-graph');
+const result = await getFullGraphAction('tenant-123', 'my-agent');
 
 if (result.success) {
-  console.log('Graph retrieved:', result.data);
+  console.log('Agent retrieved:', result.data);
 } else {
   console.error('Error:', result.error);
 }
 ```
 
-### Update a graph
+### Update an agent
 
 ```typescript
 const updatedGraph = {
-  id: 'my-graph',
-  name: 'Updated Customer Service Graph',
+  id: 'my-agent',
+  name: 'Updated Customer Service Agent',
   // ... other properties
 };
 
-const result = await updateFullGraphAction('tenant-123', 'my-graph', updatedGraph);
+const result = await updateFullGraphAction('tenant-123', 'my-agent', updatedGraph);
 
 if (result.success) {
-  console.log('Graph updated:', result.data);
+  console.log('Agent updated:', result.data);
 } else {
   console.error('Error:', result.error);
 }
 ```
 
-### Delete a graph
+### Delete an agent
 
 ```typescript
-const result = await deleteFullGraphAction('tenant-123', 'my-graph');
+const result = await deleteFullGraphAction('tenant-123', 'my-agent');
 
 if (result.success) {
-  console.log('Graph deleted successfully');
+  console.log('Agent deleted successfully');
 } else {
   console.error('Error:', result.error);
 }
 ```
 
-### Validate graph data
+### Validate agent data
 
 Use this for form validation before submitting:
 
@@ -138,9 +138,9 @@ type ActionResult<T = void> = {
 
 The API may return the following error codes:
 
-- `not_found`: Graph not found
+- `not_found`: Agent not found
 - `bad_request`: Invalid request data
 - `internal_server_error`: Server error
-- `conflict`: Graph already exists (on create)
+- `conflict`: Agent already exists (on create)
 - `validation_error`: Client-side validation failed
 - `unknown_error`: Unexpected error occurred

@@ -6,10 +6,10 @@ import {
   createApiError,
   createMessage,
   getActiveAgentForConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentWithDefaultSubAgent,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   loggerFactory,
   setActiveAgentForConversation,
@@ -91,11 +91,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
-      .debug({ tenantId, projectId, graphId }, 'Extracted chatDataStream parameters');
+      .debug({ tenantId, projectId, agentId }, 'Extracted chatDataStream parameters');
 
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
@@ -106,28 +106,28 @@ app.openapi(chatDataStreamRoute, async (c) => {
       activeSpan.setAttributes({
         'conversation.id': conversationId,
         'tenant.id': tenantId,
-        'graph.id': graphId,
+        'agent.id': agentId,
         'project.id': projectId,
       });
     }
 
-    const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-      scopes: { tenantId, projectId, graphId },
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
     });
-    if (!agentGraph) {
+    if (!agent) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent graph not found',
+        message: 'Agent not found',
       });
     }
 
-    const defaultAgentId = agentGraph.defaultAgentId;
-    const graphName = agentGraph.name;
+    const defaultSubAgentId = agent.defaultSubAgentId;
+    const agentName = agent.name;
 
-    if (!defaultAgentId) {
+    if (!defaultSubAgentId) {
       throw createApiError({
         code: 'bad_request',
-        message: 'Graph does not have a default agent configured',
+        message: 'Agent does not have a default agent configured',
       });
     }
 
@@ -139,14 +139,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
       setActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        agentId: defaultAgentId,
+        subAgentId: defaultSubAgentId,
       });
     }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
+    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
+    const agentInfo = await getSubAgentById(dbClient)({
+      scopes: { tenantId, projectId, agentId },
+      subAgentId: subAgentId as string,
     });
     if (!agentInfo) {
       throw createApiError({
@@ -164,7 +164,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     await handleContextResolution({
       tenantId,
       projectId,
-      graphId,
+      agentId,
       conversationId,
       headers: validatedContext,
       dbClient,
@@ -183,7 +183,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       messageSpan.setAttributes({
         'message.timestamp': new Date().toISOString(),
         'message.content': userText,
-        'graph.name': graphName,
+        'agent.name': agentName,
       });
     }
     await createMessage(dbClient)({
@@ -218,7 +218,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             executionContext,
             conversationId,
             userMessage: userText,
-            initialAgentId: agentId,
+            initialAgentId: subAgentId,
             requestId: `chatds-${Date.now()}`,
             sseHelper: streamHelper,
             emitOperations,

@@ -65,7 +65,7 @@ Open `http://localhost:3000` in the browser and start building agents.
 
 # Push your project
 
-A key advantage of the Inkeep agent framework is its seamless code-to-visual workflow: define your agents programmatically, push them to the visual builder, and continue developing with the intuitive drag-and-drop interface.
+A key advantage of the Inkeep agent framework is its seamless code-to-visual workflow: define your agents programmatically, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface.
 
 Follow the steps below to push your project using the [Inkeep CLI](/typescript-sdk/cli-reference).
 
@@ -88,11 +88,11 @@ inkeep push
   default. Feel free to change it to your own project.
 </Note>
 
-### Step 3: Observe the graph in the visual builder
+### Step 3: Observe the Agent in the Visual Builder
 
 <img
-  src="/gifs/basic-graph.gif"
-  alt="Basic graph"
+  src="/gifs/basic-agent.gif"
+  alt="Basic Agent"
   width="100%"
   style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
 />
@@ -267,7 +267,7 @@ pnpm build
 2. **Test commands locally:**
 ```bash
 # From repository root
-node agents-cli/dist/index.js push examples/agent-configurations/graph.graph.ts
+node agents-cli/dist/index.js push examples/agent-configurations
 node agents-cli/dist/index.js chat
 ```
 

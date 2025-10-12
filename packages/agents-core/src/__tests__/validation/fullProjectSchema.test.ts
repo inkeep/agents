@@ -16,18 +16,18 @@ describe('FullProjectDefinitionSchema', () => {
       transferCountIs: 10,
       stepCountIs: 50,
     },
-    graphs: {
-      'graph-1': {
-        id: 'graph-1',
-        name: 'Test Graph',
-        description: 'A test graph',
-        defaultAgentId: 'agent-1',
-        agents: {
-          'agent-1': {
-            id: 'agent-1',
-            name: 'Test Agent',
-            description: 'A test agent for validation',
-            prompt: 'You are a test agent',
+    agents: {
+      'agent-1': {
+        id: 'agent-1',
+        name: 'Test Agent',
+        description: 'A test agent',
+        defaultSubAgentId: 'sub-agent-1',
+        subAgents: {
+          'sub-agent-1': {
+            id: 'sub-agent-1',
+            name: 'Test Sub-Agent',
+            description: 'A test sub-agent for validation',
+            prompt: 'You are a test sub-agent',
             canUse: [],
             type: 'internal',
           },
@@ -67,7 +67,7 @@ describe('FullProjectDefinitionSchema', () => {
           providerOptions: {},
         },
       },
-      graphs: {},
+      agents: {},
       tools: {},
     };
 
@@ -75,7 +75,7 @@ describe('FullProjectDefinitionSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should require id, name, models, graphs, and tools fields', () => {
+  it('should require id, name, models, agents, and tools fields', () => {
     const invalidProject = {
       description: 'Missing required fields',
     };
@@ -88,7 +88,7 @@ describe('FullProjectDefinitionSchema', () => {
           expect.objectContaining({ path: ['id'] }),
           expect.objectContaining({ path: ['name'] }),
           expect.objectContaining({ path: ['models'] }),
-          expect.objectContaining({ path: ['graphs'] }),
+          expect.objectContaining({ path: ['agents'] }),
           expect.objectContaining({ path: ['tools'] }),
         ])
       );
@@ -116,20 +116,20 @@ describe('FullProjectDefinitionSchema', () => {
     }
   });
 
-  it('should validate nested graph structure', () => {
-    const projectWithInvalidGraph = {
+  it('should validate nested agent structure', () => {
+    const projectWithInvalidAgent = {
       ...validFullProject,
-      graphs: {
-        'invalid-graph': {
-          id: 'invalid-graph',
-          name: 'Invalid Graph',
+      agents: {
+        'invalid-agent': {
+          id: 'invalid-agent',
+          name: 'Invalid Agent',
           // Missing description
-          agents: 'not-an-object', // Should be object
+          subAgents: 'not-an-object', // Should be object
         },
       },
     };
 
-    const result = FullProjectDefinitionSchema.safeParse(projectWithInvalidGraph);
+    const result = FullProjectDefinitionSchema.safeParse(projectWithInvalidAgent);
     expect(result.success).toBe(false);
   });
 
@@ -144,7 +144,7 @@ describe('FullProjectDefinitionSchema', () => {
           providerOptions: {},
         },
       },
-      graphs: {},
+      agents: {},
       tools: {},
       // credentialReferences omitted
       // stopWhen omitted

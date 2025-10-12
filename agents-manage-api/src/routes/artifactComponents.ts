@@ -3,17 +3,17 @@ import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
+  ArtifactComponentListResponse,
+  ArtifactComponentResponse,
   commonGetErrorResponses,
   createApiError,
   createArtifactComponent,
   deleteArtifactComponent,
   ErrorResponseSchema,
   getArtifactComponentById,
-  IdParamsSchema,
-  ListResponseSchema,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
@@ -39,7 +39,7 @@ app.openapi(
         description: 'List of artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentListResponse,
           },
         },
       },
@@ -67,14 +67,14 @@ app.openapi(
     operationId: 'get-artifact-component-by-id',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Artifact component found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -121,7 +121,7 @@ app.openapi(
         description: 'Artifact component created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -185,7 +185,7 @@ app.openapi(
     operationId: 'update-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -199,7 +199,7 @@ app.openapi(
         description: 'Artifact component updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -262,7 +262,7 @@ app.openapi(
     operationId: 'delete-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

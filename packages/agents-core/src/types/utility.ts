@@ -37,16 +37,16 @@ export type ProjectScopeConfig = {
   projectId: string;
 };
 
-export type GraphScopeConfig = ProjectScopeConfig & {
-  graphId: string;
+export type AgentScopeConfig = ProjectScopeConfig & {
+  agentId: string;
 };
 
-export type AgentScopeConfig = GraphScopeConfig & {
-  agentId: string;
+export type SubAgentScopeConfig = AgentScopeConfig & {
+  subAgentId: string;
 };
 export interface ConversationScopeOptions {
   taskId?: string;
-  agentId?: string;
+  subAgentId?: string;
 }
 
 export type ConversationHistoryConfig = {
@@ -191,10 +191,10 @@ export type TaskMetadataConfig = {
   message_id: string;
   created_at: string;
   updated_at: string;
-  root_agent_id?: string;
-  agent_id?: string;
+  root_sub_agent_id?: string;
+  sub_agent_id?: string;
   tool_id?: string;
-  graph_id?: string;
+  agent_id?: string;
   stream_request_id?: string;
 };
 
@@ -203,8 +203,8 @@ export interface ProjectInfo {
 }
 
 export interface ProjectResourceCounts {
+  subAgents: number;
   agents: number;
-  agentGraphs: number;
   tools: number;
   contextConfigs: number;
   externalAgents: number;
@@ -233,7 +233,7 @@ export const CredentialStoreType = {
 export interface CreateApiKeyParams {
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   name: string;
   expiresAt?: string;
 }
@@ -254,12 +254,12 @@ export interface ExecutionContext {
   tenantId: string;
   /** Project ID extracted from API key */
   projectId: string;
-  /** Graph ID extracted from API key */
-  graphId: string;
+  /** Agent ID extracted from API key */
+  agentId: string;
   /** Base URL for internal API calls */
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
-  /** Agent ID extracted from request headers (only for internal A2A calls) */
-  agentId?: string;
+  /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
+  subAgentId?: string;
 }

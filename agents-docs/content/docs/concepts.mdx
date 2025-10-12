@@ -1,98 +1,97 @@
 ---
 title: Core concepts of the Inkeep Agent Platform
 sidebarTitle: Concepts
-description: Learn about the key building blocks of Inkeep - agents, graphs, tools, data components, and more.
+description: Learn about the key building blocks of Inkeep - Sub Agents, Agents, tools, data components, and more.
 icon: "LuBoxes"
 ---
 
-## Agents, Tools
+## Agents
 
-Inkeep is designed with Agents as the primary building blocks of AI systems.
+In Inkeep, an Agent is the top-level entity you as an end-user can interface with via conversational experiences (chat) or trigger programmatically (via API).
 
-In simple terms:
-- An **Agent** is an LLM (AI model) that receives a message and can use tools or collaborate with other agents to accomplish a goal.
-- **Tools** are actions that an Agent can take, like looking up information or taking an action on third-party systems and APIs.
+Under the hood, an Agent is made up of one or more **Sub Agents** that work together to respond to a user or complete a task.
 
-In Inkeep, tools are added to agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own. With Inkeep, you can register MCP servers and their associated **Credentials**, then use them within Agents as tools.
+## Tools
+When you send a message to an Agent, it is first received by a **Default Sub Agent** that decides what to do next. 
 
-Typically, you want an Agent to handle narrow, well-defined tasks. Keeping the scope narrow allows you to optimize your **prompt** (instructions) and the tools an agent has to be specific to a scenario or task. As a general rule of thumb, only add up to 5-7 tools to an agent.
+In a simple Agent, there may be only one Sub Agent with a few tools available to it.
 
-## Graphs
+**Tools** are actions that a Sub Agent can take, like looking up information or performing a task on apps and APIs.
 
-When what you're trying to accomplish gets complex, it can be useful to break up your logic into a "team" of agents that work together. 
+In Inkeep, tools are added to Sub Agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own and register them and their associated **Credentials** on Inkeep for Agents to use.
 
-At Inkeep, we call that a **Graph**. A Graph is made up of one or more Agents that collaborate to complete a task and respond to the user.
+Typically, you want a Sub Agent to handle narrow, well-defined tasks. As a general rule of thumb, only add up to 5-7 tools to a Sub Agent.
 
-<Tip>
-**You can treat a Graph as one Agent**: when you send a message, it'll sound and reply as one single Agent, even if internally it's coordinating across multiple agents. This is similar to how companies operate: there may be internal back-and-forths between employees, but a company acts as one cohesive unit to external audiences, like customers.
-</Tip>
+## Sub Agent relationships
 
-### Agent to Agent relationships
+When your scenario gets complex, it can be useful to break up your logic into multiple Sub Agents that are specialized in specific parts of your task or workflow. This is often referred to as a "Multi-Agent" system.
 
-With Inkeep, every Graph has a **Default Agent** that receives the initial message and decides how to proceed. 
+A Sub Agent can be configured to:
+- **Transfer** control of the chat to another Sub Agent. When a transfer happens, the receiving Sub Agent becomes the primary driver of the thread and can respond to the user directly.
+- **Delegate** a subtask for another ('child') Sub Agent to do and wait for its response before proceeding with the next step. A child Sub Agent *cannot* respond directly to a user.
 
-In a Graph, an Agent can choose to:
-- **Transfer** control of the chat to another Agent so a different Agent can respond to the user.
-- **Delegate** a subtask for another Agent to do and wait for its response before proceeding with the next step.
- 
-### Agent 'turn'
+## Sub Agent 'turn'
 
-In summary, when an Agent receives a message, it can choose to:
-1. Respond to the user
-2. Call a tool to collect information or take an action 
-3. Transfer or delegate to another Agent
+When it's a Sub Agent's turn, it can choose to:
+1. Send an update message to the user
+2. Call a tool to collect information or take an action
+3. Transfer or delegate to another Sub Agent
 
-The Graph keeps executing steps 2 and 3 until an Agent in the graph chooses to respond to the user with a final result or a next message.
+An Agent's execution stays in this loop until one of the Sub Agents chooses to respond to the user with a final result.
+
+<Note>
+Sub Agents in Inkeep are designed to respond to the user as a single, cohesive unit by default.
+</Note>
 
 ## Chatting with an Agent
 
-<Snippet file="multi-agent-framework/WaysToTalkToGraph.mdx" />
+<Snippet file="multi-agent-framework/WaysToTalkToAgent.mdx" />
 
 ## Authentication & API Keys
 
-You can authenticate with your graph using:
+You can authenticate with your Agent using:
 
-- **API Keys**: Securely hashed keys that are scoped to specific graphs
+- **API Keys**: Securely hashed keys that are scoped to specific Agents
 - **Development Mode**: No API key required, perfect for local development and testing
 - **Bypass Secrets**: For internal services and infrastructure that need direct access
 
-API keys are the recommended approach for production use, providing secure, scoped access to your agent graphs.
+API keys are the recommended approach for production use, providing secure, scoped access to your Agents.
 
 ## Agent replies with Structured Data
 
-Sometimes, you want your Agent to reply not in plain text, but with specific types of information 'Structured Outputs' (JSON).
+Sometimes, you want your Agent to reply not in plain text but with specific types of well-defined information, often called 'Structured Outputs' (JSON).
 
 With Inkeep, there are a few ways to do this:
-- **Data Components**: Structured Outputs that agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
-- **Artifacts**: An Agent can save information from a **tool call result** as an artifact in order to make it available to others. For example, an Agent that did a web search can save the contents of a webpage it looked at as an artifact. Once saved, an Agent can cite or reference artifacts in its response, and other agents or users can fetch the full artifacts if they'd like.
-- **Status Updates**: Real-time progress updates that can be plain text or Structured Outputs that can be used to keep users informed about what the agent is doing during longer operations. 
+- **Data Components**: Structured Outputs that Sub Agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
+- **Artifacts**: A Sub Agent can save information from a **tool call result** as an artifact in order to make it available to others. For example, a Sub Agent that did a web search can save the contents of a webpage it looked at as an artifact. Once saved, a Sub Agent can cite or reference artifacts in its response, and other Sub Agents or users can fetch the full artifacts if they'd like.
+- **Status Updates**: Real-time progress updates that can be plain text or Structured Outputs that can be used to keep users informed about what the Sub Agent is doing during longer operations.
 
-## Passing context to Agents
+## Passing context to Sub Agents
 
-Beyond using Tools to fetch information, Agents also receive information via:
-- **Headers**: In the API request to an Agent, the calling application can include headers (a.k.a **Request Context**) for an agent.
-- **Context Fetchers**: Can be configured for a Graph so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is then made available to any Agent. For example, your Headers may include a `user-id` which can be used to auto-fetch information from a CRM about the user for any Agent to use.
+Beyond using Tools to fetch information, Sub Agents also receive information via:
+- **Headers**: In the API request to an Agent, the calling application can include headers for a Sub Agent. Learn more [here](/typescript-sdk/headers).
+- **Context Fetchers**: Can be configured for an Agent so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is then made available to any Sub Agent. For example, your Headers may include a `user-id`, which can be used to auto-fetch information from a CRM about the user for any Sub Agent to use.
 
-Headers and fetched context can then be referenced explicitly as `{{variables}}` in Agent prompts. Learn more [here](/typescript-sdk/request-context).
+Headers and fetched context can then be referenced explicitly as `{{variables}}` in Sub Agent prompts. Learn more [here](/typescript-sdk/headers).
 
 ## Ways to build
 
-Quick reference to the key docs for building with the Visual Builder or the Agents SDK.
+Quick reference to the key docs for building with the Visual Builder or the TypeScript SDK.
 
 <Tabs>
   <Tab title="Visual Builder">
     <Cards>
       <Card title="MCP Servers" icon="LuServer" href="/visual-builder/mcp-servers">
-        Configure and manage MCP servers for your agents.
+        Configure and manage MCP servers for your Sub Agents.
       </Card>
-      <Card title="Graphs" icon="LuSpline" href="/visual-builder/graphs">
-        Create and manage agent graphs visually.
+      <Card title="Agents" icon="LuSpline" href="/visual-builder/sub-agents">
+        Create and manage Agents visually.
       </Card>
       <Card title="Data Components" icon="LuLayoutTemplate" href="/visual-builder/data-components">
-        Build rich UI elements agents can render in conversations.
+        Build rich UI elements Sub Agents can render in conversations.
       </Card>
       <Card title="Artifact Components" icon="TbInputSpark" href="/visual-builder/artifact-components">
-        Define structured outputs generated by tools or agents.
+        Define structured outputs generated by tools or Sub Agents.
       </Card>
       <Card title="Status Components" icon="LuClock" href="/visual-builder/status-components">
         Show progress updates during longer operations.
@@ -101,26 +100,26 @@ Quick reference to the key docs for building with the Visual Builder or the Agen
         Manage secrets and auth for MCP servers.
       </Card>
       <Card title="Project Management" icon="LuFolder" href="/visual-builder/project-management">
-        Organize graphs, MCP Servers, and other entities in Projects.
+        Organize agents, MCP Servers, and other entities in Projects.
       </Card>
     </Cards>
   </Tab>
-  <Tab title="Agents SDK">
+  <Tab title="TypeScript SDK">
     <Cards>
-      <Card title="Agent Settings" icon="LuUser" href="/typescript-sdk/agent-configuration">
-        Configure agents with prompts, tools, and data components.
+      <Card title="Sub Agent Settings" icon="LuUser" href="/typescript-sdk/agent-settings">
+        Configure Sub Agents with prompts, tools, and data components.
       </Card>
       <Card title="MCP Servers" icon="LuHammer" href="/typescript-sdk/tools-and-mcp-servers">
         Add tools as MCP servers.
       </Card>
-      <Card title="Agent Relationships" icon="LuUsers" href="/typescript-sdk/agent-relationships">
-        Define how agents transfer and delegate tasks.
+      <Card title="Sub Agent Relationships" icon="LuUsers" href="/typescript-sdk/agent-relationships">
+        Define how Sub Agents transfer and delegate tasks.
       </Card>
       <Card title="Data Components" icon="LuLayoutTemplate" href="/typescript-sdk/data-components">
-        Build custom UI elements agents can render.
+        Build custom UI elements Sub Agents can render.
       </Card>
       <Card title="Artifact Components" icon="TbInputSpark" href="/typescript-sdk/artifact-components">
-        Create structured outputs from tools or agents.
+        Create structured outputs from tools or Sub Agents.
       </Card>
       <Card title="Status Updates" icon="LuClock" href="/typescript-sdk/status-updates">
         Provide real-time progress updates.
@@ -135,34 +134,34 @@ Quick reference to the key docs for building with the Visual Builder or the Agen
   </Tab>
 </Tabs>
 
-The Visual Builder and TypeScript SDK work seamlessly together—define your agents in code, push them to the visual builder, and iterate visually.
+The Visual Builder and TypeScript SDK work seamlessly together—define your Sub Agents in code, push them to the Visual Builder, and iterate visually.
 
 ## Projects
 
-You can organize your related MCP Servers, Credentials, Graphs, and more into **Projects**. A Project is generally used to represent a set of related scenarios. 
+You can organize your related MCP Servers, Credentials, Agents, and more into **Projects**. A Project is generally used to represent a set of related scenarios.
 
-For example, you may create one Project for your support team that has all the MCP servers and Graphs related to customer support. 
+For example, you may create one Project for your support team that has all the MCP servers and Agents related to customer support.
 
 ## CLI: Push and pull
 
 The Inkeep CLI bridges your TypeScript SDK project and the Visual Builder.
 
-Run the following from your project (the folder that contains your `inkeep.config.ts`) and has an `index.ts` file that exports a project.
+Run the following from your project (the folder that contains your `inkeep.config.ts`) which has an `index.ts` file that exports a project.
 
-- **Push (code → Builder)**: Sync locally defined graphs, agents, tools, and settings from your SDK project into the Visual Builder.
+- **Push (code → Builder)**: Sync locally defined agents, Sub Agents, tools, and settings from your SDK project into the Visual Builder.
 
 ```bash
 inkeep push
 ```
 
-- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist updating your local TypeScript files to reflect Builder changes.
+- **Pull (Builder → code)**: Fetch your project from the Visual Builder back into your SDK project. By default, the CLI will LLM-assist in updating your local TypeScript files to reflect Builder changes.
 
 ```bash
 inkeep pull
 ```
 
 <Note>
-Push and pull operate at the project level (not individual graphs). Define graphs in your project and push/pull the whole project.
+Push and pull operate at the project level (not individual agents). Define agents in your project and push/pull the whole project.
 </Note>
 
 See the [CLI Reference](/typescript-sdk/cli-reference) for full command details.

@@ -1,5 +1,30 @@
 # @inkeep/create-agents
 
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- 849c6e9: added new cosntants for model and inkeep pull
+- Updated dependencies [849c6e9]
+- Updated dependencies [71a9f03]
+  - @inkeep/agents-core@0.19.0
+
+## 0.18.1
+
+## 0.18.0
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+
+## 0.17.0
+
+## 0.16.3
+
 ## 0.16.2
 
 ## 0.16.1

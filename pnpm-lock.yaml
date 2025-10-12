@@ -982,6 +982,9 @@ importers:
       nanoid:
         specifier: ^5.1.5
         version: 5.1.6
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
       zod:
         specifier: ^4.1.11
         version: 4.1.12
@@ -1004,9 +1007,6 @@ importers:
       tsx:
         specifier: ^4.7.1
         version: 4.20.6
-      typescript:
-        specifier: ^5.3.3
-        version: 5.9.3
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
@@ -1016,6 +1016,9 @@ importers:
       '@clack/prompts':
         specifier: ^0.11.0
         version: 0.11.0
+      '@inkeep/agents-core':
+        specifier: workspace:*
+        version: link:../agents-core
       commander:
         specifier: ^12.0.0
         version: 12.1.0

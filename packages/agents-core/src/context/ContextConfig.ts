@@ -22,13 +22,10 @@ export type ExtractSchemasFromCV<CV> = {
 export type InferContextFromSchemas<CZ> = {
   [K in keyof CZ]: CZ[K] extends z.ZodTypeAny ? z.infer<CZ[K]> : never;
 };
-export type MergeHeaders<R extends z.ZodTypeAny | undefined> = R extends z.ZodTypeAny
-  ? { headers: z.infer<R> }
-  : {};
-type FullContext<R extends z.ZodTypeAny | undefined, CV> = MergeHeaders<R> &
-  InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
 
-export type AllowedPaths<R extends z.ZodTypeAny | undefined, CV> = DotPaths<FullContext<R, CV>>;
+type FullContext<CV> = InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
+
+export type AllowedPaths<CV> = DotPaths<FullContext<CV>>;
 
 // Headers Schema Builder
 export interface HeadersSchemaBuilderOptions<R extends z.ZodTypeAny> {
@@ -83,7 +80,7 @@ export interface ContextConfigBuilderOptions<
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
   projectId?: string;
-  graphId?: string;
+  agentId?: string;
   baseURL?: string;
 }
 
@@ -95,12 +92,12 @@ export class ContextConfigBuilder<
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
-  private graphId: string;
+  private agentId: string;
 
   constructor(options: ContextConfigBuilderOptions<R, CV>) {
     this.tenantId = options.tenantId || 'default';
     this.projectId = options.projectId || 'default';
-    this.graphId = options.graphId || 'default';
+    this.agentId = options.agentId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
     // Convert headers schema to JSON schema if provided
@@ -168,25 +165,25 @@ export class ContextConfigBuilder<
   }
 
   /**
-   * Set the context (tenantId, projectId, graphId) for this context config
-   * Called by graph.setConfig() when the graph is configured
+   * Set the context (tenantId, projectId, agentId) for this context config
+   * Called by agent.setConfig() when the agent is configured
    */
-  setContext(tenantId: string, projectId: string, graphId: string, baseURL: string): void {
+  setContext(tenantId: string, projectId: string, agentId: string, baseURL: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
-    this.graphId = graphId;
+    this.agentId = agentId;
     this.baseURL = baseURL;
     // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
-    this.config.graphId = graphId;
+    this.config.agentId = agentId;
 
     logger.info(
       {
         contextConfigId: this.config.id,
         tenantId: this.tenantId,
         projectId: this.projectId,
-        graphId: this.graphId,
+        agentId: this.agentId,
       },
       'ContextConfig context updated'
     );
@@ -200,7 +197,7 @@ export class ContextConfigBuilder<
       id: this.getId(),
       tenantId: this.tenantId,
       projectId: this.projectId,
-      graphId: this.graphId,
+      agentId: this.agentId,
       headersSchema: this.getHeadersSchema(),
       contextVariables: this.getContextVariables(),
       createdAt: new Date().toISOString(),
@@ -231,7 +228,7 @@ export class ContextConfigBuilder<
   }
 
   /** 4) The function you ship: path autocomplete + validation, returns {{path}} */
-  toTemplate<P extends AllowedPaths<R, CV>>(path: P): `{{${P}}}` {
+  toTemplate<P extends AllowedPaths<CV>>(path: P): `{{${P}}}` {
     return `{{${path}}}` as `{{${P}}}`;
   }
   // Validation method
@@ -304,7 +301,7 @@ export class ContextConfigBuilder<
     try {
       // First try to update (in case config exists)
       const updateResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs/${this.getId()}`,
+        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs/${this.getId()}`,
         {
           method: 'PUT',
           headers: {
@@ -334,7 +331,7 @@ export class ContextConfigBuilder<
         );
 
         const createResponse = await fetch(
-          `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/graphs/${this.graphId}/context-configs`,
+          `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs`,
           {
             method: 'POST',
             headers: {
@@ -388,7 +385,7 @@ export class ContextConfigBuilder<
   }
 }
 
-// Factory function for creating context configs - similar to agent() and agentGraph()
+// Factory function for creating context configs - similar to agent() and agent()
 export function contextConfig<
   R extends z.ZodTypeAny | undefined = undefined,
   CV extends Record<string, builderFetchDefinition<z.ZodTypeAny>> = Record<

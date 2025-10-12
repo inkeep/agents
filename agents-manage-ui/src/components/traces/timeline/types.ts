@@ -21,6 +21,7 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
+  ARTIFACT_PROCESSING: 'artifact_processing',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -31,7 +32,7 @@ export interface ActivityItem {
   name?: string;
   description: string;
   timestamp: string;
-  agentId?: string;
+  subAgentId?: string;
   agentName?: string;
   toolName?: string;
   toolResult?: string;
@@ -64,7 +65,7 @@ export interface ActivityItem {
   toolType?: string;
   toolPurpose?: string;
   contextConfigId?: string;
-  contextAgentGraphId?: string;
+  contextAgentId?: string;
   contextRequestKeys?: string[];
   contextTrigger?: string;
   contextStatusDescription?: string;
@@ -85,6 +86,14 @@ export interface ActivityItem {
   otelStatusCode?: string;
   otelStatusDescription?: string;
   aiTelemetryFunctionId?: string;
+  // Artifact processing fields
+  artifactId?: string;
+  artifactType?: string;
+  artifactName?: string;
+  artifactDescription?: string;
+  artifactData?: string;
+  artifactAgentId?: string;
+  artifactToolCallId?: string;
 }
 
 export interface ToolCall {
@@ -96,13 +105,13 @@ export interface ToolCall {
   arguments?: any;
   result?: any;
   id?: string;
-  agentId?: string;
+  subAgentId?: string;
   agentName?: string;
   toolDescription?: string;
 }
 
 export interface AgentInteraction {
-  agentId: string;
+  subAgentId: string;
   agentName: string;
   timestamp: string;
   messageCount: number;
@@ -131,8 +140,8 @@ export interface ConversationDetail {
   totalInputTokens?: number;
   totalOutputTokens?: number;
   traceId?: string;
-  graphId?: string;
-  graphName?: string;
+  agentId?: string;
+  agentName?: string;
   spansWithErrorsCount?: number;
   errorCount?: number;
   warningCount?: number;

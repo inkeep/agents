@@ -6,7 +6,7 @@ icon: "LuFolder"
 
 ## Overview
 
-Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your agents, graphs, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
+Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your Sub Agents, agents, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
 
 ## Standard Project Layout
 
@@ -17,9 +17,9 @@ workspace-root/               # Repository/workspace root
 ├── inkeep.config.ts          # Inkeep configuration file
 ├── my-agent-project/         # Individual project directory
 │   ├── index.ts              # Project entry point
-│   ├── graphs/               # Agent graph definitions
-│   │   ├── main-graph.ts
-│   │   └── support-graph.ts
+│   ├── agents/               # Agent definitions
+│   │   ├── main-agent.ts
+│   │   └── support-agent.ts
 │   ├── tools/                # Tool definitions
 │   │   ├── search-tool.ts
 │   │   └── calculator-tool.ts
@@ -62,8 +62,8 @@ The project entry point inside each project directory that exports your project 
 ```typescript
 // Located inside project directory (e.g., my-agent-project/index.ts)
 import { project } from '@inkeep/agents-sdk';
-import { mainGraph } from './graphs/main-graph';
-import { supportGraph } from './graphs/support-graph';
+import { mainAgent } from './agents/main-agent';
+import { supportAgent } from './agents/support-agent';
 import { searchTool } from './tools/search-tool';
 import { calculatorTool } from './tools/calculator-tool';
 import { userProfile } from './data-components/user-profile';
@@ -72,7 +72,7 @@ export const myProject = project({
   id: 'my-agent-project',
   name: 'My Agent Project',
   description: 'A comprehensive multi-agent system',
-  graphs: () => [mainGraph, supportGraph],
+  subAgents: () => [mainAgent, supportAgent],
   tools: () => [searchTool, calculatorTool],
   dataComponents: () => [userProfile],
 });
@@ -80,35 +80,35 @@ export const myProject = project({
 
 ## Directory Conventions
 
-### `/graphs/`
+### `/agents/`
 
-Contains agent graph definitions. Each file typically exports one graph:
+Contains agent definitions. Each file typically exports one agent:
 
 ```typescript
-// graphs/customer-support.ts
-import { agentGraph, agent } from '@inkeep/agents-sdk';
+// agents/customer-support.ts
+import { agent, subAgent } from '@inkeep/agents-sdk';
 
-const routerAgent = agent({
+const routerSubAgent = subAgent({
   id: 'support-router',
   name: 'Support Router',
   prompt: 'Route customer inquiries to appropriate specialists',
 });
 
-const billingAgent = agent({
+const billingSubAgent = subAgent({
   id: 'billing-specialist',
   name: 'Billing Specialist',
   prompt: 'Handle billing and payment inquiries',
 });
 
-export const customerSupportGraph = agentGraph({
-  defaultAgent: routerAgent,
-  agents: [routerAgent, billingAgent],
+export const customerSupportAgent = agent({
+  defaultSubAgent: routerSubAgent,
+  subAgents: () => [routerSubAgent, billingSubAgent],
 });
 ```
 
 ### `/tools/`
 
-Tool definitions that can be used by agents:
+Tool definitions that can be used by Sub Agents:
 
 ```typescript
 // tools/database-query.ts
@@ -197,8 +197,8 @@ The CLI automatically discovers files using these patterns:
 
 4. **File Categorization**:
    - **Index files**: `index.ts`, `main.ts` (project entry points)
-   - **Graph files**: Files in `/graphs/` directory
-   - **Agent files**: Files containing agent definitions
+   - **Agent files**: Files in `/agents/` directory
+   - **Sub Agent files**: Files containing Sub Agent definitions
    - **Tool files**: Files in `/tools/` directory
    - **Data component files**: Files in `/data-components/` directory
    - **Environment files**: Files in `/environments/` directory
@@ -207,15 +207,15 @@ The CLI automatically discovers files using these patterns:
 
 ### Naming Conventions
 
-- Use kebab-case for file names: `customer-support-graph.ts`
-- Use camelCase for variable names: `customerSupportGraph`
+- Use kebab-case for file names: `customer-support-agent.ts`
+- Use camelCase for variable names: `customerSupportAgent`
 - Use descriptive IDs: `id: 'customer-support-router'`
 
 ### File Organization
 
 - **One primary export per file**: Each file should export one main resource
-- **Group related functionality**: Keep related agents in the same graph file
-- **Separate concerns**: Keep tools, data components, and graphs in separate directories
+- **Group related functionality**: Keep related Sub Agents in the same Agent file
+- **Separate concerns**: Keep tools, data components, and agents in separate directories
 - **Environment isolation**: Use separate files for different environments
 
 ### Dependencies
@@ -238,15 +238,15 @@ Error: Could not find inkeep.config.ts in current directory or parent directorie
 
 **Invalid project structure:**
 ```bash
-Warning: No graphs found in project
+Warning: No agents found in project
 ```
 - Check that you're running from within a project directory (containing `index.ts`)
-- Verify graph files are in the project's `/graphs/` subdirectory
+- Verify Agent files are in the project's `/agents/` subdirectory
 - Ensure exports are properly named and typed
 
 **Missing dependencies:**
 ```bash
-Error: Cannot resolve import './graphs/missing-graph'
+Error: Cannot resolve import './agents/missing-agent'
 ```
 - Ensure all imported files exist within the project directory
 - Check relative file paths and extensions
@@ -270,7 +270,7 @@ If migrating from older project structures:
 
 1. **Move config to workspace root**: Ensure `inkeep.config.ts` is at same level as `package.json`
 2. **Create project directories**: Organize agents into project subdirectories
-3. **Create standard subdirectories**: Add `/graphs/`, `/tools/`, `/data-components/` within each project
+3. **Create standard subdirectories**: Add `/agents/`, `/tools/`, `/data-components/` within each project
 4. **Move files appropriately**: Organize existing files into correct project and subdirectories
 5. **Update imports**: Fix import paths after restructuring
 6. **Test compilation**: Run `inkeep push --json` to validate structure

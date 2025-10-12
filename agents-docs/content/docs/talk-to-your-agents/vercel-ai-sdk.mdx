@@ -1,14 +1,14 @@
 ---
-title: How to connect Vercel AI SDK useChat to your Agent Graph
+title: How to connect Vercel AI SDK useChat to your Agent
 sidebarTitle: Via Vercel AI SDK
-description: Use the Vercel AI SDK's useChat hook to build React chat interfaces that stream responses from your agent graph.
+description: Use the Vercel AI SDK's useChat hook to build React chat interfaces that stream responses from your agent.
 icon: LuCode
 keywords: Vercel AI SDK, useChat, React, streaming, chat interface, agents
 ---
 
 ## Overview
 
-The Vercel AI SDK v5's `useChat` hook provides a React-friendly way to build chat interfaces that stream responses from your agent graph. This guide shows you how to configure `useChat` to connect to the agent framework's chat endpoint.
+The Vercel AI SDK v5's `useChat` hook provides a React-friendly way to build chat interfaces that stream responses from your agent. This guide shows you how to configure `useChat` to connect to the agent framework's chat endpoint.
 
 <Tip>
   The agent framework's `/api/chat` endpoint is compatible with Vercel AI SDK's streaming protocol. See [Via API](/talk-to-your-agents/api) for low-level HTTP details.
@@ -24,7 +24,7 @@ npm install ai @ai-sdk/react
 
 ## Basic Configuration
 
-Here's a minimal example of using `useChat` with your agent graph:
+Here's a minimal example of using `useChat` with your agent:
 
 ```tsx
 "use client";
@@ -40,7 +40,7 @@ export default function Page() {
       headers: {
         "x-inkeep-tenant-id": "default",
         "x-inkeep-project-id": "weather-project",
-        "x-inkeep-graph-id": "weather-graph",
+        "x-inkeep-agent-id": "weather-agent",
       },
     }),
   });
@@ -140,9 +140,9 @@ const { messages, sendMessage, status } = useChat({
 });
 ```
 
-## Request Context
+##  Headers
 
-To pass request context (validated against your Context Config), include it as custom headers:
+To pass required headers (validated against your Context Config), include them as custom headers:
 
 ```tsx
 const { messages, sendMessage } = useChat({
@@ -157,7 +157,7 @@ const { messages, sendMessage } = useChat({
 ```
 
 <Note>
-  Request context must be passed via headers, not in the request body. See [Request Context](/typescript-sdk/request-context) for details.
+   See [Headers](/typescript-sdk/headers) for details.
 </Note>
 
 ## Complete Example
@@ -178,7 +178,7 @@ export default function Page() {
       headers: {
         "x-inkeep-tenant-id": "default",
         "x-inkeep-project-id": "weather-project",
-        "x-inkeep-graph-id": "weather-intermediate-graph",
+        "x-inkeep-agent-id": "weather-intermediate-agent",
         tz: "US/Pacific",
       },
     }),
@@ -206,7 +206,7 @@ export default function Page() {
                   );
                 }
 
-                if (part.type.startsWith("data-")) {
+                if (part.type?.startsWith("data-")) {
                   return (
                     <div
                       key={partKey}
@@ -271,7 +271,7 @@ NEXT_PUBLIC_AGENTS_RUN_API_URL=http://localhost:3003
 NEXT_PUBLIC_INKEEP_API_KEY=your-api-key
 NEXT_PUBLIC_TENANT_ID=your-tenant-id
 NEXT_PUBLIC_PROJECT_ID=your-project-id
-NEXT_PUBLIC_GRAPH_ID=your-graph-id
+NEXT_PUBLIC_AGENT_ID=your-agent-id
 ```
 
 <Note>
@@ -287,7 +287,7 @@ NEXT_PUBLIC_GRAPH_ID=your-graph-id
   <Card title="Via API" icon="LuNetwork" href="/talk-to-your-agents/api">
     Learn about the underlying HTTP API and streaming protocol.
   </Card>
-  <Card title="Request Context" icon="LuSettings" href="/typescript-sdk/request-context">
+  <Card title="Headers" icon="LuSettings" href="/typescript-sdk/headers">
     Pass user context to personalize agent responses.
   </Card>
 </Cards>

@@ -16,7 +16,6 @@ function createMockMcpTool(name: string, availableTools: any[]): McpTool {
       type: 'mcp',
       mcp: { server: { url: 'http://example.com' } },
     },
-    functionId: undefined,
     availableTools,
     status: 'healthy',
     createdAt: new Date(),

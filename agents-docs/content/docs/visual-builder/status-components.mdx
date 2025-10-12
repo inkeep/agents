@@ -4,7 +4,7 @@ description: Configure intelligent status updates using structured components in
 icon: "LuClock"
 ---
 
-The Visual Builder provides powerful tools for configuring status updates across your agent graphs. These features keep users informed during long-running operations with structured component data.
+The Visual Builder provides powerful tools for configuring status updates across your agents. These features keep users informed during long-running operations with structured component data.
 
 ## Default Status Updates
 
@@ -13,7 +13,7 @@ By default, status updates use built-in **default status components** that provi
 - **Label**: User-friendly description like "Searching for information about your query..."
 - **Details**: Structured data with operation context, tool usage, and progress information
 
-These are generated automatically by your graph's summarizer model and provide richer information than plain text summaries.
+These are generated automatically by your Agent's summarizer model and provide richer information than plain text summaries.
 
 ## Custom Status Components
 
@@ -21,8 +21,8 @@ Status components allow you to define structured data formats for your status up
 
 ### Creating Status Components
 
-1. **Navigate to your Graph** in the Visual Builder
-2. **Open Graph Settings** and find the "Status Updates" section
+1. **Navigate to your Agent** in the Visual Builder
+2. **Open Agent Settings** and find the "Status Updates" section
 3. **Enable Status Updates** by configuring trigger conditions
 4. **Add Status Components** to define structured update formats
 
@@ -68,7 +68,7 @@ With this component, instead of generic text, you get structured data like:
 
 ## AI-Powered Status Generation
 
-Status updates are generated using your graph's configured **summarizer model**, which analyzes recent agent activity and creates contextual progress messages.
+Status updates are generated using your Agent's configured **summarizer model**, which analyzes recent agent activity and creates contextual progress messages.
 
 ### How It Works
 
@@ -84,10 +84,10 @@ Status updates are generated using your graph's configured **summarizer model**,
 
 ### Summarizer Model Settings
 
-The summarizer model is configured in your graph's model settings:
+The summarizer model is configured in your Agent's model settings:
 
 ```typescript
-// Graph-level model settings
+// Agent-level model settings
 models: {
   base: {
     model: 'anthropic/claude-sonnet-4-20250514' // Primary model
@@ -104,9 +104,9 @@ models: {
 
 ## Visual Builder Configuration
 
-### Graph-Level Setup
+### Agent-Level Setup
 
-1. **Select your Graph** in the Visual Builder
+1. **Select your Agent** in the Visual Builder
 2. **Open Model Settings**:
 
    - Set base model for agent conversations
@@ -147,9 +147,9 @@ Use the visual component designer to create structured status updates:
 
 ## Inheritance and Configuration
 
-### Graph-Level Defaults
+### Agent-Level Defaults
 
-Status components, summarizer models, and status update prompts are configured at the graph level and apply to all agents in that graph.
+Status components, summarizer models, and status update prompts are configured at the agent level and apply to all sub-agents in that agent.
 
 ## Best Practices
 

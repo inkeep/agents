@@ -12,7 +12,7 @@ const PINNED_ATTRIBUTE_KEYS = [
   'traceID',
   'tenant.id',
   'project.id',
-  'graph.id',
+  'agent.id',
   'conversation.id',
 ] as const;
 

@@ -1,5 +1,76 @@
 # @inkeep/agents-cli
 
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- 849c6e9: added new cosntants for model and inkeep pull
+- Updated dependencies [849c6e9]
+- Updated dependencies [71a9f03]
+  - @inkeep/agents-core@0.19.0
+  - @inkeep/agents-sdk@0.19.0
+  - @inkeep/agents-manage-ui@0.19.0
+
+## 0.18.1
+
+### Patch Changes
+
+- Updated dependencies [5ae3706]
+- Updated dependencies [71892f2]
+- Updated dependencies [71892f2]
+  - @inkeep/agents-manage-ui@0.18.1
+  - @inkeep/agents-core@0.18.1
+  - @inkeep/agents-sdk@0.18.1
+
+## 0.18.0
+
+### Minor Changes
+
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+- 9bdf630: Fixed streamed non final output text tracking
+- Updated dependencies [091c56a]
+- Updated dependencies [9cc2641]
+- Updated dependencies [81d5a7e]
+- Updated dependencies [2165d9b]
+- Updated dependencies [e91f4bc]
+- Updated dependencies [1600323]
+- Updated dependencies [3684a31]
+- Updated dependencies [7363d66]
+- Updated dependencies [9bdf630]
+  - @inkeep/agents-manage-ui@0.18.0
+  - @inkeep/agents-core@0.18.0
+  - @inkeep/agents-sdk@0.18.0
+
+## 0.17.0
+
+### Minor Changes
+
+- 94c0c18: Only allow headers template creation through headers builder
+
+### Patch Changes
+
+- Updated dependencies [94c0c18]
+  - @inkeep/agents-core@0.17.0
+  - @inkeep/agents-manage-ui@0.17.0
+  - @inkeep/agents-sdk@0.17.0
+
+## 0.16.3
+
+### Patch Changes
+
+- Updated dependencies [d296913]
+  - @inkeep/agents-sdk@0.16.3
+  - @inkeep/agents-manage-ui@0.16.3
+  - @inkeep/agents-core@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes

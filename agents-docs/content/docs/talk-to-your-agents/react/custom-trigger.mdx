@@ -65,15 +65,15 @@ pnpm add @inkeep/agents-ui
     **To get an API key:**
     1. Open the Visual Builder Dashboard
     2. Navigate to your Project → **API Keys**
-    3. Click **Create New Key** and select your agent graph
+    3. Click **Create New Key** and select your agent
     4. Copy the key (shown once) and store it in your environment variables
 
   </Tab>
   
   <Tab title="Development">
     
-    For local development, use headers with your graph IDs:
-    
+    For local development, use headers with your agent IDs:
+
     ```tsx
     import { useState } from "react";
     import {
@@ -86,11 +86,11 @@ pnpm add @inkeep/agents-ui
 
       const modalProps: InkeepModalChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-graph-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
         modalSettings: {

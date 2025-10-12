@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@libsql/client';
@@ -12,32 +12,15 @@ export type DatabaseClient = LibSQLDatabase<typeof schema>;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Path for test database - unique per test run to avoid conflicts
-const TEST_DB_DIR = join(__dirname, '../../../temp');
-
 /**
- * Creates a test database client for a test suite using a temporary SQLite file
- * This provides real database operations for integration testing
+ * Creates a test database client using an in-memory SQLite database
+ * This provides real database operations for integration testing with perfect isolation
+ * Each call creates a fresh database with all migrations applied
  */
-export async function createTestDatabaseClient(
-  suiteName?: string
-): Promise<{ client: DatabaseClient; path: string }> {
-  // Generate database path for the test suite
-  const testDbPath = join(
-    TEST_DB_DIR,
-    `${suiteName || 'test'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`
-  );
-
-  // Ensure temp directory exists
-  try {
-    mkdirSync(TEST_DB_DIR, { recursive: true });
-  } catch {
-    // Directory already exists, that's fine
-  }
-
-  // Create database client with file
+export async function createTestDatabaseClient(): Promise<DatabaseClient> {
+  // Create in-memory database client
   const client = createClient({
-    url: `file:${testDbPath}`,
+    url: ':memory:',
   });
 
   const db = drizzle(client, { schema });
@@ -66,13 +49,9 @@ export async function createTestDatabaseClient(
         .filter((s) => s.length > 0 && !s.startsWith('--'));
 
       for (const statement of statements) {
-        try {
+        // Execute all SQL statements (CREATE, ALTER, etc.)
+        if (statement.trim().length > 0) {
           await db.run(sql.raw(statement));
-        } catch (error) {
-          // Ignore errors for statements that might fail (like DROP TABLE if not exists)
-          if (!statement.includes('DROP TABLE')) {
-            throw error;
-          }
         }
       }
     }
@@ -81,11 +60,12 @@ export async function createTestDatabaseClient(
     throw error;
   }
 
-  return { client: db, path: testDbPath };
+  return db;
 }
 
 /**
  * Cleans up test database by removing all data but keeping schema
+ * @deprecated Use fresh in-memory databases with beforeEach instead for better test isolation
  */
 export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
   // Delete data from tables in reverse dependency order to handle foreign keys
@@ -95,7 +75,7 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
     'tasks',
     'task_relations',
     'agent_relations',
-    'agent_graph',
+    'agent',
     'agent_tool_relations',
     'tools',
     'agents',
@@ -132,6 +112,7 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
 
 /**
  * Closes the test database and removes the file
+ * @deprecated Use in-memory databases which auto-cleanup instead
  */
 export async function closeTestDatabase(db: DatabaseClient, testDbPath: string): Promise<void> {
   // Close the database connection

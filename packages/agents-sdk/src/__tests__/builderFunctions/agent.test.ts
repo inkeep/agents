@@ -1,91 +1,79 @@
 import { describe, expect, it } from 'vitest';
+import { SubAgent } from '../../subAgent';
 import { agent } from '../../builderFunctions';
 import type { AgentConfig } from '../../types';
 
 describe('agent builder function', () => {
-  it('should create an agent with required config', () => {
-    const config: AgentConfig = {
+  it('should create an Agent with basic config', () => {
+    const subAgent = new SubAgent({
       id: 'test-agent',
       name: 'Test Agent',
       description: 'Test description',
-      prompt: 'You are a helpful test agent',
-    };
-
-    const testAgent = agent(config);
-
-    expect(testAgent.getName()).toBe('Test Agent');
-    expect(testAgent.getId()).toBe('test-agent');
-  });
-
-  it('should require an ID', () => {
-    const config = {
-      name: 'No ID Agent',
-      description: 'Agent without ID',
       prompt: 'Test prompt',
-      // id is missing
-    } as AgentConfig;
-
-    expect(() => agent(config)).toThrow(
-      'Agent ID is required. Agents must have stable IDs for consistency across deployments.'
-    );
-  });
-
-  it('should create an agent with all optional fields', () => {
-    const config: AgentConfig = {
-      id: 'full-config-agent',
-      name: 'Full Config Agent',
-      description: 'Agent with all config options',
-      prompt: 'Comprehensive test agent',
-    };
-
-    const testAgent = agent(config);
-    testAgent.setContext('test-tenant', 'test-project', 'test-graph');
-
-    expect(testAgent.getName()).toBe('Full Config Agent');
-    expect(testAgent.getId()).toBe('full-config-agent');
-  });
-
-  it('should create an agent with data components function', () => {
-    const mockDataComponent = {
-      id: 'test-component',
-      name: 'Test Component',
-      description: 'A test data component',
-    };
-
-    const config: AgentConfig = {
-      id: 'component-agent',
-      name: 'Component Agent',
-      description: 'Agent with data components',
-      prompt: 'Agent that uses data components',
-      dataComponents: () => [mockDataComponent],
-    };
-
-    const testAgent = agent(config);
-
-    expect(testAgent.getName()).toBe('Component Agent');
-    expect(typeof testAgent.config.dataComponents).toBe('function');
-  });
-
-  it('should create an agent with transfer relationships', () => {
-    // Create a transfer target agent first
-    const transferAgent = agent({
-      id: 'transfer-target',
-      name: 'Transfer Target',
-      description: 'Target for transfers',
-      prompt: 'Handles transferred tasks',
     });
 
     const config: AgentConfig = {
-      id: 'source-agent',
-      name: 'Source Agent',
-      description: 'Agent that can transfer',
-      prompt: 'Source agent prompt',
-      canTransferTo: () => [transferAgent],
+      id: 'test-agent',
+      name: 'Test Agent',
+      subAgents: () => [subAgent],
     };
 
-    const testAgent = agent(config);
+    const agentObject = agent(config);
 
-    expect(testAgent.getName()).toBe('Source Agent');
-    expect(typeof testAgent.config.canTransferTo).toBe('function');
+    expect(agentObject.getName()).toBe('Test Agent');
+    expect(agentObject.getSubAgents()).toContain(subAgent);
+  });
+
+  it('should create an Agent with multiple agents', () => {
+    const agent1 = new SubAgent({
+      id: 'agent-1',
+      name: 'Agent 1',
+      description: 'First agent',
+      prompt: 'First agent prompt',
+    });
+
+    const agent2 = new SubAgent({
+      id: 'agent-2',
+      name: 'Agent 2',
+      description: 'Second agent',
+      prompt: 'Second agent prompt',
+    });
+
+    const config: AgentConfig = {
+      id: 'multi-agent-agent',
+      name: 'Multi Agent Agent',
+      subAgents: () => [agent1, agent2],
+    };
+
+    const agentObject = agent(config);
+
+    expect(agentObject.getName()).toBe('Multi Agent Agent');
+    expect(agentObject.getSubAgents()).toContain(agent1);
+    expect(agentObject.getSubAgents()).toContain(agent2);
+    expect(agentObject.getSubAgents()).toHaveLength(2);
+  });
+
+  it('should create an Agent with additional config options', () => {
+    const subAgent = new SubAgent({
+      id: 'config-agent',
+      name: 'Config Agent',
+      description: 'Agent with config',
+      prompt: 'Config agent prompt',
+    });
+
+    const config: AgentConfig = {
+      id: 'configured-agent',
+      name: 'Configured Agent',
+      description: 'A agent with description',
+      subAgents: () => [subAgent],
+    };
+
+    const agentObject = agent(config);
+    // Can set context after creation
+    agentObject.setConfig('test-tenant', 'test-project', 'http://localhost:3002');
+
+    expect(agentObject.getName()).toBe('Configured Agent');
+    expect(agentObject.getDescription()).toBe('A agent with description');
+    expect(agentObject.getTenantId()).toBe('test-tenant');
   });
 });

@@ -1,0 +1,293 @@
+'use client';
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
+import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
+import { nanoid } from 'nanoid';
+import { useCallback, useEffect, useRef } from 'react';
+import type { ConversationDetail } from '@/components/traces/timeline/types';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { IkpMessage as IkpMessageComponent } from './ikp-message';
+
+interface ChatWidgetProps {
+  agentId?: string;
+  projectId: string;
+  tenantId: string;
+  conversationId: string;
+  setConversationId: (conversationId: string) => void;
+  startPolling: () => void;
+  stopPolling: () => void;
+  customHeaders?: Record<string, string>;
+  chatActivities: ConversationDetail | null;
+}
+
+const styleOverrides = `
+.ikp-ai-chat-wrapper {
+  height: 100%;
+  max-height: unset;
+  box-shadow: none;
+}
+.ikp-ai-chat-message-wrapper {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+
+}
+[data-role="user"] .ikp-ai-chat-message-header {
+  display: none;
+}
+
+.ikp-ai-chat-message-header {
+  margin-bottom: 16px;
+}
+
+.ikp-ai-chat-message-wrapper:not(:last-child):after {
+  border-bottom-width: 0px;
+}
+ [data-role="user"] .ikp-ai-chat-message-name {
+  display: none;
+  margin-bottom: 0px;
+}
+.ikp-ai-chat-message-content, .ikp-ai-chat-input {
+  font-size: 14px;
+}
+.ikp-ai-chat-message-avatar-content {
+  width: 24px;
+  height: 24px;
+}
+[data-widget-md] .ikp-ai-chat-message-avatar {
+  height: 24px;
+}
+.ikp-ai-chat-message-name {
+  background: none;
+  padding-left: 0px;
+  padding-right: 0px;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ikp-color-gray-600);
+}
+.ikp-ai-chat-tagline__text {
+  font-size: 13px;
+}
+.ikp-ai-chat-input__fieldset {
+  padding: 4px;
+}
+.ikp-ai-chat-input__send-button {
+  height: 36px;
+  width: 36px;
+}
+
+.ikp-ai-chat-message-loading {
+  height: auto;
+}
+
+/* User message styles */
+[data-role="user"] .ikp-ai-chat-message-content-wrapper {
+  align-items: flex-end;
+}
+[data-role="user"] .ikp-ai-chat-message-content {
+  background-color: var(--ikp-color-gray-100);
+  color: var(--ikp-color-gray-900);
+  border-radius: 24px;
+  border-bottom-right-radius: 2px;
+  padding: 8px 16px;
+}
+[data-role="user"] .ikp-ai-chat-message-part > p {
+  margin: 0px;
+}
+[data-role="user"] .ikp-ai-chat-message-part {
+  margin-bottom: 0px;
+}
+[data-theme=dark] [data-role="user"] .ikp-ai-chat-message-content {
+  background-color: var(--ikp-color-white-alpha-100);
+  color: var(--ikp-color-white-alpha-950);
+}
+
+.ikp-markdown-code {
+  background-color: var(--ikp-color-gray-100);
+  color: var(--ikp-color-gray-900);
+}
+
+[data-theme=dark] .ikp-markdown-code {
+  background-color: var(--ikp-color-white-alpha-100);
+  color: var(--ikp-color-white-alpha-950);
+}
+
+/* Dark mode styles for chat containers */
+[data-theme=dark] .ikp-sidebar-chat__close-button {
+  color: var(--ikp-color-gray-50);
+}
+[data-theme=dark] .ikp-ai-chat-message-name {
+  background: none;
+}
+`;
+
+export function ChatWidget({
+  agentId,
+  projectId,
+  tenantId,
+  conversationId,
+  setConversationId,
+  startPolling,
+  stopPolling,
+  customHeaders = {},
+  chatActivities,
+}: ChatWidgetProps) {
+  const { INKEEP_AGENTS_RUN_API_URL, INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
+  const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasReceivedAssistantMessageRef = useRef(false);
+  const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+  // Helper function to reset the stop polling timeout
+  const resetStopPollingTimeout = useCallback(() => {
+    // Clear any existing timeout
+    if (stopPollingTimeoutRef.current) {
+      clearTimeout(stopPollingTimeoutRef.current);
+      stopPollingTimeoutRef.current = null;
+    }
+
+    // Set a new timeout for 5 minutes
+    stopPollingTimeoutRef.current = setTimeout(() => {
+      stopPolling();
+      stopPollingTimeoutRef.current = null;
+    }, POLLING_TIMEOUT_MS);
+  }, [stopPolling]);
+
+  // Reset timeout when new activities come in AFTER assistant message received
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activities length is intentionally tracked to reset timeout on new activities
+  useEffect(() => {
+    // Only reset timeout if we've already received the assistant message and new activities were added
+    if (hasReceivedAssistantMessageRef.current) {
+      resetStopPollingTimeout();
+    }
+  }, [chatActivities?.activities?.length, resetStopPollingTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (stopPollingTimeoutRef.current) {
+        clearTimeout(stopPollingTimeoutRef.current);
+        stopPollingTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="h-full flex flex-row gap-4">
+      <div className="flex-1 min-w-0 h-full">
+        <InkeepEmbeddedChat
+          baseSettings={{
+            onEvent: (event: InkeepCallbackEvent) => {
+              if (event.eventName === 'assistant_message_received') {
+                // Mark that we've received the assistant message
+                hasReceivedAssistantMessageRef.current = true;
+                // Reset the timeout to 5 minutes after receiving an assistant message
+                resetStopPollingTimeout();
+              }
+              if (event.eventName === 'user_message_submitted') {
+                // Reset the flag
+                hasReceivedAssistantMessageRef.current = false;
+                // Cancel any pending stop polling timeout since we need to keep polling
+                if (stopPollingTimeoutRef.current) {
+                  clearTimeout(stopPollingTimeoutRef.current);
+                  stopPollingTimeoutRef.current = null;
+                }
+                startPolling();
+              }
+              if (event.eventName === 'chat_clear_button_clicked') {
+                // Reset the flag
+                hasReceivedAssistantMessageRef.current = false;
+                // Cancel any pending stop polling timeout
+                if (stopPollingTimeoutRef.current) {
+                  clearTimeout(stopPollingTimeoutRef.current);
+                  stopPollingTimeoutRef.current = null;
+                }
+                stopPolling();
+                setConversationId(nanoid());
+              }
+            },
+            primaryBrandColor: '#3784ff',
+            colorMode: {
+              sync: {
+                target: document.documentElement,
+                attributes: ['class'],
+                isDarkMode: (attributes: Record<string, string | null>) =>
+                  !!attributes?.class?.includes('dark'),
+              },
+            },
+            theme: {
+              styles: [
+                {
+                  key: 'custom-styles',
+                  type: 'style',
+                  value: styleOverrides,
+                },
+              ],
+              colors: {
+                gray: {
+                  50: '#fafaf9',
+                  100: '#f4f4f3',
+                  200: '#eeeceb',
+                  300: '#dedbd9',
+                  400: '#cec7c2',
+                  500: '#a9a19a',
+                  600: '#75716b',
+                  700: '#58534e',
+                  800: '#443f3e',
+                  900: '#2b2826',
+                  950: '#1a1817',
+                  1000: '#080706',
+                },
+                grayDark: {
+                  950: 'oklch(0.141 0.005 285.823)',
+                },
+              },
+            },
+          }}
+          aiChatSettings={{
+            aiAssistantAvatar: {
+              light: '/assets/inkeep-icons/icon-blue.svg',
+              dark: '/assets/inkeep-icons/icon-sky.svg',
+            },
+            conversationId,
+            graphUrl: (() => {
+              console.log('INKEEP_AGENTS_RUN_API_URL:', INKEEP_AGENTS_RUN_API_URL);
+              return agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined;
+            })(),
+            headers: {
+              'x-inkeep-tenant-id': tenantId,
+              'x-inkeep-project-id': projectId,
+              'x-inkeep-agent-id': agentId,
+              Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              ...customHeaders,
+            },
+            // components: {
+            //   IkpMessage,
+            // },
+            introMessage: 'Hi! How can I help?',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// using the built in IkpMessage component from agents-ui but leaving this here for reference / testing
+const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
+  const { message, renderMarkdown, renderComponent } = props;
+
+  // Check if we're still streaming - the last event should be a completion data-operation
+  const lastPart = message.parts[message.parts.length - 1];
+  const isStreaming = !(
+    lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'
+  );
+
+  // Use our new IkpMessage component
+  return (
+    <div>
+      <IkpMessageComponent
+        message={message as any}
+        isStreaming={isStreaming}
+        renderMarkdown={renderMarkdown}
+        renderComponent={renderComponent}
+      />
+    </div>
+  );
+};

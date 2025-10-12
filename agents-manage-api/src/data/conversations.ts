@@ -49,8 +49,8 @@ export async function saveA2AMessageResponse(
     conversationId: string;
     messageType: 'a2a-response' | 'a2a-request';
     visibility: 'internal' | 'external' | 'user-facing';
-    fromAgentId?: string;
-    toAgentId?: string;
+    fromSubAgentId?: string;
+    toSubAgentId?: string;
     fromExternalAgentId?: string;
     toExternalAgentId?: string;
     a2aTaskId?: string;
@@ -99,8 +99,8 @@ export async function saveA2AMessageResponse(
     },
     visibility: params.visibility,
     messageType: params.messageType,
-    fromAgentId: params.fromAgentId,
-    toAgentId: params.toAgentId,
+    fromSubAgentId: params.fromSubAgentId,
+    toSubAgentId: params.toSubAgentId,
     fromExternalAgentId: params.fromExternalAgentId,
     toExternalAgentId: params.toExternalAgentId,
     a2aTaskId: params.a2aTaskId,
@@ -110,7 +110,7 @@ export async function saveA2AMessageResponse(
 }
 
 /**
- * Applies filtering based on agent, task, or both criteria
+ * Applies filtering based on sub-agent, task, or both criteria
  * Returns the filtered messages array
  */
 export async function getScopedHistory({
@@ -135,7 +135,7 @@ export async function getScopedHistory({
     });
 
     // If no filters provided, return all messages
-    if (!filters || (!filters.agentId && !filters.taskId)) {
+    if (!filters || (!filters.subAgentId && !filters.taskId)) {
       return messages;
     }
 
@@ -147,12 +147,12 @@ export async function getScopedHistory({
       let matchesAgent = true;
       let matchesTask = true;
 
-      // Apply agent filtering if agentId is provided
-      if (filters.agentId) {
+      // Apply agent filtering if subAgentId is provided
+      if (filters.subAgentId) {
         matchesAgent =
           (msg.role === 'agent' && msg.visibility === 'user-facing') ||
-          msg.toAgentId === filters.agentId ||
-          msg.fromAgentId === filters.agentId;
+          msg.toSubAgentId === filters.subAgentId ||
+          msg.fromSubAgentId === filters.subAgentId;
       }
 
       // Apply task filtering if taskId is provided
@@ -162,11 +162,11 @@ export async function getScopedHistory({
 
       // For combined filtering (both agent and task), both must match
       // For single filtering, only the relevant one needs to match
-      if (filters.agentId && filters.taskId) {
+      if (filters.subAgentId && filters.taskId) {
         return matchesAgent && matchesTask;
       }
 
-      if (filters.agentId) {
+      if (filters.subAgentId) {
         return matchesAgent;
       }
 
@@ -279,13 +279,13 @@ export async function getFormattedConversationHistory({
         (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
       ) {
         // For agent messages, include sender and recipient info when available
-        const fromAgent = msg.fromAgentId || msg.fromExternalAgentId || 'unknown';
-        const toAgent = msg.toAgentId || msg.toExternalAgentId || 'unknown';
+        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
 
-        roleLabel = `${fromAgent} to ${toAgent}`;
+        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
-        const fromAgent = msg.fromAgentId || 'unknown';
-        roleLabel = `${fromAgent} to User`;
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to User`;
       } else {
         // System or other message types
         roleLabel = msg.role || 'system';

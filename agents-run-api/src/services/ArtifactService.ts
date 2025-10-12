@@ -14,7 +14,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { graphSessionManager } from './GraphSession';
+import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('ArtifactService');
 
@@ -53,7 +53,7 @@ export interface ArtifactServiceContext {
   contextId?: string;
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
-  agentId?: string;
+  subAgentId?: string;
 }
 
 /**
@@ -128,7 +128,7 @@ export class ArtifactService {
    */
   async createArtifact(
     request: ArtifactCreateRequest,
-    agentId?: string
+    subAgentId?: string
   ): Promise<ArtifactSummaryData | null> {
     if (!this.context.sessionId) {
       logger.warn({ request }, 'No session ID available for artifact creation');
@@ -235,7 +235,7 @@ export class ArtifactService {
       };
 
       // Persist artifact to database using cleaned data
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, agentId);
+      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId);
 
       // Cache artifact for immediate access using cleaned data
       await this.cacheArtifact(
@@ -265,9 +265,9 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check graph session cache
+    // Check agent session cache
     if (this.context.streamRequestId) {
-      const cachedArtifact = await graphSessionManager.getArtifactCache(
+      const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
         key
       );
@@ -327,9 +327,9 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check graph session cache
+    // Check agent session cache
     if (this.context.streamRequestId) {
-      const cachedArtifact = await graphSessionManager.getArtifactCache(
+      const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
         key
       );
@@ -416,19 +416,19 @@ export class ArtifactService {
   }
 
   /**
-   * Persist artifact to database via graph session
+   * Persist artifact to database vian agent session
    */
   private async persistArtifact(
     request: ArtifactCreateRequest,
     summaryData: Record<string, any>,
     fullData: Record<string, any>,
-    agentId?: string
+    subAgentId?: string
   ): Promise<void> {
-    // Use passed agentId or fall back to context agentId
-    const effectiveAgentId = agentId || this.context.agentId;
+    // Use passed subAgentId or fall back to context subAgentId
+    const effectiveAgentId = subAgentId || this.context.subAgentId;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
-      await graphSessionManager.recordEvent(
+      await agentSessionManager.recordEvent(
         this.context.streamRequestId,
         'artifact_saved',
         effectiveAgentId,
@@ -439,7 +439,7 @@ export class ArtifactService {
           artifactType: request.type,
           summaryData: summaryData,
           data: fullData,
-          agentId: effectiveAgentId,
+          subAgentId: effectiveAgentId,
           metadata: {
             toolCallId: request.toolCallId,
             baseSelector: request.baseSelector,
@@ -460,8 +460,8 @@ export class ArtifactService {
           hasStreamRequestId: !!this.context.streamRequestId,
           hasAgentId: !!effectiveAgentId,
           hasTaskId: !!this.context.taskId,
-          passedAgentId: agentId,
-          contextAgentId: this.context.agentId,
+          passedAgentId: subAgentId,
+          contextAgentId: this.context.subAgentId,
         },
         'Skipping artifact_saved event - missing required context'
       );
@@ -488,9 +488,9 @@ export class ArtifactService {
     // Store in local cache
     this.createdArtifacts.set(cacheKey, artifactForCache);
 
-    // Store in graph session cache
+    // Store in agent session cache
     if (this.context.streamRequestId) {
-      await graphSessionManager.setArtifactCache(
+      await agentSessionManager.setArtifactCache(
         this.context.streamRequestId,
         cacheKey,
         artifactForCache
@@ -534,7 +534,7 @@ export class ArtifactService {
 
   /**
    * Save an already-created artifact directly to the database
-   * Used by GraphSession to save artifacts after name/description generation
+   * Used by AgentSession to save artifacts after name/description generation
    */
   async saveArtifact(artifact: {
     artifactId: string;

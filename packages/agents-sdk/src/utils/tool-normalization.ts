@@ -1,6 +1,6 @@
 import type { AgentMcpConfig } from '../builders';
 import type { Tool } from '../tool';
-import type { AgentCanUseType } from '../types';
+import type { SubAgentCanUseType } from '../types';
 
 /**
  * Type guard to check if a value is an AgentMcpConfig
@@ -30,7 +30,7 @@ export function isTool(value: unknown): value is Tool {
 /**
  * Type guard to narrow down AgentCanUseType
  */
-export function isAgentCanUseType(value: unknown): value is AgentCanUseType {
+export function isAgentCanUseType(value: unknown): value is SubAgentCanUseType {
   return isAgentMcpConfig(value) || isTool(value);
 }
 
@@ -54,7 +54,7 @@ export interface NormalizedToolInfo {
  * Safely extracts tool information from AgentCanUseType with proper typing
  */
 export function normalizeAgentCanUseType(
-  value: AgentCanUseType,
+  value: SubAgentCanUseType,
   fallbackName?: string
 ): NormalizedToolInfo {
   if (isAgentMcpConfig(value)) {

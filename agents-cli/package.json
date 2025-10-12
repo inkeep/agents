@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.16.2",
+  "version": "0.19.0",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,7 +21,8 @@
     "test:watch": "vitest",
     "test:coverage": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --coverage --config vitest.config.ci.ts || vitest --run --coverage",
     "test:ci": "vitest --run --config vitest.config.ci.ts",
-    "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
+    "typecheck": "tsc --noEmit --project tsconfig.typecheck.json",
+    "typecheck:watch": "tsc --noEmit --watch --project tsconfig.typecheck.json"
   },
   "keywords": [
     "cli",
