@@ -192,6 +192,23 @@ inkeep pull
 - `--json` - Save project data as JSON file instead of updating TypeScript files
 - `--debug` - Enable debug logging for LLM generation
 
+**Directory-Aware Pull (Mirrors `inkeep push` behavior):**
+
+The pull command automatically detects if you're in a project directory and pulls to that location:
+
+1. **Automatic Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Current Directory Pull**: Files are pulled directly to your current directory (no subdirectory is created)
+3. **Conflict Prevention**: If you specify `--project` while in a project directory, an error is shown to prevent confusion
+
+**Pull Modes:**
+
+| Scenario | Command | Behavior |
+|----------|---------|----------|
+| In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
+| In project directory | `inkeep pull --project <id>` | ❌ Error: Cannot specify --project when in project directory |
+| Not in project directory | `inkeep pull` | Prompts for project ID, creates subdirectory |
+| Not in project directory | `inkeep pull --project <id>` | Pulls specified project to subdirectory |
+
 **How it Works:**
 
 The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
@@ -216,11 +233,21 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 **Examples:**
 
 ```bash
-# Pull and update all project files from current directory
-inkeep pull
+# Directory-aware pull: Automatically detects project from current directory
+cd my-project  # Directory contains index.ts with project export
+inkeep pull    # Pulls to current directory, no subdirectory created
 
-# Pull specific project directory
-inkeep pull --project ./my-project
+# Pull when NOT in a project directory (prompts for project ID)
+cd ~/projects
+inkeep pull    # Prompts for project ID, creates subdirectory
+
+# Pull specific project (only works when NOT in a project directory)
+cd ~/projects
+inkeep pull --project my-project  # Creates my-project/ subdirectory
+
+# Error case: --project flag in project directory
+cd my-project  # Directory contains index.ts
+inkeep pull --project my-project  # ERROR: Cannot specify --project in project directory
 
 # Save project data as JSON file instead of updating files
 inkeep pull --json
@@ -231,8 +258,8 @@ inkeep pull --agents-manage-api-url https://api.example.com
 # Enable debug logging
 inkeep pull --debug
 
-# Override tenant ID when using custom API URL
-inkeep pull --agents-manage-api-url https://api.example.com --env production
+# Generate environment-specific credentials
+inkeep pull --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
