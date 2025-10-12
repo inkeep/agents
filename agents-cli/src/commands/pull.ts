@@ -659,6 +659,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       // If no --project arg but we're in a project directory, use that project
       finalConfig.projectId = currentProjectId;
       useCurrentDirectory = true;
+      baseDir = process.cwd(); // Override baseDir to use current directory, not parent where config was found
       spinner.succeed(`Detected project in current directory: ${currentProjectId}`);
       console.log(chalk.gray(`  • Will pull to current directory (directory-aware mode)`));
     } else {
