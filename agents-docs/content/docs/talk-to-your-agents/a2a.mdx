@@ -15,7 +15,7 @@ The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your age
 - **A2A protocol (agent or sub-agent-level):** `POST /agents/a2a`
 
 Notes:
-- If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the graph’s default agent. API keys bound to a specific agent are not yet supported.
+- If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific Sub Agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the Agent's default Sub Agent. API keys bound to a specific Sub Agent are not yet supported.
 
 ## Message Send (Blocking)
 
@@ -161,7 +161,7 @@ Currently, `tasks/get` and `tasks/cancel` return stubbed responses, and `tasks/r
 
 ## Agent Card Discovery
 
-- **Graph-level:** `GET /agents/.well-known/agent.json` (uses agent default sub-agent)
+- **Agent-level:** `GET /agents/.well-known/agent.json` (uses Agent's default Sub Agent)
 - **Agent-level (dev/bypass only):** Provide `x-inkeep-sub-agent-id` in headers to target a specific agent for discovery
 
 ## Notes & Behavior

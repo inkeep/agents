@@ -40,7 +40,7 @@ import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
 
 // 1. Define a schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     api_key: z.string(),
@@ -51,12 +51,12 @@ const personalGraphHeaders = headers({
 const userFetcher = fetchDefinition({
   id: "user-info",
   name: "User Information",
-  trigger: "initialization", // Fetch only once when a conversation is started with the graph. When set to "invocation", the fetch will be executed every time a request is made to the graph.
+  trigger: "initialization", // Fetch only once when a conversation is started with the Agent. When set to "invocation", the fetch will be executed every time a request is made to the Agent.
   fetchConfig: {
-    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}`,
+    url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: `Bearer ${personalGraphHeaders.toTemplate('api_key')}`,
+      Authorization: `Bearer ${personalAgentHeaders.toTemplate('api_key')}`,
     },
     transform: "user", // Extract user from response, for example if the response is { "user": { "name": "John Doe", "email": "john.doe@example.com" } }, the transform will return the user object
   },
@@ -70,28 +70,28 @@ const userFetcher = fetchDefinition({
 });
 
 // 3. Configure context
-const personalGraphContext = contextConfig({
-  headers: personalGraphHeaders,
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
   contextVariables: {
     user: userFetcher,
   },
 });
 
-// 4. Create and use the agent
-const personalAgent = subAgent({
-  id: "personal-agent",
+// 4. Create and use the Sub Agent
+const personalAssistant = subAgent({
+  id: "personal-assistant",
   name: "Personal Assistant",
   description: "A personalized AI assistant",
-  prompt: `Hello ${personalGraphContext.toTemplate('user.name')}! I'm your personal assistant.`,
+  prompt: `Hello ${personalAgentContext.toTemplate('user.name')}! I'm your personal assistant.`,
 });
 
-// Initialize the graph
-export const graph = agent({
-  id: "personal-graph",
-  name: "Personal Assistant Graph",
-  defaultSubAgent: personalAgent,
-  subAgents: () => [personalAgent],
-  contextConfig: personalGraphContext,
+// Initialize the Agent
+export const myAgent = agent({
+  id: "personal-agent",
+  name: "Personal Assistant Agent",
+  defaultSubAgent: personalAssistant,
+  subAgents: () => [personalAssistant],
+  contextConfig: personalAgentContext,
 });
 ```
 

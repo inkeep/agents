@@ -67,8 +67,8 @@ _openapi:
       title: Get Related Agent Infos
       url: '#get-related-agent-infos'
     - depth: 2
-      title: Get Full Graph Definition
-      url: '#get-full-graph-definition'
+      title: Get Full Agent Definition
+      url: '#get-full-agent-definition'
     - depth: 2
       title: List SubAgent Tool Relations
       url: '#list-subagent-tool-relations'
@@ -253,17 +253,17 @@ _openapi:
       title: Update API Key
       url: '#update-api-key'
     - depth: 2
-      title: Create Full Graph
-      url: '#create-full-graph'
+      title: Create Full Agent
+      url: '#create-full-agent'
     - depth: 2
-      title: Get Full Graph
-      url: '#get-full-graph'
+      title: Get Full Agent
+      url: '#get-full-agent'
     - depth: 2
       title: Delete Full Agent
       url: '#delete-full-agent'
     - depth: 2
-      title: Update Full Graph
-      url: '#update-full-graph'
+      title: Update Full Agent
+      url: '#update-full-agent'
     - depth: 2
       title: Create Full Project
       url: '#create-full-project'
@@ -326,8 +326,8 @@ _openapi:
         id: update-agent-graph
       - content: Get Related Agent Infos
         id: get-related-agent-infos
-      - content: Get Full Graph Definition
-        id: get-full-graph-definition
+      - content: Get Full Agent Definition
+        id: get-full-agent-definition
       - content: List SubAgent Tool Relations
         id: list-subagent-tool-relations
       - content: Create SubAgent Tool Relation
@@ -450,14 +450,14 @@ _openapi:
         id: delete-api-key
       - content: Update API Key
         id: update-api-key
-      - content: Create Full Graph
-        id: create-full-graph
-      - content: Get Full Graph
-        id: get-full-graph
+      - content: Create Full Agent
+        id: create-full-agent
+      - content: Get Full Agent
+        id: get-full-agent
       - content: Delete Full Agent
         id: delete-full-agent
-      - content: Update Full Graph
-        id: update-full-graph
+      - content: Update Full Agent
+        id: update-full-agent
       - content: Create Full Project
         id: create-full-project
       - content: Get Full Project
@@ -485,7 +485,7 @@ _openapi:
       - content: List all API keys for a tenant with optional pagination
         heading: list-api-keys
       - content: >-
-          Create a new API key for a graph. Returns the full key (shown only
+          Create a new API key for an Agent. Returns the full key (shown only
           once).
         heading: create-api-key
       - content: Get a specific API key by ID (does not return the actual key)
@@ -495,35 +495,35 @@ _openapi:
       - content: Update an API key (currently only expiration date can be changed)
         heading: update-api-key
       - content: >-
-          Create a complete agent with all sub-agents, tools, and
+          Create a complete agent with all Sub Agents, tools, and
           relationships from JSON definition
-        heading: create-full-graph
+        heading: create-full-agent
       - content: >-
-          Retrieve a complete agent definition with all agents, tools, and
+          Retrieve a complete agent definition with all Sub Agents, tools, and
           relationships
-        heading: get-full-graph
+        heading: get-full-agent
       - content: >-
           Delete a complete agent and cascade to all related entities
-          (relationships, not other agents/tools)
+          (relationships, not other Sub Agents/tools)
         heading: delete-full-agent
       - content: >-
-          Update or create a complete agent with all sub-agents, tools, and
+          Update or create a complete agent with all Sub Agents, tools, and
           relationships from JSON definition
-        heading: update-full-graph
+        heading: update-full-agent
       - content: >-
-          Create a complete project with all graphs, agents, tools, and
+          Create a complete project with all agents, Sub Agents, tools, and
           relationships from JSON definition
         heading: create-full-project
       - content: >-
-          Retrieve a complete project definition with all graphs, agents, tools,
+          Retrieve a complete project definition with all agents, Sub Agents, tools,
           and relationships
         heading: get-full-project
       - content: >-
-          Delete a complete project and cascade to all related entities (graphs,
-          agents, tools, relationships)
+          Delete a complete project and cascade to all related entities (agents,
+          Sub Agents, tools, relationships)
         heading: delete-full-project
       - content: >-
-          Update or create a complete project with all graphs, agents, tools,
+          Update or create a complete project with all agents, Sub Agents, tools,
           and relationships from JSON definition
         heading: update-full-project
       - content: >-

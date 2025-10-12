@@ -31,9 +31,9 @@ This ensures that:
 
 The following tables have foreign key constraints to the `projects` table:
 
-1. `agents` - Agent configurations
-2. `agent_relations` - Relationships between agents
-3. `agent_graphs` - Graph definitions
+1. `agent` - Agent definitions (top-level Agents)
+2. `sub_agents` - Sub Agent configurations
+3. `sub_agent_relations` - Relationships between Sub Agents
 4. `tools` - Tool configurations
 5. `context_configs` - Context configurations
 6. `external_agents` - External agent references
@@ -46,7 +46,7 @@ The following tables have foreign key constraints to the `projects` table:
 
 ### CLI Validation
 
-The Inkeep CLI validates project existence before pushing graphs:
+The Inkeep CLI validates project existence before pushing agents:
 
 ```typescript
 // CLI checks if project exists
@@ -88,7 +88,7 @@ const validatedCreateAgent = withProjectValidation(db, createAgent);
 
 ```typescript
 export const agents = sqliteTable(
-  "agents",
+  "agent",
   {
     tenantId: text("tenant_id").notNull(),
     projectId: text("project_id").notNull(),
@@ -99,7 +99,7 @@ export const agents = sqliteTable(
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
-      name: "agents_project_fk",
+      name: "agent_project_fk",
     }),
   ]
 );
@@ -163,7 +163,7 @@ For existing databases without constraints:
 
 ```sql
 -- Find orphaned agents
-SELECT a.* FROM agents a
+SELECT a.* FROM agent a
 LEFT JOIN projects p
   ON a.tenant_id = p.tenant_id
   AND a.project_id = p.id
