@@ -5,44 +5,41 @@ description: Learn about the key building blocks of Inkeep - Sub Agents, Agents,
 icon: "LuBoxes"
 ---
 
-## Sub Agents, Tools
-
-Inkeep is designed with Agents as the primary building blocks of AI systems.
-
-In simple terms:
-- A **Sub Agent** is an LLM (AI model) that receives a message and can use tools or collaborate with other Sub Agents to accomplish a goal.
-- **Tools** are actions that a Sub Agent can take, like looking up information or taking an action on third-party systems and APIs.
-
-In Inkeep, tools are added to Sub Agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own. With Inkeep, you can register MCP servers and their associated **Credentials**, then use them within Agents as tools.
-
-Typically, you want a Sub Agent to handle narrow, well-defined tasks. Keeping the scope narrow allows you to optimize your **prompt** (instructions) and the tools a Sub Agent has to be specific to a scenario or task. As a general rule of thumb, only add up to 5-7 tools to a Sub Agent.
-
 ## Agents
 
-When what you're trying to accomplish gets complex, it can be useful to break up your logic into a "team" of Sub Agents that work together.
+In Inkeep, an Agent is the top-level entity you as an end-user can interface with via conversational experiences (chat) or trigger programmatically (via API).
 
-At Inkeep, we call that an **Agent**. An Agent is made up of one or more Sub Agents that collaborate to complete a task and respond to the user (hence "multi-agent" systems).
+Under the hood, an Agent is made up of one or more **Sub Agents** that work together to complete a task and respond to the user. 
 
-<Tip>
-**You can treat an Agent as one Agent**: when you send a message, it'll sound and reply as one single Agent, even if internally it's coordinating across multiple Sub Agents. This is similar to how companies operate: there may be internal back-and-forths between employees, but a company acts as one cohesive unit to external audiences, like customers.
-</Tip>
+## Tools
+When you send a message to an Agent, it is first received by a **Default Sub Agent** that decides what to do next. 
 
-### Sub Agent to Sub Agent relationships
+In a simple Agent, there may be only one **Sub Agent** with a few tools available to it.
 
-With Inkeep, every Agent has a **Default Sub Agent** that receives the initial message and decides how to proceed.
+**Tools** are actions that a Sub Agent can take, like looking up information or performing a task on apps and APIs.
 
-In an Agent, a Sub Agent can choose to:
-- **Transfer** control of the chat to another Sub Agent so a different Sub Agent can respond to the user.
-- **Delegate** a subtask for another Sub Agent to do and wait for its response before proceeding with the next step.
+In Inkeep, tools are added to Sub Agents as **MCP Servers**. Many services provide out-of-the-box MCP Servers, but you can also create your own and register them and their associated **Credentials** on Inkeep for Agents to use.
+
+Typically, you want a Sub Agent to handle narrow, well-defined tasks. Keeping the scope narrow allows you to optimize your **prompt** (instructions) and keep the tools available to a Sub Agent relevant to a specific scenario or task. 
+
+As a general rule of thumb, only add up to 5-7 tools to a Sub Agent.
+
+### Sub Agent relationships
+
+When what you're trying to accomplish gets complex, it can be useful to break up your logic by creating Sub Agents that are specialized in specific parts of your task or workflow. This is often referred to as a "Multi-Agent" system.
+
+A Sub Agent can be configured to:
+- **Transfer** control of the chat to another Sub Agent. When a transfer happens, the receiving Sub Agent becomes the primary driver of the thread and can respond to the user directly.
+- **Delegate** a subtask for another ('child') Sub Agent to do and wait for its response before proceeding with the next step. A child Sub Agent *cannot* respond directly to a user.
 
 ### Sub Agent 'turn'
 
-In summary, when a Sub Agent receives a message, it can choose to:
-1. Respond to the user
+When it's a Sub Agent's turn, it can choose to:
+1. Send an update message to the user
 2. Call a tool to collect information or take an action
 3. Transfer or delegate to another Sub Agent
 
-The Agent keeps executing steps 2 and 3 until a Sub Agent in the Agent chooses to respond to the user with a final result or a next message.
+An Agent's execution stays in this loop until one of the Sub Agents responds to the user with a final result.
 
 ## Chatting with an Agent
 
@@ -60,7 +57,7 @@ API keys are the recommended approach for production use, providing secure, scop
 
 ## Agent replies with Structured Data
 
-Sometimes, you want your Agent to reply not in plain text, but with specific types of well-defined information often called 'Structured Outputs' (JSON).
+Sometimes, you want your Agent to reply not in plain text but with specific types of well-defined information, often called 'Structured Outputs' (JSON).
 
 With Inkeep, there are a few ways to do this:
 - **Data Components**: Structured Outputs that Sub Agents can output in their messages so they can render rich, interactive UIs (lists, buttons, forms, etc.) or convey structured information.
@@ -71,7 +68,7 @@ With Inkeep, there are a few ways to do this:
 
 Beyond using Tools to fetch information, Sub Agents also receive information via:
 - **Headers**: In the API request to an Agent, the calling application can include headers for a Sub Agent. Learn more [here](/typescript-sdk/headers).
-- **Context Fetchers**: Can be configured for an Agent so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is then made available to any Sub Agent. For example, your Headers may include a `user-id` which can be used to auto-fetch information from a CRM about the user for any Sub Agent to use.
+- **Context Fetchers**: Can be configured for an Agent so that at the beginning of a conversation, an API call is automatically made to an external service to get information that is then made available to any Sub Agent. For example, your Headers may include a `user-id`, which can be used to auto-fetch information from a CRM about the user for any Sub Agent to use.
 
 Headers and fetched context can then be referenced explicitly as `{{variables}}` in Sub Agent prompts. Learn more [here](/typescript-sdk/headers).
 
@@ -135,7 +132,7 @@ Quick reference to the key docs for building with the Visual Builder or the Type
   </Tab>
 </Tabs>
 
-The Visual Builder and TypeScript SDK work seamlessly together—define your Sub Agents in code, push them to the visual builder, and iterate visually.
+The Visual Builder and TypeScript SDK work seamlessly together—define your Sub Agents in code, push them to the Visual Builder, and iterate visually.
 
 ## Projects
 
