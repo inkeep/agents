@@ -387,9 +387,6 @@ importers:
       '@codemirror/autocomplete':
         specifier: ^6.19.0
         version: 6.19.0
-      '@codemirror/lang-json':
-        specifier: ^6.0.2
-        version: 6.0.2
       '@codemirror/lint':
         specifier: ^6.8.5
         version: 6.9.0

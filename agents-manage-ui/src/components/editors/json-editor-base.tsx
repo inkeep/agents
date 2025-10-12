@@ -48,6 +48,10 @@ export interface JsonEditorRef {
 interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
   value?: string;
+  /**
+   * Virtual file system path
+   * @see https://github.com/microsoft/monaco-editor?tab=readme-ov-file#uris
+   */
   uri?: `${string}.json`;
   readOnly?: boolean;
   disabled?: boolean;
