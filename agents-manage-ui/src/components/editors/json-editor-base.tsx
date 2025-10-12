@@ -156,6 +156,13 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         keybindings: [KeyCode.F1],
         run() {}, // Do nothing - prevents command palette from opening
       }),
+      editorInstance.onKeyDown((event) => {
+        if (event.code !== 'Space') {
+          return;
+        }
+        // Stop propagation to prevent ReactFlow from capturing the space key
+        event.browserEvent.stopPropagation();
+      }),
     ];
     if (autoFocus) {
       requestAnimationFrame(() => {
