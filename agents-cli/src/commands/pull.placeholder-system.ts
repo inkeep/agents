@@ -113,6 +113,15 @@ function isJsonSchemaPath(path: string): boolean {
   if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
     return true;
   }
+  
+  // Convert artifact component and data component props from JSON Schema to Zod
+  if (path.includes('artifactComponents') && path.endsWith('props')) {
+    return true;
+  }
+  if (path.includes('dataComponents') && path.endsWith('props')) {
+    return true;
+  }
+  
   return false;
 }
 

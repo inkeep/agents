@@ -4,7 +4,7 @@
  * alongside the existing AgentGraph pattern.
  */
 
-import { agent, agentGraph, project } from '../src';
+import { agent, agentGraph, project, OPENAI_MODELS } from '../src';
 
 // Create a project with model inheritance and execution limits
 const customerSupportProject = project({
@@ -14,9 +14,9 @@ const customerSupportProject = project({
 
   // Project-level model settings that cascade to graphs and agents
   models: {
-    base: { model: 'gpt-4o-mini' },
-    structuredOutput: { model: 'gpt-4o' },
-    summarizer: { model: 'gpt-3.5-turbo' },
+    base: { model: OPENAI_MODELS.GPT_4_1 },
+    structuredOutput: { model: OPENAI_MODELS.GPT_4_1_MINI },
+    summarizer: { model: OPENAI_MODELS.GPT_4_1_NANO },
   },
 
   // Project-level execution limits

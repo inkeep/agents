@@ -173,11 +173,12 @@ models: {
 
 ### Supported Providers
 
-The framework currently supports models from:
+The framework supports a wide range of models from major AI providers:
 
-- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
-- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
-- **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
+- **Anthropic**: For example `anthropic/claude-opus-4-1-20250805`, `anthropic/claude-sonnet-4.5-20250531`, `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, and more
+- **OpenAI**: For example `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, and more
+- **Google**: For example `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, and more
+- **Additional providers** via OpenRouter and gateway routing
 
 ## Provider Options
 
@@ -265,17 +266,7 @@ models: {
 }
 ```
 
-## Model Providers
-
-### Built-in Providers
-
-The framework supports these providers directly:
-
-- **Anthropic**: `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, etc.
-- **OpenAI**: `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, etc.
-- **Google**: `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, etc.
-
-### Accessing Other Models
+## Accessing Other Models
 
 For models not directly supported, use these proxy providers:
 
@@ -310,6 +301,25 @@ You need the appropriate API key for your chosen provider:
 - `OPENROUTER_API_KEY` for OpenRouter models
 - `AI_GATEWAY_API_KEY` for Vercel AI SDK Gateway models
 
+### Default Models
+
+When using the Inkeep CLI, the following defaults are applied based on your chosen provider:
+
+**Anthropic:**
+- `base`: `anthropic/claude-sonnet-4.5-20250531`
+- `structuredOutput`: `anthropic/claude-sonnet-4.5-20250531`
+- `summarizer`: `anthropic/claude-sonnet-4.5-20250531`
+
+**OpenAI:**
+- `base`: `openai/gpt-4.1-2025-04-14`
+- `structuredOutput`: `openai/gpt-4.1-mini-2025-04-14`
+- `summarizer`: `openai/gpt-4.1-nano-2025-04-14`
+
+**Google:**
+- `base`: `google/gemini-2.5-flash`
+- `structuredOutput`: `google/gemini-2.5-flash-lite`
+- `summarizer`: `google/gemini-2.5-flash-lite`
+
 ### Inheritance
 
 If no `models` settings are specified, the agent will inherit the models settings from its agent graph, which may inherit from the project settings.
@@ -330,4 +340,4 @@ Follow company policies and escalate complex issues appropriately.`,
 
 The `graphPrompt` is injected into each agent's system prompt, providing consistent context and behavior guidelines across all agents in the graph.
 
-<Note>`openai/gpt-5-2025-08-07` and `openai/gpt-4.1-mini-2025-04-14` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
+<Note>`openai/gpt-5-2025-08-07`, `openai/gpt-5-mini-2025-08-07`, and `openai/gpt-5-nano-2025-08-07` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>

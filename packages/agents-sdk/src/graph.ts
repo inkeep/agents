@@ -5,6 +5,7 @@ import {
   type GraphStopWhen,
   getLogger,
   getProject,
+  OPENAI_MODELS,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { FunctionTool } from './function-tool';
@@ -1090,7 +1091,7 @@ export class AgentGraph implements GraphInterface {
 
     logger.info({ url }, 'Executing with backend');
     const requestBody = {
-      model: 'gpt-4o-mini',
+      model: OPENAI_MODELS.GPT_4_1_MINI,
       messages: normalizedMessages.map((msg) => ({
         role: msg.role,
         content: msg.content,

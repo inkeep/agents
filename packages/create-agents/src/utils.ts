@@ -4,43 +4,44 @@ import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import color from 'picocolors';
+import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
 
 export const defaultGoogleModelConfigurations = {
   base: {
-    model: 'google/gemini-2.5-flash',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
   structuredOutput: {
-    model: 'google/gemini-2.5-flash-lite',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
   summarizer: {
-    model: 'google/gemini-2.5-flash-lite',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
 };
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-4.1-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1,
   },
   structuredOutput: {
-    model: 'openai/gpt-4.1-mini-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1_MINI,
   },
   summarizer: {
-    model: 'openai/gpt-4.1-nano-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1_NANO,
   },
 };
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   structuredOutput: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
 };
 
