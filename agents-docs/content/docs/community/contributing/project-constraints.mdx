@@ -33,7 +33,7 @@ The following tables have foreign key constraints to the `projects` table:
 
 1. `agents` - Agent configurations
 2. `agent_relations` - Relationships between agents
-3. `agent_graphs` - Graph definitions
+3. `agent_graphs` - Agent definitions
 4. `tools` - Tool configurations
 5. `context_configs` - Context configurations
 6. `external_agents` - External agent references
@@ -46,7 +46,7 @@ The following tables have foreign key constraints to the `projects` table:
 
 ### CLI Validation
 
-The Inkeep CLI validates project existence before pushing graphs:
+The Inkeep CLI validates project existence before pushing agents:
 
 ```typescript
 // CLI checks if project exists
