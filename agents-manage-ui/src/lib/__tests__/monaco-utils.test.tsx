@@ -39,15 +39,20 @@ describe('Monaco-Editor Functionality', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     editor?.dispose();
     model?.dispose();
     container?.remove();
+
+    // Wait for any pending operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
     // Wait for Monaco workers to initialize
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { promise, resolve } = Promise.withResolvers();
+    requestAnimationFrame(resolve);
+    await promise;
 
     expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchInlineSnapshot(`
       [

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { JsonEditor } from '@/components/form/json-editor';
+import { JsonEditor as JsonEditor2 } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { formatJson } from '@/lib/utils';
 import { ExpandableField } from './expandable-field';
@@ -49,33 +50,41 @@ const useJsonFormat = (value: string, onChange: (value: string) => void, hasErro
   return { handleFormat, canFormat: !hasError && !!value?.trim() };
 };
 
-function ExpandedJsonEditor({
-  value,
+interface ExpandedJsonEditorProps
+  extends Pick<ComponentProps<typeof JsonEditor2>, 'value' | 'onChange' | 'placeholder'> {
+  name: string;
+}
+
+const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
+  value = '',
   onChange,
   placeholder,
   name,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  name: string;
-}) {
+}) => {
   const { error } = useJsonValidation(value);
-
   return (
-    <div className="flex flex-col min-h-0 w-full h-full">
-      <JsonEditor
+    <div className="h-full">
+      <JsonEditor2
         id={`${name}-expanded`}
         autoFocus
-        value={value || ''}
+        value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="[&>.cm-editor]:h-full"
+        className="h-full!"
+        aria-invalid={!!error}
       />
+      {/*<JsonEditor*/}
+      {/*  id={`${name}-expanded`}*/}
+      {/*  autoFocus*/}
+      {/*  value={value || ''}*/}
+      {/*  onChange={onChange}*/}
+      {/*  placeholder={placeholder}*/}
+      {/*  className="[&>.cm-editor]:h-full"*/}
+      {/*/>*/}
       {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </div>
   );
-}
+};
 
 export function ExpandableJsonEditor({
   name,
@@ -117,6 +126,7 @@ export function ExpandableJsonEditor({
       compactView={
         <>
           <JsonEditor
+            aria-invalid={!!error}
             id={name}
             value={value || ''}
             onChange={onChange}

@@ -1,4 +1,4 @@
-import type { ReactNode, FC, Ref } from 'react';
+import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle, useId, useMemo } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
@@ -43,17 +43,14 @@ export interface JsonEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
 }
 
-interface JsonEditorProps {
+interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   value?: string;
   uri?: `${string}.json`;
   readOnly?: boolean;
-  children?: ReactNode;
-  className?: string;
   disabled?: boolean;
-  onChange?: (value: string) => void;
+  onChange: (value: string) => void;
   ref?: Ref<JsonEditorRef>;
   placeholder?: string;
-  'aria-invalid'?: boolean;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
@@ -66,7 +63,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   disabled,
   onChange,
   placeholder,
-  'aria-invalid': ariaInvalid,
+  ...props
 }) => {
   const id = useId();
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.json` as `${string}.json`, [id]);
@@ -186,7 +183,6 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   return (
     <div
       ref={containerRef}
-      aria-invalid={ariaInvalid}
       className={cn(
         'rounded-[7px] relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
@@ -196,6 +192,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className
       )}
+      {...props}
     >
       {children}
     </div>
