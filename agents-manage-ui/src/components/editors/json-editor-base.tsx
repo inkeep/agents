@@ -4,45 +4,14 @@ import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle, useId, useMemo } from 'react';
 import { useTheme } from 'next-themes';
 import { type editor, type IDisposable, KeyCode } from 'monaco-editor';
-import { toast } from 'sonner';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
 import {
-  addDecorations,
   cleanupDisposables,
   createEditor,
   getOrCreateModel,
 } from '@/lib/monaco-editor/monaco-utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
-
-const handleCopyFieldValue = (model: editor.IModel) => async (e: editor.IEditorMouseEvent) => {
-  if (model.isDisposed()) {
-    return;
-  }
-  const { element, position } = e.target;
-  if (!element?.classList.contains('copy-button-icon') || !position) {
-    return;
-  }
-  e.event.preventDefault();
-  const lineContent = model.getLineContent(position.lineNumber);
-  const index = lineContent.indexOf(': ');
-  const valueToCopy = lineContent
-    .slice(index + 2)
-    .trim()
-    // Remove trailing comma if present
-    .replace(/,$/, '')
-    // Replace quotes in strings
-    .replaceAll(/(^")|("$)/g, '');
-  try {
-    await navigator.clipboard.writeText(valueToCopy);
-    toast.success('Copied to clipboard', {
-      description: `Value: ${valueToCopy.length > 50 ? `${valueToCopy.slice(0, 50)}...'` : valueToCopy}`,
-    });
-  } catch (error) {
-    console.error('Failed to copy', error);
-    toast.error('Failed to copy to clipboard');
-  }
-};
 
 export interface JsonEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
@@ -68,6 +37,7 @@ interface JsonEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChang
    * @default true
    */
   hasDynamicHeight?: boolean;
+  onMount?: (editor: editor.IStandaloneCodeEditor) => void;
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({
@@ -83,6 +53,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
   autoFocus,
   fontSize = 12,
   hasDynamicHeight = true,
+  onMount,
   ...props
 }) => {
   const id = useId();
@@ -170,26 +141,6 @@ export const JsonEditor: FC<JsonEditorProps> = ({
       });
     }
 
-    // Add read-only specific features
-    if (readOnly) {
-      // Add copy decorations after Monaco workers initialize
-      const timerId = setTimeout(() => {
-        if (model.isDisposed()) {
-          return;
-        }
-        addDecorations(editorInstance, value, ' ');
-      }, 1000);
-
-      disposables.push(
-        {
-          dispose() {
-            clearTimeout(timerId);
-          },
-        },
-        editorInstance.onMouseDown(handleCopyFieldValue(model))
-      );
-    }
-
     if (hasDynamicHeight) {
       // Auto-resize editor based on content
       function updateHeight() {
@@ -205,6 +156,7 @@ export const JsonEditor: FC<JsonEditorProps> = ({
 
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
+    onMount?.(editorInstance);
     return cleanupDisposables(disposables);
   }, []);
 
