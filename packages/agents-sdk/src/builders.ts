@@ -54,11 +54,11 @@ export interface ComponentConfig {
 }
 
 export interface ArtifactComponentConfig extends ComponentConfig {
-  props: Record<string, unknown>;
+  props: Record<string, unknown> | z.ZodObject<any>;
 }
 
 export interface DataComponentConfig extends ComponentConfig {
-  props: Record<string, unknown>;
+  props: Record<string, unknown> | z.ZodObject<any>;
 }
 
 // ============================================================================

@@ -10,6 +10,7 @@ export default defineConfig({
     'src/types/index.ts',
     'src/validation/index.ts',
     'src/client-exports.ts',
+    'src/constants/models.ts',
     'src/utils/schema-conversion.ts',
   ],
   external: ['keytar'],

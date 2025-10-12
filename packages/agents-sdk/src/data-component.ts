@@ -1,7 +1,17 @@
 import { type DataComponentInsert as DataComponentType, getLogger } from '@inkeep/agents-core';
+import {
+  convertZodToJsonSchema,
+  isZodSchema,
+} from '@inkeep/agents-core/utils/schema-conversion';
+import type { z } from 'zod';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('dataComponent');
+
+// Type for the config that can accept Zod schemas
+type DataComponentConfigWithZod = Omit<DataComponentType, 'tenantId' | 'projectId' | 'props'> & {
+  props?: Record<string, unknown> | z.ZodObject<any> | null;
+};
 
 export interface DataComponentInterface {
   config: Omit<DataComponentType, 'tenantId' | 'projectId'>;
@@ -21,12 +31,21 @@ export class DataComponent implements DataComponentInterface {
   private initialized = false;
   private id: DataComponentType['id'];
 
-  constructor(config: Omit<DataComponentType, 'tenantId' | 'projectId'>) {
+  constructor(config: DataComponentConfigWithZod) {
     this.id = config.id || generateIdFromName(config.name);
+
+    // Convert Zod schema to JSON Schema if needed
+    let processedProps: Record<string, unknown> | null | undefined;
+    if (config.props && isZodSchema(config.props)) {
+      processedProps = convertZodToJsonSchema(config.props) as Record<string, unknown>;
+    } else {
+      processedProps = config.props as Record<string, unknown> | null | undefined;
+    }
 
     this.config = {
       ...config,
       id: this.id,
+      props: processedProps,
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     // tenantId and projectId will be set by setContext method

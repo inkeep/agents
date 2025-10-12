@@ -404,7 +404,7 @@ describe('ApiClient', () => {
         expect.any(String),
         expect.objectContaining({
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'openai/gpt-4.1-mini-2025-04-14',
             messages,
             conversationId,
             stream: true,
@@ -489,7 +489,7 @@ describe('ApiClient', () => {
           'x-inkeep-graph-id': 'test-graph',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'openai/gpt-4.1-mini-2025-04-14',
           messages,
           conversationId: undefined,
           stream: true,

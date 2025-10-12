@@ -6,6 +6,7 @@ import {
   getLogger,
 } from '@inkeep/agents-core';
 import {
+  convertZodToJsonSchema,
   convertZodToJsonSchemaWithPreview,
   isZodSchema,
 } from '@inkeep/agents-core/utils/schema-conversion';
@@ -159,7 +160,7 @@ export class SubAgent implements SubAgentInterface {
           id: comp.id,
           name: comp.name,
           description: comp.description,
-          props: convertZodToJsonSchemaWithPreview(comp.props),
+          props: convertZodToJsonSchema(comp.props),
         };
       }
       // Otherwise assume it's already a plain object

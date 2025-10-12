@@ -1,5 +1,5 @@
 // Import shared API client from agents-core
-import { type AgentGraphApiInsert, type AgentGraphApiSelect, apiFetch } from '@inkeep/agents-core';
+import { type AgentGraphApiInsert, type AgentGraphApiSelect, apiFetch, OPENAI_MODELS } from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -219,7 +219,7 @@ export class ExecutionApiClient extends BaseApiClient {
         ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Required but will be overridden by graph config
+        model: OPENAI_MODELS.GPT_4_1_MINI, // Required but will be overridden by graph config
         messages,
         conversationId,
         stream: true,
