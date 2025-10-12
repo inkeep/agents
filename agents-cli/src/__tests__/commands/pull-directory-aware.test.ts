@@ -364,5 +364,75 @@ describe('Pull Command - Directory Aware', () => {
       );
       expect(hasSubdirectory).toBe(true);
     });
+
+    it('should use process.cwd() as baseDir when in directory-aware mode (regression test for PRD-5109)', async () => {
+      const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
+      const { ManagementApiClient } = await import('../../api.js');
+      const { mkdirSync } = await import('node:fs');
+      const { findProjectDirectory } = await import('../../utils/project-directory.js');
+
+      // Simulate being in subdirectory: /test/parent/subdirectory
+      const currentDir = '/test/parent/subdirectory';
+      const parentDir = '/test/parent';
+
+      // Mock process.cwd to return subdirectory
+      const originalCwd = process.cwd;
+      process.cwd = vi.fn().mockReturnValue(currentDir);
+
+      // Mock findProjectDirectory to return parent (where config was found)
+      (findProjectDirectory as Mock).mockResolvedValue(parentDir);
+
+      // Mock config and index.ts exist
+      (existsSync as Mock).mockImplementation((path: string) => {
+        if (path.includes('inkeep.config.ts')) return true;
+        if (path.includes('index.ts') && path.includes(currentDir)) return true;
+        return false;
+      });
+
+      // Mock project
+      const mockProject = {
+        __type: 'project',
+        getId: vi.fn().mockReturnValue('test-project-id'),
+      };
+
+      (importWithTypeScriptSupport as Mock).mockResolvedValue({
+        default: mockProject,
+      });
+
+      // Mock API client
+      const mockApiClient = {
+        getFullProject: vi.fn().mockResolvedValue({
+          name: 'Test Project',
+          agents: { 'agent-1': { id: 'agent-1', name: 'Agent 1' } },
+          tools: {},
+          dataComponents: {},
+          artifactComponents: {},
+          credentialReferences: {},
+        }),
+      };
+      (ManagementApiClient.create as Mock).mockResolvedValue(mockApiClient);
+
+      await pullProjectCommand({});
+
+      // Verify that directories are created in the CURRENT directory (subdirectory)
+      // not in the parent directory where config was found
+      const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
+
+      // Should have created agents directory in currentDir
+      const agentsDir = mkdirCalls.find((path: string) =>
+        path.includes('/agents') && path.startsWith(currentDir)
+      );
+      expect(agentsDir).toBeTruthy();
+      expect(agentsDir).toContain(currentDir);
+
+      // Should NOT have created agents directory in parentDir
+      const wrongAgentsDir = mkdirCalls.find((path: string) =>
+        path.includes('/agents') && path.startsWith(parentDir) && !path.startsWith(currentDir)
+      );
+      expect(wrongAgentsDir).toBeUndefined();
+
+      // Restore process.cwd
+      process.cwd = originalCwd;
+    });
   });
 });
