@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform. 
+Inkeep is a platform to build and manage AI Agents with a **No-Code Visual Builder** or **TypeScript Agents SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform.
 
 You can deploy Inkeep Agents as **real-time chat assistants** for your customers or internal teams, or as **agentic workflows** for doing repetitive, time-consuming tasks.
 
@@ -47,6 +47,7 @@ Inkeep **Open Source** includes:
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via Traces UI & OpenTelemetry
+- Easy deploy to Vercel or using Docker
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
 
