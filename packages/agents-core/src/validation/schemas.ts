@@ -932,6 +932,169 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   updatedAt: z.string().optional(),
 });
 
+// === Concrete Response Wrapper Schemas ===
+// Single item response wrappers
+export const ProjectResponse = z
+  .object({ data: ProjectApiSelectSchema })
+  .openapi('ProjectResponse');
+export const SubAgentResponse = z
+  .object({ data: SubAgentApiSelectSchema })
+  .openapi('SubAgentResponse');
+export const AgentResponse = z.object({ data: AgentApiSelectSchema }).openapi('AgentResponse');
+export const ToolResponse = z.object({ data: ToolApiSelectSchema }).openapi('ToolResponse');
+export const ExternalAgentResponse = z
+  .object({ data: ExternalAgentApiSelectSchema })
+  .openapi('ExternalAgentResponse');
+export const ContextConfigResponse = z
+  .object({ data: ContextConfigApiSelectSchema })
+  .openapi('ContextConfigResponse');
+export const ApiKeyResponse = z
+  .object({ data: ApiKeyApiSelectSchema })
+  .openapi('ApiKeyResponse');
+export const CredentialReferenceResponse = z
+  .object({ data: CredentialReferenceApiSelectSchema })
+  .openapi('CredentialReferenceResponse');
+export const FunctionResponse = z
+  .object({ data: FunctionApiSelectSchema })
+  .openapi('FunctionResponse');
+export const FunctionToolResponse = z
+  .object({ data: FunctionToolApiSelectSchema })
+  .openapi('FunctionToolResponse');
+export const DataComponentResponse = z
+  .object({ data: DataComponentApiSelectSchema })
+  .openapi('DataComponentResponse');
+export const ArtifactComponentResponse = z
+  .object({ data: ArtifactComponentApiSelectSchema })
+  .openapi('ArtifactComponentResponse');
+export const SubAgentRelationResponse = z
+  .object({ data: SubAgentRelationApiSelectSchema })
+  .openapi('SubAgentRelationResponse');
+export const SubAgentToolRelationResponse = z
+  .object({ data: SubAgentToolRelationApiSelectSchema })
+  .openapi('SubAgentToolRelationResponse');
+export const ConversationResponse = z
+  .object({ data: ConversationApiSelectSchema })
+  .openapi('ConversationResponse');
+export const MessageResponse = z
+  .object({ data: MessageApiSelectSchema })
+  .openapi('MessageResponse');
+
+// List response wrappers with pagination
+export const ProjectListResponse = z
+  .object({
+    data: z.array(ProjectApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ProjectListResponse');
+export const SubAgentListResponse = z
+  .object({
+    data: z.array(SubAgentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentListResponse');
+export const AgentListResponse = z
+  .object({
+    data: z.array(AgentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('AgentListResponse');
+export const ToolListResponse = z
+  .object({
+    data: z.array(ToolApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ToolListResponse');
+export const ExternalAgentListResponse = z
+  .object({
+    data: z.array(ExternalAgentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ExternalAgentListResponse');
+export const ContextConfigListResponse = z
+  .object({
+    data: z.array(ContextConfigApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ContextConfigListResponse');
+export const ApiKeyListResponse = z
+  .object({
+    data: z.array(ApiKeyApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ApiKeyListResponse');
+export const CredentialReferenceListResponse = z
+  .object({
+    data: z.array(CredentialReferenceApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('CredentialReferenceListResponse');
+export const FunctionListResponse = z
+  .object({
+    data: z.array(FunctionApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FunctionListResponse');
+export const FunctionToolListResponse = z
+  .object({
+    data: z.array(FunctionToolApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FunctionToolListResponse');
+export const DataComponentListResponse = z
+  .object({
+    data: z.array(DataComponentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('DataComponentListResponse');
+export const ArtifactComponentListResponse = z
+  .object({
+    data: z.array(ArtifactComponentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ArtifactComponentListResponse');
+export const SubAgentRelationListResponse = z
+  .object({
+    data: z.array(SubAgentRelationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentRelationListResponse');
+export const SubAgentToolRelationListResponse = z
+  .object({
+    data: z.array(SubAgentToolRelationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentToolRelationListResponse');
+export const ConversationListResponse = z
+  .object({
+    data: z.array(ConversationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('ConversationListResponse');
+export const MessageListResponse = z
+  .object({
+    data: z.array(MessageApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('MessageListResponse');
+export const SubAgentDataComponentResponse = z
+  .object({ data: SubAgentDataComponentApiSelectSchema })
+  .openapi('SubAgentDataComponentResponse');
+export const SubAgentArtifactComponentResponse = z
+  .object({ data: SubAgentArtifactComponentApiSelectSchema })
+  .openapi('SubAgentArtifactComponentResponse');
+export const SubAgentDataComponentListResponse = z
+  .object({
+    data: z.array(SubAgentDataComponentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentDataComponentListResponse');
+export const SubAgentArtifactComponentListResponse = z
+  .object({
+    data: z.array(SubAgentArtifactComponentApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentArtifactComponentListResponse');
+
 // === Common parameter schemas ===
 export const HeadersScopeSchema = z.object({
   'x-inkeep-tenant-id': z.string().optional().openapi({

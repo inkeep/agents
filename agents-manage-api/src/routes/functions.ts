@@ -6,11 +6,11 @@ import {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  FunctionListResponse,
+  FunctionResponse,
   getFunction,
-  ListResponseSchema,
   listFunctions,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   upsertFunction,
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of functions',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionListResponse,
           },
         },
       },
@@ -88,7 +88,7 @@ app.openapi(
         description: 'Function details',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },
@@ -146,7 +146,7 @@ app.openapi(
         description: 'Function created',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },
@@ -209,7 +209,7 @@ app.openapi(
         description: 'Function updated',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionApiSelectSchema),
+            schema: FunctionResponse,
           },
         },
       },

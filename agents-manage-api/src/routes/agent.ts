@@ -3,6 +3,8 @@ import {
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
+  AgentListResponse,
+  AgentResponse,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
@@ -44,7 +46,7 @@ app.openapi(
         description: 'List of agents retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(AgentApiSelectSchema),
+            schema: AgentListResponse,
           },
         },
       },
@@ -85,7 +87,7 @@ app.openapi(
         description: 'Agent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: AgentResponse,
           },
         },
       },
@@ -226,7 +228,7 @@ app.openapi(
         description: 'Agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: AgentResponse,
           },
         },
       },
@@ -273,7 +275,7 @@ app.openapi(
         description: 'Agent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentApiSelectSchema),
+            schema: AgentResponse,
           },
         },
       },

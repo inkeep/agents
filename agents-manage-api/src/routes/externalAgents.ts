@@ -8,11 +8,11 @@ import {
   ExternalAgentApiInsertSchema,
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
+  ExternalAgentListResponse,
+  ExternalAgentResponse,
   getExternalAgent,
-  ListResponseSchema,
   listExternalAgentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateExternalAgent,
@@ -38,7 +38,7 @@ app.openapi(
         description: 'List of external agents retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ExternalAgentApiSelectSchema),
+            schema: ExternalAgentListResponse,
           },
         },
       },
@@ -81,7 +81,7 @@ app.openapi(
         description: 'External agent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ExternalAgentApiSelectSchema),
+            schema: ExternalAgentResponse,
           },
         },
       },
@@ -134,7 +134,7 @@ app.openapi(
         description: 'External agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ExternalAgentApiSelectSchema),
+            schema: ExternalAgentResponse,
           },
         },
       },
@@ -191,7 +191,7 @@ app.openapi(
         description: 'External agent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ExternalAgentApiSelectSchema),
+            schema: ExternalAgentResponse,
           },
         },
       },

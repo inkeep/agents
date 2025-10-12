@@ -4,6 +4,8 @@ import {
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
   ApiKeyApiUpdateSchema,
+  ApiKeyListResponse,
+  ApiKeyResponse,
   commonGetErrorResponses,
   createApiError,
   createApiKey,
@@ -11,10 +13,8 @@ import {
   ErrorResponseSchema,
   generateApiKey,
   getApiKeyById,
-  ListResponseSchema,
   listApiKeysPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateApiKey,
@@ -43,7 +43,7 @@ app.openapi(
         description: 'List of API keys retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyListResponse,
           },
         },
       },
@@ -87,7 +87,7 @@ app.openapi(
         description: 'API key found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyResponse,
           },
         },
       },
@@ -222,7 +222,7 @@ app.openapi(
         description: 'API key updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ApiKeyApiSelectSchema),
+            schema: ApiKeyResponse,
           },
         },
       },
