@@ -6,7 +6,7 @@ icon: "LuTerminal"
 
 ## Overview
 
-The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framework. It allows you to push agent configurations and interact with your multi-agent system.
+The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framework. It allows you to push Agent configurations and interact with your multi-agent system.
 
 ## Installation
 
@@ -58,7 +58,7 @@ inkeep init --config ./template-config.ts
 
 ### `inkeep push`
 
-**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all agents, sub-agents, and tools.
+**Primary use case:** Push a project containing Agent configurations to your server. This command deploys your entire multi-agent project, including all Agents, Sub Agents, and tools.
 
 ```bash
 inkeep push
@@ -160,7 +160,7 @@ The `inkeep push` command follows this discovery process:
 3. **Resource Compilation**: Automatically discovers and compiles:
    - All project directories containing `index.ts`
    - All TypeScript files within each project directory
-   - Categorizes files by type (agents, sub-agents, tools, data components)
+   - Categorizes files by type (agents, Sub Agents, tools, data components)
    - Resolves dependencies and relationships within each project
 
 #### Push Behavior
@@ -171,7 +171,7 @@ When pushing, the CLI:
 - Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
 - Compiles all project resources defined in each project's `index.ts`
-- Validates sub-agent relationships and tool configurations across all projects
+- Validates Sub Agent relationships and tool configurations across all projects
 - Deploys all projects to the management API
 - Prints deployment summary with resource counts per project
 
@@ -214,10 +214,10 @@ The pull command automatically detects if you're in a project directory and pull
 The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
 
 1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
-2. **Smart Categorization**: Categorizes files as index, agents, sub-agents, tools, or other files
+2. **Smart Categorization**: Categorizes files as index, agents, Sub Agents, tools, or other files
 3. **Context-Aware Updates**: Updates each file with relevant context from the server:
    - **Agent files**: Updated with specific agent data
-   - **Sub-agent files**: Updated with specific sub-agent configurations
+   - **Sub Agent files**: Updated with specific Sub Agent configurations
    - **Tool files**: Updated with specific tool definitions
    - **Other files**: Updated with full project context
 4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
@@ -228,7 +228,7 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 
 1. **Context Preservation**: Maintains your existing code structure and patterns
 2. **Selective Updates**: Only updates relevant parts based on server configuration changes
-3. **File-Specific Context**: Each file type receives appropriate context (agents get agent data, sub-agents get sub-agent data, etc.)
+3. **File-Specific Context**: Each file type receives appropriate context (Agents get Agent data, Sub Agents get Sub Agent data, etc.)
 
 **Examples:**
 

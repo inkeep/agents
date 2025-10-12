@@ -1,14 +1,14 @@
 ---
 title: Headers
 sidebarTitle: Headers
-description: Pass dynamic context to your agents via HTTP headers for personalized interactions
+description: Pass dynamic context to your Agents via HTTP headers for personalized interactions
 icon: LuBoxes
 keywords: headers, context fetchers, prompt variables, personalization
 ---
 
 ## Overview
 
-Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your agent at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your agent system for:
+Headers allow you to pass request-specific values (like user IDs, authentication tokens, or organization metadata) to your Agent at runtime via HTTP headers. These values are validated, cached per conversation, and made available throughout your Agent system for:
 
 - **Context Fetchers**: Dynamic data retrieval based on request values
 - **External Tools**: Authentication and personalization for API calls
@@ -48,7 +48,7 @@ import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 
 
 // Define schema for expected headers (use lowercase keys)
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     auth_token: z.string(),
@@ -62,10 +62,10 @@ const userFetcher = fetchDefinition({
   name: "User Information",
   trigger: "initialization",
   fetchConfig: {
-    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}`,
+    url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}`,
     method: "GET",
     headers: {
-      Authorization: `Bearer ${personalGraphHeaders.toTemplate('auth_token')}`,
+      Authorization: `Bearer ${personalAgentHeaders.toTemplate('auth_token')}`,
     },
     transform: "user", // Extract user from response, for example if the response is { "user": { "name": "John Doe", "email": "john.doe@example.com" } }, the transform will return the user object
   },
@@ -78,33 +78,33 @@ const userFetcher = fetchDefinition({
   defaultValue: "Guest User"
 });
 
-// Configure context for your graph
-const personalGraphContext = contextConfig({
-  headers: personalGraphHeaders,
+// Configure context for your agent
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
   contextVariables: {
     user: userFetcher,
   },
 });
 
-// Create an agent that uses context variables
-const personalAssistant = agent({
+// Create a Sub Agent that uses context variables
+const personalAssistant = subAgent({
   id: "personal-assistant",
   name: "Personal Assistant",
   description: "Personalized AI assistant",
-  prompt: `You are a helpful assistant for ${personalGraphContext.toTemplate('user.name')} from ${personalGraphHeaders.toTemplate('org_name')}.
+  prompt: `You are a helpful assistant for ${personalAgentContext.toTemplate('user.name')} from ${personalAgentHeaders.toTemplate('org_name')}.
 
-  User ID: ${personalGraphHeaders.toTemplate('user_id')}
+  User ID: ${personalAgentHeaders.toTemplate('user_id')}
 
   Provide personalized assistance based on their context.`,
 });
 
-// Attach context to your graph
-const graph = agent({
-  id: "personal-graph",
-  name: "Personal Assistant Graph",
+// Attach context to your Agent
+const myAgent = agent({
+  id: "personal-agent",
+  name: "Personal Assistant Agent",
   defaultSubAgent: personalAssistant,
   subAgents: () => [personalAssistant],
-  contextConfig: personalGraphContext,
+  contextConfig: personalAgentContext,
 });
 ```
 
@@ -140,7 +140,7 @@ Use header values to fetch dynamic data from external APIs:
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     auth_token: z.string(),
@@ -153,14 +153,14 @@ const userDataFetcher = fetchDefinition({
   id: "user-data",
   name: "User Data",
   fetchConfig: {
-    url: `https://api.example.com/users/${personalGraphHeaders.toTemplate('user_id')}/profile`,
+    url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}/profile`,
     headers: {
-      Authorization: `Bearer ${personalGraphHeaders.toTemplate('auth_token')}`,
-      "X-Organization": personalGraphHeaders.toTemplate('org_name')
+      Authorization: `Bearer ${personalAgentHeaders.toTemplate('auth_token')}`,
+      "X-Organization": personalAgentHeaders.toTemplate('org_name')
     },
     body: {
       includePreferences: true,
-      userId: personalGraphHeaders.toTemplate('user_id')
+      userId: personalAgentHeaders.toTemplate('user_id')
     }
   },
   responseSchema: z.object({
@@ -169,10 +169,10 @@ const userDataFetcher = fetchDefinition({
   })
 });
 
-// Configure context for your graph
+// Configure context for your Agent
 // You must include the headers schema and fetchers in your context config.
-const personalGraphContext = contextConfig({
-  headers: personalGraphHeaders,
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
   contextVariables: {
     user: userFetcher,
   },
@@ -209,7 +209,7 @@ Configure external agents or MCP servers with dynamic headers using the headers 
 
 ```typescript
 // Define schema for expected headers (use lowercase keys)
-const personalGraphHeaders = headers({
+const personalAgentHeaders = headers({
   schema: z.object({
     user_id: z.string(),
     auth_token: z.string(),
@@ -222,15 +222,15 @@ const externalAgent = externalAgent({
   id: "external-service",
   baseUrl: "https://external.api.com",
   headers: {
-    Authorization: `Bearer ${personalGraphHeaders.toTemplate('auth_token')}`,
-    "X-User-Context": personalGraphHeaders.toTemplate('user_id'),
-    "X-Org": personalGraphHeaders.toTemplate('org_name')
+    Authorization: `Bearer ${personalAgentHeaders.toTemplate('auth_token')}`,
+    "X-User-Context": personalAgentHeaders.toTemplate('user_id'),
+    "X-Org": personalAgentHeaders.toTemplate('org_name')
   }
 });
 
-// Configure context for your graph with your headers schema.
-const personalGraphContext = contextConfig({
-  headers: personalGraphHeaders,
+// Configure context for your Agent with your headers schema.
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
 });
 ```
 
@@ -291,12 +291,12 @@ If context values aren't available in subsequent requests:
 
 1. Ensure you're using the same `conversationId` across requests
 2. Verify headers are being sent correctly
-3. Check that your context config is properly attached to the graph
+3. Check that your context config is properly attached to the Agent
 
 ## Related documentation
 
 - [Context Fetchers](/typescript-sdk/context-fetchers) - Learn about fetching and caching external data
 - [External Agents](/typescript-sdk/external-agents) - Configure external agent integrations
-- [Credentials](/typescript-sdk/credentials) - Manage secure credentials for your agents
+- [Credentials](/typescript-sdk/credentials) - Manage secure credentials for your Agents
 
 

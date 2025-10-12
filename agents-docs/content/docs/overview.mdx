@@ -4,7 +4,7 @@ sidebarTitle: Overview
 icon: "LuBookOpen"
 ---
 
-Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform. 
+Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform.
 
 Inkeep Agents connect to your knowledge sources to answer questions and use tools to perform tasks across your apps and APIs.
 
@@ -23,7 +23,7 @@ Agents can also be used for **agentic workflows** like:
 
 Inkeep **Open Source** (this docs site) includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture to support Teams of Agents
+- Multi-Agent Architecture (Teams of Sub-Agents working together)
 - MCP Tools with Credential Management
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
@@ -35,7 +35,7 @@ For unified search (managed RAG) and integration with Slack and support platform
 
 ### No-Code Visual Builder
 
-A no-code interface designed to let both technical and non-technical teams create and manage sub-agents.
+A no-code interface designed to let both technical and non-technical teams create and manage Sub Agents.
 
 <img
   src="/gifs/visual-builder.gif"
@@ -46,16 +46,16 @@ A no-code interface designed to let both technical and non-technical teams creat
 
 ### TypeScript SDK
 
-A code-first approach for building and managing sub-agents and multi-agent systems, allowing you to build complex agent systems with the tools your engineering team expects.
+A code-first approach for building and managing agents with multiple Sub Agents working together. Build with the tools your engineering team expects.
 
    ```typescript
    import { subAgent, agent } from "@inkeep/agents-sdk";
 
    const helloSubAgent = subAgent({
-     id: "hello-sub-agent",
-     name: "Hello Sub-Agent",
-     description: "A basic sub-agent",
-     prompt: 'You are a basic sub-agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+     id: "hello-agent",
+     name: "Hello Sub Agent",
+     description: "A basic Sub Agent",
+     prompt: 'You are a basic Sub Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
    export const myAgent = agent({
@@ -67,7 +67,7 @@ A code-first approach for building and managing sub-agents and multi-agent syste
    });
    ```
 
-The **Visual Builder and Agents TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage sub-agents in either format and switch or collaborate with others at any time.
+The **Visual Builder and Agents TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Sub Agents in either format and switch or collaborate with others at any time.
 
 ## Next Steps
 
@@ -78,5 +78,6 @@ The **Visual Builder and Agents TypeScript SDK are fully interoperable**: your t
   <Card title="Conceptual Overview" icon="LuLightbulb" href="/concepts">
     Learn about the key concepts of building Agents with Inkeep.
   </Card>
-</Cards>
+</Cards
 
+>

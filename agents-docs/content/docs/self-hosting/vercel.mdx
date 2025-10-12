@@ -138,7 +138,7 @@ NANGO_SERVER_URL=https://api.nango.dev
 
 To prevent anyone from being able to access the UI, we recommend enabling Vercel authentication for all deployments: **Settings > Deployment Protection > Vercel Authentication > All Deployments**.
 
-## Push your graph
+## Push your Agent
 
 ### Step 1: Configure your root .env file
 
@@ -169,14 +169,14 @@ const config = defineConfig({
 export default config;
 ```
 
-### Step 3: Push your graph
+### Step 3: Push your Agent
 
 ```bash
 cd /src/<your-project-directory>
 inkeep push --config ../inkeep-cloud.config.ts
 ```
 
-## Pull your graph
+## Pull your Agent
 
 ```bash
 cd /src

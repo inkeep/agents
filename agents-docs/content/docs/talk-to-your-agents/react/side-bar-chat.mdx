@@ -101,7 +101,7 @@ pnpm add @inkeep/agents-ui
   
   <Tab title="Development">
     
-    For local development, use headers with your graph IDs:
+    For local development, use headers with your agent IDs:
     
     ### Trigger through React state
     
@@ -117,11 +117,11 @@ pnpm add @inkeep/agents-ui
 
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
         position: "right",
@@ -152,11 +152,11 @@ pnpm add @inkeep/agents-ui
     export default function App() {
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-agent-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
         position: "right",
@@ -186,5 +186,5 @@ pnpm add @inkeep/agents-ui
 | Property                  | Type   | Description                                         |
 | ------------------------- | ------ | --------------------------------------------------- |
 | `aiChatSettings`          | object | Configuration for the AI chat connection            |
-| `aiChatSettings.graphUrl` | string | The URL of your agent endpoint                |
-| `aiChatSettings.headers`  | object | Headers for authentication and graph identification |
+| `aiChatSettings.agentUrl` | string | The URL of your agent endpoint                |
+| `aiChatSettings.headers`  | object | Headers for authentication and agent identification |
