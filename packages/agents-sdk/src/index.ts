@@ -1,4 +1,5 @@
 export { SubAgent as Agent } from './agent';
+export { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
   agentGraph,

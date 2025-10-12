@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { FullGraphDefinition, ModelSettings } from '@inkeep/agents-core';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import {
   calculateTokenSavings,
@@ -89,21 +90,21 @@ const PROJECT_JSON_EXAMPLE = `
   "description": "test test",
   "models": {
     "base": {
-      "model": "anthropic/claude-opus-4-1-20250805",
+      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1}",
       "providerOptions": {
         "temperature": 0.7,
         "maxTokens": 2096
       }
     },
     "structuredOutput": {
-      "model": "openai/gpt-4.1-mini-2025-04-14",
+      "model": "${OPENAI_MODELS.GPT_4_1_MINI}",
       "providerOptions": {
         "temperature": 0.4,
         "maxTokens": 2048
       }
     },
     "summarizer": {
-      "model": "openai/gpt-5-nano-2025-08-07",
+      "model": "${OPENAI_MODELS.GPT_5_NANO}",
       "providerOptions": {
         "temperature": 0.8,
         "maxTokens": 1024
@@ -128,7 +129,7 @@ const PROJECT_JSON_EXAMPLE = `
           "prompt": "Refund customer orders based on the following criteria:\n- Order is under $100\n- Order was placed in the last 30 days\n- Customer has no other refunds in the last 30 days",
           "models": {
             "base": {
-              "model": "google/gemini-2.5-flash"
+              "model": "${GOOGLE_MODELS.GEMINI_2_5_FLASH}"
             }
           },
           "stopWhen": {
@@ -160,7 +161,7 @@ const PROJECT_JSON_EXAMPLE = `
       "updatedAt": "2025-10-05T16:43:26.813Z",
       "models": {
         "base": {
-          "model": "anthropic/claude-sonnet-4-20250514",
+          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4}",
           "providerOptions": {
             "temperature": 0.5
           }
@@ -731,20 +732,45 @@ ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import dataComponent from '@inkeep/agents-sdk'
-2. Create the data component using dataComponent()
-3. Include all properties from the component data INCLUDING the 'id' property
+2. Import z from 'zod' for schema definitions
+3. Create the data component using dataComponent()
+4. Include all properties from the component data INCLUDING the 'id' property
+5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 EXAMPLE:
 import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 export const weatherData = dataComponent({
   id: 'weather-data',
   name: 'Weather Data',
   description: 'Weather information',
-  props: {
-    temperature: { type: 'number', required: true },
-    conditions: { type: 'string' }
-  }
+  props: z.object({
+    temperature: z.number().describe('Temperature value'),
+    conditions: z.string().describe('Weather conditions'),
+    humidity: z.number().optional().describe('Humidity percentage'),
+  }),
+});
+
+EXAMPLE WITH HYPHEN ID:
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+// Component ID 'user-profile' becomes export name 'userProfile'
+export const userProfile = dataComponent({
+  id: 'user-profile',
+  name: 'User Profile',
+  description: 'User profile information',
+  props: z.object({
+    userId: z.string().describe('Unique user identifier'),
+    name: z.string().describe('User full name'),
+    email: z.string().email().describe('User email address'),
+    preferences: z.object({
+      theme: z.enum(['light', 'dark']),
+      notifications: z.boolean(),
+    }).optional().describe('User preferences'),
+  }),
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -784,45 +810,50 @@ ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
-2. Create the artifact component using artifactComponent()
-3. Include props from the component data with inPreview indicators
-4. Export following naming convention rules (camelCase version of ID)
-5. Include the 'id' property to preserve the original component ID
-6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+2. Import z from 'zod' and preview from '@inkeep/agents-core' for schema definitions
+3. Create the artifact component using artifactComponent()
+4. Use preview() helper for fields that should be shown in previews
+5. Export following naming convention rules (camelCase version of ID)
+6. Include the 'id' property to preserve the original component ID
+7. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+8. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 EXAMPLE:
+import { preview } from '@inkeep/agents-core';
 import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 // Component ID 'pdf_export' becomes export name 'pdfExport'
 export const pdfExport = artifactComponent({
   id: 'pdf_export',
   name: 'PDF Export',
   description: 'Export data as PDF',
-  props: {
-    type: 'object',
-    properties: {
-      filename: { type: 'string', required: true, inPreview: true },
-      content: { type: 'object', required: true, inPreview: false }
-    }
-  }
+  props: z.object({
+    filename: preview(z.string().describe('Name of the PDF file')),
+    content: z.object({}).describe('PDF content data'),
+  }),
 });
 
 EXAMPLE WITH HYPHEN ID:
+import { preview } from '@inkeep/agents-core';
 import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 // Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
   id: 'order-summary',
   name: 'Order Summary',
   description: 'Summary of customer order',
-  props: {
-    type: 'object',
-    properties: {
-      orderId: { type: 'string', required: true, inPreview: true },
-      total: { type: 'number', required: true, inPreview: true },
-      items: { type: 'array', required: true, inPreview: false },
-    tax: { type: 'number' }
-  }
+  props: z.object({
+    orderId: preview(z.string().describe('Unique identifier for the order')),
+    total: preview(z.number().describe('Total order amount')),
+    items: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      price: z.number(),
+    })).describe('List of order items'),
+    tax: z.number().optional().describe('Tax amount'),
+  }),
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;

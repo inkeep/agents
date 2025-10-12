@@ -75,8 +75,8 @@ export interface ProjectInterface {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4o-mini' },
- *     structuredOutput: { model: 'gpt-4o' }
+ *     base: { model: 'gpt-4.1-mini' },
+ *     structuredOutput: { model: 'gpt-4.1' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,

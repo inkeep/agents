@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./constants/models": "./src/constants/models.ts",
     "./schema": "./src/db/schema.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",

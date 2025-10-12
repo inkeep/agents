@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
+import { ANTHROPIC_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
@@ -714,7 +715,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Get model settings from config or use default
     const modelSettings: ModelSettings = {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4,
     };
 
     await generateProjectFiles(

@@ -1,4 +1,5 @@
 import type { AgentGraphInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
+import { OPENAI_MODELS } from '../../constants/models';
 
 export const createTestAgentData = (
   tenantId: string,
@@ -47,7 +48,7 @@ export const createTestGraphData = (
     defaultSubAgentId: `default-agent-${suffix}`,
     models: {
       base: {
-        model: 'gpt-4',
+        model: OPENAI_MODELS.GPT_4_1,
       },
     },
   };
