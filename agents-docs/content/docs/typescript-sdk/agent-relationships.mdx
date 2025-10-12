@@ -23,7 +23,7 @@ import { subAgent, agent } from "agent-sdk";
 
 // Create specialized Sub Agents first
 const qaSubAgent = subAgent({
-  id: "qa-sub-agent",
+  id: "qa-agent",
   name: "QA Sub Agent",
   description: "Answers product and service questions",
   prompt: "Provide accurate information using available tools. Hand back to router if unable to help.",
@@ -32,7 +32,7 @@ const qaSubAgent = subAgent({
 });
 
 const orderSubAgent = subAgent({
-  id: "order-sub-agent",
+  id: "order-agent",
   name: "Order Sub Agent",
   description: "Handles order-related inquiries and actions",
   prompt: "Assist with order tracking, modifications, and management.",
@@ -42,7 +42,7 @@ const orderSubAgent = subAgent({
 
 // Create router Sub Agent that coordinates other Sub Agents
 const routerSubAgent = subAgent({
-  id: "router-sub-agent",
+  id: "router-agent",
   name: "Router Sub Agent",
   description: "Routes customer inquiries to specialized Sub Agents",
   prompt: `Analyze customer inquiries and route them appropriately:

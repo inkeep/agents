@@ -44,7 +44,7 @@ import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
 
 // Define the customer support sub-agent with delegation capabilities
 const supportSubAgent = subAgent({
-  id: "support-sub-agent",
+  id: "support-agent",
   name: "Customer Support Sub-Agent",
   description: "Handles customer inquiries and escalates technical issues",
   prompt: `You are a customer support sub-agent that handles general customer inquiries.`,
@@ -52,7 +52,7 @@ const supportSubAgent = subAgent({
 });
 
 // Create the customer support agent with external agent capabilities
-export const supportAgent = subAgent({
+export const supportAgent = agent({
   id: "customer-support-agent",
   name: "Customer Support System",
   description: "Handles customer inquiries and escalates to technical teams when needed",
