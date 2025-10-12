@@ -4,17 +4,17 @@ sidebarTitle: Overview
 icon: "LuBookOpen"
 ---
 
-Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform.
+Inkeep is a platform to build and manage AI Agents with a **No-Code Visual Builder** or **TypeScript Agents SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform.
 
 Inkeep Agents connect to your knowledge sources to answer questions and use tools to perform tasks across your apps and APIs.
 
 ## Use Cases
 
 With Inkeep you can build **real-time chat assistants** like:
-- a **customer experience agent** for support, docs, or in-app experiences
+- a **customer experience agent** for support, docs, or in-app copilots
 - an **internal copilot** to do work for your support, sales, marketing, ops, and other teams
 
-Agents can also be used for **agentic workflows** like:
+Agents can also be used for **agentic workflow automation** like:
 - Creating and updating knowledge bases, docs, and blogs
 - Updating CRMs, filling out RFPs, etc.
 - Automating back-office tasks for operations teams
@@ -23,7 +23,7 @@ Agents can also be used for **agentic workflows** like:
 
 Inkeep **Open Source** (this docs site) includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture (Teams of Sub-Agents working together)
+- Multi-Agent Architecture (teams of Sub-Agents working together)
 - MCP Tools with Credential Management
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
@@ -35,7 +35,7 @@ For unified search (managed RAG) and integration with Slack and support platform
 
 ### No-Code Visual Builder
 
-A no-code interface designed to let both technical and non-technical teams create and manage Sub Agents.
+A no-code interface designed to let both technical and non-technical teams create and manage Agents.
 
 <img
   src="/gifs/visual-builder.gif"
@@ -46,24 +46,24 @@ A no-code interface designed to let both technical and non-technical teams creat
 
 ### TypeScript SDK
 
-A code-first approach for building and managing agents with multiple Sub Agents working together. Build with the tools your engineering team expects.
+A code-first approach for building and managing teams of Agents. Build with the tools your engineering team expects.
 
    ```typescript
    import { subAgent, agent } from "@inkeep/agents-sdk";
 
-   const helloSubAgent = subAgent({
+   const helloAgent = subAgent({
      id: "hello-agent",
-     name: "Hello Sub Agent",
-     description: "A basic Sub Agent",
-     prompt: 'You are a basic Sub Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+     name: "Hello Agent",
+     description: "Says hello",
+     prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
-   export const myAgent = agent({
+   export const basicAgent = agent({
      id: "basic-agent",
      name: "Basic Agent Example",
      description: "A basic agent",
-     defaultSubAgent: helloSubAgent,
-     subAgents: () => [helloSubAgent],
+     defaultSubAgent: helloAgent,
+     subAgents: () => [helloAgent],
    });
    ```
 
