@@ -147,13 +147,8 @@ app.openapi(
 
       return c.json({ data: project }, 201);
     } catch (error: any) {
-      // Check if it's a unique constraint violation
-      if (
-        error?.message?.includes('UNIQUE constraint') ||
-        error?.message?.includes('UNIQUE') ||
-        error?.code === 'SQLITE_CONSTRAINT' ||
-        error?.code === 'SQLITE_ERROR'
-      ) {
+      // Check if it's a primary key constraint violation (duplicate ID)
+      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
         throw createApiError({
           code: 'conflict',
           message: 'Project with this ID already exists',

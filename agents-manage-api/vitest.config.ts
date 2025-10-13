@@ -9,7 +9,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
-    isolate: false, // Faster execution by reusing worker context
+    isolate: true, // Each test file gets isolated worker context with own database
     poolOptions: {
       threads: {
         maxThreads: 16, // Increase for GitHub Actions runners (have more cores)
@@ -21,7 +21,7 @@ export default defineConfig({
       DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-api-key',
       OPENAI_API_KEY: 'test-openai-key',
-      LOG_LEVEL: 'error',
+      LOG_LEVEL: 'error', // Show only errors during tests (note: some ERROR logs are from expected test failures)
     },
     coverage: {
       reporter: ['text', 'html', 'json'],

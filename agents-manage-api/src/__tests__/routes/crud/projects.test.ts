@@ -287,18 +287,10 @@ describe('Project CRUD Routes - Integration Tests', () => {
         body: JSON.stringify(projectData),
       });
 
-      // Log the error for debugging if it's not 409
-      if (res2.status !== 409) {
-        const errorBody = await res2.json();
-        console.log('Duplicate project error:', res2.status, errorBody);
-        // For now, accept 500 as well since SQLite error handling varies
-        expect([409, 500]).toContain(res2.status);
-      } else {
-        expect(res2.status).toBe(409);
-        const body = await res2.json();
-        expect(body.error.code).toBe('conflict');
-        expect(body.error.message).toBe('Project with this ID already exists');
-      }
+      expect(res2.status).toBe(409);
+      const body = await res2.json();
+      expect(body.error.code).toBe('conflict');
+      expect(body.error.message).toBe('Project with this ID already exists');
     });
 
     it('should validate required fields', async () => {
