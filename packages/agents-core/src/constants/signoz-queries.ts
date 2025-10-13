@@ -111,6 +111,7 @@ export const QUERY_EXPRESSIONS = {
   AI_ASSISTANT_MESSAGES: 'aiAssistantMessages',
   AI_GENERATIONS: 'aiGenerations',
   AI_STREAMING_TEXT: 'aiStreamingText',
+  AI_STREAMING_OBJECT: 'aiStreamingObject',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
   AGENT_GENERATIONS: 'agentGenerations',

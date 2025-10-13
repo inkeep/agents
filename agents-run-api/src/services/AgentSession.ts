@@ -1249,7 +1249,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'agent_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
-          'artifact.agent_id': artifactData.subAgentId || 'unknown',
+          'artifact.sub_agent_id': artifactData.subAgentId || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
           'artifact.data': JSON.stringify(artifactData.data, null, 2),
           'tenant.id': artifactData.tenantId || 'unknown',

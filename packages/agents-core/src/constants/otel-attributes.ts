@@ -17,6 +17,7 @@ export const SPAN_NAMES = {
 export const AI_OPERATIONS = {
   GENERATE_TEXT: 'ai.generateText.doGenerate',
   STREAM_TEXT: 'ai.streamText.doStream',
+  STREAM_OBJECT: 'ai.streamObject.doStream',
 } as const;
 
 /** OpenTelemetry span attribute keys used for tracing */
@@ -44,6 +45,7 @@ export const SPAN_KEYS = {
   AI_RESPONSE_TIMESTAMP: 'ai.response.timestamp',
   AI_RESPONSE_CONTENT: 'ai.response.content',
   AI_RESPONSE_TEXT: 'ai.response.text',
+  AI_RESPONSE_OBJECT: 'ai.response.object',
   AI_RESPONSE_MODEL: 'ai.response.model',
   AI_RESPONSE_TOOL_CALLS: 'ai.response.toolCalls',
   AI_PROMPT_MESSAGES: 'ai.prompt.messages',
@@ -98,7 +100,7 @@ export const SPAN_KEYS = {
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
   ARTIFACT_TYPE: 'artifact.type',
-  ARTIFACT_AGENT_ID: 'artifact.agent_id',
+  ARTIFACT_SUB_AGENT_ID: 'artifact.sub_agent_id',
   ARTIFACT_TOOL_CALL_ID: 'artifact.tool_call_id',
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
@@ -117,6 +119,7 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
+  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
 } as const;
 
 /** Activity Status Values */
@@ -139,6 +142,7 @@ export const ACTIVITY_NAMES = {
   AI_ASSISTANT_MESSAGE: 'AI Assistant Message',
   AI_TEXT_GENERATION: 'AI Text Generation',
   AI_STREAMING_TEXT: 'AI Streaming Text',
+  AI_STREAMING_OBJECT: 'AI Streaming Object',
   UNKNOWN_AGENT: 'Unknown Agent',
   USER: 'User',
 } as const;
