@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
-    hash: 4o4xvnq62nkojrm2vwqdgdti6i
+    hash: 57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1
     path: patches/@changesets__assemble-release-plan.patch
 
 importers:
@@ -286,8 +286,11 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.6
         version: 19.2.1(@types/react@19.2.2)
+      fast-glob:
+        specifier: ^3.3.3
+        version: 3.3.3
       next-validate-link:
-        specifier: ^1.5.2
+        specifier: ^1.6.3
         version: 1.6.3
       postcss:
         specifier: ^8.5.6
@@ -346,10 +349,6 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
@@ -381,6 +380,10 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
 
   agents-manage-ui:
     dependencies:
@@ -733,10 +736,6 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.20.1
@@ -780,6 +779,10 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
 
   agents-ui:
     dependencies:
@@ -941,10 +944,6 @@ importers:
       zod:
         specifier: ^4.1.11
         version: 4.1.12
-    optionalDependencies:
-      keytar:
-        specifier: ^7.9.0
-        version: 7.9.0
     devDependencies:
       '@types/jmespath':
         specifier: ^0.15.2
@@ -967,6 +966,10 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
+    optionalDependencies:
+      keytar:
+        specifier: ^7.9.0
+        version: 7.9.0
 
   packages/agents-sdk:
     dependencies:
@@ -10090,7 +10093,7 @@ snapshots:
       resolve-from: 5.0.0
       semver: 7.7.3
 
-  '@changesets/assemble-release-plan@6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)':
+  '@changesets/assemble-release-plan@6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)':
     dependencies:
       '@changesets/errors': 0.2.0
       '@changesets/get-dependents-graph': 2.1.3
@@ -10106,7 +10109,7 @@ snapshots:
   '@changesets/cli@2.29.7(@types/node@24.7.0)':
     dependencies:
       '@changesets/apply-release-plan': 7.0.13
-      '@changesets/assemble-release-plan': 6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
       '@changesets/changelog-git': 0.2.1
       '@changesets/config': 3.1.1
       '@changesets/errors': 0.2.0
@@ -10159,7 +10162,7 @@ snapshots:
 
   '@changesets/get-release-plan@4.0.13':
     dependencies:
-      '@changesets/assemble-release-plan': 6.0.9(patch_hash=4o4xvnq62nkojrm2vwqdgdti6i)
+      '@changesets/assemble-release-plan': 6.0.9(patch_hash=57c6f1f9835fc6413b1565f909243d713314fac7b3e5fc8ccb3963a4c8b8d9a1)
       '@changesets/config': 3.1.1
       '@changesets/pre': 2.0.2
       '@changesets/read': 0.6.5
