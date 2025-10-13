@@ -138,6 +138,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     ];
     editor.updateOptions({
       autoClosingBrackets: 'never',
+      renderLineHighlight: 'none', // disable active line highlight
     });
 
     return () => {

@@ -23,6 +23,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#b29762' },
       { token: 'string.value.json', foreground: '#1659df' },
+      { token: 'template-variable', foreground: '#e67e22', fontStyle: 'bold' },
       { token: '', foreground: '#1b1917' },
     ],
     colors: {
@@ -37,6 +38,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#9a86fd' },
       { token: 'string.value.json', foreground: '#ffb870' },
+      { token: 'template-variable', foreground: '#f39c12', fontStyle: 'bold' },
       { token: '', foreground: '#fafafa' },
     ],
     colors: {
