@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-api
 
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-core@0.19.6
+
 ## 0.19.5
 
 ### Patch Changes
