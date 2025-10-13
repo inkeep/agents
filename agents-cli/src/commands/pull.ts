@@ -37,16 +37,34 @@ interface VerificationResult {
  * Detect if current directory contains a project by looking for index.ts with project export
  * Returns the project ID if found, null otherwise
  */
-async function detectCurrentProject(): Promise<string | null> {
+async function detectCurrentProject(debug: boolean = false): Promise<string | null> {
   const indexPath = join(process.cwd(), 'index.ts');
 
+  if (debug) {
+    console.log(chalk.gray(`\n[DEBUG] Detecting project in current directory...`));
+    console.log(chalk.gray(`  • Current directory: ${process.cwd()}`));
+    console.log(chalk.gray(`  • Looking for: ${indexPath}`));
+  }
+
   if (!existsSync(indexPath)) {
+    if (debug) {
+      console.log(chalk.gray(`  • index.ts not found`));
+    }
     return null;
+  }
+
+  if (debug) {
+    console.log(chalk.gray(`  • index.ts found, attempting to import...`));
   }
 
   try {
     // Import the module with TypeScript support
     const module = await importWithTypeScriptSupport(indexPath);
+
+    if (debug) {
+      console.log(chalk.gray(`  • Module imported successfully`));
+      console.log(chalk.gray(`  • Exports found: ${Object.keys(module).join(', ')}`));
+    }
 
     // Find the first export with __type = "project"
     const exports = Object.keys(module);
@@ -55,14 +73,52 @@ async function detectCurrentProject(): Promise<string | null> {
       if (value && typeof value === 'object' && value.__type === 'project') {
         // Get the project ID
         if (typeof value.getId === 'function') {
-          return value.getId();
+          const projectId = value.getId();
+          if (debug) {
+            console.log(chalk.gray(`  • Project detected: ${projectId} (from export: ${exportKey})`));
+          }
+          return projectId;
         }
       }
     }
+
+    if (debug) {
+      console.log(chalk.gray(`  • No project export found in module`));
+    }
     return null;
-  } catch (error) {
-    // If we can't load the file, it's not a valid project directory
-    return null;
+  } catch (error: any) {
+    // If we can't load the file (e.g., due to import errors), fall back to static parsing
+    if (debug) {
+      console.log(chalk.gray(`  • Failed to import: ${error.message}`));
+      console.log(chalk.gray(`  • Falling back to static file parsing...`));
+    }
+
+    try {
+      // Read the file and extract project ID using regex
+      const content = readFileSync(indexPath, 'utf-8');
+
+      // Look for pattern: project({ id: 'project-id', ... })
+      // This matches both single and double quotes
+      const projectIdMatch = content.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
+
+      if (projectIdMatch && projectIdMatch[1]) {
+        const projectId = projectIdMatch[1];
+        if (debug) {
+          console.log(chalk.gray(`  • Project ID extracted from static parse: ${projectId}`));
+        }
+        return projectId;
+      }
+
+      if (debug) {
+        console.log(chalk.gray(`  • Could not find project ID in file content`));
+      }
+      return null;
+    } catch (parseError: any) {
+      if (debug) {
+        console.log(chalk.gray(`  • Static parsing failed: ${parseError.message}`));
+      }
+      return null;
+    }
   }
 }
 
@@ -585,7 +641,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Detect if current directory is a project directory
     spinner.text = 'Detecting project in current directory...';
-    const currentProjectId = await detectCurrentProject();
+    const currentProjectId = await detectCurrentProject(options.debug);
     let useCurrentDirectory = false;
 
     // Determine project ID based on directory awareness
