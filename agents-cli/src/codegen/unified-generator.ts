@@ -35,7 +35,7 @@ export interface DirectoryStructure {
 }
 
 /**
- * Generate all files from plan in parallel
+ * Generate all files from plan with controlled concurrency
  */
 export async function generateFilesFromPlan(
 	plan: GenerationPlan,
@@ -44,13 +44,29 @@ export async function generateFilesFromPlan(
 	modelSettings: ModelSettings,
 	debug: boolean = false
 ): Promise<void> {
-	// Create generation tasks for each file in parallel
-	const tasks = plan.files.map((fileInfo) =>
-		generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug)
+	const startTime = Date.now();
+
+	if (debug) {
+		console.log(`[DEBUG] Starting parallel generation of ${plan.files.length} files...`);
+	}
+
+	// Create generation tasks for each file
+	const tasks = plan.files.map((fileInfo, index) =>
+		generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug).then(() => {
+			if (debug) {
+				const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+				console.log(`[DEBUG] ✓ Completed ${index + 1}/${plan.files.length}: ${fileInfo.path} (${elapsed}s elapsed)`);
+			}
+		})
 	);
 
 	// Execute all in parallel
 	await Promise.all(tasks);
+
+	const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+	if (debug) {
+		console.log(`[DEBUG] All files generated in ${totalTime}s (${plan.files.length} files in parallel)`);
+	}
 }
 
 /**
@@ -64,6 +80,7 @@ async function generateFile(
 	modelSettings: ModelSettings,
 	debug: boolean
 ): Promise<void> {
+	const fileStartTime = Date.now();
 	const model = createModel(modelSettings);
 
 	// Determine output path
@@ -90,12 +107,11 @@ async function generateFile(
 	const promptTemplate = createPromptForFile(fileInfo, fileData, context, registryInfo);
 
 	if (debug) {
-		console.log(`[DEBUG] Generating file: ${fileInfo.path}`);
-		console.log(`[DEBUG] File type: ${fileInfo.type}`);
-		console.log(`[DEBUG] Entities: ${fileInfo.entities.map((e) => e.variableName).join(', ')}`);
+		console.log(`[DEBUG] ▶ Starting: ${fileInfo.path} (${fileInfo.type})`);
 	}
 
 	try {
+		const llmStartTime = Date.now();
 		const text = await generateTextWithPlaceholders(
 			model,
 			fileData,
@@ -107,12 +123,14 @@ async function generateFile(
 			},
 			debug
 		);
+		const llmDuration = ((Date.now() - llmStartTime) / 1000).toFixed(1);
 
 		const cleanedCode = cleanGeneratedCode(text);
 		writeFileSync(outputPath, cleanedCode);
 
+		const totalDuration = ((Date.now() - fileStartTime) / 1000).toFixed(1);
 		if (debug) {
-			console.log(`[DEBUG] ✓ Generated: ${fileInfo.path}`);
+			console.log(`[DEBUG] ✓ Completed: ${fileInfo.path} (LLM: ${llmDuration}s, Total: ${totalDuration}s)`);
 		}
 	} catch (error: any) {
 		console.error(`[ERROR] Failed to generate ${fileInfo.path}:`, error.message);
