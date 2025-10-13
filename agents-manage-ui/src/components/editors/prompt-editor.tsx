@@ -15,8 +15,7 @@ import { getContextSuggestions } from '@/lib/context-suggestions';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 /**
- * Purpose:
- * Prevent Monaco from being loaded on the server since it access to `window` object
+ * Purpose: Prevent Monaco from being loaded on the server since it access to `window` object.
  **/
 export const MonacoEditor = dynamic(
   () => import('./monaco-editor').then((mod) => mod.MonacoEditor),

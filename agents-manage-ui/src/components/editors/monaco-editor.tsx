@@ -14,15 +14,17 @@ import {
 } from '@/lib/monaco-editor/monaco-utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
-export interface MonacoEditorRef {
+interface MonacoEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
 }
+
+type Monaco = typeof monaco;
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
   value?: string;
   /**
-   * Virtual file system path
+   * Virtual file system path.
    * @see https://github.com/microsoft/monaco-editor?tab=readme-ov-file#uris
    */
   uri: string;
@@ -38,7 +40,7 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
    * @default true
    */
   hasDynamicHeight?: boolean;
-  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => void;
+  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
 }
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
