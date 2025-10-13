@@ -3,7 +3,7 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { Button } from '@/components/ui/button';

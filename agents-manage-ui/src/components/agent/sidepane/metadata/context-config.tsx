@@ -1,4 +1,4 @@
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import type { ContextConfig, AgentMetadata } from '../../configuration/agent-types';
 import { SectionHeader } from '../section';
 

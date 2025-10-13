@@ -1,4 +1,4 @@
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import {

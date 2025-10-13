@@ -4,7 +4,7 @@ import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'rea
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
-import { ExpandableField } from './expandable-field';
+import { ExpandableField } from '../form/expandable-field';
 
 type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
 

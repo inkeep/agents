@@ -2,7 +2,7 @@
 
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormFieldWrapper } from './form-field-wrapper';
-import { StandaloneJsonEditor } from './standalone-json-editor';
+import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
