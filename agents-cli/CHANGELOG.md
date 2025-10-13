@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- Updated dependencies [22b96c4]
+- Updated dependencies [20978ac]
+  - @inkeep/agents-manage-ui@0.19.5
+  - @inkeep/agents-core@0.19.5
+  - @inkeep/agents-sdk@0.19.5
+
 ## 0.19.4
 
 ### Patch Changes
