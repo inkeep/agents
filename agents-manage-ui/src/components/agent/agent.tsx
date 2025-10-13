@@ -9,11 +9,11 @@ import {
   type IsValidConnection,
   type Node,
   Panel,
-  ReactFlow,
+  ReactFlow, ReactFlowProps,
   ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
-} from '@xyflow/react';
+} from '@xyflow/react'
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -472,14 +472,12 @@ function Flow({
     [setQueryState, isOpen]
   );
 
-  const onEdgeDoubleClick = useCallback(
-    (event: React.MouseEvent, edge: Edge) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      // Update the edge with the new type
+  const onEdgeDoubleClick: NonNullable<ReactFlowProps['onEdgeDoubleClick']> = useCallback(
+    (_event, edge) => {
+      const newType =
+        edge.type === EdgeType.AnimatedCircles ? EdgeType.Default : EdgeType.AnimatedCircles;
       setEdges((prevEdges) =>
-        prevEdges.map((e) => (e.id === edge.id ? { ...e, animated: !e.animated } : e))
+        prevEdges.map((e) => (e.id === edge.id ? { ...e, type: newType } : e))
       );
     },
     [setEdges]
