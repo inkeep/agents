@@ -160,57 +160,6 @@ async function verifyGeneratedFiles(
           );
         }
       }
-
-      // Manual file validation - check that key files exist and are properly formed
-      const toolPath = join(projectDir, 'tools', 'inkeep_facts.ts');
-      const envPath = join(projectDir, 'environments', 'development.env.ts');
-
-      if (existsSync(toolPath)) {
-        const toolContent = readFileSync(toolPath, 'utf8');
-        // Check for credential reference (more important than transport now)
-        if (!toolContent.includes('credential:')) {
-          structuralWarnings.push('Tool file may be missing credential reference');
-        }
-        // Check for serverUrl
-        if (!toolContent.includes('serverUrl:')) {
-          structuralErrors.push('Tool file missing required serverUrl property');
-        }
-        // Check that it doesn't have invalid config property
-        if (toolContent.includes('config:')) {
-          structuralWarnings.push(
-            'Tool file contains invalid config property (should use individual properties)'
-          );
-        }
-        if (debug) {
-          console.log(
-            chalk.gray(`  • Tool file has serverUrl: ${toolContent.includes('serverUrl:')}`)
-          );
-          console.log(
-            chalk.gray(`  • Tool file has credential: ${toolContent.includes('credential:')}`)
-          );
-          console.log(
-            chalk.gray(`  • Tool file has invalid config: ${toolContent.includes('config:')}`)
-          );
-        }
-      } else {
-        structuralErrors.push('Tool file inkeep_facts.ts not found');
-      }
-
-      if (existsSync(envPath)) {
-        const envContent = readFileSync(envPath, 'utf8');
-        if (!envContent.includes('inkeep_api_credential')) {
-          structuralWarnings.push('Environment file may be missing credential definition');
-        }
-        if (debug) {
-          console.log(
-            chalk.gray(
-              `  • Environment file has credential: ${envContent.includes('inkeep_api_credential')}`
-            )
-          );
-        }
-      } else {
-        structuralErrors.push('Environment file development.env.ts not found');
-      }
     } catch (structuralError: any) {
       structuralErrors.push(`Structural validation failed: ${structuralError.message}`);
     }
