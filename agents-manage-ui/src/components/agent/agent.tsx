@@ -9,11 +9,12 @@ import {
   type IsValidConnection,
   type Node,
   Panel,
-  ReactFlow, ReactFlowProps,
+  ReactFlow,
+  ReactFlowProps,
   ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
-} from '@xyflow/react'
+} from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
