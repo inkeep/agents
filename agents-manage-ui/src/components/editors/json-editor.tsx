@@ -4,8 +4,7 @@ import dynamic from 'next/dynamic';
 import { type ComponentProps, type FC, useId, useMemo } from 'react';
 
 /**
- * Purpose:
- * Prevent Monaco from being loaded on the server since it access to `window` object
+ * Purpose: Prevent Monaco from being loaded on the server since it access to `window` object
  **/
 export const MonacoEditor = dynamic(
   () => import('./monaco-editor').then((mod) => mod.MonacoEditor),
