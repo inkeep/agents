@@ -12,6 +12,7 @@ const envSchema = z.object({
   TURSO_DATABASE_URL: z.string().optional(),
   TURSO_AUTH_TOKEN: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
+  NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
   NANGO_SECRET_KEY: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
 });
