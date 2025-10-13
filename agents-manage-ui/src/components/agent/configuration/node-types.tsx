@@ -110,7 +110,7 @@ export const nodeTypeMap = {
   },
   [NodeType.ExternalAgent]: {
     type: NodeType.ExternalAgent,
-    name: 'External agent',
+    name: 'External Agent',
     Icon: BotMessageSquare,
   },
   [NodeType.MCPPlaceholder]: {
