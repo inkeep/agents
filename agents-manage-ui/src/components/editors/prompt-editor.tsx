@@ -129,13 +129,16 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             suggestions: completionItems.map((item) => ({
               kind: monaco.languages.CompletionItemKind.Module,
               range,
-              insertText: `{${item.label}}`,
+              insertText: `{${item.label}}}`,
               ...item,
             })),
           };
         },
       }),
     ];
+    editor.updateOptions({
+      autoClosingBrackets: 'never',
+    });
 
     return () => {
       for (const disposable of disposables) {
@@ -144,7 +147,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     };
   }, [editor, monaco]);
 
-  const handleOnMount = useCallback<NonNullable<ComponentProps<typeof MonacoEditor>['onMount']>>(
+  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance, monaco) => {
       setEditor(editorInstance);
       setMonaco(monaco);
