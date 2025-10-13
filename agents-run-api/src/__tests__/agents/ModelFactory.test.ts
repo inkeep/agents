@@ -1,9 +1,8 @@
+// Import the mocked functions for testing
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { ModelFactory, type ModelSettings } from '../../agents/ModelFactory';
-
-// Import the mocked functions for testing
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {
@@ -12,8 +11,10 @@ vi.mock('@ai-sdk/anthropic', () => {
       Object.defineProperty(this, 'modelId', { value: 'claude-sonnet-4' });
     }
   }
-  Object.defineProperty(MockAnthropicModel.prototype.constructor, 'name', { value: 'AnthropicMessagesLanguageModel' });
-  
+  Object.defineProperty(MockAnthropicModel.prototype.constructor, 'name', {
+    value: 'AnthropicMessagesLanguageModel',
+  });
+
   const mockAnthropicModel = new MockAnthropicModel() as unknown as LanguageModel;
   const mockAnthropicProvider = {
     languageModel: vi.fn().mockReturnValue(mockAnthropicModel),
@@ -31,8 +32,10 @@ vi.mock('@ai-sdk/openai', () => {
       Object.defineProperty(this, 'modelId', { value: 'gpt-4o' });
     }
   }
-  Object.defineProperty(MockOpenAIModel.prototype.constructor, 'name', { value: 'OpenAIResponsesLanguageModel' });
-  
+  Object.defineProperty(MockOpenAIModel.prototype.constructor, 'name', {
+    value: 'OpenAIResponsesLanguageModel',
+  });
+
   const mockOpenAIModel = new MockOpenAIModel() as unknown as LanguageModel;
   const mockOpenAIProvider = {
     languageModel: vi.fn().mockReturnValue(mockOpenAIModel),
@@ -50,8 +53,10 @@ vi.mock('@ai-sdk/google', () => {
       Object.defineProperty(this, 'modelId', { value: 'gemini-2.5-flash' });
     }
   }
-  Object.defineProperty(MockGoogleModel.prototype.constructor, 'name', { value: 'GoogleGenerativeAILanguageModel' });
-  
+  Object.defineProperty(MockGoogleModel.prototype.constructor, 'name', {
+    value: 'GoogleGenerativeAILanguageModel',
+  });
+
   const mockGoogleModel = new MockGoogleModel() as unknown as LanguageModel;
   const mockGoogleProvider = {
     languageModel: vi.fn().mockReturnValue(mockGoogleModel),
@@ -66,7 +71,7 @@ vi.mock('@ai-sdk/google', () => {
 
 // Mock logger
 vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
+  getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -252,7 +257,9 @@ describe('ModelFactory', () => {
         model: 'unsupported/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
+      expect(() => ModelFactory.createModel(config)).toThrow(
+        'Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+      );
     });
 
     test('should handle AI Gateway configuration', () => {
@@ -280,7 +287,9 @@ describe('ModelFactory', () => {
         model: 'unknown-provider/some-model',
       };
 
-      expect(() => ModelFactory.createModel(config)).toThrow('Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
+      expect(() => ModelFactory.createModel(config)).toThrow(
+        'Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+      );
     });
 
     test('should handle fallback when creation fails', () => {
@@ -490,7 +499,9 @@ describe('ModelFactory', () => {
     });
 
     test('should require model to be specified', () => {
-      expect(() => ModelFactory.prepareGenerationConfig()).toThrow('Model configuration is required. Please configure models at the project level.');
+      expect(() => ModelFactory.prepareGenerationConfig()).toThrow(
+        'Model configuration is required. Please configure models at the project level.'
+      );
     });
 
     test('should handle OpenAI model settingsuration', () => {
@@ -745,8 +756,9 @@ describe('ModelFactory', () => {
 
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
-        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model'))
-          .toThrow('Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).');
+        expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow(
+          'Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+        );
       });
 
       test('should support anthropic provider', () => {
