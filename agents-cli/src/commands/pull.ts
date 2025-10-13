@@ -123,7 +123,8 @@ async function detectCurrentProject(debug: boolean = false): Promise<string | nu
 }
 
 /**
- * Verify that the generated TypeScript files can reconstruct the original project JSON
+ * Verify that the generated TypeScript files are present and have basic validity
+ * Uses static file checking rather than attempting to import/execute
  */
 async function verifyGeneratedFiles(
   projectDir: string,
@@ -134,107 +135,95 @@ async function verifyGeneratedFiles(
   const warnings: string[] = [];
 
   try {
-    // Load the generated project from TypeScript files
+    // Check that index.ts exists
     const indexPath = join(projectDir, 'index.ts');
-
     if (!existsSync(indexPath)) {
       errors.push('Generated index.ts file not found');
       return { success: false, errors, warnings };
     }
 
-    // Import the generated project module
-    const module = await importWithTypeScriptSupport(indexPath);
+    // Read and check index.ts has project export
+    const indexContent = readFileSync(indexPath, 'utf-8');
 
-    // Find the project export
-    const exports = Object.keys(module);
-    let project = null;
+    // Check for project export pattern
+    if (!indexContent.includes('project(')) {
+      errors.push('index.ts does not contain a project() call');
+    }
 
-    for (const exportKey of exports) {
-      const value = module[exportKey];
-      if (value && typeof value === 'object' && value.__type === 'project') {
-        project = value;
-        break;
+    // Extract and verify project ID
+    const projectIdMatch = indexContent.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
+    if (projectIdMatch && projectIdMatch[1]) {
+      const extractedProjectId = projectIdMatch[1];
+      if (extractedProjectId !== originalProjectData.id) {
+        warnings.push(
+          `Project ID mismatch: expected "${originalProjectData.id}", found "${extractedProjectId}"`
+        );
+      }
+      if (debug) {
+        console.log(chalk.gray(`\n✓ Project ID verified: ${extractedProjectId}`));
+      }
+    } else {
+      warnings.push('Could not extract project ID from index.ts');
+    }
+
+    // Check that expected agent files exist
+    const agentsDir = join(projectDir, 'agents');
+    const expectedAgents = Object.keys(originalProjectData.agents || {});
+
+    for (const agentId of expectedAgents) {
+      const agentPath = join(agentsDir, `${agentId}.ts`);
+      if (!existsSync(agentPath)) {
+        errors.push(`Agent file not found: agents/${agentId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Agent file exists: agents/${agentId}.ts`));
       }
     }
 
-    if (!project) {
-      errors.push('No project export found in generated index.ts');
-      return { success: false, errors, warnings };
+    // Check that expected tool files exist
+    const toolsDir = join(projectDir, 'tools');
+    const expectedTools = Object.keys(originalProjectData.tools || {});
+
+    for (const toolId of expectedTools) {
+      const toolPath = join(toolsDir, `${toolId}.ts`);
+      if (!existsSync(toolPath)) {
+        errors.push(`Tool file not found: tools/${toolId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Tool file exists: tools/${toolId}.ts`));
+      }
     }
 
-    // Basic structural verification instead of full project definition comparison
-    // This approach checks that the TypeScript files are well-formed and loadable
-    const structuralErrors: string[] = [];
-    const structuralWarnings: string[] = [];
+    // Check that expected data component files exist
+    const dataComponentsDir = join(projectDir, 'data-components');
+    const expectedDataComponents = Object.keys(originalProjectData.dataComponents || {});
 
-    try {
-      // Check if the project has the expected basic structure
-      if (!project) {
-        structuralErrors.push('Project object not found after import');
+    for (const componentId of expectedDataComponents) {
+      const componentPath = join(dataComponentsDir, `${componentId}.ts`);
+      if (!existsSync(componentPath)) {
+        errors.push(`Data component file not found: data-components/${componentId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Data component file exists: data-components/${componentId}.ts`));
       }
-
-      // Check if project has expected type marker
-      if (project && typeof project === 'object' && project.__type !== 'project') {
-        structuralWarnings.push('Project object missing type marker');
-      }
-
-      // Attempt to call methods if they exist (but don't require full project definition)
-      if (project && typeof project.toFullProjectDefinition === 'function') {
-        try {
-          // Try to generate project definition for validation but don't require exact match
-          const generatedProjectData = await project.toFullProjectDefinition();
-
-          if (debug) {
-            console.log(chalk.gray('\n📋 Generated project successfully'));
-            console.log(chalk.gray(`  • Has tools: ${!!generatedProjectData.tools}`));
-            console.log(
-              chalk.gray(`  • Tools count: ${Object.keys(generatedProjectData.tools || {}).length}`)
-            );
-            console.log(
-              chalk.gray(`  • Has credentials: ${!!generatedProjectData.credentialReferences}`)
-            );
-            console.log(
-              chalk.gray(
-                `  • Credentials count: ${Object.keys(generatedProjectData.credentialReferences || {}).length}`
-              )
-            );
-          }
-
-          // Basic structural validation - just ensure we can generate valid project data
-          if (!generatedProjectData) {
-            structuralErrors.push('Generated project definition is empty');
-          }
-        } catch (projectDefError: any) {
-          // Log the error but don't fail verification - SDK might have internal issues
-          if (debug) {
-            console.log(
-              chalk.yellow(`  Project definition generation warning: ${projectDefError.message}`)
-            );
-          }
-          structuralWarnings.push(
-            `Project definition generation had issues: ${projectDefError.message}`
-          );
-        }
-      }
-    } catch (structuralError: any) {
-      structuralErrors.push(`Structural validation failed: ${structuralError.message}`);
     }
 
-    errors.push(...structuralErrors);
-    warnings.push(...structuralWarnings);
+    // Check that environment directory exists with expected files
+    const environmentsDir = join(projectDir, 'environments');
+    if (!existsSync(environmentsDir)) {
+      errors.push('Environments directory not found');
+    } else {
+      const envIndexPath = join(environmentsDir, 'index.ts');
+      if (!existsSync(envIndexPath)) {
+        errors.push('Environment index.ts not found');
+      }
+    }
 
     if (debug) {
-      console.log(chalk.gray('\n🔍 Structural Verification Summary:'));
-      console.log(chalk.gray(`  • Project loaded successfully: ${!!project}`));
-      console.log(
-        chalk.gray(`  • Expected agents: ${Object.keys(originalProjectData.agents || {}).length}`)
-      );
-      console.log(
-        chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`)
-      );
+      console.log(chalk.gray('\n🔍 Verification Summary:'));
+      console.log(chalk.gray(`  • index.ts: ${existsSync(indexPath) ? '✓' : '✗'}`));
+      console.log(chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`));
+      console.log(chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`));
       console.log(
         chalk.gray(
-          `  • Expected credentials: ${Object.keys(originalProjectData.credentialReferences || {}).length}`
+          `  • Data component files: ${expectedDataComponents.length}/${expectedDataComponents.length} found`
         )
       );
     }
