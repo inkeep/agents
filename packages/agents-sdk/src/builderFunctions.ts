@@ -4,7 +4,7 @@ import {
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
-import { SubAgent } from './subAgent';
+import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
 import type {
   AgentMcpConfig,
@@ -14,11 +14,11 @@ import type {
 } from './builders';
 import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
-import { Agent } from './agent';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
+import { SubAgent } from './subAgent';
 import { Tool } from './tool';
-import type { FunctionToolConfig, AgentConfig, SubAgentConfig } from './types';
+import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
@@ -32,8 +32,8 @@ export function agent(config: AgentConfig): Agent {
 /**
  * Helper function to create projects - OpenAI style
  *
- * Projects are the top-level organizational unit that contains agent, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to agent and agents.
+ * Projects are the top-level organizational unit that contains Agents, Sub Agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to Agents and Sub Agents.
  *
  * @param config - Project configuration
  * @returns A new Project instance

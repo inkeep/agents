@@ -115,7 +115,7 @@ html {
 }
 
 #nd-page > article {
-  @apply lg:pl-12 lg:pr-20;
+  @apply lg:pl-12 lg:pr-12;
 }
 /* mobile toc */
 #nd-tocnav {

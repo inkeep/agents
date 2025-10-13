@@ -1,52 +1,66 @@
 # Inkeep Agents
 
-Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform. 
+Inkeep is a platform to build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either code or no-code with **full 2-way sync**, so your technical and non-technical teams can create and manage Agents in a single platform.
 
-You can deploy Inkeep Agents as **real-time chat assistants** for your customers or internal teams, or as **agentic workflows** for doing repetitive, time-consuming tasks.
+## Use Cases
+
+Inkeep Agents can operate as real-time **AI Chat Assistants** as:
+- a customer experience agent for customer support, technical docs, or in-app product copilot
+- an internal copilot to assist your support, sales, marketing, ops, and other teams
+
+Agents can also be used to automate complex **AI Workflows** for tasks like:
+- Creating and updating knowledge bases, docs, and blogs
+- Updating CRMs, triaging tickets, and completing other business processes
 
 To get started, see the [docs](https://docs.inkeep.com).
 
-## Two ways to build your agents
+## Two ways to build
 
-1. **Visual Builder**: A no-code interface for creating and managing agents and agent workflows. Great for both technical and non-technical teams.
+### No-Code Visual Agent Builder
+
+A no-code drag-and-drop canvas designed to let both technical and non-technical teams create and manage Agents.
 
 <img
   src="agents-docs/public/gifs/visual-builder.gif"
-  alt="Visual Builder Demo"
+  alt="No-Code Agent Builder demo"
   width="100%"
-  style="border-radius: 10px"
+  style={{ borderRadius: "10px" }}
 />
 
-1. **TypeScript SDK**: A code-first approach for building and managing agents, allowing you to build complex agent systems with everything you expect as a developer.
+### TypeScript Agents SDK
 
-```typescript
-import { subAgent, agent } from "@inkeep/agents-sdk";
+A code-first approach for building and managing teams of Agents with a multi-agent architecture. The SDK allows developers to build with the tools engineering teams expect.
 
-const helloAgent = subAgent({
-  id: "hello-agent",
-  name: "Hello Agent",
-  description: "Says hello",
-  prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
-});
+   ```typescript
+   import { agent, subAgent } from "@inkeep/agents-sdk";
 
-export const basicAgent = agent({
-  id: "basic-agent",
-  name: "Basic Agent Example",
-  description: "A basic agent",
-  defaultSubAgent: helloAgent,
-  subAgents: () => [helloAgent],
-});
-```
+   const helloAgent = subAgent({
+     id: "hello-agent",
+     name: "Hello Agent",
+     description: "Says hello",
+     prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+   });
 
-## Inkeep Open Source
+   export const basicAgent = agent({
+     id: "basic-agent",
+     name: "Basic Agent Example",
+     description: "A basic agent",
+     defaultSubAgent: helloAgent,
+     subAgents: () => [helloAgent],
+   });
+   ```
 
-Inkeep **Open Source** includes:
+The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Agents in either format and switch or collaborate with others at any time.
+
+## Platform
+
+The Inkeep Agent platform includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture to support Teams of Agents
+- Multi-Agent architecture for building teams of agents
 - MCP Tools with Credential Management
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
-- Observability via Traces UI & OpenTelemetry
+- Observability via a Traces UI & OpenTelemetry
 - Easy deployment to Vercel and Docker
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
@@ -64,10 +78,12 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 
 Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs an chat stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
 
-## Contributing to the Inkeep Agent Framework
+## License and Community
 
-Thank you for your interest! [Here are the guidelines on how to contribute to the Inkeep Agent Framework](https://docs.inkeep.com/community/contributing/overview).
+The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a [fair-code](https://faircode.io/), source-available license that allows broad usage while protecting against certain competitive uses.
 
-## License
+Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via open protocols, and easily deploy and self-host Agents in your own infra. 
 
-The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a source-available license that allows broad usage while protecting against certain competitive uses.
+If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
+
+[Follow us](https://docs.inkeep.com/community/inkeep-community) to stay up to date, get help, and share feedback.

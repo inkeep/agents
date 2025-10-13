@@ -65,8 +65,8 @@ export interface ProjectInterface {
 /**
  * Project class for managing agent projects
  *
- * Projects are the top-level organizational unit that contains agent, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to agent and agents.
+ * Projects are the top-level organizational unit that contains Agents, Sub Agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to Agents and Sub Agents.
  *
  * @example
  * ```typescript
