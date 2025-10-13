@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- a2c184f: Capitalize name casing for External Agent
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-run-api@0.19.4
+  - @inkeep/agents-manage-api@0.19.4
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes
