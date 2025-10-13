@@ -400,6 +400,31 @@ export function renderPanelContent({
         </>
       );
 
+    case 'ai_model_streamed_object':
+      return (
+        <>
+          <Section>
+            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
+            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
+            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            {a.aiStreamObjectContent && (
+              <LabeledBlock label="Structured object response">
+                <JsonEditorWithCopy
+                  value={formatJsonSafely(a.aiStreamObjectContent)}
+                  title="Object content"
+                  uri="stream-object-response.json"
+                />
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
     case 'artifact_processing':
       return (
         <>

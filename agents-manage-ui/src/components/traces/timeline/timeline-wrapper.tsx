@@ -43,6 +43,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Tool call details';
     case 'ai_model_streamed_text':
       return 'AI Streaming text details';
+    case 'ai_model_streamed_object':
+      return 'AI Streaming object details';
     case 'mcp_tool_error':
       return 'MCP tool error details';
     case 'artifact_processing':
@@ -214,6 +216,7 @@ export function TimelineWrapper({
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -222,7 +225,11 @@ export function TimelineWrapper({
   // Memoize stream text IDs for cleaner collapse logic
   const streamTextIds = useMemo(() => {
     return sortedActivities
-      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
+      .filter(
+        (activity) =>
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
+      )
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
@@ -296,6 +303,7 @@ export function TimelineWrapper({
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -358,6 +366,7 @@ export function TimelineWrapper({
                   (activity) =>
                     activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
                     activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
                     (activity.hasError && activity.otelStatusDescription)
                 ) && (
                   <div className="flex items-center gap-1">

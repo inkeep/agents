@@ -646,6 +646,69 @@ function buildConversationListPayload(
           ]
         ),
 
+        // AI streaming object
+        aiStreamingObject: listQuery(
+          QUERY_EXPRESSIONS.AI_STREAMING_OBJECT,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.AI_OPERATION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: AI_OPERATIONS.STREAM_OBJECT,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_OBJECT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_PROVIDER,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_OPERATION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+          ]
+        ),
+
         // context fetchers
         contextFetchers: listQuery(
           QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
@@ -801,6 +864,7 @@ export async function GET(
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
+    const aiStreamingObjectSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_OBJECT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
@@ -851,6 +915,7 @@ export async function GET(
         | 'user_message'
         | 'ai_assistant_message'
         | 'ai_model_streamed_text'
+        | 'ai_model_streamed_object'
         | 'artifact_processing';
       name: string;
       description: string;
@@ -887,10 +952,14 @@ export async function GET(
       delegationToAgentId?: string;
       transferFromAgentId?: string;
       transferToAgentId?: string;
-      // streaming
+      // streaming text
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
+      // streaming object
+      aiStreamObjectContent?: string;
+      aiStreamObjectModel?: string;
+      aiStreamObjectOperationId?: string;
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
@@ -1137,6 +1206,30 @@ export async function GET(
       });
     }
 
+    // ai streaming object
+    for (const span of aiStreamingObjectSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      activities.push({
+        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
+        name: ACTIVITY_NAMES.AI_STREAMING_OBJECT,
+        description: 'AI model streaming object response',
+        timestamp: span.timestamp,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: hasError
+          ? 'AI streaming object failed'
+          : `AI object streamed successfully (${durMs.toFixed(2)}ms)`,
+        aiStreamObjectContent: getString(span, SPAN_KEYS.AI_RESPONSE_OBJECT, ''),
+        aiStreamObjectModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
+        aiStreamObjectOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
+        inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
+        outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+      });
+    }
+
     // context fetchers
     for (const span of contextFetcherSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
@@ -1199,7 +1292,8 @@ export async function GET(
         (a) =>
           a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           a.type === ACTIVITY_TYPES.AI_GENERATION ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
+          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
       );
     const conversationStartTime = firstUser
       ? new Date(firstUser.timestamp).getTime()
@@ -1218,14 +1312,16 @@ export async function GET(
     for (const activity of activities) {
       if (
         (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
         typeof activity.inputTokens === 'number'
       ) {
         totalInputTokens += activity.inputTokens;
       }
       if (
         (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) &&
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
         typeof activity.outputTokens === 'number'
       ) {
         totalOutputTokens += activity.outputTokens;

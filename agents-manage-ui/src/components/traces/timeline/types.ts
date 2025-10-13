@@ -21,6 +21,7 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
+  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
   ARTIFACT_PROCESSING: 'artifact_processing',
 } as const;
 
@@ -76,6 +77,10 @@ export interface ActivityItem {
   aiStreamTextModel?: string;
   aiStreamTextProvider?: string;
   aiStreamTextOperationId?: string;
+  aiStreamObjectContent?: string;
+  aiStreamObjectModel?: string;
+  aiStreamObjectProvider?: string;
+  aiStreamObjectOperationId?: string;
   toolCallArgs?: string;
   toolCallResult?: string;
   aiResponseText?: string;
