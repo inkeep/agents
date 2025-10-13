@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes
