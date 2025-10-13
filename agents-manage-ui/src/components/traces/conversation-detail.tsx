@@ -3,7 +3,6 @@
 import {
   Activity,
   ArrowLeft,
-  Copy,
   ExternalLink as ExternalLinkIcon,
   MessageSquare,
   TriangleAlert,
