@@ -1,5 +1,33 @@
 # @inkeep/agents-cli
 
+## 0.19.3
+
+### Patch Changes
+
+- 079a18a: more-model-def-fixes
+- Updated dependencies [079a18a]
+  - @inkeep/agents-core@0.19.3
+  - @inkeep/agents-sdk@0.19.3
+  - @inkeep/agents-manage-ui@0.19.3
+
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies [717d483]
+  - @inkeep/agents-core@0.19.2
+  - @inkeep/agents-manage-ui@0.19.2
+  - @inkeep/agents-sdk@0.19.2
+
+## 0.19.1
+
+### Patch Changes
+
+- 507fe0c: inkeep pull is now directory aware, leave off the project argument when you run within a project dir
+  - @inkeep/agents-manage-ui@0.19.1
+  - @inkeep/agents-core@0.19.1
+  - @inkeep/agents-sdk@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes

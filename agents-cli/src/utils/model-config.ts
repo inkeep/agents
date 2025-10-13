@@ -27,28 +27,27 @@ export const defaultGeminiModelConfigurations = {
   },
 };
 
-
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_4_1_20250414,
   },
   structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI,
+    model: OPENAI_MODELS.GPT_4_1_MINI_20250414,
   },
   summarizer: {
-    model: OPENAI_MODELS.GPT_4_1_NANO,
+    model: OPENAI_MODELS.GPT_4_1_NANO_20250414,
   },
 };
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
   structuredOutput: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
   summarizer: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
 };
 
@@ -79,19 +78,19 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
-    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
-    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
-    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
-    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
+    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1_20250805 },
+    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929 },
+    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514 },
+    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU_20241022 },
   ];
 
   const openaiModels = [
-    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
-    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
-    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
-    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5 },
-    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
-    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
+    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1_20250414 },
+    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI_20250414 },
+    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO_20250414 },
+    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5_20250807 },
+    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI_20250807 },
+    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO_20250807 },
   ];
 
   const googleModels = [

@@ -23,25 +23,25 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_4_1_20250414,
   },
   structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI,
+    model: OPENAI_MODELS.GPT_4_1_MINI_20250414,
   },
   summarizer: {
-    model: OPENAI_MODELS.GPT_4_1_NANO,
+    model: OPENAI_MODELS.GPT_4_1_NANO_20250414,
   },
 };
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
   structuredOutput: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
   summarizer: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
   },
 };
 

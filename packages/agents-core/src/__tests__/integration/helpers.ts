@@ -48,7 +48,7 @@ export const createTestAgentData = (
     defaultSubAgentId: `default-agent-${suffix}`,
     models: {
       base: {
-        model: OPENAI_MODELS.GPT_4_1,
+        model: OPENAI_MODELS.GPT_4_1_20250414,
       },
     },
   };

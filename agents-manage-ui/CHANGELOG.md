@@ -1,5 +1,32 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.3
+
+### Patch Changes
+
+- 079a18a: more-model-def-fixes
+- Updated dependencies [079a18a]
+  - @inkeep/agents-core@0.19.3
+  - @inkeep/agents-manage-api@0.19.3
+  - @inkeep/agents-run-api@0.19.3
+
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies [717d483]
+  - @inkeep/agents-core@0.19.2
+  - @inkeep/agents-manage-api@0.19.2
+  - @inkeep/agents-run-api@0.19.2
+
+## 0.19.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.19.1
+- @inkeep/agents-run-api@0.19.1
+- @inkeep/agents-core@0.19.1
+
 ## 0.19.0
 
 ### Minor Changes
