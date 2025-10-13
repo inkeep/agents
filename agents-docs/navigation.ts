@@ -19,7 +19,7 @@ export default {
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
         {
-          group: 'Tools',
+          group: 'Tools and MCPs',
           icon: 'LuHammer',
           pages: [
             'typescript-sdk/tools/mcp-servers',
@@ -66,7 +66,7 @@ export default {
       pages: [
         'visual-builder/sub-agents',
         {
-          group: 'Tools',
+          group: 'Tools and MCPs',
           icon: 'LuHammer',
           pages: [
             'visual-builder/tools/mcp-servers',
