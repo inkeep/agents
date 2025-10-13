@@ -8,13 +8,48 @@ keywords: Vercel AI SDK, useChat, React, streaming, chat interface, agents
 
 ## Overview
 
-The Vercel AI SDK v5's `useChat` hook provides a React-friendly way to build chat interfaces that stream responses from your agent. This guide shows you how to configure `useChat` to connect to the agent framework's chat endpoint.
+Agents built with Inkeep have an `/api/chat` [API endpoint](/talk-to-your-agents/api) that is compatible with Vercel AI SDK's streaming protocol, so it works out of the box with Vercel's AI SDK ecosystem.
 
-<Tip>
-  The agent framework's `/api/chat` endpoint is compatible with Vercel AI SDK's streaming protocol. See [Via API](/talk-to-your-agents/api) for low-level HTTP details.
-</Tip>
+To build totally custom UIs, you have two options in the Vercel ecosystem:
+- Use the [AI Elements](https://ai-sdk.dev/elements/overview) component library for a shadcn-like library of Chat primitives.
+- Leverage `useChat` and other utilities to build custom UIs in React, Svelte, Vue.js, and Angular.
 
-## Installation
+## Using AI Elements
+
+For a production-ready UI components, consider using [Vercel AI Elements](https://ai-sdk.dev/elements/overview):
+
+```tsx
+import { Conversation, Message, PromptInput, Actions } from '@ai-sdk/react-elements';
+import { useChat } from '@ai-sdk/react';
+
+export default function ChatWithElements() {
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat", // 
+      headers: {
+        "x-inkeep-tenant-id": "default",
+        "x-inkeep-project-id": "weather-project",
+        "x-inkeep-agent-id": "weather-agent",
+      },
+    })
+  });
+
+  return (
+    <Conversation messages={messages}>
+      {messages.map(message => (
+        <Message key={message.id} message={message}>
+          <Actions message={message} />
+        </Message>
+      ))}
+      <PromptInput onSubmit={sendMessage} />
+    </Conversation>
+  );
+}
+```
+
+AI Elements includes components for reasoning panels, code blocks, tool execution displays, and more—all styled with shadcn/ui patterns.
+
+## Using `useChat`
 
 Install the Vercel AI SDK in your React application:
 
@@ -36,7 +71,7 @@ import { useState } from "react";
 export default function Page() {
   const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
-      api: "http://localhost:3003/api/chat",
+      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat", // 
       headers: {
         "x-inkeep-tenant-id": "default",
         "x-inkeep-project-id": "weather-project",
@@ -162,7 +197,7 @@ const { messages, sendMessage } = useChat({
 
 ## Complete Example
 
-Here's a more complete example with conversation management and styling:
+Here's a more complete example with conversation management and custom styling:
 
 ```tsx
 "use client";
@@ -174,7 +209,7 @@ import { useState } from "react";
 export default function Page() {
   const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
-      api: "http://localhost:3003/api/chat",
+      api: "{process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat",
       headers: {
         "x-inkeep-tenant-id": "default",
         "x-inkeep-project-id": "weather-project",
@@ -267,7 +302,7 @@ export default function Page() {
 For production deployments, store configuration in environment variables:
 
 ```bash
-NEXT_PUBLIC_AGENTS_RUN_API_URL=http://localhost:3003
+NEXT_PUBLIC_AGENTS_RUN_API_URL=your_domain_for_run_api
 NEXT_PUBLIC_INKEEP_API_KEY=your-api-key
 NEXT_PUBLIC_TENANT_ID=your-tenant-id
 NEXT_PUBLIC_PROJECT_ID=your-project-id
@@ -281,6 +316,9 @@ NEXT_PUBLIC_AGENT_ID=your-agent-id
 ## Next Steps
 
 <Cards>
+  <Card title="AI Elements" icon="LuPackage" href="https://ai-sdk.dev/elements/overview">
+    Explore Vercel's prebuilt UI components library built on shadcn/ui for rapid development.
+  </Card>
   <Card title="React UI Components" icon="LuLayers" href="/talk-to-your-agents/react/chat-button">
     Use prebuilt React components for a complete chat UI experience.
   </Card>
