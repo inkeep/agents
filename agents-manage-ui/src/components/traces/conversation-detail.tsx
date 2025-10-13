@@ -49,7 +49,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       const result = await copyTraceToClipboard(conversation);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
-          description: 'The prettified OTEL trace has been copied successfully.',
+          description: 'The OTEL trace has been copied successfully.',
         });
       } else {
         toast.error('Failed to copy trace', {
@@ -61,6 +61,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
     } finally {
+      await new Promise((resolve) => setTimeout(resolve, 200));
       setIsCopying(false);
     }
   };
@@ -144,14 +145,14 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             </ExternalLink>
           )}
           <Button
-            onClick={handleCopyTrace}
             variant="outline"
             size="sm"
             disabled={isCopying}
+            onClick={handleCopyTrace}
             className="flex items-center gap-2"
           >
             <Copy className="h-4 w-4" />
-            {isCopying ? 'Copying...' : 'Copy Trace'}
+            {isCopying ? 'Copying...' : 'Copy JSON'}
           </Button>
           <SignozLink conversationId={conversationId} />
         </div>
