@@ -144,16 +144,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
               {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
             </ExternalLink>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isCopying}
-            onClick={handleCopyTrace}
-            className="flex items-center gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            {isCopying ? 'Copying...' : 'Copy JSON'}
-          </Button>
           <SignozLink conversationId={conversationId} />
         </div>
       </div>
@@ -325,7 +315,12 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           direction="horizontal"
           className="h-full border rounded-xl bg-background"
         >
-          <TimelineWrapper conversation={conversation} conversationId={conversationId} />
+          <TimelineWrapper 
+            conversation={conversation} 
+            conversationId={conversationId}
+            onCopyTrace={handleCopyTrace}
+            isCopying={isCopying}
+          />
         </ResizablePanelGroup>
       </div>
     </div>
