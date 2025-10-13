@@ -1,24 +1,24 @@
 /**
  * Server-side data access layer for Full Project operations.
  * This module provides functions for creating, retrieving, updating, and deleting
- * complete project definitions with all nested resources (agent, agents, tools, etc.).
+ * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
-import { listAgents } from './agents';
-import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
-import { listDataComponents, upsertDataComponent } from './dataComponents';
-import { upsertFunction } from './functions';
 import {
   createFullAgentServerSide,
   deleteFullAgent,
   getFullAgent,
   updateFullAgentServerSide,
 } from './agentFull';
+import { listAgents } from './agents';
+import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
+import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
+import { listDataComponents, upsertDataComponent } from './dataComponents';
+import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
 

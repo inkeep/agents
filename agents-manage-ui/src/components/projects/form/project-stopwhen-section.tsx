@@ -36,7 +36,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
       <div>
         <Label className="text-sm font-medium">Execution limits</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Set default execution limits that will be inherited by agent and agents in this project
+          Set default execution limits that will be inherited by Agents and Sub Agents in this project
         </p>
       </div>
 

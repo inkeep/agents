@@ -388,7 +388,7 @@ export const deleteProject =
   };
 
 /**
- * Cascade stopWhen updates from project to agent and agents
+ * Cascade stopWhen updates from project to Agents and Sub Agents
  */
 async function cascadeStopWhenUpdates(
   db: DatabaseClient,
