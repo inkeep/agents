@@ -52,7 +52,7 @@ app.openapi(
     operationId: 'create-full-project',
     tags: ['Full Project'],
     description:
-      'Create a complete project with all agent, agents, tools, and relationships from JSON definition',
+      'Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     request: {
       params: TenantParamsSchema,
       body: {
@@ -122,7 +122,7 @@ app.openapi(
     operationId: 'get-full-project',
     tags: ['Full Project'],
     description:
-      'Retrieve a complete project definition with all agent, agents, tools, and relationships',
+      'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
     request: {
       params: ProjectIdParamsSchema,
     },
@@ -182,7 +182,7 @@ app.openapi(
     operationId: 'update-full-project',
     tags: ['Full Project'],
     description:
-      'Update or create a complete project with all agent, agents, tools, and relationships from JSON definition',
+      'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     request: {
       params: ProjectIdParamsSchema,
       body: {
@@ -282,7 +282,7 @@ app.openapi(
     operationId: 'delete-full-project',
     tags: ['Full Project'],
     description:
-      'Delete a complete project and cascade to all related entities (agent, agents, tools, relationships)',
+      'Delete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)',
     request: {
       params: ProjectIdParamsSchema,
     },

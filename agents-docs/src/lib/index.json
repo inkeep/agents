@@ -16249,7 +16249,7 @@
         "summary": "Create Full Project",
         "operationId": "create-full-project",
         "tags": ["Full Project"],
-        "description": "Create a complete project with all agent, agents, tools, and relationships from JSON definition",
+        "description": "Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
         "parameters": [
           {
             "schema": {
@@ -17940,7 +17940,7 @@
         "summary": "Get Full Project",
         "operationId": "get-full-project",
         "tags": ["Full Project"],
-        "description": "Retrieve a complete project definition with all agent, agents, tools, and relationships",
+        "description": "Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships",
         "parameters": [
           {
             "schema": {
@@ -18842,7 +18842,7 @@
         "summary": "Update Full Project",
         "operationId": "update-full-project",
         "tags": ["Full Project"],
-        "description": "Update or create a complete project with all agent, agents, tools, and relationships from JSON definition",
+        "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
         "parameters": [
           {
             "schema": {
@@ -21352,7 +21352,7 @@
         "summary": "Delete Full Project",
         "operationId": "delete-full-project",
         "tags": ["Full Project"],
-        "description": "Delete a complete project and cascade to all related entities (agent, agents, tools, relationships)",
+        "description": "Delete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)",
         "parameters": [
           {
             "schema": {

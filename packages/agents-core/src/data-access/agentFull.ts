@@ -3,17 +3,17 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type {
-  SubAgentDefinition,
   ExternalSubAgentApiInsert,
   FullAgentDefinition,
   InternalSubAgentDefinition,
+  SubAgentDefinition,
 } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
-  validateAndTypeAgentData,
   validateAgentStructure,
+  validateAndTypeAgentData,
 } from '../validation/agentFull';
 import {
   deleteAgent,
@@ -58,7 +58,7 @@ const defaultLogger: AgentLogger = {
 };
 
 /**
- * Apply execution limits inheritance from project to agent and agents
+ * Apply execution limits inheritance from project to Agents and Sub Agents
  */
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,

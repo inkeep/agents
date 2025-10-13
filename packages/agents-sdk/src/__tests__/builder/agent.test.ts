@@ -1,10 +1,10 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SubAgent } from '../../subAgent';
 import { Agent } from '../../agent';
 import { ExternalAgent } from '../../externalAgent';
+import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
-import type { GenerateOptions, AgentConfig, MessageInput } from '../../types';
+import type { AgentConfig, GenerateOptions, MessageInput } from '../../types';
 
 // Mock dependencies
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -1082,7 +1082,7 @@ describe('Agent', () => {
     });
 
     it('should handle project with no stopWhen configured', async () => {
-      // Create fresh agent and agents for this test
+      // Create fresh Agents and Sub Agents for this test
       const testAgent1 = new SubAgent({
         id: 'test-agent1',
         name: 'Test Agent 1',
@@ -1139,7 +1139,7 @@ describe('Agent', () => {
     });
 
     it('should handle project database errors gracefully for stopWhen', async () => {
-      // Create fresh agent and agents for this test
+      // Create fresh Agents and Sub Agents for this test
       const testAgent1 = new SubAgent({
         id: 'test-agent1-error',
         name: 'Test Agent 1 Error',
@@ -1183,7 +1183,7 @@ describe('Agent', () => {
     });
 
     it('should support partial stopWhen inheritance', async () => {
-      // Create fresh agent and agents for this test
+      // Create fresh Agents and Sub Agents for this test
       const testAgent1 = new SubAgent({
         id: 'test-agent1-partial',
         name: 'Test Agent 1 Partial',

@@ -2,7 +2,7 @@
 
 Inkeep is a platform to create and manage AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. With **full 2-way sync**, technical and non-technical teams can create Agents in one platform. 
 
-You can deploy Inkeep Agents as **real-time chat assistants** for your customers or internal teams, or as **agentic workflows** for doing repetitive, time-consuming tasks.
+You can deploy Inkeep Agents as **real-time chat assistants** for your customers or internal teams, or for agent-driven **workflow automation** that can handle complex business processes.
 
 To get started, see the [docs](https://docs.inkeep.com).
 
@@ -38,15 +38,15 @@ export const basicAgent = agent({
 });
 ```
 
-## Inkeep Open Source
+## Platform
 
-Inkeep **Open Source** includes:
+The Inkeep Agent platform includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent Architecture to support Teams of Agents
+- Multi-Agent architecture for building teams of agents
 - MCP Tools with Credential Management
 - A UI Component Library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
-- Observability via Traces UI & OpenTelemetry
+- Observability via a Traces UI & OpenTelemetry
 - Easy deployment to Vercel and Docker
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
@@ -64,10 +64,12 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 
 Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs an chat stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
 
-## Contributing to the Inkeep Agent Framework
+## License and Community
 
-Thank you for your interest! [Here are the guidelines on how to contribute to the Inkeep Agent Framework](https://docs.inkeep.com/community/contributing/overview).
+The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a [fair-code](https://faircode.io/), source-available license that allows broad usage while protecting against certain competitive uses.
 
-## License
+We designed Inkeep to be extensible and open: you can use the LLM provider of your choice, use Agents via open protocols, and easily deploy and self-host Agents in your own infra. 
 
-The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a source-available license that allows broad usage while protecting against certain competitive uses.
+If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
+
+[Follow us](https://docs.inkeep.com/community/inkeep-community) to stay up to date, get help, and share feedback.
