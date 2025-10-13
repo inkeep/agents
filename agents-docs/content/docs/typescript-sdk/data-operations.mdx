@@ -105,15 +105,15 @@ Emitted when an agent is reasoning through a request or planning its approach.
 
 ### Tool Execution Events
 
-#### `tool_execution`
-Emitted when an agent executes a tool or function.
+#### `tool_call`
+Emitted when an agent starts calling a tool or function.
 
 ```json
 {
   "type": "data-operation",
   "data": {
-    "type": "tool_execution",
-    "label": "Tool execution: search_documents",
+    "type": "tool_call",
+    "label": "Tool call: search_documents",
     "details": {
       "timestamp": 1726247200000,
       "agentId": "search-agent",
@@ -123,6 +123,28 @@ Emitted when an agent executes a tool or function.
           "query": "machine learning best practices",
           "limit": 10
         },
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789"
+      }
+    }
+  }
+}
+```
+
+#### `tool_result`
+Emitted when a tool execution completes (success or failure).
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool result: search_documents",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "toolName": "search_documents",
         "result": {
           "documents": [
             {
@@ -132,8 +154,32 @@ Emitted when an agent executes a tool or function.
             }
           ]
         },
-        "toolId": "tool_abc123",
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789",
         "duration": 1250
+      }
+    }
+  }
+}
+```
+
+**Error Example:**
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool error: search_documents",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "toolName": "search_documents",
+        "result": null,
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789",
+        "duration": 500,
+        "error": "API rate limit exceeded"
       }
     }
   }
@@ -334,7 +380,9 @@ data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","agen
 
 data: {"type":"data-operation","data":{"type":"agent_reasoning","label":"Agent coordinator-agent reasoning through request","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"parts":[{"type":"text","content":"I need to create a sales report for Q4. This will require gathering data and generating a chart."}]}}}}
 
-data: {"type":"data-operation","data":{"type":"tool_execution","label":"Tool execution: get_sales_data","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"toolName":"get_sales_data","args":{"quarter":"Q4","year":"2023"},"result":{"sales":[...]},"toolId":"tool_abc123","duration":850}}}}
+data: {"type":"data-operation","data":{"type":"tool_call","label":"Tool call: get_sales_data","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"toolName":"get_sales_data","args":{"quarter":"Q4","year":"2023"},"toolCallId":"call_abc123","toolId":"tool_xyz789"}}}}
+
+data: {"type":"data-operation","data":{"type":"tool_result","label":"Tool result: get_sales_data","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"toolName":"get_sales_data","result":{"sales":[...]},"toolCallId":"call_abc123","toolId":"tool_xyz789","duration":850}}}}
 
 data: {"type":"data-artifact","data":{ ... }}
 
