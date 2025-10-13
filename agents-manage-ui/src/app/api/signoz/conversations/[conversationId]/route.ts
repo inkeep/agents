@@ -942,6 +942,7 @@ export async function GET(
       contextStatusDescription?: string;
       contextUrl?: string;
       // tool specifics
+      toolName?: string;
       toolType?: string;
       toolPurpose?: string;
       toolCallArgs?: string;
@@ -1010,6 +1011,7 @@ export async function GET(
         id: getString(span, SPAN_KEYS.SPAN_ID, ''),
         type: ACTIVITY_TYPES.TOOL_CALL,
         name,
+        toolName: name,
         description: hasError && statusMessage ? statusMessage : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
@@ -1368,19 +1370,9 @@ export async function GET(
       totalOpenAICalls: openAICallsCount,
     };
 
-    const timelineActivities = [];
-    for (const a of activities) {
-      timelineActivities.push({
-        ...a,
-        toolName: a.type === ACTIVITY_TYPES.TOOL_CALL ? a.name : undefined,
-        toolResult: a.result,
-        toolDescription: a.description,
-      });
-    }
-
     return NextResponse.json({
       ...conversation,
-      activities: timelineActivities,
+      activities,
       conversationStartTime: conversationStartTime ? conversationStartTime : null,
       conversationEndTime: conversationEndTime ? conversationEndTime : null,
       conversationDuration: conversationDurationMs,
