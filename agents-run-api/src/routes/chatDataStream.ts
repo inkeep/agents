@@ -14,7 +14,7 @@ import {
   loggerFactory,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
 import { nanoid } from 'nanoid';
@@ -111,145 +111,156 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
     }
 
-    const agent = await getAgentWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-    });
-    if (!agent) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
+    // Update baggage with conversation.id for all child spans
+    let currentBag = propagation.getBaggage(otelContext.active());
+    if (!currentBag) {
+      currentBag = propagation.createBaggage();
     }
-
-    const defaultSubAgentId = agent.defaultSubAgentId;
-    const agentName = agent.name;
-
-    if (!defaultSubAgentId) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Agent does not have a default agent configured',
+    currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
+    // Create context with updated baggage and execute within it
+    const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+    // Execute remaining handler within the baggage context so child spans inherit attributes
+    return await otelContext.with(ctxWithBaggage, async () => {
+      const agent = await getAgentWithDefaultSubAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
       });
-    }
+      if (!agent) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
 
-    const activeAgent = await getActiveAgentForConversation(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-    if (!activeAgent) {
-      setActiveAgentForConversation(dbClient)({
+      const defaultSubAgentId = agent.defaultSubAgentId;
+      const agentName = agent.name;
+
+      if (!defaultSubAgentId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Agent does not have a default agent configured',
+        });
+      }
+
+      const activeAgent = await getActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
-        subAgentId: defaultSubAgentId,
       });
-    }
-    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
+      if (!activeAgent) {
+        setActiveAgentForConversation(dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          subAgentId: defaultSubAgentId,
+        });
+      }
+      const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-    const agentInfo = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: subAgentId as string,
-    });
-    if (!agentInfo) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
+      const agentInfo = await getSubAgentById(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: subAgentId as string,
       });
-    }
+      if (!agentInfo) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
 
-    // Get validated context from middleware (falls back to body.headers if no validation)
-    const validatedContext = (c as any).get('validatedContext') || body.headers || {};
+      // Get validated context from middleware (falls back to body.headers if no validation)
+      const validatedContext = (c as any).get('validatedContext') || body.headers || {};
 
-    const credentialStores = c.get('credentialStores');
+      const credentialStores = c.get('credentialStores');
 
-    // Context resolution with intelligent conversation state detection
-    await handleContextResolution({
-      tenantId,
-      projectId,
-      agentId,
-      conversationId,
-      headers: validatedContext,
-      dbClient,
-      credentialStores,
-    });
-
-    // Store last user message
-    const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
-    const userText =
-      typeof lastUserMessage?.content === 'string'
-        ? lastUserMessage.content
-        : lastUserMessage?.parts?.map((p: any) => p.text).join('') || '';
-    logger.info({ userText, lastUserMessage }, 'userText');
-    const messageSpan = trace.getActiveSpan();
-    if (messageSpan) {
-      messageSpan.setAttributes({
-        'message.timestamp': new Date().toISOString(),
-        'message.content': userText,
-        'agent.name': agentName,
+      // Context resolution with intelligent conversation state detection
+      await handleContextResolution({
+        tenantId,
+        projectId,
+        agentId,
+        conversationId,
+        headers: validatedContext,
+        dbClient,
+        credentialStores,
       });
-    }
-    await createMessage(dbClient)({
-      id: nanoid(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: { text: userText },
-      visibility: 'user-facing',
-      messageType: 'chat',
-    });
-    if (messageSpan) {
-      messageSpan.addEvent('user.message.stored', {
-        'message.id': conversationId,
-        'database.operation': 'insert',
+
+      // Store last user message
+      const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
+      const userText =
+        typeof lastUserMessage?.content === 'string'
+          ? lastUserMessage.content
+          : lastUserMessage?.parts?.map((p: any) => p.text).join('') || '';
+      logger.info({ userText, lastUserMessage }, 'userText');
+      const messageSpan = trace.getActiveSpan();
+      if (messageSpan) {
+        messageSpan.setAttributes({
+          'message.timestamp': new Date().toISOString(),
+          'message.content': userText,
+          'agent.name': agentName,
+        });
+      }
+      await createMessage(dbClient)({
+        id: nanoid(),
+        tenantId,
+        projectId,
+        conversationId,
+        role: 'user',
+        content: { text: userText },
+        visibility: 'user-facing',
+        messageType: 'chat',
       });
-    }
+      if (messageSpan) {
+        messageSpan.addEvent('user.message.stored', {
+          'message.id': conversationId,
+          'database.operation': 'insert',
+        });
+      }
 
-    // Create UI Message Stream using AI SDK V5
-    const dataStream = createUIMessageStream({
-      execute: async ({ writer }) => {
-        const streamHelper = createVercelStreamHelper(writer);
-        try {
-          // Check for emit operations header
-          const emitOperationsHeader = c.req.header('x-emit-operations');
-          const emitOperations = emitOperationsHeader === 'true';
+      // Create UI Message Stream using AI SDK V5
+      const dataStream = createUIMessageStream({
+        execute: async ({ writer }) => {
+          const streamHelper = createVercelStreamHelper(writer);
+          try {
+            // Check for emit operations header
+            const emitOperationsHeader = c.req.header('x-emit-operations');
+            const emitOperations = emitOperationsHeader === 'true';
 
-          const executionHandler = new ExecutionHandler();
+            const executionHandler = new ExecutionHandler();
 
-          const result = await executionHandler.execute({
-            executionContext,
-            conversationId,
-            userMessage: userText,
-            initialAgentId: subAgentId,
-            requestId: `chatds-${Date.now()}`,
-            sseHelper: streamHelper,
-            emitOperations,
-          });
+            const result = await executionHandler.execute({
+              executionContext,
+              conversationId,
+              userMessage: userText,
+              initialAgentId: subAgentId,
+              requestId: `chatds-${Date.now()}`,
+              sseHelper: streamHelper,
+              emitOperations,
+            });
 
-          if (!result.success) {
-            await streamHelper.writeOperation(errorOp('Unable to process request', 'system'));
+            if (!result.success) {
+              await streamHelper.writeOperation(errorOp('Unable to process request', 'system'));
+            }
+          } catch (err) {
+            logger.error({ err }, 'Streaming error');
+            await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
+          } finally {
+            // Clean up stream helper resources if it has cleanup method
+            if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
+              streamHelper.cleanup();
+            }
           }
-        } catch (err) {
-          logger.error({ err }, 'Streaming error');
-          await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
-        } finally {
-          // Clean up stream helper resources if it has cleanup method
-          if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
-            streamHelper.cleanup();
-          }
-        }
-      },
-    });
+        },
+      });
 
-    c.header('content-type', 'text/event-stream');
-    c.header('cache-control', 'no-cache');
-    c.header('connection', 'keep-alive');
-    c.header('x-vercel-ai-data-stream', 'v2');
-    c.header('x-accel-buffering', 'no'); // disable nginx buffering
+      c.header('content-type', 'text/event-stream');
+      c.header('cache-control', 'no-cache');
+      c.header('connection', 'keep-alive');
+      c.header('x-vercel-ai-data-stream', 'v2');
+      c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
     return stream(c, (stream) =>
       stream.pipe(
         dataStream.pipeThrough(new JsonToSseTransformStream()).pipeThrough(new TextEncoderStream())
       )
     );
+  });
   } catch (error) {
     logger.error({ error }, 'chatDataStream error');
     throw createApiError({
