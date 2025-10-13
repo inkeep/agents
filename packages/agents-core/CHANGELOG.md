@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.19.2
+
+### Patch Changes
+
+- 717d483: fixes-sonnet-definition
+
 ## 0.19.1
 
 ## 0.19.0
