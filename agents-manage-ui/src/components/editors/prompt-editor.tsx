@@ -66,7 +66,51 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     if (!monaco || !editor) {
       return;
     }
-    const disposables: IDisposable[] = [
+    const model = editor.getModel();
+
+    // Function to validate template variables and set markers
+    const validateTemplateVariables = () => {
+      if (!model) {
+        return;
+      }
+      const validVariables = new Set(suggestionsRef.current);
+      const regex = /\{\{([^}]+)}}/g;
+      const markers: Monaco.editor.IMarkerData[] = [];
+
+      for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+        const line = model.getLineContent(lineNumber);
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(line)) !== null) {
+          const variableName = match[1];
+
+          // Check if variable is valid (in suggestions) or reserved
+          const isValid =
+            validVariables.has(variableName) ||
+            RESERVED_KEYS.has(variableName) ||
+            variableName.startsWith('$env.') ||
+            // Exclude arrays from linting, as they are indicated with [*] in the suggestions
+            variableName.includes('[') ||
+            // JMESPath expressions
+            variableName.startsWith('length(');
+
+          if (!isValid) {
+            markers.push({
+              startLineNumber: lineNumber,
+              startColumn: match.index + 1,
+              endLineNumber: lineNumber,
+              endColumn: match.index + match[0].length + 1,
+              message: `Unknown variable: ${variableName}`,
+              severity: monaco.MarkerSeverity.Error,
+            });
+          }
+        }
+      }
+
+      monaco.editor.setModelMarkers(model, 'template-variables', markers);
+    };
+
+    const disposables: (IDisposable | undefined)[] = [
       // Register completion provider for template variables
       monaco.languages.registerCompletionItemProvider('plaintext', {
         triggerCharacters: ['{'],
@@ -135,7 +179,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
           };
         },
       }),
+      // Add model change listener to trigger validation
+      model?.onDidChangeContent(validateTemplateVariables),
     ];
+    // Initial validation
+    validateTemplateVariables();
+
     editor.updateOptions({
       autoClosingBrackets: 'never',
       renderLineHighlight: 'none', // disable active line highlight
@@ -143,7 +192,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
 
     return () => {
       for (const disposable of disposables) {
-        disposable.dispose();
+        disposable?.dispose();
       }
     };
   }, [editor, monaco]);
