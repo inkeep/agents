@@ -11,10 +11,12 @@ icon: "TbInputSpark"
 Artifact components are defined using the `artifactComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
 
 <Callout>
-**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`, providing a ready-to-use example.
+**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`. You'll find the complete implementation in `artifact-components/citation.ts` in your project. They provide a ready-to-use example for source attribution and are automatically rendered by the Inkeep widget with professional styling and interactions.
 </Callout>
 
 ### Using Zod Schemas (Recommended)
+
+Here's the citation artifact component that's automatically included in every new project created with `npx @inkeep/create-agents`:
 
 ```typescript
 import { artifactComponent } from '@inkeep/agents-sdk';
@@ -42,6 +44,11 @@ export const citation = artifactComponent({
   }),
 });
 ```
+
+This citation component demonstrates key artifact patterns:
+- **Preview fields**: `title`, `url`, and `record_type` are wrapped with `preview()` for real-time streaming
+- **Full content storage**: The `content` array stores complete data without being in preview
+- **Type safety**: Zod provides compile-time validation and IntelliSense support
 
 ### Alternative: JSON Schema
 
@@ -109,15 +116,24 @@ Artifact components can be configured in three ways:
 - **Type Safety**: Compile-time validation of your schema
 - **Better DX**: IntelliSense support and `.describe()` for documentation
 - **Automatic Conversion**: Converts to JSON Schema automatically
-- **Preview Support**: Use `preview()` helper for `inPreview` fields
+- **Preview Support**: Use `preview()` helper which automatically sets `inPreview: true` in the resulting JSON Schema
+
+<Note>
+When you wrap a Zod schema field with `preview()`, the SDK automatically sets `inPreview: true` in the generated JSON Schema. This is equivalent to manually adding `inPreview: true` when using raw JSON Schema.
+</Note>
 
 ### Preview Fields
 
-When using a schema:
-- **Preview fields** (`inPreview: true` or `preview()`): Shown to agents automatically and streamed in real-time  
-- **Full fields**: Complete data available when agents request the full artifact
+Preview fields control what data is immediately available vs. stored for later retrieval. This affects multiple consumers:
 
-When no schema is provided, the entire tool result is saved and available to agents.
+**For Agents:**
+- **Preview fields** (`inPreview: true` or wrapped with `preview()`): Shown to agents automatically in tool responses and artifact summaries
+- **Full fields**: Complete data available when agents explicitly request the full artifact
+
+**For End Users (Vercel AI SDK Stream & Widget):**
+- **Preview fields**: Streamed in real-time to the client as artifacts are created, allowing immediate UI updates
+
+**When no schema is provided**, the entire tool result is saved and available to all consumers (agents, stream, widget).
 
 ## Artifact Creation
 
@@ -152,6 +168,21 @@ const searchAgent = agent({
   artifactComponents: () => [citation],
 });
 ```
+
+## Citation Rendering in the Widget
+
+Citation artifacts (like the [Zod schema example](#using-zod-schemas-recommended) above, which is automatically included in `npx @inkeep/create-agents` projects) are automatically rendered by Inkeep's widget library, providing professional source attribution with zero additional configuration. When your agent creates a citation artifact—whether from a search tool, knowledge base lookup, or API call—the widget automatically detects it in the stream and renders it with rich, interactive UI elements.
+
+<img
+  src="/images/citation-widget-rendering.png"
+  alt="Citation rendering in Inkeep widget showing Sources section with expandable citation"
+  width="100%"
+  style={{ borderRadius: "10px", marginTop: "16px", marginBottom: "16px" }}
+/>
+
+As shown above, the widget handles everything automatically: grouping citations in a **"Sources"** section, displaying preview fields (like title and source type), providing expandable interfaces for details, and linking to original source URLs for click-through access. This makes it invaluable when building AI assistants that cite documentation sources, reference blog posts, show product information, or attribute knowledge base articles.
+
+You simply define the citation schema and create artifacts—the widget handles all the visual styling, interaction patterns (expand/collapse, click-through), accessibility features, and mobile responsiveness. Your users get a polished citation experience without any custom UI work.
 
 ## Example Flow
 

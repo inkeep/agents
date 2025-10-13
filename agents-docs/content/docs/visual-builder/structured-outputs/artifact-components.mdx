@@ -11,11 +11,27 @@ icon: "TbInputSpark"
 1. Go to the Artifact Components tab in the left sidebar. Then select "New artifact component".
 2. Add in an id, name, and description. These are required fields.
 3. For the props schema, you can either:
-   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields
+   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields for streaming and real-time display
    - **Leave empty** to save the entire tool result without filtering
 4. Click "Submit".
 
 To visually add the artifact component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-artifact-components) page for details.
+
+### Understanding Preview Fields
+
+When adding `inPreview: true` to properties in your JSON schema, those fields become immediately available to multiple consumers:
+
+- **Agents**: See preview fields in tool responses and artifact summaries
+- **End Users**: Preview fields are streamed in real-time through the Vercel AI SDK and rendered instantly in the Inkeep widget
+- **Full Data**: All fields (preview and non-preview) are stored and available when explicitly requested
+
+### Citation Artifacts
+
+Citation artifacts with preview fields (like `title`, `url`, `record_type`) are automatically rendered by the Inkeep widget with professional styling, making source attribution seamless for your users.
+
+<Note>
+The Inkeep widget automatically detects and renders citation artifacts with interactive elements, expandable panels, and click-through functionality to source URLs—no additional configuration needed.
+</Note>
 
 ## Artifact Name & Description Generation
 
