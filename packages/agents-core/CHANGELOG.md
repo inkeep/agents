@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+
 ## 0.19.3
 
 ### Patch Changes
