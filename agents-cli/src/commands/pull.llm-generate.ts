@@ -90,21 +90,21 @@ const PROJECT_JSON_EXAMPLE = `
   "description": "test test",
   "models": {
     "base": {
-      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1}",
+      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1_20250805}",
       "providerOptions": {
         "temperature": 0.7,
         "maxTokens": 2096
       }
     },
     "structuredOutput": {
-      "model": "${OPENAI_MODELS.GPT_4_1_MINI}",
+      "model": "${OPENAI_MODELS.GPT_4_1_MINI_20250414}",
       "providerOptions": {
         "temperature": 0.4,
         "maxTokens": 2048
       }
     },
     "summarizer": {
-      "model": "${OPENAI_MODELS.GPT_5_NANO}",
+      "model": "${OPENAI_MODELS.GPT_5_NANO_20250807}",
       "providerOptions": {
         "temperature": 0.8,
         "maxTokens": 1024
@@ -161,7 +161,7 @@ const PROJECT_JSON_EXAMPLE = `
       "updatedAt": "2025-10-05T16:43:26.813Z",
       "models": {
         "base": {
-          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4}",
+          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514}",
           "providerOptions": {
             "temperature": 0.5
           }
