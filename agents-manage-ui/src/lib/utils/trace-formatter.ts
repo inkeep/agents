@@ -112,8 +112,8 @@ export interface PrettifiedTrace {
   metadata: {
     conversationId: string;
     traceId?: string;
-    graphId?: string;
-    graphName?: string;
+    agentId?: string;
+    agentName?: string;
     exportedAt: string;
   };
   timing: {
@@ -180,8 +180,8 @@ export function formatConversationAsPrettifiedTrace(
     metadata: {
       conversationId: conversation.conversationId,
       traceId: conversation.traceId,
-      graphId: conversation.graphId,
-      graphName: conversation.graphName,
+      agentName: conversation.agentName,
+      agentId: conversation.agentId,
       exportedAt: new Date().toISOString(),
     },
     timing: {
