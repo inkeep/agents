@@ -192,7 +192,7 @@ export function TimelineWrapper({
         type: 'tool_call' as const,
         description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
         timestamp: new Date(tc.timestamp).toISOString(),
-        agentName: tc.agentName || 'AI Agent',
+        subAgentName: tc.subAgentName || 'AI Agent',
         toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
       })) || []
     );

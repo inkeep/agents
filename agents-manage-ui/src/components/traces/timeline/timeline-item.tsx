@@ -329,9 +329,9 @@ export function TimelineItem({
           )}
 
           {/* agent name for AI generation */}
-          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
             <div className="mb-1">
-              <Badge variant="code">{activity.agentName}</Badge>
+              <Badge variant="code">{activity.subAgentName}</Badge>
             </div>
           )}
 
