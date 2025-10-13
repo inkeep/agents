@@ -31,7 +31,9 @@ export type AgentSessionEventType =
   | 'delegation_sent'
   | 'delegation_returned'
   | 'artifact_saved'
-  | 'tool_execution';
+  | 'tool_call'
+  | 'tool_result'
+  | 'error';
 
 // Base interface with common properties
 interface BaseAgentSessionEvent {
@@ -47,7 +49,9 @@ export type AgentSessionEvent =
   | (BaseAgentSessionEvent & { eventType: 'delegation_sent'; data: DelegationSentData })
   | (BaseAgentSessionEvent & { eventType: 'delegation_returned'; data: DelegationReturnedData })
   | (BaseAgentSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
-  | (BaseAgentSessionEvent & { eventType: 'tool_execution'; data: ToolExecutionData });
+  | (BaseAgentSessionEvent & { eventType: 'tool_call'; data: ToolCallData })
+  | (BaseAgentSessionEvent & { eventType: 'tool_result'; data: ToolResultData })
+  | (BaseAgentSessionEvent & { eventType: 'error'; data: ErrorEventData });
 
 export type EventData =
   | AgentGenerateData
@@ -56,7 +60,9 @@ export type EventData =
   | DelegationSentData
   | DelegationReturnedData
   | ArtifactSavedData
-  | ToolExecutionData;
+  | ToolCallData
+  | ToolResultData
+  | ErrorEventData;
 
 // Mapping type that associates each event type with its data type
 export type EventDataMap = {
@@ -66,7 +72,9 @@ export type EventDataMap = {
   delegation_sent: DelegationSentData;
   delegation_returned: DelegationReturnedData;
   artifact_saved: ArtifactSavedData;
-  tool_execution: ToolExecutionData;
+  tool_call: ToolCallData;
+  tool_result: ToolResultData;
+  error: ErrorEventData;
 };
 
 // Helper type to construct a properly-typed event from generic parameter T
@@ -111,12 +119,27 @@ export interface ArtifactSavedData {
   data?: Record<string, any>;
 }
 
-export interface ToolExecutionData {
+export interface ToolCallData {
   toolName: string;
   args: any;
+  toolCallId?: string;
+  toolId?: string;
+}
+
+export interface ToolResultData {
+  toolName: string;
   result: any;
+  toolCallId?: string;
   toolId?: string;
   duration?: number;
+  error?: string;
+}
+
+export interface ErrorEventData {
+  message: string;
+  code?: string;
+  severity?: 'error' | 'warning' | 'info';
+  context?: any;
 }
 
 interface StatusUpdateState {
@@ -248,9 +271,17 @@ export class AgentSession {
         return `Agent ${event.subAgentId} generating response`;
       case 'agent_reasoning':
         return `Agent ${event.subAgentId} reasoning through request`;
-      case 'tool_execution':
-        // TypeScript automatically narrows event.data to ToolExecutionData here
-        return `Tool execution: ${event.data.toolName || 'unknown'}`;
+      case 'tool_call':
+        // TypeScript automatically narrows event.data to ToolCallData here
+        return `Tool call: ${event.data.toolName || 'unknown'}`;
+      case 'tool_result': {
+        // TypeScript automatically narrows event.data to ToolResultData here
+        const status = event.data.error ? 'failed' : 'completed';
+        return `Tool result: ${event.data.toolName || 'unknown'} (${status})`;
+      }
+      case 'error':
+        // TypeScript automatically narrows event.data to ErrorEventData here
+        return `Error: ${event.data.message}`;
       case 'transfer':
         // TypeScript automatically narrows event.data to TransferData here
         return `Agent transfer: ${event.data.fromSubAgent} → ${event.data.targetSubAgent}`;
@@ -1184,14 +1215,34 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
     for (const event of events) {
       switch (event.eventType) {
-        case 'tool_execution': {
-          // TypeScript automatically narrows event.data to ToolExecutionData here
-          const resultStr = JSON.stringify(event.data.result);
+        case 'tool_call': {
+          // TypeScript automatically narrows event.data to ToolCallData here
+          activities.push(
+            `🔧 **${event.data.toolName}** (called)\n` +
+              `   📥 Input: ${JSON.stringify(event.data.args)}`
+          );
+          break;
+        }
+
+        case 'tool_result': {
+          // TypeScript automatically narrows event.data to ToolResultData here
+          const resultStr = event.data.error
+            ? `❌ Error: ${event.data.error}`
+            : JSON.stringify(event.data.result);
 
           activities.push(
             `🔧 **${event.data.toolName}** ${event.data.duration ? `(${event.data.duration}ms)` : ''}\n` +
-              `   📥 Input: ${JSON.stringify(event.data.args)}\n` +
               `   📤 Output: ${resultStr}`
+          );
+          break;
+        }
+
+        case 'error': {
+          // TypeScript automatically narrows event.data to ErrorEventData here
+          activities.push(
+            `❌ **Error**: ${event.data.message}\n` +
+              `   🔍 Code: ${event.data.code || 'unknown'}\n` +
+              `   📊 Severity: ${event.data.severity || 'error'}`
           );
           break;
         }
@@ -1295,13 +1346,13 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           });
 
           // Find the specific tool call that generated this artifact
-          // Now toolId and toolCallId should be the same since we use AI SDK's toolCallId consistently
+          // Look for tool_result event that matches this artifact's toolCallId
           const toolCallEvent = this.events.find(
             (event) =>
-              event.eventType === 'tool_execution' &&
+              event.eventType === 'tool_result' &&
               event.data &&
-              'toolId' in event.data &&
-              event.data.toolId === artifactData.metadata?.toolCallId
+              'toolCallId' in event.data &&
+              event.data.toolCallId === artifactData.metadata?.toolCallId
           ) as AgentSessionEvent | undefined;
 
           // Prepare context for name/description generation

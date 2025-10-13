@@ -197,10 +197,16 @@ export async function chatCommandEnhanced(agentIdInput?: string, options?: ChatO
                         // Format display based on operation type
                         let displayText = '';
                         if (opType === 'completion') {
-                          displayText = `${label} (sub-agent: ${subAgentId})`;
-                        } else if (opType === 'tool_execution') {
+                          displayText = `${label} (sub-agent: ${agentId})`;
+                        } else if (opType === 'tool_call') {
                           const toolData = details.data || {};
-                          displayText = `${label} - ${toolData.toolName || 'unknown tool'}`;
+                          displayText = `${label} - ${toolData.toolName || 'unknown tool'} (calling)`;
+                        } else if (opType === 'tool_result') {
+                          const toolData = details.data || {};
+                          const status = toolData.error ? 'failed' : 'completed';
+                          displayText = `${label} - ${toolData.toolName || 'unknown tool'} (${status})`;
+                        } else if (opType === 'error') {
+                          displayText = `${label} - ${dataOp.data?.message || 'Unknown error'}`;
                         } else if (opType === 'agent_generate' || opType === 'agent_reasoning') {
                           displayText = `${label}`;
                         } else {
