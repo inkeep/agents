@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- 20978ac: - Bump agents ui version to 0.14.12
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-manage-api@0.19.5
+  - @inkeep/agents-run-api@0.19.5
+  - @inkeep/agents-core@0.19.5
+
 ## 0.19.4
 
 ### Patch Changes

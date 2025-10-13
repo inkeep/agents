@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+
 ## 0.19.4
 
 ### Patch Changes
