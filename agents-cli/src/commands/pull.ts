@@ -644,12 +644,16 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       // If --project arg is provided AND we're in a project directory, show error
       if (currentProjectId) {
         spinner.fail('Conflicting project specification');
-        console.error(chalk.red('Error: Cannot specify --project argument when in a project directory'));
+        console.error(
+          chalk.red('Error: Cannot specify --project argument when in a project directory')
+        );
         console.error(chalk.yellow(`  • Current directory project: ${currentProjectId}`));
         console.error(chalk.yellow(`  • Specified project argument: ${options.project}`));
         console.error(chalk.gray('\nTo pull to this directory, run without --project argument:'));
         console.error(chalk.gray('  inkeep pull'));
-        console.error(chalk.gray('\nTo pull a different project, run from a non-project directory.'));
+        console.error(
+          chalk.gray('\nTo pull a different project, run from a non-project directory.')
+        );
         process.exit(1);
       }
       // Extract project ID from path if it's a directory name
@@ -779,7 +783,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Get model settings from config or use default
     const modelSettings: ModelSettings = {
-      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4,
+      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514,
     };
 
     await generateProjectFiles(

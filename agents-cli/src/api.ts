@@ -221,7 +221,7 @@ export class ExecutionApiClient extends BaseApiClient {
         ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({
-        model: OPENAI_MODELS.GPT_4_1_MINI, // Required but will be overridden by graph config
+        model: OPENAI_MODELS.GPT_4_1_MINI_20250414, // Required but will be overridden by graph config
         messages,
         conversationId,
         stream: true,
