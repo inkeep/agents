@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- 0d0166f: stream object in timeline
+
 ## 0.19.5
 
 ### Patch Changes

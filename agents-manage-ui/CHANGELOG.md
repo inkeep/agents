@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.6
+
+### Patch Changes
+
+- 0d0166f: stream object in timeline
+- Updated dependencies [0d0166f]
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-run-api@0.19.6
+  - @inkeep/agents-core@0.19.6
+  - @inkeep/agents-manage-api@0.19.6
+
 ## 0.19.5
 
 ### Patch Changes
