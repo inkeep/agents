@@ -64,8 +64,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     if (!monaco || !editor) {
       return;
     }
-    const variableNames = ['name', 'email', 'company', 'date'];
-
     const disposables: IDisposable[] = [
       // Register completion provider for template variables
       monaco.languages.registerCompletionItemProvider('plaintext', {
@@ -93,104 +91,49 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
           const filteredSuggestions = suggestions.filter((s) => s.toLowerCase().includes(query));
 
           const word = model.getWordUntilPosition(position);
-          const range = {
-            startLineNumber: position.lineNumber,
-            startColumn: word.startColumn,
-            endLineNumber: position.lineNumber,
-            endColumn: word.endColumn,
-          };
+          const range = new monaco.Range(
+            position.lineNumber,
+            word.startColumn,
+            position.lineNumber,
+            word.endColumn
+          );
+          const start = '{';
+          const end = '}';
 
-          // Check if we need to auto-close with }}
-          const lineText = model.getLineContent(position.lineNumber);
-          const nextChar = lineText[position.column - 1];
-          const needsClosing = nextChar !== '}';
+          const kind = monaco.languages.CompletionItemKind.Module;
 
           const completionItems: Monaco.languages.CompletionItem[] = [
             // Add context suggestions
-            ...filteredSuggestions.map((suggestion) => ({
-              label: suggestion,
-              kind: monaco.languages.CompletionItemKind.Module,
-              insertText: `${suggestion}${needsClosing ? '}}' : '}'}`,
-              detail: `Context variable: ${suggestion}`,
-              sortText: '0',
+            ...filteredSuggestions.map((label) => ({
+              kind,
               range,
+              label,
+              detail: 'Context variable',
+              insertText: `${start}${label}${end}`,
+              sortText: '0',
             })),
             // Add reserved keys
-            ...Array.from(RESERVED_KEYS).map((key) => ({
-              label: key,
-              kind: monaco.languages.CompletionItemKind.Module,
-              insertText: `${key}${needsClosing ? '}}' : '}'}`,
-              detail: `Reserved variable: ${key}`,
-              sortText: '1',
+            ...Array.from(RESERVED_KEYS).map((label) => ({
+              kind,
               range,
+              label,
+              detail: 'Reserved variable',
+              insertText: `${start}${label}${end}`,
+              sortText: '1',
             })),
             // Add environment variables
             {
-              label: '$env.',
-              kind: monaco.languages.CompletionItemKind.Module,
-              insertText: `$env.${needsClosing ? '}}' : '}'}`,
-              detail: 'Environment variable',
-              sortText: '2',
+              kind,
               range,
+              label: '$env.',
+              detail: 'Environment variable',
+              insertText: `${start}$env.${end}`,
+              sortText: '2',
             },
           ];
-
-          console.log('Returning completion items:', completionItems);
           return { suggestions: completionItems };
         },
       }),
-      // monaco.languages.registerCompletionItemProvider('plaintext', {
-      //   triggerCharacters: ['['],
-      //   provideCompletionItems(model, position) {
-      //     // Look at the two characters immediately before the caret
-      //     const startCol = Math.max(1, position.column - 2);
-      //
-      //     // Replace the just-typed '{{' with the full snippet
-      //     const replaceRange = new monaco.Range(
-      //       position.lineNumber,
-      //       startCol,
-      //       position.lineNumber,
-      //       position.column
-      //     );
-      //
-      //     // A few opinionated snippets
-      //     const baseSnippets = [
-      //       {
-      //         label: '{{ variable }}',
-      //         detail: 'Insert a {{ variable }} placeholder',
-      //         insertText: '{{ ${1:variable} }}',
-      //       },
-      //       {
-      //         label: '{{#if condition}}…{{/if}}',
-      //         detail: 'Conditional block',
-      //         insertText: '{{#if ${1:condition}}}\n  ${2:content}\n{{/if}}',
-      //       },
-      //       {
-      //         label: '{{#each items}}…{{/each}}',
-      //         detail: 'Loop block',
-      //         insertText: '{{#each ${1:items}}}\n  ${2:content}\n{{/each}}',
-      //       },
-      //     ];
-      //
-      //     // Turn variable names into targeted suggestions like `{{ name }}`
-      //     const variableSnippets = variableNames.map((v) => ({
-      //       label: `{{ ${v} }}`,
-      //       detail: `Insert {{ ${v} }}`,
-      //       insertText: `{{ ${v} }}`,
-      //     }));
-      //
-      //     const suggestions = [...variableSnippets, ...baseSnippets].map((s) => ({
-      //       label: s.label,
-      //       kind: monaco.languages.CompletionItemKind.Snippet,
-      //       detail: s.detail,
-      //       range: replaceRange,
-      //       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      //       insertText: s.insertText,
-      //     }));
-      //
-      //     return { suggestions };
-      //   },
-      // }),
     ];
 
     return () => {
