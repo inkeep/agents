@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
@@ -10,6 +11,9 @@ import {
   createPlaceholders,
   restorePlaceholders,
 } from './pull.placeholder-system';
+
+// Create require function for ESM context
+const require = createRequire(import.meta.url);
 
 /**
  * Read the complete type definitions from @inkeep/agents-sdk package

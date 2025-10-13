@@ -8,8 +8,8 @@
  */
 
 import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
-import { generateText } from 'ai';
 import type { DetectedPatterns } from './pattern-analyzer';
+import { generateTextWithPlaceholders } from '../commands/pull.llm-generate';
 import {
 	type EntityType,
 	type VariableNameRegistry,
@@ -83,21 +83,29 @@ export async function generatePlan(
 		nameGenerator.generateVariableName(entity.id, entity.type);
 	}
 
-	// Step 4: Use LLM to generate file structure plan
+	// Step 4: Use LLM to generate file structure plan with placeholder optimization
 	const model = createModel(modelSettings);
-	const prompt = createPlanningPrompt(
-		projectData,
-		patterns,
+	const promptTemplate = createPlanningPromptTemplate(
 		nameGenerator.getRegistry(),
 		allEntities
 	);
 
-	const { text } = await generateText({
+	// Combine projectData and patterns for placeholder processing
+	const promptData = {
+		projectData,
+		patterns,
+	};
+
+	const text = await generateTextWithPlaceholders(
 		model,
-		prompt,
-		temperature: 0.1,
-		maxOutputTokens: 8000,
-	});
+		promptData,
+		promptTemplate,
+		{
+			temperature: 0.1,
+			maxOutputTokens: 8000,
+		},
+		false // debug flag
+	);
 
 	// Step 5: Parse LLM response to extract file plan
 	const filePlan = parsePlanResponse(text, nameGenerator.getRegistry());
@@ -119,11 +127,10 @@ export async function generatePlan(
 }
 
 /**
- * Create LLM planning prompt
+ * Create LLM planning prompt template
+ * Uses {{DATA}} placeholder for large data that will be processed by placeholder system
  */
-function createPlanningPrompt(
-	projectData: FullProjectDefinition,
-	patterns: DetectedPatterns,
+function createPlanningPromptTemplate(
 	registry: VariableNameRegistry,
 	allEntities: Array<{ id: string; type: EntityType }>
 ): string {
@@ -132,11 +139,12 @@ function createPlanningPrompt(
 
 	return `You are a code generation planner. Generate a file structure plan for an Inkeep TypeScript project.
 
-PROJECT DATA:
-${JSON.stringify(projectData, null, 2)}
+DATA (PROJECT AND PATTERNS):
+{{DATA}}
 
-DETECTED PATTERNS:
-${JSON.stringify(patterns, null, 2)}
+The DATA above contains:
+- projectData: Full project definition from the backend (agents, tools, dataComponents, etc.)
+- patterns: Detected patterns from existing code (fileStructure, namingConventions, codeStyle, examples)
 
 VARIABLE NAME MAPPINGS (MUST USE THESE EXACT NAMES):
 ${mappings}
@@ -227,10 +235,10 @@ OUTPUT FORMAT (JSON):
       "type": "index",
       "entities": [
         {
-          "id": "${projectData.id}",
-          "variableName": "${camelCase(projectData.id)}",
-          "entityType": "agent",
-          "exportName": "${camelCase(projectData.id)}"
+          "id": "my-weather-project",
+          "variableName": "myWeatherProject",
+          "entityType": "project",
+          "exportName": "myWeatherProject"
         }
       ],
       "dependencies": [

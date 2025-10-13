@@ -818,6 +818,11 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       patterns = RECOMMENDED_PATTERN as any;
     }
 
+    // Ensure patterns is not null before proceeding
+    if (!patterns) {
+      throw new Error('Failed to determine code patterns');
+    }
+
     // Step 2: Generate plan using LLM
     spinner.start('Generating file structure plan...');
     const { generatePlan } = await import('../codegen/plan-builder');
