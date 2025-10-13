@@ -24,7 +24,7 @@ import {
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -465,78 +465,100 @@ const handleInitializationRequest = async (
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
-  // Get the default agent for the agent
-  const agent = await getAgentWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-  });
-  if (!agent) {
-    return c.json(
-      {
-        jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent not found' },
-        id: body.id || null,
-      },
-      { status: 404 }
-    );
+  // Add conversation ID to parent span
+  const activeSpan = trace.getActiveSpan();
+  if (activeSpan) {
+    activeSpan.setAttributes({
+      'conversation.id': sessionId,
+      'tenant.id': tenantId,
+      'agent.id': agentId,
+      'project.id': projectId,
+    });
   }
 
-  if (!agent.defaultSubAgentId) {
-    return c.json(
-      {
-        jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent does not have a default agent configured' },
-        id: body.id || null,
-      },
-      { status: 400 }
-    );
+  // Update baggage with conversation.id for all child spans
+  let currentBag = propagation.getBaggage(otelContext.active());
+  if (!currentBag) {
+    currentBag = propagation.createBaggage();
   }
+  currentBag = currentBag.setEntry('conversation.id', { value: sessionId });
+  // Create context with updated baggage and execute within it
+  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+  // Execute remaining handler within the baggage context so child spans inherit attributes
+  return await otelContext.with(ctxWithBaggage, async () => {
+    // Get the default agent for the agent
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
+    });
+    if (!agent) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Agent not found' },
+          id: body.id || null,
+        },
+        { status: 404 }
+      );
+    }
 
-  // Create/get conversation with MCP session metadata
-  const conversation = await createOrGetConversation(dbClient)({
-    id: sessionId,
-    tenantId,
-    projectId,
-    activeSubAgentId: agent.defaultSubAgentId,
-    metadata: {
-      sessionData: {
-        agentId,
-        sessionType: 'mcp',
-        mcpProtocolVersion: c.req.header('mcp-protocol-version'),
-        initialized: false, // Track initialization state
+    if (!agent.defaultSubAgentId) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Agent does not have a default agent configured' },
+          id: body.id || null,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create/get conversation with MCP session metadata
+    const conversation = await createOrGetConversation(dbClient)({
+      id: sessionId,
+      tenantId,
+      projectId,
+      activeSubAgentId: agent.defaultSubAgentId,
+      metadata: {
+        sessionData: {
+          agentId,
+          sessionType: 'mcp',
+          mcpProtocolVersion: c.req.header('mcp-protocol-version'),
+          initialized: false, // Track initialization state
+        },
       },
-    },
+    });
+
+    logger.info(
+      { sessionId, conversationId: conversation.id },
+      'Created MCP session as conversation'
+    );
+
+    // Create fresh transport and server for this request
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => sessionId,
+    });
+
+    const server = await getServer(validatedContext, executionContext, sessionId, credentialStores);
+    await server.connect(transport);
+    logger.info({ sessionId }, 'Server connected for initialization');
+
+    // Tell client the session ID
+    res.setHeader('Mcp-Session-Id', sessionId);
+
+    logger.info(
+      {
+        sessionId,
+        bodyMethod: body?.method,
+        bodyId: body?.id,
+      },
+      'About to handle initialization request'
+    );
+
+    await transport.handleRequest(req, res, body);
+    logger.info({ sessionId }, 'Successfully handled initialization request');
+
+    return toFetchResponse(res);
   });
-
-  logger.info(
-    { sessionId, conversationId: conversation.id },
-    'Created MCP session as conversation'
-  );
-
-  // Create fresh transport and server for this request
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => sessionId,
-  });
-
-  const server = await getServer(validatedContext, executionContext, sessionId, credentialStores);
-  await server.connect(transport);
-  logger.info({ sessionId }, 'Server connected for initialization');
-
-  // Tell client the session ID
-  res.setHeader('Mcp-Session-Id', sessionId);
-
-  logger.info(
-    {
-      sessionId,
-      bodyMethod: body?.method,
-      bodyId: body?.id,
-    },
-    'About to handle initialization request'
-  );
-
-  await transport.handleRequest(req, res, body);
-  logger.info({ sessionId }, 'Successfully handled initialization request');
-
-  return toFetchResponse(res);
 };
 
 /**
