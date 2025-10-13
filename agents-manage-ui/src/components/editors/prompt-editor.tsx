@@ -101,41 +101,38 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
             position.lineNumber,
             word.endColumn
           );
-          const start = '{';
-          const end = '}';
 
-          const kind = monaco.languages.CompletionItemKind.Module;
-
-          const completionItems: Monaco.languages.CompletionItem[] = [
+          const completionItems: Omit<
+            Monaco.languages.CompletionItem,
+            'kind' | 'range' | 'insertText'
+          >[] = [
             // Add context suggestions
             ...filteredSuggestions.map((label) => ({
-              kind,
-              range,
               label,
               detail: 'Context variable',
-              insertText: `${start}${label}${end}`,
               sortText: '0',
             })),
             // Add reserved keys
             ...Array.from(RESERVED_KEYS).map((label) => ({
-              kind,
-              range,
               label,
               detail: 'Reserved variable',
-              insertText: `${start}${label}${end}`,
               sortText: '1',
             })),
             // Add environment variables
             {
-              kind,
-              range,
               label: '$env.',
               detail: 'Environment variable',
-              insertText: `${start}$env.${end}`,
               sortText: '2',
             },
           ];
-          return { suggestions: completionItems };
+          return {
+            suggestions: completionItems.map((item) => ({
+              kind: monaco.languages.CompletionItemKind.Module,
+              range,
+              insertText: `{${item.label}}`,
+              ...item,
+            })),
+          };
         },
       }),
     ];
