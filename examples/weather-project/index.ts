@@ -1,24 +1,31 @@
 import { project } from '@inkeep/agents-sdk';
-import { dataWorkshopAgent } from './agents/data-workshop-agent';
-import { weatherAgent } from './agents/weather-agent';
-import { weatherForecast } from './data-components/weather-forecast';
-import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
-import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
 
-export const myProject3 = project({
+import { dataWorkshopAgent } from './agent/data-workshop-agent';
+import { weatherAgent } from './agent/weather-agent';
+import { weatherForecast } from '../data-components/weather-forecast';
+import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
+import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
+
+export const myWeatherProject = project({
   id: 'my-weather-project',
   name: 'Weather Project',
   description: 'Project containing sample agent framework using ',
   models: {
-    base: { model: 'openai/gpt-4o-mini' },
+    base: {
+      model: 'openai/gpt-4o-mini'
+    }
   },
-  agents: () => [weatherAgent, dataWorkshopAgent],
-  tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
-  dataComponents: () => [weatherForecast],
-  sandboxConfig: {
-    provider: 'local',
-    runtime: 'node22',
-    timeout: 30000,
-    vcpus: 1,
+  agents: {
+    'data-workshop-agent': dataWorkshopAgent,
+    'weather-agent': weatherAgent
   },
+  tools: {
+    fdxgfv9HL7SXlfynPx8hf: fdxgfv9HL7SXlfynPx8hf,
+    fUI2riwrBVJ6MepT8rjx0: fUI2riwrBVJ6MepT8rjx0
+  },
+  dataComponents: {
+    'weather-forecast': weatherForecast
+  },
+  artifactComponents: {},
+  credentialReferences: {}
 });
