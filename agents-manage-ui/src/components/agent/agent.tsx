@@ -472,6 +472,19 @@ function Flow({
     [setQueryState, isOpen]
   );
 
+  const onEdgeDoubleClick = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Update the edge with the new type
+      setEdges((prevEdges) =>
+        prevEdges.map((e) => (e.id === edge.id ? { ...e, animated: !e.animated } : e))
+      );
+    },
+    [setEdges]
+  );
+
   useOnSelectionChange({
     onChange: onSelectionChange,
   });
@@ -737,6 +750,7 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          onEdgeDoubleClick={onEdgeDoubleClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
