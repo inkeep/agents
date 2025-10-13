@@ -92,5 +92,10 @@
     "source": "/self-hosting/add-other-services/add-datadog-apm",
     "destination": "/self-hosting/add-other-services/datadog-apm",
     "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/request-context",
+    "destination": "/typescript-sdk/headers",
+    "permanent": true
   }
 ]
