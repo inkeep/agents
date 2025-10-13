@@ -205,14 +205,27 @@ async function verifyGeneratedFiles(
       }
     }
 
-    // Check that environment directory exists with expected files
+    // Check that environment directory exists
     const environmentsDir = join(projectDir, 'environments');
+    const hasCredentials = Object.keys(originalProjectData.credentialReferences || {}).length > 0;
+
     if (!existsSync(environmentsDir)) {
-      errors.push('Environments directory not found');
+      if (hasCredentials) {
+        errors.push('Environments directory not found (expected with credentials)');
+      } else {
+        warnings.push('Environments directory not found (no credentials defined)');
+      }
     } else {
       const envIndexPath = join(environmentsDir, 'index.ts');
       if (!existsSync(envIndexPath)) {
-        errors.push('Environment index.ts not found');
+        if (hasCredentials) {
+          errors.push('Environment index.ts not found (expected with credentials)');
+        } else {
+          // Don't warn if there are no credentials - empty env directory is acceptable
+          if (debug) {
+            console.log(chalk.gray(`  • Environments directory exists but empty (no credentials)`));
+          }
+        }
       }
     }
 
