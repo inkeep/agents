@@ -31,7 +31,7 @@ export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <BotMessageSquare className="size-4 text-muted-foreground" />
-            <BaseNodeHeaderTitle>{name || 'External agent'}</BaseNodeHeaderTitle>
+            <BaseNodeHeaderTitle>{name || 'External Agent'}</BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
             Agent
