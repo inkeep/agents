@@ -182,22 +182,30 @@ const convertCurrency = functionTool({
     },
     required: ['amount', 'from', 'to']
   },
-  dependencies: { axios: '1.11.0' },
   execute: async (params: { amount: number; from: string; to: string }) => {
-    const axios = require('axios');
-    const response = await axios.get(
-      `https://api.exchangerate-api.com/v4/latest/${params.from.toUpperCase()}`
-    );
-    const rate = response.data.rates[params.to.toUpperCase()];
-    const convertedAmount = params.amount * rate;
+    try {
+      const axios = require('axios');
+      const response = await axios.get(
+        `https://api.exchangerate-api.com/v4/latest/${params.from.toUpperCase()}`
+      );
+      const rate = response.data.rates[params.to.toUpperCase()];
+      
+      if (!rate) {
+        throw new Error(`Exchange rate not found for ${params.to.toUpperCase()}`);
+      }
+      
+      const convertedAmount = params.amount * rate;
 
-    return {
-      originalAmount: params.amount,
-      fromCurrency: params.from.toUpperCase(),
-      toCurrency: params.to.toUpperCase(),
-      exchangeRate: rate,
-      convertedAmount: Math.round(convertedAmount * 100) / 100,
-    };
+      return {
+        originalAmount: params.amount,
+        fromCurrency: params.from.toUpperCase(),
+        toCurrency: params.to.toUpperCase(),
+        exchangeRate: rate,
+        convertedAmount: Math.round(convertedAmount * 100) / 100,
+      };
+    } catch (error: any) {
+      throw new Error(`Currency conversion failed: ${error.message}`);
+    }
   },
 });
 
@@ -209,16 +217,19 @@ const fetchRandomJoke = functionTool({
     properties: {},
     required: []
   },
-  dependencies: { axios: '1.11.0' },
   execute: async () => {
-    const axios = require('axios');
-    const response = await axios.get(
-      'https://official-joke-api.appspot.com/jokes/programming/random'
-    );
-    return {
-      setup: response.data[0].setup,
-      punchline: response.data[0].punchline,
-    };
+    try {
+      const axios = require('axios');
+      const response = await axios.get(
+        'https://official-joke-api.appspot.com/jokes/programming/random'
+      );
+      return {
+        setup: response.data[0].setup,
+        punchline: response.data[0].punchline,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to fetch joke: ${error.message}`);
+    }
   },
 });
 
@@ -319,32 +330,35 @@ const generatePassword = functionTool({
     },
     required: []
   },
-  dependencies: { crypto: 'latest' },
   execute: async (params: {
     length?: number;
     includeSymbols?: boolean;
     includeNumbers?: boolean;
   }) => {
-    const crypto = require('crypto');
-    const length = params.length || 12;
-    const includeSymbols = params.includeSymbols !== false;
-    const includeNumbers = params.includeNumbers !== false;
+    try {
+      const crypto = require('crypto');
+      const length = params.length || 12;
+      const includeSymbols = params.includeSymbols !== false;
+      const includeNumbers = params.includeNumbers !== false;
 
-    let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (includeNumbers) charset += '0123456789';
-    if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+      let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (includeNumbers) charset += '0123456789';
+      if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
-    let password = '';
-    for (let i = 0; i < length; i++) {
-      const randomIndex = crypto.randomInt(0, charset.length);
-      password += charset[randomIndex];
+      let password = '';
+      for (let i = 0; i < length; i++) {
+        const randomIndex = crypto.randomInt(0, charset.length);
+        password += charset[randomIndex];
+      }
+
+      return {
+        password,
+        length,
+        criteria: { includeSymbols, includeNumbers },
+      };
+    } catch (error: any) {
+      throw new Error(`Password generation failed: ${error.message}`);
     }
-
-    return {
-      password,
-      length,
-      criteria: { includeSymbols, includeNumbers },
-    };
   },
 });
 
@@ -446,17 +460,20 @@ const hashText = functionTool({
     },
     required: ['text']
   },
-  dependencies: { crypto: 'latest' },
   execute: async (params: { text: string; algorithm?: string }) => {
-    const crypto = require('crypto');
-    const algorithm = params.algorithm || 'sha256';
-    const hash = crypto.createHash(algorithm).update(params.text).digest('hex');
+    try {
+      const crypto = require('crypto');
+      const algorithm = params.algorithm || 'sha256';
+      const hash = crypto.createHash(algorithm).update(params.text).digest('hex');
 
-    return {
-      text: params.text,
-      algorithm,
-      hash,
-    };
+      return {
+        text: params.text,
+        algorithm,
+        hash,
+      };
+    } catch (error: any) {
+      throw new Error(`Text hashing failed: ${error.message}`);
+    }
   },
 });
 

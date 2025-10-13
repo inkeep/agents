@@ -11,10 +11,10 @@ export const myWeatherProject = project({
   description: 'Project containing sample agent framework using ',
   models: {
     base: {
-      model: 'openai/gpt-4o-mini',
-    },
+      model: 'openai/gpt-4o-mini'
+    }
   },
   agents: () => [weatherAgent, dataWorkshopAgent],
   tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
-  dataComponents: () => [weatherForecast],
+  dataComponents: () => [weatherForecast]
 });

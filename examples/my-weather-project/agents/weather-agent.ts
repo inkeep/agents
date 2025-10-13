@@ -1,16 +1,14 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
 import { weatherForecast } from '../data-components/weather-forecast';
-import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
-import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
+import { fdxgfv9HL7SXlfynPx8hf } from '../tools/geocode-address';
+import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/forecast-weather';
 
 const geocoderAgent = subAgent({
   id: 'geocoder-agent',
   name: 'Geocoder agent',
-  description: `Responsible for converting location or address into coordinates`,
-  prompt: `You are a helpful assistant responsible for converting location or address into coordinates using your geocode tool`,
-  canUse: () => [
-    fdxgfv9HL7SXlfynPx8hf
-  ],
+  description: `A specialized agent for geocoding addresses and location data.`,
+  prompt: `You are a geocoding specialist that helps convert addresses into geographic coordinates and vice versa. Use your geocoding tools to provide accurate location information.`,
+  canUse: () => [fdxgfv9HL7SXlfynPx8hf],
   canDelegateTo: () => [],
   dataComponents: () => []
 });
@@ -18,26 +16,19 @@ const geocoderAgent = subAgent({
 const weatherAssistant = subAgent({
   id: 'weather-assistant',
   name: 'Weather assistant',
-  description: `This component is used to render a group of times in a day along with the weather temperature (in Fahrenheit) and condition at give times.`,
-  prompt: `You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast`,
+  description: `A weather assistant that coordinates weather-related requests and delegates to specialized agents.`,
+  prompt: `You are a weather assistant that helps users with weather-related queries. You can delegate to weather forecasters for detailed forecasts or geocoding agents for location services. Use the weather forecast data component to provide comprehensive weather information.`,
   canUse: () => [],
-  canDelegateTo: () => [
-    weatherForecaster,
-    geocoderAgent
-  ],
-  dataComponents: () => [
-    weatherForecast
-  ]
+  canDelegateTo: () => [weatherForecaster, geocoderAgent],
+  dataComponents: () => [weatherForecast]
 });
 
 const weatherForecaster = subAgent({
   id: 'weather-forecaster',
   name: 'Weather forecaster',
-  description: `This agent is responsible for taking in coordinates and returning the forecast for the weather at that location`,
-  prompt: `You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool`,
-  canUse: () => [
-    fUI2riwrBVJ6MepT8rjx0
-  ],
+  description: `A specialized agent for providing detailed weather forecasts and meteorological data.`,
+  prompt: `You are a weather forecasting specialist. Use your weather tools to provide accurate, detailed weather forecasts and meteorological information. Always provide clear, actionable weather insights.`,
+  canUse: () => [fUI2riwrBVJ6MepT8rjx0],
   canDelegateTo: () => [],
   dataComponents: () => []
 });
@@ -46,9 +37,5 @@ export const weatherAgent = agent({
   id: 'weather-agent',
   name: 'Weather agent',
   defaultSubAgent: weatherAssistant,
-  subAgents: () => [
-    geocoderAgent,
-    weatherAssistant,
-    weatherForecaster
-  ]
+  subAgents: () => [geocoderAgent, weatherAssistant, weatherForecaster]
 });

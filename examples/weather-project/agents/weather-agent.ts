@@ -1,35 +1,14 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
-
 import { weatherForecast } from '../data-components/weather-forecast';
 import { fdxgfv9HL7SXlfynPx8hf } from '../tools/fdxgfv9HL7SXlfynPx8hf';
 import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
 
-/**
- * WEATHER AGENT
- *
- * A comprehensive weather agent that provides weather forecasting and geocoding capabilities.
- * The agent consists of three specialized sub-agents working together to deliver accurate
- * weather information for any location.
- *
- * USAGE PROMPTS TO TRY:
- * - "What's the weather like in New York?"
- * - "Give me a 5-day forecast for London"
- * - "What's the current temperature in Tokyo?"
- * - "Will it rain tomorrow in San Francisco?"
- * - "Show me the weather forecast for Paris this week"
- * - "What's the weather like at coordinates 40.7128, -74.0060?"
- * - "Find the weather for 123 Main Street, Chicago, IL"
- *
- * The agent automatically handles location lookup and provides detailed weather information
- * including current conditions, forecasts, and relevant weather data.
- */
-
 const geocoderSubAgent = subAgent({
   id: 'geocoder-agent',
   name: 'Geocoder agent',
-  description: `Specialized agent for converting addresses and location names into geographic coordinates.
+  description: 'Specialized agent for converting addresses and location names into geographic coordinates.
 This agent handles all location-related queries and provides accurate latitude/longitude data
-for weather lookups.`,
+for weather lookups.',
   prompt: `You are a geocoding specialist that converts addresses, place names, and location descriptions
 into precise geographic coordinates. You help users find the exact location they're asking about
 and provide the coordinates needed for weather forecasting.
@@ -49,8 +28,8 @@ information about the location found.`,
 const weatherForecaster = subAgent({
   id: 'weather-forecaster',
   name: 'Weather forecaster',
-  description: `Specialized agent for retrieving detailed weather forecasts and current conditions.
-This agent focuses on providing accurate, up-to-date weather information using geographic coordinates.`,
+  description: 'Specialized agent for retrieving detailed weather forecasts and current conditions.
+This agent focuses on providing accurate, up-to-date weather information using geographic coordinates.',
   prompt: `You are a weather forecasting specialist that provides detailed weather information
 including current conditions, forecasts, and weather-related insights.
 
@@ -68,9 +47,9 @@ Always provide clear, actionable weather information that helps users plan their
 const weatherAssistant = subAgent({
   id: 'weather-assistant',
   name: 'Weather assistant',
-  description: `Main weather assistant that coordinates between geocoding and forecasting services
+  description: 'Main weather assistant that coordinates between geocoding and forecasting services
 to provide comprehensive weather information. This assistant handles user queries and delegates
-tasks to specialized sub-agents as needed.`,
+tasks to specialized sub-agents as needed.',
   prompt: `You are a helpful weather assistant that provides comprehensive weather information
 for any location worldwide. You coordinate with specialized agents to:
 
