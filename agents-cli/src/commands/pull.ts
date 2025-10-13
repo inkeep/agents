@@ -774,21 +774,88 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
     }
 
-    // Generate project files using LLM
-    spinner.start('Generating project files with LLM...');
+    // NEW PLANNING-BASED APPROACH
 
-    // Get model settings from config or use default
+    // Step 1: Analyze existing patterns (if project exists)
+    spinner.start('Analyzing existing code patterns...');
+    const { analyzeExistingPatterns } = await import('../codegen/pattern-analyzer');
+    const { DEFAULT_NAMING_CONVENTIONS } = await import('../codegen/variable-name-registry');
+
+    let patterns = await analyzeExistingPatterns(dirs.projectRoot);
+
+    if (patterns) {
+      spinner.succeed('Patterns detected from existing code');
+      const { displayPatternSummary } = await import('../codegen/display-utils');
+      displayPatternSummary(patterns);
+    } else {
+      spinner.succeed('Using recommended pattern for new project');
+      const { displayRecommendedPattern } = await import('../codegen/display-utils');
+      displayRecommendedPattern();
+
+      // Create default patterns
+      const RECOMMENDED_PATTERN = {
+        fileStructure: {
+          toolsLocation: 'separate' as const,
+          agentsLocation: 'flat' as const,
+          preferredFileNaming: 'kebab-case' as const,
+          hasToolsDirectory: true,
+          hasAgentsDirectory: true,
+          hasDataComponentsDirectory: true,
+          hasArtifactComponentsDirectory: true,
+          hasEnvironmentsDirectory: true,
+        },
+        namingConventions: DEFAULT_NAMING_CONVENTIONS,
+        codeStyle: {
+          exportNaming: 'camelCase' as const,
+          multiLineStrings: 'template-literals' as const,
+          importStyle: 'named' as const,
+          preferredQuotes: 'single' as const,
+        },
+        examples: {
+          mappings: [],
+        },
+      };
+      patterns = RECOMMENDED_PATTERN as any;
+    }
+
+    // Step 2: Generate plan using LLM
+    spinner.start('Generating file structure plan...');
+    const { generatePlan } = await import('../codegen/plan-builder');
+    const { createModel } = await import('./pull.llm-generate');
+
     const modelSettings: ModelSettings = {
       model: ANTHROPIC_MODELS.CLAUDE_SONNET_4,
     };
 
-    await generateProjectFiles(
-      dirs,
-      projectData,
-      modelSettings,
-      options.env || 'development',
-      options.debug || false
-    );
+    const plan = await generatePlan(projectData, patterns, modelSettings, createModel);
+    spinner.succeed('Generation plan created');
+
+    // Step 3: Display plan and conflicts
+    const { displayPlanSummary, displayConflictWarning } = await import('../codegen/display-utils');
+    displayPlanSummary(plan);
+    displayConflictWarning(plan.metadata.conflicts);
+
+    // Step 4: Generate files from plan using unified generator
+    spinner.start('Generating project files with LLM...');
+    const { generateFilesFromPlan } = await import('../codegen/unified-generator');
+
+    const generationStart = Date.now();
+    await generateFilesFromPlan(plan, projectData, dirs, modelSettings, options.debug || false);
+    const generationDuration = Date.now() - generationStart;
+
+    spinner.succeed('Project files generated');
+
+    const { displayGenerationComplete } = await import('../codegen/display-utils');
+    displayGenerationComplete(plan, generationDuration);
+
+    // Step 5: Save plan to .inkeep/ directory
+    const { savePlan, ensureGitignore } = await import('../codegen/plan-storage');
+    savePlan(dirs.projectRoot, plan);
+    ensureGitignore(dirs.projectRoot);
+
+    if (options.debug) {
+      console.log(chalk.gray('\n📍 Plan saved to .inkeep/generation-plan.json'));
+    }
 
     // Count generated files for summary
     const fileCount = {
