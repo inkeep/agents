@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
   useEffect,
+  useRef,
 } from 'react';
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
@@ -48,12 +49,13 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const [monaco, setMonaco] = useState<typeof Monaco>();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
+  const suggestionsRef = useRef<string[]>([]);
 
   // Generate suggestions from context config
-  const suggestions = useMemo(() => {
+  useEffect(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
     const headersSchema = tryJsonParse(contextConfig.headersSchema);
-    return getContextSuggestions({
+    suggestionsRef.current = getContextSuggestions({
       headersSchema,
       // @ts-expect-error -- todo: improve type
       contextVariables,
@@ -88,7 +90,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
           console.log('Template variable match:', match);
 
           const query = match[1].toLowerCase();
-          const filteredSuggestions = suggestions.filter((s) => s.toLowerCase().includes(query));
+          const filteredSuggestions = suggestionsRef.current.filter((suggestion) =>
+            suggestion.toLowerCase().includes(query)
+          );
 
           const word = model.getWordUntilPosition(position);
           const range = new monaco.Range(
@@ -141,7 +145,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
         disposable.dispose();
       }
     };
-  }, [editor, monaco, suggestions]);
+  }, [editor, monaco]);
 
   const handleOnMount = useCallback<NonNullable<ComponentProps<typeof MonacoEditor>['onMount']>>(
     (editorInstance, monaco) => {
