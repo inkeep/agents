@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
@@ -10,6 +11,9 @@ import {
   createPlaceholders,
   restorePlaceholders,
 } from './pull.placeholder-system';
+
+// Create require function for ESM context
+const require = createRequire(import.meta.url);
 
 /**
  * Read the complete type definitions from @inkeep/agents-sdk package
@@ -51,8 +55,9 @@ ${dtsContent}
 /**
  * Create a language model instance from configuration
  * Similar to ModelFactory but simplified for CLI use
+ * @internal - Exported for use in codegen modules
  */
-function createModel(config: ModelSettings) {
+export function createModel(config: ModelSettings): any {
   // Extract from model settings - model is required
   if (!config.model) {
     throw new Error('Model configuration is required for pull command');
@@ -226,8 +231,9 @@ const PROJECT_JSON_EXAMPLE = `
 
 /**
  * Reusable naming convention rules for all LLM generation functions
+ * @internal - Exported for use in codegen modules
  */
-const NAMING_CONVENTION_RULES = `
+export const NAMING_CONVENTION_RULES = `
 CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
 - File names ALWAYS use the exact original ID. IDs are made of file safe characters (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
 - Name of consts and variables, especially ones that are exported ones, MUST be camelCase versions of the ID, unless the ID is random/UUID then take it verbatim.
@@ -244,7 +250,11 @@ CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
   - Agent: import { myAgent } from './agent/my-agent'; export const myAgent = agent({ id: 'my-agent', ... })
 `;
 
-const IMPORT_INSTRUCTIONS = `
+/**
+ * Import instruction rules for LLM generation
+ * @internal - Exported for use in codegen modules
+ */
+export const IMPORT_INSTRUCTIONS = `
 CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
 
 CRITICAL IMPORT PATTERNS:
@@ -275,8 +285,9 @@ import { weatherAgent } from './agent/weather-agent';
 
 /**
  * Clean generated text by removing markdown code fences
+ * @internal - Exported for use in codegen modules
  */
-function cleanGeneratedCode(text: string): string {
+export function cleanGeneratedCode(text: string): string {
   // Remove opening and closing markdown code fences
   // Handles ```typescript, ```ts, or just ```
   return text

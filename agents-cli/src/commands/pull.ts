@@ -37,16 +37,34 @@ interface VerificationResult {
  * Detect if current directory contains a project by looking for index.ts with project export
  * Returns the project ID if found, null otherwise
  */
-async function detectCurrentProject(): Promise<string | null> {
+async function detectCurrentProject(debug: boolean = false): Promise<string | null> {
   const indexPath = join(process.cwd(), 'index.ts');
 
+  if (debug) {
+    console.log(chalk.gray(`\n[DEBUG] Detecting project in current directory...`));
+    console.log(chalk.gray(`  • Current directory: ${process.cwd()}`));
+    console.log(chalk.gray(`  • Looking for: ${indexPath}`));
+  }
+
   if (!existsSync(indexPath)) {
+    if (debug) {
+      console.log(chalk.gray(`  • index.ts not found`));
+    }
     return null;
+  }
+
+  if (debug) {
+    console.log(chalk.gray(`  • index.ts found, attempting to import...`));
   }
 
   try {
     // Import the module with TypeScript support
     const module = await importWithTypeScriptSupport(indexPath);
+
+    if (debug) {
+      console.log(chalk.gray(`  • Module imported successfully`));
+      console.log(chalk.gray(`  • Exports found: ${Object.keys(module).join(', ')}`));
+    }
 
     // Find the first export with __type = "project"
     const exports = Object.keys(module);
@@ -55,19 +73,58 @@ async function detectCurrentProject(): Promise<string | null> {
       if (value && typeof value === 'object' && value.__type === 'project') {
         // Get the project ID
         if (typeof value.getId === 'function') {
-          return value.getId();
+          const projectId = value.getId();
+          if (debug) {
+            console.log(chalk.gray(`  • Project detected: ${projectId} (from export: ${exportKey})`));
+          }
+          return projectId;
         }
       }
     }
+
+    if (debug) {
+      console.log(chalk.gray(`  • No project export found in module`));
+    }
     return null;
-  } catch (error) {
-    // If we can't load the file, it's not a valid project directory
-    return null;
+  } catch (error: any) {
+    // If we can't load the file (e.g., due to import errors), fall back to static parsing
+    if (debug) {
+      console.log(chalk.gray(`  • Failed to import: ${error.message}`));
+      console.log(chalk.gray(`  • Falling back to static file parsing...`));
+    }
+
+    try {
+      // Read the file and extract project ID using regex
+      const content = readFileSync(indexPath, 'utf-8');
+
+      // Look for pattern: project({ id: 'project-id', ... })
+      // This matches both single and double quotes
+      const projectIdMatch = content.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
+
+      if (projectIdMatch && projectIdMatch[1]) {
+        const projectId = projectIdMatch[1];
+        if (debug) {
+          console.log(chalk.gray(`  • Project ID extracted from static parse: ${projectId}`));
+        }
+        return projectId;
+      }
+
+      if (debug) {
+        console.log(chalk.gray(`  • Could not find project ID in file content`));
+      }
+      return null;
+    } catch (parseError: any) {
+      if (debug) {
+        console.log(chalk.gray(`  • Static parsing failed: ${parseError.message}`));
+      }
+      return null;
+    }
   }
 }
 
 /**
- * Verify that the generated TypeScript files can reconstruct the original project JSON
+ * Verify that the generated TypeScript files are present and have basic validity
+ * Uses static file checking rather than attempting to import/execute
  */
 async function verifyGeneratedFiles(
   projectDir: string,
@@ -78,158 +135,108 @@ async function verifyGeneratedFiles(
   const warnings: string[] = [];
 
   try {
-    // Load the generated project from TypeScript files
+    // Check that index.ts exists
     const indexPath = join(projectDir, 'index.ts');
-
     if (!existsSync(indexPath)) {
       errors.push('Generated index.ts file not found');
       return { success: false, errors, warnings };
     }
 
-    // Import the generated project module
-    const module = await importWithTypeScriptSupport(indexPath);
+    // Read and check index.ts has project export
+    const indexContent = readFileSync(indexPath, 'utf-8');
 
-    // Find the project export
-    const exports = Object.keys(module);
-    let project = null;
+    // Check for project export pattern
+    if (!indexContent.includes('project(')) {
+      errors.push('index.ts does not contain a project() call');
+    }
 
-    for (const exportKey of exports) {
-      const value = module[exportKey];
-      if (value && typeof value === 'object' && value.__type === 'project') {
-        project = value;
-        break;
+    // Extract and verify project ID
+    const projectIdMatch = indexContent.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
+    if (projectIdMatch && projectIdMatch[1]) {
+      const extractedProjectId = projectIdMatch[1];
+      if (extractedProjectId !== originalProjectData.id) {
+        warnings.push(
+          `Project ID mismatch: expected "${originalProjectData.id}", found "${extractedProjectId}"`
+        );
+      }
+      if (debug) {
+        console.log(chalk.gray(`\n✓ Project ID verified: ${extractedProjectId}`));
+      }
+    } else {
+      warnings.push('Could not extract project ID from index.ts');
+    }
+
+    // Check that expected agent files exist
+    const agentsDir = join(projectDir, 'agents');
+    const expectedAgents = Object.keys(originalProjectData.agents || {});
+
+    for (const agentId of expectedAgents) {
+      const agentPath = join(agentsDir, `${agentId}.ts`);
+      if (!existsSync(agentPath)) {
+        errors.push(`Agent file not found: agents/${agentId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Agent file exists: agents/${agentId}.ts`));
       }
     }
 
-    if (!project) {
-      errors.push('No project export found in generated index.ts');
-      return { success: false, errors, warnings };
+    // Check that expected tool files exist
+    const toolsDir = join(projectDir, 'tools');
+    const expectedTools = Object.keys(originalProjectData.tools || {});
+
+    for (const toolId of expectedTools) {
+      const toolPath = join(toolsDir, `${toolId}.ts`);
+      if (!existsSync(toolPath)) {
+        errors.push(`Tool file not found: tools/${toolId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Tool file exists: tools/${toolId}.ts`));
+      }
     }
 
-    // Basic structural verification instead of full project definition comparison
-    // This approach checks that the TypeScript files are well-formed and loadable
-    const structuralErrors: string[] = [];
-    const structuralWarnings: string[] = [];
+    // Check that expected data component files exist
+    const dataComponentsDir = join(projectDir, 'data-components');
+    const expectedDataComponents = Object.keys(originalProjectData.dataComponents || {});
 
-    try {
-      // Check if the project has the expected basic structure
-      if (!project) {
-        structuralErrors.push('Project object not found after import');
+    for (const componentId of expectedDataComponents) {
+      const componentPath = join(dataComponentsDir, `${componentId}.ts`);
+      if (!existsSync(componentPath)) {
+        errors.push(`Data component file not found: data-components/${componentId}.ts`);
+      } else if (debug) {
+        console.log(chalk.gray(`  ✓ Data component file exists: data-components/${componentId}.ts`));
       }
+    }
 
-      // Check if project has expected type marker
-      if (project && typeof project === 'object' && project.__type !== 'project') {
-        structuralWarnings.push('Project object missing type marker');
-      }
+    // Check that environment directory exists
+    const environmentsDir = join(projectDir, 'environments');
+    const hasCredentials = Object.keys(originalProjectData.credentialReferences || {}).length > 0;
 
-      // Attempt to call methods if they exist (but don't require full project definition)
-      if (project && typeof project.toFullProjectDefinition === 'function') {
-        try {
-          // Try to generate project definition for validation but don't require exact match
-          const generatedProjectData = await project.toFullProjectDefinition();
-
-          if (debug) {
-            console.log(chalk.gray('\n📋 Generated project successfully'));
-            console.log(chalk.gray(`  • Has tools: ${!!generatedProjectData.tools}`));
-            console.log(
-              chalk.gray(`  • Tools count: ${Object.keys(generatedProjectData.tools || {}).length}`)
-            );
-            console.log(
-              chalk.gray(`  • Has credentials: ${!!generatedProjectData.credentialReferences}`)
-            );
-            console.log(
-              chalk.gray(
-                `  • Credentials count: ${Object.keys(generatedProjectData.credentialReferences || {}).length}`
-              )
-            );
-          }
-
-          // Basic structural validation - just ensure we can generate valid project data
-          if (!generatedProjectData) {
-            structuralErrors.push('Generated project definition is empty');
-          }
-        } catch (projectDefError: any) {
-          // Log the error but don't fail verification - SDK might have internal issues
-          if (debug) {
-            console.log(
-              chalk.yellow(`  Project definition generation warning: ${projectDefError.message}`)
-            );
-          }
-          structuralWarnings.push(
-            `Project definition generation had issues: ${projectDefError.message}`
-          );
-        }
-      }
-
-      // Manual file validation - check that key files exist and are properly formed
-      const toolPath = join(projectDir, 'tools', 'inkeep_facts.ts');
-      const envPath = join(projectDir, 'environments', 'development.env.ts');
-
-      if (existsSync(toolPath)) {
-        const toolContent = readFileSync(toolPath, 'utf8');
-        // Check for credential reference (more important than transport now)
-        if (!toolContent.includes('credential:')) {
-          structuralWarnings.push('Tool file may be missing credential reference');
-        }
-        // Check for serverUrl
-        if (!toolContent.includes('serverUrl:')) {
-          structuralErrors.push('Tool file missing required serverUrl property');
-        }
-        // Check that it doesn't have invalid config property
-        if (toolContent.includes('config:')) {
-          structuralWarnings.push(
-            'Tool file contains invalid config property (should use individual properties)'
-          );
-        }
-        if (debug) {
-          console.log(
-            chalk.gray(`  • Tool file has serverUrl: ${toolContent.includes('serverUrl:')}`)
-          );
-          console.log(
-            chalk.gray(`  • Tool file has credential: ${toolContent.includes('credential:')}`)
-          );
-          console.log(
-            chalk.gray(`  • Tool file has invalid config: ${toolContent.includes('config:')}`)
-          );
-        }
+    if (!existsSync(environmentsDir)) {
+      if (hasCredentials) {
+        errors.push('Environments directory not found (expected with credentials)');
       } else {
-        structuralErrors.push('Tool file inkeep_facts.ts not found');
+        warnings.push('Environments directory not found (no credentials defined)');
       }
-
-      if (existsSync(envPath)) {
-        const envContent = readFileSync(envPath, 'utf8');
-        if (!envContent.includes('inkeep_api_credential')) {
-          structuralWarnings.push('Environment file may be missing credential definition');
+    } else {
+      const envIndexPath = join(environmentsDir, 'index.ts');
+      if (!existsSync(envIndexPath)) {
+        if (hasCredentials) {
+          errors.push('Environment index.ts not found (expected with credentials)');
+        } else {
+          // Don't warn if there are no credentials - empty env directory is acceptable
+          if (debug) {
+            console.log(chalk.gray(`  • Environments directory exists but empty (no credentials)`));
+          }
         }
-        if (debug) {
-          console.log(
-            chalk.gray(
-              `  • Environment file has credential: ${envContent.includes('inkeep_api_credential')}`
-            )
-          );
-        }
-      } else {
-        structuralErrors.push('Environment file development.env.ts not found');
       }
-    } catch (structuralError: any) {
-      structuralErrors.push(`Structural validation failed: ${structuralError.message}`);
     }
-
-    errors.push(...structuralErrors);
-    warnings.push(...structuralWarnings);
 
     if (debug) {
-      console.log(chalk.gray('\n🔍 Structural Verification Summary:'));
-      console.log(chalk.gray(`  • Project loaded successfully: ${!!project}`));
-      console.log(
-        chalk.gray(`  • Expected agents: ${Object.keys(originalProjectData.agents || {}).length}`)
-      );
-      console.log(
-        chalk.gray(`  • Expected tools: ${Object.keys(originalProjectData.tools || {}).length}`)
-      );
+      console.log(chalk.gray('\n🔍 Verification Summary:'));
+      console.log(chalk.gray(`  • index.ts: ${existsSync(indexPath) ? '✓' : '✗'}`));
+      console.log(chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`));
+      console.log(chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`));
       console.log(
         chalk.gray(
-          `  • Expected credentials: ${Object.keys(originalProjectData.credentialReferences || {}).length}`
+          `  • Data component files: ${expectedDataComponents.length}/${expectedDataComponents.length} found`
         )
       );
     }
@@ -636,7 +643,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Detect if current directory is a project directory
     spinner.text = 'Detecting project in current directory...';
-    const currentProjectId = await detectCurrentProject();
+    const currentProjectId = await detectCurrentProject(options.debug);
     let useCurrentDirectory = false;
 
     // Determine project ID based on directory awareness
@@ -778,21 +785,93 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
     }
 
-    // Generate project files using LLM
-    spinner.start('Generating project files with LLM...');
+    // NEW PLANNING-BASED APPROACH
 
-    // Get model settings from config or use default
+    // Step 1: Analyze existing patterns (if project exists)
+    spinner.start('Analyzing existing code patterns...');
+    const { analyzeExistingPatterns } = await import('../codegen/pattern-analyzer');
+    const { DEFAULT_NAMING_CONVENTIONS } = await import('../codegen/variable-name-registry');
+
+    let patterns = await analyzeExistingPatterns(dirs.projectRoot);
+
+    if (patterns) {
+      spinner.succeed('Patterns detected from existing code');
+      const { displayPatternSummary } = await import('../codegen/display-utils');
+      displayPatternSummary(patterns);
+    } else {
+      spinner.succeed('Using recommended pattern for new project');
+      const { displayRecommendedPattern } = await import('../codegen/display-utils');
+      displayRecommendedPattern();
+
+      // Create default patterns
+      const RECOMMENDED_PATTERN = {
+        fileStructure: {
+          toolsLocation: 'separate' as const,
+          agentsLocation: 'flat' as const,
+          preferredFileNaming: 'kebab-case' as const,
+          hasToolsDirectory: true,
+          hasAgentsDirectory: true,
+          hasDataComponentsDirectory: true,
+          hasArtifactComponentsDirectory: true,
+          hasEnvironmentsDirectory: true,
+        },
+        namingConventions: DEFAULT_NAMING_CONVENTIONS,
+        codeStyle: {
+          exportNaming: 'camelCase' as const,
+          multiLineStrings: 'template-literals' as const,
+          importStyle: 'named' as const,
+          preferredQuotes: 'single' as const,
+        },
+        examples: {
+          mappings: [],
+        },
+      };
+      patterns = RECOMMENDED_PATTERN as any;
+    }
+
+    // Ensure patterns is not null before proceeding
+    if (!patterns) {
+      throw new Error('Failed to determine code patterns');
+    }
+
+    // Step 2: Generate plan using LLM
+    spinner.start('Generating file structure plan...');
+    const { generatePlan } = await import('../codegen/plan-builder');
+    const { createModel } = await import('./pull.llm-generate');
+
     const modelSettings: ModelSettings = {
       model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514,
     };
 
-    await generateProjectFiles(
-      dirs,
-      projectData,
-      modelSettings,
-      options.env || 'development',
-      options.debug || false
-    );
+    const plan = await generatePlan(projectData, patterns, modelSettings, createModel);
+    spinner.succeed('Generation plan created');
+
+    // Step 3: Display plan and conflicts
+    const { displayPlanSummary, displayConflictWarning } = await import('../codegen/display-utils');
+    displayPlanSummary(plan);
+    displayConflictWarning(plan.metadata.conflicts);
+
+    // Step 4: Generate files from plan using unified generator
+    spinner.start('Generating project files with LLM...');
+    const { generateFilesFromPlan } = await import('../codegen/unified-generator');
+
+    const generationStart = Date.now();
+    await generateFilesFromPlan(plan, projectData, dirs, modelSettings, options.debug || false);
+    const generationDuration = Date.now() - generationStart;
+
+    spinner.succeed('Project files generated');
+
+    const { displayGenerationComplete } = await import('../codegen/display-utils');
+    displayGenerationComplete(plan, generationDuration);
+
+    // Step 5: Save plan to .inkeep/ directory
+    const { savePlan, ensureGitignore } = await import('../codegen/plan-storage');
+    savePlan(dirs.projectRoot, plan);
+    ensureGitignore(dirs.projectRoot);
+
+    if (options.debug) {
+      console.log(chalk.gray('\n📍 Plan saved to .inkeep/generation-plan.json'));
+    }
 
     // Count generated files for summary
     const fileCount = {

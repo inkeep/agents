@@ -1,5 +1,35 @@
 # @inkeep/create-agents
 
+## 0.19.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-core@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-core@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes

@@ -1,5 +1,38 @@
 # @inkeep/agents-run-api
 
+## 0.19.7
+
+### Patch Changes
+
+- ceef086: baggage for conversation id
+  - @inkeep/agents-core@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 0d0166f: attributes rename
+- 76fb9aa: clean-up-env
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-core@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-core@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes

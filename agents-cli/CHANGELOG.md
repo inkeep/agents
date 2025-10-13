@@ -1,5 +1,45 @@
 # @inkeep/agents-cli
 
+## 0.19.7
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.19.7
+- @inkeep/agents-core@0.19.7
+- @inkeep/agents-sdk@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-core@0.19.6
+  - @inkeep/agents-manage-ui@0.19.6
+  - @inkeep/agents-sdk@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- Updated dependencies [22b96c4]
+- Updated dependencies [20978ac]
+  - @inkeep/agents-manage-ui@0.19.5
+  - @inkeep/agents-core@0.19.5
+  - @inkeep/agents-sdk@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- Updated dependencies [7a3fc7f]
+- Updated dependencies [a2c184f]
+  - @inkeep/agents-manage-ui@0.19.4
+  - @inkeep/agents-core@0.19.4
+  - @inkeep/agents-sdk@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes

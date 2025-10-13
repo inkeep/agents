@@ -1,5 +1,48 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.7
+
+### Patch Changes
+
+- Updated dependencies [ceef086]
+  - @inkeep/agents-run-api@0.19.7
+  - @inkeep/agents-manage-api@0.19.7
+  - @inkeep/agents-core@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 0d0166f: stream object in timeline
+- Updated dependencies [0d0166f]
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-run-api@0.19.6
+  - @inkeep/agents-core@0.19.6
+  - @inkeep/agents-manage-api@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- 20978ac: - Bump agents ui version to 0.14.12
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-manage-api@0.19.5
+  - @inkeep/agents-run-api@0.19.5
+  - @inkeep/agents-core@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- a2c184f: Capitalize name casing for External Agent
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-run-api@0.19.4
+  - @inkeep/agents-manage-api@0.19.4
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes

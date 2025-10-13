@@ -1,5 +1,26 @@
 # @inkeep/agents-core
 
+## 0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- 0d0166f: stream object in timeline
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+
 ## 0.19.3
 
 ### Patch Changes

@@ -415,8 +415,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/agents-ui':
-        specifier: ^0.14.10
-        version: 0.14.10(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^0.14.12
+        version: 0.14.12(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -787,8 +787,8 @@ importers:
   agents-ui:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.14.10
-        version: 0.14.10(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^0.14.12
+        version: 0.14.12(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       lucide-react:
         specifier: ^0.539.0
         version: 0.539.0(react@19.1.1)
@@ -2145,8 +2145,8 @@ packages:
     resolution: {integrity: sha512-4QUyivJP5g5nF9s0NNxBdtlp/cbag5V7dEdKiZc7Js/WJA3DNPHew2d+3N85XfVSrBGiCB0ZtUbltfqSVuhdPw==}
     engines: {node: '>=22.0.0'}
 
-  '@inkeep/agents-ui@0.14.10':
-    resolution: {integrity: sha512-xph+kso3PAKBjHmHBDk6mZqEwBUdbg8C8Z4478vB8sN9zhSyo+WWSFvra92SDTS43AcMKAwmn4AcdMNsAK3Kew==}
+  '@inkeep/agents-ui@0.14.12':
+    resolution: {integrity: sha512-50mDTieCK5AyTGsDFuh1dozXTMy4N8dzQA0iGoZZDVx1i0lpveSr7YQXpVCHXSbEnOUPS765DOCC0sgfEe0/zw==}
 
   '@inkeep/cxkit-color-mode@0.5.99':
     resolution: {integrity: sha512-e5r4/zsyfkL0L6eCwDpYH7s1i5elfXB44Cg5pFocwoIYwlfo7Y0wfd+8+JsQKtymvYA8/a9GcC0YzVwtv/bUng==}
@@ -11064,7 +11064,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@inkeep/agents-ui@0.14.10(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@inkeep/agents-ui@0.14.12(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
       '@ai-sdk/react': 2.0.5(react@19.1.1)(zod@4.1.12)
