@@ -100,7 +100,7 @@ export const SPAN_KEYS = {
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
   ARTIFACT_TYPE: 'artifact.type',
-  ARTIFACT_AGENT_ID: 'artifact.agent_id',
+  ARTIFACT_SUB_AGENT_ID: 'artifact.sub_agent_id',
   ARTIFACT_TOOL_CALL_ID: 'artifact.tool_call_id',
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',

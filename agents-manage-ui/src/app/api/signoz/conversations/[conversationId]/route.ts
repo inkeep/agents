@@ -808,7 +808,7 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.ARTIFACT_AGENT_ID,
+              key: SPAN_KEYS.ARTIFACT_SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -948,10 +948,10 @@ export async function GET(
       toolCallResult?: string;
       aiTelemetryFunctionId?: string;
       // delegation/transfer
-      delegationFromAgentId?: string;
-      delegationToAgentId?: string;
-      transferFromAgentId?: string;
-      transferToAgentId?: string;
+      delegationFromSubAgentId?: string;
+      delegationToSubAgentId?: string;
+      transferFromSubAgentId?: string;
+      transferToSubAgentId?: string;
       // streaming text
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
@@ -969,7 +969,7 @@ export async function GET(
       artifactName?: string;
       artifactDescription?: string;
       artifactData?: string;
-      artifactAgentId?: string;
+      artifactSubAgentId?: string;
       artifactToolCallId?: string;
       hasError?: boolean;
       otelStatusCode?: string;
@@ -992,10 +992,10 @@ export async function GET(
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
-      const delegationFromAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
-      const delegationToAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
-      const transferFromAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
-      const transferToAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
+      const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
+      const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
+      const transferFromSubAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
+      const transferToSubAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
       // Extract tool call args and result for ALL tool calls
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
@@ -1018,10 +1018,10 @@ export async function GET(
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
-        delegationFromAgentId: delegationFromAgentId || undefined,
-        delegationToAgentId: delegationToAgentId || undefined,
-        transferFromAgentId: transferFromAgentId || undefined,
-        transferToAgentId: transferToAgentId || undefined,
+        delegationFromSubAgentId: delegationFromSubAgentId || undefined,
+        delegationToSubAgentId: delegationToSubAgentId || undefined,
+        transferFromSubAgentId: transferFromSubAgentId || undefined,
+        transferToSubAgentId: transferToSubAgentId || undefined,
         toolCallArgs: toolCallArgs || undefined,
         toolCallResult: toolCallResult || undefined,
       });
@@ -1262,7 +1262,7 @@ export async function GET(
         description: 'Artifact processed',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || 'Unknown Agent',
+        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || 'Unknown Agent',
         result: hasError
           ? 'Artifact processing failed'
           : 'Artifact processed successfully',
@@ -1271,7 +1271,7 @@ export async function GET(
         artifactName: artifactName || undefined,
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
-        artifactAgentId: getString(span, SPAN_KEYS.ARTIFACT_AGENT_ID, '') || undefined,
+        artifactSubAgentId: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
       });
     }

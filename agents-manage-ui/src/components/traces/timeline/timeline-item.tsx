@@ -262,11 +262,10 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
             activity.toolName?.includes('delegate') && (
               <Flow
-                from={activity.delegationFromAgentId || activity.agentName || 'Unknown Agent'}
+                from={activity.delegationFromSubAgentId || 'Unknown sub agent'}
                 to={
-                  activity.delegationToAgentId ||
-                  activity.toolName?.replace('delegate_to_', '') ||
-                  'Target'
+                  activity.delegationToSubAgentId ||
+                  'Unknown sub agent'
                 }
               />
             )}
@@ -276,11 +275,10 @@ export function TimelineItem({
             (activity.toolType === TOOL_TYPES.TRANSFER ||
               activity.toolName?.includes('transfer')) && (
               <Flow
-                from={activity.transferFromAgentId || activity.agentName || 'Unknown Agent'}
+                from={activity.transferFromSubAgentId || 'Unknown sub agent'}
                 to={
-                  activity.transferToAgentId ||
-                  activity.toolName?.replace('transfer_to_', '') ||
-                  'Target'
+                  activity.transferToSubAgentId ||
+                  'Unknown sub agent'
                 }
               />
             )}

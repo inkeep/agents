@@ -85,7 +85,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <Info label="Agent" value={a.agentName || '-'} />
+            <Info label="Sub agent" value={a.subAgentName || '-'} />
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
@@ -176,7 +176,7 @@ export function renderPanelContent({
                 {a.aiResponseContent || 'Response content not available'}
               </Bubble>
             </LabeledBlock>
-            <Info label="Agent" value={a.agentName || 'Unknown'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -201,11 +201,6 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentId && (
-              <LabeledBlock label="Agent id">
-                <Badge variant="code">{a.contextAgentId}</Badge>
-              </LabeledBlock>
-            )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
             <StatusBadge status={a.status} />
             {a.contextStatusDescription && (
@@ -232,8 +227,8 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
-            <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
+            <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
+            <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
@@ -265,14 +260,14 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
+            <LabeledBlock label="From sub agent">
               <Badge variant="code">
-                {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
+                {a.transferFromSubAgentId || 'Unknown sub agent'}
               </Badge>
             </LabeledBlock>
-            <LabeledBlock label="To agent">
+            <LabeledBlock label="To sub agent">
               <Badge variant="code">
-                {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
+                {a.transferToSubAgentId || 'Unknown target'}
               </Badge>
             </LabeledBlock>
             <Info
@@ -318,7 +313,7 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
-            <Info label="Agent" value={a.agentName || 'Unknown agent'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
             {a.toolCallArgs && (
               <JsonEditorWithCopy
@@ -440,8 +435,8 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
-            {a.artifactAgentId && (
-              <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />
+            {a.artifactSubAgentId && (
+              <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}
             {a.artifactId && (
               <Info label="Artifact ID" value={<Badge variant="code">{a.artifactId}</Badge>} />

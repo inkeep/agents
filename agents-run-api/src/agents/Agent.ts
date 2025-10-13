@@ -382,7 +382,7 @@ export class Agent {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
-            'ai.agentName': this.config.name || 'unknown',
+            'ai.subAgentName': this.config.name || 'unknown',
             'agent.id': this.config.agentId || 'unknown',
           });
         }
@@ -761,7 +761,7 @@ export class Agent {
                 originalToolName: tool.name,
               }),
               'ai.toolType': 'mcp',
-              'ai.agentName': this.config.name || 'unknown',
+              'ai.subAgentName': this.config.name || 'unknown',
               'conversation.id': this.conversationId || 'unknown',
               'agent.id': this.config.agentId || 'unknown',
               'tenant.id': this.config.tenantId || 'unknown',
@@ -1710,7 +1710,7 @@ export class Agent {
           'agent.load_tools',
           {
             attributes: {
-              'agent.name': this.config.name,
+              'subAgent.name': this.config.name,
               'session.id': sessionId || 'none',
             },
           },

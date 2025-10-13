@@ -34,7 +34,7 @@ export interface ActivityItem {
   description: string;
   timestamp: string;
   subAgentId?: string;
-  agentName?: string;
+  subAgentName?: string;
   toolName?: string;
   toolResult?: string;
   status: 'success' | 'error' | 'pending';
@@ -59,10 +59,10 @@ export interface ActivityItem {
   aiResponseContent?: string;
   aiResponseTimestamp?: string;
   messageContent?: string;
-  delegationFromAgentId?: string;
-  delegationToAgentId?: string;
-  transferFromAgentId?: string;
-  transferToAgentId?: string;
+  delegationFromSubAgentId?: string;
+  delegationToSubAgentId?: string;
+  transferFromSubAgentId?: string;
+  transferToSubAgentId?: string;
   toolType?: string;
   toolPurpose?: string;
   contextConfigId?: string;
@@ -97,7 +97,7 @@ export interface ActivityItem {
   artifactName?: string;
   artifactDescription?: string;
   artifactData?: string;
-  artifactAgentId?: string;
+  artifactSubAgentId?: string;
   artifactToolCallId?: string;
 }
 
