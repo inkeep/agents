@@ -16,23 +16,29 @@ export const weatherForecast = dataComponent({
           properties: {
             time: {
               description: 'The time of current item E.g. 12PM, 1PM',
-              type: 'string',
+              type: 'string'
             },
             temperature: {
               description: 'The temperature at given time in Farenheit',
-              type: 'number',
+              type: 'number'
             },
             code: {
               description: 'Weather code at given time',
-              type: 'number',
-            },
+              type: 'number'
+            }
           },
-          required: ['time', 'temperature', 'code'],
-          additionalProperties: false,
-        },
-      },
+          required: [
+            'time',
+            'temperature',
+            'code'
+          ],
+          additionalProperties: false
+        }
+      }
     },
-    required: ['forecast'],
-    additionalProperties: false,
-  },
+    required: [
+      'forecast'
+    ],
+    additionalProperties: false
+  }
 });
