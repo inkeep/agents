@@ -81,7 +81,7 @@ describe('Chat Data Stream Advanced', () => {
     const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
     const agentId = nanoid();
-    const subAgentId = nanoid(); // Use unique agent ID for each test
+    const subAgentId = 'test-agent'; // Use consistent ID that matches mocks
 
     // Import here to avoid circular dependencies
     const { createSubAgent, createAgent } = await import('@inkeep/agents-core');
