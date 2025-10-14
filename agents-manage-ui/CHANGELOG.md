@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.19.9
+
+### Patch Changes
+
+- b172a43: Renaming followups
+- 4e9948f: otel trace pretty
+- e9bfd8a: Fix agent prompt field in UI
+  - @inkeep/agents-manage-api@0.19.9
+  - @inkeep/agents-run-api@0.19.9
+  - @inkeep/agents-core@0.19.9
+
 ## 0.19.8
 
 ### Patch Changes
