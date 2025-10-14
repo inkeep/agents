@@ -735,9 +735,19 @@ function Flow({
             edge.source === fromSubAgent && edge.target === targetSubAgent
               ? {
                   ...edge,
-                  data: { ...edge.data, isDelegated: true },
+                  data: { ...edge.data, isDelegating: true },
                 }
               : edge
+          )
+        );
+        setNodes((prevNodes) =>
+          prevNodes.map((node) =>
+            node.id === fromSubAgent || node.id === targetSubAgent
+              ? {
+                  ...node,
+                  data: { ...node.data, isDelegating: true },
+                }
+              : node
           )
         );
         return;
@@ -752,7 +762,50 @@ function Flow({
             }
             return {
               ...edge,
-              data: { ...edge.data, isDelegated: false },
+              data: { ...edge.data, isDelegating: false },
+            };
+          })
+        );
+        setNodes((prevNodes) =>
+          prevNodes.map((node) =>
+            node.data.isExecuting
+              ? {
+                  ...node,
+                  data: { ...node.data, isExecuting: false, isDelegating: false },
+                }
+              : node
+          )
+        );
+      }
+      if (data.type === 'completion') {
+        setEdges((prevEdges) =>
+          prevEdges.map((edge) => ({
+            ...edge,
+            data: { ...edge.data, isDelegating: false },
+          }))
+        );
+        setNodes((prevNodes) =>
+          prevNodes.map((node) => ({
+            ...node,
+            data: { ...node.data, isDelegating: false },
+          }))
+        );
+        return;
+      }
+      if (data.type === 'agent_generate') {
+        // const { subAgentId } = data.details.data;
+        return;
+      }
+      if (data.type === 'tool_execution') {
+        const { subAgentId } = data.details;
+        setNodes((prevNodes) =>
+          prevNodes.map((node) => {
+            if (node.id !== subAgentId) {
+              return node;
+            }
+            return {
+              ...node,
+              data: { ...node.data, isExecuting: true },
             };
           })
         );
@@ -760,30 +813,27 @@ function Flow({
       console.log('Data operation:', data);
     };
 
-    // const onDataSummary: EventListenerOrEventListenerObject = (event) => {
-    //   const { conversationId, timestamp, ...data } = event.detail;
-    //   console.log('Data summary:', data);
-    // };
-    // const onDataArtifact: EventListenerOrEventListenerObject = (event) => {
-    //   const { conversationId, timestamp, ...data } = event.detail;
-    //   console.log('Data artifact:', data);
-    // };
-    // const onDataComponent: EventListenerOrEventListenerObject = (event) => {
-    //   const { conversationId, timestamp, ...data } = event.detail;
-    //   console.log('Data component:', data);
-    // };
     document.addEventListener('ikp-data-operation', onDataOperation);
-    // document.addEventListener('ikp-data-summary', onDataSummary);
-    // document.addEventListener('ikp-data-artifact', onDataArtifact);
-    // document.addEventListener('ikp-data-component', onDataComponent);
     return () => {
       document.removeEventListener('ikp-data-operation', onDataOperation);
-      // document.removeEventListener('ikp-data-summary', onDataSummary);
-      // document.removeEventListener('ikp-data-artifact', onDataArtifact);
-      // document.removeEventListener('ikp-data-component', onDataComponent);
     };
   }, [setEdges]);
-  console.log(edges);
+
+  useEffect(() => {
+    window.go = async function () {
+      // await new Promise((r) => setTimeout(r, 1000));
+      // const event = new CustomEvent('ikp-data-operation', fixture[2]);
+      // document.dispatchEvent(event);
+      // return;
+      for (const f of fixture) {
+        await new Promise((r) => setTimeout(r, 1000));
+        const event = new CustomEvent('ikp-data-operation', f);
+        document.dispatchEvent(event);
+      }
+    };
+  }, []);
+
+  console.log({ edges, nodes });
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
