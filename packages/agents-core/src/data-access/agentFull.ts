@@ -959,30 +959,23 @@ export const updateFullAgentServerSide =
           let finalModelSettings =
             internalAgent.models === undefined ? undefined : internalAgent.models;
 
-          // If agent models changed, cascade to agents that were inheriting
           if (existingSubAgent?.models && typedAgentDefinition.models) {
             const subAgentModels = existingSubAgent.models as any;
             const agentModels = typedAgentDefinition.models;
 
-            // Check each model type for inheritance and cascade if needed
             const modelTypes = ['base', 'structuredOutput', 'summarizer'] as const;
             const cascadedModels: any = { ...finalModelSettings };
 
             for (const modelType of modelTypes) {
-              // If the subAgent's current model matches the old parent agent model (was inheriting)
-              // and the parent agent model OR providerOptions have changed, cascade the change
               if (
                 subAgentModels[modelType]?.model &&
                 existingAgentModels?.[modelType]?.model &&
                 subAgentModels[modelType].model === existingAgentModels[modelType].model &&
                 agentModels[modelType] &&
-                // Model name changed
                 (agentModels[modelType].model !== existingAgentModels[modelType]?.model ||
-                  // OR providerOptions changed
                   JSON.stringify(agentModels[modelType].providerOptions) !==
                     JSON.stringify(existingAgentModels[modelType]?.providerOptions))
               ) {
-                // SubAgent was inheriting from parent agent, cascade the new value (including providerOptions)
                 cascadedModels[modelType] = agentModels[modelType];
                 logger.info(
                   {
@@ -1061,20 +1054,16 @@ export const updateFullAgentServerSide =
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
-      // Step 8a: Delete agents that are no longer in the agent definition
       const incomingAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
-      // Get existing internal agents for this agent
       const existingInternalAgents = await listSubAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      // Get existing external agents for this agent
       const existingExternalAgents = await listExternalAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      // Delete internal agents not in incoming set
       let deletedInternalCount = 0;
       for (const agent of existingInternalAgents) {
         if (!incomingAgentIds.has(agent.id)) {
@@ -1090,12 +1079,10 @@ export const updateFullAgentServerSide =
               { subAgentId: agent.id, error },
               'Failed to delete orphaned internal agent'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
 
-      // Delete external agents not in incoming set
       let deletedExternalCount = 0;
       for (const agent of existingExternalAgents) {
         if (!incomingAgentIds.has(agent.id)) {
@@ -1111,7 +1098,6 @@ export const updateFullAgentServerSide =
               { subAgentId: agent.id, error },
               'Failed to delete orphaned external agent'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
@@ -1127,7 +1113,6 @@ export const updateFullAgentServerSide =
         );
       }
 
-      // Step 8: Update the agent metadata
       await updateAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
         data: {
@@ -1144,9 +1129,7 @@ export const updateFullAgentServerSide =
 
       logger.info({ agentId: typedAgentDefinition.id }, 'Agent metadata updated');
 
-      // Step 9: Update agent-tool relationships (selective delete and upsert)
 
-      // First, collect all incoming relationshipIds
       const incomingRelationshipIds = new Set<string>();
       for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
@@ -1158,14 +1141,11 @@ export const updateFullAgentServerSide =
         }
       }
 
-      // Delete relationships that are not in the incoming set (for agents in this agent)
-      // Use atomic deletion to avoid race conditions
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedCount = 0;
 
           if (incomingRelationshipIds.size === 0) {
-            // Delete all relationships for this agent if no incoming IDs
             const result = await db
               .delete(subAgentToolRelations)
               .where(
@@ -1178,7 +1158,6 @@ export const updateFullAgentServerSide =
               );
             deletedCount = result.rowsAffected || 0;
           } else {
-            // Delete relationships not in the incoming set
             const result = await db
               .delete(subAgentToolRelations)
               .where(
@@ -1201,7 +1180,6 @@ export const updateFullAgentServerSide =
         }
       }
 
-      // Then upsert the incoming relationships
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
@@ -1266,15 +1244,12 @@ export const updateFullAgentServerSide =
         'All agent-tool relations updated'
       );
 
-      // Step 10: Clear and recreate agent-dataComponent relationships
-      // First, delete existing relationships for all agents in this agent
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
         });
       }
 
-      // Then create new agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
@@ -1310,8 +1285,6 @@ export const updateFullAgentServerSide =
         'All agent-dataComponent relations updated'
       );
 
-      // Step 11: Clear and recreate agent-artifactComponent relationships
-      // First, delete existing relationships for all agents in this agent
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
@@ -1354,8 +1327,6 @@ export const updateFullAgentServerSide =
         'All agent-artifactComponent relations updated'
       );
 
-      // Step 12: Clear and recreate agent relationships
-      // First, delete existing relationships for this agent
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
