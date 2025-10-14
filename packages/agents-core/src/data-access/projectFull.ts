@@ -30,7 +30,6 @@ export type ProjectLogger = ReturnType<typeof getLogger>;
  * Validate and type the project data
  */
 function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
-  // The validation should already be done at the API layer
   return projectData as FullProjectDefinition;
 }
 
@@ -57,7 +56,6 @@ export const createFullProjectServerSide =
     );
 
     try {
-      // Step 1: Create the project itself
       const projectPayload = {
         id: typed.id,
         name: typed.name,
@@ -73,7 +71,6 @@ export const createFullProjectServerSide =
       await createProject(db)(projectPayload);
       logger.info({ projectId: typed.id }, 'Project metadata created successfully');
 
-      // Step 2: Create credentialReferences at project level if they exist
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
           {
@@ -195,7 +192,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 5: Create dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -243,7 +239,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 6: Create artifactComponents at project level if they exist
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
         logger.info(
           {
@@ -291,7 +286,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 7: Create all agent if they exist
       if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
@@ -305,10 +299,6 @@ export const createFullProjectServerSide =
           try {
             logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
 
-            // Create the full agent with project scoping
-            // When creating agent within a project context, we need to pass the project-level resources
-            // for validation, even though they're stored at the project level
-            // Note: AgentWithinContextOfProjectSchema uses 'agents', but FullAgentDefinitionSchema uses 'subAgents'
             const agentDataWithProjectResources = {
               ...agentData,
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
@@ -345,7 +335,6 @@ export const createFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      // Return the complete project definition
       return (await getFullProject(
         db,
         logger
@@ -392,13 +381,11 @@ export const updateFullProjectServerSide =
     );
 
     try {
-      // Check if project exists first
       const existingProject = await getProject(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
       if (!existingProject) {
-        // Project doesn't exist, create it instead
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
         return await createFullProjectServerSide(db, logger)(
           { tenantId, projectId: typed.id },
@@ -406,7 +393,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 1: Update the project itself
       const projectUpdatePayload = {
         name: typed.name,
         description: typed.description || '',
@@ -421,7 +407,6 @@ export const updateFullProjectServerSide =
       });
       logger.info({ projectId: typed.id }, 'Project metadata updated successfully');
 
-      // Step 2: Update credentialReferences at project level if they exist
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
           {
@@ -469,8 +454,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 3: Update global functions FIRST (before tools that reference them)
-      // Note: Functions are global entities (not tenant/project scoped)
       if (typed.functions && Object.keys(typed.functions).length > 0) {
         logger.info(
           {
@@ -514,7 +497,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 4: Update tools at project level (AFTER functions since tools reference them)
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -554,7 +536,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 5: Update dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -602,7 +583,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 6: Update artifactComponents at project level if they exist
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
         logger.info(
           {
@@ -650,15 +630,12 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 6a: Delete agent that are no longer in the project definition
       const incomingAgentIds = new Set(Object.keys(typed.agents || {}));
 
-      // Get existing agent for this project
       const existingAgents = await listAgents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      // Delete agent not in incoming set
       let deletedAgentCount = 0;
       for (const agent of existingAgents) {
         if (!incomingAgentIds.has(agent.id)) {
@@ -676,7 +653,6 @@ export const updateFullProjectServerSide =
               { agentId: agent.id, error },
               'Failed to delete orphaned agent from project'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
@@ -691,7 +667,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 7: Update all agent if they exist
       if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
@@ -705,10 +680,6 @@ export const updateFullProjectServerSide =
           try {
             logger.info({ projectId: typed.id, agentId }, 'Updating agent in project');
 
-            // Update/create the full agent with project scoping
-            // When updating agent within a project context, we need to pass the project-level resources
-            // for validation, even though they're stored at the project level
-            // Note: AgentWithinContextOfProjectSchema uses 'agents', but FullAgentDefinitionSchema uses 'subAgents'
             const agentDataWithProjectResources = {
               ...agentData,
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
@@ -745,7 +716,6 @@ export const updateFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      // Return the complete updated project definition
       return (await getFullProject(
         db,
         logger
@@ -777,7 +747,6 @@ export const getFullProject =
     logger.info({ tenantId, projectId }, 'Retrieving full project definition');
 
     try {
-      // Step 1: Get the project metadata
       const project: ProjectSelect | null = await getProject(db)({
         scopes: { tenantId, projectId },
       });
@@ -789,7 +758,6 @@ export const getFullProject =
 
       logger.info({ tenantId, projectId }, 'Project metadata retrieved');
 
-      // Step 2: Get all agent for this project
       const agentList = await listAgents(db)({
         scopes: { tenantId, projectId },
       });
@@ -803,7 +771,6 @@ export const getFullProject =
         'Found agent for project'
       );
 
-      // Step 3: Get all tools for this project
       const projectTools: Record<string, ToolApiInsert> = {};
       try {
         const toolsList = await listTools(db)({
@@ -820,8 +787,6 @@ export const getFullProject =
             imageUrl: tool.imageUrl || undefined,
             capabilities: tool.capabilities || undefined,
             lastError: tool.lastError || undefined,
-            // Don't include runtime fields in configuration
-            // status, lastHealthCheck, availableTools, activeTools, lastToolsSync are all runtime
           };
         }
         logger.info(
@@ -832,7 +797,6 @@ export const getFullProject =
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
       }
 
-      // Step 4: Get all dataComponents for this project
       const projectDataComponents: Record<string, any> = {};
       try {
         const dataComponentsList = await listDataComponents(db)({
@@ -858,7 +822,6 @@ export const getFullProject =
         );
       }
 
-      // Step 5: Get all artifactComponents for this project
       const projectArtifactComponents: Record<string, any> = {};
       try {
         const artifactComponentsList = await listArtifactComponents(db)({
@@ -884,7 +847,6 @@ export const getFullProject =
         );
       }
 
-      // Step 7: Get all credentialReferences for this project
       const projectCredentialReferences: Record<string, any> = {};
       try {
         const credentialReferencesList = await listCredentialReferences(db)({
@@ -910,7 +872,6 @@ export const getFullProject =
         );
       }
 
-      // Step 8: Get full definitions for each agent
       const agents: Record<string, any> = {};
 
       if (agentList.length > 0) {
@@ -939,7 +900,6 @@ export const getFullProject =
               { tenantId, projectId, agentId: agent.id, error },
               'Failed to retrieve full agent definition'
             );
-            // Don't throw - continue with other agent
           }
         });
 
