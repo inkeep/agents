@@ -230,7 +230,7 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
       transferCountIs: z.number().min(1).max(100).optional(),
     })
     .optional(),
-  agentPrompt: z.string().max(5000).optional(),
+  prompt: z.string().max(5000).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),

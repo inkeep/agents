@@ -18,13 +18,13 @@ An Agent is made up of sub-agents, like so:
 // Agent-level prompt that gets added to all Sub Agents
 const customerSupportAgent = agent({
   id: "support-agent",
-  agentPrompt: `You work for Acme Corp. Always be professional and helpful.
+  prompt: `You work for Acme Corp. Always be professional and helpful.
 Follow company policies and escalate complex issues appropriately.`,
   subAgents: () => [supportAgent, escalationAgent],
 });
 ```
 
-**The `agentPrompt` is automatically put into context and added into each Sub Agent's system prompt.** This provides consistent behavior and tone to all Sub Agents so they can act and respond as one cohesive unit to the end-user.
+**The `prompt` is automatically put into context and added into each Sub Agent's system prompt.** This provides consistent behavior and tone to all Sub Agents so they can act and respond as one cohesive unit to the end-user.
 
 ## Creating a Sub Agent
 

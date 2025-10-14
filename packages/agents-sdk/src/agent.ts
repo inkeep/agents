@@ -51,7 +51,7 @@ export class Agent implements AgentInterface {
     summarizer?: ModelSettings;
   };
   private statusUpdateSettings?: StatusUpdateSettings;
-  private agentPrompt?: string;
+  private prompt?: string;
   private stopWhen?: AgentStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
@@ -79,7 +79,7 @@ export class Agent implements AgentInterface {
       url: dbUrl,
     });
     this.statusUpdateSettings = config.statusUpdates;
-    this.agentPrompt = config.agentPrompt;
+    this.prompt = config.prompt;
     // Set stopWhen - preserve original config or set default during inheritance
     this.stopWhen = config.stopWhen
       ? {
@@ -306,7 +306,7 @@ export class Agent implements AgentInterface {
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: this.statusUpdateSettings,
-      prompt: this.agentPrompt,
+      prompt: this.prompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -783,8 +783,8 @@ export class Agent implements AgentInterface {
   /**
    * Get the agent's prompt configuration
    */
-  getAgentPrompt(): string | undefined {
-    return this.agentPrompt;
+  getPrompt(): string | undefined {
+    return this.prompt;
   }
 
   /**

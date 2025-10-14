@@ -147,7 +147,7 @@ export const createTaskHandler = (
       );
 
       // Check if this is an internal agent (has prompt)
-      const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
@@ -168,7 +168,7 @@ export const createTaskHandler = (
           apiKey: config.apiKey,
           name: config.name,
           description: config.description || '',
-          agentPrompt,
+          prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
@@ -180,7 +180,7 @@ export const createTaskHandler = (
             apiKey: config.apiKey,
             name: relation.name,
             description: relation.description,
-            agentPrompt: '',
+            prompt: '',
             delegateRelations: [],
             subAgentRelations: [],
             transferRelations: [],
@@ -196,7 +196,7 @@ export const createTaskHandler = (
               agentId: config.agentId,
               name: relation.name,
               description: relation.description,
-              agentPrompt: '',
+              prompt: '',
               delegateRelations: [],
               subAgentRelations: [],
               transferRelations: [],
@@ -216,7 +216,7 @@ export const createTaskHandler = (
                   apiKey: config.apiKey,
                   name: relation.name,
                   description: relation.description,
-                  agentPrompt: '',
+                  prompt: '',
                   delegateRelations: [],
                   subAgentRelations: [],
                   transferRelations: [],
