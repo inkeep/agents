@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import type {
   ActivityItem,
@@ -25,7 +26,6 @@ import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
-import { toast } from 'sonner';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -38,7 +38,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const { tenantId, projectId } = useParams();
-  const { SIGNOZ_URL } = useRuntimeConfig();
+  const { PUBLIC_SIGNOZ_URL } = useRuntimeConfig();
 
   const handleCopyTrace = async () => {
     if (!conversation) return;
@@ -303,7 +303,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       className="mt-3 w-full flex items-center justify-center gap-1"
                       onClick={() => {
                         window.open(
-                          getSignozTracesExplorerUrl(conversationId as string, SIGNOZ_URL),
+                          getSignozTracesExplorerUrl(conversationId as string, PUBLIC_SIGNOZ_URL),
                           '_blank'
                         );
                       }}

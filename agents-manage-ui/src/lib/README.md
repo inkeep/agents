@@ -7,7 +7,7 @@ This library provides server actions and types for interacting with the AgentFul
 Set the following environment variable in your `.env.local` file:
 
 ```bash
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 ```
 

@@ -4,17 +4,12 @@
  * Centralized configuration for API endpoints and settings
  */
 
-import {
-  DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
-  DEFAULT_INKEEP_AGENTS_RUN_API_URL,
-} from '../runtime-config/defaults';
+import { DEFAULT_INKEEP_AGENTS_MANAGE_API_URL } from '../runtime-config/defaults';
 import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
-let INKEEP_AGENTS_RUN_API_URL: string | null = null;
 let hasWarnedManageApi = false;
-let hasWarnedRunApi = false;
 
 function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
@@ -29,21 +24,6 @@ function getManageApiUrl(): string {
     }
   }
   return INKEEP_AGENTS_MANAGE_API_URL;
-}
-
-function getRunApiUrl(): string {
-  if (INKEEP_AGENTS_RUN_API_URL === null) {
-    INKEEP_AGENTS_RUN_API_URL =
-      process.env.INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL;
-
-    if (!process.env.INKEEP_AGENTS_RUN_API_URL && !hasWarnedRunApi) {
-      console.warn(
-        `INKEEP_AGENTS_RUN_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_RUN_API_URL}`
-      );
-      hasWarnedRunApi = true;
-    }
-  }
-  return INKEEP_AGENTS_RUN_API_URL;
 }
 
 async function makeApiRequestInternal<T>(
@@ -114,12 +94,4 @@ export async function makeManagementApiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
-}
-
-// Inkeep Agents Run API requests (chat completions, agents run)
-export async function makeAgentsRunApiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  return makeApiRequestInternal<T>(getRunApiUrl(), endpoint, options);
 }

@@ -12,7 +12,7 @@ interface UseOAuthLoginProps {
 
 export function useOAuthLogin({ tenantId, projectId, onFinish, onError }: UseOAuthLoginProps) {
   const router = useRouter();
-  const { INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
 
   // Track active OAuth attempts to prevent conflicts
   const activeAttempts = new Map<string, () => void>();
@@ -27,7 +27,7 @@ export function useOAuthLogin({ tenantId, projectId, onFinish, onError }: UseOAu
     try {
       // Get the OAuth URL and open in popup window
       const oauthUrl = getOAuthLoginUrl({
-        INKEEP_AGENTS_MANAGE_API_URL,
+        PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
         tenantId,
         projectId,
         id: toolId,
