@@ -14,7 +14,6 @@ const logger = getLogger('context-config');
 
 type ErrorResponse = { error?: string; message?: string; details?: unknown };
 
-// Extract Zod schemas from contextVariables
 export type ExtractSchemasFromCV<CV> = {
   [K in keyof CV]: CV[K] extends builderFetchDefinition<infer S> ? S : never;
 };
@@ -27,7 +26,6 @@ type FullContext<CV> = InferContextFromSchemas<ExtractSchemasFromCV<CV>>;
 
 export type AllowedPaths<CV> = DotPaths<FullContext<CV>>;
 
-// Headers Schema Builder
 export interface HeadersSchemaBuilderOptions<R extends z.ZodTypeAny> {
   schema: R;
 }
@@ -53,7 +51,6 @@ export class HeadersSchemaBuilder<R extends z.ZodTypeAny> {
   }
 }
 
-// Context system type definitions
 export type builderFetchDefinition<R extends z.ZodTypeAny> = {
   id: string;
   name?: string;
@@ -100,10 +97,8 @@ export class ContextConfigBuilder<
     this.agentId = options.agentId || 'default';
     this.baseURL = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 
-    // Convert headers schema to JSON schema if provided
     let headers: any;
     if (options.headers) {
-      // Handle both HeadersSchemaBuilder and direct Zod schema
       const actualSchema =
         options.headers instanceof HeadersSchemaBuilder
           ? options.headers.getSchema()
@@ -116,18 +111,14 @@ export class ContextConfigBuilder<
         'Converting headers schema to JSON Schema for database storage'
       );
 
-      // Convert to JSON schema for database storage
       headers = convertZodToJsonSchema(actualSchema);
     }
 
-    // Convert contextVariables responseSchemas to JSON schemas for database storage
     const processedContextVariables: Record<string, any> = {};
     if (options.contextVariables) {
       for (const [key, definition] of Object.entries(options.contextVariables)) {
-        // Convert builderFetchDefinition to ContextFetchDefinition format
         const { credentialReference, ...rest } = definition;
 
-        // Handle both direct credentialReference and pre-processed credentialReferenceId
         const credentialReferenceId =
           credentialReference?.id || (rest as any).credentialReferenceId;
 
@@ -173,7 +164,6 @@ export class ContextConfigBuilder<
     this.projectId = projectId;
     this.agentId = agentId;
     this.baseURL = baseURL;
-    // Update the config object as well
     this.config.tenantId = tenantId;
     this.config.projectId = projectId;
     this.config.agentId = agentId;
@@ -205,7 +195,6 @@ export class ContextConfigBuilder<
     };
   }
 
-  // Getter methods
   getId(): string {
     if (!this.config.id) {
       throw new Error('Context config ID is not set');
@@ -221,7 +210,6 @@ export class ContextConfigBuilder<
     return this.config.contextVariables || {};
   }
 
-  // Builder methods for fluent API
   withHeadersSchema(schema: any): this {
     this.config.headersSchema = schema;
     return this;
@@ -231,10 +219,8 @@ export class ContextConfigBuilder<
   toTemplate<P extends AllowedPaths<CV>>(path: P): `{{${P}}}` {
     return `{{${path}}}` as `{{${P}}}`;
   }
-  // Validation method
   validate(): { valid: boolean; errors: string[] } {
     try {
-      // Validate 'headers' key is not used in contextVariables
       const contextVariables = this.config.contextVariables || {};
       if ('headers' in contextVariables) {
         return {
@@ -262,9 +248,7 @@ export class ContextConfigBuilder<
     }
   }
 
-  // Initialize and save to database
   async init(): Promise<void> {
-    // Validate the configuration
     const validation = this.validate();
     if (!validation.valid) {
       throw new Error(`Context config validation failed: ${validation.errors.join(', ')}`);
@@ -290,7 +274,6 @@ export class ContextConfigBuilder<
     }
   }
 
-  // Private method to upsert context config
   private async upsertContextConfig(): Promise<void> {
     const configData = {
       id: this.getId(),
@@ -299,7 +282,6 @@ export class ContextConfigBuilder<
     };
 
     try {
-      // First try to update (in case config exists)
       const updateResponse = await fetch(
         `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/agent/${this.agentId}/context-configs/${this.getId()}`,
         {
@@ -321,7 +303,6 @@ export class ContextConfigBuilder<
         return;
       }
 
-      // If update failed with 404, config doesn't exist - create it
       if (updateResponse.status === 404) {
         logger.info(
           {
@@ -357,7 +338,6 @@ export class ContextConfigBuilder<
         return;
       }
 
-      // Update failed for some other reason
       const errorData = await this.parseErrorResponse(updateResponse);
       throw new Error(
         `Failed to update context config (${updateResponse.status}): ${errorData.message || errorData.error || 'Unknown error'}`
@@ -370,7 +350,6 @@ export class ContextConfigBuilder<
     }
   }
 
-  // Helper method to parse error responses
   private async parseErrorResponse(response: Response): Promise<ErrorResponse> {
     try {
       const contentType = response.headers?.get('content-type');
