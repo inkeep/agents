@@ -9,7 +9,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
-    isolate: false, // Faster execution by reusing worker context
+    isolate: true, // Ensure test isolation to prevent state leakage
     poolOptions: {
       threads: {
         maxThreads: 16, // Increase for GitHub Actions runners (have more cores)
