@@ -478,9 +478,9 @@ export const subAgentToolRelations = sqliteTable(
   ]
 );
 
-// Junction table for agent-function tool relations
-export const agentFunctionToolRelations = sqliteTable(
-  'agent_function_tool_relations',
+// Junction table for sub_agent-function tool relations
+export const subAgentFunctionToolRelations = sqliteTable(
+  'sub_agent_function_tool_relations',
   {
     ...subAgentScoped,
     functionToolId: text('function_tool_id').notNull(),
@@ -488,11 +488,11 @@ export const agentFunctionToolRelations = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
-    // Foreign key constraint to agents table
+    // Foreign key constraint to sub_agents table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
       foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
-      name: 'agent_function_tool_relations_agent_fk',
+      name: 'sub_agent_function_tool_relations_sub_agent_fk',
     }).onDelete('cascade'),
     // Foreign key constraint to functionTools table
     foreignKey({
@@ -503,7 +503,7 @@ export const agentFunctionToolRelations = sqliteTable(
         functionTools.agentId,
         functionTools.id,
       ],
-      name: 'agent_function_tool_relations_function_tool_fk',
+      name: 'sub_agent_function_tool_relations_function_tool_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -759,7 +759,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
     relationName: 'receivedMessages',
   }),
   toolRelations: many(subAgentToolRelations),
-  functionToolRelations: many(agentFunctionToolRelations),
+  functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
 }));
@@ -981,19 +981,19 @@ export const functionToolsRelations = relations(functionTools, ({ one, many }) =
     fields: [functionTools.tenantId, functionTools.projectId, functionTools.functionId],
     references: [functions.tenantId, functions.projectId, functions.id],
   }),
-  agentRelations: many(agentFunctionToolRelations),
+  subAgentRelations: many(subAgentFunctionToolRelations),
 }));
 
-// AgentFunctionToolRelations relations
-export const agentFunctionToolRelationsRelations = relations(
-  agentFunctionToolRelations,
+// SubAgentFunctionToolRelations relations
+export const subAgentFunctionToolRelationsRelations = relations(
+  subAgentFunctionToolRelations,
   ({ one }) => ({
-    agent: one(subAgents, {
-      fields: [agentFunctionToolRelations.subAgentId],
+    subAgent: one(subAgents, {
+      fields: [subAgentFunctionToolRelations.subAgentId],
       references: [subAgents.id],
     }),
     functionTool: one(functionTools, {
-      fields: [agentFunctionToolRelations.functionToolId],
+      fields: [subAgentFunctionToolRelations.functionToolId],
       references: [functionTools.id],
     }),
   })
