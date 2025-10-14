@@ -265,7 +265,7 @@ export function serializeAgentData(
         ...(stopWhen && { stopWhen }),
       };
 
-      if ((node.data as any).isDefault) {
+      if (node.data.isDefault) {
         defaultSubAgentId = subAgentId;
       }
 
@@ -286,7 +286,7 @@ export function serializeAgentData(
         credentialReferenceId: (node.data.credentialReferenceId as string) || null,
       };
 
-      if ((node.data as any).isDefault) {
+      if (node.data.isDefault) {
         defaultSubAgentId = subAgentId;
       }
 
