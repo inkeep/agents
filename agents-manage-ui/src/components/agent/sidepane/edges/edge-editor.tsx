@@ -131,6 +131,11 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     }
   };
 
+  const sourceName =
+    (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
+  const targetName =
+    (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
+
   const transferOptions = isSelfLoop
     ? [
         {
@@ -138,7 +143,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>{' '}
               can transfer to itself
             </div>
@@ -151,11 +156,11 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>{' '}
               can transfer to{' '}
               <Badge variant="code" className="my-0.5">
-                {targetNode?.data.name as string}
+                {targetName}
               </Badge>
             </div>
           ),
@@ -165,11 +170,11 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {targetNode?.data.name as string}
+                {targetName}
               </Badge>{' '}
               can transfer to{' '}
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>
             </div>
           ),
@@ -183,7 +188,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>{' '}
               can delegate to itself
             </div>
@@ -196,11 +201,11 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>{' '}
               can delegate to{' '}
               <Badge variant="code" className="my-0.5">
-                {targetNode?.data.name as string}
+                {targetName}
               </Badge>
             </div>
           ),
@@ -210,7 +215,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           label: (
             <div>
               <Badge variant="code" className="my-0.5">
-                {targetNode?.data.name as string}
+                {targetName}
               </Badge>{' '}
               can delegate to{' '}
               <Badge variant="code" className="my-0.5">

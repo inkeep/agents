@@ -17,7 +17,7 @@ interface FormFieldWrapperProps<T extends FieldValues> {
   name: FieldPath<T>;
   label: string;
   children: (field: FieldValues) => React.ReactNode;
-  description?: string;
+  description?: string | React.ReactNode;
   rules?: RegisterOptions<T, FieldPath<T>>;
   isRequired?: boolean;
 }

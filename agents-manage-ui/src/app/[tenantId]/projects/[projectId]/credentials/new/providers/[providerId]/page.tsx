@@ -136,7 +136,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
   if (!provider) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <h2 className="text-xl font-semibold">Provider not found</h2>
+        <h2 className="text-xl font-semibold">Provider not found.</h2>
         <p className="text-muted-foreground">
           The provider "{decodeURIComponent(providerId)}" was not found.
         </p>

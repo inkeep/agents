@@ -466,7 +466,7 @@ export function validateSerializedData(
 
   if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents`,
+      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents.`,
       field: 'defaultSubAgentId',
       code: 'invalid_reference',
       path: ['defaultSubAgentId'],
@@ -483,7 +483,7 @@ export function validateSerializedData(
           const toolId = canUseItem.toolId;
           if (!toolsData[toolId]) {
             errors.push({
-              message: `Tool '${toolId}' not found`,
+              message: `Tool '${toolId}' not found.`,
               field: 'toolId',
               code: 'invalid_reference',
               path: ['agents', subAgentId, 'canUse'],
@@ -565,7 +565,7 @@ export function validateSerializedData(
       for (const targetId of agent.canTransferTo ?? []) {
         if (!data.subAgents[targetId]) {
           errors.push({
-            message: `Transfer target '${targetId}' not found in agents`,
+            message: `Transfer target '${targetId}' not found in agents.`,
             field: 'canTransferTo',
             code: 'invalid_reference',
             path: ['agents', subAgentId, 'canTransferTo'],
@@ -575,7 +575,7 @@ export function validateSerializedData(
       for (const targetId of agent.canDelegateTo ?? []) {
         if (!data.subAgents[targetId]) {
           errors.push({
-            message: `Delegate target '${targetId}' not found in agents`,
+            message: `Delegate target '${targetId}' not found in agents.`,
             field: 'canDelegateTo',
             code: 'invalid_reference',
             path: ['agents', subAgentId, 'canDelegateTo'],

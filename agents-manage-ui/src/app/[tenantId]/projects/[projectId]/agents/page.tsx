@@ -35,7 +35,7 @@ async function AgentsPage({ params }: AgentsPageProps) {
           </>
         ) : (
           <EmptyState
-            title="No agent yet."
+            title="No agents yet."
             description={agentDescription}
             link={`/${tenantId}/projects/${projectId}/agents/new`}
             linkText="Create agent"

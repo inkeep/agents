@@ -204,7 +204,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
       <div>
         <Label className="text-sm font-medium">Default models</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by Agents and Sub Agents in this project
+          Set default models that will be inherited by agents and sub agents in this project.
         </p>
       </div>
 

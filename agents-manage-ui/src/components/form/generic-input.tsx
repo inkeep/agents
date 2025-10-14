@@ -13,7 +13,7 @@ interface GenericInputProps<T extends FieldValues> {
   min?: string;
   max?: string;
   disabled?: boolean;
-  description?: string;
+  description?: string | React.ReactNode;
   isRequired?: boolean;
 }
 
