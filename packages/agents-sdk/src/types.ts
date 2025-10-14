@@ -304,6 +304,9 @@ export interface ExternalAgentInterface {
   getName(): string;
   getDescription(): string;
   getBaseUrl(): string;
+  setContext?(tenantId: string, baseURL?: string): void;
+  getCredentialReferenceId(): string | undefined;
+  getHeaders(): Record<string, string> | undefined;
 }
 
 export interface AgentInterface {
