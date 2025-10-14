@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.0
+
+### Minor Changes
+
+- 9427ad4: Add PUBLIC env vars for manageui
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+- Updated dependencies [8a10d65]
+  - @inkeep/agents-manage-api@0.22.0
+  - @inkeep/agents-run-api@0.22.0
+  - @inkeep/agents-core@0.22.0
+
 ## 0.21.1
 
 ### Patch Changes

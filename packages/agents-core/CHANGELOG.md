@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.0
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+
 ## 0.21.1
 
 ### Patch Changes
