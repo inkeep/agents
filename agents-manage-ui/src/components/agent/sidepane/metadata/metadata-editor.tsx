@@ -58,8 +58,8 @@ function MetadataEditor() {
   const { agentId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
-  const { INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const agentUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
 
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();

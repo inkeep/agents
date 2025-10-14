@@ -131,7 +131,8 @@ export function ChatWidget({
   customHeaders = {},
   chatActivities,
 }: ChatWidgetProps) {
-  const { INKEEP_AGENTS_RUN_API_URL, INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
+    useRuntimeConfig();
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -247,13 +248,13 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            agentUrl: agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId,
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
             // components: {

@@ -8,12 +8,12 @@
  * This returns the URL that should be used for redirect on the client side
  */
 export function getOAuthLoginUrl({
-  INKEEP_AGENTS_MANAGE_API_URL,
+  PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
   tenantId,
   projectId,
   id,
 }: {
-  INKEEP_AGENTS_MANAGE_API_URL: string;
+  PUBLIC_INKEEP_AGENTS_MANAGE_API_URL: string;
   tenantId: string;
   projectId: string;
   id: string;
@@ -52,10 +52,10 @@ export function getOAuthLoginUrl({
     );
   }
 
-  const url = `${INKEEP_AGENTS_MANAGE_API_URL}/oauth/login?tenantId=${encodeURIComponent(tenantId)}&projectId=${encodeURIComponent(projectId)}&toolId=${encodeURIComponent(id)}`;
+  const url = `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/oauth/login?tenantId=${encodeURIComponent(tenantId)}&projectId=${encodeURIComponent(projectId)}&toolId=${encodeURIComponent(id)}`;
 
   // Verify the final URL starts with our expected base
-  if (!url.startsWith(INKEEP_AGENTS_MANAGE_API_URL)) {
+  if (!url.startsWith(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL)) {
     throw new Error('Invalid OAuth URL generated');
   }
 
