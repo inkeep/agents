@@ -465,9 +465,30 @@ export class LocalSandboxExecutor {
 
   private async installDependencies(sandboxDir: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const npm = spawn('npm', ['install'], {
+      // Configure npm environment variables to use sandbox directory
+      // This fixes issues in serverless environments like Vercel where
+      // the default home directory paths don't exist or aren't writable
+      const npmEnv = {
+        ...process.env,
+        // Set npm cache directory to sandbox to avoid /home/user issues
+        npm_config_cache: join(sandboxDir, '.npm-cache'),
+        // Set npm logs directory to sandbox
+        npm_config_logs_dir: join(sandboxDir, '.npm-logs'),
+        // Set npm temp directory to sandbox
+        npm_config_tmp: join(sandboxDir, '.npm-tmp'),
+        // Override HOME directory as fallback for npm
+        HOME: sandboxDir,
+        // Disable npm update notifier to avoid permission issues
+        npm_config_update_notifier: 'false',
+        // Use non-interactive mode
+        npm_config_progress: 'false',
+        npm_config_loglevel: 'error',
+      };
+
+      const npm = spawn('npm', ['install', '--no-audit', '--no-fund'], {
         cwd: sandboxDir,
         stdio: 'pipe',
+        env: npmEnv,
       });
 
       let stderr = '';
