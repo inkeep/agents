@@ -14,7 +14,7 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import {
   type CredentialStoreStatus,
-  fetchCredentialStoresStatus,
+  listCredentialStores,
 } from '@/lib/api/credentialStores';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
@@ -71,7 +71,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   useEffect(() => {
     const loadCredentialStores = async () => {
       try {
-        const stores = await fetchCredentialStoresStatus(tenantId, projectId);
+        const stores = await listCredentialStores(tenantId, projectId);
         setCredentialStores(stores);
 
         // Auto-select preferred store: prioritize Nango, then other available non-memory stores
@@ -83,14 +83,12 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
           const nangoStore = availableStores.find((store) => store.type === 'nango');
           const preferredStore = nangoStore || availableStores[0];
 
-          // Always set the values, even if form already has values
-          form.setValue('credentialStoreId', preferredStore.id);
-          form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango');
-
-          // Also trigger a form reset to ensure the UI updates
-          setTimeout(() => {
+          // Only set values if form doesn't already have a credentialStoreId value
+          const currentStoreId = form.getValues('credentialStoreId');
+          if (!currentStoreId) {
             form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-          }, 0);
+            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', { shouldValidate: true });
+          }
         }
       } catch (err) {
         console.error('Failed to load credential stores:', err);
@@ -100,7 +98,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     };
 
     loadCredentialStores();
-  }, [tenantId, projectId, form]);
+  }, [tenantId, projectId, form.getValues, form.setValue]);
 
   // Handle checkbox state changes
   useEffect(() => {

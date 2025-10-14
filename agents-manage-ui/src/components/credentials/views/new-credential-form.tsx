@@ -5,7 +5,7 @@ import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
-import { setCredentialInStore } from '@/lib/api/credentialStores';
+import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
 import { createNangoApiKeyConnection } from '@/lib/mcp-tools/nango';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
@@ -47,7 +47,7 @@ export function NewCredentialForm() {
           access_token: data.apiKeyToSet,
         });
         
-        await setCredentialInStore(
+        await createCredentialInStore(
           tenantId,
           projectId,
           data.credentialStoreId,

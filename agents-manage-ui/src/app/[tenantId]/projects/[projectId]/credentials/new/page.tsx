@@ -13,7 +13,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ItemCardGrid } from '@/components/ui/item-card-grid';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { CredentialStoreType } from '@/constants/signoz';
-import { fetchCredentialStoresStatus } from '@/lib/api/credentialStores';
+import { listCredentialStores } from '@/lib/api/credentialStores';
 
 interface CredentialOption {
   id: string;
@@ -31,7 +31,7 @@ async function NewCredentialsPage({
 }) {
   const { tenantId, projectId } = await params;
 
-  const credentialStoresStatus = await fetchCredentialStoresStatus(tenantId, projectId);
+  const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
 
   const isNangoReady = credentialStoresStatus.some(
     (store) => store.type === CredentialStoreType.nango && store.available

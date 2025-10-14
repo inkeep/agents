@@ -4,6 +4,8 @@ import {
   CredentialStoreType,
   commonGetErrorResponses,
   createApiError,
+  TenantProjectIdParamsSchema,
+  TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 
@@ -13,43 +15,48 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-const CredentialStoreStatusSchema = z.object({
+const CredentialStoreSchema = z.object({
   id: z.string().describe('Unique identifier of the credential store'),
   type: z.enum(CredentialStoreType),
   available: z.boolean().describe('Whether the store is functional and ready to use'),
   reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
 });
 
-const CredentialStoresStatusResponseSchema = z.object({
-  stores: z
-    .array(CredentialStoreStatusSchema)
-    .describe('List of registered credential stores with their status'),
+const CredentialStoreListResponseSchema = z.object({
+  data: z.array(CredentialStoreSchema).describe('List of credential stores'),
 });
 
-const CredentialStoreSetRequestSchema = z.object({
-  key: z.string().describe('The credential key to set'),
-  value: z.string().describe('The credential value to store'),
+const CreateCredentialInStoreRequestSchema = z.object({
+  key: z.string().describe('The credential key'),
+  value: z.string().describe('The credential value'),
 });
 
-const CredentialStoreSetResponseSchema = z.object({
-  success: z.boolean().describe('Whether the credential was successfully stored'),
-  message: z.string().describe('Success or error message'),
+const CreateCredentialInStoreResponseSchema = z.object({
+  data: z.object({
+    key: z.string().describe('The credential key'),
+    storeId: z.string().describe('The store ID where credential was created'),
+    createdAt: z.string().describe('ISO timestamp of creation'),
+  }),
 });
 
 
+// List credential stores
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/status',
-    summary: 'Get Credential Stores Status',
-    operationId: 'get-credential-stores-status',
+    path: '/',
+    summary: 'List Credential Stores',
+    operationId: 'list-credential-stores',
     tags: ['Credential Store'],
+    request: {
+      params: TenantProjectParamsSchema,
+    },
     responses: {
       200: {
-        description: 'Credential stores status retrieved successfully',
+        description: 'List of credential stores retrieved successfully',
         content: {
           'application/json': {
-            schema: CredentialStoresStatusResponseSchema,
+            schema: CredentialStoreListResponseSchema,
           },
         },
       },
@@ -74,38 +81,37 @@ app.openapi(
     );
 
     return c.json({
-      stores: storeStatuses,
+      data: storeStatuses,
     });
   }
 );
 
+// Create credential in store (sub-resource)
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/:storeId/set',
-    summary: 'Set Credential in Store',
-    operationId: 'set-credential-in-store',
+    path: '/{id}/credentials',
+    summary: 'Create Credential in Store',
+    operationId: 'create-credential-in-store',
     tags: ['Credential Store'],
     request: {
-      params: z.object({
-        tenantId: z.string(),
-        projectId: z.string(),
-        storeId: z.string().describe('The credential store ID'),
+      params: TenantProjectIdParamsSchema.extend({
+        id: z.string().describe('The credential store ID'),
       }),
       body: {
         content: {
           'application/json': {
-            schema: CredentialStoreSetRequestSchema,
+            schema: CreateCredentialInStoreRequestSchema,
           },
         },
       },
     },
     responses: {
-      200: {
-        description: 'Credential set successfully',
+      201: {
+        description: 'Credential created successfully',
         content: {
           'application/json': {
-            schema: CredentialStoreSetResponseSchema,
+            schema: CreateCredentialInStoreResponseSchema,
           },
         },
       },
@@ -113,7 +119,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { storeId } = c.req.param();
+    const { id: storeId } = c.req.param();
     const { key, value } = await c.req.json();
     const credentialStores = c.get('credentialStores');
 
@@ -140,9 +146,12 @@ app.openapi(
       await store.set(key, value);
 
       return c.json({
-        success: true,
-        message: `Credential '${key}' successfully stored in ${store.type} store '${storeId}'`,
-      });
+        data: {
+          key,
+          storeId,
+          createdAt: new Date().toISOString(),
+        },
+      }, 201);
     } catch (error) {
       console.error(`Error setting credential in store ${storeId}:`, error);
       throw createApiError({

@@ -11,57 +11,60 @@ export interface CredentialStoreStatus {
   reason: string | null;
 }
 
-export interface CredentialStoresStatusResponse {
-  stores: CredentialStoreStatus[];
+export interface CredentialStoresListResponse {
+  data: CredentialStoreStatus[];
 }
 
-export interface CredentialStoreSetRequest {
+export interface CreateCredentialInStoreRequest {
   key: string;
   value: string;
 }
 
-export interface CredentialStoreSetResponse {
-  success: boolean;
-  message: string;
+export interface CreateCredentialInStoreResponse {
+  data: {
+    key: string;
+    storeId: string;
+    createdAt: string;
+  };
 }
 
 /**
- * Get credential stores status - shows which credential stores are available and functional
+ * List credential stores - shows which credential stores are available and functional
  */
-export async function fetchCredentialStoresStatus(
+export async function listCredentialStores(
   tenantId: string,
   projectId: string
 ): Promise<CredentialStoreStatus[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<CredentialStoresStatusResponse>(
-    `tenants/${tenantId}/projects/${projectId}/credentials/stores/status`
+  const response = await makeManagementApiRequest<CredentialStoresListResponse>(
+    `tenants/${tenantId}/projects/${projectId}/credential-stores`
   );
 
-  return response.stores;
+  return response.data;
 }
 
 /**
- * Set a credential in a specific credential store
+ * Create a credential in a specific credential store
  */
-export async function setCredentialInStore(
+export async function createCredentialInStore(
   tenantId: string,
   projectId: string,
   storeId: string,
   key: string,
   value: string
-): Promise<CredentialStoreSetResponse> {
+): Promise<CreateCredentialInStoreResponse['data']> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<CredentialStoreSetResponse>(
-    `tenants/${tenantId}/projects/${projectId}/credentials/stores/${storeId}/set`,
+  const response = await makeManagementApiRequest<CreateCredentialInStoreResponse>(
+    `tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
     {
       method: 'POST',
       body: JSON.stringify({ key, value }),
     }
   );
 
-  return response;
+  return response.data;
 }

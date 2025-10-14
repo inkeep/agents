@@ -43,7 +43,7 @@ app.route(
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
-app.route('/projects/:projectId/credentials/stores', credentialStoresRoutes);
+app.route('/projects/:projectId/credential-stores', credentialStoresRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/external-agents', externalAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRoutes);

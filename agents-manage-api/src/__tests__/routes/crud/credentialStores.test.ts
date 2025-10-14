@@ -4,173 +4,84 @@ import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
-// Mock the app import with credential stores in context
-vi.mock('../../../index', async (importOriginal) => {
-  const { createManagementHono } = (await importOriginal()) as any;
-
-  const mockKeychainStore = {
-    id: 'keychain-default',
-    type: CredentialStoreType.keychain,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn().mockResolvedValue(false), // Test key doesn't exist
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  const mockNonFunctionalKeychainStore = {
-    id: 'keychain-default',
-    type: CredentialStoreType.keychain,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn().mockRejectedValue(new Error('keytar not available')),
-    checkAvailability: vi.fn().mockResolvedValue({ 
-      available: false, 
-      reason: 'Keytar not available - cannot store credentials in system keychain' 
-    }),
-  };
-
-  const mockMemoryStore = {
-    id: 'memory-default',
-    type: CredentialStoreType.memory,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn().mockResolvedValue(false),
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  const mockNangoStore = {
-    id: 'nango-default',
-    type: CredentialStoreType.nango,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn().mockResolvedValue(false),
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  // Additional stores for SET tests
-  const mockTestStore = {
-    id: 'test-store',
-    type: CredentialStoreType.memory,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn(),
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  const mockUnavailableStore = {
-    id: 'unavailable-store',
-    type: CredentialStoreType.keychain,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn(),
-    checkAvailability: vi.fn().mockResolvedValue({ 
-      available: false, 
-      reason: 'Store is offline' 
-    }),
-  };
-
-  const mockKeychainTestStore = {
-    id: 'keychain-store',
-    type: CredentialStoreType.keychain,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn(),
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  const mockNangoTestStore = {
-    id: 'nango-store',
-    type: CredentialStoreType.nango,
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-    has: vi.fn(),
-    checkAvailability: vi.fn().mockResolvedValue({ available: true }),
-  };
-
-  // Create a dynamic registry that responds to test scenarios
-  const dynamicRegistry = {
-    get: vi.fn((storeId: string) => {
-      const statusScenario = globalThis.credentialStoreTestScenario;
-      const setScenario = globalThis.credentialStoreSetTestScenario;
-      
-      // Handle set test scenarios first (they take precedence when set)
-      if (setScenario) {
-        if (setScenario === 'store-not-found') {
-          return null;
-        } else if (setScenario === 'store-unavailable' && storeId === 'unavailable-store') {
-          return mockUnavailableStore;
-        } else if (setScenario === 'set-error' && storeId === 'test-store') {
-          const errorStore = { ...mockTestStore };
-          errorStore.set.mockRejectedValue(new Error('Storage failed'));
-          return errorStore;
-        } else if (setScenario === 'keychain-store' && storeId === 'keychain-store') {
-          return mockKeychainTestStore;
-        } else if (setScenario === 'nango-store' && storeId === 'nango-store') {
-          return mockNangoTestStore;
-        } else if (setScenario === 'default' && storeId === 'test-store') {
-          return mockTestStore;
-        }
-      }
-      
-      // Handle status test scenarios
-      if (statusScenario) {
-        switch (statusScenario) {
-          case 'all-available':
-            if (storeId === 'keychain-default') return mockKeychainStore;
-            if (storeId === 'memory-default') return mockMemoryStore;
-            if (storeId === 'nango-default') return mockNangoStore;
-            break;
-          case 'keychain-non-functional':
-            if (storeId === 'keychain-default') return mockNonFunctionalKeychainStore;
-            if (storeId === 'memory-default') return mockMemoryStore;
-            break;
-          case 'memory-only':
-            if (storeId === 'memory-default') return mockMemoryStore;
-            break;
-        }
-      }
-
-      return undefined;
-    }),
-    getAll: vi.fn(() => {
-      const statusScenario = globalThis.credentialStoreTestScenario;
-      
-      // Status tests take precedence - return specific stores for status scenarios
-      if (statusScenario) {
-        switch (statusScenario) {
-          case 'all-available':
-            return [mockKeychainStore, mockMemoryStore, mockNangoStore];
-          case 'keychain-non-functional':
-            return [mockNonFunctionalKeychainStore, mockMemoryStore];
-          case 'memory-only':
-            return [mockMemoryStore];
-        }
-      }
-      
-      // For set tests or no scenario, return empty array (set tests don't use getAll)
-      return [];
-    }),
-  };
-
-  const mockConfig = { port: 3002, serverOptions: {} };
-  const app = createManagementHono(mockConfig, dynamicRegistry);
-
-  return { default: app };
+// Factory functions for creating mock stores with different behaviors
+const createMockStore = (id: string, type: typeof CredentialStoreType[keyof typeof CredentialStoreType], overrides = {}) => ({
+  id,
+  type,
+  get: vi.fn().mockResolvedValue(null),
+  set: vi.fn().mockResolvedValue(null),
+  delete: vi.fn().mockResolvedValue(false),
+  has: vi.fn().mockResolvedValue(false),
+  checkAvailability: vi.fn().mockResolvedValue({ available: true }),
+  ...overrides,
 });
 
-// Make scenarios available globally for test access
-declare global {
-  var credentialStoreTestScenario: 'all-available' | 'keychain-non-functional' | 'memory-only' | undefined;
-  var credentialStoreSetTestScenario: 'default' | 'store-not-found' | 'store-unavailable' | 'set-error' | 'keychain-store' | 'nango-store' | undefined;
-}
+const createNonFunctionalKeychainStore = () => createMockStore(
+  'keychain-default',
+  CredentialStoreType.keychain,
+  {
+    has: vi.fn().mockRejectedValue(new Error('keytar not available')),
+    checkAvailability: vi.fn().mockResolvedValue({
+      available: false,
+      reason: 'Keytar not available - cannot store credentials in system keychain'
+    }),
+  }
+);
+
+const createUnavailableStore = (id: string) => createMockStore(
+  id,
+  CredentialStoreType.keychain,
+  {
+    checkAvailability: vi.fn().mockResolvedValue({
+      available: false,
+      reason: 'Store is offline'
+    }),
+  }
+);
+
+const createErrorStore = (id: string, errorMessage: string) => createMockStore(
+  id,
+  CredentialStoreType.memory,
+  {
+    set: vi.fn().mockRejectedValue(new Error(errorMessage)),
+  }
+);
+
+// Registry factory function that takes specific store configurations
+const createMockRegistry = (stores: any[] = []) => {
+  const storeMap = new Map(stores.map(store => [store.id, store]));
+  
+  return {
+    get: vi.fn((storeId: string) => storeMap.get(storeId) || null),
+    getAll: vi.fn(() => stores),
+  };
+};
+
+// Mock app with dynamic registry injection
+let currentRegistry: any = null;
+
+vi.mock('../../../index', async (importOriginal) => {
+  const { createManagementHono } = (await importOriginal()) as any;
+  
+  return {
+    default: {
+      request: vi.fn(async (url: string, options: any) => {
+        if (!currentRegistry) {
+          throw new Error('No registry configured for test');
+        }
+        
+        const mockConfig = { port: 3002, serverOptions: {} };
+        const app = createManagementHono(mockConfig, currentRegistry);
+        return app.request(url, options);
+      })
+    }
+  };
+});
+
+// Helper function to setup test with specific stores
+const setupTestWithStores = (stores: any[]) => {
+  currentRegistry = createMockRegistry(stores);
+};
 
 describe('Credential Stores - CRUD Operations', () => {
   let tenantId: string;
@@ -178,29 +89,33 @@ describe('Credential Stores - CRUD Operations', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // Clear global test scenarios
-    globalThis.credentialStoreTestScenario = undefined;
-    globalThis.credentialStoreSetTestScenario = undefined;
+    currentRegistry = null; // Clear registry between tests
     tenantId = createTestTenantId();
     projectId = 'default';
     await ensureTestProject(tenantId, projectId);
   });
 
-  describe('GET /stores/status', () => {
+  describe('GET /stores', () => {
     it('should return all available stores when all are functional', async () => {
-      globalThis.credentialStoreTestScenario = 'all-available';
+      // Arrange: Create specific stores for this test
+      const stores = [
+        createMockStore('keychain-default', CredentialStoreType.keychain),
+        createMockStore('memory-default', CredentialStoreType.memory),
+        createMockStore('nango-default', CredentialStoreType.nango),
+      ];
+      setupTestWithStores(stores);
 
+      // Act
       const response = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/credentials/stores/status`,
-        {
-          method: 'GET',
-        }
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores`,
+        { method: 'GET' }
       );
 
+      // Assert
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data).toEqual({
-        stores: [
+        data: [
           {
             id: 'keychain-default',
             type: CredentialStoreType.keychain,
@@ -224,19 +139,24 @@ describe('Credential Stores - CRUD Operations', () => {
     });
 
     it('should show non-functional stores with reasons', async () => {
-      globalThis.credentialStoreTestScenario = 'keychain-non-functional';
+      // Arrange: Create specific stores including a non-functional one
+      const stores = [
+        createNonFunctionalKeychainStore(),
+        createMockStore('memory-default', CredentialStoreType.memory),
+      ];
+      setupTestWithStores(stores);
 
+      // Act
       const response = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/credentials/stores/status`,
-        {
-          method: 'GET',
-        }
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores`,
+        { method: 'GET' }
       );
 
+      // Assert
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data).toEqual({
-        stores: [
+        data: [
           {
             id: 'keychain-default',
             type: CredentialStoreType.keychain,
@@ -254,19 +174,23 @@ describe('Credential Stores - CRUD Operations', () => {
     });
 
     it('should handle minimal store configuration', async () => {
-      globalThis.credentialStoreTestScenario = 'memory-only';
+      // Arrange: Only memory store
+      const stores = [
+        createMockStore('memory-default', CredentialStoreType.memory),
+      ];
+      setupTestWithStores(stores);
 
+      // Act
       const response = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/credentials/stores/status`,
-        {
-          method: 'GET',
-        }
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores`,
+        { method: 'GET' }
       );
 
+      // Assert
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data).toEqual({
-        stores: [
+        data: [
           {
             id: 'memory-default',
             type: CredentialStoreType.memory,
@@ -278,134 +202,210 @@ describe('Credential Stores - CRUD Operations', () => {
     });
   });
 
-  describe('POST /stores/:storeId/set', () => {
+  describe('POST /stores/:storeId/credentials', () => {
     const storeId = 'test-store';
 
-    it('should successfully set a credential in the store', async () => {
-      globalThis.credentialStoreSetTestScenario = 'default';
-      
+    it('should successfully create a credential in the store', async () => {
+      // Arrange: Create a working store
+      const stores = [
+        createMockStore('test-store', CredentialStoreType.memory),
+      ];
+      setupTestWithStores(stores);
+
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/${storeId}/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
-      expect(response.status).toBe(200);
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
+      expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data).toEqual({
-        success: true,
-        message: `Credential 'test-key' successfully stored in memory store 'test-store'`,
+      expect(data.data).toEqual({
+        key: 'test-key',
+        storeId: 'test-store',
+        createdAt: expect.any(String),
       });
+      // Verify createdAt is a valid ISO string
+      expect(new Date(data.data.createdAt)).toBeInstanceOf(Date);
+
+      // Verify the store's set method was called with correct parameters
+      expect(stores[0].set).toHaveBeenCalledWith('test-key', 'test-value');
     });
 
     it('should return 404 when credential store is not found', async () => {
-      globalThis.credentialStoreSetTestScenario = 'store-not-found';
+      // Arrange: Empty store registry
+      setupTestWithStores([]);
 
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/${storeId}/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
       expect(response.status).toBe(404);
       const data = await response.json();
       expect(data.error.message).toBe("Credential store 'test-store' not found");
     });
 
     it('should return 500 when credential store is not available', async () => {
-      globalThis.credentialStoreSetTestScenario = 'store-unavailable';
+      // Arrange: Create an unavailable store
+      const stores = [
+        createUnavailableStore('unavailable-store'),
+      ];
+      setupTestWithStores(stores);
 
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/unavailable-store/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/unavailable-store/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
       expect(response.status).toBe(500);
       const data = await response.json();
-      expect(data.error.message).toContain("Credential store 'unavailable-store' is not available: Store is offline");
+      expect(data.error.message).toContain(
+        "Credential store 'unavailable-store' is not available: Store is offline"
+      );
     });
 
     it('should handle store.set() errors gracefully', async () => {
-      globalThis.credentialStoreSetTestScenario = 'set-error';
+      // Arrange: Create a store that throws errors on set
+      const stores = [
+        createErrorStore('error-store', 'Storage failed'),
+      ];
+      setupTestWithStores(stores);
 
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/${storeId}/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/error-store/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
       expect(response.status).toBe(500);
       const data = await response.json();
       expect(data.error.message).toBe('Failed to store credential: Storage failed');
     });
 
     it('should validate request body schema', async () => {
-      globalThis.credentialStoreSetTestScenario = 'default';
-      
+      // Arrange: Create a working store
+      const stores = [
+        createMockStore('test-store', CredentialStoreType.memory),
+      ];
+      setupTestWithStores(stores);
+
       const invalidBody = {
         key: 'test-key',
         // missing value
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/${storeId}/set`, {
-        method: 'POST',
-        body: JSON.stringify(invalidBody),
-      });
-      
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(invalidBody),
+        }
+      );
+
+      // Assert
       expect(response.status).toBe(400);
     });
 
     it('should handle keychain store type', async () => {
-      globalThis.credentialStoreSetTestScenario = 'keychain-store';
+      // Arrange: Create a keychain store
+      const stores = [
+        createMockStore('keychain-store', CredentialStoreType.keychain),
+      ];
+      setupTestWithStores(stores);
 
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/keychain-store/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
-      expect(response.status).toBe(200);
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/keychain-store/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
+      expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.message).toContain("keychain store 'keychain-store'");
+      expect(data.data).toEqual({
+        key: 'test-key',
+        storeId: 'keychain-store',
+        createdAt: expect.any(String),
+      });
     });
 
     it('should handle nango store type', async () => {
-      globalThis.credentialStoreSetTestScenario = 'nango-store';
+      // Arrange: Create a nango store
+      const stores = [
+        createMockStore('nango-store', CredentialStoreType.nango),
+      ];
+      setupTestWithStores(stores);
 
       const requestBody = {
         key: 'test-key',
         value: 'test-value',
       };
 
-      const response = await makeRequest(`tenants/${tenantId}/projects/${projectId}/credentials/stores/nango-store/set`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-      
-      expect(response.status).toBe(200);
+      // Act
+      const response = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/credential-stores/nango-store/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      // Assert
+      expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.message).toContain("nango store 'nango-store'");
+      expect(data.data).toEqual({
+        key: 'test-key',
+        storeId: 'nango-store',
+        createdAt: expect.any(String),
+      });
     });
   });
 });
