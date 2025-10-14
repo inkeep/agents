@@ -727,9 +727,10 @@ function Flow({
     const onDataOperation: EventListenerOrEventListenerObject = (event) => {
       // @ts-expect-error -- improve types
       const { conversationId, timestamp, ...data } = event.detail;
+      console.log('Data operation:', data);
+
       if (data.type === 'delegation_sent') {
         const { fromSubAgent, targetSubAgent } = data.details.data;
-        console.log(fromSubAgent, targetSubAgent);
         setEdges((prevEdges) =>
           prevEdges.map((edge) =>
             edge.source === fromSubAgent && edge.target === targetSubAgent
@@ -776,6 +777,7 @@ function Flow({
               : node
           )
         );
+        return;
       }
       if (data.type === 'completion') {
         setEdges((prevEdges) =>
@@ -810,7 +812,6 @@ function Flow({
           })
         );
       }
-      console.log('Data operation:', data);
     };
 
     document.addEventListener('ikp-data-operation', onDataOperation);
