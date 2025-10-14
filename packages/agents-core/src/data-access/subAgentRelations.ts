@@ -119,7 +119,7 @@ export const getAgentRelationsBySource =
     };
   };
 
-export const getAgentRelationsByTarget =
+export const getSubAgentRelationsByTarget =
   (db: DatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
@@ -325,7 +325,7 @@ export const getAgentRelationByParams =
 /**
  * Upsert agent relation (create if it doesn't exist, no-op if it does)
  */
-export const upsertAgentRelation =
+export const upsertSubAgentRelation =
   (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
     // Check if relation already exists
     const existing = await getAgentRelationByParams(db)({

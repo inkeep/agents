@@ -11,7 +11,7 @@ import {
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
 
-describe('Agent Agent Data Access', () => {
+describe('Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
