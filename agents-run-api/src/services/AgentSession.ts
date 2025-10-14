@@ -35,13 +35,11 @@ export type AgentSessionEventType =
   | 'tool_result'
   | 'error';
 
-// Base interface with common properties
 interface BaseAgentSessionEvent {
   timestamp: number;
   subAgentId: string;
 }
 
-// Discriminated union of all possible event types
 export type AgentSessionEvent =
   | (BaseAgentSessionEvent & { eventType: 'agent_generate'; data: AgentGenerateData })
   | (BaseAgentSessionEvent & { eventType: 'agent_reasoning'; data: AgentReasoningData })
@@ -64,7 +62,6 @@ export type EventData =
   | ToolResultData
   | ErrorEventData;
 
-// Mapping type that associates each event type with its data type
 export type EventDataMap = {
   agent_generate: AgentGenerateData;
   agent_reasoning: AgentReasoningData;
@@ -77,7 +74,6 @@ export type EventDataMap = {
   error: ErrorEventData;
 };
 
-// Helper type to construct a properly-typed event from generic parameter T
 type MakeAgentSessionEvent<T extends AgentSessionEventType> = BaseAgentSessionEvent & {
   eventType: T;
   data: EventDataMap[T];
@@ -182,10 +178,7 @@ export class AgentSession {
   ) {
     logger.debug({ sessionId, messageId, agentId }, 'AgentSession created');
 
-    // Initialize session-scoped services if we have required context
     if (tenantId && projectId) {
-      // Create the shared ToolSession for this agent execution
-      // All agents in this execution will use this same session
 
       toolSessionManager.createSessionWithId(
         sessionId,
@@ -195,7 +188,6 @@ export class AgentSession {
         `task_${contextId}-${messageId}` // Create a taskId based on context and message
       );
 
-      // Create ArtifactService that uses this ToolSession
       this.artifactService = new ArtifactService({
         tenantId,
         projectId,
@@ -205,7 +197,6 @@ export class AgentSession {
         streamRequestId: sessionId,
       });
 
-      // Create ArtifactParser that uses the session-scoped ArtifactService
       this.artifactParser = new ArtifactParser(tenantId, {
         projectId,
         sessionId: sessionId,
@@ -235,7 +226,6 @@ export class AgentSession {
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
-        // Format like SummaryEvent with type, label, details
         const formattedOperation = {
           type: event.eventType,
           label: this.generateEventLabel(event),
@@ -270,31 +260,22 @@ export class AgentSession {
       case 'agent_reasoning':
         return `Agent ${event.subAgentId} reasoning through request`;
       case 'tool_call':
-        // TypeScript automatically narrows event.data to ToolCallData here
         return `Tool call: ${event.data.toolName || 'unknown'}`;
       case 'tool_result': {
-        // TypeScript automatically narrows event.data to ToolResultData here
         const status = event.data.error ? 'failed' : 'completed';
         return `Tool result: ${event.data.toolName || 'unknown'} (${status})`;
       }
       case 'error':
-        // TypeScript automatically narrows event.data to ErrorEventData here
         return `Error: ${event.data.message}`;
       case 'transfer':
-        // TypeScript automatically narrows event.data to TransferData here
         return `Agent transfer: ${event.data.fromSubAgent} → ${event.data.targetSubAgent}`;
       case 'delegation_sent':
-        // TypeScript automatically narrows event.data to DelegationSentData here
         return `Task delegated: ${event.data.fromSubAgent} → ${event.data.targetSubAgent}`;
       case 'delegation_returned':
-        // TypeScript automatically narrows event.data to DelegationReturnedData here
         return `Task completed: ${event.data.targetSubAgent} → ${event.data.fromSubAgent}`;
       case 'artifact_saved':
-        // TypeScript automatically narrows event.data to ArtifactSavedData here
         return `Artifact saved: ${event.data.artifactType || 'unknown type'}`;
       default:
-        // This should never happen due to exhaustive case handling above
-        // Type assertion for runtime safety
         return `${(event as AgentSessionEvent).eventType} event`;
     }
   }
@@ -321,10 +302,8 @@ export class AgentSession {
       },
     };
 
-    // Set up time-based updates if configured
     if (this.statusUpdateState.config.timeInSeconds) {
       this.statusUpdateTimer = setInterval(async () => {
-        // Guard against cleanup race condition
         if (!this.statusUpdateState || this.isEnded) {
           logger.debug(
             { sessionId: this.sessionId },
@@ -358,17 +337,14 @@ export class AgentSession {
     subAgentId: string,
     data: EventDataMap[T]
   ): void {
-    // Don't record events or trigger updates if session has ended
 
     if (this.isEmitOperations) {
-      // Construct event with proper typing from generic parameter T
       const dataOpEvent: MakeAgentSessionEvent<T> = {
         timestamp: Date.now(),
         eventType,
         subAgentId,
         data,
       };
-      // Type assertion to union is safe - MakeAgentSessionEvent<T> matches a union member
       this.sendDataOperation(dataOpEvent as AgentSessionEvent);
     }
 
@@ -384,7 +360,6 @@ export class AgentSession {
       return;
     }
 
-    // Construct event with proper typing from generic parameter T
     const event: MakeAgentSessionEvent<T> = {
       timestamp: Date.now(),
       eventType,
@@ -392,18 +367,14 @@ export class AgentSession {
       data,
     };
 
-    // Type assertion to union is safe - MakeAgentSessionEvent<T> matches a union member
     this.events.push(event as AgentSessionEvent);
 
-    // Process artifact if it's pending generation
     if (eventType === 'artifact_saved') {
-      // Type assertion needed: TypeScript can't narrow generic T based on runtime check
       const artifactData = data as ArtifactSavedData;
 
       if (artifactData.pendingGeneration) {
         const artifactId = artifactData.artifactId;
 
-        // Check for backpressure - prevent unbounded growth of pending artifacts
         if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
           logger.warn(
             {
@@ -417,26 +388,19 @@ export class AgentSession {
           return;
         }
 
-        // Track this artifact as pending
         this.pendingArtifacts.add(artifactId);
 
-        // Fire and forget - process artifact completely asynchronously without any blocking
         setImmediate(() => {
-          // No await, no spans at trigger level - truly fire and forget
-          // Include subAgentId from the event in the artifact data
           const artifactDataWithAgent = { ...artifactData, subAgentId };
           this.processArtifact(artifactDataWithAgent)
             .then(() => {
-              // Remove from pending on success
               this.pendingArtifacts.delete(artifactId);
               this.artifactProcessingErrors.delete(artifactId);
             })
             .catch((error) => {
-              // Track error count
               const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
               this.artifactProcessingErrors.set(artifactId, errorCount);
 
-              // Remove from pending after max retries
               if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
                 this.pendingArtifacts.delete(artifactId);
                 logger.error(
@@ -451,7 +415,6 @@ export class AgentSession {
                   'Artifact processing failed after max retries, giving up'
                 );
               } else {
-                // Keep in pending for potential retry
                 logger.warn(
                   {
                     sessionId: this.sessionId,
@@ -467,7 +430,6 @@ export class AgentSession {
       }
     }
 
-    // Trigger status updates check (only sends if thresholds met)
     if (!this.isEnded) {
       this.checkStatusUpdates();
     }
@@ -490,9 +452,7 @@ export class AgentSession {
       return;
     }
 
-    // Status updates are enabled by having statusUpdateState
 
-    // Store reference to prevent race condition during async execution
     const statusUpdateState = this.statusUpdateState;
 
     // Schedule async update check with proper error handling
@@ -1214,7 +1174,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     for (const event of events) {
       switch (event.eventType) {
         case 'tool_call': {
-          // TypeScript automatically narrows event.data to ToolCallData here
           activities.push(
             `🔧 **${event.data.toolName}** (called)\n` +
               `   📥 Input: ${JSON.stringify(event.data.input)}`
@@ -1223,7 +1182,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         case 'tool_result': {
-          // TypeScript automatically narrows event.data to ToolResultData here
           const resultStr = event.data.error
             ? `❌ Error: ${event.data.error}`
             : JSON.stringify(event.data.output);
@@ -1236,7 +1194,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         case 'error': {
-          // TypeScript automatically narrows event.data to ErrorEventData here
           activities.push(
             `❌ **Error**: ${event.data.message}\n` +
               `   🔍 Code: ${event.data.code || 'unknown'}\n` +
@@ -1255,7 +1212,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
 
         case 'agent_reasoning': {
-          // TypeScript automatically narrows event.data to AgentReasoningData here
           // Present as analysis without mentioning agents
           activities.push(
             `⚙️ **Analyzing request**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
@@ -1264,7 +1220,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         case 'agent_generate': {
-          // TypeScript automatically narrows event.data to AgentGenerateData here
           // Present as response preparation without mentioning agents
           activities.push(
             `⚙️ **Preparing response**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
@@ -1273,8 +1228,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         default: {
-          // This should never happen due to exhaustive case handling above
-          // Type assertion for runtime safety
           const safeEvent = event as AgentSessionEvent;
           activities.push(
             `📋 **${safeEvent.eventType}**: ${JSON.stringify(safeEvent.data, null, 2)}`

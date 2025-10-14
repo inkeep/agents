@@ -81,15 +81,13 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-// Constants for agent configuration
 const CONSTANTS = {
   MAX_GENERATION_STEPS: 12,
-  PHASE_1_TIMEOUT_MS: 270_000, // 4.5 minutes for streaming phase 1
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000, // 1.5 minutes for non-streaming phase 1
-  PHASE_2_TIMEOUT_MS: 90_000, // 1.5 minutes for phase 2 structured output
+  PHASE_1_TIMEOUT_MS: 270_000,
+  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000,
+  PHASE_2_TIMEOUT_MS: 90_000,
 } as const;
 
-// Helper function to validate model strings
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -143,7 +141,6 @@ export type DelegateRelation =
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
-// Type guard to validate MCP tools have the expected AI SDK structure
 function isValidTool(
   tool: any
 ): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
@@ -155,8 +152,6 @@ function isValidTool(
     typeof tool.execute === 'function'
   );
 }
-
-// LLM Generated Information as a config LLM? Separate Step?
 
 export class Agent {
   private config: AgentConfig;
@@ -173,10 +168,8 @@ export class Agent {
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
-    // Store artifact components separately
     this.artifactComponents = config.artifactComponents || [];
 
-    // Process dataComponents (now only component-type)
     let processedDataComponents = config.dataComponents || [];
 
     if (processedDataComponents.length > 0) {
@@ -199,7 +192,6 @@ export class Agent {
       });
     }
 
-    // If we have artifact components, add the default artifact data components for response hydration
     if (
       this.artifactComponents.length > 0 &&
       config.dataComponents &&
@@ -214,15 +206,12 @@ export class Agent {
     this.config = {
       ...config,
       dataComponents: processedDataComponents,
-      // Set default conversation history if not provided
       conversationHistoryConfig:
         config.conversationHistoryConfig || createDefaultConversationHistoryConfig(),
     };
 
-    // Store the credential store registry
     this.credentialStoreRegistry = credentialStoreRegistry;
 
-    // Use provided credential store registry if available
     if (credentialStoreRegistry) {
       this.contextResolver = new ContextResolver(
         config.tenantId,
@@ -250,7 +239,6 @@ export class Agent {
     const sanitizedTools: ToolSet = {};
 
     for (const [originalKey, toolDef] of Object.entries(tools)) {
-      // Sanitize the tool key (object property name)
       let sanitizedKey = originalKey.replace(/[^a-zA-Z0-9_-]/g, '_');
       sanitizedKey = sanitizedKey.replace(/_+/g, '_');
       sanitizedKey = sanitizedKey.replace(/^_+|_+$/g, '');
@@ -263,7 +251,6 @@ export class Agent {
         sanitizedKey = sanitizedKey.substring(0, 100);
       }
 
-      // Clone the tool with a sanitized ID
       const originalId = (toolDef as any).id || originalKey;
       let sanitizedId = originalId.replace(/[^a-zA-Z0-9_.-]/g, '_');
       sanitizedId = sanitizedId.replace(/_+/g, '_');
@@ -273,7 +260,6 @@ export class Agent {
         sanitizedId = sanitizedId.substring(0, 128);
       }
 
-      // Create a new tool object with sanitized ID
       const sanitizedTool = {
         ...toolDef,
         id: sanitizedId,
@@ -312,11 +298,9 @@ export class Agent {
       );
     }
 
-    // Use structured output config if available, otherwise fall back to base
     const structuredConfig = this.config.models.structuredOutput;
     const baseConfig = this.config.models.base;
 
-    // If structured output is explicitly configured, use only its config
     if (structuredConfig) {
       return {
         model: validateModel(structuredConfig.model, 'Structured output'),
@@ -324,7 +308,6 @@ export class Agent {
       };
     }
 
-    // Fall back to base model settings if structured output not configured
     if (!baseConfig) {
       throw new Error(
         'Base model configuration is required for structured output fallback. Please configure models at the project level.'
@@ -373,7 +356,6 @@ export class Agent {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
-        // Ensure we always have a toolCallId (from AI SDK or generated)
         const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
@@ -387,14 +369,12 @@ export class Agent {
           });
         }
 
-        // Check if this is an internal tool to skip from recording
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
           toolName.startsWith('transfer_to_') ||
           toolName.startsWith('delegate_to_');
 
-        // Record tool call start (skip internal tools)
         if (streamRequestId && !isInternalTool) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
@@ -407,7 +387,6 @@ export class Agent {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
-          // Record tool result (skip internal tools)
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
@@ -422,7 +401,6 @@ export class Agent {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // Record tool result with error (skip internal tools)
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
@@ -506,22 +484,18 @@ export class Agent {
   }
 
   async getMcpTools(sessionId?: string, streamRequestId?: string) {
-    // Filter out function tools - only process MCP tools
     const mcpTools =
       this.config.tools?.filter((tool) => {
-        // Only process tools that have MCP configuration
         return tool.config?.type === 'mcp';
       }) || [];
 
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
 
-    // If no sessionId, return tools as-is (for system prompt building)
     if (!sessionId) {
       const combinedTools = tools.reduce((acc, tool) => {
         return Object.assign(acc, tool) as ToolSet;
       }, {} as ToolSet);
 
-      // Just wrap with streaming capability
       const wrappedTools: ToolSet = {};
       for (const [toolName, toolDef] of Object.entries(combinedTools)) {
         wrappedTools[toolName] = this.wrapToolWithStreaming(
@@ -534,17 +508,14 @@ export class Agent {
       return wrappedTools;
     }
 
-    // Wrap each MCP tool to record results immediately upon execution
     const wrappedTools: ToolSet = {};
     for (const toolSet of tools) {
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
-        // Type guard to ensure we have a valid AI SDK tool
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
 
-        // First wrap with session management
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
@@ -552,16 +523,12 @@ export class Agent {
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
-              // Call the original MCP tool with proper error handling
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              // Parse any embedded JSON in the result
               const parsedResult = parseEmbeddedJson(rawResult);
 
-              // Analyze result structure and add path hints for artifact creation
               const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
 
-              // Record the enhanced result in the session manager
 
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
@@ -579,7 +546,6 @@ export class Agent {
           },
         });
 
-        // Then wrap with streaming capability
         wrappedTools[toolName] = this.wrapToolWithStreaming(
           toolName,
           sessionWrappedTool,
@@ -599,7 +565,6 @@ export class Agent {
     tool: McpTool,
     agentToolRelationHeaders?: Record<string, string>
   ): MCPToolConfig {
-    // Type guard - should only be called for MCP tools
     if (tool.config.type !== 'mcp') {
       throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
     }
@@ -641,11 +606,9 @@ export class Agent {
     const selectedTools =
       toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
 
-    // Build server config with credentials using new architecture
     let serverConfig: McpServerConfig;
 
     if (credentialReferenceId && this.credentialStuffer) {
-      // Database lookup to get credential store configuration
       const credentialReference = await getCredentialReference(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
@@ -687,7 +650,6 @@ export class Agent {
         selectedTools
       );
     } else {
-      // No credentials - build basic config
       // Type guard - should only reach here for MCP tools
       if (tool.config.type !== 'mcp') {
         throw new Error(`Cannot build server config for non-MCP tool: ${tool.id}`);
@@ -720,21 +682,17 @@ export class Agent {
     }
 
     if (!client) {
-      // Check if there's already a connection attempt in progress
       let connectionPromise = this.mcpConnectionLocks.get(cacheKey);
 
       if (!connectionPromise) {
-        // No existing attempt - create new connection promise
         connectionPromise = this.createMcpConnection(tool, serverConfig);
         this.mcpConnectionLocks.set(cacheKey, connectionPromise);
       }
 
       try {
         client = await connectionPromise;
-        // Only cache successful connections
         this.mcpClientCache.set(cacheKey, client);
       } catch (error) {
-        // Clean up failed connection attempt
         this.mcpConnectionLocks.delete(cacheKey);
         logger.error(
           {
@@ -749,10 +707,8 @@ export class Agent {
       }
     }
 
-    // For all cases (cached, locked, or newly created), get the tools
     const tools = await client.tools();
 
-    // Record event if no tools are available
     if (!tools || Object.keys(tools).length === 0) {
       const streamRequestId = this.getStreamRequestId();
       if (streamRequestId) {
@@ -801,7 +757,6 @@ export class Agent {
     tool: McpTool,
     serverConfig: McpServerConfig
   ): Promise<McpClient> {
-    // Create and connect MCP client
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
@@ -839,7 +794,6 @@ export class Agent {
     const functionTools: ToolSet = {};
 
     try {
-      // Load function tools from the new functionTools API
       const functionToolsForAgent = await getFunctionToolsForSubAgent(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
@@ -855,12 +809,10 @@ export class Agent {
         return functionTools;
       }
 
-      // Import LocalSandboxExecutor dynamically to avoid circular dependencies
       const { LocalSandboxExecutor } = await import('../tools/LocalSandboxExecutor');
       const sandboxExecutor = LocalSandboxExecutor.getInstance();
 
       for (const functionToolDef of functionToolsData) {
-        // Get function details from global functions table via functionId
         const functionId = functionToolDef.functionId;
         if (!functionId) {
           logger.warn(
@@ -885,7 +837,6 @@ export class Agent {
           continue;
         }
 
-        // Convert JSON schema to Zod schema
         const zodSchema = jsonSchemaToZod(functionData.inputSchema);
 
         const aiTool = tool({
@@ -898,7 +849,6 @@ export class Agent {
             );
 
             try {
-              // Get project sandbox config
               const project = await getProject(dbClient)({
                 scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
               });
@@ -918,7 +868,6 @@ export class Agent {
                 sandboxConfig: project?.sandboxConfig || defaultSandboxConfig,
               });
 
-              // Record the result
               toolSessionManager.recordToolResult(sessionId || '', {
                 toolCallId,
                 toolName: functionToolDef.name,
@@ -947,7 +896,6 @@ export class Agent {
       }
     } catch (error) {
       logger.error({ error }, 'Failed to load function tools from database');
-      // Don't throw - continue without function tools
     }
 
     return functionTools;
@@ -966,7 +914,6 @@ export class Agent {
         return null;
       }
 
-      // Get context configuration
       const contextConfig = await getContextConfigById(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
@@ -984,7 +931,6 @@ export class Agent {
         throw new Error('Context resolver not found');
       }
 
-      // Resolve context with 'invocation' trigger to ensure fresh data for invocation definitions
       const result = await this.contextResolver.resolve(contextConfig, {
         triggerEvent: 'invocation',
         conversationId,
@@ -992,7 +938,6 @@ export class Agent {
         tenantId: this.config.tenantId,
       });
 
-      // Add built-in variables to resolved context
       const contextWithBuiltins = {
         ...result.resolvedContext,
         $now: new Date().toISOString(),
@@ -1068,7 +1013,6 @@ export class Agent {
         return false;
       }
 
-      // Check if any agent in the agent has artifact components
       return Object.values(agentDefinition.subAgents).some(
         (subAgent) =>
           'artifactComponents' in subAgent &&
@@ -1085,7 +1029,6 @@ export class Agent {
         },
         'Failed to check agent artifact components, assuming none exist'
       );
-      // Fallback to current agent's artifact components if agent query fails
       return this.artifactComponents.length > 0;
     }
   }
@@ -1106,11 +1049,9 @@ export class Agent {
     const phase2Config = new Phase2Config();
     const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
-    // Get resolved context using ContextResolver
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    // Process agent prompt with context (same logic as buildSystemPrompt)
     let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
@@ -1130,7 +1071,6 @@ export class Agent {
       }
     }
 
-    // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
     const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
       contextId: this.conversationId || '',
     });
@@ -1169,17 +1109,14 @@ export class Agent {
     },
     excludeDataComponents: boolean = false
   ): Promise<string> {
-    // Get resolved context using ContextResolver
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-    // Set conversation ID if available
     if (conversationId) {
       this.setConversationId(conversationId);
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    // Process agent prompt with context
     let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
@@ -1199,13 +1136,11 @@ export class Agent {
       }
     }
 
-    // Get MCP tools, function tools, and relational tools
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
     const mcpTools = await this.getMcpTools(undefined, streamRequestId);
     const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
 
-    // Convert ToolSet objects to ToolData array format for system prompt
     const allTools = { ...mcpTools, ...functionTools, ...relationTools };
 
     logger.info(
@@ -1234,7 +1169,6 @@ export class Agent {
           : 'Use this tool when appropriate for the task at hand.',
     }));
 
-    // Get artifacts that match the conversation history scope
     const { getConversationScopedArtifacts } = await import('../data/conversations');
     const historyConfig =
       this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
@@ -1246,17 +1180,13 @@ export class Agent {
       historyConfig,
     });
 
-    // Use component dataComponents for system prompt (artifacts already separated in constructor)
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
 
-    // Use thinking/preparation mode when we have data components but are excluding them (Phase 1)
     const isThinkingPreparation =
       this.config.dataComponents && this.config.dataComponents.length > 0 && excludeDataComponents;
 
-    // Get agent prompt for additional context
     let prompt = await this.getPrompt();
 
-    // Process agent prompt with context variables
     if (prompt && resolvedContext) {
       try {
         prompt = TemplateEngine.render(prompt, resolvedContext, {
@@ -1271,15 +1201,11 @@ export class Agent {
           },
           'Failed to process agent prompt with context, using original'
         );
-        // prompt remains unchanged if processing fails
       }
     }
 
-    // When excludeDataComponents = true (Phase 1 of two-phase), don't include artifact components
-    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    // Check if any agent in the agent has artifact components (for referencing guidance)
     const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
     const config: SystemPromptV1 = {
@@ -1701,7 +1627,6 @@ export class Agent {
         this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
         const conversationId = runtimeContext?.metadata?.conversationId;
 
-        // Set conversation ID if available
         if (conversationId) {
           this.setConversationId(conversationId);
         }
