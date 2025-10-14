@@ -424,8 +424,8 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.agentPrompt) {
-    (result as any).agentPrompt = metadata.agentPrompt;
+  if (metadata?.prompt) {
+    (result as any).prompt = metadata.prompt;
   }
 
   if (metadata?.statusUpdates) {

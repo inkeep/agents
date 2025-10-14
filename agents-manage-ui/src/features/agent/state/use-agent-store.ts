@@ -81,7 +81,7 @@ export const agentStore = create<AgentState>()(
       },
       models: undefined,
       stopWhen: undefined,
-      agentPrompt: undefined,
+      prompt: undefined,
       statusUpdates: undefined,
     },
     dataComponentLookup: {},
