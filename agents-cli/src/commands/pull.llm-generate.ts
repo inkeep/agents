@@ -510,7 +510,7 @@ prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
 prompt: '<{{subAgents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
-import { agent, agent, statusComponent } from '@inkeep/agents-sdk';
+import { agent, agent } from '@inkeep/agents-sdk';
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';

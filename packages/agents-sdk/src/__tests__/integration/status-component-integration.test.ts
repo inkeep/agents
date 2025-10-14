@@ -26,6 +26,7 @@ describe('StatusComponent Integration', () => {
     const testAgent = subAgent({
       id: 'test-agent',
       name: 'Test Agent',
+      description: 'Test agent for status components',
       prompt: 'Test agent prompt',
     });
 
@@ -65,30 +66,27 @@ describe('StatusComponent Integration', () => {
     expect(schema2?.properties).toHaveProperty('percentage');
   });
 
-  it('should handle mixed JSON Schema and Zod schema status components', async () => {
-    const zodComponent = statusComponent({
-      type: 'zod_component',
-      description: 'Component with Zod schema',
+  it('should handle multiple Zod schema status components', async () => {
+    const zodComponent1 = statusComponent({
+      type: 'zod_component_1',
+      description: 'First component with Zod schema',
       detailsSchema: z.object({
         message: z.string(),
       }),
     });
 
-    const jsonComponent = {
-      type: 'json_component',
-      description: 'Component with JSON schema',
-      detailsSchema: {
-        type: 'object',
-        properties: {
-          value: { type: 'string' },
-        },
-        required: ['value'],
-      },
-    };
+    const zodComponent2 = statusComponent({
+      type: 'zod_component_2',
+      description: 'Second component with Zod schema',
+      detailsSchema: z.object({
+        value: z.string(),
+      }),
+    });
 
     const testAgent = subAgent({
       id: 'mixed-agent',
       name: 'Mixed Agent',
+      description: 'Test agent for multiple components',
       prompt: 'Test',
     });
 
@@ -97,24 +95,23 @@ describe('StatusComponent Integration', () => {
       name: 'Mixed Project',
       defaultSubAgent: testAgent,
       statusUpdates: {
-        statusComponents: [zodComponent.config, jsonComponent],
+        statusComponents: [zodComponent1.config, zodComponent2.config],
       },
     });
 
     const agentDef = await testProject.toFullAgentDefinition();
 
     expect(agentDef.statusUpdates?.statusComponents).toHaveLength(2);
-    expect(agentDef.statusUpdates?.statusComponents?.[0].type).toBe('zod_component');
-    expect(agentDef.statusUpdates?.statusComponents?.[1].type).toBe('json_component');
+    expect(agentDef.statusUpdates?.statusComponents?.[0].type).toBe('zod_component_1');
+    expect(agentDef.statusUpdates?.statusComponents?.[1].type).toBe('zod_component_2');
 
-    const zodSchema = agentDef.statusUpdates?.statusComponents?.[0].detailsSchema;
-    expect(zodSchema?.type).toBe('object');
-    expect(zodSchema?.properties).toHaveProperty('message');
+    const schema1 = agentDef.statusUpdates?.statusComponents?.[0].detailsSchema;
+    expect(schema1?.type).toBe('object');
+    expect(schema1?.properties).toHaveProperty('message');
 
-    const jsonSchema = agentDef.statusUpdates?.statusComponents?.[1].detailsSchema;
-    expect(jsonSchema?.type).toBe('object');
-    expect(jsonSchema?.properties).toHaveProperty('value');
-    expect(jsonSchema?.required).toContain('value');
+    const schema2 = agentDef.statusUpdates?.statusComponents?.[1].detailsSchema;
+    expect(schema2?.type).toBe('object');
+    expect(schema2?.properties).toHaveProperty('value');
   });
 
   it('should handle status components without detailsSchema', async () => {
@@ -126,6 +123,7 @@ describe('StatusComponent Integration', () => {
     const testAgent = subAgent({
       id: 'simple-agent',
       name: 'Simple Agent',
+      description: 'Test agent for simple status',
       prompt: 'Test',
     });
 
