@@ -21,6 +21,10 @@ import { Tool } from './tool';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
+/**
+ * Helper function to create agent - OpenAI style
+ */
+
 export function agent(config: AgentConfig): Agent {
   return new Agent(config);
 }
@@ -62,6 +66,29 @@ export function project(config: ProjectConfig): Project {
   return new Project(config);
 }
 
+// ============================================================================
+// Agent Builders
+// ============================================================================
+/**
+ * Creates a new agent with stable ID enforcement.
+ *
+ * Agents require explicit stable IDs to ensure consistency across deployments.
+ * This is different from tools which auto-generate IDs from their names.
+ *
+ * @param config - Agent configuration including required stable ID
+ * @returns A new SubAgent instance
+ * @throws {Error} If config.id is not provided
+ *
+ * @example
+ * ```typescript
+ * const myAgent = agent({
+ *   id: 'customer-support-agent',
+ *   name: 'Customer Support',
+ *   prompt: 'Help customers with their questions'
+ * });
+ * ```
+ */
+
 export function subAgent(config: SubAgentConfig): SubAgent {
   if (!config.id) {
     throw new Error(
@@ -69,8 +96,9 @@ export function subAgent(config: SubAgentConfig): SubAgent {
     );
   }
   return new SubAgent(config);
-}
-
+} // ============================================================================
+// Credential Builders
+// ============================================================================
 /**
  * Creates a credential reference for authentication.
  *
@@ -89,10 +117,12 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  * });
  * ```
  */
+
 export function credential(config: CredentialReferenceApiInsert) {
   return CredentialReferenceApiInsertSchema.parse(config);
-}
-
+} // ============================================================================
+// Tool Builders
+// ============================================================================
 /**
  * Creates an MCP (Model Context Protocol) server for tool functionality.
  *
@@ -125,13 +155,16 @@ export function credential(config: CredentialReferenceApiInsert) {
  * });
  * ```
  */
+
 export function mcpServer(config: MCPServerConfig): Tool {
   if (!config.serverUrl) {
     throw new Error('MCP server requires a serverUrl');
   }
 
+  // Generate ID if not provided
   const id = config.id || generateIdFromName(config.name);
 
+  // Create Tool instance for MCP server
   return new Tool({
     id,
     name: config.name,

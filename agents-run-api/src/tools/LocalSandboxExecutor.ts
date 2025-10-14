@@ -429,6 +429,9 @@ export class LocalSandboxExecutor {
 
   private async installDependencies(sandboxDir: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Configure npm environment variables to use sandbox directory
+      // This fixes issues in serverless environments like Vercel where
+      // the default home directory paths don't exist or aren't writable
       const npmEnv = {
         ...process.env,
         npm_config_cache: join(sandboxDir, '.npm-cache'),
@@ -568,13 +571,16 @@ export class LocalSandboxExecutor {
 
   private wrapFunctionCode(executeCode: string, args: any): string {
     return `
+// Wrapped function execution (ESM)
 const execute = ${executeCode};
 const args = ${JSON.stringify(args)};
 
 try {
   const result = execute(args);
-  
+
+  // Handle both sync and async functions
   if (result && typeof result.then === 'function') {
+    // Async function - result is a Promise
     result
       .then(result => {
         console.log(JSON.stringify({ success: true, result }));
@@ -583,6 +589,7 @@ try {
         console.log(JSON.stringify({ success: false, error: error.message }));
       });
   } else {
+    // Sync function - result is immediate
     console.log(JSON.stringify({ success: true, result }));
   }
 } catch (error) {

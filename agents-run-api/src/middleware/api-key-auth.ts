@@ -183,6 +183,10 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
   });
 };
 
+/**
+ * Helper middleware for endpoints that optionally support API key authentication
+ * If no auth header is present, it continues without setting the executionContext
+ */
 export const optionalAuth = () =>
   createMiddleware<{
     Variables: {
