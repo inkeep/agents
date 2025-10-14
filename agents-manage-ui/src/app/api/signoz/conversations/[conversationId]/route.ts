@@ -32,7 +32,7 @@ axiosRetry(axios, {
 
 export const dynamic = 'force-dynamic';
 
-const SIGNOZ_URL = process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
+const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // ---------- Types
@@ -1121,7 +1121,11 @@ export async function GET(
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.AI_ASSISTANT,
-        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME_ALT, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
