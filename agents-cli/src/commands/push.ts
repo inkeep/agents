@@ -167,9 +167,12 @@ export async function pushCommand(options: PushOptions) {
         // Show a summary of what was saved
         const agentCount = Object.keys(projectDefinition.agents || {}).length;
         const toolCount = Object.keys(projectDefinition.tools || {}).length;
-        const subAgentCount = Object.values(projectDefinition.agents || {}).reduce((total, agent) => {
-          return total + Object.keys(agent.subAgents || {}).length;
-        }, 0);
+        const subAgentCount = Object.values(projectDefinition.agents || {}).reduce(
+          (total, agent) => {
+            return total + Object.keys(agent.subAgents || {}).length;
+          },
+          0
+        );
 
         console.log(chalk.cyan('\n📊 Project Data Summary:'));
         console.log(chalk.gray(`  • Agent: ${agentCount}`));

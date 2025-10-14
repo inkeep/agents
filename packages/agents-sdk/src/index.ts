@@ -10,6 +10,7 @@ export {
   mcpServer,
   mcpTool,
   project,
+  statusComponent,
   subAgent,
 } from './builderFunctions';
 export { transfer } from './builders';
@@ -39,6 +40,7 @@ export {
   updateFullProjectViaAPI,
 } from './projectFullClient';
 export { Runner, raceAgents, run, stream } from './runner';
+export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
 export { Tool } from './tool';
 export type * from './types';

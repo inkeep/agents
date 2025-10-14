@@ -459,22 +459,48 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Import { agent, subAgent } from '@inkeep/agents-sdk'
+1. IMPORTS (CRITICAL):
+   - ALWAYS import { agent, subAgent } from '@inkeep/agents-sdk'
+   - ALWAYS import { z } from 'zod' when using ANY Zod schemas (responseSchema, headersSchema, etc.)
+   - ALWAYS import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core' when agent has contextConfig
+   - Import status components from '../status-components/' when needed
 2. Define each agent using the agent() function following the type definitions provided above
 3. Create the agent using agent() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
-4. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
-   - Single-line strings: use regular quotes 'short string'
-   - Multi-line strings: MUST use template literals starting and ending with backticks
+4. CRITICAL: Template Literals vs Raw Code:
+   - For STRING VALUES: ALWAYS use template literals with backticks: \`string content\`
+   - This includes: prompt, description, query, url, method, body, defaultValue, etc.
+   - This prevents TypeScript syntax errors with apostrophes (user's, don't, etc.)
    - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
-   - Placeholders contain multi-line content and require template literals
-   - This prevents TypeScript syntax errors with newlines and special characters
-   - you must import { z } from 'zod' if you are using zod schemas in the agent file.
-   - you must import { headers } from '@inkeep/agents-core' and use it to create the headers schema if you are using headers in a contextConfig.
+   - For object keys: use quotes only for keys with hyphens ('Content-Type'), omit for simple identifiers (Authorization)
+   
+   EXCEPTION - Schema Fields (NO template literals):
+   - headersSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - responseSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - These are TypeScript expressions, not string values
+   
+   Examples:
+   ✅ prompt: \`You are a helpful assistant.\` (string value, use backticks)
+   ✅ query: \`query GetData { field }\` (string value, use backticks)
+   ✅ responseSchema: z.object({ name: z.string() }) (Zod code, NO backticks)
+   ✅ headersSchema: z.object({ 'inkeep_api_key': z.string() }) (Zod code, NO backticks)
+   ❌ responseSchema: \`z.object({ name: z.string() })\` (WRONG - don't wrap Zod in backticks)
+   
    - convert template literals to use the appropriate headers schema or context config toTemplate method. a template literal is a substring that starts with {{ and ends with }}.
     - if you see a template literal with {{headers.}}, convert it to use the headers schema toTemplate method.
     - if you see a template literal with {{contextVariableKey.field_name}}, convert it to use the context config toTemplate method.
-6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+5. For contextConfig (CRITICAL):
+   - NEVER use plain objects for contextConfig
+   - ALWAYS use helper functions: headers(), fetchDefinition(), contextConfig()
+   - Create separate const variables for each helper before the agent definition
+   - Pattern: const myHeaders = headers({ schema: z.object({ api_key: z.string() }) });
+   - Pattern: const myFetch = fetchDefinition({ id: '...', fetchConfig: {...}, responseSchema: z.object({...}) });
+   - Pattern: const myContext = contextConfig({ headers: myHeaders, contextVariables: { data: myFetch } });
+   - Then use: export const myAgent = agent({ contextConfig: myContext });
+   - Use myHeaders.toTemplate('key_name') for header interpolation in fetch configs
+   - Use myContext.toTemplate('variable.field') for context variable interpolation
+
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 PLACEHOLDER HANDLING EXAMPLES:
 // CORRECT - Placeholder wrapped in template literals:
@@ -484,11 +510,13 @@ prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
 prompt: '<{{subAgents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
-import { agent, agent } from '@inkeep/agents-sdk';
+import { agent, agent, statusComponent } from '@inkeep/agents-sdk';
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
+import { toolSummary } from '../status-components/tool-summary';
+import { progressStatus } from '../status-components/progress-status';
 import { z } from 'zod';
 
 const supportAgentHeaders = headers({
@@ -553,7 +581,16 @@ export const supportAgent = agent({
   name: 'Support Agent',
   description: 'Multi-agent support system', // Only include if description has a value
   defaultSubAgent: routerAgent,
-  subAgents: () => [routerAgent, qaAgent]
+  subAgents: () => [routerAgent, qaAgent],
+  models: {
+    base: { model: 'gpt-4' },
+    summarizer: { model: 'gpt-4' },
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    statusComponents: [toolSummary.config, progressStatus.config],
+  },
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -873,6 +910,87 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate a status component TypeScript file
+ */
+export async function generateStatusComponentFile(
+  componentData: any,
+  componentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const promptTemplate = `Generate a TypeScript file for an Inkeep status component.
+
+STATUS COMPONENT DATA:
+{{DATA}}
+
+COMPONENT ID: ${componentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
+REQUIREMENTS:
+1. Import statusComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Create the status component using statusComponent()
+4. Export following naming convention rules (camelCase version of ID)
+5. Use 'type' field as the identifier (like 'tool_summary')
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+8. The statusComponent() function handles conversion to .config automatically
+
+EXAMPLE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const toolSummary = statusComponent({
+  type: 'tool_summary',
+  description: 'Summary of tool calls and their purpose',
+  detailsSchema: z.object({
+    tool_name: z.string().describe('Name of tool used'),
+    summary: z.string().describe('What was discovered or accomplished'),
+  }),
+});
+
+EXAMPLE WITH HYPHEN TYPE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+// Component type 'search-progress' becomes export name 'searchProgress'
+export const searchProgress = statusComponent({
+  type: 'search-progress',
+  description: 'Progress of search operation',
+  detailsSchema: z.object({
+    query: z.string().describe('Search query being executed'),
+    results_found: z.number().describe('Number of results found'),
+    time_elapsed: z.number().optional().describe('Time elapsed in milliseconds'),
+  }),
+});
+
+EXAMPLE WITHOUT DETAILS SCHEMA:
+import { statusComponent } from '@inkeep/agents-sdk';
+
+export const simpleStatus = statusComponent({
+  type: 'simple_status',
+  description: 'A simple status with no additional details',
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000),
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));

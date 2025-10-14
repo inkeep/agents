@@ -87,14 +87,14 @@ Define default models at the project level that all agents and Sub Agents will i
 
 ### StopWhen Configuration
 
-Configure default stopping conditions that apply across your project:
+Configure default stopping conditions to prevent infinite loops:
 
 ```typescript
 {
   id: "my-project",
   stopWhen: {
-    transferCountIs: 5,    // Max transfers within a single conversation/session
-    stepCountIs: 20       // Max generation steps per individual agent execution
+    transferCountIs: 5,    // Max transfers between Sub Agents per conversation
+    stepCountIs: 20        // Max tool calls + LLM responses per Sub Agent execution
   }
 }
 ```
@@ -255,10 +255,10 @@ Sub Agent: {
 
 ### StopWhen Inheritance
 
-Different cascade rules apply based on the control scope:
+StopWhen settings inherit from Project → Agent → Sub Agent:
 
-- **`transferCountIs`**: Controls agent-level behavior → **Project** → **Agent** only
-- **`stepCountIs`**: Controls individual Sub Agent behavior → **Project** → **Agent** → **Sub Agent**
+- **`transferCountIs`**: Project or Agent level
+- **`stepCountIs`**: Project or Sub Agent level
 
 ```typescript
 // Project sets defaults

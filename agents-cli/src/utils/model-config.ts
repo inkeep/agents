@@ -1,5 +1,5 @@
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import inquirer from 'inquirer';
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
 
 export interface ModelConfigurationResult {
   modelSettings: {

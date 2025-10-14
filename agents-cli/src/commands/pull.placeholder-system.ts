@@ -113,7 +113,7 @@ function isJsonSchemaPath(path: string): boolean {
   if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
     return true;
   }
-  
+
   // Convert artifact component and data component props from JSON Schema to Zod
   if (path.includes('artifactComponents') && path.endsWith('props')) {
     return true;
@@ -121,7 +121,12 @@ function isJsonSchemaPath(path: string): boolean {
   if (path.includes('dataComponents') && path.endsWith('props')) {
     return true;
   }
-  
+
+  // Convert status component detailsSchema from JSON Schema to Zod
+  if (path.includes('statusComponents') && path.endsWith('detailsSchema')) {
+    return true;
+  }
+
   return false;
 }
 
@@ -250,9 +255,12 @@ export function restorePlaceholders(
   for (const placeholder of sortedPlaceholders) {
     let originalValue = replacements[placeholder];
 
-    // Escape backticks in the original value when restoring into template literals
-    // This prevents syntax errors when the restored content contains backticks
-    originalValue = originalValue.replace(/`/g, '\\`');
+    // Escape content for template literals (the LLM generates template literals for multi-line strings)
+    // Order matters: backslashes first, then special sequences
+    originalValue = originalValue
+      .replace(/\\/g, '\\\\') // Escape backslashes first
+      .replace(/`/g, '\\`') // Escape backticks
+      .replace(/\$\{/g, '\\${'); // Escape template literal interpolation
 
     // Use regex to find and replace all instances of the placeholder
     // Escape special regex characters in the placeholder

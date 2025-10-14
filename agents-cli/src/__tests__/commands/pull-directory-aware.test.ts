@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 // Mock all external dependencies
@@ -321,8 +320,8 @@ describe('Pull Command - Directory Aware', () => {
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
 
       // Should NOT create a subdirectory with project ID
-      const hasSubdirectory = mkdirCalls.some((path: string) =>
-        path.includes('test-project-id') && path !== process.cwd()
+      const hasSubdirectory = mkdirCalls.some(
+        (path: string) => path.includes('test-project-id') && path !== process.cwd()
       );
       expect(hasSubdirectory).toBe(false);
     });
@@ -359,9 +358,7 @@ describe('Pull Command - Directory Aware', () => {
 
       // Verify that a subdirectory with project ID is created
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
-      const hasSubdirectory = mkdirCalls.some((path: string) =>
-        path.includes('user-project-id')
-      );
+      const hasSubdirectory = mkdirCalls.some((path: string) => path.includes('user-project-id'));
       expect(hasSubdirectory).toBe(true);
     });
 
@@ -419,15 +416,16 @@ describe('Pull Command - Directory Aware', () => {
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
 
       // Should have created agents directory in currentDir
-      const agentsDir = mkdirCalls.find((path: string) =>
-        path.includes('/agents') && path.startsWith(currentDir)
+      const agentsDir = mkdirCalls.find(
+        (path: string) => path.includes('/agents') && path.startsWith(currentDir)
       );
       expect(agentsDir).toBeTruthy();
       expect(agentsDir).toContain(currentDir);
 
       // Should NOT have created agents directory in parentDir
-      const wrongAgentsDir = mkdirCalls.find((path: string) =>
-        path.includes('/agents') && path.startsWith(parentDir) && !path.startsWith(currentDir)
+      const wrongAgentsDir = mkdirCalls.find(
+        (path: string) =>
+          path.includes('/agents') && path.startsWith(parentDir) && !path.startsWith(currentDir)
       );
       expect(wrongAgentsDir).toBeUndefined();
 

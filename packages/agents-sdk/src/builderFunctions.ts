@@ -11,11 +11,13 @@ import type {
   ArtifactComponentConfig,
   DataComponentConfig,
   MCPServerConfig,
+  StatusComponentConfig,
 } from './builders';
 import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
+import { StatusComponent } from './status-component';
 import { SubAgent } from './subAgent';
 import { Tool } from './tool';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
@@ -277,6 +279,35 @@ export function dataComponent(config: DataComponentConfig): DataComponent {
     id: config.id || generateIdFromName(config.name),
   };
   return new DataComponent(configWithId);
+}
+
+/**
+ * Creates a status component for structured status updates.
+ *
+ * Status components define the structure of status updates
+ * that agents can generate during long-running operations.
+ *
+ * @param config - Status component configuration
+ * @returns A StatusComponent instance
+ *
+ * @example
+ * ```typescript
+ * import { z } from 'zod';
+ *
+ * const toolCallStatus = statusComponent({
+ *   type: 'tool_call_summary',
+ *   description: 'Summary of a tool execution',
+ *   detailsSchema: z.object({
+ *     tool_name: z.string(),
+ *     summary: z.string(),
+ *     status: z.enum(['success', 'error', 'in_progress'])
+ *   })
+ * });
+ * ```
+ */
+
+export function statusComponent(config: StatusComponentConfig): StatusComponent {
+  return new StatusComponent(config);
 }
 
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {

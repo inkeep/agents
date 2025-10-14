@@ -7,43 +7,42 @@
 
 import { writeFileSync } from 'node:fs';
 import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
-import { generateText } from 'ai';
 import {
-	cleanGeneratedCode,
-	createModel,
-	generateTextWithPlaceholders,
-	getTypeDefinitions,
-	IMPORT_INSTRUCTIONS,
-	NAMING_CONVENTION_RULES,
+  cleanGeneratedCode,
+  createModel,
+  generateTextWithPlaceholders,
+  getTypeDefinitions,
+  IMPORT_INSTRUCTIONS,
+  NAMING_CONVENTION_RULES,
 } from '../commands/pull.llm-generate';
 import type { DetectedPatterns } from './pattern-analyzer';
 import type { FileInfo, GenerationPlan } from './plan-builder';
 import type { VariableNameRegistry } from './variable-name-registry';
 
 export interface GenerationContext {
-	plan: GenerationPlan;
-	patterns: DetectedPatterns;
-	fileInfo: FileInfo;
-	exampleCode?: string; // Similar existing code to learn from
+  plan: GenerationPlan;
+  patterns: DetectedPatterns;
+  fileInfo: FileInfo;
+  exampleCode?: string; // Similar existing code to learn from
 }
 
 /**
  * Generate agent file with registry support
  */
 export async function generateAgentFileWithRegistry(
-	agentData: FullAgentDefinition,
-	agentId: string,
-	outputPath: string,
-	modelSettings: ModelSettings,
-	context: GenerationContext,
-	debug: boolean = false
+  agentData: FullAgentDefinition,
+  agentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings,
+  context: GenerationContext,
+  debug: boolean = false
 ): Promise<void> {
-	const model = createModel(modelSettings);
+  const model = createModel(modelSettings);
 
-	// Format registry mappings for this file
-	const registryInfo = formatRegistryForFile(context.fileInfo, context.plan.variableRegistry);
+  // Format registry mappings for this file
+  const registryInfo = formatRegistryForFile(context.fileInfo, context.plan.variableRegistry);
 
-	const promptTemplate = `Generate a TypeScript file for an Inkeep agent.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep agent.
 
 AGENT DATA:
 {{DATA}}
@@ -121,67 +120,67 @@ export const supportAgent = agent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-	if (debug) {
-		console.log(`\n[DEBUG] === Starting agent generation with registry: ${agentId} ===`);
-		console.log(`[DEBUG] Output path: ${outputPath}`);
-		console.log(`[DEBUG] Entities in this file:`, context.fileInfo.entities);
-		console.log(`[DEBUG] Dependencies:`, context.fileInfo.dependencies);
-	}
+  if (debug) {
+    console.log(`\n[DEBUG] === Starting agent generation with registry: ${agentId} ===`);
+    console.log(`[DEBUG] Output path: ${outputPath}`);
+    console.log(`[DEBUG] Entities in this file:`, context.fileInfo.entities);
+    console.log(`[DEBUG] Dependencies:`, context.fileInfo.dependencies);
+  }
 
-	try {
-		const startTime = Date.now();
+  try {
+    const startTime = Date.now();
 
-		const text = await generateTextWithPlaceholders(
-			model,
-			agentData,
-			promptTemplate,
-			{
-				temperature: 0.1,
-				maxOutputTokens: 16000,
-				abortSignal: AbortSignal.timeout(240000),
-			},
-			debug
-		);
+    const text = await generateTextWithPlaceholders(
+      model,
+      agentData,
+      promptTemplate,
+      {
+        temperature: 0.1,
+        maxOutputTokens: 16000,
+        abortSignal: AbortSignal.timeout(240000),
+      },
+      debug
+    );
 
-		const duration = Date.now() - startTime;
+    const duration = Date.now() - startTime;
 
-		if (debug) {
-			console.log(`[DEBUG] LLM response received in ${duration}ms`);
-			console.log(`[DEBUG] Generated text length: ${text.length} characters`);
-		}
+    if (debug) {
+      console.log(`[DEBUG] LLM response received in ${duration}ms`);
+      console.log(`[DEBUG] Generated text length: ${text.length} characters`);
+    }
 
-		const cleanedCode = cleanGeneratedCode(text);
-		writeFileSync(outputPath, cleanedCode);
+    const cleanedCode = cleanGeneratedCode(text);
+    writeFileSync(outputPath, cleanedCode);
 
-		if (debug) {
-			console.log(`[DEBUG] Agent file written successfully`);
-			console.log(`[DEBUG] === Completed agent generation: ${agentId} ===\n`);
-		}
-	} catch (error: any) {
-		if (debug) {
-			console.error(`[DEBUG] === ERROR generating agent file ${agentId} ===`);
-			console.error(`[DEBUG] Error:`, error.message);
-		}
-		throw error;
-	}
+    if (debug) {
+      console.log(`[DEBUG] Agent file written successfully`);
+      console.log(`[DEBUG] === Completed agent generation: ${agentId} ===\n`);
+    }
+  } catch (error: any) {
+    if (debug) {
+      console.error(`[DEBUG] === ERROR generating agent file ${agentId} ===`);
+      console.error(`[DEBUG] Error:`, error.message);
+    }
+    throw error;
+  }
 }
 
 /**
  * Generate tool file with registry support
  */
 export async function generateToolFileWithRegistry(
-	toolData: any,
-	toolId: string,
-	outputPath: string,
-	modelSettings: ModelSettings,
-	context: GenerationContext
+  toolData: any,
+  toolId: string,
+  outputPath: string,
+  modelSettings: ModelSettings,
+  context: GenerationContext
 ): Promise<void> {
-	const model = createModel(modelSettings);
+  const model = createModel(modelSettings);
 
-	// Format registry mappings for this file
-	const registryInfo = formatRegistryForFile(context.fileInfo, context.plan.variableRegistry);
+  // Format registry mappings for this file
+  const registryInfo = formatRegistryForFile(context.fileInfo, context.plan.variableRegistry);
 
-	const promptTemplate = `Generate a TypeScript file for an Inkeep tool.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep tool.
 
 TOOL DATA:
 {{DATA}}
@@ -218,30 +217,30 @@ export const inkeepFacts = mcpTool({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-	const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
-		temperature: 0.1,
-		maxOutputTokens: 4000,
-		abortSignal: AbortSignal.timeout(60000),
-	});
+  const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000),
+  });
 
-	writeFileSync(outputPath, cleanGeneratedCode(text));
+  writeFileSync(outputPath, cleanGeneratedCode(text));
 }
 
 /**
  * Generate index file with registry support
  */
 export async function generateIndexFileWithRegistry(
-	projectData: any,
-	outputPath: string,
-	modelSettings: ModelSettings,
-	context: GenerationContext
+  projectData: any,
+  outputPath: string,
+  modelSettings: ModelSettings,
+  context: GenerationContext
 ): Promise<void> {
-	const model = createModel(modelSettings);
+  const model = createModel(modelSettings);
 
-	// Format all imports based on plan
-	const importMappings = generateImportMappings(context.plan);
+  // Format all imports based on plan
+  const importMappings = generateImportMappings(context.plan);
 
-	const promptTemplate = `Generate index.ts for Inkeep project.
+  const promptTemplate = `Generate index.ts for Inkeep project.
 
 PROJECT DATA:
 {{DATA}}
@@ -285,93 +284,93 @@ export const myProject = project({
 
 Generate ONLY the TypeScript code without markdown.`;
 
-	const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
-		temperature: 0.1,
-		maxOutputTokens: 4000,
-		abortSignal: AbortSignal.timeout(60000),
-	});
+  const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000),
+  });
 
-	writeFileSync(outputPath, cleanGeneratedCode(text));
+  writeFileSync(outputPath, cleanGeneratedCode(text));
 }
 
 /**
  * Format registry information for a specific file
  */
-function formatRegistryForFile(fileInfo: FileInfo, registry: VariableNameRegistry): string {
-	let result = 'Entities in this file:\n';
+function formatRegistryForFile(fileInfo: FileInfo, _registry: VariableNameRegistry): string {
+  let result = 'Entities in this file:\n';
 
-	for (const entity of fileInfo.entities) {
-		result += `  - ${entity.entityType} with id="${entity.id}" MUST use variable name: ${entity.variableName}\n`;
-	}
+  for (const entity of fileInfo.entities) {
+    result += `  - ${entity.entityType} with id="${entity.id}" MUST use variable name: ${entity.variableName}\n`;
+  }
 
-	if (fileInfo.inlineContent && fileInfo.inlineContent.length > 0) {
-		result += '\nInline content (defined in this file):\n';
-		for (const entity of fileInfo.inlineContent) {
-			result += `  - ${entity.entityType} with id="${entity.id}" → ${entity.variableName}\n`;
-		}
-	}
+  if (fileInfo.inlineContent && fileInfo.inlineContent.length > 0) {
+    result += '\nInline content (defined in this file):\n';
+    for (const entity of fileInfo.inlineContent) {
+      result += `  - ${entity.entityType} with id="${entity.id}" → ${entity.variableName}\n`;
+    }
+  }
 
-	if (fileInfo.dependencies.length > 0) {
-		result += '\nDependencies to import:\n';
-		for (const dep of fileInfo.dependencies) {
-			result += `  - import { ${dep.variableName} } from '${dep.fromPath}';\n`;
-		}
-	}
+  if (fileInfo.dependencies.length > 0) {
+    result += '\nDependencies to import:\n';
+    for (const dep of fileInfo.dependencies) {
+      result += `  - import { ${dep.variableName} } from '${dep.fromPath}';\n`;
+    }
+  }
 
-	return result;
+  return result;
 }
 
 /**
  * Format registry for full prompt
  */
 function formatRegistryForPrompt(registry: VariableNameRegistry): string {
-	let result = '';
+  let result = '';
 
-	if (registry.agents.size > 0) {
-		result += '\nAGENTS:\n';
-		for (const [id, variableName] of registry.agents.entries()) {
-			result += `  - id: "${id}" → variableName: "${variableName}"\n`;
-		}
-	}
+  if (registry.agents.size > 0) {
+    result += '\nAGENTS:\n';
+    for (const [id, variableName] of registry.agents.entries()) {
+      result += `  - id: "${id}" → variableName: "${variableName}"\n`;
+    }
+  }
 
-	if (registry.subAgents.size > 0) {
-		result += '\nSUBAGENTS:\n';
-		for (const [id, variableName] of registry.subAgents.entries()) {
-			result += `  - id: "${id}" → variableName: "${variableName}"\n`;
-		}
-	}
+  if (registry.subAgents.size > 0) {
+    result += '\nSUBAGENTS:\n';
+    for (const [id, variableName] of registry.subAgents.entries()) {
+      result += `  - id: "${id}" → variableName: "${variableName}"\n`;
+    }
+  }
 
-	if (registry.tools.size > 0) {
-		result += '\nTOOLS:\n';
-		for (const [id, variableName] of registry.tools.entries()) {
-			result += `  - id: "${id}" → variableName: "${variableName}"\n`;
-		}
-	}
+  if (registry.tools.size > 0) {
+    result += '\nTOOLS:\n';
+    for (const [id, variableName] of registry.tools.entries()) {
+      result += `  - id: "${id}" → variableName: "${variableName}"\n`;
+    }
+  }
 
-	if (registry.dataComponents.size > 0) {
-		result += '\nDATA COMPONENTS:\n';
-		for (const [id, variableName] of registry.dataComponents.entries()) {
-			result += `  - id: "${id}" → variableName: "${variableName}"\n`;
-		}
-	}
+  if (registry.dataComponents.size > 0) {
+    result += '\nDATA COMPONENTS:\n';
+    for (const [id, variableName] of registry.dataComponents.entries()) {
+      result += `  - id: "${id}" → variableName: "${variableName}"\n`;
+    }
+  }
 
-	return result;
+  return result;
 }
 
 /**
  * Generate import mappings from plan
  */
 function generateImportMappings(plan: GenerationPlan): string {
-	let result = '';
+  let result = '';
 
-	for (const file of plan.files) {
-		if (file.type !== 'index' && file.type !== 'environment') {
-			for (const entity of file.entities) {
-				const importPath = `./${file.path.replace('.ts', '')}`;
-				result += `  - ${entity.variableName} from '${importPath}'\n`;
-			}
-		}
-	}
+  for (const file of plan.files) {
+    if (file.type !== 'index' && file.type !== 'environment') {
+      for (const entity of file.entities) {
+        const importPath = `./${file.path.replace('.ts', '')}`;
+        result += `  - ${entity.variableName} from '${importPath}'\n`;
+      }
+    }
+  }
 
-	return result;
+  return result;
 }
