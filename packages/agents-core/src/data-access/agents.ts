@@ -3,7 +3,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
-  agentFunctionToolRelations,
+  subAgentFunctionToolRelations,
   agents,
   artifactComponents,
   dataComponents,
@@ -363,7 +363,7 @@ export const getFullAgentDefinition =
             )
           );
 
-        // Get function tools for this agent
+        // Get function tools for this sub_agent
         const agentFunctionTools = await db
           .select({
             id: functionTools.id,
@@ -375,24 +375,24 @@ export const getFullAgentDefinition =
             tenantId: functionTools.tenantId,
             projectId: functionTools.projectId,
             agentId: functionTools.agentId,
-            agentToolRelationId: agentFunctionToolRelations.id,
+            agentToolRelationId: subAgentFunctionToolRelations.id,
           })
-          .from(agentFunctionToolRelations)
+          .from(subAgentFunctionToolRelations)
           .innerJoin(
             functionTools,
             and(
-              eq(agentFunctionToolRelations.functionToolId, functionTools.id),
-              eq(agentFunctionToolRelations.tenantId, functionTools.tenantId),
-              eq(agentFunctionToolRelations.projectId, functionTools.projectId),
-              eq(agentFunctionToolRelations.agentId, functionTools.agentId)
+              eq(subAgentFunctionToolRelations.functionToolId, functionTools.id),
+              eq(subAgentFunctionToolRelations.tenantId, functionTools.tenantId),
+              eq(subAgentFunctionToolRelations.projectId, functionTools.projectId),
+              eq(subAgentFunctionToolRelations.agentId, functionTools.agentId)
             )
           )
           .where(
             and(
-              eq(agentFunctionToolRelations.tenantId, tenantId),
-              eq(agentFunctionToolRelations.projectId, projectId),
-              eq(agentFunctionToolRelations.agentId, agentId),
-              eq(agentFunctionToolRelations.subAgentId, agent.id)
+              eq(subAgentFunctionToolRelations.tenantId, tenantId),
+              eq(subAgentFunctionToolRelations.projectId, projectId),
+              eq(subAgentFunctionToolRelations.agentId, agentId),
+              eq(subAgentFunctionToolRelations.subAgentId, agent.id)
             )
           );
 
