@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+
 ## 0.19.7
 
 ## 0.19.6

@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+- Updated dependencies [e9048e2]
+  - @inkeep/agents-core@0.19.8
+
 ## 0.19.7
 
 ### Patch Changes
