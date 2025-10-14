@@ -105,14 +105,19 @@ Systematic removal of obvious narration comments while preserving important docu
 ## Phase 3: agents-core 🔄 IN PROGRESS
 
 **Target:** Remove 1,026-1,197 lines (60-70% of 1,710)  
-**Current Progress:** 251 lines removed (60 from Phase 1 + 191 from PR #627)  
-**Remaining:** 775-946 lines needed
+**Current Progress:** 331 lines removed (60 from Phase 1 + 271 from ongoing work)  
+**Progress:** 32% toward goal  
+**Remaining:** 695-866 lines needed
 
-### Major Files Cleaned:
+### Files Cleaned:
 - ✅ agentFull.ts (-68 lines: 116 → ~48)
 - ✅ schemas.ts (-43 lines: 54 → ~11)
 - ✅ projectFull.ts (-40 lines: 50 → ~10)
 - ✅ schema.ts (-40 lines: 45 → ~5)
+- ✅ ledgerArtifacts.ts (-27 lines: 38 → ~11)
+- ✅ CredentialStuffer.ts (-12 lines: 31 → ~19)
+- ✅ ContextResolver.ts (-22 lines: 29 → ~7)
+- ✅ error.ts (-19 lines: 29 → ~10)
 
 ### Remaining Files (partial list):
 - 🔄 ledgerArtifacts.ts (38 lines)
@@ -125,7 +130,7 @@ Systematic removal of obvious narration comments while preserving important docu
 - 🔄 Other files (~700 lines)
 
 **PR:** [#627](https://github.com/inkeep/agents/pull/627)  
-**Status:** 🔄 In Progress (24% toward goal)
+**Status:** 🔄 In Progress (32% toward goal, 271 lines removed across 8 files)
 
 ---
 
@@ -154,7 +159,7 @@ Systematic removal of obvious narration comments while preserving important docu
 
 ## Overall Progress
 
-**Total Lines Removed So Far:** 1,159 lines  
+**Total Lines Removed So Far:** 1,239 lines  
 **Packages Complete:** 4 (agents-cli ✅, agents-sdk ✅, create-agents ✅, agents-run-api ✅)  
 **Packages In Progress:** 1 (agents-core 🔄)  
 **Packages Remaining:** 4
@@ -162,7 +167,7 @@ Systematic removal of obvious narration comments while preserving important docu
 ### By Phase:
 - ✅ Phase 1: Complete (233 lines) - **MERGED #621**
 - ✅ Phase 2: Complete (735 lines) - **MERGED #623, #625**
-- 🔄 Phase 3: 24% toward goal (251 lines, need 775-946 more) - **PR #627 open**
+- 🔄 Phase 3: 32% toward goal (331 lines, need 695-866 more) - **PR #627 active**
 - ⏳ Phase 4-6: Not started
 
 ### Merged PRs:
@@ -171,7 +176,7 @@ Systematic removal of obvious narration comments while preserving important docu
 - ✅ #625: Phase 2 Part 2 (agents-run-api) - 118 lines - MERGED 2025-10-14
 
 ### Open PRs:
-- 🔄 #627: Phase 3 (agents-core) - 191 lines - OPEN
+- 🔄 #627: Phase 3 (agents-core) - 271 lines across 8 files - ACTIVE
 
 ---
 
@@ -206,4 +211,4 @@ Systematic removal of obvious narration comments while preserving important docu
 ---
 
 **Last Updated:** 2025-10-14  
-**Next Action:** Continue Phase 3 (agents-core) - 775-946 more lines needed
+**Next Action:** Continue Phase 3 (agents-core) - 695-866 more lines needed
