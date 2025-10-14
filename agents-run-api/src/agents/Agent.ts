@@ -1780,7 +1780,6 @@ export class Agent {
             messages,
             tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
-              // Track the last step's text reasoning
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
@@ -1797,8 +1796,6 @@ export class Agent {
                 }
               }
 
-              // Check if the previous step had a transfer tool call AND has results
-              // This ensures we stop AFTER the tool executes, not before
               if (steps.length >= 2) {
                 const previousStep = steps[steps.length - 2];
                 if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
@@ -1815,7 +1812,6 @@ export class Agent {
                 }
               }
 
-              // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },
             experimental_telemetry: {
@@ -1827,12 +1823,10 @@ export class Agent {
             abortSignal: AbortSignal.timeout(timeoutMs),
           });
 
-          // Create incremental parser that will format and stream to user
           const streamHelper = this.getStreamingHelper();
           if (!streamHelper) {
             throw new Error('Stream helper is unexpectedly undefined in streaming context');
           }
-          // Get session info from tool session manager
           const session = toolSessionManager.getSession(sessionId);
           const artifactParserOptions = {
             sessionId,
@@ -1849,23 +1843,18 @@ export class Agent {
             artifactParserOptions
           );
 
-          // Process the full stream - track all events including tool calls
-          // Note: stopWhen will automatically stop on transfer_to_
           for await (const event of streamResult.fullStream) {
             switch (event.type) {
               case 'text-delta':
                 await parser.processTextChunk(event.text);
                 break;
               case 'tool-call':
-                // Mark that a tool call happened
                 parser.markToolResult();
                 break;
               case 'tool-result':
-                // Tool result finished, next text should have spacing
                 parser.markToolResult();
                 break;
               case 'finish':
-                // Stream finished, check if it was due to tool calls
                 if (event.finishReason === 'tool-calls') {
                   parser.markToolResult();
                 }
@@ -1880,13 +1869,10 @@ export class Agent {
             }
           }
 
-          // Finalize the stream
           await parser.finalize();
 
-          // Get the complete result for A2A protocol
           response = await streamResult;
 
-          // Build formattedContent from collected parts
           const collectedParts = parser.getCollectedParts();
           if (collectedParts.length > 0) {
             response.formattedContent = {
@@ -1898,7 +1884,6 @@ export class Agent {
             };
           }
 
-          // Also include the streamed content for conversation history
           const streamedContent = parser.getAllStreamedContent();
           if (streamedContent.length > 0) {
             response.streamedContent = {
@@ -1910,7 +1895,6 @@ export class Agent {
             };
           }
         } else {
-          // Non-streaming Phase 1
           let genConfig: any;
           if (hasStructuredOutput) {
             genConfig = {
@@ -1924,13 +1908,11 @@ export class Agent {
             };
           }
 
-          // Use generateText for Phase 1 planning
           response = await generateText({
             ...genConfig,
             messages,
             tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
-              // Track the last step's text reasoning
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
@@ -1947,8 +1929,6 @@ export class Agent {
                 }
               }
 
-              // Check if the previous step had a transfer/thinking_complete tool call AND has results
-              // This ensures we stop AFTER the tool executes, not before
               if (steps.length >= 2) {
                 const previousStep = steps[steps.length - 2];
                 if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
@@ -1962,7 +1942,6 @@ export class Agent {
                 }
               }
 
-              // Safety cap at configured max steps
               return steps.length >= this.getMaxGenerationSteps();
             },
             experimental_telemetry: {
@@ -1978,25 +1957,20 @@ export class Agent {
           });
         }
 
-        // Resolve steps Promise so task handler can access the array properly
         if (response.steps) {
           const resolvedSteps = await response.steps;
           response = { ...response, steps: resolvedSteps };
         }
 
-        // ----- PHASE 2: Structured Output Generation -----
         if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
-          // Check if thinking_complete was called (successful Phase 1)
           const thinkingCompleteCall = response.steps
             ?.flatMap((s: any) => s.toolCalls || [])
             ?.find((tc: any) => tc.toolName === 'thinking_complete');
 
           if (thinkingCompleteCall) {
-            // Build reasoning flow from Phase 1 steps
             const reasoningFlow: any[] = [];
             if (response.steps) {
               response.steps.forEach((step: any) => {
-                // Add tool calls and results as formatted messages
                 if (step.toolCalls && step.toolResults) {
                   step.toolCalls.forEach((call: any, index: number) => {
                     const result = step.toolResults[index];
@@ -2007,15 +1981,12 @@ export class Agent {
                       );
                       const toolName = storedResult?.toolName || call.toolName;
 
-                      // Skip tool_thinking tool
                       if (toolName === 'thinking_complete') {
                         return;
                       }
-                      // Default formatting for all other tools
                       const actualResult = storedResult?.result || result.result || result;
                       const actualArgs = storedResult?.args || call.args;
 
-                      // Filter out _structureHints from the result for clean JSON output
                       const cleanResult =
                         actualResult &&
                         typeof actualResult === 'object' &&
@@ -2033,7 +2004,6 @@ export class Agent {
                           ? cleanResult
                           : JSON.stringify(cleanResult, null, 2);
 
-                      // Format structure hints if present and artifact components are available
                       let structureHintsFormatted = '';
                       if (
                         actualResult?._structureHints &&
@@ -2087,10 +2057,8 @@ ${output}${structureHintsFormatted}`;
               });
             }
 
-            // Build component schemas using reusable classes
             const componentSchemas: z.ZodType<any>[] = [];
 
-            // Add data component schemas
             if (this.config.dataComponents && this.config.dataComponents.length > 0) {
               this.config.dataComponents.forEach((dc) => {
                 const propsSchema = jsonSchemaToZod(dc.props);
@@ -2104,14 +2072,11 @@ ${output}${structureHintsFormatted}`;
               });
             }
 
-            // Add artifact schemas only when artifact components are available
             if (this.artifactComponents.length > 0) {
-              // Add one ArtifactCreate schema for each artifact component type
               const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
                 this.artifactComponents
               );
               componentSchemas.push(...artifactCreateSchemas);
-              // Add the single reference schema for all types
               componentSchemas.push(ArtifactReferenceSchema.getSchema());
             }
 
@@ -2124,7 +2089,6 @@ ${output}${structureHintsFormatted}`;
               );
             }
 
-            // Phase 2: Generate structured output
             const structuredModelSettings = ModelFactory.prepareGenerationConfig(
               this.getStructuredOutputModel()
             );
@@ -2132,11 +2096,9 @@ ${output}${structureHintsFormatted}`;
               ? structuredModelSettings.maxDuration * 1000
               : CONSTANTS.PHASE_2_TIMEOUT_MS;
 
-            // Check if we should stream Phase 2 structured output
             const shouldStreamPhase2 = this.getStreamingHelper();
 
             if (shouldStreamPhase2) {
-              // Streaming Phase 2: Stream structured output with incremental parser
               const phase2Messages: any[] = [
                 {
                   role: 'system',
@@ -2144,7 +2106,6 @@ ${output}${structureHintsFormatted}`;
                 },
               ];
 
-              // Add conversation history if available
               if (conversationHistory.trim() !== '') {
                 phase2Messages.push({ role: 'user', content: conversationHistory });
               }
@@ -2170,12 +2131,10 @@ ${output}${structureHintsFormatted}`;
                 abortSignal: AbortSignal.timeout(phase2TimeoutMs),
               });
 
-              // Create incremental parser for object streaming
               const streamHelper = this.getStreamingHelper();
               if (!streamHelper) {
                 throw new Error('Stream helper is unexpectedly undefined in streaming context');
               }
-              // Get session info for artifact parser
               const session = toolSessionManager.getSession(sessionId);
               const artifactParserOptions = {
                 sessionId,
@@ -2192,21 +2151,16 @@ ${output}${structureHintsFormatted}`;
                 artifactParserOptions
               );
 
-              // Process the object stream with better delta handling
               for await (const delta of streamResult.partialObjectStream) {
                 if (delta) {
-                  // Process object deltas directly
                   await parser.processObjectDelta(delta);
                 }
               }
 
-              // Finalize the stream
               await parser.finalize();
 
-              // Get the complete structured response
               const structuredResponse = await streamResult;
 
-              // Build formattedContent from collected parts
               const collectedParts = parser.getCollectedParts();
               if (collectedParts.length > 0) {
                 response.formattedContent = {
@@ -2218,22 +2172,18 @@ ${output}${structureHintsFormatted}`;
                 };
               }
 
-              // Merge structured output into response
               response = {
                 ...response,
                 object: structuredResponse.object,
               };
               textResponse = JSON.stringify(structuredResponse.object, null, 2);
             } else {
-              // Non-streaming Phase 2: Use generateObject as fallback
               const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
-              // Build Phase 2 messages with conversation history
               const phase2Messages: any[] = [
                 { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
               ];
 
-              // Add conversation history if available
               if (conversationHistory.trim() !== '') {
                 phase2Messages.push({ role: 'user', content: conversationHistory });
               }
@@ -2261,7 +2211,6 @@ ${output}${structureHintsFormatted}`;
                 })
               );
 
-              // Merge structured output into response
               response = {
                 ...response,
                 object: structuredResponse.object,
@@ -2275,16 +2224,12 @@ ${output}${structureHintsFormatted}`;
           textResponse = response.steps[response.steps.length - 1].text || '';
         }
 
-        // Mark span as successful
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
 
-        // Format response - handle object vs text responses differently
-        // Only format if we don't already have formattedContent from streaming
         let formattedContent: MessageContent | null = response.formattedContent || null;
 
         if (!formattedContent) {
-          // Create ResponseFormatter with proper context
           const session = toolSessionManager.getSession(sessionId);
           const responseFormatter = new ResponseFormatter(this.config.tenantId, {
             sessionId,
@@ -2297,13 +2242,11 @@ ${output}${structureHintsFormatted}`;
           });
 
           if (response.object) {
-            // For object responses, replace artifact markers and convert to parts array
             formattedContent = await responseFormatter.formatObjectResponse(
               response.object,
               contextId
             );
           } else if (textResponse) {
-            // For text responses, apply artifact marker formatting to create text/data parts
             formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
           }
         }
@@ -2313,7 +2256,6 @@ ${output}${structureHintsFormatted}`;
           formattedContent: formattedContent,
         };
 
-        // Record agent generation in AgentSession
         if (streamRequestId) {
           const generationType = response.object ? 'object_generation' : 'text_generation';
 
@@ -2331,14 +2273,11 @@ ${output}${structureHintsFormatted}`;
           });
         }
 
-        // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
-        // The ToolSession might still be needed by other agents in the agent execution
 
         return formattedResponse;
       } catch (error) {
         // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
         const errorToThrow = error instanceof Error ? error : new Error(String(error));
-        // Record exception and mark span as error
         setSpanWithError(span, errorToThrow);
         span.end();
         throw errorToThrow;

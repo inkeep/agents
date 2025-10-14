@@ -764,21 +764,17 @@ export class AgentSession {
    * Schedule status update check without setImmediate race conditions
    */
   private scheduleStatusUpdateCheck(statusUpdateState: StatusUpdateState): void {
-    // Use setTimeout with 0 delay instead of setImmediate for better control
     const timeoutId = setTimeout(async () => {
       try {
-        // Double-check session is still valid before proceeding
         if (this.isEnded || !this.statusUpdateState) {
           return;
         }
 
-        // Acquire update lock with atomic check
         if (!this.acquireUpdateLock()) {
           return; // Another update is in progress
         }
 
         try {
-          // Final validation before processing
           if (this.isEnded || !statusUpdateState || this.isTextStreaming) {
             return;
           }
@@ -794,7 +790,6 @@ export class AgentSession {
             await this.generateAndSendUpdate();
           }
         } finally {
-          // Always release the lock
           this.releaseUpdateLock();
         }
       } catch (error) {
@@ -805,18 +800,15 @@ export class AgentSession {
           },
           'Failed to check status updates during event recording'
         );
-        // Ensure lock is released on error
         this.releaseUpdateLock();
       }
     }, 0);
 
-    // Track timeout for cleanup if session ends
     if (!this.scheduledTimeouts) {
       this.scheduledTimeouts = new Set();
     }
     this.scheduledTimeouts.add(timeoutId);
 
-    // Auto-cleanup timeout reference
     setTimeout(() => {
       if (this.scheduledTimeouts) {
         this.scheduledTimeouts.delete(timeoutId);
@@ -828,7 +820,6 @@ export class AgentSession {
    * Acquire update lock with atomic check
    */
   private acquireUpdateLock(): boolean {
-    // Atomic check-and-set
     if (this.statusUpdateState?.updateLock) {
       return false; // Already locked
     }
@@ -871,10 +862,8 @@ export class AgentSession {
       },
       async (span) => {
         try {
-          // Extract user-visible activities
           const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
 
-          // Get conversation history to understand user's context and question
           let conversationContext = '';
           if (this.tenantId && this.projectId) {
             try {
@@ -904,10 +893,8 @@ export class AgentSession {
               ? `\nPrevious updates sent to user:\n${previousSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
               : '';
 
-          // Build schema for data components and no_relevant_updates option
           const selectionSchema = z.object(
             Object.fromEntries([
-              // Add no_relevant_updates schema
               [
                 'no_relevant_updates',
                 z
@@ -919,7 +906,6 @@ export class AgentSession {
                     'Use when nothing substantially new to report. Should only use on its own.'
                   ),
               ],
-              // Add all other component schemas
               ...statusComponents.map((component) => [
                 component.type,
                 this.getComponentSchema(component)
@@ -929,7 +915,6 @@ export class AgentSession {
             ])
           );
 
-          // Use custom prompt if provided, otherwise use default
           const basePrompt = `Generate status updates for relevant components based on what the user has asked for.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
@@ -986,7 +971,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           const prompt = basePrompt;
 
-          // Use summarizer model if available, otherwise fall back to base model
           let modelToUse = summarizerModel;
           if (!summarizerModel?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
@@ -1020,15 +1004,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           const result = object as any;
 
-          // Extract components that have data (skip no_relevant_updates and empty components)
           const summaries = [];
           for (const [componentId, data] of Object.entries(result)) {
-            // Skip no_relevant_updates - we don't send any operation for this
             if (componentId === 'no_relevant_updates') {
               continue;
             }
 
-            // Only include components that have actual data
             if (data && typeof data === 'object' && Object.keys(data).length > 0) {
               summaries.push({
                 type: componentId,
@@ -1060,12 +1041,10 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
    * Build Zod schema from JSON schema configuration or use pre-defined schemas
    */
   private getComponentSchema(component: StatusComponent): z.ZodType<any> {
-    // Check if we have a JSON schema to convert
     if (component.detailsSchema && 'properties' in component.detailsSchema) {
       return this.buildZodSchemaFromJson(component.detailsSchema);
     }
 
-    // Fallback to a simple object with just label if no schema provided
     return z.object({
       label: z
         .string()
@@ -1085,7 +1064,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
   }): z.ZodType<any> {
     const properties: Record<string, z.ZodType<any>> = {};
 
-    // Always add label field
     properties.label = z
       .string()
       .describe(
@@ -1095,9 +1073,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
     for (const [key, value] of Object.entries(jsonSchema.properties)) {
       let zodType: z.ZodType<any>;
 
-      // Check for enum first
       if (value.enum && Array.isArray(value.enum)) {
-        // Handle enum types
         if (value.enum.length === 1) {
           zodType = z.literal(value.enum[0]);
         } else {
@@ -1106,7 +1082,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
       } else if (value.type === 'string') {
         zodType = z.string();
-        // Add string-specific validations if present
         if (value.minLength) zodType = (zodType as z.ZodString).min(value.minLength);
         if (value.maxLength) zodType = (zodType as z.ZodString).max(value.maxLength);
         if (value.format === 'email') zodType = (zodType as z.ZodString).email();
@@ -1114,16 +1089,13 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           zodType = (zodType as z.ZodString).url();
       } else if (value.type === 'number' || value.type === 'integer') {
         zodType = value.type === 'integer' ? z.number().int() : z.number();
-        // Add number-specific validations if present
         if (value.minimum !== undefined) zodType = (zodType as z.ZodNumber).min(value.minimum);
         if (value.maximum !== undefined) zodType = (zodType as z.ZodNumber).max(value.maximum);
       } else if (value.type === 'boolean') {
         zodType = z.boolean();
       } else if (value.type === 'array') {
-        // Handle array items if specified
         if (value.items) {
           if (value.items.enum && Array.isArray(value.items.enum)) {
-            // Array of enum values
             const [first, ...rest] = value.items.enum;
             zodType = z.array(z.enum([first, ...rest] as [string, ...string[]]));
           } else if (value.items.type === 'string') {
@@ -1140,7 +1112,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         } else {
           zodType = z.array(z.any());
         }
-        // Add array-specific validations
         if (value.minItems) zodType = (zodType as z.ZodArray<any>).min(value.minItems);
         if (value.maxItems) zodType = (zodType as z.ZodArray<any>).max(value.maxItems);
       } else if (value.type === 'object') {
@@ -1149,12 +1120,10 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         zodType = z.any();
       }
 
-      // Add description if present in JSON schema
       if (value.description) {
         zodType = zodType.describe(value.description);
       }
 
-      // Make optional if not in required array OR if marked as optional
       if (!jsonSchema.required?.includes(key) || value.optional === true) {
         zodType = zodType.optional();
       }
@@ -1202,17 +1171,13 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           break;
         }
 
-        // INTERNAL OPERATIONS - DO NOT EXPOSE TO STATUS UPDATES
         case 'transfer':
         case 'delegation_sent':
         case 'delegation_returned':
         case 'artifact_saved':
-          // These are internal system operations that should never be visible in status updates
-          // Skip them entirely - they don't produce user-facing activities
           break;
 
         case 'agent_reasoning': {
-          // Present as analysis without mentioning agents
           activities.push(
             `⚙️ **Analyzing request**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
           );
@@ -1220,7 +1185,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
         }
 
         case 'agent_generate': {
-          // Present as response preparation without mentioning agents
           activities.push(
             `⚙️ **Preparing response**\n   Details: ${JSON.stringify(event.data.parts, null, 2)}`
           );
@@ -1267,7 +1231,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
       },
       async (span) => {
         try {
-          // We need tenantId, projectId, and contextId to get conversation history
           if (!artifactData.tenantId || !artifactData.projectId || !artifactData.contextId) {
             span.setAttributes({
               'validation.failed': true,
@@ -1284,7 +1247,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           let mainSaveSucceeded = false;
 
-          // getFormattedConversationHistory is already imported at the top
           const conversationHistory = await getFormattedConversationHistory({
             tenantId: artifactData.tenantId,
             projectId: artifactData.projectId,
@@ -1296,8 +1258,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
             },
           });
 
-          // Find the specific tool call that generated this artifact
-          // Look for tool_result event that matches this artifact's toolCallId
           const toolCallEvent = this.events.find(
             (event) =>
               event.eventType === 'tool_result' &&
@@ -1306,7 +1266,6 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               event.data.toolCallId === artifactData.metadata?.toolCallId
           ) as AgentSessionEvent | undefined;
 
-          // Prepare context for name/description generation
           const toolContext = toolCallEvent
             ? {
                 toolName: (toolCallEvent.data as any).toolName,
@@ -1323,11 +1282,9 @@ Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
 
 Make it specific and relevant.`;
 
-          // Use summarizer model if available, otherwise fall back to base model
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
-              // Try to get agent model configuration if statusUpdateState is not available
               if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
                   const agentData = await getSubAgentById(dbClient)({
@@ -1372,7 +1329,6 @@ Make it specific and relevant.`;
                   },
                   'No model configuration available for artifact name generation, will use fallback names'
                 );
-                // Skip name generation and use fallback
                 modelToUse = undefined;
               }
             } else {
@@ -1382,7 +1338,6 @@ Make it specific and relevant.`;
 
           let result: { name: string; description: string };
           if (!modelToUse) {
-            // Use fallback name/description
             result = {
               name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
               description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolCallId || 'tool results'}`,
@@ -1397,7 +1352,6 @@ Make it specific and relevant.`;
                 .describe("Brief description of the artifact's relevance to the user's question"),
             });
 
-            // Add nested span for LLM generation with retry logic
             const { object } = await tracer.startActiveSpan(
               'agent_session.generate_artifact_metadata',
               {
@@ -1470,7 +1424,6 @@ Make it specific and relevant.`;
                       `Artifact name/description generation failed, attempt ${attempt}/${maxRetries}`
                     );
 
-                    // If this isn't the last attempt, wait before retrying
                     if (attempt < maxRetries) {
                       const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
                       await new Promise((resolve) => setTimeout(resolve, backoffMs));
@@ -1478,7 +1431,6 @@ Make it specific and relevant.`;
                   }
                 }
 
-                // All retries failed
                 setSpanWithError(
                   generationSpan,
                   lastError instanceof Error ? lastError : new Error(String(lastError))
@@ -1491,7 +1443,6 @@ Make it specific and relevant.`;
             result = object;
           }
 
-          // Now save the artifact using ArtifactService
           const artifactService = new ArtifactService({
             tenantId: artifactData.tenantId,
             projectId: artifactData.projectId,
@@ -1513,7 +1464,6 @@ Make it specific and relevant.`;
 
             mainSaveSucceeded = true;
 
-            // Mark main span as successful
             span.setAttributes({
               'artifact.name': result.name,
               'artifact.description': result.description,
@@ -1529,10 +1479,8 @@ Make it specific and relevant.`;
               },
               'Main artifact save failed, will attempt fallback'
             );
-            // Don't throw here - let the fallback handle it
           }
 
-          // Only attempt fallback save if main save failed
           if (!mainSaveSucceeded) {
             try {
               if (artifactData.tenantId && artifactData.projectId) {
@@ -1563,14 +1511,12 @@ Make it specific and relevant.`;
                 );
               }
             } catch (fallbackError) {
-              // Check if this is a duplicate key error - if so, artifact may have been saved by another process
               const isDuplicateError =
                 fallbackError instanceof Error &&
                 (fallbackError.message?.includes('UNIQUE') ||
                   fallbackError.message?.includes('duplicate'));
 
               if (isDuplicateError) {
-                // Duplicate key - artifact already exists, no action needed
               } else {
                 logger.error(
                   {
@@ -1584,7 +1530,6 @@ Make it specific and relevant.`;
             }
           }
         } catch (error) {
-          // Handle span error (this is for name/description generation errors)
           setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
           logger.error(
             {
@@ -1595,7 +1540,6 @@ Make it specific and relevant.`;
             'Failed to process artifact (name/description generation failed)'
           );
         } finally {
-          // Always end the main span
           span.end();
         }
       }
@@ -1733,7 +1677,6 @@ export class AgentSessionManager {
       return;
     }
 
-    // No type assertion needed - generic ensures type safety
     session.recordEvent(eventType, subAgentId, data);
   }
 
@@ -1752,10 +1695,8 @@ export class AgentSessionManager {
 
     logger.info({ sessionId, summary }, 'AgentSession ended');
 
-    // Clean up session resources including status update timers
     session.cleanup();
 
-    // Clean up the session from memory
     this.sessions.delete(sessionId);
 
     return events;
@@ -1827,5 +1768,4 @@ export class AgentSessionManager {
   }
 }
 
-// Global instance
 export const agentSessionManager = new AgentSessionManager();
