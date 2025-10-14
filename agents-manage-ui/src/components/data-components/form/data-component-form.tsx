@@ -8,6 +8,7 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Form } from '@/components/ui/form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import {
@@ -93,7 +94,15 @@ export function DataComponentForm({
           label="Name"
           placeholder="ListOrders"
           description={
-            'This name is used to identify the component in chat widget integration. Example: components: { ListOrders: MyListOrdersComponent }'
+            <>
+              This name is used to identify the component in chat widget integration.{' '}
+              <ExternalLink
+                href="https://docs.inkeep.com/typescript-sdk/structured-outputs/data-components#frontend-integration"
+                target="_blank"
+              >
+                Learn more
+              </ExternalLink>
+            </>
           }
           isRequired
         />

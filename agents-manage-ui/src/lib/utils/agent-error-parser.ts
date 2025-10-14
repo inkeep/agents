@@ -14,7 +14,7 @@ export interface ValidationErrorDetail {
 
 export interface ProcessedAgentError {
   type: 'node' | 'edge' | 'agent';
-  nodeType?: 'agent' | 'functionTool';
+  nodeType?: 'subAgent' | 'functionTool';
   nodeId?: string;
   edgeId?: string;
   field: string;
@@ -100,7 +100,7 @@ function processValidationError(
 
   // Determine error type and extract IDs
   let type: 'node' | 'edge' | 'agent' = 'agent';
-  let nodeType: 'agent' | 'functionTool' | undefined;
+  let nodeType: 'subAgent' | 'functionTool' | undefined;
   let nodeId: string | undefined;
   let edgeId: string | undefined;
   let field: string;
@@ -115,9 +115,9 @@ function processValidationError(
     nodeType = 'functionTool';
     nodeId = fullPath[1];
     field = error.path.slice(2).join('.') || (error as any).field || 'configuration';
-  } else if (fullPath[0] === 'agents' && fullPath[1]) {
+  } else if (fullPath[0] === 'subAgents' && fullPath[1]) {
     type = 'node';
-    nodeType = 'agent';
+    nodeType = 'subAgent';
     nodeId = fullPath[1];
     field = error.path.join('.') || 'configuration';
   } else if (fullPath[0] === 'edges' && fullPath[1]) {
@@ -150,11 +150,11 @@ function createUserFriendlyMessage(
   error: ValidationErrorDetail,
   field: string,
   type: 'node' | 'edge' | 'agent',
-  nodeType?: 'agent' | 'functionTool'
+  nodeType?: 'subAgent' | 'functionTool'
 ): string {
   let entityType: string;
   if (type === 'node') {
-    entityType = nodeType === 'functionTool' ? 'Function Tool' : 'Agent';
+    entityType = nodeType === 'functionTool' ? 'Function Tool' : 'Sub Agent';
   } else if (type === 'edge') {
     entityType = 'Connection';
   } else {
@@ -193,25 +193,25 @@ function createUserFriendlyMessage(
 function getFieldDisplayName(field: string): string {
   const fieldMap: Record<string, string> = {
     instructions: 'Instructions',
-    projectId: 'Project ID',
+    projectId: 'Project id',
     baseUrl: 'Host URL',
     name: 'Name',
     description: 'Description',
     model: 'Model',
     temperature: 'Temperature',
-    maxTokens: 'Max Tokens',
-    systemPrompt: 'System Prompt',
+    maxTokens: 'Max tokens',
+    systemPrompt: 'System prompt',
     tools: 'Tools',
     dataComponents: 'Components',
     artifactComponents: 'Artifacts',
     relationships: 'Relationships',
-    transferTargetToSource: 'Transfer (Target to Source)',
-    transferSourceToTarget: 'Transfer (Source to Target)',
-    delegateTargetToSource: 'Delegate (Target to Source)',
-    delegateSourceToTarget: 'Delegate (Source to Target)',
-    contextConfig: 'Context Configuration',
-    contextVariables: 'Context Variables',
-    headersSchema: 'Headers Schema',
+    transferTargetToSource: 'Transfer (target to source)',
+    transferSourceToTarget: 'Transfer (source to target)',
+    delegateTargetToSource: 'Delegate (target to source)',
+    delegateSourceToTarget: 'Delegate (source to target)',
+    contextConfig: 'Context configuration',
+    contextVariables: 'Context variables',
+    headersSchema: 'Headers schema',
   };
 
   return (
@@ -284,17 +284,18 @@ function categorizeErrors(errors: ProcessedAgentError[]): AgentErrorSummary {
  */
 export function getErrorSummaryMessage(errorSummary: AgentErrorSummary): string {
   const { totalErrors, subAgentErrors, functionToolErrors, edgeErrors, agentErrors } = errorSummary;
+  console.log('errorSummary', errorSummary);
 
   if (totalErrors === 0) return '';
 
   const parts: string[] = [];
 
-  const subAgentErrorCount = Object.keys(agentErrors).length;
+  const subAgentErrorCount = Object.keys(subAgentErrors).length;
   const functionToolErrorCount = Object.keys(functionToolErrors).length;
   const edgeErrorCount = Object.keys(edgeErrors).length;
   const agentErrorCount = agentErrors.length;
   if (subAgentErrorCount > 0) {
-    parts.push(`${subAgentErrorCount} subAgent${subAgentErrorCount > 1 ? 's' : ''}`);
+    parts.push(`${subAgentErrorCount} sub agent${subAgentErrorCount > 1 ? 's' : ''}`);
   }
   if (functionToolErrorCount > 0) {
     parts.push(`${functionToolErrorCount} function tool${functionToolErrorCount > 1 ? 's' : ''}`);

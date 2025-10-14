@@ -683,7 +683,7 @@ function Flow({
         setErrors(errorSummary);
 
         const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage || 'Failed to save agent - validation errors found');
+        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
       } catch (parseError) {
         // Fallback for unparseable errors
         console.error('Failed to parse validation errors:', parseError);

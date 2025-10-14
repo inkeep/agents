@@ -34,7 +34,7 @@ const ExecutionLimitInheritanceInfo = () => {
     <ul className="space-y-1.5 list-disc list-outside pl-4">
       <li>
         <span className="font-medium">transferCountIs</span>: Project → Agent only (controls
-        transfers between agents)
+        transfers between sub agents)
       </li>
       <li>
         <span className="font-medium">Explicit settings</span> always take precedence over inherited
@@ -45,8 +45,8 @@ const ExecutionLimitInheritanceInfo = () => {
         set anywhere
       </li>
       <li>
-        <span className="font-medium">Agent scope</span>: This limit applies to all agents within
-        this agent
+        <span className="font-medium">Agent scope</span>: This limit applies to all sub agents
+        within this agent
       </li>
     </ul>
   );
@@ -156,7 +156,7 @@ function MetadataEditor() {
         />
         <p className="text-xs text-muted-foreground">
           System-level prompt that defines the intended audience and overall goal of this agent.
-          Applied to all agents.
+          Applied to all sub agents.
         </p>
       </div>
       <Separator />
@@ -165,7 +165,7 @@ function MetadataEditor() {
       <div className="space-y-8">
         <SectionHeader
           title="Default models"
-          description="Set default models that will be inherited by agents that don't have their own models configured."
+          description="Set default models that will be inherited by sub agents that don't have their own models configured."
           titleTooltip={
             <div>
               <p>How model inheritance works:</p>

@@ -74,7 +74,7 @@ export function renderPanelContent({
   const AdvancedBlock = span ? (
     <SpanAttributes span={span.data} />
   ) : (
-    <div className="text-center py-4 text-xs text-muted-foreground">Span not found</div>
+    <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
   );
 
   switch (selected.type) {
@@ -261,14 +261,10 @@ export function renderPanelContent({
         <>
           <Section>
             <LabeledBlock label="From sub agent">
-              <Badge variant="code">
-                {a.transferFromSubAgentId || 'Unknown sub agent'}
-              </Badge>
+              <Badge variant="code">{a.transferFromSubAgentId || 'Unknown sub agent'}</Badge>
             </LabeledBlock>
             <LabeledBlock label="To sub agent">
-              <Badge variant="code">
-                {a.transferToSubAgentId || 'Unknown target'}
-              </Badge>
+              <Badge variant="code">{a.transferToSubAgentId || 'Unknown target'}</Badge>
             </LabeledBlock>
             <Info
               label="Tool name"
