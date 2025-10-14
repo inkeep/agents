@@ -2,9 +2,9 @@ import { exec } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import fs from 'fs-extra';
 import color from 'picocolors';
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
 const execAsync = promisify(exec);
@@ -93,8 +93,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'weather-project';
-    templateName = 'weather-project';
+    projectId = 'event-planner';
+    templateName = 'event-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -256,7 +256,7 @@ export const createAgents = async (
 
     if (projectTemplateRepo) {
       s.message('Creating project template folder...');
-      const templateTargetPath = `src/${projectId}`;
+      const templateTargetPath = `src/projects/${projectId}`;
 
       const contentReplacements: ContentReplacement[] = [
         {
@@ -270,7 +270,7 @@ export const createAgents = async (
       await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
     } else {
       s.message('Creating empty project folder...');
-      await fs.ensureDir(`src/${projectId}`);
+      await fs.ensureDir(`src/projects/${projectId}`);
     }
 
     s.message('Creating inkeep.config.ts...');
@@ -303,7 +303,7 @@ export const createAgents = async (
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
-        `  • Edit files in src/${projectId}/ for agent definitions\n` +
+        `  • Edit files in src/projects/${projectId}/ for agent definitions\n` +
         `  • Use 'inkeep push' to deploy agents to the platform\n` +
         `  • Use 'inkeep chat' to test your agents locally\n`,
       'Ready to go!'
@@ -374,7 +374,7 @@ export const myProject = project({
   agent: () => [],
   models: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
-    await fs.writeFile(`src/${config.projectId}/index.ts`, customIndexContent);
+    await fs.writeFile(`src/projects/${config.projectId}/index.ts`, customIndexContent);
   }
 }
 
@@ -394,7 +394,7 @@ async function setupProjectInDatabase(config: FileConfig) {
 
   try {
     await execAsync(
-      `pnpm inkeep push --project src/${config.projectId} --config src/inkeep.config.ts`
+      `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
     );
   } catch (_error) {
   } finally {
