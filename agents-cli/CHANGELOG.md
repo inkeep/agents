@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.22.0
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+- Updated dependencies [9427ad4]
+- Updated dependencies [8a10d65]
+  - @inkeep/agents-manage-ui@0.22.0
+  - @inkeep/agents-sdk@0.22.0
+  - @inkeep/agents-core@0.22.0
+
 ## 0.21.1
 
 ### Patch Changes
