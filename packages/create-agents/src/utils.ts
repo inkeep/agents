@@ -135,9 +135,8 @@ export const createAgents = async (
     }
 
     if (providerChoice === 'anthropic') {
-      const anthropicKeyResponse = await p.text({
+      const anthropicKeyResponse = await p.password({
         message: 'Enter your Anthropic API key:',
-        placeholder: 'sk-ant-...',
         validate: (value) => {
           if (!value || value.trim() === '') {
             return 'Anthropic API key is required';
@@ -152,9 +151,8 @@ export const createAgents = async (
       }
       anthropicKey = anthropicKeyResponse as string;
     } else if (providerChoice === 'openai') {
-      const openAiKeyResponse = await p.text({
+      const openAiKeyResponse = await p.password({
         message: 'Enter your OpenAI API key:',
-        placeholder: 'sk-...',
         validate: (value) => {
           if (!value || value.trim() === '') {
             return 'OpenAI API key is required';
@@ -169,9 +167,8 @@ export const createAgents = async (
       }
       openAiKey = openAiKeyResponse as string;
     } else if (providerChoice === 'google') {
-      const googleKeyResponse = await p.text({
+      const googleKeyResponse = await p.password({
         message: 'Enter your Google API key:',
-        placeholder: 'AIzaSy...',
         validate: (value) => {
           if (!value || value.trim() === '') {
             return 'Google API key is required';
