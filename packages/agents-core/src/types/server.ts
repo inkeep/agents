@@ -34,6 +34,15 @@ export interface CredentialStore {
    * Delete a credential
    */
   delete(key: string): Promise<boolean>;
+
+  /**
+   * Check if the credential store is available and functional
+   * @returns Promise resolving to availability status and optional reason if unavailable
+   */
+  checkAvailability(): Promise<{
+    available: boolean;
+    reason?: string;
+  }>;
 }
 
 /**
