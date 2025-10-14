@@ -22,10 +22,8 @@ const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   internal_server_error: 500,
 };
 
-// Base URL for error documentation
 export const ERROR_DOCS_BASE_URL = 'https://docs.inkeep.com/agents-api/errors';
 
-// Problem Details schema (RFC 7807)
 export const problemDetailsSchema = z
   .object({
     // type: z.string().url().openapi({
@@ -62,7 +60,6 @@ export const problemDetailsSchema = z
 export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
 export type ErrorCodes = z.infer<typeof ErrorCode>;
 
-// Legacy error response schema for backward compatibility
 export const errorResponseSchema = z
   .object({
     error: z.object({
@@ -95,9 +92,7 @@ export function createApiError({
   const title = getTitleFromCode(code);
   const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
-  // Create Problem Details object
   const problemDetails: ProblemDetails = {
-    // type,
     title,
     status,
     detail: message,
@@ -106,8 +101,6 @@ export function createApiError({
     ...(requestId && { requestId }),
   };
 
-  // For backward compatibility, also include the legacy error format
-  // Make error.message more concise if the detail is long
   const errorMessage = message.length > 100 ? `${message.substring(0, 97)}...` : message;
 
   const responseBody = {
@@ -115,7 +108,6 @@ export function createApiError({
     error: { code, message: errorMessage },
   };
 
-  // Create a Response object with the problem details
   const res = new Response(JSON.stringify(responseBody), {
     status,
     headers: {
@@ -141,12 +133,10 @@ export async function handleApiError(
 
     try {
       responseJson = JSON.parse(responseText);
-      // Add requestId if it's provided and not already in the response
       if (requestId && !responseJson.requestId) {
         responseJson.requestId = requestId;
       }
     } catch (_e) {
-      // If not JSON, create a default problem details
       responseJson = {
         // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,
         title: 'Internal Server Error',
@@ -161,7 +151,6 @@ export async function handleApiError(
       };
     }
 
-    // Only log at error level for 500 series errors
     if (error.status >= 500) {
       getLogger('core').error(
         {
@@ -188,8 +177,6 @@ export async function handleApiError(
     return responseJson;
   }
 
-  // Fallback for unhandled errors - these are always 500 series
-  // Extract useful information from the error for logging
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;
 
@@ -204,8 +191,6 @@ export async function handleApiError(
     'Unhandled API error occurred'
   );
 
-  // Create a more specific detail message that includes some error information
-  // but sanitize it to avoid exposing sensitive details
   const sanitizedErrorMessage =
     error instanceof Error
       ? error.message.replace(/\b(password|token|key|secret|auth)\b/gi, '[REDACTED]')
@@ -227,7 +212,6 @@ export async function handleApiError(
   return problemDetails;
 }
 
-// Helper function to get title from error code
 function getTitleFromCode(code: ErrorCodes): string {
   switch (code) {
     case 'bad_request':
@@ -254,7 +238,6 @@ const toTitleCase = (str: string) =>
     ?.replace(/\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .replace(/\s+/g, '') ?? '';
 
-// Updated error schema factory to use Problem Details
 export const errorSchemaFactory = (code: ErrorCodes, description: string) => ({
   description,
   content: {
