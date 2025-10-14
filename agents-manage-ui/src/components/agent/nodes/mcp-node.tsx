@@ -7,6 +7,7 @@ import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detec
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
+import { cn } from '@/lib/utils';
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -79,7 +80,14 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const toolBadges = getToolDisplay();
 
   return (
-    <BaseNode isSelected={selected} className="rounded-4xl min-w-40 min-h-13 max-w-3xs">
+    <BaseNode
+      isSelected={selected}
+      isDelegating={data.isDelegating}
+      className={cn(
+        'rounded-4xl min-w-40 min-h-13 max-w-3xs',
+        data.isExecuting && 'node-executing'
+      )}
+    >
       <BaseNodeHeader className="mb-0 py-3">
         <div className="flex items-center flex-wrap gap-1">
           <div className="flex items-center gap-2 flex-shrink-0 mr-4">

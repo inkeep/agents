@@ -9,10 +9,11 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
+import { cn } from '@/lib/utils';
 
 export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { data, selected, id } = props;
-  const { name, description } = data;
+  const { name, description, isExecuting } = data;
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -22,10 +23,15 @@ export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
 
   return (
     <div className="relative">
-      <NodeTab selected={selected}>External</NodeTab>
+      <NodeTab isSelected={selected}>External</NodeTab>
       <BaseNode
         isSelected={selected}
-        className={`rounded-tl-none ${hasErrors ? 'ring-2 ring-red-300 border-red-300' : ''}`}
+        isDelegating={data.isDelegating}
+        className={cn(
+          'rounded-tl-none',
+          hasErrors && 'ring-2 ring-red-300 border-red-300',
+          isExecuting && 'node-executing'
+        )}
         style={{ width: NODE_WIDTH }}
       >
         <BaseNodeHeader className="flex items-center justify-between gap-2">

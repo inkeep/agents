@@ -22,7 +22,7 @@ export function AgentToAgentEdge({
     delegateTargetToSource: false,
     delegateSourceToTarget: false,
   };
-  const isDelegated = data?.isDelegated;
+  const isDelegating = data?.isDelegating;
 
   const hasDelegate = relationships.delegateTargetToSource || relationships.delegateSourceToTarget;
   const hasTransfer = relationships.transferTargetToSource || relationships.transferSourceToTarget;
@@ -87,16 +87,27 @@ export function AgentToAgentEdge({
   const delegateMarkerEnd =
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
+  const className = selected
+    ? '!stroke-primary'
+    : isDelegating
+      ? '!stroke-chart-2'
+      : '!stroke-border dark:!stroke-muted-foreground';
+
   return (
     <>
+      {/* Animated circle */}
+      {isDelegating && (
+        <circle fill={selected ? 'var(--primary)' : 'var(--chart-2)'} r="6">
+          <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
+        </circle>
+      )}
+
       {/* Render transfer path (solid line) */}
       {hasTransfer && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={className}
           path={hasDelegate ? calculateOffsetPath(-3)[0] : edgePath}
-          style={{
-            strokeWidth: 2,
-          }}
+          style={{ strokeWidth: 2 }}
           markerEnd={transferMarkerEnd}
           markerStart={transferMarkerStart}
         />
@@ -105,7 +116,7 @@ export function AgentToAgentEdge({
       {/* Render delegate path (dashed line) */}
       {hasDelegate && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={className}
           path={hasTransfer ? calculateOffsetPath(3)[0] : edgePath}
           style={{
             strokeDasharray: '5,5',
@@ -131,13 +142,6 @@ export function AgentToAgentEdge({
             </div>
           </div>
         </EdgeLabelRenderer>
-      )}
-
-      {/* Animated circle */}
-      {isDelegated && (
-        <circle fill="var(--primary)" r="4">
-          <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
-        </circle>
       )}
     </>
   );

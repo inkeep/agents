@@ -5,6 +5,7 @@ import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configur
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
+import { cn } from '@/lib/utils';
 
 export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
   const { data, selected, id } = props;
@@ -23,7 +24,12 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
     <div className="relative">
       <BaseNode
         isSelected={selected}
-        className={`rounded-4xl min-w-40 max-w-xs ${hasErrors ? 'ring-2 ring-red-300 border-red-300' : ''}`}
+        isDelegating={data.isDelegating}
+        className={cn(
+          'rounded-4xl min-w-40 max-w-xs',
+          hasErrors && 'ring-2 ring-red-300 border-red-300',
+          data.isExecuting && 'node-executing'
+        )}
       >
         <BaseNodeHeader className="mb-0 py-3">
           <div className="flex flex-col gap-1.5">

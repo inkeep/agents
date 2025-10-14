@@ -271,3 +271,24 @@
 li[data-sonner-toast][data-type="error"] {
   @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
 }
+
+/* Node execution pulse animation */
+@keyframes node-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 188, 125, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.node-executing {
+  animation: node-pulse 1.5s ease-in-out infinite;
+  @apply border-chart-2 border-2;
+}

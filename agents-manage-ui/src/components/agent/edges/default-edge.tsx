@@ -29,10 +29,8 @@ export function DefaultEdge({
       path={edgePath}
       label={label}
       markerEnd={markerEnd}
-      style={{
-        strokeWidth: 2,
-      }}
-      className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+      style={{ strokeWidth: 2 }}
+      className={selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}
     />
   );
 }

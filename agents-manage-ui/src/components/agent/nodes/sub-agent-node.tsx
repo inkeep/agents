@@ -14,6 +14,7 @@ import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
+import { cn } from '@/lib/utils';
 
 const ListSection = ({
   title,
@@ -73,10 +74,19 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
 
   return (
     <div className="relative">
-      {isDefault ? <NodeTab selected={selected}>Default</NodeTab> : null}
+      {isDefault && (
+        <NodeTab isSelected={selected} isDelegating={data.isDelegating}>
+          Default
+        </NodeTab>
+      )}
       <BaseNode
         isSelected={selected}
-        className={`${isDefault ? 'rounded-tl-none' : ''} ${hasErrors ? 'ring-2 ring-red-300 border-red-300' : ''}`}
+        isDelegating={data.isDelegating}
+        className={cn(
+          isDefault && 'rounded-tl-none',
+          hasErrors && 'ring-2 ring-red-300 border-red-300',
+          data.isExecuting && 'node-executing'
+        )}
         style={{ width: NODE_WIDTH }}
       >
         <BaseNodeHeader className="flex items-center justify-between gap-2">
