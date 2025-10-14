@@ -1,7 +1,7 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import { agentSessionManager } from '../services/AgentSession';
+import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('ResponseFormatter');
@@ -48,8 +48,7 @@ export class ResponseFormatter {
         sharedArtifactService = agentSessionManager.getArtifactService(
           artifactParserOptions.streamRequestId
         );
-      } catch (error) {
-      }
+      } catch (_error) {}
     }
 
     this.artifactParser = new ArtifactParser(tenantId, {

@@ -1,4 +1,4 @@
-import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
+import type { Artifact, McpTool } from '@inkeep/agents-core';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -6,14 +6,9 @@ import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
-import {
-  type ExtendedJsonSchema,
-  extractFullFields,
-  extractPreviewFields,
-} from '../../../utils/schema-validation';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
-const logger = getLogger('Phase1Config');
+const _logger = getLogger('Phase1Config');
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
@@ -210,7 +205,6 @@ COMMON FAILURE POINTS (AVOID THESE):
     }
     const sharedGuidance = templates?.get('artifact-retrieval-guidance') || '';
 
-
     if (hasArtifactComponents) {
       return `${sharedGuidance}
 
@@ -357,7 +351,6 @@ IMPORTANT GUIDELINES:
       return '';
     }
 
-
     const typeDescriptions = artifactComponents
       .map((ac) => {
         let schemaDescription = 'No schema defined';
@@ -498,7 +491,6 @@ ${creationInstructions}
 
     return toolXml;
   }
-
 
   private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
     if (!inputSchema) {

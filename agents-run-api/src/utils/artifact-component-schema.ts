@@ -7,11 +7,7 @@ import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';
-import {
-  type ExtendedJsonSchema,
-  extractFullFields,
-  extractPreviewFields,
-} from './schema-validation';
+import type { ExtendedJsonSchema } from './schema-validation';
 
 const _logger = getLogger('ArtifactComponentSchema');
 

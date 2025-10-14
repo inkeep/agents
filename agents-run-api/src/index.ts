@@ -6,6 +6,7 @@ import {
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { createExecutionHono } from './app';
+import type { SandboxConfig } from './types/execution-context';
 
 // Create default configuration
 const defaultConfig: ServerConfig = {
@@ -30,14 +31,22 @@ export default app;
 // Also export the factory function for advanced usage
 export { createExecutionHono };
 
-// Export a helper to create app with custom credential stores - fallsback to default configs
+// Export SandboxConfig type for use in applications
+export type {
+  NativeSandboxConfig,
+  SandboxConfig,
+  VercelSandboxConfig,
+} from './types/execution-context';
+
+// Export a helper to create app with custom credential stores and sandbox config - fallsback to default configs
 export function createExecutionApp(config?: {
   serverConfig?: ServerConfig;
   credentialStores?: CredentialStore[];
+  sandboxConfig?: SandboxConfig;
 }) {
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? defaultStores;
   const registry = new CredentialStoreRegistry(stores);
 
-  return createExecutionHono(serverConfig, registry);
+  return createExecutionHono(serverConfig, registry, config?.sandboxConfig);
 }

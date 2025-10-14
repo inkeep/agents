@@ -246,7 +246,6 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId?: string;
 
   private static readonly MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit (more generous during request)
   private isCompleted = false;
@@ -270,8 +269,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     this.sessionId = sessionId;
   }
 
-  async writeRole(_ = 'assistant'): Promise<void> {
-  }
+  async writeRole(_ = 'assistant'): Promise<void> {}
 
   async writeContent(content: string): Promise<void> {
     if (this.isCompleted) {
@@ -329,7 +327,6 @@ export class VercelDataStreamHelper implements StreamHelper {
 
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-
     const id = this.textId;
 
     const startTime = Date.now();
@@ -368,7 +365,6 @@ export class VercelDataStreamHelper implements StreamHelper {
       this.lastTextEndTimestamp = Date.now();
     } finally {
       this.isTextStreaming = false;
-
     }
   }
 
@@ -544,7 +540,7 @@ export class VercelDataStreamHelper implements StreamHelper {
           timestamp: Date.now(),
         });
       }
-    } catch (e) {
+    } catch (_e) {
       // Writer may be unavailable, ignore errors
     }
   }
@@ -685,7 +681,6 @@ export class MCPStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId?: string;
 
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;

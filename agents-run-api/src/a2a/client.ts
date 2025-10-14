@@ -508,7 +508,6 @@ export class A2AClient {
   public async *sendMessageStream(
     params: MessageSendParams
   ): AsyncGenerator<A2AStreamEventData, void, undefined> {
-
     const endpoint = await this._getServiceEndpoint();
     const clientRequestId = this.requestIdCounter++; // Use a unique ID for this stream request
     const rpcRequest: JSONRPCRequest = {

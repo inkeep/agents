@@ -41,13 +41,8 @@ export interface ArtifactCreateAnnotation {
  * Handles artifact tag detection, parsing, and text boundary detection
  */
 export class ArtifactParser {
-  private static readonly ARTIFACT_REGEX =
-    /<artifact:ref\s+id=(['"])([^'"]*?)\1\s+tool=(['"])([^'"]*?)\3\s*\/>/gs;
   private static readonly ARTIFACT_CHECK_REGEX =
     /<artifact:ref\s+(?=.*id=['"][^'"]+['"])(?=.*tool=['"][^'"]+['"])[^>]*\/>/;
-
-  private static readonly ARTIFACT_CREATE_REGEX =
-    /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
   private static readonly ATTR_REGEX = /(\w+)="([^"]*)"|(\w+)='([^']*)'|(\w+)=({[^}]+})/g;
 
   private static readonly ARTIFACT_PATTERNS = [
@@ -178,11 +173,10 @@ export class ArtifactParser {
       const key = match[1] || match[3] || match[5];
       let value = match[2] || match[4] || match[6];
 
-      if (value && value.startsWith('{')) {
+      if (value?.startsWith('{')) {
         try {
           value = JSON.parse(value);
-        } catch {
-        }
+        } catch {}
       }
 
       attrs[key] = value;

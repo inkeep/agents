@@ -179,7 +179,6 @@ export class AgentSession {
     logger.debug({ sessionId, messageId, agentId }, 'AgentSession created');
 
     if (tenantId && projectId) {
-
       toolSessionManager.createSessionWithId(
         sessionId,
         tenantId,
@@ -337,7 +336,6 @@ export class AgentSession {
     subAgentId: string,
     data: EventDataMap[T]
   ): void {
-
     if (this.isEmitOperations) {
       const dataOpEvent: MakeAgentSessionEvent<T> = {
         timestamp: Date.now(),
@@ -451,7 +449,6 @@ export class AgentSession {
       logger.debug({ sessionId: this.sessionId }, 'No status update state - skipping check');
       return;
     }
-
 
     const statusUpdateState = this.statusUpdateState;
 

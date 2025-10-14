@@ -567,8 +567,7 @@ const handleExistingSessionRequest = async (
   await updateConversation(dbClient)({
     scopes: { tenantId, projectId },
     conversationId: sessionId,
-    data: {
-    },
+    data: {},
   });
 
   const transport = new StreamableHTTPServerTransport({

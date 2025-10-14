@@ -265,9 +265,7 @@ describe('Chat Routes', () => {
     });
 
     it('should handle missing agent', async () => {
-      const { getAgentWithDefaultSubAgent, getFullAgent: getFullAgent } = await import(
-        '@inkeep/agents-core'
-      );
+      const { getAgentWithDefaultSubAgent, getFullAgent } = await import('@inkeep/agents-core');
       vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(
         vi.fn().mockResolvedValueOnce(undefined)
       );

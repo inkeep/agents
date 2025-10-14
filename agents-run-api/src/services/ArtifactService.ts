@@ -559,7 +559,6 @@ export class ArtifactService {
       metadata: artifact.metadata || {},
     };
 
-
     const result = await upsertLedgerArtifact(dbClient)({
       scopes: {
         tenantId: this.context.tenantId,
@@ -638,39 +637,6 @@ export class ArtifactService {
     }
 
     return value;
-  }
-
-  /**
-   * Extract properties from data using prop selectors
-   */
-  private extractProps(item: any, propSelectors: Record<string, string>): Record<string, any> {
-    const extracted: Record<string, any> = {};
-
-    for (const [propName, selector] of Object.entries(propSelectors)) {
-      try {
-        const sanitizedSelector = this.sanitizeJMESPathSelector(selector);
-
-        const rawValue = sanitizedSelector
-          ? jmespath.search(item, sanitizedSelector)
-          : item[propName];
-
-        if (rawValue !== null && rawValue !== undefined) {
-          // Clean up over-escaped content before storing
-          extracted[propName] = this.cleanEscapedContent(rawValue);
-        }
-      } catch (error) {
-        logger.warn(
-          { propName, selector, error: error instanceof Error ? error.message : 'Unknown error' },
-          'Failed to extract property'
-        );
-        const fallbackValue = item[propName];
-        if (fallbackValue !== null && fallbackValue !== undefined) {
-          extracted[propName] = this.cleanEscapedContent(fallbackValue);
-        }
-      }
-    }
-
-    return extracted;
   }
 
   /**

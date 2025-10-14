@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionHandler } from '../../handlers/executionHandler';
 
 describe('ExecutionHandler - Conversation History with Streamed Content', () => {
-  let executionHandler: ExecutionHandler;
+  let _executionHandler: ExecutionHandler;
 
   beforeEach(() => {
-    executionHandler = new ExecutionHandler();
+    _executionHandler = new ExecutionHandler();
   });
 
   afterEach(() => {
