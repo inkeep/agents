@@ -125,7 +125,7 @@ program
 
 program
   .command('list-agent')
-  .description('List all available agent for a specific project')
+  .description('List all available agents for a specific project')
   .requiredOption('--project <project-id>', 'Project ID to list agent for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
