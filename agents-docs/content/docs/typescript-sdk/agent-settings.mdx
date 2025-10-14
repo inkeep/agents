@@ -281,9 +281,11 @@ const mySubAgent = subAgent({
 
 ### Data components
 
-Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components).
+Structured output components for rich, interactive responses. **We recommend using Zod schemas** for type safety and better developer experience. See [Data Components](/typescript-sdk/structured-outputs/data-components).
 
 ```typescript
+import { z } from 'zod';
+
 const mySubAgent = subAgent({
   id: "my-agent-id",
   name: "My Sub Agent",
@@ -293,15 +295,11 @@ const mySubAgent = subAgent({
       id: "customer-info",
       name: "CustomerInfo",
       description: "Customer information display component",
-      props: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Customer name" },
-          email: { type: "string", description: "Customer email" },
-          issue: { type: "string", description: "Customer issue description" },
-        },
-        required: ["name", "email", "issue"],
-      },
+      props: z.object({
+        name: z.string().describe("Customer name"),
+        email: z.string().describe("Customer email"),
+        issue: z.string().describe("Customer issue description"),
+      }),
     },
   ],
 });
@@ -309,9 +307,12 @@ const mySubAgent = subAgent({
 
 ### Artifact components
 
-Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components).
+Components for handling tool or Sub Agent outputs. **We recommend using Zod schemas with the `preview()` helper** for type safety. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components).
 
 ```typescript
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
 const mySubAgent = subAgent({
   id: "my-agent-id",
   name: "My Sub Agent",
@@ -321,21 +322,10 @@ const mySubAgent = subAgent({
       id: "customer-info",
       name: "CustomerInfo",
       description: "Customer information display component",
-      props: {
-        type: "object",
-        properties: {
-          name: {
-            type: "string",
-            description: "Customer name",
-            inPreview: true,
-          },
-          customer_info: {
-            type: "string",
-            description: "Customer information",
-          },
-        },
-        required: ["name", "customer_info"],
-      },
+      props: z.object({
+        name: preview(z.string().describe("Customer name")),
+        customer_info: z.string().describe("Customer information"),
+      }),
     },
   ],
 });
