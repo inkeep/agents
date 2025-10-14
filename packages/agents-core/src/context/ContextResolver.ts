@@ -10,7 +10,6 @@ import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
 
-// Fetched data in context resolution
 export interface ResolvedContext {
   [templateKey: string]: unknown;
 }
@@ -79,7 +78,6 @@ export class ContextResolver {
       'Starting context resolution'
     );
 
-    // Create parent span for the entire context resolution process
     return tracer.startActiveSpan(
       'context.resolve',
       {
@@ -100,7 +98,6 @@ export class ContextResolver {
             totalDurationMs: 0,
           };
 
-          // Include headers in resolved context under the key 'headers'
           result.resolvedContext.headers = result.headers;
 
           const currentHeaders = await this.cache.get({
@@ -110,7 +107,6 @@ export class ContextResolver {
           });
 
           if (options.headers && Object.keys(options.headers).length > 0) {
-            // Invalidate the current headers
             await this.cache.invalidateHeaders(
               this.tenantId,
               this.projectId,
@@ -125,7 +121,6 @@ export class ContextResolver {
               },
               'Invalidated headers in cache'
             );
-            // Push the new headers to the cache
             await this.cache.set({
               contextConfigId: contextConfig.id,
               contextVariableKey: 'headers',
@@ -148,7 +143,6 @@ export class ContextResolver {
 
           result.resolvedContext.headers = result.headers;
 
-          // Get all context variables - we'll handle trigger events through cache invalidation
           const contextVariables = contextConfig.contextVariables || {};
           const contextVariableEntries = Object.entries(contextVariables);
 
@@ -164,7 +158,6 @@ export class ContextResolver {
             return result;
           }
 
-          // Separate definitions by trigger type for cache invalidation logic
           const _initializationDefs = contextVariableEntries.filter(
             ([, def]) => def.trigger === 'initialization'
           );
@@ -172,7 +165,6 @@ export class ContextResolver {
             ([, def]) => def.trigger === 'invocation'
           );
 
-          // For invocation trigger, invalidate invocation definition cache entries first
           if (options.triggerEvent === 'invocation' && invocationDefs.length > 0) {
             await this.cache.invalidateInvocationDefinitions(
               this.tenantId,
@@ -183,10 +175,8 @@ export class ContextResolver {
             );
           }
 
-          // Create request hash for cache invalidation
           const requestHash = this.createRequestHash(result.headers);
 
-          // Execute all context variables in parallel (no dependencies)
           const fetchPromises = contextVariableEntries.map(([templateKey, definition]) =>
             this.resolveSingleFetchDefinition(
               contextConfig,
@@ -196,7 +186,6 @@ export class ContextResolver {
               requestHash,
               result
             ).catch((error) => {
-              // Handle individual fetch failures without stopping others
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
               logger.error(
                 {
@@ -213,7 +202,6 @@ export class ContextResolver {
                 error: errorMessage,
               });
 
-              // Use default value if available
               if (definition.defaultValue !== undefined) {
                 result.resolvedContext[templateKey] = definition.defaultValue;
                 logger.info(
@@ -228,7 +216,6 @@ export class ContextResolver {
             })
           );
 
-          // Wait for all fetches to complete
           await Promise.all(fetchPromises);
 
           result.totalDurationMs = Date.now() - startTime;
@@ -238,14 +225,12 @@ export class ContextResolver {
             fetched_definitions: result.fetchedDefinitions,
           });
 
-          // Check if there were any errors during context resolution
           if (result.errors.length > 0) {
             parentSpan.setStatus({
               code: SpanStatusCode.ERROR,
               message: `Context resolution completed with errors`,
             });
           } else {
-            // Mark span as successful if no errors
             parentSpan.setStatus({ code: SpanStatusCode.OK });
           }
 
@@ -266,7 +251,6 @@ export class ContextResolver {
         } catch (error) {
           const durationMs = Date.now() - startTime;
 
-          // Use helper function for consistent error handling
           setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
 
           logger.error(
@@ -297,7 +281,6 @@ export class ContextResolver {
     requestHash: string,
     result: ContextResolutionResult
   ): Promise<void> {
-    // Check cache first
     const cachedEntry = await this.cache.get({
       conversationId: options.conversationId,
       contextConfigId: contextConfig.id,
@@ -320,7 +303,6 @@ export class ContextResolver {
       return;
     }
 
-    // Cache miss - fetch the data
     result.cacheMisses.push(definition.id);
 
     logger.debug(
@@ -332,7 +314,6 @@ export class ContextResolver {
       'Cache miss for context variable, fetching data'
     );
 
-    // Fetch the data with conversationId in the fetch config
     const definitionWithConversationId = {
       ...definition,
       fetchConfig: {
@@ -341,7 +322,6 @@ export class ContextResolver {
       },
     };
 
-    // Create span only for the fetch operation
     const fetchedData = await tracer.startActiveSpan(
       'context-resolver.resolve_single_fetch_definition',
       {
@@ -370,7 +350,6 @@ export class ContextResolver {
 
           return data;
         } catch (error) {
-          // Use helper function for consistent error handling
           setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
           throw error;
         } finally {
@@ -379,11 +358,9 @@ export class ContextResolver {
       }
     );
 
-    // Store in resolved context
     result.resolvedContext[templateKey] = fetchedData;
     result.fetchedDefinitions.push(definition.id);
 
-    // Cache the result (unified cache)
     await this.cache.set({
       contextConfigId: contextConfig.id,
       contextVariableKey: templateKey,
