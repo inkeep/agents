@@ -77,13 +77,10 @@ export const createAgents = async (
   let projectId: string;
   let templateName: string;
 
-  // Determine project ID and template based on user input
   if (customProjectId) {
-    // User provided custom project ID - use it as-is, no template needed
     projectId = customProjectId;
-    templateName = ''; // No template will be cloned
+    templateName = '';
   } else if (template) {
-    // User provided template - validate it exists and use template name as project ID
     const availableTemplates = await getAvailableTemplates();
     if (!availableTemplates.includes(template)) {
       p.cancel(
@@ -96,14 +93,12 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    // No template or custom project ID provided - use defaults
     projectId = 'weather-project';
     templateName = 'weather-project';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
 
-  // Prompt for directory name if not provided
   if (!dirName) {
     const dirResponse = await p.text({
       message: 'What do you want to name your agents directory?',
@@ -124,9 +119,6 @@ export const createAgents = async (
     dirName = dirResponse as string;
   }
 
-  // Project ID is already determined above based on template/customProjectId logic
-
-  // If keys aren't provided via CLI args, prompt for provider selection and keys
   if (!anthropicKey && !openAiKey && !googleKey) {
     const providerChoice = await p.select({
       message: 'Which AI provider would you like to use?',
@@ -142,7 +134,6 @@ export const createAgents = async (
       process.exit(0);
     }
 
-    // Prompt for keys based on selection
     if (providerChoice === 'anthropic') {
       const anthropicKeyResponse = await p.text({
         message: 'Enter your Anthropic API key:',
@@ -206,7 +197,6 @@ export const createAgents = async (
     defaultModelSettings = defaultGoogleModelConfigurations;
   }
 
-  // Ensure models are always configured - fail if none were set
   if (Object.keys(defaultModelSettings).length === 0) {
     p.cancel(
       'Cannot continue without a model configuration for project. Please provide an API key for at least one AI provider.'
@@ -226,7 +216,6 @@ export const createAgents = async (
 
     const directoryPath = path.resolve(process.cwd(), dirName);
 
-    // Check if directory already exists
     if (await fs.pathExists(directoryPath)) {
       s.stop();
       const overwrite = await p.confirm({
@@ -241,11 +230,9 @@ export const createAgents = async (
       await fs.emptyDir(directoryPath);
     }
 
-    // Clone the template repository
     s.message('Building template...');
     await cloneTemplate(agentsTemplateRepo, directoryPath);
 
-    // Change to the project directory
     process.chdir(directoryPath);
 
     const config = {
@@ -261,20 +248,16 @@ export const createAgents = async (
       customProject: !!customProjectId,
     };
 
-    // Create workspace structure for project-specific files
     s.message('Setting up project structure...');
     await createWorkspaceStructure();
 
-    // Create environment files
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    // Create project template folder (only if template is specified)
     if (projectTemplateRepo) {
       s.message('Creating project template folder...');
       const templateTargetPath = `src/${projectId}`;
 
-      // Prepare content replacements for model settings
       const contentReplacements: ContentReplacement[] = [
         {
           filePath: 'index.ts',
@@ -290,26 +273,21 @@ export const createAgents = async (
       await fs.ensureDir(`src/${projectId}`);
     }
 
-    // create or overwrite inkeep.config.ts
     s.message('Creating inkeep.config.ts...');
     await createInkeepConfig(config);
 
-    // Install dependencies
     s.message('Installing dependencies (this may take a while)...');
     await installDependencies();
 
-    // Setup database
     s.message('Setting up database...');
     await setupDatabase();
 
-    // Setup project in database
     s.message('Pushing project...');
     await setupProjectInDatabase(config);
     s.message('Project setup complete!');
 
     s.stop();
 
-    // Success message with next steps
     p.note(
       `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Ready to go!')}\n\n` +
@@ -340,12 +318,10 @@ export const createAgents = async (
 };
 
 async function createWorkspaceStructure() {
-  // Create the workspace directory structure
   await fs.ensureDir(`src`);
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
-  // Root .env file
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -407,43 +383,31 @@ async function installDependencies() {
 }
 
 async function setupProjectInDatabase(config: FileConfig) {
-  // Start development servers in background
   const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
-    detached: true, // Detach so we can kill the process group
+    detached: true,
     cwd: process.cwd(),
   });
 
-  // Give servers time to start
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  // Run inkeep push
   try {
-    // Suppress all output
     await execAsync(
       `pnpm inkeep push --project src/${config.projectId} --config src/inkeep.config.ts`
     );
   } catch (_error) {
-    //Continue despite error - user can setup project manually
   } finally {
-    // Kill the dev servers and their child processes
     if (devProcess.pid) {
       try {
-        // Kill the entire process group
         process.kill(-devProcess.pid, 'SIGTERM');
 
-        // Wait a moment for graceful shutdown
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Force kill if still running
         try {
           process.kill(-devProcess.pid, 'SIGKILL');
-        } catch {
-          // Process already terminated
-        }
+        } catch {}
       } catch (_error) {
-        // Process might already be dead, that's fine
         console.log('Note: Dev servers may still be running in background');
       }
     }
@@ -452,7 +416,6 @@ async function setupProjectInDatabase(config: FileConfig) {
 
 async function setupDatabase() {
   try {
-    // Run drizzle-kit migrate to apply migrations to database
     await execAsync('pnpm db:migrate');
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } catch (error) {
@@ -462,7 +425,6 @@ async function setupDatabase() {
   }
 }
 
-// Export the command function for the CLI
 export async function createCommand(dirName?: string, options?: any) {
   await createAgents({
     dirName,
