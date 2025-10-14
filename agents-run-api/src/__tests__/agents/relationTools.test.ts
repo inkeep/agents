@@ -229,7 +229,7 @@ describe('Relationship Tools', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Target Agent',
       description: 'A target agent for testing',
-      agentPrompt: 'You are a target agent.',
+      prompt: 'You are a target agent.',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],

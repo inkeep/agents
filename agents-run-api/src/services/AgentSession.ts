@@ -121,16 +121,14 @@ export interface ArtifactSavedData {
 
 export interface ToolCallData {
   toolName: string;
-  args: any;
-  toolCallId?: string;
-  toolId?: string;
+  input: any;
+  toolCallId: string;
 }
 
 export interface ToolResultData {
   toolName: string;
-  result: any;
-  toolCallId?: string;
-  toolId?: string;
+  toolCallId: string;
+  output: any;
   duration?: number;
   error?: string;
 }
@@ -1219,7 +1217,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           // TypeScript automatically narrows event.data to ToolCallData here
           activities.push(
             `🔧 **${event.data.toolName}** (called)\n` +
-              `   📥 Input: ${JSON.stringify(event.data.args)}`
+              `   📥 Input: ${JSON.stringify(event.data.input)}`
           );
           break;
         }
@@ -1228,7 +1226,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           // TypeScript automatically narrows event.data to ToolResultData here
           const resultStr = event.data.error
             ? `❌ Error: ${event.data.error}`
-            : JSON.stringify(event.data.result);
+            : JSON.stringify(event.data.output);
 
           activities.push(
             `🔧 **${event.data.toolName}** ${event.data.duration ? `(${event.data.duration}ms)` : ''}\n` +

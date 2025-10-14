@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+
+## 0.20.0
+
+### Minor Changes
+
+- fb99085: refactors agentPrompt to prompt
+
 ## 0.19.9
 
 ## 0.19.8

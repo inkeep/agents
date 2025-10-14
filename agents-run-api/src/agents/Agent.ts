@@ -109,7 +109,7 @@ export type AgentConfig = {
   apiKeyId?: string;
   name: string;
   description: string;
-  agentPrompt: string;
+  prompt: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -373,8 +373,8 @@ export class Agent {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
-        // Use the AI SDK's toolCallId consistently instead of generating our own
-        const toolId = context?.toolCallId || generateToolId();
+        // Ensure we always have a toolCallId (from AI SDK or generated)
+        const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
@@ -398,9 +398,8 @@ export class Agent {
         if (streamRequestId && !isInternalTool) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
-            args,
-            toolCallId: context?.toolCallId,
-            toolId,
+            input: args,
+            toolCallId,
           });
         }
 
@@ -412,9 +411,8 @@ export class Agent {
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              result,
-              toolCallId: context?.toolCallId,
-              toolId,
+              output: result,
+              toolCallId,
               duration,
             });
           }
@@ -428,9 +426,8 @@ export class Agent {
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              result: null,
-              toolCallId: context?.toolCallId,
-              toolId,
+              output: null,
+              toolCallId,
               duration,
               error: errorMessage,
             });
@@ -1031,7 +1028,7 @@ export class Agent {
   /**
    * Get the agent prompt for this agent's agent
    */
-  private async getAgentPrompt(): Promise<string | undefined> {
+  private async getPrompt(): Promise<string | undefined> {
     try {
       const agentDefinition = await getFullAgentDefinition(dbClient)({
         scopes: {
@@ -1114,10 +1111,10 @@ export class Agent {
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
     // Process agent prompt with context (same logic as buildSystemPrompt)
-    let processedPrompt = this.config.agentPrompt;
+    let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
-        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+        processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1129,7 +1126,7 @@ export class Agent {
           },
           'Failed to process agent prompt with context for Phase 2, using original'
         );
-        processedPrompt = this.config.agentPrompt;
+        processedPrompt = this.config.prompt;
       }
     }
 
@@ -1183,10 +1180,10 @@ export class Agent {
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
     // Process agent prompt with context
-    let processedPrompt = this.config.agentPrompt;
+    let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
-        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+        processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1198,7 +1195,7 @@ export class Agent {
           },
           'Failed to process agent prompt with context, using original'
         );
-        processedPrompt = this.config.agentPrompt;
+        processedPrompt = this.config.prompt;
       }
     }
 
@@ -1257,12 +1254,12 @@ export class Agent {
       this.config.dataComponents && this.config.dataComponents.length > 0 && excludeDataComponents;
 
     // Get agent prompt for additional context
-    let agentPrompt = await this.getAgentPrompt();
+    let prompt = await this.getPrompt();
 
     // Process agent prompt with context variables
-    if (agentPrompt && resolvedContext) {
+    if (prompt && resolvedContext) {
       try {
-        agentPrompt = TemplateEngine.render(agentPrompt, resolvedContext, {
+        prompt = TemplateEngine.render(prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1274,7 +1271,7 @@ export class Agent {
           },
           'Failed to process agent prompt with context, using original'
         );
-        // agentPrompt remains unchanged if processing fails
+        // prompt remains unchanged if processing fails
       }
     }
 
@@ -1287,7 +1284,7 @@ export class Agent {
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
-      agentPrompt,
+      prompt,
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
