@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [fb99085]
+  - @inkeep/agents-core@0.20.0
+  - @inkeep/agents-run-api@0.20.0
+  - @inkeep/agents-manage-api@0.20.0
+
 ## 0.19.9
 
 ### Patch Changes

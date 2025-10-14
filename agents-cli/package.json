@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.19.9",
+  "version": "0.20.0",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
