@@ -1,17 +1,5 @@
 # @inkeep/agents-manage-ui
 
-## 1.0.0
-
-### Minor Changes
-
-- 53f5d40: - Add PUBLIC env vars for manageui
-
-### Patch Changes
-
-- @inkeep/agents-manage-api@1.0.0
-- @inkeep/agents-run-api@1.0.0
-- @inkeep/agents-core@1.0.0
-
 ## 0.21.1
 
 ### Patch Changes
