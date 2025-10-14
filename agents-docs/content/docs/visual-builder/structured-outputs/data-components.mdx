@@ -9,9 +9,63 @@ icon: "LuBlocks"
 ## How to create a data component
 
 1. Go to the Data Components tab in the left sidebar. Then select "New data component".
-2. Add in an id, name, description, and enter in a JSON schema. These are required fields.
-3. Click "Submit".
+2. Add in an id, name, and description. These are required fields.
+3. Enter a JSON schema defining the structure of your data component.
+4. Click "Submit".
 
 To visually add the data component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-data-components) page for details.
 
----
+### Example JSON Schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "description": "Array of user tasks",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Task ID" },
+          "title": { "type": "string", "description": "Task title" },
+          "completed": { "type": "boolean", "description": "Task status" }
+        }
+      }
+    },
+    "totalCount": { "type": "number", "description": "Total tasks" }
+  }
+}
+```
+
+## Frontend Integration
+
+Create a React component matching your data component name:
+
+```tsx
+const TaskList = ({ tasks, totalCount }) => (
+  <div className="task-list">
+    <h3>Your Tasks ({totalCount} total)</h3>
+    {tasks.map((task) => (
+      <div key={task.id} className={task.completed ? "completed" : ""}>
+        {task.title}
+      </div>
+    ))}
+  </div>
+);
+```
+
+Register it with the Inkeep chat component:
+
+```tsx
+<InkeepSidebarChat
+  aiChatSettings={{
+    agentUrl: "your-agent-url",
+    components: {
+      TaskList, // Component name must match data component name
+    },
+  }}
+/>
+```
+
+The agent will automatically return structured data that renders as your React component.
