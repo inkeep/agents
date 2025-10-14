@@ -1,5 +1,18 @@
 # @inkeep/agents-run-api
 
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+- Updated dependencies [88ff25c]
+- Updated dependencies [43cd2f6]
+  - @inkeep/agents-core@0.21.0
+
 ## 0.20.1
 
 ### Patch Changes
