@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.20.0
+
+### Minor Changes
+
+- fb99085: refactors agentPrompt to prompt
+
 ## 0.19.9
 
 ## 0.19.8

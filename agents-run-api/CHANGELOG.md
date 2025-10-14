@@ -1,5 +1,16 @@
 # @inkeep/agents-run-api
 
+## 0.20.0
+
+### Minor Changes
+
+- fb99085: refactors agentPrompt to prompt
+
+### Patch Changes
+
+- Updated dependencies [fb99085]
+  - @inkeep/agents-core@0.20.0
+
 ## 0.19.9
 
 ### Patch Changes
