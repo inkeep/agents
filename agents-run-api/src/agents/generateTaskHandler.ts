@@ -333,13 +333,16 @@ export const createTaskHandler = (
               (result: any) => result.toolCallId === toolCall.toolCallId
             );
 
-            logger.info({
-              toolCallName: toolCall.toolName,
-              toolCallId: toolCall.toolCallId,
-              hasToolResult: !!toolResult,
-              toolResultOutput: toolResult?.output,
-              toolResultKeys: toolResult?.output ? Object.keys(toolResult.output) : [],
-            }, '[DEBUG] Transfer tool result found');
+            logger.info(
+              {
+                toolCallName: toolCall.toolName,
+                toolCallId: toolCall.toolCallId,
+                hasToolResult: !!toolResult,
+                toolResultOutput: toolResult?.output,
+                toolResultKeys: toolResult?.output ? Object.keys(toolResult.output) : [],
+              },
+              '[DEBUG] Transfer tool result found'
+            );
 
             // Validate transfer result with proper type checking
             const isValidTransferResult = (
@@ -371,12 +374,15 @@ export const createTaskHandler = (
             if (toolResult?.output && isValidTransferResult(toolResult.output)) {
               const transferResult = toolResult.output;
 
-              logger.info({
-                validationPassed: true,
-                transferResult,
-                targetSubAgentId: transferResult.targetSubAgentId,
-                fromSubAgentId: transferResult.fromSubAgentId,
-              }, '[DEBUG] Transfer validation passed, extracted data');
+              logger.info(
+                {
+                  validationPassed: true,
+                  transferResult,
+                  targetSubAgentId: transferResult.targetSubAgentId,
+                  fromSubAgentId: transferResult.fromSubAgentId,
+                },
+                '[DEBUG] Transfer validation passed, extracted data'
+              );
 
               // Build the artifact data
               const artifactData = {
@@ -388,10 +394,13 @@ export const createTaskHandler = (
                 original_message: userMessage,
               };
 
-              logger.info({
-                artifactData,
-                artifactDataKeys: Object.keys(artifactData),
-              }, '[DEBUG] Artifact data being returned');
+              logger.info(
+                {
+                  artifactData,
+                  artifactDataKeys: Object.keys(artifactData),
+                },
+                '[DEBUG] Artifact data being returned'
+              );
 
               // Return transfer indication in A2A format
               return {
@@ -412,12 +421,15 @@ export const createTaskHandler = (
                 ],
               };
             } else {
-              logger.warn({
-                hasToolResult: !!toolResult,
-                hasOutput: !!toolResult?.output,
-                validationPassed: false,
-                output: toolResult?.output,
-              }, '[DEBUG] Transfer validation FAILED');
+              logger.warn(
+                {
+                  hasToolResult: !!toolResult,
+                  hasOutput: !!toolResult?.output,
+                  validationPassed: false,
+                  output: toolResult?.output,
+                },
+                '[DEBUG] Transfer validation FAILED'
+              );
             }
           }
         }

@@ -87,14 +87,17 @@ export const createTransferToAgentTool = ({
 
       const transferResult = {
         type: 'transfer',
-        targetSubAgentId: transferConfig.id ?? 'unknown',  // Changed from "target" for type safety
+        targetSubAgentId: transferConfig.id ?? 'unknown', // Changed from "target" for type safety
         fromSubAgentId: callingAgentId, // Include the calling agent ID for tracking
       };
 
-      logger.info({
-        transferResult,
-        transferResultKeys: Object.keys(transferResult),
-      }, '[DEBUG] Transfer tool returning');
+      logger.info(
+        {
+          transferResult,
+          transferResultKeys: Object.keys(transferResult),
+        },
+        '[DEBUG] Transfer tool returning'
+      );
 
       return transferResult;
     },
