@@ -20,45 +20,45 @@ export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH_LI
 export const modelOptions = {
   anthropic: [
     {
-      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1_20250805,
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1,
       label: 'Claude Opus 4.1',
     },
     {
-      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
+      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
       label: 'Claude Sonnet 4.5',
     },
     {
-      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514,
+      value: ANTHROPIC_MODELS.CLAUDE_SONNET_4,
       label: 'Claude Sonnet 4',
     },
     {
-      value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU_20241022,
+      value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU,
       label: 'Claude 3.5 Haiku',
     },
   ],
   openai: [
     {
-      value: OPENAI_MODELS.GPT_4_1_20250414,
+      value: OPENAI_MODELS.GPT_4_1,
       label: 'GPT-4.1',
     },
     {
-      value: OPENAI_MODELS.GPT_4_1_MINI_20250414,
+      value: OPENAI_MODELS.GPT_4_1_MINI,
       label: 'GPT-4.1 Mini',
     },
     {
-      value: OPENAI_MODELS.GPT_4_1_NANO_20250414,
+      value: OPENAI_MODELS.GPT_4_1_NANO,
       label: 'GPT-4.1 Nano',
     },
     {
-      value: OPENAI_MODELS.GPT_5_20250807,
+      value: OPENAI_MODELS.GPT_5,
       label: 'GPT-5',
     },
     {
-      value: OPENAI_MODELS.GPT_5_MINI_20250807,
+      value: OPENAI_MODELS.GPT_5_MINI,
       label: 'GPT-5 Mini',
     },
     {
-      value: OPENAI_MODELS.GPT_5_NANO_20250807,
+      value: OPENAI_MODELS.GPT_5_NANO,
       label: 'GPT-5 Nano',
     },
   ],

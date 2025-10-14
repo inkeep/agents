@@ -76,7 +76,7 @@ export function project(config: ProjectConfig): Project {
  * This is different from tools which auto-generate IDs from their names.
  *
  * @param config - Agent configuration including required stable ID
- * @returns A new Agent instance
+ * @returns A new SubAgent instance
  * @throws {Error} If config.id is not provided
  *
  * @example
@@ -179,6 +179,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
       : undefined,
   });
 }
+
 /**
  * Creates an MCP tool from a raw configuration object.
  *
@@ -198,9 +199,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
  * });
  * ```
  */
-
 export function mcpTool(config: MCPToolConfig): Tool {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -209,9 +208,6 @@ export function mcpTool(config: MCPToolConfig): Tool {
   return new Tool(validatedConfig);
 }
 
-// ============================================================================
-// Component Builders
-// ============================================================================
 /**
  * Creates an artifact component with automatic ID generation.
  *
@@ -238,15 +234,14 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * });
  * ```
  */
-
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new ArtifactComponent(configWithId);
 }
+
 /**
  * Creates a data component with automatic ID generation.
  *
@@ -269,9 +264,7 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  * });
  * ```
  */
-
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -287,9 +280,6 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   };
 }
 
-// ============================================================================
-// Function Tool Builders
-// ============================================================================
 /**
  * Creates a function tool that executes user-defined code in a sandboxed environment.
  *

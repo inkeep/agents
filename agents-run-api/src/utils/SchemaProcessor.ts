@@ -36,7 +36,6 @@ export class SchemaProcessor {
         const result: any = {};
         for (const [key, value] of Object.entries(obj)) {
           if (key === 'type' && typeof value === 'string') {
-            // Transform all non-string types to string for JMESPath extraction
             result[key] = value === 'string' ? 'string' : 'string';
           } else {
             result[key] = transform(value);
@@ -55,7 +54,6 @@ export class SchemaProcessor {
    * Validate if a selector looks like a valid JMESPath expression
    */
   static validateJMESPathSelector(selector: string): JMESPathValidationResult {
-    // Check for literal value patterns first
     if (this.isLiteralValue(selector)) {
       return {
         isLiteral: true,
@@ -63,7 +61,6 @@ export class SchemaProcessor {
       };
     }
 
-    // Check for valid JMESPath patterns
     if (this.looksLikeJMESPath(selector)) {
       return {
         isLiteral: false,
@@ -81,27 +78,22 @@ export class SchemaProcessor {
    * Check if a selector looks like a JMESPath expression
    */
   private static looksLikeJMESPath(selector: string): boolean {
-    // Simple dot notation (most common case)
     if (/^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$/.test(selector)) {
       return true;
     }
 
-    // Multiple levels of nesting
     if (/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$/.test(selector)) {
       return true;
     }
 
-    // Array access patterns
     if (/\[\d+\]/.test(selector) || /\[\*\]/.test(selector)) {
       return true;
     }
 
-    // Filter expressions
     if (/\[.*?\]/.test(selector) && /[=<>!]/.test(selector)) {
       return true;
     }
 
-    // Pipe expressions
     if (selector.includes('|')) {
       return true;
     }
@@ -113,17 +105,14 @@ export class SchemaProcessor {
    * Check if a selector appears to be a literal value rather than a JMESPath expression
    */
   private static isLiteralValue(selector: string): boolean {
-    // If it looks like a valid JMESPath, it's not a literal
     if (this.looksLikeJMESPath(selector)) {
       return false;
     }
 
-    // URL patterns
     if (/^https?:\/\//.test(selector)) {
       return true;
     }
 
-    // Common literal patterns
     if (/^[0-9]+$/.test(selector)) { // Pure numbers
       return true;
     }
@@ -133,7 +122,6 @@ export class SchemaProcessor {
     }
 
     if (/^[a-zA-Z0-9\s\-_,;:!?.'"+()]+$/.test(selector) && selector.length > 20) {
-      // Long text that looks like content
       return true;
     }
 
@@ -210,7 +198,6 @@ export class SchemaProcessor {
       return null;
     }
 
-    // Type conversion based on expected type
     if (expectedType) {
       switch (expectedType) {
         case 'string':
@@ -239,11 +226,9 @@ export class SchemaProcessor {
       return schema || {};
     }
 
-    // Transform schema to flatten all complex types to string selectors
     const transformToSelectorSchema = (obj: any, path: string = ''): any => {
       if (!obj || typeof obj !== 'object') return obj;
       
-      // Handle array types - convert to string selector
       if (obj.type === 'array') {
         const itemDescription = obj.items?.description || 'array items';
         const arrayDescription = obj.description || 'array data';
@@ -255,7 +240,6 @@ export class SchemaProcessor {
         };
       }
       
-      // Handle object types - convert to string selector unless it has properties
       if (obj.type === 'object' && !obj.properties) {
         const objectDescription = obj.description || 'object data';
         
@@ -265,7 +249,6 @@ export class SchemaProcessor {
         };
       }
       
-      // Handle object types with properties - transform each property
       if (obj.type === 'object' && obj.properties) {
         const transformedProperties: any = {};
         
@@ -282,7 +265,6 @@ export class SchemaProcessor {
         };
       }
       
-      // Handle primitive types - convert to string selectors (all props are selectors)
       if (['string', 'number', 'boolean'].includes(obj.type)) {
         const originalDescription = obj.description || `${obj.type} value`;
         
@@ -292,7 +274,6 @@ export class SchemaProcessor {
         };
       }
       
-      // Fallback for unknown types
       return {
         type: 'string',
         description: `🎯 SELECTOR: Provide JMESPath selector RELATIVE to base selector. Example: "fieldName" or "nested.path" (NOT absolute paths)`

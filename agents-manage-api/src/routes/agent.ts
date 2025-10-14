@@ -118,7 +118,7 @@ app.openapi(
     path: '/{agentId}/sub-agents/{subAgentId}/related',
     summary: 'Get Related Agent Infos',
     operationId: 'get-related-agent-infos',
-    tags: ['Agent Agent'],
+    tags: ['Agent'],
     request: {
       params: TenantProjectParamsSchema.extend({
         agentId: z.string(),
@@ -171,7 +171,7 @@ app.openapi(
     path: '/{agentId}/full',
     summary: 'Get Full Agent Definition',
     operationId: 'get-full-agent-definition',
-    tags: ['Agent Agent'],
+    tags: ['Agent'],
     request: {
       params: TenantProjectAgentParamsSchema,
     },

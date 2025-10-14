@@ -366,28 +366,11 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in keychain, or fall back to nango
+      // Store access token in nango, and fall back to keychain.
       const credentialTokenKey = `oauth_token_${toolId}`;
       let newCredentialData: CredentialReferenceApiInsert | undefined;
 
-      const keychainStore = credentialStores.get('keychain-default');
-      if (keychainStore) {
-        try {
-          await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
-          newCredentialData = {
-            id: generateIdFromName(mcpTool.name),
-            type: CredentialStoreType.keychain,
-            credentialStoreId: 'keychain-default',
-            retrievalParams: {
-              key: credentialTokenKey,
-            },
-          };
-        } catch {
-          // Fall through to Nango fallback
-        }
-      }
-
-      if (!newCredentialData && process.env.NANGO_SECRET_KEY) {
+      if (process.env.NANGO_SECRET_KEY) {
         const nangoStore = credentialStores.get('nango-default');
         await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
         newCredentialData = {
@@ -401,6 +384,26 @@ app.openapi(
             authMode: 'API_KEY',
           },
         };
+      } else {
+        const keychainStore = credentialStores.get('keychain-default');
+        if (keychainStore) {
+          try {
+            await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
+            newCredentialData = {
+              id: generateIdFromName(mcpTool.name),
+              type: CredentialStoreType.keychain,
+              credentialStoreId: 'keychain-default',
+              retrievalParams: {
+                key: credentialTokenKey,
+              },
+            };
+          } catch (error) {
+            logger.info(
+              { error: error instanceof Error ? error.message : error },
+              'Keychain store not available.'
+            );
+          }
+        }
       }
 
       if (!newCredentialData) {

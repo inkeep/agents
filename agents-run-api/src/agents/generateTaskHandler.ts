@@ -48,7 +48,6 @@ export const createTaskHandler = (
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
     try {
-      // Extract the user message from the task
       const userMessage = task.input.parts
         .filter((part) => part.text)
         .map((part) => part.text)
@@ -106,9 +105,6 @@ export const createTaskHandler = (
 
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
-      // Enhance internal relation descriptions with their transfer/delegation info
-      // This allows agents to see the full capability agent for routing decisions
-      // We batch the operations to be more efficient than the original N+1 approach
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
           try {
@@ -121,7 +117,6 @@ export const createTaskHandler = (
               subAgentId: relation.id,
             });
             if (relatedAgent) {
-              // Get this agent's relations for enhanced description
               const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
                 scopes: {
                   tenantId: config.tenantId,
@@ -131,7 +126,6 @@ export const createTaskHandler = (
                 subAgentId: relation.id,
               });
 
-              // Use the optimized version that accepts pre-computed relations
               const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',
                 relatedAgentRelations.internalRelations,
@@ -146,7 +140,6 @@ export const createTaskHandler = (
         })
       );
 
-      // Check if this is an internal agent (has prompt)
       const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
@@ -202,7 +195,6 @@ export const createTaskHandler = (
               transferRelations: [],
             })),
           delegateRelations: [
-            // Internal delegate relations
             ...enhancedInternalRelations
               .filter((relation) => relation.relationType === 'delegate')
               .map((relation) => ({
@@ -222,7 +214,6 @@ export const createTaskHandler = (
                   transferRelations: [],
                 },
               })),
-            // External delegate relations
             ...externalRelations.map((relation) => ({
               type: 'external' as const,
               config: {
@@ -244,17 +235,13 @@ export const createTaskHandler = (
         credentialStoreRegistry
       );
 
-      // Update the shared ArtifactService with artifact components for this agent
       const artifactStreamRequestId = task.context?.metadata?.streamRequestId;
       if (artifactStreamRequestId && artifactComponents.length > 0) {
         agentSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
       }
 
-      // More robust contextId resolution for delegation scenarios
       let contextId = task.context?.conversationId;
 
-      // If contextId is not set in task.context, try to extract it from the task.id
-      // Many tasks are created with IDs like "task_math-demo-123456-chatcmpl-789"
       if (!contextId || contextId === 'default' || contextId === '') {
         const taskIdMatch = task.id.match(/^task_([^-]+-[^-]+-\d+)-/);
         if (taskIdMatch) {
@@ -272,11 +259,9 @@ export const createTaskHandler = (
         }
       }
 
-      // Extract streaming context from task metadata and get streamHelper from registry
       const streamRequestId =
         task.context?.metadata?.stream_request_id || task.context?.metadata?.streamRequestId;
 
-      // Check if this is a delegation - delegated agents should not stream to user
       const isDelegation = task.context?.metadata?.isDelegation === true;
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
@@ -285,8 +270,6 @@ export const createTaskHandler = (
           'Delegated agent - streaming disabled'
         );
 
-        // Ensure ToolSession exists for delegated agents
-        // Use streamRequestId as sessionId to match the parent AgentSession
         if (streamRequestId && config.tenantId && config.projectId) {
           toolSessionManager.ensureAgentSession(
             streamRequestId,
@@ -309,7 +292,6 @@ export const createTaskHandler = (
         },
       });
 
-      // Process steps to extract tool calls and results from content arrays
       const stepContents =
         response.steps && Array.isArray(response.steps)
           ? response.steps.flatMap((step: any) => {
@@ -323,12 +305,10 @@ export const createTaskHandler = (
 
       if (allToolCalls.length > 0) {
         for (const toolCall of allToolCalls) {
-          // Check for transfer tool calls (we support multiple patterns)
           if (
             toolCall.toolName.includes('transfer') ||
             toolCall.toolName.includes('transferToRefundAgent')
           ) {
-            // Look for the tool result
             const toolResult = allToolResults.find(
               (result: any) => result.toolCallId === toolCall.toolCallId
             );
@@ -344,7 +324,6 @@ export const createTaskHandler = (
               '[DEBUG] Transfer tool result found'
             );
 
-            // Validate transfer result with proper type checking
             const isValidTransferResult = (
               output: unknown
             ): output is {
@@ -362,7 +341,6 @@ export const createTaskHandler = (
               );
             };
 
-            //In the agent.generate response, response.text is not always populated. In that case, use allThoughts to get the last text part found in the steps array.
             const responseText =
               (response as any).text ||
               ((response as any).object ? JSON.stringify((response as any).object) : '');
@@ -384,7 +362,6 @@ export const createTaskHandler = (
                 '[DEBUG] Transfer validation passed, extracted data'
               );
 
-              // Build the artifact data
               const artifactData = {
                 type: 'transfer',
                 targetSubAgentId: transferResult.targetSubAgentId,
@@ -402,7 +379,6 @@ export const createTaskHandler = (
                 '[DEBUG] Artifact data being returned'
               );
 
-              // Return transfer indication in A2A format
               return {
                 status: {
                   state: TaskState.Completed,
@@ -435,7 +411,6 @@ export const createTaskHandler = (
         }
       }
 
-      // Use formatted content parts if available, otherwise fall back to response.text
       const parts: Part[] = (response.formattedContent?.parts || []).map((part: any) => ({
         kind: part.kind as 'text' | 'data',
         ...(part.kind === 'text' && { text: part.text }),
@@ -511,7 +486,6 @@ export const createTaskHandlerConfig = async (params: {
     throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
-  // Inherit agent models if agent doesn't have one
   const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
   const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
 
