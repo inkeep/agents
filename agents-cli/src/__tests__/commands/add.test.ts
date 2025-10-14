@@ -1,7 +1,13 @@
 import fs from 'fs-extra';
 import ora from 'ora';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type AddOptions, addCommand, defaultAnthropicModelConfigurations, defaultGoogleModelConfigurations, defaultOpenaiModelConfigurations } from '../../commands/add';
+import {
+  type AddOptions,
+  addCommand,
+  defaultAnthropicModelConfigurations,
+  defaultGoogleModelConfigurations,
+  defaultOpenaiModelConfigurations,
+} from '../../commands/add';
 import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
@@ -453,18 +459,14 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: defaultAnthropicModelConfigurations,
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultAnthropicModelConfigurations,
           },
-        ]
-      );
+        },
+      ]);
     });
 
     it('should use OpenAI models when OPENAI_API_KEY is set', async () => {
@@ -477,18 +479,14 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: defaultOpenaiModelConfigurations,
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultOpenaiModelConfigurations,
           },
-        ]
-      );
+        },
+      ]);
     });
 
     it('should use Google models when GOOGLE_API_KEY is set', async () => {
@@ -501,18 +499,14 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: defaultGoogleModelConfigurations,
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultGoogleModelConfigurations,
           },
-        ]
-      );
+        },
+      ]);
     });
 
     it('should prioritize Anthropic over OpenAI when both keys are set', async () => {
@@ -526,18 +520,14 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: defaultAnthropicModelConfigurations,
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultAnthropicModelConfigurations,
           },
-        ]
-      );
+        },
+      ]);
     });
 
     it('should prioritize OpenAI over Google when both keys are set', async () => {
@@ -551,18 +541,14 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: defaultOpenaiModelConfigurations,
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: defaultOpenaiModelConfigurations,
           },
-        ]
-      );
+        },
+      ]);
     });
 
     it('should log error when no API keys are set', async () => {
@@ -576,18 +562,14 @@ describe('Add Command', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '❌ No AI provider key found in environment variables. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GENERATIVE_AI_API_KEY'
       );
-      expect(cloneTemplate).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        [
-          {
-            filePath: 'index.ts',
-            replacements: {
-              models: {},
-            },
+      expect(cloneTemplate).toHaveBeenCalledWith(expect.any(String), expect.any(String), [
+        {
+          filePath: 'index.ts',
+          replacements: {
+            models: {},
           },
-        ]
-      );
+        },
+      ]);
     });
   });
 });
