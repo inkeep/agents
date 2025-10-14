@@ -240,7 +240,7 @@ export function TimelineWrapper({
   // Track which messages we've already processed
   const processedIdsRef = useRef<Set<string>>(new Set());
   const lastConversationRef = useRef<string | undefined>(undefined);
-  
+
   useEffect(() => {
     // Reset when conversation changes
     if (conversationId !== lastConversationRef.current) {
@@ -249,37 +249,39 @@ export function TimelineWrapper({
       setCollapsedAiMessages(new Set());
       setAiMessagesGloballyCollapsed(false);
     }
-    
+
     // Determine which IDs to auto-collapse based on view type
     const idsToProcess = enableAutoScroll ? aiMessageIds : streamTextIds;
-    
+
     // Find new IDs that haven't been processed yet
-    const newIds = idsToProcess.filter(id => !processedIdsRef.current.has(id));
-    
+    const newIds = idsToProcess.filter((id) => !processedIdsRef.current.has(id));
+
     if (newIds.length > 0) {
       // Mark these as processed
-      newIds.forEach(id => {
+      newIds.forEach((id) => {
         processedIdsRef.current.add(id);
       });
-      
+
       // Add new IDs to collapsed set
-      setCollapsedAiMessages(prev => {
+      setCollapsedAiMessages((prev) => {
         const updated = new Set(prev);
-        newIds.forEach(id => {
+        newIds.forEach((id) => {
           updated.add(id);
         });
         return updated;
       });
       // Update global state
-      const allProcessed = idsToProcess.every(id => processedIdsRef.current.has(id));
+      const allProcessed = idsToProcess.every((id) => processedIdsRef.current.has(id));
       if (enableAutoScroll) {
         setAiMessagesGloballyCollapsed(allProcessed && aiMessageIds.length > 0);
       } else {
-        setAiMessagesGloballyCollapsed(allProcessed && streamTextIds.length === aiMessageIds.length && aiMessageIds.length > 0);
+        setAiMessagesGloballyCollapsed(
+          allProcessed && streamTextIds.length === aiMessageIds.length && aiMessageIds.length > 0
+        );
       }
     }
   }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
-  
+
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
     setCollapsedAiMessages(new Set());
@@ -348,11 +350,11 @@ export function TimelineWrapper({
     try {
       const result = await refreshOnce();
       if (!result.hasNewActivity) {
-        toast.info('No new activity found');
+        toast.info('No new activity found.');
       }
       setIsRefreshing(false);
     } catch {
-      toast.error('Failed to refresh activities');
+      toast.error('Failed to refresh activities.');
       setIsRefreshing(false);
     }
   };

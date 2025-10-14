@@ -3,9 +3,9 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
+import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
@@ -81,7 +81,7 @@ export const agentStore = create<AgentState>()(
       },
       models: undefined,
       stopWhen: undefined,
-      agentPrompt: undefined,
+      prompt: undefined,
       statusUpdates: undefined,
     },
     dataComponentLookup: {},

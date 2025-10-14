@@ -162,10 +162,10 @@ export function ConversationStatsCard({
           <EmptyState
             title={
               localQuery
-                ? 'No conversations found'
+                ? 'No conversations found.'
                 : selectedTimeRange === '24h'
                   ? 'No conversation statistics found.'
-                  : `No data for ${selectedTimeRange === '7d' ? '7 days' : selectedTimeRange === '15d' ? '15 days' : 'this time range'}`
+                  : `No data for ${selectedTimeRange === '7d' ? '7 days' : selectedTimeRange === '15d' ? '15 days' : 'this time range'}.`
             }
             description={
               localQuery

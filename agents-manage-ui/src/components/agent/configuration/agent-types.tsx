@@ -29,7 +29,7 @@ export type AgentMetadata = {
   contextConfig: ContextConfig;
   models?: AgentModels;
   stopWhen?: AgentStopWhen;
-  agentPrompt?: string;
+  prompt?: string;
   statusUpdates?: StatusUpdateSettings;
 };
 

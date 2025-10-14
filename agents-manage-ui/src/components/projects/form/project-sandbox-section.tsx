@@ -48,7 +48,7 @@ export function ProjectSandboxSection({ control }: ProjectSandboxSectionProps) {
       <div>
         <Label className="text-sm font-medium">Sandbox configuration</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure the execution environment for functions in this project
+          Configure the execution environment for functions in this project.
         </p>
       </div>
 
