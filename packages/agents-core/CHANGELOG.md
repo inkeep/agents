@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.21.1
+
+### Patch Changes
+
+- 4815d3a: create bearer in keychain
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+
 ## 0.21.0
 
 ### Minor Changes

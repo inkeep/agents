@@ -1,5 +1,16 @@
 # @inkeep/agents-run-api
 
+## 0.21.1
+
+### Patch Changes
+
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+- Updated dependencies [4815d3a]
+- Updated dependencies [1aefe88]
+- Updated dependencies [eb0ffa2]
+  - @inkeep/agents-core@0.21.1
+
 ## 0.21.0
 
 ### Minor Changes
