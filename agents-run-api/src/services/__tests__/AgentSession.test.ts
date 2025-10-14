@@ -95,11 +95,13 @@ describe('AgentSession', () => {
       // that subsequent operations don't add events
       session.recordEvent('tool_call', 'agent', {
         toolName: 'test',
-        args: {},
+        input: {},
+        toolCallId: 'test-call-id',
       });
       session.recordEvent('tool_result', 'agent', {
         toolName: 'test',
-        result: 'test',
+        output: 'test',
+        toolCallId: 'test-call-id',
       });
       expect(session.getEvents()).toHaveLength(0); // No events should be added after cleanup
     });
@@ -207,12 +209,12 @@ describe('AgentSession', () => {
     it('should record tool_call and tool_result events', () => {
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'search',
-        args: { query: 'test query' },
+        input: { query: 'test query' },
         toolCallId: 'call-123',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'search',
-        result: { results: ['result1', 'result2'] },
+        output: { results: ['result1', 'result2'] },
         toolCallId: 'call-123',
         duration: 1500,
       });
@@ -227,7 +229,7 @@ describe('AgentSession', () => {
         subAgentId: 'agent-1',
         data: {
           toolName: 'search',
-          result: { results: ['result1', 'result2'] },
+          output: { results: ['result1', 'result2'] },
           toolCallId: 'call-123',
           duration: 1500,
         },
@@ -247,11 +249,13 @@ describe('AgentSession', () => {
       // Add events to trigger status update
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'search',
-        args: { query: 'test' },
+        input: { query: 'test' },
+        toolCallId: 'call-1',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'search',
-        result: 'found results',
+        output: 'found results',
+        toolCallId: 'call-1',
       });
 
       session.recordEvent('agent_generate', 'agent-1', {
@@ -261,11 +265,13 @@ describe('AgentSession', () => {
 
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'process',
-        args: { data: 'test data' },
+        input: { data: 'test data' },
+        toolCallId: 'call-2',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'process',
-        result: 'processed',
+        output: 'processed',
+        toolCallId: 'call-2',
       });
 
       // Should trigger status update after 5 events (2 tool call/result pairs + 1 agent_generate)
@@ -295,11 +301,13 @@ describe('AgentSession', () => {
       // Add events
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'test',
-        args: {},
+        input: {},
+        toolCallId: 'call-3',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'test',
-        result: 'test',
+        output: 'test',
+        toolCallId: 'call-3',
       });
 
       // Should not trigger any updates
@@ -320,11 +328,13 @@ describe('AgentSession', () => {
       // Add event that would normally trigger status update
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'test',
-        args: {},
+        input: {},
+        toolCallId: 'call-4',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'test',
-        result: 'test',
+        output: 'test',
+        toolCallId: 'call-4',
       });
 
       // Should not send status update while streaming text
@@ -369,11 +379,13 @@ describe('AgentSession', () => {
       // Add enough events to trigger update
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'search',
-        args: { query: 'test' },
+        input: { query: 'test' },
+        toolCallId: 'call-5',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'search',
-        result: 'results found',
+        output: 'results found',
+        toolCallId: 'call-5',
       });
 
       session.recordEvent('agent_generate', 'agent-1', {
@@ -440,11 +452,13 @@ describe('AgentSession', () => {
       // Add event to trigger status update
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'process',
-        args: { data: 'test' },
+        input: { data: 'test' },
+        toolCallId: 'call-6',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'process',
-        result: 'processed successfully',
+        output: 'processed successfully',
+        toolCallId: 'call-6',
       });
 
       // Wait for async operation
@@ -482,11 +496,13 @@ describe('AgentSession', () => {
       // Should not crash or throw errors - test by verifying no new events are recorded
       session.recordEvent('tool_call', 'agent', {
         toolName: 'test',
-        args: {},
+        input: {},
+        toolCallId: 'test-call-id',
       });
       session.recordEvent('tool_result', 'agent', {
         toolName: 'test',
-        result: 'test',
+        output: 'test',
+        toolCallId: 'test-call-id',
       });
       expect(session.getEvents()).toHaveLength(0);
     });
@@ -507,12 +523,12 @@ describe('AgentSession', () => {
 
       agentSessionManager.recordEvent('manager-test', 'tool_call', 'agent-1', {
         toolName: 'test-tool',
-        args: { input: 'test' },
+        input: { input: 'test' },
         toolCallId: 'call-456',
       });
       agentSessionManager.recordEvent('manager-test', 'tool_result', 'agent-1', {
         toolName: 'test-tool',
-        result: { output: 'success' },
+        output: { output: 'success' },
         toolCallId: 'call-456',
       });
 
@@ -520,12 +536,12 @@ describe('AgentSession', () => {
       expect(retrieved?.getEvents()).toHaveLength(2);
       expect(retrieved?.getEvents()[0].data).toMatchObject({
         toolName: 'test-tool',
-        args: { input: 'test' },
+        input: { input: 'test' },
         toolCallId: 'call-456',
       });
       expect(retrieved?.getEvents()[1].data).toMatchObject({
         toolName: 'test-tool',
-        result: { output: 'success' },
+        output: { output: 'success' },
         toolCallId: 'call-456',
       });
     });
@@ -548,11 +564,13 @@ describe('AgentSession', () => {
       expect(() => {
         agentSessionManager.recordEvent('non-existent', 'tool_call', 'agent', {
           toolName: 'test',
-          args: {},
+          input: {},
+          toolCallId: 'call-7',
         });
         agentSessionManager.recordEvent('non-existent', 'tool_result', 'agent', {
           toolName: 'test',
-          result: 'test',
+          output: 'test',
+          toolCallId: 'call-7',
         });
       }).not.toThrow();
 
@@ -569,11 +587,13 @@ describe('AgentSession', () => {
       // Test that session can record events before ending
       retrieved?.recordEvent('tool_call', 'agent', {
         toolName: 'test',
-        args: {},
+        input: {},
+        toolCallId: 'call-8',
       });
       retrieved?.recordEvent('tool_result', 'agent', {
         toolName: 'test',
-        result: 'test',
+        output: 'test',
+        toolCallId: 'call-8',
       });
       expect(retrieved?.getEvents()).toHaveLength(2);
 
@@ -590,12 +610,12 @@ describe('AgentSession', () => {
       // Add a variety of events
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'search',
-        args: { query: 'test' },
+        input: { query: 'test' },
         toolCallId: 'call-789',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'search',
-        result: 'results found',
+        output: 'results found',
         toolCallId: 'call-789',
       });
 
@@ -612,12 +632,12 @@ describe('AgentSession', () => {
 
       session.recordEvent('tool_call', 'agent-2', {
         toolName: 'process',
-        args: { data: 'input' },
+        input: { data: 'input' },
         toolCallId: 'call-abc',
       });
       session.recordEvent('tool_result', 'agent-2', {
         toolName: 'process',
-        result: 'processed',
+        output: 'processed',
         toolCallId: 'call-abc',
       });
 
@@ -746,11 +766,13 @@ describe('AgentSession', () => {
       // Trigger an event that should cause status update
       session.recordEvent('tool_call', 'agent-1', {
         toolName: 'search',
-        args: { query: 'test query' },
+        input: { query: 'test query' },
+        toolCallId: 'call-9',
       });
       session.recordEvent('tool_result', 'agent-1', {
         toolName: 'search',
-        result: 'search completed',
+        output: 'search completed',
+        toolCallId: 'call-9',
       });
 
       // Wait for async operation to complete

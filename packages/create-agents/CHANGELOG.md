@@ -1,5 +1,20 @@
 # @inkeep/create-agents
 
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+- Updated dependencies [1e5188d]
+  - @inkeep/agents-core@0.20.1
+
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [fb99085]
+  - @inkeep/agents-core@0.20.0
+
 ## 0.19.9
 
 ### Patch Changes

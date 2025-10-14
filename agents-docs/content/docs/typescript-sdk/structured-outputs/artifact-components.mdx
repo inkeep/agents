@@ -14,8 +14,6 @@ Artifact components are defined using the `artifactComponent` builder function. 
 **Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`, providing a ready-to-use example.
 </Callout>
 
-### Using Zod Schemas (Recommended)
-
 ```typescript
 import { artifactComponent } from '@inkeep/agents-sdk';
 import { z } from 'zod';
@@ -43,81 +41,23 @@ export const citation = artifactComponent({
 });
 ```
 
-### Alternative: JSON Schema
+<Callout>
+JSON Schema is also supported. Set `inPreview: true` on properties instead of using `preview()`.
+</Callout>
 
-If you prefer JSON Schema, you can still use it:
+## Preview Fields
 
-```typescript
-import { artifactComponent } from '@inkeep/agents-sdk';
+Use `preview()` to mark fields for immediate availability. The `preview()` helper automatically sets `inPreview: true` in the generated schema.
 
-export const citation = artifactComponent({
-  id: "citation",
-  name: "Citation",
-  description: "Structured factual information extracted from search results",
-  props: {
-    type: "object",
-    properties: {
-      title: {
-        type: "string",
-        description: "Title of the source document",
-        inPreview: true,
-      },
-      url: { 
-        type: "string", 
-        description: "URL of the source document",
-        inPreview: true,
-      },
-      record_type: {
-        type: "string",
-        description: "Type of record (documentation, blog, guide, etc.)",
-        inPreview: true,
-      },
-      content: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            type: {
-              type: "string",
-              description: "Type of content (text, image, video, etc.)",
-            },
-            text: {
-              type: "string",
-              description: "The actual text content",
-            },
-          },
-          required: ["type", "text"],
-        },
-        description: "Array of structured content blocks extracted from the document",
-      },
-    },
-    required: ["title", "url", "record_type", "content"],
-  },
-});
-```
+**Preview fields are:**
+- Shown to other agents for reasoning
+- Streamed in real-time to clients (Vercel AI SDK)
+- Auto-rendered by Inkeep's widget (citations as interactive cards)
+- Available immediately in UI (full artifact loads on-demand)
 
-## Schema Options
+**Non-preview fields** require explicitly fetching the full artifact.
 
-Artifact components can be configured in three ways:
-
-1. **Zod Schema** (Recommended): Type-safe schema definition with automatic JSON Schema conversion
-2. **JSON Schema**: Traditional JSON Schema with manual `inPreview` flags
-3. **No Schema**: Save the entire tool result as-is (no field filtering)
-
-### Zod Schema Benefits
-
-- **Type Safety**: Compile-time validation of your schema
-- **Better DX**: IntelliSense support and `.describe()` for documentation
-- **Automatic Conversion**: Converts to JSON Schema automatically
-- **Preview Support**: Use `preview()` helper for `inPreview` fields
-
-### Preview Fields
-
-When using a schema:
-- **Preview fields** (`inPreview: true` or `preview()`): Shown to agents automatically and streamed in real-time  
-- **Full fields**: Complete data available when agents request the full artifact
-
-When no schema is provided, the entire tool result is saved and available to agents.
+**No schema?** Omit `props` to save the entire tool result without filtering.
 
 ## Artifact Creation
 
@@ -152,6 +92,17 @@ const searchAgent = agent({
   artifactComponents: () => [citation],
 });
 ```
+
+## Citation Artifacts
+
+Citation artifacts with `title`, `url`, and `record_type` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
+
+<img
+  src="/images/citation-widget-example.png"
+  alt="Citation artifact rendered as an interactive card in the Inkeep widget showing source attribution"
+  width="100%"
+  style={{ borderRadius: "10px", marginTop: "1rem" }}
+/>
 
 ## Example Flow
 

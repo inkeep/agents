@@ -8,9 +8,7 @@ icon: "LuBlocks"
 
 ## Defining Data Components
 
-Data components are defined using the `dataComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience:
-
-### Using Zod Schemas (Recommended)
+Data components are defined using the `dataComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
 
 ```typescript
 import { dataComponent } from '@inkeep/agents-sdk';
@@ -37,64 +35,13 @@ export const taskList = dataComponent({
 });
 ```
 
-### Alternative: JSON Schema
-
-If you prefer JSON Schema, you can still use it:
-
-```typescript
-import { dataComponent } from '@inkeep/agents-sdk';
-
-export const taskList = dataComponent({
-  id: "task-list",
-  name: "TaskList",
-  description: "Display user tasks with status", 
-  props: {
-    type: "object",
-    properties: {
-      tasks: {
-        type: "array",
-        description: "Array of user tasks",
-        items: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "Unique task identifier",
-            },
-            title: {
-              type: "string", 
-              description: "Task title",
-            },
-            completed: {
-              type: "boolean",
-              description: "Whether the task is completed",
-            },
-            priority: {
-              type: "string",
-              enum: ["low", "medium", "high"],
-              description: "Task priority",
-            },
-          },
-          required: ["id", "title", "completed", "priority"],
-        },
-      },
-      totalCount: {
-        type: "number",
-        description: "Total number of tasks",
-      },
-      completedCount: {
-        type: "number", 
-        description: "Number of completed tasks",
-      },
-    },
-    required: ["tasks", "totalCount", "completedCount"],
-  },
-});
-```
+<Callout>
+JSON Schema is also supported if you prefer traditional schema definitions.
+</Callout>
 
 ## Using in Agents
 
-After defining your data component, use it in an agent:
+Register data components with your agent:
 
 ```typescript
 import { agent } from '@inkeep/agents-sdk';
@@ -103,7 +50,6 @@ import { taskList } from './data-components/task-list';
 const taskAgent = agent({
   id: "task-agent",
   name: "Task Agent", 
-  description: "Manages user tasks",
   prompt: "Provide helpful answers and use data components when appropriate.",
   dataComponents: () => [taskList],
 });
@@ -130,14 +76,12 @@ When a user asks "Show me my tasks", the agent will respond with:
 
 ## Frontend Integration
 
-### Basic Setup
-
-First, create your React component:
+Create a React component matching your data component name:
 
 ```tsx
-const TaskList = ({ tasks }) => (
+const TaskList = ({ tasks, totalCount, completedCount }) => (
   <div className="task-list">
-    <h3>Your Tasks</h3>
+    <h3>Your Tasks ({completedCount}/{totalCount} completed)</h3>
     {tasks.map((task) => (
       <div key={task.id} className={task.completed ? "completed" : ""}>
         {task.title}
@@ -147,17 +91,17 @@ const TaskList = ({ tasks }) => (
 );
 ```
 
-Then register it with your Inkeep chat component:
+Register it with the Inkeep chat component:
 
 ```tsx
 <InkeepSidebarChat
   aiChatSettings={{
     agentUrl: "your-agent-url",
     components: {
-      TaskList, // The component name must match the data component name
+      TaskList, // Component name must match data component name
     },
   }}
 />
 ```
 
-Now when you ask the agent to show you your tasks, it will return a properly formatted task list component.
+The agent will automatically return structured data that renders as your React component.
