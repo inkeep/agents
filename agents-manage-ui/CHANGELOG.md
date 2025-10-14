@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.1
+
+### Patch Changes
+
+- ba2a297: Support remote sandboxes
+- Updated dependencies [ba2a297]
+  - @inkeep/agents-core@0.22.1
+  - @inkeep/agents-run-api@0.22.1
+  - @inkeep/agents-manage-api@0.22.1
+
 ## 0.22.0
 
 ### Minor Changes
