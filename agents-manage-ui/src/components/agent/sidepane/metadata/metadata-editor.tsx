@@ -56,7 +56,7 @@ function MetadataEditor() {
   const params = useParams();
   const metadata = useAgentStore((state) => state.metadata);
   const { agentId, tenantId, projectId } = params;
-  const { id, name, description, contextConfig, models, stopWhen, agentPrompt, statusUpdates } =
+  const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
   const { INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const agentUrl = `${INKEEP_AGENTS_RUN_API_URL}/api/chat`;
@@ -149,8 +149,8 @@ function MetadataEditor() {
         <ExpandableTextArea
           id="agent-prompt"
           label="Agent prompt"
-          value={agentPrompt || ''}
-          onChange={(value) => updateMetadata('agentPrompt', value)}
+          value={prompt || ''}
+          onChange={(value) => updateMetadata('prompt', value)}
           placeholder="System-level instructions for this agent..."
           className="max-h-96"
         />
