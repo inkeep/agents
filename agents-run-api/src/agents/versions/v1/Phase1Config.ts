@@ -69,7 +69,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
 
     // Replace agent context section
-    const agentContextSection = this.generateAgentContextSection(config.agentPrompt);
+    const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
     // Handle both McpTool[] and ToolData[] formats
@@ -111,14 +111,14 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return systemPrompt;
   }
 
-  private generateAgentContextSection(agentPrompt?: string): string {
-    if (!agentPrompt) {
+  private generateAgentContextSection(prompt?: string): string {
+    if (!prompt) {
       return '';
     }
 
     return `
   <agent_context>
-    ${agentPrompt}
+    ${prompt}
   </agent_context>`;
   }
 

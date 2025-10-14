@@ -245,7 +245,7 @@ export interface AgentConfig {
   contextConfig?: any; // ContextConfigBuilder - avoiding import for now
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: AgentStopWhen;
-  agentPrompt?: string;
+  prompt?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;

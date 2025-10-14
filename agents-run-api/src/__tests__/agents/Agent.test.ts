@@ -359,7 +359,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for integration testing',
-      agentPrompt: `You are a helpful test agent that can search databases and assist users.`,
+      prompt: `You are a helpful test agent that can search databases and assist users.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -393,7 +393,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(result).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [
         {
           name: 'search_database',
@@ -436,7 +436,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -459,7 +459,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -493,7 +493,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
       dataComponents: [],
       artifacts: [],
@@ -647,7 +647,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for conversation history testing',
-      agentPrompt: `You are a helpful test agent.`,
+      prompt: `You are a helpful test agent.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -852,7 +852,7 @@ describe('Agent Credential Integration', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent with credentials',
-      agentPrompt: `You are a test agent with MCP tools.`,
+      prompt: `You are a test agent with MCP tools.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1083,7 +1083,7 @@ describe('Agent Credential Integration', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Context Agent',
       description: 'Agent for testing context',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1146,7 +1146,7 @@ describe('Two-Pass Generation System', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1231,7 +1231,7 @@ describe('Agent Model Settings', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent for model settingsuration',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1462,7 +1462,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-no-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1492,7 +1492,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1542,7 +1542,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],

@@ -241,7 +241,7 @@ describe('Agent Model Settings', () => {
     const testAgent = agent({
       id: 'test-agent',
       name: 'Test Agent with Prompt',
-      agentPrompt:
+      prompt:
         'This is a specialized AI assistant for customer support. Always be helpful and professional.',
       defaultSubAgent: subAgent({
         id: 'test-agent',
@@ -251,7 +251,7 @@ describe('Agent Model Settings', () => {
       }),
     });
 
-    expect(testAgent.getAgentPrompt()).toBe(
+    expect(testAgent.getPrompt()).toBe(
       'This is a specialized AI assistant for customer support. Always be helpful and professional.'
     );
   });
@@ -268,6 +268,6 @@ describe('Agent Model Settings', () => {
       }),
     });
 
-    expect(testAgent.getAgentPrompt()).toBeUndefined();
+    expect(testAgent.getPrompt()).toBeUndefined();
   });
 });
