@@ -58,6 +58,7 @@ describe('CredentialStuffer', () => {
       set: vi.fn().mockResolvedValue(null),
       has: vi.fn().mockResolvedValue(false),
       delete: vi.fn().mockResolvedValue(false),
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
     };
 
     mockMemoryStore = {
@@ -67,6 +68,7 @@ describe('CredentialStuffer', () => {
       set: vi.fn().mockResolvedValue(null),
       has: vi.fn().mockResolvedValue(false),
       delete: vi.fn().mockResolvedValue(false),
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
     };
 
     // Create registry and add stores

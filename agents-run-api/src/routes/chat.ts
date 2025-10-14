@@ -14,7 +14,6 @@ import {
   handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
-// import { Hono } from 'hono';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
@@ -34,7 +33,6 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('completionsHandler');
 
-// Define the OpenAPI route schema
 const chatCompletionsRoute = createRoute({
   method: 'post',
   path: '/completions',
@@ -150,7 +148,6 @@ const chatCompletionsRoute = createRoute({
   },
 });
 
-// Apply context validation middleware
 app.use('/completions', contextValidationMiddleware(dbClient));
 
 app.openapi(chatCompletionsRoute, async (c) => {
@@ -178,7 +175,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
     'OpenTelemetry headers: chat'
   );
   try {
-    // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
     const { tenantId, projectId, agentId } = executionContext;
 
@@ -190,11 +186,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       'Extracted chat parameters from API key context'
     );
 
-    // Get conversationId from request body or generate new one
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
-    // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -205,17 +199,13 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
     }
 
-    // Update baggage with conversation.id for all child spans
     let currentBag = propagation.getBaggage(otelContext.active());
     if (!currentBag) {
       currentBag = propagation.createBaggage();
     }
     currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
-    // Create context with updated baggage and execute within it
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
-    // Execute remaining handler within the baggage context so child spans inherit attributes
     return await otelContext.with(ctxWithBaggage, async () => {
-      // Get the agent from the full agent system first, fall back to legacy system
       const fullAgent = await getFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId },
       });
@@ -224,7 +214,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
       let defaultSubAgentId: string;
 
       if (fullAgent) {
-        // Use full agent system
         agent = {
           id: fullAgent.id,
           name: fullAgent.name,
@@ -236,7 +225,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
         const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
         defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
       } else {
-        // Fall back to legacy system
         agent = await getAgentWithDefaultSubAgent(dbClient)({
           scopes: { tenantId, projectId, agentId },
         });
@@ -256,7 +244,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      // Get or create conversation with the default agent
       await createOrGetConversation(dbClient)({
         tenantId,
         projectId,
@@ -269,7 +256,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
-        // Use the default agent from the agent instead of headAgentId
         setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -290,12 +276,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      // Get validated context from middleware (falls back to body.headers if no validation)
       const validatedContext = (c as any).get('validatedContext') || body.headers || {};
 
       const credentialStores = c.get('credentialStores');
 
-      // Context resolution with intelligent conversation state detection
       await handleContextResolution({
         tenantId,
         projectId,
@@ -325,7 +309,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const requestId = `chatcmpl-${Date.now()}`;
       const timestamp = Math.floor(Date.now() / 1000);
 
-      // Extract user message for context
       const lastUserMessage = body.messages
         .filter((msg: Message) => msg.role === 'user')
         .slice(-1)[0];
@@ -339,7 +322,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      // Store the user message in the database
       await createMessage(dbClient)({
         id: nanoid(),
         tenantId,
@@ -359,22 +341,17 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      // Use Hono's streamSSE helper for proper SSE formatting
       return streamSSE(c, async (stream) => {
         try {
-          // Create SSE stream helper
           const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
 
-          // Start with the role
           await sseHelper.writeRole();
 
           logger.info({ subAgentId }, 'Starting execution');
 
-          // Check for emit operations header
           const emitOperationsHeader = c.req.header('x-emit-operations');
           const emitOperations = emitOperationsHeader === 'true';
 
-          // Use the execution handler
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({
             executionContext,
@@ -392,7 +369,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
           );
 
           if (!result.success) {
-            // If execution failed and no error was already streamed, send a default error
             await sseHelper.writeOperation(
               errorOp(
                 'Sorry, I was unable to process your request at this time. Please try again.',
@@ -401,7 +377,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
             );
           }
 
-          // Complete the stream
           await sseHelper.complete();
         } catch (error) {
           logger.error(
@@ -413,7 +388,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
           );
 
           try {
-            // Try to send error as stream content if possible
             const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
             await sseHelper.writeOperation(
               errorOp(
@@ -423,7 +397,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
             );
             await sseHelper.complete();
           } catch (streamError) {
-            // If we can't write to stream, just log it
             logger.error({ streamError }, 'Failed to write error to stream');
           }
         }
@@ -438,12 +411,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       'Error in chat completions endpoint before streaming'
     );
 
-    // Re-throw if already an API error
     if (error && typeof error === 'object' && 'status' in error) {
       throw error;
     }
 
-    // Convert other errors to API errors
     throw createApiError({
       code: 'internal_server_error',
       message: error instanceof Error ? error.message : 'Failed to process chat completion',
@@ -451,7 +422,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
   }
 });
 
-// Helper function to extract text from content
 const getMessageText = (content: string | ContentItem[]): string => {
   if (typeof content === 'string') {
     return content;
