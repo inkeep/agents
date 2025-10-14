@@ -131,7 +131,7 @@ describe('Inkeep CLI', () => {
       const result = runCli(['list-agent', '--help']);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('List all available agent for a specific project');
+      expect(result.stdout).toContain('List all available agents for a specific project');
       expect(result.stdout).toContain('--project <project-id>');
       expect(result.stdout).toContain('--agents-manage-api-url');
     });
