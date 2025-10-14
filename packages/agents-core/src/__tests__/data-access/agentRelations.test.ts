@@ -8,9 +8,9 @@ import {
   getAgentRelationById,
   getAgentRelations,
   getAgentRelationsBySource,
-  getAgentRelationsByTarget,
   getExternalAgentRelations,
   getRelatedAgentsForAgent,
+  getSubAgentRelationsByTarget,
   getToolsForAgent,
   listAgentRelations,
   updateAgentRelation,
@@ -283,7 +283,7 @@ describe('Agent Relations Data Access', () => {
       const originalPromiseAll = Promise.all;
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 1 }]]);
 
-      const result = await getAgentRelationsByTarget(mockDb)({
+      const result = await getSubAgentRelationsByTarget(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,

@@ -5,7 +5,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
-describe('Agent Agent CRUD Routes - Integration Tests', () => {
+describe('Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
   // Helper function to create test agent data

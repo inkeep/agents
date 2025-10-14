@@ -40,7 +40,7 @@ import {
   createSubAgentRelation,
   deleteAgentRelationsByAgent,
   deleteAgentToolRelationByAgent,
-  upsertAgentRelation,
+  upsertSubAgentRelation,
 } from './subAgentRelations';
 import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
 import { upsertSubAgentToolRelation } from './tools';
@@ -587,19 +587,19 @@ export const createFullAgentServerSide =
       await Promise.all(agentArtifactComponentPromises);
       logger.info({}, 'All agent-artifact component relations created');
 
-      const agentRelationPromises: Promise<void>[] = [];
+      const subAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
-            agentRelationPromises.push(
+            subAgentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
                     { subAgentId, targetSubAgentId, type: 'transfer' },
                     'Processing agent transfer relation'
                   );
-                  await upsertAgentRelation(db)({
+                  await upsertSubAgentRelation(db)({
                     id: nanoid(),
                     tenantId,
                     projectId,
@@ -628,14 +628,14 @@ export const createFullAgentServerSide =
             const targetAgentData = typed.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
 
-            agentRelationPromises.push(
+            subAgentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
                     { subAgentId, targetSubAgentId, type: 'delegate' },
                     'Processing agent delegation relation'
                   );
-                  await upsertAgentRelation(db)({
+                  await upsertSubAgentRelation(db)({
                     id: nanoid(),
                     tenantId,
                     projectId,
@@ -661,10 +661,10 @@ export const createFullAgentServerSide =
         }
       }
 
-      await Promise.all(agentRelationPromises);
+      await Promise.all(subAgentRelationPromises);
       logger.info(
-        { agentRelationCount: agentRelationPromises.length },
-        'All agent relations created'
+        { subAgentRelationCount: subAgentRelationPromises.length },
+        'All sub-agent relations created'
       );
 
       const createdAgent = await getFullAgentDefinition(db)({
@@ -954,8 +954,7 @@ export const updateFullAgentServerSide =
                 models: true,
               },
             });
-          } catch (_error) {
-          }
+          } catch (_error) {}
 
           let finalModelSettings =
             internalAgent.models === undefined ? undefined : internalAgent.models;
