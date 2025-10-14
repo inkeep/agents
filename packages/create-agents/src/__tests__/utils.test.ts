@@ -57,7 +57,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
     // Mock templates
     vi.mocked(getAvailableTemplates).mockResolvedValue([
-      'weather-project',
+      'event-planner',
       'chatbot',
       'data-analysis',
     ]);
@@ -84,7 +84,7 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use weather-project as default template and project ID', async () => {
+    it('should use event-planner as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
@@ -98,15 +98,15 @@ describe('createAgents - Template and Project ID Logic', () => {
         expect.any(String)
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/weather-project',
-        'src/weather-project',
+        'https://github.com/inkeep/agents-cookbook/template-projects/event-planner',
+        'src/projects/event-planner',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
             replacements: expect.objectContaining({
-              models: expect.any(Object)
-            })
-          })
+              models: expect.any(Object),
+            }),
+          }),
         ])
       );
 
@@ -114,7 +114,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       expect(getAvailableTemplates).not.toHaveBeenCalled();
     });
 
-    it('should create project with weather-project as project ID', async () => {
+    it('should create project with event-planner as project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
@@ -155,14 +155,14 @@ describe('createAgents - Template and Project ID Logic', () => {
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
-        'src/chatbot',
+        'src/projects/chatbot',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
             replacements: expect.objectContaining({
-              models: expect.any(Object)
-            })
-          })
+              models: expect.any(Object),
+            }),
+          }),
         ])
       );
 
@@ -180,7 +180,7 @@ describe('createAgents - Template and Project ID Logic', () => {
     });
 
     it('should exit with error when template does not exist', async () => {
-      vi.mocked(getAvailableTemplates).mockResolvedValue(['weather-project', 'chatbot']);
+      vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot']);
 
       await expect(
         createAgents({
@@ -198,7 +198,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
     it('should show available templates when invalid template is provided', async () => {
       vi.mocked(getAvailableTemplates).mockResolvedValue([
-        'weather-project',
+        'event-planner',
         'chatbot',
         'data-analysis',
       ]);
@@ -212,7 +212,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       ).rejects.toThrow('process.exit called');
 
       const cancelCall = vi.mocked(p.cancel).mock.calls[0][0];
-      expect(cancelCall).toContain('weather-project');
+      expect(cancelCall).toContain('event-planner');
       expect(cancelCall).toContain('chatbot');
       expect(cancelCall).toContain('data-analysis');
     });
@@ -238,7 +238,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       expect(getAvailableTemplates).not.toHaveBeenCalled();
 
       // Should create empty project directory
-      expect(fs.ensureDir).toHaveBeenCalledWith('src/my-custom-project');
+      expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/my-custom-project');
 
       // Check that .env file is created
       expect(fs.writeFile).toHaveBeenCalledWith(
@@ -254,7 +254,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       // Check that custom project index.ts is created
       expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/my-custom-project/index.ts',
+        'src/projects/my-custom-project/index.ts',
         expect.stringContaining('id: "my-custom-project"')
       );
     });
@@ -275,7 +275,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         expect.any(String)
       );
       expect(getAvailableTemplates).not.toHaveBeenCalled();
-      expect(fs.ensureDir).toHaveBeenCalledWith('src/my-custom-project');
+      expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/my-custom-project');
 
       // Check that .env file is created
       expect(fs.writeFile).toHaveBeenCalledWith(
@@ -291,7 +291,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       // Check that custom project index.ts is created
       expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/my-custom-project/index.ts',
+        'src/projects/my-custom-project/index.ts',
         expect.stringContaining('id: "my-custom-project"')
       );
     });
@@ -314,14 +314,14 @@ describe('createAgents - Template and Project ID Logic', () => {
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
-        'src/my-complex-template',
+        'src/projects/my-complex-template',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
             replacements: expect.objectContaining({
-              models: expect.any(Object)
-            })
-          })
+              models: expect.any(Object),
+            }),
+          }),
         ])
       );
     });
@@ -334,7 +334,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         anthropicKey: 'test-key',
       });
 
-      expect(fs.ensureDir).toHaveBeenCalledWith('src/my_project-123');
+      expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/my_project-123');
 
       // Check that .env file is created
       expect(fs.writeFile).toHaveBeenCalledWith(
@@ -350,7 +350,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       // Check that custom project index.ts is created
       expect(fs.writeFile).toHaveBeenCalledWith(
-        'src/my_project-123/index.ts',
+        'src/projects/my_project-123/index.ts',
         expect.stringContaining('id: "my_project-123"')
       );
     });
@@ -389,7 +389,7 @@ describe('createAgents - Template and Project ID Logic', () => {
         anthropicKey: 'key',
       });
       expect(fs.ensureDir).toHaveBeenCalledWith('src');
-      expect(fs.ensureDir).toHaveBeenCalledWith('src/custom');
+      expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/custom');
     });
   });
 });
@@ -400,10 +400,6 @@ function setupDefaultMocks() {
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-  vi.mocked(getAvailableTemplates).mockResolvedValue([
-    'weather-project',
-    'chatbot',
-    'data-analysis',
-  ]);
+  vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 }

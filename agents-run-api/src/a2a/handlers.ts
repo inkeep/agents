@@ -21,7 +21,6 @@ export async function a2aHandler(c: Context, agent: RegisteredAgent): Promise<Re
   try {
     const rpcRequest: JsonRpcRequest = c.get('requestBody');
 
-    // Validate JSON-RPC format
     if (rpcRequest.jsonrpc !== '2.0') {
       return c.json({
         jsonrpc: '2.0',
@@ -33,9 +32,7 @@ export async function a2aHandler(c: Context, agent: RegisteredAgent): Promise<Re
       } satisfies JsonRpcResponse);
     }
 
-    // Handle different A2A methods (including Google's protocol methods)
     switch (rpcRequest.method) {
-      // Google A2A Protocol Methods
       case 'message/send':
         return await handleMessageSend(c, agent, rpcRequest);
 
@@ -51,7 +48,6 @@ export async function a2aHandler(c: Context, agent: RegisteredAgent): Promise<Re
       case 'tasks/resubscribe':
         return await handleTasksResubscribe(c, agent, rpcRequest);
 
-      // Legacy/simplified methods
       case 'agent.invoke':
         return await handleAgentInvoke(c, agent, rpcRequest);
 
@@ -94,7 +90,6 @@ async function handleMessageSend(
     const executionContext = getRequestExecutionContext(c);
     const { agentId } = executionContext;
 
-    // Convert to our internal task format
     const task: A2ATask = {
       id: nanoid(),
       input: {
@@ -109,21 +104,17 @@ async function handleMessageSend(
         metadata: {
           blocking: params.configuration?.blocking ?? false,
           custom: { agent_id: agentId || '' },
-          // Pass through streaming metadata from the original message
           ...params.message.metadata,
         },
       },
     };
 
-    // Enhanced contextId resolution for delegation
     let effectiveContextId = params.message?.contextId;
 
-    // If contextId is missing or 'default', try to get it from task.context
     if (!effectiveContextId || effectiveContextId === 'default') {
       effectiveContextId = task.context?.conversationId;
     }
 
-    // If still missing, try to extract from metadata
     if (!effectiveContextId || effectiveContextId === 'default') {
       if (
         params.message?.metadata?.conversationId &&
@@ -133,18 +124,15 @@ async function handleMessageSend(
       }
     }
 
-    // Final fallback
     if (!effectiveContextId || effectiveContextId === 'default') {
       effectiveContextId = 'default';
     }
 
-    // Enhanced message content handling
     let _messageContent = '';
     try {
       if (params.message && Object.keys(params.message).length > 0) {
         _messageContent = JSON.stringify(params.message);
       } else {
-        // Fallback: create a minimal message structure
         _messageContent = JSON.stringify({
           role: 'agent',
           parts: [{ text: 'Delegation task', kind: 'text' }],
@@ -182,7 +170,6 @@ async function handleMessageSend(
       'A2A contextId resolution for delegation'
     );
 
-    // --- Persist the task in the DB ---
     await createTask(dbClient)({
       id: task.id,
       tenantId: agent.tenantId,
@@ -206,8 +193,6 @@ async function handleMessageSend(
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
-    // --- Store A2A message in database if this is agent-to-agent communication ---
-    // TODO: we need to identify external agent requests through propoer auth headers
     if (params.message.metadata?.fromSubAgentId || params.message.metadata?.fromExternalAgentId) {
       const messageText = params.message.parts
         .filter((part) => part.kind === 'text' && 'text' in part && part.text)
@@ -229,13 +214,10 @@ async function handleMessageSend(
           taskId: task.id,
         };
 
-        // Set appropriate agent tracking fields
         if (params.message.metadata?.fromSubAgentId) {
-          // Internal agent communication
           messageData.fromSubAgentId = params.message.metadata.fromSubAgentId;
           messageData.toSubAgentId = agent.subAgentId;
         } else if (params.message.metadata?.fromExternalAgentId) {
-          // External agent communication
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
           messageData.toSubAgentId = agent.subAgentId;
         }
@@ -267,10 +249,8 @@ async function handleMessageSend(
       }
     }
 
-    // Execute the task
     const result = await agent.taskHandler(task);
 
-    // --- Update the task in the DB with result ---
     await updateTask(dbClient)({
       taskId: task.id,
       data: {
@@ -286,7 +266,6 @@ async function handleMessageSend(
       },
     });
 
-    // Check if the result contains a transfer indication
     const transferArtifact = result.artifacts?.find((artifact) =>
       artifact.parts?.some(
         (part) =>
@@ -308,7 +287,6 @@ async function handleMessageSend(
 
       if (transferPart && transferPart.kind === 'data' && transferPart.data) {
         logger.info({ transferPart }, 'transferPart');
-        // Return a transfer response instead of normal task/message response
         return c.json({
           jsonrpc: '2.0',
           result: {
@@ -344,16 +322,12 @@ async function handleMessageSend(
       }
     }
 
-    // Convert A2ATaskResult status to schema TaskStatus
     const taskStatus = {
       state: result.status.state,
       timestamp: new Date().toISOString(),
-      // Don't include message field since it expects Message object, not string
     };
 
-    // Convert back to Google A2A format
     if (params.configuration?.blocking === false) {
-      // Return a Task for non-blocking requests
       const taskResponse: Task = {
         id: task.id,
         contextId: params.message.contextId || nanoid(),
@@ -368,7 +342,6 @@ async function handleMessageSend(
         id: request.id,
       });
     }
-    // Return a Message for blocking requests
     const messageResponse: Message = {
       messageId: nanoid(),
       parts: result.artifacts?.[0]?.parts || [
@@ -411,7 +384,6 @@ async function handleMessageStream(
     const executionContext = getRequestExecutionContext(c);
     const { agentId } = executionContext;
 
-    // Check if agent supports streaming
     if (!agent.agentCard.capabilities.streaming) {
       return c.json({
         jsonrpc: '2.0',
@@ -423,7 +395,6 @@ async function handleMessageStream(
       } satisfies JsonRpcResponse);
     }
 
-    // Convert to our internal task format
     const task: A2ATask = {
       id: nanoid(),
       input: {
@@ -442,10 +413,8 @@ async function handleMessageStream(
       },
     };
 
-    // Return SSE stream
     return streamSSE(c, async (stream) => {
       try {
-        // Initial task acknowledgment
         const initialTask: Task = {
           id: task.id,
           contextId: params.message.contextId || nanoid(),
@@ -457,7 +426,6 @@ async function handleMessageStream(
           kind: 'task',
         };
 
-        // Send initial task status
         await stream.writeSSE({
           data: JSON.stringify({
             jsonrpc: '2.0',
@@ -466,10 +434,8 @@ async function handleMessageStream(
           }),
         });
 
-        // Execute the task with streaming
         const result = await agent.taskHandler(task);
 
-        // Check for transfer first
         const transferArtifact = result.artifacts?.find((artifact) =>
           artifact.parts?.some(
             (part) =>
@@ -490,7 +456,6 @@ async function handleMessageStream(
           );
 
           if (transferPart && transferPart.kind === 'data' && transferPart.data) {
-            // Stream transfer response
             await stream.writeSSE({
               data: JSON.stringify({
                 jsonrpc: '2.0',
@@ -513,7 +478,6 @@ async function handleMessageStream(
           }
         }
 
-        // Stream regular message response
         const messageResponse: Message = {
           messageId: nanoid(),
           parts: result.artifacts?.[0]?.parts || [
@@ -536,7 +500,6 @@ async function handleMessageStream(
           }),
         });
 
-        // Send final task completion status
         const completedTask: Task = {
           ...initialTask,
           status: {
@@ -556,7 +519,6 @@ async function handleMessageStream(
       } catch (error) {
         console.error('Error in stream execution:', error);
 
-        // Send error as SSE event
         await stream.writeSSE({
           data: JSON.stringify({
             jsonrpc: '2.0',
@@ -591,7 +553,6 @@ async function handleTasksGet(
   try {
     const params = request.params as { id: string };
 
-    // For now, return a mock task since we don't have persistent storage
     const task: Task = {
       id: params.id,
       contextId: nanoid(),
@@ -639,7 +600,6 @@ async function handleTasksCancel(
   try {
     const _params = request.params as { id: string };
 
-    // For now, just return success
     return c.json({
       jsonrpc: '2.0',
       result: { success: true },
@@ -717,7 +677,6 @@ async function handleTasksResubscribe(
   try {
     const params = request.params as { taskId: string };
 
-    // Check if agent supports streaming
     if (!agent.agentCard.capabilities.streaming) {
       return c.json({
         jsonrpc: '2.0',

@@ -59,7 +59,6 @@ export const createTransferToAgentTool = ({
     description: generateTransferToolDescription(transferConfig),
     inputSchema: z.object({}),
     execute: async () => {
-      // Add span attributes to indicate transfer source and target
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
@@ -76,7 +75,6 @@ export const createTransferToAgentTool = ({
         'invoked transferToAgentTool'
       );
 
-      // Record transfer event in AgentSession
       if (streamRequestId) {
         agentSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
           fromSubAgent: callingAgentId,
@@ -137,10 +135,8 @@ export function createDelegateToAgentTool({
     description: generateDelegateToolDescription(delegateConfig.config),
     inputSchema: z.object({ message: z.string() }),
     execute: async (input: { message: string }, context?: any) => {
-      // Generate unique delegation ID for tracking
       const delegationId = `del_${nanoid()}`;
 
-      // Add span attributes to indicate delegation source and target
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
@@ -150,7 +146,6 @@ export function createDelegateToAgentTool({
         });
       }
 
-      // Record delegation sent event in AgentSession
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,
@@ -167,14 +162,12 @@ export function createDelegateToAgentTool({
 
       const isInternal = delegateConfig.type === 'internal';
 
-      // Get the base URL for the agent
       let _agentBaseUrl: string;
       let resolvedHeaders: Record<string, string> = {};
 
       if (!isInternal) {
         _agentBaseUrl = delegateConfig.config.baseUrl;
 
-        // For external agents, fetch configuration
         const externalAgent = await getExternalAgent(dbClient)({
           scopes: {
             tenantId,
@@ -184,7 +177,6 @@ export function createDelegateToAgentTool({
           subAgentId: delegateConfig.config.id,
         });
 
-        // If the external agent has a credential reference ID or headers, resolve them
         if (
           externalAgent &&
           (externalAgent.credentialReferenceId || externalAgent.headers) &&
@@ -208,7 +200,6 @@ export function createDelegateToAgentTool({
 
           let storeReference: CredentialStoreReference | undefined;
           if (externalAgent.credentialReferenceId) {
-            // Get credential store configuration
             const credentialReference = await getCredentialReference(dbClient)({
               scopes: {
                 tenantId,
@@ -223,7 +214,6 @@ export function createDelegateToAgentTool({
               };
             }
           }
-          // Resolve credentials using CredentialStuffer
           resolvedHeaders = await credentialStuffer.getCredentialHeaders({
             context: credentialContext,
             storeReference,
@@ -240,7 +230,6 @@ export function createDelegateToAgentTool({
         };
       }
 
-      // Configure retry behavior for A2A client with custom settings and resolved headers
       const a2aClient = new A2AClient(delegateConfig.config.baseUrl, {
         headers: resolvedHeaders,
         retryConfig: {
@@ -256,8 +245,6 @@ export function createDelegateToAgentTool({
         },
       });
 
-      // Create the message to send to the agent
-      // Keep streamRequestId for AgentSession access, add isDelegation flag to prevent streaming
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
@@ -275,7 +262,6 @@ export function createDelegateToAgentTool({
       };
       logger.info({ messageToSend }, 'messageToSend');
 
-      // Record the outgoing message to the agent
       await createMessage(dbClient)({
         id: nanoid(),
         tenantId: tenantId,
@@ -301,7 +287,6 @@ export function createDelegateToAgentTool({
         throw new Error(response.error.message);
       }
 
-      // Save the response using the reusable function
       await saveA2AMessageResponse(response, {
         tenantId,
         projectId,
@@ -314,7 +299,6 @@ export function createDelegateToAgentTool({
           : { fromExternalAgentId: delegateConfig.config.id }),
       });
 
-      // Record the delegation result as a tool result for the parent agent
       if (sessionId && context?.toolCallId) {
         const toolResult = {
           toolCallId: context.toolCallId,
@@ -326,7 +310,6 @@ export function createDelegateToAgentTool({
         toolSessionManager.recordToolResult(sessionId, toolResult);
       }
 
-      // Record delegation returned event in AgentSession
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,

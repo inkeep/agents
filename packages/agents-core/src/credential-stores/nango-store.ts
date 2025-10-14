@@ -542,6 +542,31 @@ export class NangoCredentialStore implements CredentialStore {
       return false;
     }
   }
+
+  /**
+   * Check if the credential store is available and functional
+   */
+  async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    if (!this.nangoConfig.secretKey) {
+      return {
+        available: false,
+        reason: 'Nango secret key not configured',
+      };
+    }
+
+    // Validate secret key format (basic check)
+    if (this.nangoConfig.secretKey.includes('mock') || this.nangoConfig.secretKey === 'your_nango_secret_key') {
+      return {
+        available: false,
+        reason: 'Nango secret key appears to be a placeholder or mock value',
+      };
+    }
+
+    // Optional: Could add a ping to Nango API here, but for now just check config
+    return {
+      available: true,
+    };
+  }
 }
 
 /**
