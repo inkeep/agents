@@ -1,13 +1,13 @@
 ---
 title: Core concepts
 sidebarTitle: Concepts
-description: Learn about the key building blocks of Inkeep - Sub Agents, Agents, tools, data components, and more.
+description: Learn about the key building blocks of Inkeep - Agents, Sub Agents, tools, data components, and more.
 icon: "LuBoxes"
 ---
 
 ## Agents
 
-In Inkeep, an Agent is the top-level entity you as an end-user can interface with via conversational experiences (chat) or trigger programmatically (via API).
+In Inkeep, an Agent is the top-level entity you interface with via conversational experiences (chat) or trigger programmatically (via API).
 
 Under the hood, an Agent is made up of one or more **Sub Agents** that work together to respond to a user or complete a task.
 
@@ -22,7 +22,7 @@ In Inkeep, tools can be added to Sub Agents as:
 - **MCP Servers**: A common way to connect to external services and APIs. Many SaaS providers provide out-of-the-box MCP Servers, but you can also create your own and register them with their associated **Credentials** on Inkeep for Agents to use.
 - **Function Tools**: Custom JavaScript functions that Agents can execute directly without the need for standing up an MCP server. 
 
-Typically, you want a Sub Agent to handle narrow, well-defined tasks. As a general rule of thumb, only add up to 5-7 tools to a Sub Agent.
+Typically, you want a Sub Agent to handle narrow, well-defined tasks. As a general rule of thumb, keep Sub Agents to be using 5-7 related tools at a time.
 
 ## Sub Agent relationships
 
