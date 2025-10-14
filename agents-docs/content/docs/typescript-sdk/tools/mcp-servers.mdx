@@ -44,7 +44,7 @@ MCP servers support various authentication methods (via credentials):
 - **OAuth Flows** - For standard OAuth 2.0 authentication
 - **OAuth 2.1 Flows** - For modern OAuth 2.1 "1-click" authentication
 
-For OAuth flows and OAuth 2.1 flows, it's recommended to use the [Visual Builder](/visual-builder/tools/credentials) for easier configuration.
+For OAuth flows and OAuth 2.1 flows, it's recommended to use the [Visual Builder](/visual-builder/tools/mcp-servers) for easier configuration.
 
 See [Credentials](/typescript-sdk/tools/credentials) for detailed examples and implementation guidance for each authentication type.
 
@@ -100,12 +100,12 @@ const echoTool = mcpTool({
 });
 
 // Agent that only uses specific tools from the server
-const weatherAssistant = agent({
+const weatherAssistant = subAgent({
   id: "weather-assistant",
   name: "Weather assistant",
   description: "Responsible for routing between the geocoder agent and weather forecast agent",
   prompt: "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
   canDelegateTo: () => [weatherForecaster, geocoderAgent],
-  canUse: () => [agentMcp({ server: echoTool, selectedTools: ["echo2"] })],
+  canUse: () => [agentMcp({ server: echoTool, selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
 });
 ```
