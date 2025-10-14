@@ -819,21 +819,6 @@ function Flow({
     };
   }, [setEdges]);
 
-  useEffect(() => {
-    window.go = async function () {
-      // await new Promise((r) => setTimeout(r, 1000));
-      // const event = new CustomEvent('ikp-data-operation', fixture[2]);
-      // document.dispatchEvent(event);
-      // return;
-      for (const f of fixture) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const event = new CustomEvent('ikp-data-operation', f);
-        document.dispatchEvent(event);
-      }
-    };
-  }, []);
-
-  console.log({ edges, nodes });
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
