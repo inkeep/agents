@@ -373,8 +373,8 @@ export class Agent {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
-        // Use the AI SDK's toolCallId consistently instead of generating our own
-        const toolId = context?.toolCallId || generateToolId();
+        // Ensure we always have a toolCallId (from AI SDK or generated)
+        const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
@@ -398,9 +398,8 @@ export class Agent {
         if (streamRequestId && !isInternalTool) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
-            args,
-            toolCallId: context?.toolCallId,
-            toolId,
+            input: args,
+            toolCallId,
           });
         }
 
@@ -412,9 +411,8 @@ export class Agent {
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              result,
-              toolCallId: context?.toolCallId,
-              toolId,
+              output: result,
+              toolCallId,
               duration,
             });
           }
@@ -428,9 +426,8 @@ export class Agent {
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              result: null,
-              toolCallId: context?.toolCallId,
-              toolId,
+              output: null,
+              toolCallId,
               duration,
               error: errorMessage,
             });
