@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+
 ## 0.20.1
 
 ### Patch Changes
