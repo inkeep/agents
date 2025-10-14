@@ -1,7 +1,6 @@
 import type { Edge } from '@xyflow/react';
 import { ArrowRightLeft } from 'lucide-react';
 import { AgentToAgentEdge } from '../edges/agent-to-agent-edge';
-import { AnimatedCirclesEdge } from '../edges/animated-circles-edge';
 import { DefaultEdge } from '../edges/default-edge';
 import { SelfLoopEdge } from '../edges/self-loop-edge';
 
@@ -15,7 +14,6 @@ export enum EdgeType {
   A2AExternal = 'a2a-external',
   Default = 'default',
   SelfLoop = 'self-loop',
-  AnimatedCircles = 'animated-circles',
 }
 
 export type A2AEdgeData = {
@@ -25,6 +23,10 @@ export type A2AEdgeData = {
     delegateTargetToSource: boolean;
     delegateSourceToTarget: boolean;
   };
+  /**
+   * Indicates whether this node delegates its task to another node.
+   */
+  isDelegated?: boolean;
 };
 
 export const edgeTypes = {
@@ -32,7 +34,6 @@ export const edgeTypes = {
   [EdgeType.Default]: DefaultEdge,
   [EdgeType.A2AExternal]: DefaultEdge,
   [EdgeType.SelfLoop]: SelfLoopEdge,
-  [EdgeType.AnimatedCircles]: AnimatedCirclesEdge,
 } as const;
 
 export type EdgeTypesMap = typeof edgeTypes;

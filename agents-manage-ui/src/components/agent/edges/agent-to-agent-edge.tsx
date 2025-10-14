@@ -22,6 +22,7 @@ export function AgentToAgentEdge({
     delegateTargetToSource: false,
     delegateSourceToTarget: false,
   };
+  const isDelegated = data?.isDelegated;
 
   const hasDelegate = relationships.delegateTargetToSource || relationships.delegateSourceToTarget;
   const hasTransfer = relationships.transferTargetToSource || relationships.transferSourceToTarget;
@@ -130,6 +131,13 @@ export function AgentToAgentEdge({
             </div>
           </div>
         </EdgeLabelRenderer>
+      )}
+
+      {/* Animated circle */}
+      {isDelegated && (
+        <circle fill="var(--primary)" r="4">
+          <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
+        </circle>
       )}
     </>
   );

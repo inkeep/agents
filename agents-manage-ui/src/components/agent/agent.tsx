@@ -735,8 +735,7 @@ function Flow({
             edge.source === fromSubAgent && edge.target === targetSubAgent
               ? {
                   ...edge,
-                  type: EdgeType.AnimatedCircles,
-                  data: { ...edge.data, prevType: edge.type },
+                  data: { ...edge.data, isDelegated: true },
                 }
               : edge
           )
@@ -751,11 +750,9 @@ function Flow({
             if (edge.source !== targetSubAgent || edge.target !== fromSubAgent) {
               return edge;
             }
-            const { prevType, ...data } = edge.data as any;
             return {
               ...edge,
-              type: prevType,
-              data,
+              data: { ...edge.data, isDelegated: false },
             };
           })
         );
