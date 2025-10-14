@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.1
+
+### Patch Changes
+
+- ba2a297: Support remote sandboxes
+
 ## 0.22.0
 
 ### Patch Changes
