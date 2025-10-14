@@ -723,6 +723,70 @@ function Flow({
     toolLookup,
   ]);
 
+  useEffect(() => {
+    const onDataOperation: EventListenerOrEventListenerObject = (event) => {
+      // @ts-expect-error -- improve types
+      const { conversationId, timestamp, ...data } = event.detail;
+      if (data.type === 'delegation_sent') {
+        const { fromSubAgent, targetSubAgent } = data.details.data;
+        console.log(fromSubAgent, targetSubAgent);
+        setEdges((prevEdges) =>
+          prevEdges.map((edge) =>
+            edge.source === fromSubAgent && edge.target === targetSubAgent
+              ? {
+                  ...edge,
+                  type: EdgeType.AnimatedCircles,
+                  data: { ...edge.data, prevType: edge.type },
+                }
+              : edge
+          )
+        );
+        return;
+      }
+
+      if (data.type === 'delegation_returned') {
+        const { fromSubAgent, targetSubAgent } = data.details.data;
+        setEdges((prevEdges) =>
+          prevEdges.map((edge) => {
+            if (edge.source !== targetSubAgent || edge.target !== fromSubAgent) {
+              return edge;
+            }
+            const { prevType, ...data } = edge.data as any;
+            return {
+              ...edge,
+              type: prevType,
+              data,
+            };
+          })
+        );
+      }
+      console.log('Data operation:', data);
+    };
+
+    // const onDataSummary: EventListenerOrEventListenerObject = (event) => {
+    //   const { conversationId, timestamp, ...data } = event.detail;
+    //   console.log('Data summary:', data);
+    // };
+    // const onDataArtifact: EventListenerOrEventListenerObject = (event) => {
+    //   const { conversationId, timestamp, ...data } = event.detail;
+    //   console.log('Data artifact:', data);
+    // };
+    // const onDataComponent: EventListenerOrEventListenerObject = (event) => {
+    //   const { conversationId, timestamp, ...data } = event.detail;
+    //   console.log('Data component:', data);
+    // };
+    document.addEventListener('ikp-data-operation', onDataOperation);
+    // document.addEventListener('ikp-data-summary', onDataSummary);
+    // document.addEventListener('ikp-data-artifact', onDataArtifact);
+    // document.addEventListener('ikp-data-component', onDataComponent);
+    return () => {
+      document.removeEventListener('ikp-data-operation', onDataOperation);
+      // document.removeEventListener('ikp-data-summary', onDataSummary);
+      // document.removeEventListener('ikp-data-artifact', onDataArtifact);
+      // document.removeEventListener('ikp-data-component', onDataComponent);
+    };
+  }, [setEdges]);
+  console.log(edges);
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
