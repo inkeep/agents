@@ -275,6 +275,131 @@ Third: ${placeholder}
       );
       expect(restoredCode).not.toContain('`info_sources`'); // Should not contain unescaped backticks
     });
+
+    it('should escape template literal interpolation ${...}', () => {
+      const placeholder = '<{{prompt.content.xyz789}}>';
+      const originalString = 'Use ${variable} for interpolation and ${anotherVar} too';
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `prompt: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // ${...} should be escaped to prevent template literal interpolation
+      expect(restoredCode).toBe(
+        'prompt: `Use \\${variable} for interpolation and \\${anotherVar} too`'
+      );
+      // Verify the backslash escape is present
+      expect(restoredCode).toContain('\\${variable}');
+      expect(restoredCode).toContain('\\${anotherVar}');
+    });
+
+    it('should escape backslashes in restored content', () => {
+      const placeholder = '<{{prompt.content.def456}}>';
+      const originalString = 'Path: C:\\Users\\Documents\\file.txt with backslashes';
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `prompt: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // Backslashes should be escaped
+      expect(restoredCode).toBe(
+        'prompt: `Path: C:\\\\Users\\\\Documents\\\\file.txt with backslashes`'
+      );
+    });
+
+    it('should handle combinations of special characters', () => {
+      const placeholder = '<{{prompt.content.multi123}}>';
+      const originalString = 'Complex: `code` with ${var} and C:\\path\\to\\file';
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `prompt: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // All special characters should be properly escaped
+      expect(restoredCode).toBe(
+        'prompt: `Complex: \\`code\\` with \\${var} and C:\\\\path\\\\to\\\\file`'
+      );
+
+      // Verify all escape sequences are present
+      expect(restoredCode).toContain('\\${var}');
+      expect(restoredCode).toContain('\\`code\\`');
+      expect(restoredCode).toContain('C:\\\\path\\\\to\\\\file');
+    });
+
+    it('should preserve escaped sequences when restoring', () => {
+      const placeholder = '<{{description.abc}}>';
+      const originalString = 'Text with newline\\nand tab\\t sequences';
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `description: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // Original backslashes should be doubled (escaped)
+      expect(restoredCode).toBe('description: `Text with newline\\\\nand tab\\\\t sequences`');
+    });
+
+    it('should handle quotes in restored content', () => {
+      const placeholder = '<{{prompt.content.quotes}}>';
+      const originalString = `She said "hello" and I said 'hi' to her`;
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `prompt: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // Quotes don't need escaping in template literals, but should be preserved
+      expect(restoredCode).toBe('prompt: `She said "hello" and I said \'hi\' to her`');
+    });
+
+    it('should handle apostrophes that would break single-quoted strings', () => {
+      const placeholder = '<{{description.user123}}>';
+      const originalString = `information about a user's account like their order history`;
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      // LLM generates with template literals
+      const generatedCode = `description: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // In template literals, apostrophes don't need escaping
+      expect(restoredCode).toBe(
+        `description: \`information about a user's account like their order history\``
+      );
+
+      // Verify apostrophe is preserved correctly
+      expect(restoredCode).toContain("user's");
+      expect(restoredCode).not.toContain("\\'"); // No unnecessary escaping
+    });
+
+    it('should handle multiple apostrophes and contractions', () => {
+      const placeholder = '<{{prompt.contractions}}>';
+      const originalString = `Don't worry, it's okay. We'll handle the user's request, and they're good to go. Here's what you shouldn't do.`;
+      const replacements = {
+        [placeholder]: originalString,
+      };
+
+      const generatedCode = `prompt: \`${placeholder}\``;
+      const restoredCode = restorePlaceholders(generatedCode, replacements);
+
+      // All apostrophes should be preserved in template literals
+      expect(restoredCode).toContain("Don't");
+      expect(restoredCode).toContain("it's");
+      expect(restoredCode).toContain("We'll");
+      expect(restoredCode).toContain("user's");
+      expect(restoredCode).toContain("they're");
+      expect(restoredCode).toContain("Here's");
+      expect(restoredCode).toContain("shouldn't");
+    });
   });
 
   describe('calculateTokenSavings', () => {

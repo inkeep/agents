@@ -190,46 +190,70 @@ When no `statusComponents` are configured, the system uses built-in default stat
 
 The default status components are defined in [`packages/agents-sdk/src/default-status-schemas.ts`](https://github.com/inkeep/agents/blob/main/packages/agents-sdk/src/default-status-schemas.ts):
 
-```typescript src="packages/agents-sdk/src/default-status-schemas.ts"
+```typescript src="agents-run-api/src/utils/default-status-schemas.ts"
 ```
 
 ### Custom Structured Components
 
-For complete control over status format, define custom structured status components:
-
+For complete control over status format, define custom structured status components using Zod schemas with the `statusComponent` helper:
 
 ```typescript
-statusUpdates: {
-  numEvents: 3,
-  timeInSeconds: 15,
-  // Custom prompt also works with structured components
-  prompt: 'Focus on actionable insights. Be specific about what was found.',
-  statusComponents: [
-    {
-      type: 'tool_summary',
-      description: 'Summary of tool calls and their purpose',
-      detailsSchema: {
-        type: 'object',
-        properties: {
-          tool_name: {
-            type: 'string',
-            description: 'Name of tool used'
-          },
-          purpose: {
-            type: 'string',
-            description: 'Why this tool was called'
-          },
-          outcome: {
-            type: 'string',
-            description: 'What was discovered or accomplished'
-          },
-        },
-        required: ['tool_name', 'purpose', 'outcome'],
-      },
-    },
-  ],
-}
+import { z } from 'zod';
+import { statusComponent } from '@inkeep/agents-sdk';
+
+const toolSummary = statusComponent({
+  type: 'tool_summary',
+  description: 'Summary of tool calls and their purpose',
+  detailsSchema: z.object({
+    tool_name: z.string().describe('Name of tool used'),
+    purpose: z.string().describe('Why this tool was called'),
+    outcome: z.string().describe('What was discovered or accomplished'),
+  }),
+});
+
+const progressUpdate = statusComponent({
+  type: 'progress_update',
+  description: 'Progress information with metrics',
+  detailsSchema: z.object({
+    current_step: z.string(),
+    items_processed: z.number().optional(),
+    status: z.enum(['in_progress', 'completed', 'pending']),
+  }),
+});
+
+export const myAgent = agent({
+  id: "my-agent",
+  defaultSubAgent: myAgent,
+  subAgents: () => [myAgent],
+  models: {
+    summarizer: { model: "claude-3-5-sonnet-20241022" },
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    statusComponents: [
+      toolSummary.config,
+      progressUpdate.config,
+    ],
+  },
+});
 ```
+
+<Callout type="info">
+  The `statusComponent` helper provides type-safe status component definitions with automatic schema validation. Zod schemas are automatically converted to JSON Schema format at runtime.
+</Callout>
+
+### Status Component API
+
+The `statusComponent` function accepts:
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `type` | string | Yes | Unique identifier for this status component type |
+| `description` | string | No | Description of when/why this status is used |
+| `detailsSchema` | `z.ZodObject<any>` | No | Zod schema defining the structure of status details |
+
+**Note:** Use `.config` when passing status components to the agent configuration
 
 ## Frontend Integration
 

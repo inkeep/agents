@@ -100,6 +100,27 @@ You can easily access Signoz directly from the timeline view. In the **Traces** 
 - **Tool execution times**: Performance of MCP servers and external APIs
 - **Error rates**: Frequency and types of failures
 
+## Agent Stopped Unexpectedly
+
+### StopWhen Limits Reached
+
+If your agent stops mid-conversation, it may have hit a configured stopWhen limit:
+
+- **Transfer limit reached**: Check `transferCountIs` on your Agent or Project - agent stops after this many transfers between Sub Agents
+- **Step limit reached**: Check `stepCountIs` on your Sub Agent or Project - execution stops after this many tool calls + LLM responses
+
+**How to diagnose:**
+- Check the timeline for the last activity before stopping
+- Look for messages indicating limits were reached
+- Review your stopWhen configuration in Agent/Project settings
+
+**How to fix:**
+- Increase the limits if legitimate use case requires more steps/transfers
+- Optimize your agent flow to use fewer transfers
+- Investigate if agent is stuck in a loop (limits working as intended)
+
+See [Configuring StopWhen](/typescript-sdk/agent-settings#configuring-stopwhen) for more details.
+
 ## Common Configuration Issues
 
 ### General Configuration Issues

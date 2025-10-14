@@ -16,10 +16,10 @@ export function maskSensitiveConfig(config: any): any {
 
   // Mask API keys - show last 4 characters only
   if (masked.agentsManageApiKey) {
-    masked.agentsManageApiKey = '***' + masked.agentsManageApiKey.slice(-4);
+    masked.agentsManageApiKey = `***${masked.agentsManageApiKey.slice(-4)}`;
   }
   if (masked.agentsRunApiKey) {
-    masked.agentsRunApiKey = '***' + masked.agentsRunApiKey.slice(-4);
+    masked.agentsRunApiKey = `***${masked.agentsRunApiKey.slice(-4)}`;
   }
 
   return masked;

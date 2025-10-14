@@ -230,6 +230,34 @@ When using the Inkeep CLI, the following defaults are applied based on your chos
 - `structuredOutput`: `google/gemini-2.5-flash-lite`
 - `summarizer`: `google/gemini-2.5-flash-lite`
 
+## Configuring StopWhen
+
+Control stopping conditions to prevent infinite loops:
+
+```typescript
+// Agent level - limit transfers between Sub Agents
+agent({
+  id: "support-agent",
+  stopWhen: {
+    transferCountIs: 5  // Max transfers in one conversation
+  },
+});
+
+// Sub Agent level - limit generation steps
+subAgent({
+  id: "my-sub-agent",
+  stopWhen: {
+    stepCountIs: 20  // Max tool calls + LLM responses
+  },
+});
+```
+
+**Configuration levels:**
+- `transferCountIs`: Project or Agent level
+- `stepCountIs`: Project or Sub Agent level
+
+Settings inherit from Project → Agent → Sub Agent.
+
 
 ## Sub Agent overview
 
@@ -241,6 +269,8 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `name`               | string   | Yes      | Human-readable name for the Sub Agent |
 | `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the Sub Agent |
 | `description`        | string   | No       | Brief description of the Sub Agent's purpose and capabilities |
+| `models`             | object   | No       | Model configuration for this Sub Agent. See [Configuring Models](#configuring-models) |
+| `stopWhen`           | object   | No       | Stop conditions (`stepCountIs`). See [Configuring StopWhen](#configuring-stopwhen) |
 | `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/typescript-sdk/tools/mcp-servers) |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components) |
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |

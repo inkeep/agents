@@ -12,10 +12,10 @@ import { loadConfig } from '../utils/config';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
 import {
+  generateAgentFile,
   generateArtifactComponentFile,
   generateDataComponentFile,
   generateEnvironmentFiles,
-  generateAgentFile,
   generateIndexFile,
   generateToolFile,
 } from './pull.llm-generate';
@@ -75,7 +75,9 @@ async function detectCurrentProject(debug: boolean = false): Promise<string | nu
         if (typeof value.getId === 'function') {
           const projectId = value.getId();
           if (debug) {
-            console.log(chalk.gray(`  • Project detected: ${projectId} (from export: ${exportKey})`));
+            console.log(
+              chalk.gray(`  • Project detected: ${projectId} (from export: ${exportKey})`)
+            );
           }
           return projectId;
         }
@@ -101,7 +103,7 @@ async function detectCurrentProject(debug: boolean = false): Promise<string | nu
       // This matches both single and double quotes
       const projectIdMatch = content.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
 
-      if (projectIdMatch && projectIdMatch[1]) {
+      if (projectIdMatch?.[1]) {
         const projectId = projectIdMatch[1];
         if (debug) {
           console.log(chalk.gray(`  • Project ID extracted from static parse: ${projectId}`));
@@ -152,7 +154,7 @@ async function verifyGeneratedFiles(
 
     // Extract and verify project ID
     const projectIdMatch = indexContent.match(/project\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/);
-    if (projectIdMatch && projectIdMatch[1]) {
+    if (projectIdMatch?.[1]) {
       const extractedProjectId = projectIdMatch[1];
       if (extractedProjectId !== originalProjectData.id) {
         warnings.push(
@@ -171,11 +173,16 @@ async function verifyGeneratedFiles(
     const expectedAgents = Object.keys(originalProjectData.agents || {});
 
     for (const agentId of expectedAgents) {
-      const agentPath = join(agentsDir, `${agentId}.ts`);
+      // Convert agent ID to kebab-case to match file naming convention
+      const kebabCaseId = agentId
+        .replace(/([a-z])([A-Z])/g, '$1-$2')
+        .replace(/[\s_]+/g, '-')
+        .toLowerCase();
+      const agentPath = join(agentsDir, `${kebabCaseId}.ts`);
       if (!existsSync(agentPath)) {
-        errors.push(`Agent file not found: agents/${agentId}.ts`);
+        errors.push(`Agent file not found: agents/${kebabCaseId}.ts`);
       } else if (debug) {
-        console.log(chalk.gray(`  ✓ Agent file exists: agents/${agentId}.ts`));
+        console.log(chalk.gray(`  ✓ Agent file exists: agents/${kebabCaseId}.ts`));
       }
     }
 
@@ -184,11 +191,16 @@ async function verifyGeneratedFiles(
     const expectedTools = Object.keys(originalProjectData.tools || {});
 
     for (const toolId of expectedTools) {
-      const toolPath = join(toolsDir, `${toolId}.ts`);
+      // Convert tool ID to kebab-case to match file naming convention
+      const kebabCaseId = toolId
+        .replace(/([a-z])([A-Z])/g, '$1-$2')
+        .replace(/[\s_]+/g, '-')
+        .toLowerCase();
+      const toolPath = join(toolsDir, `${kebabCaseId}.ts`);
       if (!existsSync(toolPath)) {
-        errors.push(`Tool file not found: tools/${toolId}.ts`);
+        errors.push(`Tool file not found: tools/${kebabCaseId}.ts`);
       } else if (debug) {
-        console.log(chalk.gray(`  ✓ Tool file exists: tools/${toolId}.ts`));
+        console.log(chalk.gray(`  ✓ Tool file exists: tools/${kebabCaseId}.ts`));
       }
     }
 
@@ -197,11 +209,18 @@ async function verifyGeneratedFiles(
     const expectedDataComponents = Object.keys(originalProjectData.dataComponents || {});
 
     for (const componentId of expectedDataComponents) {
-      const componentPath = join(dataComponentsDir, `${componentId}.ts`);
+      // Convert component ID to kebab-case to match file naming convention
+      const kebabCaseId = componentId
+        .replace(/([a-z])([A-Z])/g, '$1-$2')
+        .replace(/[\s_]+/g, '-')
+        .toLowerCase();
+      const componentPath = join(dataComponentsDir, `${kebabCaseId}.ts`);
       if (!existsSync(componentPath)) {
-        errors.push(`Data component file not found: data-components/${componentId}.ts`);
+        errors.push(`Data component file not found: data-components/${kebabCaseId}.ts`);
       } else if (debug) {
-        console.log(chalk.gray(`  ✓ Data component file exists: data-components/${componentId}.ts`));
+        console.log(
+          chalk.gray(`  ✓ Data component file exists: data-components/${kebabCaseId}.ts`)
+        );
       }
     }
 
@@ -232,8 +251,12 @@ async function verifyGeneratedFiles(
     if (debug) {
       console.log(chalk.gray('\n🔍 Verification Summary:'));
       console.log(chalk.gray(`  • index.ts: ${existsSync(indexPath) ? '✓' : '✗'}`));
-      console.log(chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`));
-      console.log(chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`));
+      console.log(
+        chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`)
+      );
+      console.log(
+        chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`)
+      );
       console.log(
         chalk.gray(
           `  • Data component files: ${expectedDataComponents.length}/${expectedDataComponents.length} found`
@@ -312,6 +335,7 @@ function createProjectStructure(
   toolsDir: string;
   dataComponentsDir: string;
   artifactComponentsDir: string;
+  statusComponentsDir: string;
   environmentsDir: string;
 } {
   // In directory-aware mode, use the current directory as-is
@@ -328,6 +352,7 @@ function createProjectStructure(
   const toolsDir = join(projectRoot, 'tools');
   const dataComponentsDir = join(projectRoot, 'data-components');
   const artifactComponentsDir = join(projectRoot, 'artifact-components');
+  const statusComponentsDir = join(projectRoot, 'status-components');
   const environmentsDir = join(projectRoot, 'environments');
 
   // Create all directories
@@ -336,6 +361,7 @@ function createProjectStructure(
   ensureDirectoryExists(toolsDir);
   ensureDirectoryExists(dataComponentsDir);
   ensureDirectoryExists(artifactComponentsDir);
+  ensureDirectoryExists(statusComponentsDir);
   ensureDirectoryExists(environmentsDir);
 
   return {
@@ -344,6 +370,7 @@ function createProjectStructure(
     toolsDir,
     dataComponentsDir,
     artifactComponentsDir,
+    statusComponentsDir,
     environmentsDir,
   };
 }
@@ -351,7 +378,7 @@ function createProjectStructure(
 /**
  * Generate project files using LLM based on backend data
  */
-async function generateProjectFiles(
+async function _generateProjectFiles(
   dirs: {
     projectRoot: string;
     agentsDir: string;
@@ -720,6 +747,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     const dataComponentCount = Object.keys(projectData.dataComponents || {}).length;
     const artifactComponentCount = Object.keys(projectData.artifactComponents || {}).length;
 
+    // Count status components from agents
+    const statusComponentCount = Object.values(projectData.agents || {}).reduce((total, agent) => {
+      const agentObj = agent as any;
+      const statusComponents = agentObj.statusUpdates?.statusComponents || [];
+      return total + statusComponents.length;
+    }, 0);
+
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
@@ -731,6 +765,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (artifactComponentCount > 0) {
       console.log(chalk.gray(`  • Artifact Components: ${artifactComponentCount}`));
+    }
+    if (statusComponentCount > 0) {
+      console.log(chalk.gray(`  • Status Components: ${statusComponentCount}`));
     }
 
     // Display credential tracking information
@@ -874,17 +911,25 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
 
     // Count generated files for summary
+    const statusComponentsCount = Object.values(projectData.agents || {}).reduce((total, agent) => {
+      const agentObj = agent as any;
+      const statusComponents = agentObj.statusUpdates?.statusComponents || [];
+      return total + statusComponents.length;
+    }, 0);
+
     const fileCount = {
       agents: Object.keys(projectData.agents || {}).length,
       tools: Object.keys(projectData.tools || {}).length,
       dataComponents: Object.keys(projectData.dataComponents || {}).length,
       artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
+      statusComponents: statusComponentsCount,
     };
     const totalFiles =
       fileCount.agents +
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
+      fileCount.statusComponents +
       5; // +1 for index.ts, +4 for environment files (index.ts, development.env.ts, staging.env.ts, production.env.ts)
 
     spinner.succeed(`Project files generated (${totalFiles} files created)`);
@@ -947,6 +992,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (fileCount.artifactComponents > 0) {
       console.log(chalk.gray(`  ├── artifact-components/ (${fileCount.artifactComponents} files)`));
+    }
+    if (fileCount.statusComponents > 0) {
+      console.log(chalk.gray(`  ├── status-components/ (${fileCount.statusComponents} files)`));
     }
     console.log(chalk.gray('  └── environments/ (4 files)'));
 
