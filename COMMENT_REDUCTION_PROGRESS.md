@@ -104,18 +104,27 @@ Systematic removal of obvious narration comments while preserving important docu
 ## Phase 3: agents-core 🔄 IN PROGRESS
 
 **Target:** Remove 1,026-1,197 lines (60-70% of 1,710)  
-**Current Progress:** 60 lines removed (from Phase 1)  
-**Remaining:** 966-1,137 lines needed
+**Current Progress:** 251 lines removed (60 from Phase 1 + 191 from PR #627)  
+**Remaining:** 775-946 lines needed
 
-### Priority Files (by comment count):
-- 🔄 packages/agents-core/src/data-access/agentFull.ts (116 lines)
-- 🔄 packages/agents-core/src/data-access/projectFull.ts (50 lines)
-- 🔄 packages/agents-core/src/db/schema.ts (45 lines)
-- 🔄 packages/agents-core/src/validation/schemas.ts (54 lines)
-- 🔄 Other files (~1,400 lines)
+### Major Files Cleaned:
+- ✅ agentFull.ts (-68 lines: 116 → ~48)
+- ✅ schemas.ts (-43 lines: 54 → ~11)
+- ✅ projectFull.ts (-40 lines: 50 → ~10)
+- ✅ schema.ts (-40 lines: 45 → ~5)
 
-**PR:** TBD  
-**Status:** 🔄 Starting
+### Remaining Files (partial list):
+- 🔄 ledgerArtifacts.ts (38 lines)
+- 🔄 CredentialStuffer.ts (31 lines)
+- 🔄 nango-store.ts (31 lines)
+- 🔄 error.ts (29 lines)
+- 🔄 projects.ts (29 lines)
+- 🔄 ContextResolver.ts (29 lines)
+- 🔄 ContextConfig.ts (29 lines)
+- 🔄 Other files (~700 lines)
+
+**PR:** [#627](https://github.com/inkeep/agents/pull/627)  
+**Status:** 🔄 In Progress (24% toward goal)
 
 ---
 
@@ -144,16 +153,21 @@ Systematic removal of obvious narration comments while preserving important docu
 
 ## Overall Progress
 
-**Total Lines Removed So Far:** 968 lines  
+**Total Lines Removed So Far:** 1,159 lines  
 **Packages Complete:** 3 (agents-cli ✅, agents-sdk ✅, create-agents ✅)  
-**Packages In Progress:** 1 (agents-run-api 🚧)  
-**Packages Remaining:** 5
+**Packages In Progress:** 2 (agents-run-api 🚧, agents-core 🔄)  
+**Packages Remaining:** 4
 
 ### By Phase:
-- ✅ Phase 1: Complete (233 lines)
-- 🚧 Phase 2: 68% toward target (735 lines, need 343-523 more)
-- 🔄 Phase 3: Starting (60 lines, need 966-1,137 more)
+- ✅ Phase 1: Complete (233 lines) - MERGED
+- 🚧 Phase 2: 68% toward target (735 lines, need 343-523 more) - 2 PRs under review
+- 🔄 Phase 3: 24% toward goal (251 lines, need 775-946 more) - 1 PR open
 - ⏳ Phase 4-6: Not started
+
+### Open PRs:
+- #623: Phase 2 Part 1 (agents-run-api) - 617 lines
+- #625: Phase 2 Part 2 (agents-run-api) - 118 lines  
+- #627: Phase 3 (agents-core) - 191 lines
 
 ---
 
