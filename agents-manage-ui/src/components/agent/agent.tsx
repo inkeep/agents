@@ -729,88 +729,90 @@ function Flow({
       const { conversationId, timestamp, ...data } = event.detail;
       console.log('Data operation:', data);
 
-      if (data.type === 'delegation_sent') {
-        const { fromSubAgent, targetSubAgent } = data.details.data;
-        setEdges((prevEdges) =>
-          prevEdges.map((edge) =>
-            edge.source === fromSubAgent && edge.target === targetSubAgent
-              ? {
-                  ...edge,
-                  data: { ...edge.data, isDelegating: true },
-                }
-              : edge
-          )
-        );
-        setNodes((prevNodes) =>
-          prevNodes.map((node) =>
-            node.id === fromSubAgent || node.id === targetSubAgent
-              ? {
-                  ...node,
-                  data: { ...node.data, isDelegating: true },
-                }
-              : node
-          )
-        );
-        return;
-      }
-
-      if (data.type === 'delegation_returned') {
-        const { fromSubAgent, targetSubAgent } = data.details.data;
-        setEdges((prevEdges) =>
-          prevEdges.map((edge) => {
-            if (edge.source !== targetSubAgent || edge.target !== fromSubAgent) {
-              return edge;
-            }
-            return {
+      switch (data.type) {
+        case 'delegation_sent': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) =>
+              edge.source === fromSubAgent && edge.target === targetSubAgent
+                ? {
+                    ...edge,
+                    data: { ...edge.data, isDelegating: true },
+                  }
+                : edge
+            )
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) =>
+              node.id === fromSubAgent || node.id === targetSubAgent
+                ? {
+                    ...node,
+                    data: { ...node.data, isDelegating: true },
+                  }
+                : node
+            )
+          );
+          break;
+        }
+        case 'delegation_returned': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) =>
+              edge.source === targetSubAgent && edge.target === fromSubAgent
+                ? {
+                    ...edge,
+                    data: { ...edge.data, isDelegating: false },
+                  }
+                : edge
+            )
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) =>
+              node.data.isExecuting
+                ? {
+                    ...node,
+                    data: { ...node.data, isExecuting: false, isDelegating: false },
+                  }
+                : node
+            )
+          );
+          break;
+        }
+        case 'completion': {
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
               ...edge,
               data: { ...edge.data, isDelegating: false },
-            };
-          })
-        );
-        setNodes((prevNodes) =>
-          prevNodes.map((node) =>
-            node.data.isExecuting
-              ? {
-                  ...node,
-                  data: { ...node.data, isExecuting: false, isDelegating: false },
-                }
-              : node
-          )
-        );
-        return;
-      }
-      if (data.type === 'completion') {
-        setEdges((prevEdges) =>
-          prevEdges.map((edge) => ({
-            ...edge,
-            data: { ...edge.data, isDelegating: false },
-          }))
-        );
-        setNodes((prevNodes) =>
-          prevNodes.map((node) => ({
-            ...node,
-            data: { ...node.data, isDelegating: false },
-          }))
-        );
-        return;
-      }
-      if (data.type === 'agent_generate') {
-        // const { subAgentId } = data.details.data;
-        return;
-      }
-      if (data.type === 'tool_execution') {
-        const { subAgentId } = data.details;
-        setNodes((prevNodes) =>
-          prevNodes.map((node) => {
-            if (node.id !== subAgentId) {
-              return node;
-            }
-            return {
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: true },
-            };
-          })
-        );
+              data: { ...node.data, isDelegating: false },
+            }))
+          );
+          break;
+        }
+
+        case 'agent_generate': {
+          // Placeholder for future logic
+          break;
+        }
+
+        case 'tool_execution': {
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) =>
+            prevNodes.map((node) =>
+              node.id === subAgentId
+                ? {
+                    ...node,
+                    data: { ...node.data, isExecuting: true },
+                  }
+                : node
+            )
+          );
+          break;
+        }
       }
     };
 
