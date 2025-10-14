@@ -81,8 +81,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   return (
     <BaseNode
-      isSelected={selected}
-      isDelegating={data.isDelegating}
+      isSelected={selected || data.isDelegating}
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         data.isExecuting && 'node-executing'

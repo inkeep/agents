@@ -23,8 +23,7 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
   return (
     <div className="relative">
       <BaseNode
-        isSelected={selected}
-        isDelegating={data.isDelegating}
+        isSelected={selected || data.isDelegating}
         className={cn(
           'rounded-4xl min-w-40 max-w-xs',
           hasErrors && 'ring-2 ring-red-300 border-red-300',

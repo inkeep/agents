@@ -74,14 +74,9 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
 
   return (
     <div className="relative">
-      {isDefault && (
-        <NodeTab isSelected={selected} isDelegating={data.isDelegating}>
-          Default
-        </NodeTab>
-      )}
+      {isDefault && <NodeTab isSelected={selected || data.isDelegating}>Default</NodeTab>}
       <BaseNode
-        isSelected={selected}
-        isDelegating={data.isDelegating}
+        isSelected={selected || data.isDelegating}
         className={cn(
           isDefault && 'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',

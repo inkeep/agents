@@ -25,8 +25,7 @@ export function ExternalAgentNode(props: NodeProps & { data: AgentNodeData }) {
     <div className="relative">
       <NodeTab isSelected={selected}>External</NodeTab>
       <BaseNode
-        isSelected={selected}
-        isDelegating={data.isDelegating}
+        isSelected={selected || data.isDelegating}
         className={cn(
           'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',

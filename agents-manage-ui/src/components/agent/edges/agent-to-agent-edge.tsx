@@ -87,17 +87,14 @@ export function AgentToAgentEdge({
   const delegateMarkerEnd =
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
-  const className = selected
-    ? '!stroke-primary'
-    : isDelegating
-      ? '!stroke-chart-2'
-      : '!stroke-border dark:!stroke-muted-foreground';
+  const className =
+    selected || isDelegating ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
 
   return (
     <>
       {/* Animated circle */}
       {isDelegating && (
-        <circle fill={selected ? 'var(--primary)' : 'var(--chart-2)'} r="6">
+        <circle fill="var(--primary)" r="6">
           <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
         </circle>
       )}

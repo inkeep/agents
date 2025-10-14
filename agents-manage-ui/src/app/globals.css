@@ -276,11 +276,11 @@ li[data-sonner-toast][data-type="error"] {
 @keyframes node-pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 188, 125, 0.7);
+    box-shadow: 0 0 0 0 rgba(105, 163, 255, 0.7);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 10px transparent;
+    box-shadow: 0 0 0 15px transparent;
   }
   100% {
     transform: scale(1);
@@ -290,5 +290,5 @@ li[data-sonner-toast][data-type="error"] {
 
 .node-executing {
   animation: node-pulse 1.5s ease-in-out infinite;
-  @apply border-chart-2 border-2;
+  @apply border-primary border-2;
 }
