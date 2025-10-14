@@ -285,13 +285,17 @@ export class LocalSandboxExecutor {
     configuredRuntime?: 'node22' | 'typescript'
   ): 'cjs' | 'esm' {
     const esmPatterns = [
-      /import\s+.*\s+from\s+['"]/g,
-      /import\s*\(/g,
-      /export\s+(default|const|let|var|function|class)/g,
-      /export\s*\{/g,
+      /import\s+.*\s+from\s+['"]/g, // import ... from '...'
+      /import\s*\(/g, // import(...)
+      /export\s+(default|const|let|var|function|class)/g, // export statements
+      /export\s*\{/g, // export { ... }
     ];
 
-    const cjsPatterns = [/require\s*\(/g, /module\.exports/g, /exports\./g];
+    const cjsPatterns = [
+      /require\s*\(/g, // require(...)
+      /module\.exports/g, // module.exports
+      /exports\./g, // exports.something
+    ];
 
     const hasEsmSyntax = esmPatterns.some((pattern) => pattern.test(executeCode));
     const hasCjsSyntax = cjsPatterns.some((pattern) => pattern.test(executeCode));
@@ -380,12 +384,16 @@ export class LocalSandboxExecutor {
       const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
       const packageJson = {
-        name: 'function-sandbox',
+        name: `function-tool-${toolId}`,
         version: '1.0.0',
-        type: moduleType === 'esm' ? 'module' : 'commonjs',
+        ...(moduleType === 'esm' && { type: 'module' }),
         dependencies,
+        scripts: {
+          start: moduleType === 'esm' ? 'node index.mjs' : 'node index.js',
+        },
       };
-      writeFileSync(join(sandboxDir, 'package.json'), JSON.stringify(packageJson, null, 2));
+
+      writeFileSync(join(sandboxDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
 
       if (Object.keys(dependencies).length > 0) {
         await this.installDependencies(sandboxDir);
