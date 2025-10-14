@@ -168,7 +168,14 @@ const discoverToolsFromServer = async (
 
     return toolDefinitions;
   } catch (error) {
-    logger.error({ toolId: tool.id, error }, 'Tool discovery failed');
+    // Only log at error level in non-test environments
+    // In tests, tool discovery failures are often expected (fake servers, etc.)
+    const logLevel = process.env.ENVIRONMENT === 'test' ? 'debug' : 'error';
+    const errorDetails = error instanceof Error
+      ? { message: error.message, name: error.name, stack: error.stack }
+      : { error: String(error) };
+
+    logger[logLevel]({ toolId: tool.id, ...errorDetails }, 'Tool discovery failed');
     throw error;
   }
 };
