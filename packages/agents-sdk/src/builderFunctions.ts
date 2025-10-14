@@ -21,10 +21,6 @@ import { Tool } from './tool';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
-/**
- * Helper function to create agent - OpenAI style
- */
-
 export function agent(config: AgentConfig): Agent {
   return new Agent(config);
 }
@@ -66,29 +62,6 @@ export function project(config: ProjectConfig): Project {
   return new Project(config);
 }
 
-// ============================================================================
-// Agent Builders
-// ============================================================================
-/**
- * Creates a new agent with stable ID enforcement.
- *
- * Agents require explicit stable IDs to ensure consistency across deployments.
- * This is different from tools which auto-generate IDs from their names.
- *
- * @param config - Agent configuration including required stable ID
- * @returns A new Agent instance
- * @throws {Error} If config.id is not provided
- *
- * @example
- * ```typescript
- * const myAgent = agent({
- *   id: 'customer-support-agent',
- *   name: 'Customer Support',
- *   prompt: 'Help customers with their questions'
- * });
- * ```
- */
-
 export function subAgent(config: SubAgentConfig): SubAgent {
   if (!config.id) {
     throw new Error(
@@ -96,9 +69,8 @@ export function subAgent(config: SubAgentConfig): SubAgent {
     );
   }
   return new SubAgent(config);
-} // ============================================================================
-// Credential Builders
-// ============================================================================
+}
+
 /**
  * Creates a credential reference for authentication.
  *
@@ -117,12 +89,10 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  * });
  * ```
  */
-
 export function credential(config: CredentialReferenceApiInsert) {
   return CredentialReferenceApiInsertSchema.parse(config);
-} // ============================================================================
-// Tool Builders
-// ============================================================================
+}
+
 /**
  * Creates an MCP (Model Context Protocol) server for tool functionality.
  *
@@ -155,16 +125,13 @@ export function credential(config: CredentialReferenceApiInsert) {
  * });
  * ```
  */
-
 export function mcpServer(config: MCPServerConfig): Tool {
   if (!config.serverUrl) {
     throw new Error('MCP server requires a serverUrl');
   }
 
-  // Generate ID if not provided
   const id = config.id || generateIdFromName(config.name);
 
-  // Create Tool instance for MCP server
   return new Tool({
     id,
     name: config.name,
@@ -179,6 +146,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
       : undefined,
   });
 }
+
 /**
  * Creates an MCP tool from a raw configuration object.
  *
@@ -198,9 +166,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
  * });
  * ```
  */
-
 export function mcpTool(config: MCPToolConfig): Tool {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -209,9 +175,6 @@ export function mcpTool(config: MCPToolConfig): Tool {
   return new Tool(validatedConfig);
 }
 
-// ============================================================================
-// Component Builders
-// ============================================================================
 /**
  * Creates an artifact component with automatic ID generation.
  *
@@ -238,15 +201,14 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * });
  * ```
  */
-
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new ArtifactComponent(configWithId);
 }
+
 /**
  * Creates a data component with automatic ID generation.
  *
@@ -269,9 +231,7 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  * });
  * ```
  */
-
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -287,9 +247,6 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   };
 }
 
-// ============================================================================
-// Function Tool Builders
-// ============================================================================
 /**
  * Creates a function tool that executes user-defined code in a sandboxed environment.
  *

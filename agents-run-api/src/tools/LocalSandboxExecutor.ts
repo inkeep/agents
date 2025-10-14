@@ -69,7 +69,6 @@ class ExecutionSemaphore {
   }
 
   async acquire<T>(fn: () => Promise<T>): Promise<T> {
-    // Wait for a permit to become available
     await new Promise<void>((resolve, reject) => {
       if (this.permits > 0) {
         this.permits--;
@@ -77,9 +76,7 @@ class ExecutionSemaphore {
         return;
       }
 
-      // Add to wait queue with timeout
       const timeoutId = setTimeout(() => {
-        // Remove from queue and reject
         const index = this.waitQueue.findIndex((item) => item.resolve === resolve);
         if (index !== -1) {
           this.waitQueue.splice(index, 1);
@@ -101,14 +98,11 @@ class ExecutionSemaphore {
       });
     });
 
-    // Execute the function
     try {
       return await fn();
     } finally {
-      // Release the permit
       this.permits++;
 
-      // Wake up next waiting function
       const next = this.waitQueue.shift();
       if (next) {
         next.resolve();
@@ -151,7 +145,6 @@ export class LocalSandboxExecutor {
   private executionSemaphores: Map<number, ExecutionSemaphore> = new Map();
 
   constructor() {
-    // Use system temp directory instead of project root
     this.tempDir = join(tmpdir(), 'inkeep-sandboxes');
     this.ensureTempDir();
     this.startPoolCleanup();
@@ -164,11 +157,8 @@ export class LocalSandboxExecutor {
     return LocalSandboxExecutor.instance;
   }
 
-  /**
-   * Get or create a semaphore for the specified vCPU limit
-   */
   private getSemaphore(vcpus: number): ExecutionSemaphore {
-    const effectiveVcpus = Math.max(1, vcpus || 1); // Default to 1 if not specified
+    const effectiveVcpus = Math.max(1, vcpus || 1);
 
     if (!this.executionSemaphores.has(effectiveVcpus)) {
       logger.debug({ vcpus: effectiveVcpus }, 'Creating new execution semaphore');
@@ -183,9 +173,6 @@ export class LocalSandboxExecutor {
     return semaphore;
   }
 
-  /**
-   * Get execution statistics for monitoring and debugging
-   */
   getExecutionStats(): Record<string, { availablePermits: number; queueLength: number }> {
     const stats: Record<string, { availablePermits: number; queueLength: number }> = {};
 
@@ -202,9 +189,7 @@ export class LocalSandboxExecutor {
   private ensureTempDir() {
     try {
       mkdirSync(this.tempDir, { recursive: true });
-    } catch {
-      // Directory might already exist
-    }
+    } catch {}
   }
 
   private generateDependencyHash(dependencies: Record<string, string>): string {
@@ -220,7 +205,6 @@ export class LocalSandboxExecutor {
     const sandbox = this.sandboxPool[poolKey];
 
     if (sandbox && existsSync(sandbox.sandboxDir)) {
-      // Check if sandbox is still valid
       const now = Date.now();
       if (now - sandbox.lastUsed < this.POOL_TTL && sandbox.useCount < this.MAX_USE_COUNT) {
         sandbox.lastUsed = now;
@@ -236,7 +220,6 @@ export class LocalSandboxExecutor {
         );
         return sandbox.sandboxDir;
       } else {
-        // Clean up expired sandbox
         this.cleanupSandbox(sandbox.sandboxDir);
         delete this.sandboxPool[poolKey];
       }
@@ -252,7 +235,6 @@ export class LocalSandboxExecutor {
   ) {
     const poolKey = dependencyHash;
 
-    // Clean up old sandbox if exists
     if (this.sandboxPool[poolKey]) {
       this.cleanupSandbox(this.sandboxPool[poolKey].sandboxDir);
     }
@@ -277,7 +259,6 @@ export class LocalSandboxExecutor {
   }
 
   private startPoolCleanup() {
-    // Clean up pool every minute
     setInterval(() => {
       const now = Date.now();
       const keysToDelete: string[] = [];
@@ -303,30 +284,22 @@ export class LocalSandboxExecutor {
     executeCode: string,
     configuredRuntime?: 'node22' | 'typescript'
   ): 'cjs' | 'esm' {
-    // Define patterns once and reuse
     const esmPatterns = [
-      /import\s+.*\s+from\s+['"]/g, // import ... from '...'
-      /import\s*\(/g, // import(...)
-      /export\s+(default|const|let|var|function|class)/g, // export statements
-      /export\s*\{/g, // export { ... }
+      /import\s+.*\s+from\s+['"]/g,
+      /import\s*\(/g,
+      /export\s+(default|const|let|var|function|class)/g,
+      /export\s*\{/g,
     ];
 
-    const cjsPatterns = [
-      /require\s*\(/g, // require(...)
-      /module\.exports/g, // module.exports
-      /exports\./g, // exports.something
-    ];
+    const cjsPatterns = [/require\s*\(/g, /module\.exports/g, /exports\./g];
 
     const hasEsmSyntax = esmPatterns.some((pattern) => pattern.test(executeCode));
     const hasCjsSyntax = cjsPatterns.some((pattern) => pattern.test(executeCode));
 
-    // If TypeScript runtime is configured, prefer ESM (modern TypeScript uses ESM)
     if (configuredRuntime === 'typescript') {
-      // Only use CJS if explicit CJS patterns are found
       return hasCjsSyntax ? 'cjs' : 'esm';
     }
 
-    // If both are present, prefer ESM
     if (hasEsmSyntax && hasCjsSyntax) {
       logger.warn(
         { executeCode: `${executeCode.substring(0, 100)}...` },
@@ -335,17 +308,14 @@ export class LocalSandboxExecutor {
       return 'esm';
     }
 
-    // If only ESM patterns found, use ESM
     if (hasEsmSyntax) {
       return 'esm';
     }
 
-    // If only CommonJS patterns found, use CommonJS
     if (hasCjsSyntax) {
       return 'cjs';
     }
 
-    // Default to CommonJS for backward compatibility
     return 'cjs';
   }
 
@@ -389,12 +359,10 @@ export class LocalSandboxExecutor {
       'Executing function tool'
     );
 
-    // Try to get cached sandbox first
     let sandboxDir = this.getCachedSandbox(dependencyHash);
     let isNewSandbox = false;
 
     if (!sandboxDir) {
-      // Create new sandbox with dependency hash instead of toolId
       sandboxDir = join(this.tempDir, `sandbox-${dependencyHash}-${Date.now()}`);
       mkdirSync(sandboxDir, { recursive: true });
       isNewSandbox = true;
@@ -409,41 +377,30 @@ export class LocalSandboxExecutor {
         'Creating new sandbox'
       );
 
-      // Detect module type from executeCode, considering runtime config
       const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
-      // Create package.json with dependencies
       const packageJson = {
-        name: `function-tool-${toolId}`,
+        name: 'function-sandbox',
         version: '1.0.0',
-        ...(moduleType === 'esm' && { type: 'module' }),
+        type: moduleType === 'esm' ? 'module' : 'commonjs',
         dependencies,
-        scripts: {
-          start: moduleType === 'esm' ? 'node index.mjs' : 'node index.js',
-        },
       };
+      writeFileSync(join(sandboxDir, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-      writeFileSync(join(sandboxDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
-
-      // Install dependencies if any
       if (Object.keys(dependencies).length > 0) {
         await this.installDependencies(sandboxDir);
       }
 
-      // Add to pool for reuse
       this.addToPool(dependencyHash, sandboxDir, dependencies);
     }
 
     try {
-      // Detect module type from executeCode, considering runtime config
       const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
-      // Create the function execution file with appropriate extension
       const executionCode = this.wrapFunctionCode(config.executeCode, args);
       const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
       writeFileSync(join(sandboxDir, `index.${fileExtension}`), executionCode, 'utf8');
 
-      // Execute the function
       const result = await this.executeInSandbox(
         sandboxDir,
         config.sandboxConfig?.timeout || 30000,
@@ -453,7 +410,6 @@ export class LocalSandboxExecutor {
 
       return result;
     } catch (error) {
-      // If this was a new sandbox and it failed, clean it up
       if (isNewSandbox) {
         this.cleanupSandbox(sandboxDir);
         const poolKey = dependencyHash;
@@ -465,22 +421,13 @@ export class LocalSandboxExecutor {
 
   private async installDependencies(sandboxDir: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Configure npm environment variables to use sandbox directory
-      // This fixes issues in serverless environments like Vercel where
-      // the default home directory paths don't exist or aren't writable
       const npmEnv = {
         ...process.env,
-        // Set npm cache directory to sandbox to avoid /home/user issues
         npm_config_cache: join(sandboxDir, '.npm-cache'),
-        // Set npm logs directory to sandbox
         npm_config_logs_dir: join(sandboxDir, '.npm-logs'),
-        // Set npm temp directory to sandbox
         npm_config_tmp: join(sandboxDir, '.npm-tmp'),
-        // Override HOME directory as fallback for npm
         HOME: sandboxDir,
-        // Disable npm update notifier to avoid permission issues
         npm_config_update_notifier: 'false',
-        // Use non-interactive mode
         npm_config_progress: 'false',
         npm_config_loglevel: 'error',
       };
@@ -493,9 +440,7 @@ export class LocalSandboxExecutor {
 
       let stderr = '';
 
-      npm.stdout?.on('data', () => {
-        // Not needed for npm install
-      });
+      npm.stdout?.on('data', () => {});
 
       npm.stderr?.on('data', (data) => {
         stderr += data.toString();
@@ -527,11 +472,9 @@ export class LocalSandboxExecutor {
     return new Promise((resolve, reject) => {
       const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
 
-      // Resource limits and security options
       const spawnOptions = {
         cwd: sandboxDir,
         stdio: 'pipe' as const,
-        // Security: drop privileges and limit resources
         uid: process.getuid ? process.getuid() : undefined,
         gid: process.getgid ? process.getgid() : undefined,
       };
@@ -541,8 +484,7 @@ export class LocalSandboxExecutor {
       let stdout = '';
       let stderr = '';
       let outputSize = 0;
-      // Use configurable output limit, default to 1MB
-      const MAX_OUTPUT_SIZE = 1024 * 1024; // Could be made configurable in future
+      const MAX_OUTPUT_SIZE = 1024 * 1024;
 
       node.stdout?.on('data', (data: Buffer) => {
         const dataStr = data.toString();
@@ -570,19 +512,15 @@ export class LocalSandboxExecutor {
         stderr += dataStr;
       });
 
-      // Set timeout
       const timeoutId = setTimeout(() => {
         logger.warn({ sandboxDir, timeout }, 'Function execution timed out, killing process');
         node.kill('SIGTERM');
 
-        // Force kill timeout - use configured timeout/10 or default to 5 seconds
         const forceKillTimeout = Math.min(Math.max(timeout / 10, 2000), 5000);
         setTimeout(() => {
           try {
             node.kill('SIGKILL');
-          } catch {
-            // Process might already be dead
-          }
+          } catch {}
         }, forceKillTimeout);
 
         reject(new Error(`Function execution timed out after ${timeout}ms`));
@@ -622,16 +560,13 @@ export class LocalSandboxExecutor {
 
   private wrapFunctionCode(executeCode: string, args: any): string {
     return `
-// Wrapped function execution (ESM)
 const execute = ${executeCode};
 const args = ${JSON.stringify(args)};
 
 try {
   const result = execute(args);
   
-  // Handle both sync and async functions
   if (result && typeof result.then === 'function') {
-    // Async function - result is a Promise
     result
       .then(result => {
         console.log(JSON.stringify({ success: true, result }));
@@ -640,7 +575,6 @@ try {
         console.log(JSON.stringify({ success: false, error: error.message }));
       });
   } else {
-    // Sync function - result is immediate
     console.log(JSON.stringify({ success: true, result }));
   }
 } catch (error) {
