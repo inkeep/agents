@@ -104,27 +104,34 @@ Systematic removal of obvious narration comments while preserving important docu
 ## Phase 3: agents-core 🔄 IN PROGRESS
 
 **Target:** Remove 1,026-1,197 lines (60-70% of 1,710)  
-**Current Progress:** 251 lines removed (60 from Phase 1 + 191 from PR #627)  
-**Remaining:** 775-946 lines needed
+**Current Progress:** 331 lines removed (60 from Phase 1 + 191 from PR #627 + 80 from PR #628)  
+**Remaining:** 695-866 lines needed
 
-### Major Files Cleaned:
+### Part 1 - Major Files ✅ MERGED
+**PR:** [#627](https://github.com/inkeep/agents/pull/627) - **MERGED**  
+**Lines Removed:** 191 lines  
+**Files Cleaned:**
 - ✅ agentFull.ts (-68 lines: 116 → ~48)
 - ✅ schemas.ts (-43 lines: 54 → ~11)
 - ✅ projectFull.ts (-40 lines: 50 → ~10)
 - ✅ schema.ts (-40 lines: 45 → ~5)
 
-### Remaining Files (partial list):
-- 🔄 ledgerArtifacts.ts (38 lines)
-- 🔄 CredentialStuffer.ts (31 lines)
-- 🔄 nango-store.ts (31 lines)
-- 🔄 error.ts (29 lines)
-- 🔄 projects.ts (29 lines)
-- 🔄 ContextResolver.ts (29 lines)
-- 🔄 ContextConfig.ts (29 lines)
-- 🔄 Other files (~700 lines)
+### Part 2 - Supporting Files 🚧
+**PR:** [#628](https://github.com/inkeep/agents/pull/628) - **IN PROGRESS**  
+**Lines Removed:** 80 lines  
+**Files Cleaned:**
+- ✅ ledgerArtifacts.ts (-27 lines)
+- ✅ ContextResolver.ts (-24 lines)
+- ✅ error.ts (-17 lines)
+- ✅ CredentialStuffer.ts (-12 lines)
 
-**PR:** [#627](https://github.com/inkeep/agents/pull/627)  
-**Status:** 🔄 In Progress (24% toward goal)
+### Remaining Files (partial list):
+- 🔄 nango-store.ts (31 lines)
+- 🔄 projects.ts (29 lines)
+- 🔄 ContextConfig.ts (29 lines)
+- 🔄 Other files (~650 lines)
+
+**Status:** 32% toward goal (331 / 1,026-1,197 target)
 
 ---
 
@@ -153,7 +160,7 @@ Systematic removal of obvious narration comments while preserving important docu
 
 ## Overall Progress
 
-**Total Lines Removed So Far:** 1,159 lines  
+**Total Lines Removed So Far:** 1,239 lines  
 **Packages Complete:** 3 (agents-cli ✅, agents-sdk ✅, create-agents ✅)  
 **Packages In Progress:** 2 (agents-run-api 🚧, agents-core 🔄)  
 **Packages Remaining:** 4
@@ -161,13 +168,17 @@ Systematic removal of obvious narration comments while preserving important docu
 ### By Phase:
 - ✅ Phase 1: Complete (233 lines) - MERGED
 - 🚧 Phase 2: 68% toward target (735 lines, need 343-523 more) - 2 PRs under review
-- 🔄 Phase 3: 24% toward goal (251 lines, need 775-946 more) - 1 PR open
+- 🔄 Phase 3: 32% toward goal (331 lines, need 695-866 more) - 1 PR merged, 1 PR in progress
 - ⏳ Phase 4-6: Not started
 
 ### Open PRs:
-- #623: Phase 2 Part 1 (agents-run-api) - 617 lines
 - #625: Phase 2 Part 2 (agents-run-api) - 118 lines  
-- #627: Phase 3 (agents-core) - 191 lines
+- #628: Phase 3 Part 2 (agents-core) - 80 lines
+
+### Merged PRs:
+- #621: Phase 1 (cross-package) - 233 lines
+- #623: Phase 2 Part 1 (agents-run-api) - 738 lines
+- #627: Phase 3 Part 1 (agents-core) - 191 lines
 
 ---
 
@@ -201,5 +212,5 @@ Systematic removal of obvious narration comments while preserving important docu
 
 ---
 
-**Last Updated:** 2025-01-14  
-**Next Action:** Start Phase 3 (agents-core)
+**Last Updated:** 2025-10-14  
+**Next Action:** Continue Phase 3 (agents-core) - 695-866 lines remaining to reach target
