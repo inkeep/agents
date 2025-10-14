@@ -13,7 +13,6 @@ import {
   getFunction,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
-  getProject,
   getToolsForAgent,
   listTaskIdsByContextId,
   MCPServerType,
@@ -25,7 +24,6 @@ import {
   type MessageContent,
   type ModelSettings,
   type Models,
-  type SandboxConfig,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -49,7 +47,8 @@ import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
-import { errorOp, generateToolId } from '../utils/agent-operations';
+import type { SandboxConfig } from '../types/execution-context';
+import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { parseEmbeddedJson } from '../utils/json-parser';
@@ -126,6 +125,7 @@ export type AgentConfig = {
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
   stopWhen?: SubAgentStopWhen;
+  sandboxConfig?: SandboxConfig;
 };
 
 export type ExternalAgentConfig = {
@@ -529,7 +529,6 @@ export class Agent {
 
               const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
 
-
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
@@ -809,8 +808,8 @@ export class Agent {
         return functionTools;
       }
 
-      const { LocalSandboxExecutor } = await import('../tools/LocalSandboxExecutor');
-      const sandboxExecutor = LocalSandboxExecutor.getInstance();
+      const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
+      const sandboxExecutor = SandboxExecutorFactory.getInstance();
 
       for (const functionToolDef of functionToolsData) {
         const functionId = functionToolDef.functionId;
@@ -849,12 +848,8 @@ export class Agent {
             );
 
             try {
-              const project = await getProject(dbClient)({
-                scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
-              });
-
               const defaultSandboxConfig: SandboxConfig = {
-                provider: 'local',
+                provider: 'native',
                 runtime: 'node22',
                 timeout: 30000,
                 vcpus: 1,
@@ -865,7 +860,7 @@ export class Agent {
                 inputSchema: functionData.inputSchema || {},
                 executeCode: functionData.executeCode,
                 dependencies: functionData.dependencies || {},
-                sandboxConfig: project?.sandboxConfig || defaultSandboxConfig,
+                sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
               });
 
               toolSessionManager.recordToolResult(sessionId || '', {
@@ -879,7 +874,11 @@ export class Agent {
               return { result, toolCallId };
             } catch (error) {
               logger.error(
-                { toolName: functionToolDef.name, toolCallId, error },
+                {
+                  toolName: functionToolDef.name,
+                  toolCallId,
+                  error: error instanceof Error ? error.message : String(error),
+                },
                 'Function tool execution failed'
               );
               throw error;
@@ -1329,7 +1328,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedForAnalysis = parseEmbeddedJson(result);
-      } catch (error) {
+      } catch (_error) {
         // If parsing fails, analyze the original result
         parsedForAnalysis = result;
       }
@@ -2272,7 +2271,6 @@ ${output}${structureHintsFormatted}`;
             generationType,
           });
         }
-
 
         return formattedResponse;
       } catch (error) {

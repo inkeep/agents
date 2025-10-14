@@ -65,13 +65,6 @@ export const projects = sqliteTable(
 
     stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
 
-    sandboxConfig: text('sandbox_config', { mode: 'json' }).$type<{
-      provider: 'vercel' | 'local';
-      runtime: 'node22' | 'typescript';
-      timeout?: number;
-      vcpus?: number;
-    }>(),
-
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]

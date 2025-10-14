@@ -597,7 +597,7 @@
                   "sandboxConfig": {
                     "type": "object",
                     "properties": {
-                      "provider": { "type": "string", "enum": ["vercel", "local"] },
+                      "provider": { "type": "string", "enum": ["vercel", "native"] },
                       "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                       "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                       "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -973,7 +973,7 @@
                   "sandboxConfig": {
                     "type": "object",
                     "properties": {
-                      "provider": { "type": "string", "enum": ["vercel", "local"] },
+                      "provider": { "type": "string", "enum": ["vercel", "native"] },
                       "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                       "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                       "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -16318,7 +16318,7 @@
                   "sandboxConfig": {
                     "type": "object",
                     "properties": {
-                      "provider": { "type": "string", "enum": ["vercel", "local"] },
+                      "provider": { "type": "string", "enum": ["vercel", "native"] },
                       "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                       "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                       "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -17105,7 +17105,7 @@
                         "sandboxConfig": {
                           "type": "object",
                           "properties": {
-                            "provider": { "type": "string", "enum": ["vercel", "local"] },
+                            "provider": { "type": "string", "enum": ["vercel", "native"] },
                             "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                             "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                             "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -18025,7 +18025,7 @@
                         "sandboxConfig": {
                           "type": "object",
                           "properties": {
-                            "provider": { "type": "string", "enum": ["vercel", "local"] },
+                            "provider": { "type": "string", "enum": ["vercel", "native"] },
                             "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                             "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                             "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -18922,7 +18922,7 @@
                   "sandboxConfig": {
                     "type": "object",
                     "properties": {
-                      "provider": { "type": "string", "enum": ["vercel", "local"] },
+                      "provider": { "type": "string", "enum": ["vercel", "native"] },
                       "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                       "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                       "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -19709,7 +19709,7 @@
                         "sandboxConfig": {
                           "type": "object",
                           "properties": {
-                            "provider": { "type": "string", "enum": ["vercel", "local"] },
+                            "provider": { "type": "string", "enum": ["vercel", "native"] },
                             "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                             "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                             "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }
@@ -20535,7 +20535,7 @@
                         "sandboxConfig": {
                           "type": "object",
                           "properties": {
-                            "provider": { "type": "string", "enum": ["vercel", "local"] },
+                            "provider": { "type": "string", "enum": ["vercel", "native"] },
                             "runtime": { "type": "string", "enum": ["node22", "typescript"] },
                             "timeout": { "type": "number", "minimum": 1000, "maximum": 300000 },
                             "vcpus": { "type": "number", "minimum": 1, "maximum": 8 }

@@ -92,17 +92,6 @@ export const ProjectModelSchema = z
   })
   .openapi('ProjectModel');
 
-export const SandboxConfigSchema = z
-  .object({
-    provider: z.enum(['vercel', 'local']),
-    runtime: z.enum(['node22', 'typescript']),
-    timeout: z.number().min(1000).max(300000).optional(),
-    vcpus: z.number().min(1).max(8).optional(),
-  })
-  .openapi('SandboxConfig');
-
-export type SandboxConfig = z.infer<typeof SandboxConfigSchema>;
-
 export const FunctionToolConfigSchema = z.object({
   name: z.string(),
   description: z.string(),
@@ -144,15 +133,12 @@ export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
 
 export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();
 
-export const SubAgentApiSelectSchema = createAgentScopedApiSchema(SubAgentSelectSchema).openapi(
-  'SubAgent'
-);
-export const SubAgentApiInsertSchema = createAgentScopedApiInsertSchema(
-  SubAgentInsertSchema
-).openapi('SubAgentCreate');
-export const SubAgentApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  SubAgentUpdateSchema
-).openapi('SubAgentUpdate');
+export const SubAgentApiSelectSchema =
+  createAgentScopedApiSchema(SubAgentSelectSchema).openapi('SubAgent');
+export const SubAgentApiInsertSchema =
+  createAgentScopedApiInsertSchema(SubAgentInsertSchema).openapi('SubAgentCreate');
+export const SubAgentApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(SubAgentUpdateSchema).openapi('SubAgentUpdate');
 
 export const SubAgentRelationSelectSchema = createSelectSchema(subAgentRelations);
 export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
@@ -240,9 +226,7 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
     id: resourceIdSchema,
   })
   .openapi('AgentCreate');
-export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi(
-  'AgentUpdate'
-);
+export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
 
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
@@ -295,13 +279,10 @@ export const McpTransportConfigSchema = z
     type: z.enum(MCPTransportType),
     requestInit: z.record(z.string(), z.unknown()).optional(),
     eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-    reconnectionOptions: z
-      .any()
-      .optional()
-      .openapi({
-        type: 'object',
-        description: 'Reconnection options for streamable HTTP transport',
-      }),
+    reconnectionOptions: z.any().optional().openapi({
+      type: 'object',
+      description: 'Reconnection options for streamable HTTP transport',
+    }),
     sessionId: z.string().optional(),
   })
   .openapi('McpTransportConfig');
@@ -330,13 +311,10 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
           type: z.enum(MCPTransportType),
           requestInit: z.record(z.string(), z.unknown()).optional(),
           eventSourceInit: z.record(z.string(), z.unknown()).optional(),
-          reconnectionOptions: z
-            .any()
-            .optional()
-            .openapi({
-              type: 'object',
-              description: 'Reconnection options for streamable HTTP transport',
-            }),
+          reconnectionOptions: z.any().optional().openapi({
+            type: 'object',
+            description: 'Reconnection options for streamable HTTP transport',
+          }),
           sessionId: z.string().optional(),
         })
         .optional(),
@@ -352,15 +330,12 @@ export const ConversationInsertSchema = createInsertSchema(conversations).extend
 });
 export const ConversationUpdateSchema = ConversationInsertSchema.partial();
 
-export const ConversationApiSelectSchema = createApiSchema(ConversationSelectSchema).openapi(
-  'Conversation'
-);
-export const ConversationApiInsertSchema = createApiInsertSchema(ConversationInsertSchema).openapi(
-  'ConversationCreate'
-);
-export const ConversationApiUpdateSchema = createApiUpdateSchema(ConversationUpdateSchema).openapi(
-  'ConversationUpdate'
-);
+export const ConversationApiSelectSchema =
+  createApiSchema(ConversationSelectSchema).openapi('Conversation');
+export const ConversationApiInsertSchema =
+  createApiInsertSchema(ConversationInsertSchema).openapi('ConversationCreate');
+export const ConversationApiUpdateSchema =
+  createApiUpdateSchema(ConversationUpdateSchema).openapi('ConversationUpdate');
 
 export const MessageSelectSchema = createSelectSchema(messages);
 export const MessageInsertSchema = createInsertSchema(messages).extend({
@@ -371,12 +346,10 @@ export const MessageInsertSchema = createInsertSchema(messages).extend({
 export const MessageUpdateSchema = MessageInsertSchema.partial();
 
 export const MessageApiSelectSchema = createApiSchema(MessageSelectSchema).openapi('Message');
-export const MessageApiInsertSchema = createApiInsertSchema(MessageInsertSchema).openapi(
-  'MessageCreate'
-);
-export const MessageApiUpdateSchema = createApiUpdateSchema(MessageUpdateSchema).openapi(
-  'MessageUpdate'
-);
+export const MessageApiInsertSchema =
+  createApiInsertSchema(MessageInsertSchema).openapi('MessageCreate');
+export const MessageApiUpdateSchema =
+  createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache);
 export const ContextCacheInsertSchema = createInsertSchema(contextCache);
@@ -397,16 +370,12 @@ export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
 
-export const DataComponentApiSelectSchema = createApiSchema(
-  DataComponentSelectSchema
-).openapi('DataComponent');
-export const DataComponentApiInsertSchema = createApiInsertSchema(
-  DataComponentInsertSchema
-).openapi('DataComponentCreate');
-export const DataComponentApiUpdateSchema = createApiUpdateSchema(
-  DataComponentUpdateSchema
-).openapi('DataComponentUpdate');
-
+export const DataComponentApiSelectSchema =
+  createApiSchema(DataComponentSelectSchema).openapi('DataComponent');
+export const DataComponentApiInsertSchema =
+  createApiInsertSchema(DataComponentInsertSchema).openapi('DataComponentCreate');
+export const DataComponentApiUpdateSchema =
+  createApiUpdateSchema(DataComponentUpdateSchema).openapi('DataComponentUpdate');
 
 export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);
 export const SubAgentDataComponentInsertSchema = createInsertSchema(subAgentDataComponents);
@@ -444,7 +413,6 @@ export const ArtifactComponentApiUpdateSchema = createApiUpdateSchema(
   ArtifactComponentUpdateSchema
 ).openapi('ArtifactComponentUpdate');
 
-
 export const SubAgentArtifactComponentSelectSchema = createSelectSchema(subAgentArtifactComponents);
 export const SubAgentArtifactComponentInsertSchema = createInsertSchema(
   subAgentArtifactComponents
@@ -478,15 +446,12 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 });
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
-export const ExternalAgentApiSelectSchema = createAgentScopedApiSchema(
-  ExternalAgentSelectSchema
-).openapi('ExternalAgent');
-export const ExternalAgentApiInsertSchema = createAgentScopedApiInsertSchema(
-  ExternalAgentInsertSchema
-).openapi('ExternalAgentCreate');
-export const ExternalAgentApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  ExternalAgentUpdateSchema
-).openapi('ExternalAgentUpdate');
+export const ExternalAgentApiSelectSchema =
+  createAgentScopedApiSchema(ExternalAgentSelectSchema).openapi('ExternalAgent');
+export const ExternalAgentApiInsertSchema =
+  createAgentScopedApiInsertSchema(ExternalAgentInsertSchema).openapi('ExternalAgentCreate');
+export const ExternalAgentApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(ExternalAgentUpdateSchema).openapi('ExternalAgentUpdate');
 
 export const AllAgentSchema = z.discriminatedUnion('type', [
   SubAgentApiSelectSchema.extend({ type: z.literal('internal') }),
@@ -555,9 +520,7 @@ export const CredentialReferenceInsertSchema = createInsertSchema(credentialRefe
 
 export const CredentialReferenceUpdateSchema = CredentialReferenceInsertSchema.partial();
 
-export const CredentialReferenceApiSelectSchema = createApiSchema(
-  CredentialReferenceSelectSchema
-)
+export const CredentialReferenceApiSelectSchema = createApiSchema(CredentialReferenceSelectSchema)
   .extend({
     type: z.enum(CredentialStoreType),
     tools: z.array(ToolSelectSchema).optional(),
@@ -621,15 +584,12 @@ export const FunctionToolInsertSchema = createInsertSchema(functionTools).extend
 
 export const FunctionToolUpdateSchema = FunctionToolInsertSchema.partial();
 
-export const FunctionToolApiSelectSchema = createApiSchema(FunctionToolSelectSchema).openapi(
-  'FunctionTool'
-);
-export const FunctionToolApiInsertSchema = createAgentScopedApiInsertSchema(
-  FunctionToolInsertSchema
-).openapi('FunctionToolCreate');
-export const FunctionToolApiUpdateSchema = createApiUpdateSchema(
-  FunctionToolUpdateSchema
-).openapi('FunctionToolUpdate');
+export const FunctionToolApiSelectSchema =
+  createApiSchema(FunctionToolSelectSchema).openapi('FunctionTool');
+export const FunctionToolApiInsertSchema =
+  createAgentScopedApiInsertSchema(FunctionToolInsertSchema).openapi('FunctionToolCreate');
+export const FunctionToolApiUpdateSchema =
+  createApiUpdateSchema(FunctionToolUpdateSchema).openapi('FunctionToolUpdate');
 
 // === Function Schemas ===
 export const FunctionSelectSchema = createSelectSchema(functions);
@@ -639,12 +599,10 @@ export const FunctionInsertSchema = createInsertSchema(functions).extend({
 export const FunctionUpdateSchema = FunctionInsertSchema.partial();
 
 export const FunctionApiSelectSchema = createApiSchema(FunctionSelectSchema).openapi('Function');
-export const FunctionApiInsertSchema = createApiInsertSchema(FunctionInsertSchema).openapi(
-  'FunctionCreate'
-);
-export const FunctionApiUpdateSchema = createApiUpdateSchema(FunctionUpdateSchema).openapi(
-  'FunctionUpdate'
-);
+export const FunctionApiInsertSchema =
+  createApiInsertSchema(FunctionInsertSchema).openapi('FunctionCreate');
+export const FunctionApiUpdateSchema =
+  createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
 // === Context Config Schemas ===
 // Zod schemas for validation
@@ -682,22 +640,14 @@ export const ContextConfigSelectSchema = createSelectSchema(contextConfigs).exte
 export const ContextConfigInsertSchema = createInsertSchema(contextConfigs)
   .extend({
     id: resourceIdSchema.optional(),
-    headersSchema: z
-      .any()
-      .nullable()
-      .optional()
-      .openapi({
-        type: 'object',
-        description: 'JSON Schema for validating request headers',
-      }),
-    contextVariables: z
-      .any()
-      .nullable()
-      .optional()
-      .openapi({
-        type: 'object',
-        description: 'Context variables configuration with fetch definitions',
-      }),
+    headersSchema: z.any().nullable().optional().openapi({
+      type: 'object',
+      description: 'JSON Schema for validating request headers',
+    }),
+    contextVariables: z.any().nullable().optional().openapi({
+      type: 'object',
+      description: 'Context variables configuration with fetch definitions',
+    }),
   })
   .omit({
     createdAt: true,
@@ -860,7 +810,6 @@ export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
-    sandboxConfig: SandboxConfigSchema.optional(),
   })
   .omit({
     createdAt: true,
@@ -908,9 +857,7 @@ export const ExternalAgentResponse = z
 export const ContextConfigResponse = z
   .object({ data: ContextConfigApiSelectSchema })
   .openapi('ContextConfigResponse');
-export const ApiKeyResponse = z
-  .object({ data: ApiKeyApiSelectSchema })
-  .openapi('ApiKeyResponse');
+export const ApiKeyResponse = z.object({ data: ApiKeyApiSelectSchema }).openapi('ApiKeyResponse');
 export const CredentialReferenceResponse = z
   .object({ data: CredentialReferenceApiSelectSchema })
   .openapi('CredentialReferenceResponse');

@@ -619,7 +619,6 @@ describe('Agent', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
-          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -807,7 +806,6 @@ describe('Agent', () => {
           description: 'Test project',
           models: null,
           stopWhen: null,
-          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -971,7 +969,6 @@ describe('Agent', () => {
             transferCountIs: 15,
             stepCountIs: 25,
           },
-          sandboxConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -1122,7 +1119,6 @@ describe('Agent', () => {
               base: { model: 'gpt-4o' },
             },
             stopWhen: null,
-            sandboxConfig: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })
@@ -1223,7 +1219,6 @@ describe('Agent', () => {
               transferCountIs: 12,
               // no stepCountIs
             },
-            sandboxConfig: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           })

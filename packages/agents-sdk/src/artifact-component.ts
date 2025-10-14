@@ -12,7 +12,10 @@ import { generateIdFromName } from './utils/generateIdFromName';
 const logger = getLogger('artifactComponent');
 
 // Type for the config that can accept Zod schemas
-type ArtifactComponentConfigWithZod = Omit<ArtifactComponentType, 'tenantId' | 'projectId' | 'props'> & {
+type ArtifactComponentConfigWithZod = Omit<
+  ArtifactComponentType,
+  'tenantId' | 'projectId' | 'props'
+> & {
   props?: Record<string, unknown> | z.ZodObject<any> | null;
 };
 

@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
-import { isTransferTask, extractTransferData } from '../a2a/types.js';
+import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
@@ -72,7 +72,6 @@ export class ExecutionHandler {
     const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
-
 
     agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
 
@@ -201,7 +200,6 @@ export class ExecutionHandler {
       while (iterations < maxTransfers) {
         iterations++;
 
-
         logger.info(
           { iterations, currentAgentId, agentId, conversationId, fromSubAgentId },
           `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
@@ -215,7 +213,6 @@ export class ExecutionHandler {
         if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
           currentAgentId = activeAgent.activeSubAgentId;
           logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
-
         }
 
         const agentBaseUrl = `${baseUrl}/agents`;
@@ -312,10 +309,7 @@ export class ExecutionHandler {
               ? firstArtifact.parts[1].text
               : 'Transfer initiated';
 
-          logger.info(
-            { targetSubAgentId, transferReason, transferFromAgent },
-            'Transfer response'
-          );
+          logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
           currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
 

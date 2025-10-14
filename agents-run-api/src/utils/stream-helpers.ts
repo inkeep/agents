@@ -270,8 +270,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     this.sessionId = sessionId;
   }
 
-  async writeRole(_ = 'assistant'): Promise<void> {
-  }
+  async writeRole(_ = 'assistant'): Promise<void> {}
 
   async writeContent(content: string): Promise<void> {
     if (this.isCompleted) {
@@ -329,7 +328,6 @@ export class VercelDataStreamHelper implements StreamHelper {
 
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-
     const id = this.textId;
 
     const startTime = Date.now();
@@ -368,7 +366,6 @@ export class VercelDataStreamHelper implements StreamHelper {
       this.lastTextEndTimestamp = Date.now();
     } finally {
       this.isTextStreaming = false;
-
     }
   }
 
@@ -544,7 +541,7 @@ export class VercelDataStreamHelper implements StreamHelper {
           timestamp: Date.now(),
         });
       }
-    } catch (e) {
+    } catch (_e) {
       // Writer may be unavailable, ignore errors
     }
   }

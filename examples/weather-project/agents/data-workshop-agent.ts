@@ -10,30 +10,30 @@ const analyzeText = functionTool({
     properties: {
       text: {
         type: 'string',
-        description: 'Text to analyze'
-      }
+        description: 'Text to analyze',
+      },
     },
-    required: ['text']
+    required: ['text'],
   },
   execute: async (params: { text: string }) => {
     try {
       const text = params.text;
       const wordCount = text.split(/\s+/).length;
       const charCount = text.length;
-      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+      const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0).length;
       const avgWordsPerSentence = sentences > 0 ? Math.round(wordCount / sentences) : 0;
-      
+
       return {
         wordCount,
         charCount,
         sentences,
         avgWordsPerSentence,
-        readingTime: Math.ceil(wordCount / 200)
+        readingTime: Math.ceil(wordCount / 200),
       };
     } catch (error: any) {
       throw new Error(`Text analysis failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const calculateAge = functionTool({
@@ -44,10 +44,10 @@ const calculateAge = functionTool({
     properties: {
       birthDate: {
         type: 'string',
-        description: 'Birth date in YYYY-MM-DD format'
-      }
+        description: 'Birth date in YYYY-MM-DD format',
+      },
     },
-    required: ['birthDate']
+    required: ['birthDate'],
   },
   execute: async (params: { birthDate: string }) => {
     try {
@@ -55,16 +55,16 @@ const calculateAge = functionTool({
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      
+
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
       }
-      
+
       return { age };
     } catch (error: any) {
       throw new Error(`Age calculation failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const calculateBmi = functionTool({
@@ -75,33 +75,33 @@ const calculateBmi = functionTool({
     properties: {
       weight: {
         type: 'number',
-        description: 'Weight in kilograms'
+        description: 'Weight in kilograms',
       },
       height: {
         type: 'number',
-        description: 'Height in meters'
-      }
+        description: 'Height in meters',
+      },
     },
-    required: ['weight', 'height']
+    required: ['weight', 'height'],
   },
   execute: async (params: { weight: number; height: number }) => {
     try {
       const bmi = params.weight / (params.height * params.height);
       let category = '';
-      
+
       if (bmi < 18.5) category = 'Underweight';
       else if (bmi < 25) category = 'Normal weight';
       else if (bmi < 30) category = 'Overweight';
       else category = 'Obese';
-      
+
       return {
         bmi: Math.round(bmi * 10) / 10,
-        category
+        category,
       };
     } catch (error: any) {
       throw new Error(`BMI calculation failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const convertCurrency = functionTool({
@@ -112,50 +112,50 @@ const convertCurrency = functionTool({
     properties: {
       amount: {
         type: 'number',
-        description: 'Amount to convert'
+        description: 'Amount to convert',
       },
       from: {
         type: 'string',
-        description: 'Source currency code (e.g., USD)'
+        description: 'Source currency code (e.g., USD)',
       },
       to: {
         type: 'string',
-        description: 'Target currency code (e.g., EUR)'
-      }
+        description: 'Target currency code (e.g., EUR)',
+      },
     },
-    required: ['amount', 'from', 'to']
+    required: ['amount', 'from', 'to'],
   },
   execute: async (params: { amount: number; from: string; to: string }) => {
     try {
       // Mock exchange rates for demo purposes
       const rates: Record<string, number> = {
-        'USD': 1.0,
-        'EUR': 0.85,
-        'GBP': 0.73,
-        'JPY': 110.0,
-        'CAD': 1.25,
-        'AUD': 1.35
+        USD: 1.0,
+        EUR: 0.85,
+        GBP: 0.73,
+        JPY: 110.0,
+        CAD: 1.25,
+        AUD: 1.35,
       };
-      
+
       const fromRate = rates[params.from.toUpperCase()];
       const toRate = rates[params.to.toUpperCase()];
-      
+
       if (!fromRate || !toRate) {
         throw new Error('Unsupported currency');
       }
-      
+
       const convertedAmount = (params.amount / fromRate) * toRate;
-      
+
       return {
         originalAmount: params.amount,
         fromCurrency: params.from.toUpperCase(),
         toCurrency: params.to.toUpperCase(),
-        convertedAmount: Math.round(convertedAmount * 100) / 100
+        convertedAmount: Math.round(convertedAmount * 100) / 100,
       };
     } catch (error: any) {
       throw new Error(`Currency conversion failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const fetchJoke = functionTool({
@@ -164,25 +164,15 @@ const fetchJoke = functionTool({
   inputSchema: {
     type: 'object',
     properties: {},
-    required: []
+    required: [],
   },
   execute: async () => {
-    try {
-      const jokes = [
-        "Why do programmers prefer dark mode? Because light attracts bugs!",
-        "How many programmers does it take to change a light bulb? None, that's a hardware problem.",
-        "Why do Java developers wear glasses? Because they can't C#!",
-        "A SQL query goes into a bar, walks up to two tables and asks: 'Can I join you?'",
-        "Why did the programmer quit his job? He didn't get arrays."
-      ];
-      
-      const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-      
-      return { joke: randomJoke };
-    } catch (error: any) {
-      throw new Error(`Failed to fetch joke: ${error.message}`);
-    }
-  }
+    const axios = require('axios');
+    const response = await axios.get(
+      'https://official-joke-api.appspot.com/jokes/programming/random'
+    );
+    return { setup: response.data[0].setup, punchline: response.data[0].punchline };
+  },
 });
 
 const formatNumber = functionTool({
@@ -193,52 +183,57 @@ const formatNumber = functionTool({
     properties: {
       number: {
         type: 'number',
-        description: 'Number to format'
+        description: 'Number to format',
       },
       type: {
         type: 'string',
         description: 'Format type: currency, percentage, comma, or decimal',
-        default: 'comma'
+        default: 'comma',
       },
       currency: {
         type: 'string',
         description: 'Currency code for currency formatting (default: USD)',
-        default: 'USD'
+        default: 'USD',
       },
       decimals: {
         type: 'number',
         description: 'Number of decimal places (default: 2)',
-        default: 2
-      }
+        default: 2,
+      },
     },
-    required: ['number']
+    required: ['number'],
   },
-  execute: async (params: { number: number; type?: string; currency?: string; decimals?: number }) => {
+  execute: async (params: {
+    number: number;
+    type?: string;
+    currency?: string;
+    decimals?: number;
+  }) => {
     try {
       const { number, type = 'comma', currency = 'USD', decimals = 2 } = params;
-      
+
       let formatted = '';
-      
+
       switch (type) {
         case 'currency':
           formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: currency,
             minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
+            maximumFractionDigits: decimals,
           }).format(number);
           break;
         case 'percentage':
           formatted = new Intl.NumberFormat('en-US', {
             style: 'percent',
             minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
+            maximumFractionDigits: decimals,
           }).format(number / 100);
           break;
         case 'comma':
           formatted = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
+            maximumFractionDigits: decimals,
           }).format(number);
           break;
         case 'decimal':
@@ -247,12 +242,12 @@ const formatNumber = functionTool({
         default:
           formatted = number.toString();
       }
-      
+
       return { formatted };
     } catch (error: any) {
       throw new Error(`Number formatting failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const generatePassword = functionTool({
@@ -264,45 +259,49 @@ const generatePassword = functionTool({
       length: {
         type: 'number',
         description: 'Password length (default: 12)',
-        default: 12
+        default: 12,
       },
       includeSymbols: {
         type: 'boolean',
         description: 'Include special symbols (default: true)',
-        default: true
+        default: true,
       },
       includeNumbers: {
         type: 'boolean',
         description: 'Include numbers (default: true)',
-        default: true
-      }
+        default: true,
+      },
     },
-    required: []
+    required: [],
   },
-  execute: async (params: { length?: number; includeSymbols?: boolean; includeNumbers?: boolean }) => {
+  execute: async (params: {
+    length?: number;
+    includeSymbols?: boolean;
+    includeNumbers?: boolean;
+  }) => {
     try {
       const { length = 12, includeSymbols = true, includeNumbers = true } = params;
-      
+
       let charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      
+
       if (includeNumbers) {
         charset += '0123456789';
       }
-      
+
       if (includeSymbols) {
         charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
       }
-      
+
       let password = '';
       for (let i = 0; i < length; i++) {
         password += charset.charAt(Math.floor(Math.random() * charset.length));
       }
-      
+
       return { password };
     } catch (error: any) {
       throw new Error(`Password generation failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const generateQr = functionTool({
@@ -313,33 +312,33 @@ const generateQr = functionTool({
     properties: {
       text: {
         type: 'string',
-        description: 'Text or URL to encode in QR code'
+        description: 'Text or URL to encode in QR code',
       },
       size: {
         type: 'number',
         description: 'QR code size in pixels (default: 200)',
-        default: 200
-      }
+        default: 200,
+      },
     },
-    required: ['text']
+    required: ['text'],
   },
   execute: async (params: { text: string; size?: number }) => {
     try {
       const { text, size = 200 } = params;
-      
+
       // Generate a mock QR code URL (in real implementation, you'd use a QR library)
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}`;
-      
+
       return {
         text,
         size,
         qrUrl,
-        message: 'QR code generated successfully'
+        message: 'QR code generated successfully',
       };
     } catch (error: any) {
       throw new Error(`QR code generation failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const generateQuote = functionTool({
@@ -348,25 +347,37 @@ const generateQuote = functionTool({
   inputSchema: {
     type: 'object',
     properties: {},
-    required: []
+    required: [],
   },
   execute: async () => {
     try {
       const quotes = [
-        { quote: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-        { quote: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
-        { quote: "Life is what happens to you while you're busy making other plans.", author: "John Lennon" },
-        { quote: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
-        { quote: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" }
+        { quote: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+        {
+          quote: 'Innovation distinguishes between a leader and a follower.',
+          author: 'Steve Jobs',
+        },
+        {
+          quote: "Life is what happens to you while you're busy making other plans.",
+          author: 'John Lennon',
+        },
+        {
+          quote: 'The future belongs to those who believe in the beauty of their dreams.',
+          author: 'Eleanor Roosevelt',
+        },
+        {
+          quote: 'It is during our darkest moments that we must focus to see the light.',
+          author: 'Aristotle',
+        },
       ];
-      
+
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      
+
       return randomQuote;
     } catch (error: any) {
       throw new Error(`Quote generation failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const hashText = functionTool({
@@ -377,40 +388,40 @@ const hashText = functionTool({
     properties: {
       text: {
         type: 'string',
-        description: 'Text to hash'
+        description: 'Text to hash',
       },
       algorithm: {
         type: 'string',
         description: 'Hash algorithm (default: sha256)',
-        default: 'sha256'
-      }
+        default: 'sha256',
+      },
     },
-    required: ['text']
+    required: ['text'],
   },
   execute: async (params: { text: string; algorithm?: string }) => {
     try {
       const { text, algorithm = 'sha256' } = params;
-      
+
       // Simple hash implementation for demo (in real implementation, use crypto library)
       let hash = 0;
       for (let i = 0; i < text.length; i++) {
         const char = text.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = (hash << 5) - hash + char;
         hash = hash & hash; // Convert to 32-bit integer
       }
-      
+
       const hashString = Math.abs(hash).toString(16);
-      
+
       return {
         originalText: text,
         algorithm,
         hash: hashString,
-        length: hashString.length
+        length: hashString.length,
       };
     } catch (error: any) {
       throw new Error(`Text hashing failed: ${error.message}`);
     }
-  }
+  },
 });
 
 const dataWorkshopSubAgent = subAgent({
@@ -440,13 +451,13 @@ Always use the appropriate tools to provide accurate results and be helpful in e
     generatePassword,
     generateQr,
     generateQuote,
-    hashText
-  ]
+    hashText,
+  ],
 });
 
 export const dataWorkshopAgent = agent({
   id: 'data-workshop-agent',
   name: 'Data Workshop Agent',
   defaultSubAgent: dataWorkshopSubAgent,
-  subAgents: () => [dataWorkshopSubAgent]
+  subAgents: () => [dataWorkshopSubAgent],
 });

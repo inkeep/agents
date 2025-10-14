@@ -255,12 +255,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
       c.header('x-vercel-ai-data-stream', 'v2');
       c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
-    return stream(c, (stream) =>
-      stream.pipe(
-        dataStream.pipeThrough(new JsonToSseTransformStream()).pipeThrough(new TextEncoderStream())
-      )
-    );
-  });
+      return stream(c, (stream) =>
+        stream.pipe(
+          dataStream
+            .pipeThrough(new JsonToSseTransformStream())
+            .pipeThrough(new TextEncoderStream())
+        )
+      );
+    });
   } catch (error) {
     logger.error({ error }, 'chatDataStream error');
     throw createApiError({

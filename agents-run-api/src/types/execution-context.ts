@@ -22,3 +22,22 @@ export function createExecutionContext(params: {
     subAgentId: params.subAgentId,
   };
 }
+
+interface CommonSandboxConfig {
+  runtime: 'node22' | 'typescript';
+  timeout?: number;
+  vcpus?: number;
+}
+
+export interface NativeSandboxConfig extends CommonSandboxConfig {
+  provider: 'native';
+}
+
+export interface VercelSandboxConfig extends CommonSandboxConfig {
+  provider: 'vercel';
+  teamId: string;
+  projectId: string;
+  token: string;
+}
+
+export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig;

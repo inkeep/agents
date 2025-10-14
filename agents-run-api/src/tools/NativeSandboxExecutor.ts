@@ -1,10 +1,10 @@
 /**
- * LocalSandboxExecutor - Function Tool Execution Engine
- * =====================================================
+ * NativeSandboxExecutor - Function Tool Execution Engine
+ * ========================================================
  *
- * Executes user-defined function tools in isolated sandboxes. The main challenge here
- * is that we can't just eval() user code - that's a security nightmare. Instead, we
- * spin up separate Node.js processes with their own dependency trees.
+ * Executes user-defined function tools in isolated sandboxes using native Node.js processes.
+ * The main challenge here is that we can't just eval() user code - that's a security nightmare.
+ * Instead, we spin up separate Node.js processes with their own dependency trees.
  *
  * The tricky part is making this fast. Installing deps every time would be brutal
  * (2-5s per execution), so we cache sandboxes based on their dependency fingerprint.
@@ -46,14 +46,16 @@
  * across all tool executions, otherwise caching doesn't work.
  */
 
-import { getLogger, type SandboxConfig } from '@inkeep/agents-core';
-import { spawn } from 'child_process';
-import { createHash } from 'crypto';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { getLogger } from '@inkeep/agents-core';
+import type { SandboxConfig } from '../types/execution-context';
+import { createExecutionWrapper, parseExecutionResult } from './sandbox-utils';
 
-const logger = getLogger('local-sandbox-executor');
+const logger = getLogger('native-sandbox-executor');
 
 /**
  * Semaphore for limiting concurrent executions based on vCPU allocation
@@ -120,6 +122,7 @@ class ExecutionSemaphore {
 }
 
 export interface FunctionToolConfig {
+  name?: string;
   description: string;
   inputSchema: Record<string, unknown>;
   executeCode: string;
@@ -136,12 +139,12 @@ interface SandboxPool {
   };
 }
 
-export class LocalSandboxExecutor {
+export class NativeSandboxExecutor {
   private tempDir: string;
   private sandboxPool: SandboxPool = {};
   private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly MAX_USE_COUNT = 50;
-  private static instance: LocalSandboxExecutor | null = null;
+  private static instance: NativeSandboxExecutor | null = null;
   private executionSemaphores: Map<number, ExecutionSemaphore> = new Map();
 
   constructor() {
@@ -150,11 +153,11 @@ export class LocalSandboxExecutor {
     this.startPoolCleanup();
   }
 
-  static getInstance(): LocalSandboxExecutor {
-    if (!LocalSandboxExecutor.instance) {
-      LocalSandboxExecutor.instance = new LocalSandboxExecutor();
+  static getInstance(): NativeSandboxExecutor {
+    if (!NativeSandboxExecutor.instance) {
+      NativeSandboxExecutor.instance = new NativeSandboxExecutor();
     }
-    return LocalSandboxExecutor.instance;
+    return NativeSandboxExecutor.instance;
   }
 
   private getSemaphore(vcpus: number): ExecutionSemaphore {
@@ -405,7 +408,7 @@ export class LocalSandboxExecutor {
     try {
       const moduleType = this.detectModuleType(config.executeCode, config.sandboxConfig?.runtime);
 
-      const executionCode = this.wrapFunctionCode(config.executeCode, args);
+      const executionCode = createExecutionWrapper(config.executeCode, args);
       const fileExtension = moduleType === 'esm' ? 'mjs' : 'js';
       writeFileSync(join(sandboxDir, `index.${fileExtension}`), executionCode, 'utf8');
 
@@ -542,11 +545,16 @@ export class LocalSandboxExecutor {
 
         if (code === 0) {
           try {
-            const result = JSON.parse(stdout);
-            if (result.success) {
-              resolve(result.result);
+            const result = parseExecutionResult(stdout, 'function', logger);
+            if (typeof result === 'object' && result !== null && 'success' in result) {
+              const parsed = result as { success: boolean; result?: unknown; error?: string };
+              if (parsed.success) {
+                resolve(parsed.result);
+              } else {
+                reject(new Error(parsed.error || 'Function execution failed'));
+              }
             } else {
-              reject(new Error(result.error || 'Function execution failed'));
+              resolve(result);
             }
           } catch (parseError) {
             logger.error({ stdout, stderr, parseError }, 'Failed to parse function result');
@@ -567,34 +575,5 @@ export class LocalSandboxExecutor {
         reject(error);
       });
     });
-  }
-
-  private wrapFunctionCode(executeCode: string, args: any): string {
-    return `
-// Wrapped function execution (ESM)
-const execute = ${executeCode};
-const args = ${JSON.stringify(args)};
-
-try {
-  const result = execute(args);
-
-  // Handle both sync and async functions
-  if (result && typeof result.then === 'function') {
-    // Async function - result is a Promise
-    result
-      .then(result => {
-        console.log(JSON.stringify({ success: true, result }));
-      })
-      .catch(error => {
-        console.log(JSON.stringify({ success: false, error: error.message }));
-      });
-  } else {
-    // Sync function - result is immediate
-    console.log(JSON.stringify({ success: true, result }));
-  }
-} catch (error) {
-  console.log(JSON.stringify({ success: false, error: error.message }));
-}
-`;
   }
 }

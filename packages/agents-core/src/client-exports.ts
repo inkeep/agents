@@ -43,7 +43,6 @@ export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
-  SandboxConfigSchema,
 } from './validation/schemas';
 
 // Common parameter schemas

@@ -154,7 +154,7 @@ export interface FetchDefinitionConfig {
   credential?: CredentialReferenceApiInsert;
 }
 
-export type { FunctionToolConfig, SandboxConfig } from '@inkeep/agents-core';
+export type { FunctionToolConfig } from '@inkeep/agents-core';
 
 export interface RequestSchemaDefinition {
   body?: z.ZodSchema<any>;

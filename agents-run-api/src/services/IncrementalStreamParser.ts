@@ -71,8 +71,7 @@ export class IncrementalStreamParser {
         sharedArtifactService = agentSessionManager.getArtifactService(
           artifactParserOptions.streamRequestId
         );
-      } catch (error) {
-      }
+      } catch (_error) {}
     }
 
     this.artifactParser = new ArtifactParser(tenantId, {
@@ -114,7 +113,7 @@ export class IncrementalStreamParser {
    */
   async processTextChunk(chunk: string): Promise<void> {
     if (this.lastChunkWasToolResult && this.buffer === '' && chunk) {
-      chunk = '\n\n' + chunk;
+      chunk = `\n\n${chunk}`;
       this.lastChunkWasToolResult = false;
     }
 
@@ -159,8 +158,7 @@ export class IncrementalStreamParser {
             if (this.isComponentComplete(component)) {
               await this.streamComponent(component);
             }
-          } catch (e) {
-          }
+          } catch (_e) {}
         }
       }
 

@@ -1,12 +1,12 @@
 import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
+import { agentSessionManager } from '../AgentSession';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
   type ArtifactServiceContext,
 } from '../ArtifactService';
-import { agentSessionManager } from '../AgentSession';
 
 // Mock dependencies
 vi.mock('../../agents/ToolSessionManager');

@@ -11,7 +11,6 @@ import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
-import type { ExtendedJsonSchema } from '../../../utils/schema-validation';
 
 /**
  * Configuration for Phase 2 structured output generation

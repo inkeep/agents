@@ -19,6 +19,7 @@ import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
+import type { SandboxConfig } from '../types/execution-context';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
@@ -40,6 +41,7 @@ export interface TaskHandlerConfig {
   description?: string;
   contextConfigId?: string;
   conversationHistoryConfig?: AgentConversationHistoryConfig;
+  sandboxConfig?: SandboxConfig;
 }
 
 export const createTaskHandler = (
@@ -231,6 +233,7 @@ export const createTaskHandler = (
           artifactComponents: artifactComponents,
           contextConfigId: config.contextConfigId || undefined,
           conversationHistoryConfig: config.conversationHistoryConfig,
+          sandboxConfig: config.sandboxConfig,
         },
         credentialStoreRegistry
       );
@@ -464,6 +467,7 @@ export const createTaskHandlerConfig = async (params: {
   subAgentId: string;
   baseUrl: string;
   apiKey?: string;
+  sandboxConfig?: SandboxConfig;
 }): Promise<TaskHandlerConfig> => {
   const subAgent = await getSubAgentById(dbClient)({
     scopes: {
@@ -511,5 +515,6 @@ export const createTaskHandlerConfig = async (params: {
     description: subAgent.description,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfigId || undefined,
+    sandboxConfig: params.sandboxConfig,
   };
 };
