@@ -3,7 +3,6 @@ import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
 export type ExtendedFullAgentDefinition = FullAgentDefinition & {
-  prompt?: string;
   contextConfig?: Partial<Pick<ContextConfig, 'id'>> & {
     contextVariables?: Record<string, any>;
     headersSchema?: Record<string, any>;
