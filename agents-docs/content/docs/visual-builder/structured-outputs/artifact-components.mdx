@@ -7,7 +7,7 @@ icon: "TbInputSpark"
 <Snippet file="multi-agent-framework/artifacts.mdx" />
 
 <Callout>
-**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`. You'll find the complete implementation in `artifact-components/citation.ts` in your project. They provide a ready-to-use example for source attribution and are automatically rendered by the Inkeep widget with professional styling and interactions.
+**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`. You'll find the complete implementation in `artifact-components/citation.ts` in your project. They provide a ready-to-use example for source attribution (for example, when citing webpages) and are automatically rendered by the Inkeep widget with professional styling and interactions.
 </Callout>
 
 ## How to create an artifact component
@@ -29,6 +29,8 @@ Set `inPreview: true` on properties for immediate availability. These fields are
 - Auto-rendered by Inkeep's widget (citations as interactive cards)
 - Available immediately in UI (full artifact loads on-demand)
 
+For more details on how artifact data is streamed via the API, see [Data Artifact Events](/talk-to-your-agents/api#data-artifact-events).
+
 **Example:**
 
 ```json
@@ -42,7 +44,9 @@ Set `inPreview: true` on properties for immediate availability. These fields are
 }
 ```
 
-Citation artifacts with `title`, `url`, and `record_type` preview fields are auto-rendered as interactive cards by Inkeep's widget, providing source attribution.
+Citation artifacts with `title`, `url`, and `record_type` preview fields are auto-rendered by Inkeep's widget in two ways:
+- **Inline footnotes**: Numbered references [1], [2], etc. appear inline with the response text
+- **Interactive cards**: Source cards with title, URL, and content appear below the response for detailed exploration
 
 <img
   src="/images/citation-widget-example.png"
