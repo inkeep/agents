@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
@@ -63,6 +63,8 @@ interface TimelineWrapperProps {
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
   conversationId?: string;
+  onCopyTrace?: () => void;
+  isCopying?: boolean;
 }
 
 function EmptyTimeline({
@@ -152,6 +154,8 @@ export function TimelineWrapper({
   refreshOnce,
   showConversationTracesLink = false,
   conversationId,
+  onCopyTrace,
+  isCopying = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -363,6 +367,20 @@ export function TimelineWrapper({
             <div className="flex items-center justify-between px-6 pb-4">
               <div className="text-foreground text-md font-medium">Activity timeline</div>
               <div className="flex items-center gap-2">
+                {/* Copy JSON Button */}
+                {onCopyTrace && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onCopyTrace}
+                    disabled={isCopying}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    title="Copy trace as JSON"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    {isCopying ? 'Copying...' : 'Copy Trace'}
+                  </Button>
+                )}
                 {/* Expand/Collapse AI Messages Buttons */}
                 {sortedActivities.some(
                   (activity) =>
