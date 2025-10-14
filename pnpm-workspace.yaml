@@ -6,4 +6,5 @@ packages:
   - agents-ui
   - examples
   - agents-docs
+  - evals
   - "packages/*"
