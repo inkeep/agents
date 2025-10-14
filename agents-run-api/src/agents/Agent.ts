@@ -2,6 +2,7 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
+  agentHasArtifactComponents,
   ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
@@ -14,7 +15,6 @@ import {
   getLedgerArtifacts,
   getProject,
   getToolsForAgent,
-  agentHasArtifactComponents,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -49,7 +49,7 @@ import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
-import { generateToolId } from '../utils/agent-operations';
+import { errorOp, generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { parseEmbeddedJson } from '../utils/json-parser';
@@ -394,16 +394,26 @@ export class Agent {
           toolName.startsWith('transfer_to_') ||
           toolName.startsWith('delegate_to_');
 
+        // Record tool call start (skip internal tools)
+        if (streamRequestId && !isInternalTool) {
+          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+            toolName,
+            args,
+            toolCallId: context?.toolCallId,
+            toolId,
+          });
+        }
+
         try {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
-          // Record complete tool execution in AgentSession (skip internal tools)
+          // Record tool result (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              args,
               result,
+              toolCallId: context?.toolCallId,
               toolId,
               duration,
             });
@@ -414,14 +424,15 @@ export class Agent {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // Record tool execution with error (skip internal tools)
+          // Record tool result with error (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              args,
-              result: { error: errorMessage },
+              result: null,
+              toolCallId: context?.toolCallId,
               toolId,
               duration,
+              error: errorMessage,
             });
           }
 
@@ -770,13 +781,14 @@ export class Agent {
           },
           (span) => {
             setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
-            agentSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
-              toolName: tool.name,
-              args: { operation: 'mcp_tool_discovery' },
-              result: {
-                status: 'no_tools_available',
-                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
+            agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
+              message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+              code: 'no_tools_available',
+              severity: 'error',
+              context: {
+                toolName: tool.name,
                 serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
+                operation: 'mcp_tool_discovery',
               },
             });
             span.end();
@@ -1868,8 +1880,14 @@ export class Agent {
               if (steps.length >= 2) {
                 const previousStep = steps[steps.length - 2];
                 if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
-                  const hasTransferCall = previousStep.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
-                  if (hasTransferCall && 'toolResults' in previousStep && previousStep.toolResults) {
+                  const hasTransferCall = previousStep.toolCalls.some((tc: any) =>
+                    tc.toolName.startsWith('transfer_to_')
+                  );
+                  if (
+                    hasTransferCall &&
+                    'toolResults' in previousStep &&
+                    previousStep.toolResults
+                  ) {
                     return true; // Stop after transfer tool has executed
                   }
                 }

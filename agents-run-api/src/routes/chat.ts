@@ -15,7 +15,7 @@ import {
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 // import { Hono } from 'hono';
-import { trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -194,218 +194,240 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
-    // Get the agent from the full agent system first, fall back to legacy system
-    const fullAgent = await getFullAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-    });
+    // Add conversation ID to parent span
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttributes({
+        'conversation.id': conversationId,
+        'tenant.id': tenantId,
+        'agent.id': agentId,
+        'project.id': projectId,
+      });
+    }
 
-    let agent: any;
-    let defaultSubAgentId: string;
-
-    if (fullAgent) {
-      // Use full agent system
-      agent = {
-        id: fullAgent.id,
-        name: fullAgent.name,
-        tenantId,
-        projectId,
-        defaultSubAgentId: fullAgent.defaultSubAgentId,
-      };
-      const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
-      const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-      defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
-    } else {
-      // Fall back to legacy system
-      agent = await getAgentWithDefaultSubAgent(dbClient)({
+    // Update baggage with conversation.id for all child spans
+    let currentBag = propagation.getBaggage(otelContext.active());
+    if (!currentBag) {
+      currentBag = propagation.createBaggage();
+    }
+    currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
+    // Create context with updated baggage and execute within it
+    const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+    // Execute remaining handler within the baggage context so child spans inherit attributes
+    return await otelContext.with(ctxWithBaggage, async () => {
+      // Get the agent from the full agent system first, fall back to legacy system
+      const fullAgent = await getFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId },
       });
-      if (!agent) {
+
+      let agent: any;
+      let defaultSubAgentId: string;
+
+      if (fullAgent) {
+        // Use full agent system
+        agent = {
+          id: fullAgent.id,
+          name: fullAgent.name,
+          tenantId,
+          projectId,
+          defaultSubAgentId: fullAgent.defaultSubAgentId,
+        };
+        const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+        const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+        defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
+      } else {
+        // Fall back to legacy system
+        agent = await getAgentWithDefaultSubAgent(dbClient)({
+          scopes: { tenantId, projectId, agentId },
+        });
+        if (!agent) {
+          throw createApiError({
+            code: 'not_found',
+            message: 'Agent not found',
+          });
+        }
+        defaultSubAgentId = agent.defaultSubAgentId || '';
+      }
+
+      if (!defaultSubAgentId) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'No default agent found in agent',
+        });
+      }
+
+      // Get or create conversation with the default agent
+      await createOrGetConversation(dbClient)({
+        tenantId,
+        projectId,
+        id: conversationId,
+        activeSubAgentId: defaultSubAgentId,
+      });
+
+      const activeAgent = await getActiveAgentForConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+      if (!activeAgent) {
+        // Use the default agent from the agent instead of headAgentId
+        setActiveAgentForConversation(dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          subAgentId: defaultSubAgentId,
+        });
+      }
+      const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
+
+      const agentInfo = await getSubAgentById(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: subAgentId,
+      });
+
+      if (!agentInfo) {
         throw createApiError({
           code: 'not_found',
           message: 'Agent not found',
         });
       }
-      defaultSubAgentId = agent.defaultSubAgentId || '';
-    }
 
-    if (!defaultSubAgentId) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'No default agent found in agent',
-      });
-    }
+      // Get validated context from middleware (falls back to body.headers if no validation)
+      const validatedContext = (c as any).get('validatedContext') || body.headers || {};
 
-    // Get or create conversation with the default agent
-    await createOrGetConversation(dbClient)({
-      tenantId,
-      projectId,
-      id: conversationId,
-      activeSubAgentId: defaultSubAgentId,
-    });
+      const credentialStores = c.get('credentialStores');
 
-    const activeAgent = await getActiveAgentForConversation(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-    if (!activeAgent) {
-      // Use the default agent from the agent instead of headAgentId
-      setActiveAgentForConversation(dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-        subAgentId: defaultSubAgentId,
-      });
-    }
-    const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
-
-    const agentInfo = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: subAgentId,
-    });
-
-    if (!agentInfo) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    // Get validated context from middleware (falls back to body.headers if no validation)
-    const validatedContext = (c as any).get('validatedContext') || body.headers || {};
-
-    const credentialStores = c.get('credentialStores');
-
-    // Context resolution with intelligent conversation state detection
-    await handleContextResolution({
-      tenantId,
-      projectId,
-      agentId,
-      conversationId,
-      headers: validatedContext,
-      dbClient,
-      credentialStores,
-    });
-
-    logger.info(
-      {
+      // Context resolution with intelligent conversation state detection
+      await handleContextResolution({
         tenantId,
         projectId,
         agentId,
         conversationId,
-        defaultSubAgentId,
-        activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
-        hasContextConfig: !!agent.contextConfigId,
-        hasHeaders: !!body.headers,
-        hasValidatedContext: !!validatedContext,
-        validatedContextKeys: Object.keys(validatedContext),
-      },
-      'parameters'
-    );
-
-    const requestId = `chatcmpl-${Date.now()}`;
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    // Extract user message for context
-    const lastUserMessage = body.messages
-      .filter((msg: Message) => msg.role === 'user')
-      .slice(-1)[0];
-    const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
-
-    const messageSpan = trace.getActiveSpan();
-    if (messageSpan) {
-      messageSpan.setAttributes({
-        'message.content': userMessage,
-        'message.timestamp': Date.now(),
+        headers: validatedContext,
+        dbClient,
+        credentialStores,
       });
-    }
 
-    // Store the user message in the database
-    await createMessage(dbClient)({
-      id: nanoid(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: {
-        text: userMessage,
-      },
-      visibility: 'user-facing',
-      messageType: 'chat',
-    });
-    if (messageSpan) {
-      messageSpan.addEvent('user.message.stored', {
-        'message.id': conversationId,
-        'database.operation': 'insert',
-      });
-    }
-
-    // Use Hono's streamSSE helper for proper SSE formatting
-    return streamSSE(c, async (stream) => {
-      try {
-        // Create SSE stream helper
-        const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
-
-        // Start with the role
-        await sseHelper.writeRole();
-
-        logger.info({ subAgentId }, 'Starting execution');
-
-        // Check for emit operations header
-        const emitOperationsHeader = c.req.header('x-emit-operations');
-        const emitOperations = emitOperationsHeader === 'true';
-
-        // Use the execution handler
-        const executionHandler = new ExecutionHandler();
-        const result = await executionHandler.execute({
-          executionContext,
+      logger.info(
+        {
+          tenantId,
+          projectId,
+          agentId,
           conversationId,
-          userMessage,
-          initialAgentId: subAgentId,
-          requestId,
-          sseHelper,
-          emitOperations,
+          defaultSubAgentId,
+          activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
+          hasContextConfig: !!agent.contextConfigId,
+          hasHeaders: !!body.headers,
+          hasValidatedContext: !!validatedContext,
+          validatedContextKeys: Object.keys(validatedContext),
+        },
+        'parameters'
+      );
+
+      const requestId = `chatcmpl-${Date.now()}`;
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      // Extract user message for context
+      const lastUserMessage = body.messages
+        .filter((msg: Message) => msg.role === 'user')
+        .slice(-1)[0];
+      const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
+
+      const messageSpan = trace.getActiveSpan();
+      if (messageSpan) {
+        messageSpan.setAttributes({
+          'message.content': userMessage,
+          'message.timestamp': Date.now(),
         });
-
-        logger.info(
-          { result },
-          `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
-        );
-
-        if (!result.success) {
-          // If execution failed and no error was already streamed, send a default error
-          await sseHelper.writeOperation(
-            errorOp(
-              'Sorry, I was unable to process your request at this time. Please try again.',
-              'system'
-            )
-          );
-        }
-
-        // Complete the stream
-        await sseHelper.complete();
-      } catch (error) {
-        logger.error(
-          {
-            error: error instanceof Error ? error.message : error,
-            stack: error instanceof Error ? error.stack : undefined,
-          },
-          'Error during streaming execution'
-        );
-
-        try {
-          // Try to send error as stream content if possible
-          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
-          await sseHelper.writeOperation(
-            errorOp(
-              'Sorry, I was unable to process your request at this time. Please try again.',
-              'system'
-            )
-          );
-          await sseHelper.complete();
-        } catch (streamError) {
-          // If we can't write to stream, just log it
-          logger.error({ streamError }, 'Failed to write error to stream');
-        }
       }
+
+      // Store the user message in the database
+      await createMessage(dbClient)({
+        id: nanoid(),
+        tenantId,
+        projectId,
+        conversationId,
+        role: 'user',
+        content: {
+          text: userMessage,
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+      if (messageSpan) {
+        messageSpan.addEvent('user.message.stored', {
+          'message.id': conversationId,
+          'database.operation': 'insert',
+        });
+      }
+
+      // Use Hono's streamSSE helper for proper SSE formatting
+      return streamSSE(c, async (stream) => {
+        try {
+          // Create SSE stream helper
+          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+
+          // Start with the role
+          await sseHelper.writeRole();
+
+          logger.info({ subAgentId }, 'Starting execution');
+
+          // Check for emit operations header
+          const emitOperationsHeader = c.req.header('x-emit-operations');
+          const emitOperations = emitOperationsHeader === 'true';
+
+          // Use the execution handler
+          const executionHandler = new ExecutionHandler();
+          const result = await executionHandler.execute({
+            executionContext,
+            conversationId,
+            userMessage,
+            initialAgentId: subAgentId,
+            requestId,
+            sseHelper,
+            emitOperations,
+          });
+
+          logger.info(
+            { result },
+            `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
+          );
+
+          if (!result.success) {
+            // If execution failed and no error was already streamed, send a default error
+            await sseHelper.writeOperation(
+              errorOp(
+                'Sorry, I was unable to process your request at this time. Please try again.',
+                'system'
+              )
+            );
+          }
+
+          // Complete the stream
+          await sseHelper.complete();
+        } catch (error) {
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : error,
+              stack: error instanceof Error ? error.stack : undefined,
+            },
+            'Error during streaming execution'
+          );
+
+          try {
+            // Try to send error as stream content if possible
+            const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+            await sseHelper.writeOperation(
+              errorOp(
+                'Sorry, I was unable to process your request at this time. Please try again.',
+                'system'
+              )
+            );
+            await sseHelper.complete();
+          } catch (streamError) {
+            // If we can't write to stream, just log it
+            logger.error({ streamError }, 'Failed to write error to stream');
+          }
+        }
+      });
     });
   } catch (error) {
     logger.error(

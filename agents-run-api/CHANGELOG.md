@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.19.7
+
+### Patch Changes
+
+- ceef086: baggage for conversation id
+  - @inkeep/agents-core@0.19.7
+
 ## 0.19.6
 
 ### Patch Changes
