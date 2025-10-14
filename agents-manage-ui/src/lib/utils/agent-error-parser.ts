@@ -284,7 +284,6 @@ function categorizeErrors(errors: ProcessedAgentError[]): AgentErrorSummary {
  */
 export function getErrorSummaryMessage(errorSummary: AgentErrorSummary): string {
   const { totalErrors, subAgentErrors, functionToolErrors, edgeErrors, agentErrors } = errorSummary;
-  console.log('errorSummary', errorSummary);
 
   if (totalErrors === 0) return '';
 
