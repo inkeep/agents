@@ -9,7 +9,6 @@ import {
 
 const logger = getLogger('ArtifactParser');
 
-// Common types
 export interface StreamPart {
   kind: 'text' | 'data';
   text?: string;
@@ -25,7 +24,6 @@ export type ArtifactData = {
   summary: Record<string, any>;
 };
 
-// Re-export from service for backward compatibility
 export type { ArtifactFullData, ArtifactSummaryData } from './ArtifactService';
 
 export interface ArtifactCreateAnnotation {
@@ -43,18 +41,15 @@ export interface ArtifactCreateAnnotation {
  * Handles artifact tag detection, parsing, and text boundary detection
  */
 export class ArtifactParser {
-  // Shared regex patterns - support both single and double quotes
   private static readonly ARTIFACT_REGEX =
     /<artifact:ref\s+id=(['"])([^'"]*?)\1\s+tool=(['"])([^'"]*?)\3\s*\/>/gs;
   private static readonly ARTIFACT_CHECK_REGEX =
     /<artifact:ref\s+(?=.*id=['"][^'"]+['"])(?=.*tool=['"][^'"]+['"])[^>]*\/>/;
 
-  // Artifact creation patterns
   private static readonly ARTIFACT_CREATE_REGEX =
     /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
   private static readonly ATTR_REGEX = /(\w+)="([^"]*)"|(\w+)='([^']*)'|(\w+)=({[^}]+})/g;
 
-  // Simple patterns for detecting incomplete artifacts at end of text
   private static readonly ARTIFACT_PATTERNS = [
     '<a',
     '<ar',
@@ -94,10 +89,8 @@ export class ArtifactParser {
     }
   ) {
     if (options?.artifactService) {
-      // Use provided ArtifactService instance
       this.artifactService = options.artifactService;
     } else {
-      // Create new ArtifactService instance
       const context: ArtifactServiceContext = {
         tenantId,
         ...options,
@@ -112,7 +105,6 @@ export class ArtifactParser {
   hasArtifactMarkers(text: string): boolean {
     const refMatch = ArtifactParser.ARTIFACT_CHECK_REGEX.test(text);
 
-    // Use a fresh regex instance to avoid state issues
     const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
     const createMatch = createRegex.test(text);
 
@@ -124,7 +116,6 @@ export class ArtifactParser {
    * More robust detection that handles streaming fragments
    */
   hasIncompleteArtifact(text: string): boolean {
-    // Check if text ends with any partial artifact pattern
     const endsWithPattern = ArtifactParser.ARTIFACT_PATTERNS.some((pattern) =>
       text.endsWith(pattern)
     );
@@ -143,7 +134,6 @@ export class ArtifactParser {
    * Enhanced to handle streaming chunks that split in the middle of artifacts
    */
   findSafeTextBoundary(text: string): number {
-    // First check for incomplete artifact patterns at the end
     const endPatterns = [
       /<artifact:ref(?![^>]*\/>).*$/, // artifact:ref that doesn't end with />
       /<artifact:create(?![^>]*(?:\/>|<\/artifact:create>)).*$/, // incomplete artifact:create
@@ -156,12 +146,10 @@ export class ArtifactParser {
       }
     }
 
-    // Look for incomplete artifact patterns anywhere in text
     for (const pattern of ArtifactParser.ARTIFACT_PATTERNS) {
       const lastIndex = text.lastIndexOf(pattern);
       if (lastIndex !== -1) {
         const textAfterPattern = text.slice(lastIndex);
-        // If pattern is found and there's no complete tag after it, it might be incomplete
         if (!textAfterPattern.includes('/>') && !textAfterPattern.includes('</artifact:')) {
           return lastIndex;
         }
@@ -190,19 +178,16 @@ export class ArtifactParser {
       const key = match[1] || match[3] || match[5];
       let value = match[2] || match[4] || match[6];
 
-      // Try to parse JSON values for props
       if (value && value.startsWith('{')) {
         try {
           value = JSON.parse(value);
         } catch {
-          // Keep as string if JSON parse fails
         }
       }
 
       attrs[key] = value;
     }
 
-    // Validate required attributes
     if (!attrs.id || !attrs.tool || !attrs.type || !attrs.base) {
       logger.warn({ attrs, attrString }, 'Missing required attributes in artifact annotation');
       return null;
@@ -223,7 +208,6 @@ export class ArtifactParser {
   private parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
     const annotations: ArtifactCreateAnnotation[] = [];
 
-    // Create a fresh regex instance to avoid state issues
     const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
 
     const matches = [...text.matchAll(createRegex)];
@@ -268,11 +252,9 @@ export class ArtifactParser {
     artifactMap?: Map<string, any>,
     subAgentId?: string
   ): Promise<StreamPart[]> {
-    // First, process any artifact:create annotations
     let processedText = text;
     const createAnnotations = this.parseCreateAnnotations(text);
 
-    // Extract artifacts from create annotations and cache them for direct replacement
     const createdArtifactData = new Map<string, ArtifactSummaryData>();
     const failedAnnotations: string[] = [];
 
@@ -281,10 +263,8 @@ export class ArtifactParser {
         const artifactData = await this.extractFromCreateAnnotation(annotation, subAgentId);
 
         if (artifactData && annotation.raw) {
-          // Cache the artifact data for direct replacement
           createdArtifactData.set(annotation.raw, artifactData);
         } else if (annotation.raw) {
-          // Track failed annotation for user feedback
           failedAnnotations.push(
             `Failed to create artifact "${annotation.artifactId}": Missing or invalid data`
           );
@@ -295,7 +275,6 @@ export class ArtifactParser {
           );
         }
       } catch (error) {
-        // Track extraction failures for user feedback
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         failedAnnotations.push(`Failed to create artifact "${annotation.artifactId}": ${errorMsg}`);
 
@@ -306,7 +285,6 @@ export class ArtifactParser {
       }
     }
 
-    // If there were failures, we should surface them somehow
     if (failedAnnotations.length > 0) {
       logger.warn(
         {
@@ -317,18 +295,14 @@ export class ArtifactParser {
       );
     }
 
-    // Parse text for both artifact:create and artifact:ref tags
     const parts: StreamPart[] = [];
 
-    // Use fresh regex instances to avoid state issues
     const createRegex = /<artifact:create\s+([^>]+?)(?:\s*\/)?>(?:(.*?)<\/artifact:create>)?/gs;
     const refRegex = /<artifact:ref\s+id=(["'])([^"']*?)\1\s+tool=(["'])([^"']*?)\3\s*\/>/gs;
 
-    // First handle direct artifact:create replacements
     const createMatches = [...text.matchAll(createRegex)];
     const refMatches = [...processedText.matchAll(refRegex)];
 
-    // Combine and sort all matches by position
     const allMatches: Array<{ match: RegExpMatchArray; type: 'create' | 'ref' }> = [
       ...createMatches.map((match) => ({ match, type: 'create' as const })),
       ...refMatches.map((match) => ({ match, type: 'ref' as const })),
@@ -345,7 +319,6 @@ export class ArtifactParser {
       const matchStart = match.index;
       const fullMatch = match[0];
 
-      // Add text before artifact (using original text for positioning)
       if (matchStart > lastIndex) {
         const textBefore = text.slice(lastIndex, matchStart);
         if (textBefore) {
@@ -356,12 +329,9 @@ export class ArtifactParser {
       let artifactData: ArtifactSummaryData | null = null;
 
       if (type === 'create') {
-        // Direct replacement from create annotation
         artifactData = createdArtifactData.get(fullMatch) || null;
       } else {
-        // Handle artifact:ref tags - new regex captures: [fullMatch, quote1, artifactId, quote2, toolCallId]
         const [, , artifactId, , toolCallId] = match;
-        // Use toolCallId for cache key (the unique identifier)
         artifactData = await this.getArtifactData(artifactId, toolCallId, artifactMap);
       }
 
@@ -378,12 +348,10 @@ export class ArtifactParser {
           },
         });
       }
-      // If no artifact found, marker is simply removed
 
       lastIndex = matchStart + fullMatch.length;
     }
 
-    // Add remaining text
     if (lastIndex < text.length) {
       const remainingText = text.slice(lastIndex);
       if (remainingText) {
@@ -402,7 +370,6 @@ export class ArtifactParser {
     artifactMap?: Map<string, any>,
     subAgentId?: string
   ): Promise<StreamPart[]> {
-    // Handle dataComponents array
     if (obj?.dataComponents && Array.isArray(obj.dataComponents)) {
       const parts: StreamPart[] = [];
 
@@ -427,7 +394,6 @@ export class ArtifactParser {
             });
           }
         } else if (this.isArtifactCreateComponent(component)) {
-          // Handle ArtifactCreate component - extract artifact from tool result
           const createData = await this.extractFromArtifactCreateComponent(component, subAgentId);
           if (createData) {
             parts.push({
@@ -450,7 +416,6 @@ export class ArtifactParser {
       return parts;
     }
 
-    // Handle single object
     if (this.isArtifactComponent(obj)) {
       const artifactData = await this.getArtifactData(
         obj.props.artifact_id,
@@ -522,7 +487,6 @@ export class ArtifactParser {
       return null;
     }
 
-    // Convert component props to annotation format
     const annotation: ArtifactCreateAnnotation = {
       artifactId: props.id,
       toolCallId: props.tool_call_id,
@@ -531,7 +495,6 @@ export class ArtifactParser {
       detailsSelector: props.details_selector || {},
     };
 
-    // Use existing extraction logic
     return await this.extractFromCreateAnnotation(annotation, subAgentId);
   }
 
