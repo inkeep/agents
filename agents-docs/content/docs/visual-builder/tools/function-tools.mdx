@@ -158,35 +158,34 @@ return getWeather(args);
 
 ## Execution Environment
 
-Function tools run in secure Node.js sandboxes.
+Function tools run in secure, isolated sandboxes that provide a safe execution environment for your code.
 
-### Sandbox Configuration
+### Sandbox Execution
 
-You can configure execution settings at the project level:
+Functions execute with the following characteristics:
 
-1. Go to **Project Settings** → **Sandbox Configuration**
-2. Configure:
-   - **Runtime**: Node.js 22 or TypeScript
-   - **Timeout**: Maximum execution time (1-300 seconds)
-   - **vCPUs**: Concurrent execution limit (1-8)
+- **Isolated execution** - Each function runs in its own sandbox
+- **No file system access** - Cannot read or write outside the sandbox
+- **Network access** - Only through explicitly declared dependencies (like axios)
+- **Resource limits** - CPU, memory, and execution time constraints enforced
+- **Stateless execution** - No data persists between function calls
 
-<img
-  src="/images/project-sandbox-config.png"
-  alt="Project Sandbox Configuration"
-  width="60%"
-  style={{
-    borderRadius: "10px",
-    border: "1px solid #e1e5e9",
-    display: "block",
-    margin: "0 auto",
-  }}
-/>
+### Runtime Options
 
-### Security Limitations
+When deploying, you can configure:
 
-- **Sandboxed execution** - No access to other processes or file system
-- **Network restrictions** - Only through installed dependencies
-- **Resource limits** - CPU, memory, and execution time constraints
-- **No persistent storage** - Functions are stateless
+- **Runtime**: Node.js 22 or TypeScript
+- **Timeout**: Maximum execution time per function call
+- **Concurrency**: Number of simultaneous function executions
 
-Function tools provide powerful customization capabilities while maintaining security and performance through sandboxed execution. Use them to extend your agents with domain-specific logic and integrations.
+See [Deploy to Vercel](/self-hosting/vercel#function-tools-with-vercel-sandbox) for deployment-specific configuration.
+
+### Best Practices
+
+- **Keep functions simple** - Each function should have a single, clear purpose
+- **Minimize dependencies** - Only include packages you actually need for better performance
+- **Handle errors** - Always catch and return meaningful error messages
+- **Test thoroughly** - Test your functions independently before deploying
+- **Clear descriptions** - Write descriptive names and descriptions to help agents use tools effectively
+
+Function tools provide powerful customization capabilities while maintaining security and performance through sandboxed execution.
