@@ -12,7 +12,8 @@ export type EntityType =
   | 'dataComponent'
   | 'artifactComponent'
   | 'statusComponent'
-  | 'credential';
+  | 'credential'
+  | 'environment';
 
 export interface VariableNameRegistry {
   // Map from ID to variable name for each entity type
@@ -23,6 +24,7 @@ export interface VariableNameRegistry {
   artifactComponents: Map<string, string>;
   statusComponents: Map<string, string>;
   credentials: Map<string, string>;
+  environments: Map<string, string>;
 
   // Reverse lookup: variable name -> { id, type }
   usedNames: Map<string, { id: string; type: EntityType }>;
@@ -37,6 +39,7 @@ export interface NamingConventions {
   artifactComponentSuffix: string | null;
   statusComponentSuffix: string | null;
   credentialSuffix: string | null;
+  environmentSuffix: string | null;
 }
 
 export interface ConflictInfo {
@@ -56,6 +59,7 @@ export const DEFAULT_NAMING_CONVENTIONS: NamingConventions = {
   artifactComponentSuffix: null,
   statusComponentSuffix: null,
   credentialSuffix: null,
+  environmentSuffix: null, // No suffix needed for environments
 };
 
 /**
@@ -77,6 +81,7 @@ export class VariableNameGenerator {
       artifactComponents: new Map(),
       statusComponents: new Map(),
       credentials: new Map(),
+      environments: new Map(),
       usedNames: new Map(),
     };
     this.conventions = conventions;
@@ -87,7 +92,7 @@ export class VariableNameGenerator {
    * Generate unique variable name for an entity
    * Ensures no conflicts across all entity types
    */
-  generateVariableName(id: string, entityType: EntityType): string {
+  generateVariableName(id: string, entityType: EntityType, entityData?: any): string {
     // Check if already registered
     const registryMap = this.getRegistryMap(entityType);
     const existing = registryMap.get(id);
@@ -95,8 +100,14 @@ export class VariableNameGenerator {
       return existing;
     }
 
-    // Convert ID to base variable name (camelCase)
-    const baseName = this.idToVariableName(id);
+    // For MCP tools with random IDs, use the human-readable name if available
+    let baseName: string;
+    if (entityType === 'tool' && entityData?.name && this.isRandomId(id)) {
+      baseName = this.idToVariableName(entityData.name);
+    } else {
+      // Convert ID to base variable name (camelCase)
+      baseName = this.idToVariableName(id);
+    }
 
     // Check for conflicts
     if (!this.registry.usedNames.has(baseName)) {
@@ -215,6 +226,44 @@ export class VariableNameGenerator {
   }
 
   /**
+   * Generate filename from entity data (for file naming)
+   */
+  generateFileName(id: string, entityType: EntityType, entityData?: any): string {
+    let baseName: string;
+    
+    // For MCP tools with random IDs, use the human-readable name if available
+    if (entityType === 'tool' && entityData?.name && this.isRandomId(id)) {
+      baseName = this.nameToFileName(entityData.name);
+    } else {
+      baseName = this.idToFileName(id);
+    }
+    
+    return baseName;
+  }
+
+  /**
+   * Convert name to kebab-case filename
+   */
+  private nameToFileName(name: string): string {
+    return name
+      .replace(/[^\w\s-]/g, '') // Remove special characters except word chars, spaces, hyphens
+      .trim()
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/([a-z])([A-Z])/g, '$1-$2') // Convert camelCase to kebab-case
+      .toLowerCase();
+  }
+
+  /**
+   * Convert ID to kebab-case filename
+   */
+  private idToFileName(id: string): string {
+    return id
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      .replace(/[\s_]+/g, '-')
+      .toLowerCase();
+  }
+
+  /**
    * Get appropriate suffix for entity type
    */
   private getSuffixForType(entityType: EntityType): string {
@@ -233,6 +282,8 @@ export class VariableNameGenerator {
         return this.conventions.statusComponentSuffix || '';
       case 'credential':
         return this.conventions.credentialSuffix || '';
+      case 'environment':
+        return this.conventions.environmentSuffix || '';
       default:
         return '';
     }
@@ -257,6 +308,8 @@ export class VariableNameGenerator {
         return this.registry.statusComponents;
       case 'credential':
         return this.registry.credentials;
+      case 'environment':
+        return this.registry.environments;
       default:
         throw new Error(`Unknown entity type: ${entityType}`);
     }
@@ -266,18 +319,18 @@ export class VariableNameGenerator {
 /**
  * Collect all entities from project data
  */
-export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType }> {
-  const entities: Array<{ id: string; type: EntityType }> = [];
+export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType; data?: any }> {
+  const entities: Array<{ id: string; type: EntityType; data?: any }> = [];
 
   // Collect agents and their subAgents
   if (projectData.agents) {
     for (const [agentId, agentData] of Object.entries(projectData.agents)) {
-      entities.push({ id: agentId, type: 'agent' });
+      entities.push({ id: agentId, type: 'agent', data: agentData });
 
       const agentObj = agentData as any;
       if (agentObj.subAgents) {
-        for (const subAgentId of Object.keys(agentObj.subAgents)) {
-          entities.push({ id: subAgentId, type: 'subAgent' });
+        for (const [subAgentId, subAgentData] of Object.entries(agentObj.subAgents)) {
+          entities.push({ id: subAgentId, type: 'subAgent', data: subAgentData });
         }
       }
     }
@@ -285,22 +338,22 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
 
   // Collect tools
   if (projectData.tools) {
-    for (const toolId of Object.keys(projectData.tools)) {
-      entities.push({ id: toolId, type: 'tool' });
+    for (const [toolId, toolData] of Object.entries(projectData.tools)) {
+      entities.push({ id: toolId, type: 'tool', data: toolData });
     }
   }
 
   // Collect data components
   if (projectData.dataComponents) {
-    for (const compId of Object.keys(projectData.dataComponents)) {
-      entities.push({ id: compId, type: 'dataComponent' });
+    for (const [compId, compData] of Object.entries(projectData.dataComponents)) {
+      entities.push({ id: compId, type: 'dataComponent', data: compData });
     }
   }
 
   // Collect artifact components
   if (projectData.artifactComponents) {
-    for (const compId of Object.keys(projectData.artifactComponents)) {
-      entities.push({ id: compId, type: 'artifactComponent' });
+    for (const [compId, compData] of Object.entries(projectData.artifactComponents)) {
+      entities.push({ id: compId, type: 'artifactComponent', data: compData });
     }
   }
 
@@ -319,12 +372,79 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
      }
    }
 
-  // Collect credentials
+  // Collect credentials from all sources that can reference them
+  const credentialReferences = new Set<string>();
+  
+  // First check for direct credentialReferences structure
   if (projectData.credentialReferences) {
     for (const credId of Object.keys(projectData.credentialReferences)) {
-      entities.push({ id: credId, type: 'credential' });
+      credentialReferences.add(credId);
     }
   }
+  
+  // Extract credentials from tools with credentialReferenceId
+  if (projectData.tools) {
+    for (const [_toolId, toolData] of Object.entries(projectData.tools)) {
+      const tool = toolData as any;
+      if (tool.credentialReferenceId) {
+        credentialReferences.add(tool.credentialReferenceId);
+      }
+    }
+  }
+  
+  // Extract credentials from external agents with credentialReferenceId
+  if (projectData.externalAgents) {
+    for (const [_agentId, agentData] of Object.entries(projectData.externalAgents)) {
+      const agent = agentData as any;
+      if (agent.credentialReferenceId) {
+        credentialReferences.add(agent.credentialReferenceId);
+      }
+    }
+  }
+  
+  // Extract credentials from agents and subAgents (check for contextConfig with credentials)
+  if (projectData.agents) {
+    for (const [_agentId, agentData] of Object.entries(projectData.agents)) {
+      const agent = agentData as any;
+      
+      // Check agent's contextConfig for credentials
+      if (agent.contextConfig?.headers?.credentialReferenceId) {
+        credentialReferences.add(agent.contextConfig.headers.credentialReferenceId);
+      }
+      if (agent.contextConfig?.contextVariables) {
+        for (const [_varId, varData] of Object.entries(agent.contextConfig.contextVariables)) {
+          const contextVar = varData as any;
+          if (contextVar.credentialReferenceId) {
+            credentialReferences.add(contextVar.credentialReferenceId);
+          }
+        }
+      }
+      
+      // Check subAgents for credentials
+      if (agent.subAgents) {
+        for (const [_subAgentId, subAgentData] of Object.entries(agent.subAgents)) {
+          const subAgent = subAgentData as any;
+          
+          // Check subAgent's contextConfig for credentials
+          if (subAgent.contextConfig?.headers?.credentialReferenceId) {
+            credentialReferences.add(subAgent.contextConfig.headers.credentialReferenceId);
+          }
+          if (subAgent.contextConfig?.contextVariables) {
+            for (const [_varId, varData] of Object.entries(subAgent.contextConfig.contextVariables)) {
+              const contextVar = varData as any;
+              if (contextVar.credentialReferenceId) {
+                credentialReferences.add(contextVar.credentialReferenceId);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Don't add credentials as separate entities - they are embedded in environment files
+  // Credentials are passed as data to environment generation, not as separate file entities
+
 
   return entities;
 }

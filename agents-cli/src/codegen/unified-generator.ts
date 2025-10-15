@@ -126,7 +126,8 @@ async function generateFile(
         maxOutputTokens: fileInfo.type === 'agent' ? 16000 : 4000,
         abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 240000 : 60000),
       },
-      debug
+      debug,
+      { fileType: fileInfo.type }
     );
     const llmDuration = ((Date.now() - llmStartTime) / 1000).toFixed(1);
 
@@ -208,9 +209,170 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       return {};
     }
 
-    case 'environment':
+    case 'environment': {
       // Environment files get credential data
-      return projectData.credentialReferences || {};
+      // Extract credential references from all possible sources
+      const credentialData: Record<string, any> = {};
+      const sources: string[] = [];
+      
+      
+      // Use direct credentialReferences if available
+      if (projectData.credentialReferences) {
+        Object.assign(credentialData, projectData.credentialReferences);
+        sources.push('direct credentialReferences');
+      }
+      
+      // Extract from tools with credentialReferenceId
+      if (projectData.tools) {
+        for (const [toolId, toolData] of Object.entries(projectData.tools)) {
+          const tool = toolData as any;
+          if (tool.credentialReferenceId && !credentialData[tool.credentialReferenceId]) {
+            credentialData[tool.credentialReferenceId] = {
+              id: tool.credentialReferenceId,
+              type: 'api_key',
+              description: `Credential for tool ${tool.name || toolId}`,
+              _context: {
+                source: 'tool',
+                toolId,
+                toolName: tool.name,
+                serverUrl: tool.serverUrl
+              }
+            };
+            sources.push(`tool:${toolId}`);
+          }
+        }
+      }
+      
+      // Extract from external agents with credentialReferenceId
+      if ((projectData as any).externalAgents) {
+        for (const [agentId, agentData] of Object.entries((projectData as any).externalAgents)) {
+          const agent = agentData as any;
+          if (agent.credentialReferenceId && !credentialData[agent.credentialReferenceId]) {
+            credentialData[agent.credentialReferenceId] = {
+              id: agent.credentialReferenceId,
+              type: 'api_key',
+              description: `Credential for external agent ${agent.name || agentId}`,
+              _context: {
+                source: 'externalAgent',
+                agentId,
+                agentName: agent.name,
+                baseUrl: agent.baseUrl
+              }
+            };
+            sources.push(`externalAgent:${agentId}`);
+          }
+        }
+      }
+      
+      // Extract from agents and subAgents contextConfig
+      if (projectData.agents) {
+        for (const [agentId, agentData] of Object.entries(projectData.agents)) {
+          const agent = agentData as any;
+          
+          // Check agent's contextConfig for credentials
+          if (agent.contextConfig?.headers?.credentialReferenceId) {
+            const credId = agent.contextConfig.headers.credentialReferenceId;
+            if (!credentialData[credId]) {
+              credentialData[credId] = {
+                id: credId,
+                type: 'api_key',
+                description: `Credential for agent ${agent.name || agentId} headers`,
+                _context: {
+                  source: 'agent.contextConfig.headers',
+                  agentId,
+                  agentName: agent.name
+                }
+              };
+              sources.push(`agent:${agentId}:headers`);
+            }
+          }
+          
+          if (agent.contextConfig?.contextVariables) {
+            for (const [varId, varData] of Object.entries(agent.contextConfig.contextVariables)) {
+              const contextVar = varData as any;
+              if (contextVar.credentialReferenceId) {
+                const credId = contextVar.credentialReferenceId;
+                if (!credentialData[credId]) {
+                  credentialData[credId] = {
+                    id: credId,
+                    type: 'api_key',
+                    description: `Credential for agent ${agent.name || agentId} context variable ${varId}`,
+                    _context: {
+                      source: 'agent.contextConfig.contextVariables',
+                      agentId,
+                      agentName: agent.name,
+                      variableId: varId
+                    }
+                  };
+                  sources.push(`agent:${agentId}:contextVar:${varId}`);
+                }
+              }
+            }
+          }
+          
+          // Check subAgents for credentials
+          if (agent.subAgents) {
+            for (const [subAgentId, subAgentData] of Object.entries(agent.subAgents)) {
+              const subAgent = subAgentData as any;
+              
+              if (subAgent.contextConfig?.headers?.credentialReferenceId) {
+                const credId = subAgent.contextConfig.headers.credentialReferenceId;
+                if (!credentialData[credId]) {
+                  credentialData[credId] = {
+                    id: credId,
+                    type: 'api_key',
+                    description: `Credential for subAgent ${subAgent.name || subAgentId} headers`,
+                    _context: {
+                      source: 'subAgent.contextConfig.headers',
+                      agentId,
+                      subAgentId,
+                      subAgentName: subAgent.name
+                    }
+                  };
+                  sources.push(`subAgent:${subAgentId}:headers`);
+                }
+              }
+              
+              if (subAgent.contextConfig?.contextVariables) {
+                for (const [varId, varData] of Object.entries(subAgent.contextConfig.contextVariables)) {
+                  const contextVar = varData as any;
+                  if (contextVar.credentialReferenceId) {
+                    const credId = contextVar.credentialReferenceId;
+                    if (!credentialData[credId]) {
+                      credentialData[credId] = {
+                        id: credId,
+                        type: 'api_key',
+                        description: `Credential for subAgent ${subAgent.name || subAgentId} context variable ${varId}`,
+                        _context: {
+                          source: 'subAgent.contextConfig.contextVariables',
+                          agentId,
+                          subAgentId,
+                          subAgentName: subAgent.name,
+                          variableId: varId
+                        }
+                      };
+                      sources.push(`subAgent:${subAgentId}:contextVar:${varId}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Add metadata about where credentials were found
+      if (Object.keys(credentialData).length > 0) {
+        credentialData._meta = {
+          foundCredentials: Object.keys(credentialData).filter(k => k !== '_meta'),
+          sources,
+          extractedFrom: 'comprehensive scan of project data'
+        };
+      }
+      
+      
+      return credentialData;
+    }
 
     default:
       return {};
@@ -221,14 +383,8 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
  * Find example code from detected patterns
  */
 function findExampleCode(fileInfo: FileInfo, patterns: DetectedPatterns): string | undefined {
-  switch (fileInfo.type) {
-    case 'agent':
-      return patterns.examples.sampleAgentFile;
-    case 'tool':
-      return patterns.examples.sampleToolFile;
-    default:
-      return undefined;
-  }
+  // Sample files disabled to prevent misleading examples
+  return undefined;
 }
 
 /**
@@ -259,11 +415,13 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 CRITICAL RULES:
-1. Use EXACT variable names from the registry above
-2. The 'id' field in objects keeps the original value
-3. Variable names must be unique (no conflicts across types)
-4. Follow detected patterns for code style
-5. Match existing formatting and conventions
+1. Use EXACT variable names from the registry above - DO NOT modify or "improve" them
+2. Copy the exact import statements provided in the registry
+3. The 'id' field in objects keeps the original value
+4. Variable names must be unique (no conflicts across types)
+5. Follow detected patterns for code style
+6. Match existing formatting and conventions
+7. NEVER generate your own variable names - only use what's provided
 `;
 
   switch (fileInfo.type) {
@@ -284,6 +442,9 @@ CRITICAL RULES:
 
     case 'statusComponent':
       return createStatusComponentPrompt(fileData, context, registryInfo, commonInstructions);
+
+    case 'environment':
+      return createEnvironmentPrompt(fileData, context, registryInfo, commonInstructions);
 
     default:
       throw new Error(`Unknown file type: ${fileInfo.type}`);
@@ -417,6 +578,34 @@ CONTEXT CONFIG (CRITICAL - NO PLAIN OBJECTS):
 - Use myHeaders.toTemplate('key_name') for header values in fetchConfig
 - Use myContext.toTemplate('variable.field') for prompt interpolation
 
+FETCHDEFINITION STRUCTURE (CRITICAL - COPY EXACT FORMAT):
+- ALWAYS wrap HTTP config in 'fetchConfig' object
+- COPY the exact authorization format from source data (don't modify headers)
+- Use .nullable() instead of z.union([type, z.null()]) for schemas
+- responseSchema is raw Zod code (NO backticks around it)
+- String values use template literals (backticks for strings)
+
+CORRECT fetchDefinition structure:
+fetchDefinition({
+  id: 'fetch-id',
+  name: 'Fetch Name',
+  trigger: 'initialization',
+  fetchConfig: {
+    url: 'api-endpoint-url',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: headersVar.toTemplate('key') // COPY EXACT format from source
+    },
+    body: { query: 'request-body' }
+  },
+  responseSchema: z.object({
+    field: z.string().nullable()
+  }),
+  transform: 'data.path',
+  defaultValue: 'fallback'
+})
+
 STRING LITERALS (CRITICAL - MUST FOLLOW):
 - For STRING VALUES: ALWAYS use template literals (backticks \`)
 - This includes: prompt, description, query, url, method, body, defaultValue, etc.
@@ -504,7 +693,28 @@ REQUIREMENTS:
 1. Import mcpTool or functionTool from '@inkeep/agents-sdk'
 2. Use exact variable name from registry
 3. Include serverUrl property if MCP tool
-4. Handle credentials using envSettings if needed
+4. For tools with credentials, import envSettings and use envSettings.getEnvironmentSetting('credential_key')
+5. CRITICAL: Transport must be an OBJECT format: transport: { type: 'streamable_http' } NOT a string
+
+CREDENTIAL HANDLING (CRITICAL):
+If the tool data includes credential information, you MUST:
+1. Import { envSettings } from '../environments'
+2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the tool definition
+3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
+
+Example for tool with credential:
+\`\`\`typescript
+import { mcpTool } from '@inkeep/agents-sdk';
+import { envSettings } from '../environments';
+
+export const toolName = mcpTool({
+  id: 'tool-id',
+  name: 'Tool Name',
+  serverUrl: 'https://example.com/mcp',
+  credential: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+  transport: { type: 'streamable_http' }
+});
+\`\`\`
 
 Generate ONLY the TypeScript code without markdown.`;
 }
@@ -530,46 +740,58 @@ dataComponent({
   id: 'component-id',
   name: 'ComponentName',
   description: 'Component description',
-  props: {  // Use 'props' NOT 'propsSchema'
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    properties: { ... },
-    required: [...],
-    additionalProperties: false
-  }
+  props: z.object({
+    fieldName: z.string().describe('Field description'),
+    optionalField: z.number().optional().describe('Optional field description'),
+  })
 })
 
+REQUIREMENTS:
+1. Import dataComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Use exact variable name from registry
+4. Use 'props' property with Zod schema (NOT JSON Schema)
+5. Include 'id', 'name', and 'description' properties
+6. Use .describe() for field descriptions
+7. Use .optional() for optional fields
+8. Use .nullable() for nullable fields (not z.union([z.string(), z.null()]))
+9. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+
 EXAMPLE:
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
 export const weatherForecast = dataComponent({
   id: 'weather-forecast',
   name: 'WeatherForecast',
   description: 'Hourly weather forecast',
-  props: {
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    properties: {
-      forecast: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            time: { type: 'string' },
-            temperature: { type: 'number' }
-          },
-          required: ['time', 'temperature']
-        }
-      }
-    },
-    required: ['forecast'],
-    additionalProperties: false
-  }
+  props: z.object({
+    forecast: z.array(z.object({
+      time: z.string().describe('The time of current item E.g. 12PM, 1PM'),
+      temperature: z.number().describe('Temperature at given time in Fahrenheit'),
+      code: z.number().describe('Weather code at given time'),
+    })).describe('The hourly forecast for the weather at a given location'),
+  }),
 });
 
-REQUIREMENTS:
-1. Import dataComponent from '@inkeep/agents-sdk'
-2. Use exact variable name from registry
-3. Use 'props' property with JSON Schema format
-4. Include 'id', 'name', and 'description' properties
+EXAMPLE WITH OPTIONAL FIELDS:
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const userProfile = dataComponent({
+  id: 'user-profile',
+  name: 'User Profile',
+  description: 'User profile information',
+  props: z.object({
+    userId: z.string().describe('Unique user identifier'),
+    name: z.string().describe('User full name'),
+    email: z.string().email().describe('User email address'),
+    preferences: z.object({
+      theme: z.enum(['light', 'dark']),
+      notifications: z.boolean(),
+    }).optional().describe('User preferences'),
+  }),
+});
 
 Generate ONLY the TypeScript code without markdown.`;
 }
@@ -644,24 +866,44 @@ Generate ONLY the TypeScript code without markdown.`;
  * Format registry information for a specific file
  */
 function formatRegistryForFile(fileInfo: FileInfo, _registry: any): string {
-  let result = 'Entities in this file:\n';
+  let result = 'REQUIRED VARIABLE NAMES (YOU MUST USE ONLY THESE EXACT NAMES):\n\n';
 
-  for (const entity of fileInfo.entities) {
-    result += `  - ${entity.entityType} "${entity.id}" → variable: ${entity.variableName}\n`;
+  // Entities defined in this file
+  if (fileInfo.entities.length > 0) {
+    result += 'Variables to define in this file:\n';
+    for (const entity of fileInfo.entities) {
+      result += `  - ID "${entity.id}" → MUST use variable name: ${entity.variableName}\n`;
+    }
+    result += '\n';
   }
 
+  // Inline content (subagents, etc.)
   if (fileInfo.inlineContent && fileInfo.inlineContent.length > 0) {
-    result += '\nInline content (defined in this file):\n';
+    result += 'Inline variables to define in this file:\n';
     for (const entity of fileInfo.inlineContent) {
-      result += `  - ${entity.entityType} "${entity.id}" → variable: ${entity.variableName}\n`;
+      result += `  - ID "${entity.id}" → MUST use variable name: ${entity.variableName}\n`;
     }
+    result += '\n';
   }
 
+  // Dependencies (imports)
   if (fileInfo.dependencies.length > 0) {
-    result += '\nDependencies to import:\n';
+    result += '!!! EXACT IMPORT STATEMENTS - COPY PRECISELY !!!\n';
     for (const dep of fileInfo.dependencies) {
-      result += `  - import { ${dep.variableName} } from '${dep.fromPath}';\n`;
+      result += `import { ${dep.variableName} } from '${dep.fromPath}';\n`;
     }
+    result += '\n';
+    result += '!!! WARNING: IDs ≠ FILE PATHS !!!\n';
+    result += 'Entity IDs (with underscores) are NOT the same as file paths (with kebab-case):\n';
+    for (const dep of fileInfo.dependencies) {
+      // Try to extract the entity from the file info to show the ID vs path difference
+      const entity = fileInfo.entities.find(e => e.variableName === dep.variableName) ||
+                     fileInfo.inlineContent?.find(e => e.variableName === dep.variableName);
+      if (entity && entity.id !== dep.fromPath.split('/').pop()?.replace('.ts', '')) {
+        result += `- Entity ID: "${entity.id}" → File path: "${dep.fromPath}"\n`;
+      }
+    }
+    result += '\nCRITICAL: Use the FILE PATHS above, NOT the entity IDs!\n\n';
   }
 
   return result;
@@ -683,4 +925,117 @@ function generateImportMappings(plan: GenerationPlan): string {
   }
 
   return result;
+}
+
+/**
+ * Create prompt for environment file
+ */
+function createEnvironmentPrompt(
+  credentialData: any,
+  context: GenerationContext,
+  _registryInfo: string,
+  commonInstructions: string
+): string {
+  // Determine environment name from file path (e.g., "development" from "environments/development.env.ts")
+  const filePath = context.fileInfo.path || '';
+  const fileName = filePath.split('/').pop() || '';
+  
+  // Check if this is the environments index file
+  if (fileName === 'index.ts') {
+    // Find all environment files from the plan to get their exact variable names
+    const environmentFiles = context.plan.files.filter(f => 
+      f.type === 'environment' && f.path !== 'environments/index.ts'
+    );
+    
+    // Build import statements using exact variable names from registry
+    const imports = environmentFiles.map(envFile => {
+      const envEntity = envFile.entities[0]; // Environment files have one entity
+      if (envEntity) {
+        return `import { ${envEntity.variableName} } from './${envFile.path.replace('environments/', '').replace('.ts', '')}';`;
+      }
+      return '';
+    }).filter(Boolean).join('\n');
+    
+    // Build the object properties using exact variable names
+    const envSettings = environmentFiles.map(envFile => {
+      const envEntity = envFile.entities[0];
+      return envEntity ? `  ${envEntity.variableName},` : '';
+    }).filter(Boolean).join('\n');
+
+
+    return `${commonInstructions}
+
+ENVIRONMENTS INDEX FILE (CRITICAL):
+
+Create an environments/index.ts file that exports environment settings using createEnvironmentSettings.
+
+CREDENTIAL DATA (from project):
+${JSON.stringify(credentialData, null, 2)}
+
+EXACT IMPORT STATEMENTS (MUST USE THESE):
+${imports}
+
+ENVIRONMENTS INDEX STRUCTURE (MUST FOLLOW EXACTLY):
+
+import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+${imports}
+
+export const envSettings = createEnvironmentSettings({
+${envSettings}
+});
+
+CRITICAL RULES:
+1. Import createEnvironmentSettings from '@inkeep/agents-sdk'
+2. Use the EXACT import statements provided above - DO NOT modify them
+3. Use the EXACT variable names in the createEnvironmentSettings object
+4. Export envSettings using createEnvironmentSettings()
+5. Include all environments that have credential files
+
+Generate ONLY the TypeScript code without markdown.`;
+  }
+  
+  // Individual environment file
+  const envName = fileName.replace('.env.ts', '') || 'development';
+  
+  return `${commonInstructions}
+
+ENVIRONMENT FILE (CRITICAL):
+
+Create an environment file that registers credential settings for the "${envName}" environment.
+
+CREDENTIAL DATA (from project):
+${JSON.stringify(credentialData, null, 2)}
+
+ENVIRONMENT FILE STRUCTURE (MUST FOLLOW EXACTLY):
+
+import { credential, registerEnvironmentSettings } from '@inkeep/agents-sdk';
+
+export const ${envName} = registerEnvironmentSettings({
+  credentials: {
+    CREDENTIAL_KEY: credential({
+      id: 'CREDENTIAL_ID',
+      type: 'CREDENTIAL_TYPE', 
+      credentialStoreId: 'CREDENTIAL_STORE_ID',
+      retrievalParams: {
+        key: 'ENV_VARIABLE_NAME'
+      }
+    })
+  }
+});
+
+CRITICAL RULES:
+1. Import { credential, registerEnvironmentSettings } from '@inkeep/agents-sdk'
+2. Export a const named "${envName}" (matching the environment)
+3. Use registerEnvironmentSettings() wrapper
+4. Create credential() objects for each credential in the data
+5. Convert credential IDs to environment variable keys (e.g., 'linear-api' -> 'LINEAR_API_KEY')
+6. Use exact credential IDs, types, and credentialStoreId from the data provided
+7. Set retrievalParams.key to the environment variable name (uppercase with underscores)
+
+Example for credential with id 'linear-api':
+- Export const: ${envName}
+- Credential key: linear_api (underscore format for object key)
+- retrievalParams.key: 'LINEAR_API_KEY' (uppercase for environment variable)
+
+Generate ONLY the TypeScript code without markdown.`;
 }
