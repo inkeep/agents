@@ -319,7 +319,9 @@ export async function generateTextWithPlaceholders(
   context?: { fileType?: string }
 ): Promise<string> {
   // Create placeholders to reduce prompt size
-  const { processedData, replacements } = createPlaceholders(data, context);
+  const { processedData, replacements } = context 
+    ? createPlaceholders(data, context)
+    : createPlaceholders(data);
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
