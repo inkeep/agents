@@ -42,7 +42,6 @@ export const listConversations =
       .limit(limit)
       .offset(offset);
 
-    // Get total count for pagination
     const totalResult = await db
       .select({ count: count() })
       .from(conversations)
@@ -102,7 +101,6 @@ export const deleteConversation =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
-      // Delete messages first (due to foreign key constraints)
       await db
         .delete(messages)
         .where(
@@ -113,7 +111,6 @@ export const deleteConversation =
           )
         );
 
-      // Delete conversation
       await db
         .delete(conversations)
         .where(
@@ -160,19 +157,16 @@ export const getConversation =
     });
   };
 
-// Create or get existing conversation
 export const createOrGetConversation =
   (db: DatabaseClient) => async (input: ConversationInsert) => {
     const conversationId = input.id || getConversationId();
 
-    // Check if conversation already exists
     if (input.id) {
       const existing = await db.query.conversations.findFirst({
         where: and(eq(conversations.tenantId, input.tenantId), eq(conversations.id, input.id)),
       });
 
       if (existing) {
-        // Update active agent if different
         if (existing.activeSubAgentId !== input.activeSubAgentId) {
           await db
             .update(conversations)

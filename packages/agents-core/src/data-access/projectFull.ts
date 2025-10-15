@@ -963,7 +963,6 @@ export const deleteFullProject =
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      // Step 1: Get the project first to ensure it exists and get its agent
       const project = await getFullProject(
         db,
         logger
@@ -976,7 +975,6 @@ export const deleteFullProject =
         return false;
       }
 
-      // Step 2: Delete all agent in the project
       if (project.agents && Object.keys(project.agents).length > 0) {
         logger.info(
           {
@@ -1022,7 +1020,6 @@ export const deleteFullProject =
         );
       }
 
-      // Step 3: Delete the project itself
       const deleted = await deleteProject(db)({
         scopes: { tenantId, projectId },
       });

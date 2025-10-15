@@ -29,7 +29,6 @@ export const getCacheEntry =
         return null;
       }
 
-      // Check if request hash matches (for cache invalidation based on request changes)
       if (
         params.requestHash &&
         cacheEntry.requestHash &&

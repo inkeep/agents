@@ -26,7 +26,6 @@ export function createExecutionContext(params: {
  * Get execution context from API key authentication
  */
 export function getRequestExecutionContext(c: Context): ExecutionContext {
-  // Get execution context from API key authentication
   const executionContext = c.get('executionContext');
 
   if (!executionContext) {

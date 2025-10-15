@@ -1489,7 +1489,6 @@ export const deleteFullAgent =
     logger.info({ tenantId, agentId }, 'Deleting full agent and related entities');
 
     try {
-      // Get the agent first to ensure it exists
       const agent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId },
       });
@@ -1499,16 +1498,13 @@ export const deleteFullAgent =
         return false;
       }
 
-      // Step 1: Delete all agent relations for this agent
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });
       logger.info({ tenantId, agentId }, 'Agent relations deleted');
 
-      // Step 2: Delete agent-tool relations for agents in this agent
       const subAgentIds = Object.keys(agent.subAgents);
       if (subAgentIds.length > 0) {
-        // Delete agent-tool relations for all agents in this agent
         for (const subAgentId of subAgentIds) {
           await deleteAgentToolRelationByAgent(db)({
             scopes: { tenantId, projectId, agentId, subAgentId: subAgentId },
@@ -1521,7 +1517,6 @@ export const deleteFullAgent =
         );
       }
 
-      // Step 3: Delete the agent metadata
       await deleteAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });

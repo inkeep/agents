@@ -76,7 +76,6 @@ export async function validateApiKey(key: string, storedHash: string): Promise<b
     return timingSafeEqual(storedHashBuffer, hashedBuffer);
   } catch (error) {
     logger.error({ error }, 'Error validating API key');
-    // Return false for any errors (invalid format, etc.)
     return false;
   }
 }

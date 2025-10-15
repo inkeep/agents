@@ -81,7 +81,6 @@ export const discoverOAuthEndpoints = async (
   logger?: PinoLogger
 ): Promise<OAuthConfig | null> => {
   try {
-    // 1. Try direct 401 response first
     const response = await fetch(serverUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -108,7 +107,6 @@ export const discoverOAuthEndpoints = async (
     // Continue to well-known endpoints
   }
 
-  // 2. Try well-known endpoints
   const url = new URL(serverUrl);
   const baseUrl = `${url.protocol}//${url.host}`;
 
@@ -129,7 +127,6 @@ export const detectAuthenticationRequired = async ({
   error: Error;
   logger?: PinoLogger;
 }): Promise<boolean> => {
-  // 1. Primary check: OAuth 2.1/PKCE endpoint discovery (most reliable)
   try {
     const hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl, logger);
     if (hasOAuthEndpoints) {
@@ -143,7 +140,6 @@ export const detectAuthenticationRequired = async ({
     logger?.debug({ toolId, discoveryError }, 'OAuth endpoint discovery failed');
   }
 
-  // 2. Secondary check: Only for very specific OAuth patterns
   try {
     const response = await fetch(serverUrl, {
       method: 'POST',

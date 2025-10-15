@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
-// =============================================================================
 // EVENT DATA SCHEMAS
 // These schemas define the structure of event data used across the agent system
 // They ensure consistent naming and type safety for inter-agent communication
-// =============================================================================
 
 /**
  * Agent transfer event data
@@ -70,9 +68,7 @@ export const DataOperationEventSchema = z.object({
 
 export type DataOperationEvent = z.infer<typeof DataOperationEventSchema>;
 
-// =============================================================================
 // HELPER SCHEMAS FOR A2A METADATA
-// =============================================================================
 
 /**
  * Message metadata for A2A communication
