@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.2
+
+### Patch Changes
+
+- af7446e: update agents-ui to 0.14.14
+- abdf614: Default model configs
+- Updated dependencies [abdf614]
+  - @inkeep/agents-manage-api@0.22.2
+  - @inkeep/agents-run-api@0.22.2
+  - @inkeep/agents-core@0.22.2
+
 ## 0.22.1
 
 ### Patch Changes

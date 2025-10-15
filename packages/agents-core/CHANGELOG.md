@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.2
+
+### Patch Changes
+
+- abdf614: Default model configs
+
 ## 0.22.1
 
 ### Patch Changes
