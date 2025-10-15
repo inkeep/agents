@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+
 ## 0.22.4
 
 ### Patch Changes
