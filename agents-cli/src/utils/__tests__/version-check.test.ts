@@ -25,6 +25,23 @@ describe('version-check', () => {
       expect(compareVersions('1.0.0', '1.0')).toBe(0);
       expect(compareVersions('1.0', '1.0.1')).toBe(-1);
     });
+
+    it('should strip pre-release tags before comparison', () => {
+      expect(compareVersions('1.0.0-beta.1', '1.0.0')).toBe(0);
+      expect(compareVersions('1.0.0', '1.0.0-beta.1')).toBe(0);
+      expect(compareVersions('1.0.0-alpha', '1.1.0-beta')).toBe(-1);
+    });
+
+    it('should strip build metadata before comparison', () => {
+      expect(compareVersions('1.0.0+build.1', '1.0.0')).toBe(0);
+      expect(compareVersions('1.0.0', '1.0.0+build.1')).toBe(0);
+      expect(compareVersions('1.0.0+build.1', '1.1.0+build.2')).toBe(-1);
+    });
+
+    it('should handle complex version strings with both pre-release and build metadata', () => {
+      expect(compareVersions('1.0.0-beta.1+build.123', '1.0.0')).toBe(0);
+      expect(compareVersions('1.0.0-beta.1+build.123', '1.0.1-alpha.1+build.456')).toBe(-1);
+    });
   });
 
   describe('getCurrentVersion', () => {
@@ -84,6 +101,15 @@ describe('version-check', () => {
       });
 
       await expect(checkForUpdate()).rejects.toThrow('Unable to check for updates');
+    });
+
+    it('should handle timeout errors', async () => {
+      // Mock fetch to reject with AbortError
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      global.fetch = vi.fn().mockRejectedValue(abortError);
+
+      await expect(checkForUpdate()).rejects.toThrow('Request timed out after 10 seconds');
     });
   });
 

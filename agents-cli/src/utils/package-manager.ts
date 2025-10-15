@@ -1,5 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { DEFAULT_PACKAGE_NAME } from './version-check';
 
 const execAsync = promisify(exec);
 
@@ -14,23 +15,23 @@ export async function detectPackageManager(): Promise<PackageManager | null> {
   for (const manager of managers) {
     try {
       if (manager === 'npm') {
-        const { stdout } = await execAsync('npm list -g @inkeep/agents-cli --depth=0');
-        if (stdout.includes('@inkeep/agents-cli')) {
+        const { stdout } = await execAsync(`npm list -g ${DEFAULT_PACKAGE_NAME} --depth=0`);
+        if (stdout.includes(DEFAULT_PACKAGE_NAME)) {
           return 'npm';
         }
       } else if (manager === 'pnpm') {
-        const { stdout } = await execAsync('pnpm list -g @inkeep/agents-cli --depth=0');
-        if (stdout.includes('@inkeep/agents-cli')) {
+        const { stdout } = await execAsync(`pnpm list -g ${DEFAULT_PACKAGE_NAME} --depth=0`);
+        if (stdout.includes(DEFAULT_PACKAGE_NAME)) {
           return 'pnpm';
         }
       } else if (manager === 'bun') {
         const { stdout } = await execAsync('bun pm ls -g');
-        if (stdout.includes('@inkeep/agents-cli')) {
+        if (stdout.includes(DEFAULT_PACKAGE_NAME)) {
           return 'bun';
         }
       } else if (manager === 'yarn') {
         const { stdout } = await execAsync('yarn global list');
-        if (stdout.includes('@inkeep/agents-cli')) {
+        if (stdout.includes(DEFAULT_PACKAGE_NAME)) {
           return 'yarn';
         }
       }
@@ -45,7 +46,7 @@ export async function detectPackageManager(): Promise<PackageManager | null> {
  */
 export function getUpdateCommand(
   manager: PackageManager,
-  packageName = '@inkeep/agents-cli'
+  packageName = DEFAULT_PACKAGE_NAME
 ): string {
   switch (manager) {
     case 'npm':
@@ -63,6 +64,12 @@ export function getUpdateCommand(
  * Execute update command
  */
 export async function executeUpdate(manager: PackageManager): Promise<void> {
+  // Validate that the manager is one of the allowed values
+  const allowedManagers: readonly PackageManager[] = ['npm', 'pnpm', 'bun', 'yarn'] as const;
+  if (!allowedManagers.includes(manager)) {
+    throw new Error(`Unsupported package manager: ${manager}`);
+  }
+
   const command = getUpdateCommand(manager);
   await execAsync(command);
 }

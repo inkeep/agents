@@ -47,5 +47,21 @@ describe('package-manager', () => {
       expect(executeUpdate).toBeDefined();
       expect(typeof executeUpdate).toBe('function');
     });
+
+    it('should throw error for unsupported package manager', async () => {
+      const { executeUpdate } = await import('../package-manager');
+      // @ts-expect-error Testing invalid input
+      await expect(executeUpdate('invalid-manager')).rejects.toThrow(
+        'Unsupported package manager: invalid-manager'
+      );
+    });
+
+    it('should throw error for potentially malicious input', async () => {
+      const { executeUpdate } = await import('../package-manager');
+      // @ts-expect-error Testing invalid input
+      await expect(executeUpdate('npm && rm -rf /')).rejects.toThrow(
+        'Unsupported package manager'
+      );
+    });
   });
 });
