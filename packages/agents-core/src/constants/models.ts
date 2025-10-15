@@ -9,9 +9,9 @@ export const ANTHROPIC_MODELS = {
   CLAUDE_SONNET_4_5_20250929: 'anthropic/claude-sonnet-4-5-20250929',
   CLAUDE_SONNET_4: 'anthropic/claude-sonnet-4-0',
   CLAUDE_SONNET_4_20250514: 'anthropic/claude-sonnet-4-20250514',
-  CLAUDE_3_5_SONNET: 'anthropic/claude-3-5-sonnet',
-  CLAUDE_3_5_SONNET_20241022: 'anthropic/claude-3-5-sonnet-20241022',
-  CLAUDE_3_5_HAIKU: 'anthropic/claude-3-5-haiku',
+  CLAUDE_HAIKU_4_5: 'anthropic/claude-haiku-4-5',
+  CLAUDE_HAIKU_4_5_20251001: 'anthropic/claude-haiku-4-5-20251001',
+  CLAUDE_3_5_HAIKU: 'anthropic/claude-3-5-haiku-latest',
   CLAUDE_3_5_HAIKU_20241022: 'anthropic/claude-3-5-haiku-20241022',
 } as const;
 
@@ -26,7 +26,7 @@ export const OPENAI_MODELS = {
   GPT_4_1_20250414: 'openai/gpt-4.1-2025-04-14',
   GPT_4_1_MINI: 'openai/gpt-4.1-mini',
   GPT_4_1_MINI_20250414: 'openai/gpt-4.1-mini-2025-04-14',
-  GPT_4_1_NANO: "openai/gpt-4.1-nano",
+  GPT_4_1_NANO: 'openai/gpt-4.1-nano',
   GPT_4_1_NANO_20250414: 'openai/gpt-4.1-nano-2025-04-14',
 } as const;
 
