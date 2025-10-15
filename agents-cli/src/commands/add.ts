@@ -5,7 +5,8 @@ import ora from 'ora';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from '../utils/templates';
 
 export interface AddOptions {
-  template?: string;
+  projectTemplate?: string;
+  mcpTemplate?: string;
   targetPath?: string;
   config?: string;
   list: boolean;
@@ -48,16 +49,57 @@ export const defaultAnthropicModelConfigurations = {
 };
 
 export async function addCommand(options: AddOptions) {
+  const projectTemplates = await getAvailableTemplates('template-projects');
+  const mcpTemplates = await getAvailableTemplates('template-mcps');
+  if (!options.projectTemplate && !options.mcpTemplate) {
+    console.log(chalk.yellow('Available project templates:'));
+    for (const template of projectTemplates) {
+      console.log(chalk.gray(`  • ${template}`));
+    }
+    console.log(chalk.yellow('Available MCP templates:'));
+    for (const template of mcpTemplates) {
+      console.log(chalk.gray(`  • ${template}`));
+    }
+    process.exit(0);
+  } else {
+    if (options.projectTemplate && !projectTemplates.includes(options.projectTemplate)) {
+      console.error(`❌ Project template "${options.projectTemplate}" not found`);
+      process.exit(1);
+    }
+    if (options.mcpTemplate && !mcpTemplates.includes(options.mcpTemplate)) {
+      console.error(`❌ MCP template "${options.mcpTemplate}" not found`);
+      process.exit(1);
+    }
+
+    const spinner = ora('Adding template...').start();
+    if (options.projectTemplate) {
+      await addProjectTemplate(options.projectTemplate, options.targetPath);
+      spinner.succeed(
+        `Project template "${options.projectTemplate}" added to ${options.targetPath}`
+      );
+    }
+    if (options.mcpTemplate) {
+      await addMcpTemplate(options.mcpTemplate, options.targetPath);
+      spinner.succeed(`MCP template "${options.mcpTemplate}" added to apps/mcp`);
+    }
+    spinner.succeed(
+      `Template "${options.projectTemplate || options.mcpTemplate}" added to ${options.targetPath}`
+    );
+    return;
+  }
+}
+
+export async function addProjectTemplate(template: string, targetPath: string | undefined) {
   const templates = await getAvailableTemplates();
-  if (!options.template) {
+  if (!template) {
     console.log(chalk.yellow('Available templates:'));
     for (const template of templates) {
       console.log(chalk.gray(`  • ${template}`));
     }
     process.exit(0);
   } else {
-    if (!templates.includes(options.template)) {
-      console.error(`❌ Template "${options.template}" not found`);
+    if (!templates.includes(template)) {
+      console.error(`❌ Template "${template}" not found`);
       process.exit(1);
     }
 
@@ -91,10 +133,10 @@ export async function addCommand(options: AddOptions) {
     }
 
     // Determine the base directory (use provided target path or current directory)
-    const baseDir = options.targetPath || process.cwd();
+    const baseDir = targetPath || process.cwd();
 
     // Create the full path including the template name as a subdirectory
-    const templateDir = `${baseDir}/${options.template}`;
+    const templateDir = `${baseDir}/${template}`;
 
     // Check if the template directory already exists
     if (await fs.pathExists(templateDir)) {
@@ -103,7 +145,7 @@ export async function addCommand(options: AddOptions) {
     }
 
     // Ensure the base directory exists
-    if (options.targetPath && !(await fs.pathExists(baseDir))) {
+    if (targetPath && !(await fs.pathExists(baseDir))) {
       try {
         await fs.mkdir(baseDir, { recursive: true });
       } catch (error) {
@@ -114,12 +156,15 @@ export async function addCommand(options: AddOptions) {
       }
     }
 
-    const spinner = ora('Adding template...').start();
-    const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-projects/${options.template}`;
+    const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-projects/${template}`;
 
     // Clone into the template-named subdirectory
     await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
-    spinner.succeed(`Template "${options.template}" added to ${templateDir}`);
     return;
   }
+}
+
+export async function addMcpTemplate(template: string, targetPath: string | undefined) {
+  const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-mcps/${template}`;
+  await cloneTemplate(fullTemplatePath, `${targetPath}/apps/mcp`);
 }
