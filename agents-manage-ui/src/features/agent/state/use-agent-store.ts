@@ -38,6 +38,7 @@ type AgentActions = {
     toolLookup?: Record<string, MCPTool>,
     agentToolConfigLookup?: AgentToolConfigLookup
   ): void;
+  reset(): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
   setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
   setToolLookup(toolLookup: Record<string, MCPTool>): void;
@@ -67,32 +68,36 @@ type AgentState = AgentStateData & {
   actions: AgentActions;
 };
 
+const initialAgentState: AgentStateData = {
+  nodes: [],
+  edges: [],
+  metadata: {
+    id: undefined,
+    name: '',
+    description: '',
+    contextConfig: {
+      contextVariables: '',
+      headersSchema: '',
+    },
+    models: undefined,
+    stopWhen: undefined,
+    prompt: undefined,
+    statusUpdates: undefined,
+  },
+  dataComponentLookup: {},
+  artifactComponentLookup: {},
+  toolLookup: {},
+  agentToolConfigLookup: {},
+  dirty: false,
+  history: [],
+  future: [],
+  errors: null,
+  showErrors: false,
+};
+
 export const agentStore = create<AgentState>()(
   devtools((set, get) => ({
-    nodes: [],
-    edges: [],
-    metadata: {
-      id: undefined,
-      name: '',
-      description: '',
-      contextConfig: {
-        contextVariables: '',
-        headersSchema: '',
-      },
-      models: undefined,
-      stopWhen: undefined,
-      prompt: undefined,
-      statusUpdates: undefined,
-    },
-    dataComponentLookup: {},
-    artifactComponentLookup: {},
-    toolLookup: {},
-    agentToolConfigLookup: {},
-    dirty: false,
-    history: [],
-    future: [],
-    errors: null,
-    showErrors: false,
+    ...initialAgentState,
     // Separate "namespace" for actions
     actions: {
       setInitial(
@@ -118,6 +123,9 @@ export const agentStore = create<AgentState>()(
           errors: null,
           showErrors: false,
         });
+      },
+      reset() {
+        set(initialAgentState);
       },
       setDataComponentLookup(dataComponentLookup) {
         set({ dataComponentLookup });

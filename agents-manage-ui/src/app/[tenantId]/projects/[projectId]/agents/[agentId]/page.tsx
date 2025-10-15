@@ -1,9 +1,9 @@
 import { Agent } from '@/components/agent/agent';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 export const dynamic = 'force-dynamic';

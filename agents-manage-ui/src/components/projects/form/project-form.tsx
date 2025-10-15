@@ -186,8 +186,6 @@ export function ProjectForm({
 
         <ProjectStopWhenSection control={form.control} />
 
-        <Separator />
-
         <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
