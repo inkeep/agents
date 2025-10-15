@@ -7,6 +7,7 @@ import { env } from '../env';
 import { initializeCommand } from '../utils/cli-pipeline';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 
 export interface PushOptions {
   project?: string;
@@ -43,6 +44,9 @@ async function loadProject(projectDir: string) {
 }
 
 export async function pushCommand(options: PushOptions) {
+  // Perform background version check (non-blocking)
+  performBackgroundVersionCheck();
+
   // Use standardized CLI pipeline for initialization
   const { config } = await initializeCommand({
     configPath: options.config,
