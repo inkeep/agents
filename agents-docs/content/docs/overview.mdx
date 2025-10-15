@@ -47,7 +47,7 @@ A code-first approach for building and managing teams of Agents. The SDK allows 
    export const basicAgent = agent({
      id: "basic-agent",
      name: "Basic Agent Example",
-     description: "A basic agent",
+     description: "A basic agent that just says hello",
      defaultSubAgent: helloAgent,
      subAgents: () => [helloAgent],
    });
@@ -58,7 +58,7 @@ The **Visual Builder and TypeScript SDK are fully interoperable**: your technica
 ## Platform Overview
 
 **Inkeep Open Source** includes:
-- A Visual Builder & TypeScript SDK with 2-way sync
+- A Visual Builder & TypeScript SDK with full 2-way sync
 - Multi-agent design so agents can collaborate on tasks
 - MCP Tools with credential & permissions management
 - A UI component library for dynamic AI chat experiences
@@ -78,7 +78,7 @@ Inkeep is designed to be extensible and open: you can use the LLM provider of yo
 
 <Cards>
   <Card title="Follow the Quick Start" icon="LuZap" href="/quick-start">
-    Get started with the Visual Builder and SDK in under 5 minutes.
+    Get started with the Visual Builder and TypeScript SDK in under 5 minutes.
   </Card>
   <Card title="Conceptual Overview" icon="LuLightbulb" href="/concepts">
     Learn about the key concepts of building Agents with Inkeep.
