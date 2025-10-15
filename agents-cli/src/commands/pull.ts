@@ -877,7 +877,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     const { createModel } = await import('./pull.llm-generate');
 
     const modelSettings: ModelSettings = {
-      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514,
+      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
     };
 
     const plan = await generatePlan(projectData, patterns, modelSettings, createModel);
