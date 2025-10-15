@@ -10,10 +10,52 @@ keywords: Vercel AI SDK, useChat, React, streaming, chat interface, agents
 
 Agents built with Inkeep have an `/api/chat` [API endpoint](/talk-to-your-agents/api) that is compatible with Vercel AI SDK's streaming protocol, so it works out of the box with Vercel's AI SDK ecosystem.
 
+<<<<<<< HEAD:agents-docs/content/docs/talk-to-your-agents/vercel-ai-sdk/use-chat.mdx
 To build totally custom UIs, you have two options in the AI SDK ecosystem:
 - Use `useChat` hook to build custom UIs in React, Svelte, Vue.js, and Angular. (**← this guide**)
 - Use the [AI Elements](/talk-to-your-agents/vercel-ai-sdk/ai-elements) library for a shadcn-like chat primitives.
 
+=======
+To build totally custom UIs, you have two options in the Vercel ecosystem:
+- Use the [AI Elements](https://ai-sdk.dev/elements/overview) component library for a shadcn-like library of Chat primitives.
+- Leverage `useChat` and other utilities to build custom UIs in React, Svelte, Vue.js, and Angular.
+
+## Using AI Elements
+
+For production-ready UI components, consider using [Vercel AI Elements](https://ai-sdk.dev/elements/overview):
+
+```tsx
+import { Conversation, Message, PromptInput, Actions } from '@ai-sdk/react-elements';
+import { useChat } from '@ai-sdk/react';
+
+export default function ChatWithElements() {
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat", // 
+      headers: {
+        "x-inkeep-tenant-id": "default",
+        "x-inkeep-project-id": "weather-project",
+        "x-inkeep-agent-id": "weather-agent",
+      },
+    })
+  });
+
+  return (
+    <Conversation messages={messages}>
+      {messages.map(message => (
+        <Message key={message.id} message={message}>
+          <Actions message={message} />
+        </Message>
+      ))}
+      <PromptInput onSubmit={sendMessage} />
+    </Conversation>
+  );
+}
+```
+
+AI Elements includes components for reasoning panels, code blocks, tool execution displays, and more—all styled with shadcn/ui patterns.
+
+>>>>>>> aa8b94a9c6a53feef9676174811efa85c48088c7:agents-docs/content/docs/talk-to-your-agents/vercel-ai-sdk.mdx
 ## Using `useChat`
 
 Install the Vercel AI SDK in your React application:
@@ -281,8 +323,16 @@ NEXT_PUBLIC_AGENT_ID=your-agent-id
 ## Next Steps
 
 <Cards>
+<<<<<<< HEAD:agents-docs/content/docs/talk-to-your-agents/vercel-ai-sdk/use-chat.mdx
   <Card title="AI Elements" icon="LuPackage" href="/talk-to-your-agents/vercel-ai-sdk/ai-elements">
     Explore Vercel's prebuilt UI components library built on shadcn/ui for rapid development.
+=======
+  <Card title="AI Elements" icon="LuPackage" href="https://ai-sdk.dev/elements/overview">
+    Explore Vercel's prebuilt UI components library built on shadcn/ui for rapid development.
+  </Card>
+  <Card title="React UI Components" icon="LuLayers" href="/talk-to-your-agents/react/chat-button">
+    Use prebuilt React components for a complete chat UI experience.
+>>>>>>> aa8b94a9c6a53feef9676174811efa85c48088c7:agents-docs/content/docs/talk-to-your-agents/vercel-ai-sdk.mdx
   </Card>
   <Card title="Via API" icon="LuNetwork" href="/talk-to-your-agents/api">
     Learn about the underlying HTTP API and streaming protocol.

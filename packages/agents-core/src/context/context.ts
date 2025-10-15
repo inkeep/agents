@@ -13,7 +13,6 @@ import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
 
-// Helper function to determine context resolution trigger
 async function determineContextTrigger(
   tenantId: string,
   projectId: string,
@@ -25,16 +24,13 @@ async function determineContextTrigger(
     conversationId,
   });
 
-  // New conversation or no previous context resolution = initialization
   if (!conversation || !conversation.lastContextResolution) {
     return 'initialization';
   }
 
-  // Existing conversation with previous context = invocation
   return 'invocation';
 }
 
-// Helper function to handle context config changes
 async function handleContextConfigChange(
   tenantId: string,
   projectId: string,
@@ -50,10 +46,7 @@ async function handleContextConfigChange(
   });
   if (!conversation) return;
 
-  // For existing conversations, we conservatively clear cache when there's
-  // a possibility of config change since we don't store contextConfigId in conversations
   if (conversation.lastContextResolution) {
-    // Context config might have changed - clear cache for this conversation
     const contextResolver = new ContextResolver(tenantId, projectId, dbClient, credentialStores);
     await contextResolver.clearCache(tenantId, projectId, conversationId);
 
@@ -68,7 +61,6 @@ async function handleContextConfigChange(
   }
 }
 
-// Enhanced context resolution function
 async function handleContextResolution({
   tenantId,
   projectId,
@@ -86,7 +78,6 @@ async function handleContextResolution({
   dbClient: DatabaseClient;
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ResolvedContext | null> {
-  // Create parent span for the entire context resolution process
   return tracer.startActiveSpan(
     'context.handle_context_resolution',
     {
@@ -99,7 +90,6 @@ async function handleContextResolution({
       let trigger: 'initialization' | 'invocation';
 
       try {
-        // 1. Get agent's context config
         agent = await getAgentWithDefaultSubAgent(dbClient)({
           scopes: { tenantId, projectId, agentId: agentId },
         });
@@ -108,7 +98,6 @@ async function handleContextResolution({
           return null;
         }
 
-        // 2. Handle context config changes (upsert scenario)
         await handleContextConfigChange(
           tenantId,
           projectId,
@@ -119,10 +108,8 @@ async function handleContextResolution({
           credentialStores
         );
 
-        // 3. Determine trigger based on conversation state
         trigger = await determineContextTrigger(tenantId, projectId, conversationId, dbClient);
 
-        // 4. Get context configuration directly from database
         const contextConfig = await getContextConfigById(dbClient)({
           scopes: { tenantId, projectId, agentId: agentId },
           id: agent.contextConfigId,
@@ -140,7 +127,6 @@ async function handleContextResolution({
           return null;
         }
 
-        // 5. Resolve context based on trigger
         const contextResolver = new ContextResolver(
           tenantId,
           projectId,
@@ -148,7 +134,6 @@ async function handleContextResolution({
           credentialStores
         );
 
-        // Resolve unified context with appropriate trigger for cache invalidation
         const contextResult = await contextResolver.resolve(contextConfig, {
           triggerEvent: trigger,
           conversationId,
@@ -156,14 +141,12 @@ async function handleContextResolution({
           tenantId,
         });
 
-        // Add built-in variables to resolved context
         const resolvedContext = {
           ...contextResult.resolvedContext,
           $now: new Date().toISOString(),
           $env: process.env,
         };
 
-        // Update conversation's last context resolution timestamp
         await updateConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -172,15 +155,12 @@ async function handleContextResolution({
           },
         });
 
-        // Check if there were any errors during context resolution
         if (contextResult.errors.length > 0) {
-          // Mark span as failed if there are errors
           parentSpan.setStatus({
             code: SpanStatusCode.ERROR,
             message: `Context resolution completed with errors`,
           });
         } else {
-          // Mark span as successful if no errors
           parentSpan.setStatus({ code: SpanStatusCode.OK });
         }
 
@@ -203,7 +183,6 @@ async function handleContextResolution({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-        // Record error in parent span
         parentSpan.setAttributes({
           'context.final_status': 'failed',
           'context.error_message': errorMessage,

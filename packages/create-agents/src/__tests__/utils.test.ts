@@ -43,6 +43,7 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(p.cancel).mockImplementation(() => {});
     vi.mocked(p.note).mockImplementation(() => {});
     vi.mocked(p.text).mockResolvedValue('test-dir');
+    vi.mocked(p.password).mockResolvedValue('test-api-key');
     vi.mocked(p.select).mockResolvedValue('dual');
     vi.mocked(p.confirm).mockResolvedValue(false as any);
     vi.mocked(p.spinner).mockReturnValue(mockSpinner);
@@ -392,11 +393,75 @@ describe('createAgents - Template and Project ID Logic', () => {
       expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/custom');
     });
   });
+
+  describe('Security - Password input for API keys', () => {
+    it('should use password input instead of text input for API keys', async () => {
+      // Mock the select to return 'anthropic' to trigger the API key prompt
+      vi.mocked(p.select).mockResolvedValueOnce('anthropic');
+      vi.mocked(p.password).mockResolvedValueOnce('test-anthropic-key');
+
+      await createAgents({
+        dirName: 'test-dir',
+      });
+
+      // Verify that p.password was called for the API key
+      expect(p.password).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Enter your Anthropic API key:',
+          validate: expect.any(Function),
+        })
+      );
+
+      // Verify that p.text was NOT called for API keys (only for directory name)
+      const textCalls = vi.mocked(p.text).mock.calls;
+      const apiKeyCalls = textCalls.filter(
+        (call) =>
+          call[0] &&
+          typeof call[0] === 'object' &&
+          'message' in call[0] &&
+          (call[0].message.includes('API key') || call[0].message.includes('Anthropic') || call[0].message.includes('OpenAI') || call[0].message.includes('Google'))
+      );
+      expect(apiKeyCalls).toHaveLength(0);
+    });
+
+    it('should use password input for OpenAI keys', async () => {
+      vi.mocked(p.select).mockResolvedValueOnce('openai');
+      vi.mocked(p.password).mockResolvedValueOnce('test-openai-key');
+
+      await createAgents({
+        dirName: 'test-dir',
+      });
+
+      expect(p.password).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Enter your OpenAI API key:',
+          validate: expect.any(Function),
+        })
+      );
+    });
+
+    it('should use password input for Google keys', async () => {
+      vi.mocked(p.select).mockResolvedValueOnce('google');
+      vi.mocked(p.password).mockResolvedValueOnce('test-google-key');
+
+      await createAgents({
+        dirName: 'test-dir',
+      });
+
+      expect(p.password).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Enter your Google API key:',
+          validate: expect.any(Function),
+        })
+      );
+    });
+  });
 });
 
 // Helper to setup default mocks
 function setupDefaultMocks() {
   vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+  vi.mocked(p.password).mockResolvedValue('test-api-key');
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
