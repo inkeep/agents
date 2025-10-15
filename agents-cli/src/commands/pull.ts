@@ -11,6 +11,7 @@ import { env } from '../env';
 import { loadConfig } from '../utils/config';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import {
   generateAgentFile,
   generateArtifactComponentFile,
@@ -534,6 +535,9 @@ async function _generateProjectFiles(
  * Main pull command
  */
 export async function pullProjectCommand(options: PullOptions): Promise<void> {
+  // Perform background version check (non-blocking)
+  performBackgroundVersionCheck();
+
   // Validate ANTHROPIC_API_KEY is available for LLM operations
   if (!env.ANTHROPIC_API_KEY) {
     console.error(
