@@ -180,13 +180,13 @@ models: {
 
 For models not directly supported, use these proxy providers:
 
-- **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-sonnet-4`, `openrouter/meta-llama/llama-3.1-405b`)
-- **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-sonnet-4`)
+- **OpenRouter**: Access any model via `openrouter/model-id` format (e.g., `openrouter/anthropic/claude-sonnet-4-0`, `openrouter/meta-llama/llama-3.1-405b`)
+- **Vercel AI SDK Gateway**: Access models through your gateway via `gateway/model-id` format (e.g., `gateway/anthropic/claude-sonnet-4-0`)
 
 ```typescript
 models: {
   base: {
-    model: "openrouter/anthropic/claude-sonnet-4",
+    model: "openrouter/anthropic/claude-sonnet-4-0",
     providerOptions: {
       temperature: 0.7,
       maxOutputTokens: 2048

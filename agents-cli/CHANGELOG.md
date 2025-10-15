@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.22.2
+
+### Patch Changes
+
+- abdf614: Default model configs
+- Updated dependencies [af7446e]
+- Updated dependencies [abdf614]
+  - @inkeep/agents-manage-ui@0.22.2
+  - @inkeep/agents-core@0.22.2
+  - @inkeep/agents-sdk@0.22.2
+
 ## 0.22.1
 
 ### Patch Changes
