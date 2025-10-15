@@ -23,7 +23,6 @@ A no-code drag-and-drop canvas designed to allow any team to create and manage t
 <img
   src="https://docs.inkeep.com/gifs/visual-builder.gif"
   alt="No-Code Agent Builder demo"
-  width="100%"
 />
 
 ### TypeScript Agents SDK
