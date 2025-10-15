@@ -151,18 +151,27 @@ Function tools use JSON Schema to validate input parameters. This ensures your f
 
 ## Execution Environment
 
-Function tools run in secure Node.js sandboxes with the following characteristics:
+Function tools run in secure, isolated sandboxes that provide a safe execution environment for your code.
 
-### Sandbox Configuration
+### Sandbox Providers
 
-Function tools respect your project's sandbox configuration:
+The framework supports multiple sandbox providers:
+
+- **Native** (default) - Uses Node.js child processes, works in most environments including cloud VMs, Docker, Kubernetes, and traditional hosting
+- **Vercel** - Uses Vercel Sandbox MicroVMs for serverless environments where child process spawning is restricted (Vercel, AWS Lambda, etc.)
+
+The sandbox provider is configured at the application level when deploying. See [Deploy to Vercel](/self-hosting/vercel#function-tools-with-vercel-sandbox) for serverless deployment configuration.
+
+### Runtime Configuration
+
+Configure execution settings in your application:
 
 ```typescript
-// Project configuration (inkeep.config.ts)
-export const project = project({
-  // ... other config
+import { createExecutionApp } from "@inkeep/agents-run-api";
+
+const app = createExecutionApp({
   sandboxConfig: {
-    provider: "local", // Execution provider
+    provider: "native", // or 'vercel' for serverless
     runtime: "node22", // Node.js 22 or 'typescript'
     timeout: 30000, // 30 second timeout
     vcpus: 2, // Max 2 concurrent executions
@@ -170,9 +179,20 @@ export const project = project({
 });
 ```
 
-### Security Limitations
+### Security & Isolation
 
-- **No file system write access** outside the sandbox
-- **Network access** only via installed dependencies (like axios)
-- **No access** to parent process or other sandboxes
-- **Resource limits** enforced (CPU, memory, execution time)
+Function tools execute with strong security guarantees:
+
+- **Isolated execution** - Each function runs in its own sandbox
+- **No file system access** - Cannot read or write outside the sandbox
+- **Network restrictions** - Only through explicitly declared dependencies
+- **Resource limits** - CPU, memory, and execution time constraints enforced
+- **No state persistence** - Functions are stateless between executions
+
+### Best Practices
+
+- **Keep functions focused** - Each function should do one thing well
+- **Minimize dependencies** - Only include packages you actually need
+- **Handle errors gracefully** - Always catch and return meaningful errors
+- **Test independently** - Functions should be testable in isolation
+- **Document thoroughly** - Clear descriptions help agents use tools effectively

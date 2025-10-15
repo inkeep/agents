@@ -30,11 +30,14 @@ Sign up for a Vercel account [here](https://vercel.com/signup).
 ### Step 5: Create a Vercel project for Manage API
 
 ![Vercel New Project - Manage API](/images/vercel-new-project-manage-api-hono.png)
+
 <Note>
-  The Framework Preset should be "Hono" and the Root Directory should be `apps/manage-api`.
+  The Framework Preset should be "Hono" and the Root Directory should be
+  `apps/manage-api`.
 </Note>
 
 Required environment variables for Manage API:
+
 ```
 ENVIRONMENT=production
 
@@ -47,23 +50,26 @@ NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
 ```
 
-| Environment Variable            | Value                                                                                                                                                             |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ENVIRONMENT`                      | `production`                                                                                                                                                                            |
-| `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET`              | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` in Step 7.                                                                                                                                       |
-| `TURSO_DATABASE_URL`          | Turso database URL you saved from Step 3                                                                                                                                                                            |
-| `TURSO_AUTH_TOKEN`     | Turso auth token you saved from Step 3                                                                                                                                                                               |
-| `NANGO_SECRET_KEY`     | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments.                                                                                                                                                                               |
-| `NANGO_SERVER_URL`     | `https://api.nango.dev`                                                                                                                                                                               |
+| Environment Variable                     | Value                                                                                                                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ENVIRONMENT`                            | `production`                                                                                                                                                       |
+| `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` in Step 7.                        |
+| `TURSO_DATABASE_URL`                     | Turso database URL you saved from Step 3                                                                                                                           |
+| `TURSO_AUTH_TOKEN`                       | Turso auth token you saved from Step 3                                                                                                                             |
+| `NANGO_SECRET_KEY`                       | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments. |
+| `NANGO_SERVER_URL`                       | `https://api.nango.dev`                                                                                                                                            |
 
 ### Step 6: Create a Vercel project for Run API
 
 ![Vercel New Project - Run API](/images/vercel-new-project-run-api-hono.png)
+
 <Note>
-  The Framework Preset should be "Hono" and the Root Directory should be `apps/run-api`.
+  The Framework Preset should be "Hono" and the Root Directory should be
+  `apps/run-api`.
 </Note>
 
 Required environment variables for Run API:
+
 ```
 ENVIRONMENT=production
 
@@ -83,28 +89,31 @@ NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
 ```
 
-| Environment Variable            | Value                                                                                                                                                             |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ENVIRONMENT`                      | `production`                                                                                                                                                                            |
-| `ANTHROPIC_API_KEY`     | Your Anthropic API key                                                                                                                                                                               |
-| `OPENAI_API_KEY`     | Your OpenAI API key                                                                                                                                                                               |
-| `GOOGLE_GENERATIVE_AI_API_KEY`     | Your Google Gemini API key                                                                                                                                                                               |
-| `INKEEP_AGENTS_RUN_API_BYPASS_SECRET`              | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` in Step 7.                                                                                                                                       |
-| `TURSO_DATABASE_URL`          | Turso database URL you saved from Step 3                                                                                                                                                                            |
-| `TURSO_AUTH_TOKEN`     | Turso auth token you saved from Step 3                                                                                                                                                                               |
-| `NANGO_SECRET_KEY`     | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments.                                                                                                                                                                               |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`     | `https://ingest.us.signoz.cloud:443/v1/traces`                                                                                                                                                                               |
-| `OTEL_EXPORTER_OTLP_TRACES_HEADERS`     | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments.                                                                                                                                                                             |
-| `NANGO_SERVER_URL`     | `https://api.nango.dev`                                                                                                                                                                               |
+| Environment Variable                  | Value                                                                                                                                                                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ENVIRONMENT`                         | `production`                                                                                                                                                                                                                               |
+| `ANTHROPIC_API_KEY`                   | Your Anthropic API key                                                                                                                                                                                                                     |
+| `OPENAI_API_KEY`                      | Your OpenAI API key                                                                                                                                                                                                                        |
+| `GOOGLE_GENERATIVE_AI_API_KEY`        | Your Google Gemini API key                                                                                                                                                                                                                 |
+| `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` in Step 7.                                                                                                   |
+| `TURSO_DATABASE_URL`                  | Turso database URL you saved from Step 3                                                                                                                                                                                                   |
+| `TURSO_AUTH_TOKEN`                    | Turso auth token you saved from Step 3                                                                                                                                                                                                     |
+| `NANGO_SECRET_KEY`                    | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments.                                                                         |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`  | `https://ingest.us.signoz.cloud:443/v1/traces`                                                                                                                                                                                             |
+| `OTEL_EXPORTER_OTLP_TRACES_HEADERS`   | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments. |
+| `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
 
 ### Step 7: Create a Vercel project for Manage UI
 
 ![Vercel New Project - Manage UI](/images/vercel-new-project-manage-ui-nextjs.png)
+
 <Note>
-  The Framework Preset should be "Next.js" and the Root Directory should be `apps/manage-ui`.
+  The Framework Preset should be "Next.js" and the Root Directory should be
+  `apps/manage-ui`.
 </Note>
 
 Required environment variables for Manage UI:
+
 ```
 ENVIRONMENT=production
 
@@ -125,22 +134,21 @@ PUBLIC_NANGO_SERVER_URL
 PUBLIC_NANGO_CONNECT_BASE_URL
 ```
 
-| Environment Variable | Value |
-| --- | --- |
-| `ENVIRONMENT` | `production` |
-| `INKEEP_AGENTS_MANAGE_API_URL` | Your Vercel deployment URL for Manage API |
-| `PUBLIC_INKEEP_AGENTS_MANAGE_API_URL` | Your Vercel deployment URL for Manage API |
-| `PUBLIC_INKEEP_AGENTS_RUN_API_URL` | Your Vercel deployment URL for Manage API |
-| `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` | Your generated Manage API bypass secret from Step 5 |
-| `PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Your generated Run API bypass secret from Step 6 |
-| `SIGNOZ_URL` | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz URL. Note: Local SigNoz setup won't work with Vercel deployments. |
-| `PUBLIC_SIGNOZ_URL` | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz URL. Note: Local SigNoz setup won't work with Vercel deployments. |
-| `SIGNOZ_API_KEY` | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz API key. Note: Local SigNoz setup won't work with Vercel deployments. |
-| `NANGO_SECRET_KEY` | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments. |
-| `NANGO_SERVER_URL` | `https://api.nango.dev` |
-| `PUBLIC_NANGO_SERVER_URL` | `https://api.nango.dev` |
-| `PUBLIC_NANGO_CONNECT_BASE_URL` | `https://connect.nango.dev` |
-
+| Environment Variable                         | Value                                                                                                                                                                                          |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENVIRONMENT`                                | `production`                                                                                                                                                                                   |
+| `INKEEP_AGENTS_MANAGE_API_URL`               | Your Vercel deployment URL for Manage API                                                                                                                                                      |
+| `PUBLIC_INKEEP_AGENTS_MANAGE_API_URL`        | Your Vercel deployment URL for Manage API                                                                                                                                                      |
+| `PUBLIC_INKEEP_AGENTS_RUN_API_URL`           | Your Vercel deployment URL for Manage API                                                                                                                                                      |
+| `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET`     | Your generated Manage API bypass secret from Step 5                                                                                                                                            |
+| `PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Your generated Run API bypass secret from Step 6                                                                                                                                               |
+| `SIGNOZ_URL`                                 | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz URL. Note: Local SigNoz setup won't work with Vercel deployments.     |
+| `PUBLIC_SIGNOZ_URL`                          | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz URL. Note: Local SigNoz setup won't work with Vercel deployments.     |
+| `SIGNOZ_API_KEY`                             | Use the instructions from [SigNoz Cloud Setup](/quick-start/traces#option-1-signoz-cloud-setup) to configure your SigNoz API key. Note: Local SigNoz setup won't work with Vercel deployments. |
+| `NANGO_SECRET_KEY`                           | Nango secret key from your [Nango cloud account](/quick-start/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments.                             |
+| `NANGO_SERVER_URL`                           | `https://api.nango.dev`                                                                                                                                                                        |
+| `PUBLIC_NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                        |
+| `PUBLIC_NANGO_CONNECT_BASE_URL`              | `https://connect.nango.dev`                                                                                                                                                                    |
 
 ### Step 8: Enable Vercel Authentication
 
@@ -159,22 +167,22 @@ PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
 ### Step 2: Create a cloud configuration file
 
 Create a new configuration file named `inkeep-cloud.config.ts` in your project's `src` directory, alongside your existing configuration file.
-  
+
 ```typescript
-import { defineConfig } from '@inkeep/agents-cli/config';
+import { defineConfig } from "@inkeep/agents-cli/config";
 
 const config = defineConfig({
   tenantId: "default",
   agentsManageApi: {
-    url: 'https://<your-manage-api-url>',
+    url: "https://<your-manage-api-url>",
     apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
   },
   agentsRunApi: {
-    url: 'https://<your-run-api-url>',
+    url: "https://<your-run-api-url>",
     apiKey: process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
   },
 });
-    
+
 export default config;
 ```
 
@@ -191,3 +199,145 @@ inkeep push --config ../inkeep-cloud.config.ts
 cd /src
 inkeep pull --config inkeep-cloud.config.ts
 ```
+
+## Function Tools with Vercel Sandbox
+
+When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in Vercel Sandbox MicroVMs instead of native Node.js processes. This is **required** for serverless platforms since child process spawning is restricted.
+
+### Why Use Vercel Sandbox?
+
+**Native execution limitations in serverless:**
+
+- Serverless platforms (Vercel, AWS Lambda, Cloudflare Workers) restrict child process spawning
+- Function tools using the native provider will fail or timeout in these environments
+- Limited access to system resources and file system
+
+**When to use each provider:**
+
+- **Native** - Use for traditional cloud deployments (VMs, Docker, Kubernetes), self-hosted servers, or local development
+- **Vercel Sandbox** - Required for serverless platforms (Vercel, AWS Lambda, etc.)
+
+**Vercel Sandbox benefits:**
+
+- ✅ Designed specifically for serverless environments
+- ✅ Isolated Linux MicroVMs with full Node.js support
+- ✅ Configurable CPU and memory resources
+- ✅ Reliable execution without child process restrictions
+
+### Setting Up Vercel Sandbox
+
+#### Step 1: Get Vercel Credentials
+
+You'll need three credentials from your Vercel account:
+
+1. **Vercel Token** - Create an access token at [vercel.com/account/tokens](https://vercel.com/account/tokens)
+2. **Team ID** - Find in your team settings at [vercel.com/teams](https://vercel.com/teams)
+3. **Project ID** - Find in your Vercel project settings
+
+#### Step 2: Add Environment Variables to Run API
+
+Add these environment variables to your **Run API** Vercel project:
+
+```bash
+# Vercel Sandbox Configuration
+SANDBOX_VERCEL_TOKEN=your_vercel_access_token
+SANDBOX_VERCEL_TEAM_ID=team_xxxxxxxxxx
+SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
+```
+
+<Warning>
+  Never commit these credentials to your repository. Always use environment
+  variables.
+</Warning>
+
+#### Step 3: Configure Sandbox in Your Application
+
+Update your Run API to use Vercel Sandbox:
+
+```typescript filename="apps/run-api/sandbox.ts"
+import { SandboxConfig } from "@inkeep/agents-run-api";
+
+export const sandboxConfig: SandboxConfig = {
+  provider: "vercel",
+  runtime: "node22", // or 'typescript'
+  timeout: 60000, // 60 second timeout
+  vcpus: 4, // Allocate 4 vCPUs
+  // Credentials from environment variables
+  teamId: process.env.VERCEL_TEAM_ID!,
+  projectId: process.env.VERCEL_PROJECT_ID!,
+  token: process.env.VERCEL_TOKEN!,
+};
+```
+
+### Environment-Specific Configuration
+To save costs, you can use native for local development and Vercel Sandbox for serverless production:
+
+```typescript
+const isProduction = process.env.ENVIRONMENT === "production";
+
+const app = createExecutionApp({
+  sandboxConfig: isProduction
+    ? {
+        provider: "vercel",
+        runtime: "node22",
+        timeout: 60000,
+        vcpus: 4,
+        teamId: process.env.VERCEL_TEAM_ID!,
+        projectId: process.env.VERCEL_PROJECT_ID!,
+        token: process.env.VERCEL_TOKEN!,
+      }
+    : {
+        provider: "native",
+        runtime: "node22",
+        timeout: 30000,
+        vcpus: 2,
+      },
+});
+```
+
+This allows you to:
+
+- ✅ Develop and test locally without Vercel credentials
+- ✅ Use Vercel Sandbox only in serverless production
+- ✅ Keep development fast with native execution
+- ✅ Use native provider in traditional cloud environments (VMs, Docker, K8s)
+
+### Troubleshooting
+
+**"Failed to refresh OIDC token" error:**
+
+- This occurs when using not in vercel environment and you're not passing in a Vercel access token
+- Solution: Use a Vercel access token from [vercel.com/account/tokens](https://vercel.com/account/tokens)
+
+**Function execution timeouts:**
+
+- Increase the `timeout` value in sandbox configuration
+- Consider allocating more `vcpus` for resource-intensive functions
+- Check Vercel Sandbox limits for your plan
+
+**Dependency installation failures:**
+
+- Ensure dependencies are compatible with Node.js 22
+- Check that package versions are specified correctly
+- Verify network access to npm registry
+
+**High costs:**
+
+- Reduce `vcpus` allocation if functions don't need maximum resources
+- Optimize function code to execute faster
+- Consider caching results when possible
+
+### Best Practices
+
+1. **Use environment variables** - Never hardcode credentials
+2. **Start with fewer vCPUs** - Scale up only if needed
+3. **Set reasonable timeouts** - Prevent runaway executions
+4. **Monitor usage** - Track sandbox execution metrics in Vercel dashboard
+5. **Test thoroughly** - Verify functions work in sandbox environment before deploying
+6. **Choose the right provider** - Use native for VMs/Docker/K8s, Vercel Sandbox for serverless only
+
+For more information on function tools, see:
+
+- [Function Tools (TypeScript SDK)](/typescript-sdk/tools/function-tools)
+- [Function Tools (Visual Builder)](/visual-builder/tools/function-tools)
+- [Vercel Sandbox Documentation](https://vercel.com/docs/vercel-sandbox)
