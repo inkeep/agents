@@ -206,21 +206,21 @@ async function verifyGeneratedFiles(
       }
     }
 
-    if (debug) {
-      console.log(chalk.gray('\n🔍 Verification Summary:'));
-      console.log(chalk.gray(`  • index.ts: ${existsSync(indexPath) ? '✓' : '✗'}`));
-      console.log(
-        chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`)
-      );
-      console.log(
-        chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`)
-      );
-      console.log(
-        chalk.gray(
-          `  • Data component files: ${expectedDataComponents.length}/${expectedDataComponents.length} found`
-        )
-      );
-    }
+    // if (debug) {
+    //   console.log(chalk.gray('\n🔍 Verification Summary:'));
+    //   console.log(chalk.gray(`  • index.ts: ${existsSync(indexPath) ? '✓' : '✗'}`));
+    //   console.log(
+    //     chalk.gray(`  • Agent files: ${expectedAgents.length}/${expectedAgents.length} found`)
+    //   );
+    //   console.log(
+    //     chalk.gray(`  • Tool files: ${expectedTools.length}/${expectedTools.length} found`)
+    //   );
+    //   console.log(
+    //     chalk.gray(
+    //       `  • Data component files: ${expectedDataComponents.length}/${expectedDataComponents.length} found`
+    //     )
+    //   );
+    // }
 
     return { success: errors.length === 0, errors, warnings };
   } catch (error: any) {
