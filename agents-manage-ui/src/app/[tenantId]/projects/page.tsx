@@ -8,17 +8,10 @@ import { ProjectList } from '@/components/projects/project-list';
 import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
-import type { Project } from '@/lib/types/project';
 
 async function ProjectsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
-  let projects: { data: Project[] } = { data: [] };
-  try {
-    const response = await fetchProjects(tenantId);
-    projects = response;
-  } catch (_error) {
-    // throw new Error('Failed to fetch projects');
-  }
+  const projects = await fetchProjects(tenantId);
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Projects' }]}>

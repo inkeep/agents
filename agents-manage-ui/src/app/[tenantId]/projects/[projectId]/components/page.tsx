@@ -7,7 +7,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
-import { type DataComponent, fetchDataComponents } from '@/lib/api/data-components';
+import { fetchDataComponents } from '@/lib/api/data-components';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +17,7 @@ interface DataComponentsPageProps {
 
 async function DataComponentsPage({ params }: DataComponentsPageProps) {
   const { tenantId, projectId } = await params;
-  let dataComponents: { data: DataComponent[] } = { data: [] };
-  try {
-    const response = await fetchDataComponents(tenantId, projectId);
-    dataComponents = response;
-  } catch (_error) {
-    throw new Error('Failed to fetch components');
-  }
+  const dataComponents = await fetchDataComponents(tenantId, projectId);
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
       <MainContent className="min-h-full">

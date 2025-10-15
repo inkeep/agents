@@ -1,28 +1,22 @@
-import { Plus } from 'lucide-react'
-import Link from 'next/link'
-import { BodyTemplate } from '@/components/layout/body-template'
-import EmptyState from '@/components/layout/empty-state'
-import { MainContent } from '@/components/layout/main-content'
-import { PageHeader } from '@/components/layout/page-header'
-import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list'
-import { Button } from '@/components/ui/button'
-import { fetchMCPTools } from '@/lib/api/tools'
-import type { MCPTool } from '@/lib/types/tools'
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import { BodyTemplate } from '@/components/layout/body-template';
+import EmptyState from '@/components/layout/empty-state';
+import { MainContent } from '@/components/layout/main-content';
+import { PageHeader } from '@/components/layout/page-header';
+import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list';
+import { Button } from '@/components/ui/button';
+import { fetchMCPTools } from '@/lib/api/tools';
 
-const mcpServerDescription = 'Create MCP servers that agents can use to access external services.'
+const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
 
 async function MCPServersPage({
   params,
 }: {
-  params: Promise<{ tenantId: string; projectId: string }>
+  params: Promise<{ tenantId: string; projectId: string }>;
 }) {
-  const { tenantId, projectId } = await params
-  let tools: MCPTool[] = []
-  try {
-    tools = await fetchMCPTools(tenantId, projectId)
-  } catch (error) {
-    console.error('Failed to load MCP tools:', error)
-  }
+  const { tenantId, projectId } = await params;
+  const tools = await fetchMCPTools(tenantId, projectId);
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'MCP servers' }]}>
@@ -56,7 +50,7 @@ async function MCPServersPage({
         )}
       </MainContent>
     </BodyTemplate>
-  )
+  );
 }
 
-export default MCPServersPage
+export default MCPServersPage;

@@ -3,15 +3,24 @@
 import { useParams } from 'next/navigation';
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function ProjectSettingsError() {
+export default function ProjectSettingsError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   const { tenantId } = useParams<{
     tenantId: string;
   }>();
+
   return (
     <FullPageError
-      description="Something went wrong."
+      error={error}
+      reset={reset}
       link={`/${tenantId}/projects/`}
-      linkText="Go back to projects"
+      linkText="Back to projects"
+      context="settings"
     />
   );
 }

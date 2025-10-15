@@ -3,16 +3,25 @@
 import { useParams } from 'next/navigation';
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function DataComponentError() {
+export default function DataComponentError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
+
   return (
     <FullPageError
-      description="Something went wrong."
+      error={error}
+      reset={reset}
       link={`/${tenantId}/projects/${projectId}/components`}
-      linkText="Go back to components"
+      linkText="Back to components"
+      context="component"
     />
   );
 }

@@ -1,21 +1,27 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function AgentError({ error }: { error: Error & { digest?: string } }) {
-  const { tenantId, projectId } = useParams();
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.error(error);
-  }, [error]);
+export default function AgentError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  const { tenantId, projectId } = useParams<{
+    tenantId: string;
+    projectId: string;
+  }>();
 
   return (
     <FullPageError
-      description="Something went wrong."
+      error={error}
+      reset={reset}
       link={`/${tenantId}/projects/${projectId}/agents`}
-      linkText="Go back to agent"
+      linkText="Back to agents"
+      context="agent"
     />
   );
 }

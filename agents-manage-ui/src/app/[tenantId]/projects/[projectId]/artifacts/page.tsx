@@ -7,7 +7,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
-import { type ArtifactComponent, fetchArtifactComponents } from '@/lib/api/artifact-components';
+import { fetchArtifactComponents } from '@/lib/api/artifact-components';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +17,7 @@ interface ArtifactComponentsPageProps {
 
 async function ArtifactComponentsPage({ params }: ArtifactComponentsPageProps) {
   const { tenantId, projectId } = await params;
-  let artifacts: { data: ArtifactComponent[] } = { data: [] };
-  try {
-    const response = await fetchArtifactComponents(tenantId, projectId);
-    artifacts = response;
-  } catch (_error) {
-    throw new Error('Failed to fetch artifacts.');
-  }
+  const artifacts = await fetchArtifactComponents(tenantId, projectId);
   return (
     <BodyTemplate
       breadcrumbs={[
