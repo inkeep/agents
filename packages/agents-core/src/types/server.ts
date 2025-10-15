@@ -82,6 +82,16 @@ export interface ServerOptions {
    * Default: 60000ms (60 seconds)
    */
   requestTimeout?: number;
+
+  /**
+   * Maximum request payload size in bytes
+   * Limits the size of incoming request bodies via Content-Length header validation.
+   * This is an API-level limit independent of model constraints, set high to accommodate large payloads.
+   * Requests exceeding this limit will receive a 413 Payload Too Large response.
+   * Scenario: Set lower for APIs with small payloads, keep at 1GB for general purpose APIs.
+   * Default: 1073741824 bytes (1GB)
+   */
+  maxRequestSizeBytes?: number;
 }
 
 /**

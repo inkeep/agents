@@ -4,6 +4,7 @@ import {
   type CredentialStoreRegistry,
   type ExecutionContext,
   handleApiError,
+  requestSizeLimitMiddleware,
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
@@ -53,6 +54,14 @@ function createExecutionHono(
     }
     return next();
   });
+
+  // Request size limit middleware - validate Content-Length before body parsing
+  app.use(
+    '*',
+    requestSizeLimitMiddleware({
+      maxRequestSizeBytes: serverConfig.serverOptions?.maxRequestSizeBytes,
+    })
+  );
 
   // Body parsing middleware - parse once and share across all handlers
   app.use('*', async (c, next) => {
