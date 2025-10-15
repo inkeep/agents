@@ -234,6 +234,13 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -271,6 +278,13 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -311,6 +325,13 @@ export function renderPanelContent({
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -349,6 +370,13 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
