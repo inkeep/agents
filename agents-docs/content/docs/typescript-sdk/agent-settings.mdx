@@ -49,14 +49,14 @@ The `models` object allows you to configure different models for different tasks
 ```typescript
 models: {
   base: {
-    model: "anthropic/claude-sonnet-4-20250514", // Primary model for text generation
+    model: "anthropic/claude-sonnet-4-5", // Primary model for text generation
     providerOptions: {
       temperature: 0.7,
       maxOutputTokens: 2048  // AI SDK v5 uses maxOutputTokens
     }
   },
   structuredOutput: {
-    model: "openai/gpt-4.1-mini-2025-04-14", // For structured JSON output only
+    model: "openai/gpt-4.1-mini", // For structured JSON output only
     providerOptions: {
       temperature: 0.1,
       maxOutputTokens: 1024,
@@ -64,7 +64,7 @@ models: {
     }
   },
   summarizer: {
-    model: "anthropic/claude-3-5-haiku-20241022", // For summaries and status updates
+    model: "openai/gpt-4.1-nano", // For summaries and status updates
     providerOptions: {
       temperature: 0.5,
       maxOutputTokens: 1000
@@ -83,8 +83,8 @@ models: {
 
 The framework supports a wide range of models from major AI providers:
 
-- **Anthropic**: For example `anthropic/claude-opus-4-1-20250805`, `anthropic/claude-sonnet-4-5-20250929`, `anthropic/claude-sonnet-4-20250514`, `anthropic/claude-3-5-haiku-20241022`, and more
-- **OpenAI**: For example `openai/gpt-5-2025-08-07`, `openai/gpt-4.1-mini-2025-04-14`, `openai/gpt-4.1-nano-2025-04-14`, and more
+- **Anthropic**: For example `anthropic/claude-opus-4-1`, `anthropic/claude-sonnet-4-5`, `anthropic/claude-sonnet-4`, `anthropic/claude-haiku-4-5`, `anthropic/claude-3-5-haiku-latest`, and more
+- **OpenAI**: For example `openai/gpt-5`, `openai/gpt-4.1-mini`, `openai/gpt-4.1-nano`, and more
 - **Google**: For example `google/gemini-2.5-pro`, `google/gemini-2.5-flash`, `google/gemini-2.5-flash-lite`, and more
 - **Additional providers** via OpenRouter and gateway routing
 
@@ -136,7 +136,7 @@ models: {
 }
 ```
 
-<Note>`openai/gpt-5-2025-08-07`, `openai/gpt-5-mini-2025-08-07`, and `openai/gpt-5-nano-2025-08-07` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
+<Note>`openai/gpt-5`, `openai/gpt-5-mini`, and `openai/gpt-5-nano` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
 
 ##### Anthropic thinking
 ```typescript
@@ -216,14 +216,14 @@ You need the appropriate API key for your chosen provider to be defined in your 
 When using the Inkeep CLI, the following defaults are applied based on your chosen provider:
 
 **Anthropic:**
-- `base`: `anthropic/claude-sonnet-4-5-20250929`
-- `structuredOutput`: `anthropic/claude-sonnet-4-5-20250929`
-- `summarizer`: `anthropic/claude-sonnet-4-5-20250929`
+- `base`: `anthropic/claude-sonnet-4-5`
+- `structuredOutput`: `anthropic/claude-sonnet-4-5`
+- `summarizer`: `anthropic/claude-sonnet-4-5`
 
 **OpenAI:**
-- `base`: `openai/gpt-4.1-2025-04-14`
-- `structuredOutput`: `openai/gpt-4.1-mini-2025-04-14`
-- `summarizer`: `openai/gpt-4.1-nano-2025-04-14`
+- `base`: `openai/gpt-4.1`
+- `structuredOutput`: `openai/gpt-4.1`
+- `summarizer`: `openai/gpt-4.1-nano`
 
 **Google:**
 - `base`: `google/gemini-2.5-flash`

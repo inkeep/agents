@@ -367,13 +367,13 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
         summarizer: {
-          model: 'openai/gpt-4.1-nano-2025-04-14',
+          model: 'openai/gpt-4.1-nano',
         },
       },
     };
@@ -1237,7 +1237,7 @@ describe('Agent Model Settings', () => {
       delegateRelations: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
       },
     };
@@ -1250,7 +1250,7 @@ describe('Agent Model Settings', () => {
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1291,7 +1291,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -1308,7 +1308,7 @@ describe('Agent Model Settings', () => {
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4-5',
         providerOptions: {
           anthropic: {
             temperature: 0.8,
@@ -1339,7 +1339,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1347,7 +1347,7 @@ describe('Agent Model Settings', () => {
           },
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
       },
       dataComponents: [
@@ -1367,7 +1367,7 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation with custom model, once for structured output with OpenAI model
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: {
         anthropic: {
           temperature: 0.5,
@@ -1375,7 +1375,7 @@ describe('Agent Model Settings', () => {
       },
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
+      model: 'openai/gpt-4.1-mini',
     });
   });
 
@@ -1399,11 +1399,11 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation, once for structured output (both use base model)
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1433,7 +1433,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
         },
       },
     };
@@ -1443,7 +1443,7 @@ describe('Agent Model Settings', () => {
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: undefined,
     });
   });

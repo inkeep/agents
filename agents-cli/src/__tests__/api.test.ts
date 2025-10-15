@@ -404,7 +404,7 @@ describe('ApiClient', () => {
         expect.any(String),
         expect.objectContaining({
           body: JSON.stringify({
-            model: 'openai/gpt-4.1-mini-2025-04-14',
+            model: 'openai/gpt-4.1-mini',
             messages,
             conversationId,
             stream: true,
@@ -489,7 +489,7 @@ describe('ApiClient', () => {
           'x-inkeep-agent-id': 'test-agent',
         },
         body: JSON.stringify({
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
           messages,
           conversationId: undefined,
           stream: true,
