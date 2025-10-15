@@ -7,7 +7,7 @@ export const ANTHROPIC_MODELS = {
   CLAUDE_OPUS_4_1_20250805: 'anthropic/claude-opus-4-1-20250805',
   CLAUDE_SONNET_4_5: 'anthropic/claude-sonnet-4-5',
   CLAUDE_SONNET_4_5_20250929: 'anthropic/claude-sonnet-4-5-20250929',
-  CLAUDE_SONNET_4: 'anthropic/claude-sonnet-4',
+  CLAUDE_SONNET_4: 'anthropic/claude-sonnet-4-0',
   CLAUDE_SONNET_4_20250514: 'anthropic/claude-sonnet-4-20250514',
   CLAUDE_3_5_SONNET: 'anthropic/claude-3-5-sonnet',
   CLAUDE_3_5_SONNET_20241022: 'anthropic/claude-3-5-sonnet-20241022',
