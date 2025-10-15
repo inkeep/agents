@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+- Updated dependencies [e5fb3a4]
+  - @inkeep/agents-core@0.22.5
+
 ## 0.22.4
 
 ### Patch Changes
