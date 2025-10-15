@@ -64,6 +64,21 @@ You can also pull code from the Visual Builder to your local project using `inke
 inkeep pull
 ```
 
+<Note>
+**Prerequisites:** The `inkeep pull` command uses AI to generate TypeScript files from your project configuration. You must have an `ANTHROPIC_API_KEY` environment variable set before running the pull command.
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+Or add it to your `.env` file:
+```bash
+ANTHROPIC_API_KEY=your_api_key_here
+```
+
+Get your API key from the [Anthropic Console](https://console.anthropic.com/).
+</Note>
+
 
 ### Step 1: Make an edit visually
 

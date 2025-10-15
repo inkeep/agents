@@ -539,13 +539,25 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   performBackgroundVersionCheck();
 
   // Validate ANTHROPIC_API_KEY is available for LLM operations
-  if (!env.ANTHROPIC_API_KEY) {
+  // Check for missing, empty, or whitespace-only values
+  const anthropicKey = env.ANTHROPIC_API_KEY?.trim();
+  if (!anthropicKey) {
     console.error(
-      chalk.red('Error: ANTHROPIC_API_KEY environment variable is required for the pull command.')
+      chalk.red('\n❌ Error: ANTHROPIC_API_KEY is required for the pull command')
     );
-    console.error(chalk.gray('Please set your Anthropic API key:'));
-    console.error(chalk.gray('  export ANTHROPIC_API_KEY=your_api_key_here'));
-    console.error(chalk.gray('  or add it to your .env file'));
+    console.error(
+      chalk.yellow(
+        '\nThe pull command uses AI to generate TypeScript files from your project configuration.'
+      )
+    );
+    console.error(chalk.yellow('This requires a valid Anthropic API key.\n'));
+    console.error(chalk.cyan('How to fix:'));
+    console.error(chalk.gray('  1. Get an API key from: https://console.anthropic.com/'));
+    console.error(chalk.gray('  2. Set it in your environment:'));
+    console.error(chalk.gray('     export ANTHROPIC_API_KEY=your_api_key_here'));
+    console.error(chalk.gray('  3. Or add it to your .env file:'));
+    console.error(chalk.gray('     ANTHROPIC_API_KEY=your_api_key_here\n'));
+    console.error(chalk.yellow('💡 Note: Make sure the value is not empty or whitespace-only'));
     process.exit(1);
   }
 
