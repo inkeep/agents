@@ -173,29 +173,21 @@ export class McpClient {
 
     const { selectedTools, activeTools } = this.serverConfig;
 
-    // Step 1: Determine the universe of available tools
     let availableTools: Tool[];
 
     if (activeTools === undefined) {
-      // activeTools undefined = all tools are available
       availableTools = tools;
     } else if (activeTools.length === 0) {
-      // activeTools empty = no tools available (regardless of selectedTools)
       return [];
     } else {
-      // activeTools defined with items = filter to only those tools
       availableTools = tools.filter((tool: Tool) => activeTools.includes(tool.name));
     }
 
-    // Step 2: Apply selectedTools filtering to available tools
     if (selectedTools === undefined) {
-      // selectedTools undefined = use all available tools
       return availableTools;
     } else if (selectedTools.length === 0) {
-      // selectedTools empty array = no tools selected
       return [];
     } else {
-      // selectedTools has items = filter available tools by selection
       const toolNames = availableTools.map((tool: Tool) => tool.name);
       this.validateSelectedTools(toolNames, selectedTools);
       return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
@@ -208,7 +200,6 @@ export class McpClient {
 
     for (const def of tools) {
       try {
-        // Convert JSON Schema to Zod schema
         const createZodSchema = (inputSchema: any) => {
           if (!inputSchema || !inputSchema.properties) {
             return z.object({});
@@ -241,7 +232,6 @@ export class McpClient {
               zodType = zodType.describe(propDef.description);
             }
 
-            // Make field optional if not in required array
             const isRequired = inputSchema.required?.includes(key);
             if (!isRequired) {
               zodType = zodType.optional();
