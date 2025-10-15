@@ -1,11 +1,11 @@
 ---
-"@inkeep/agents-cli": minor
-"@inkeep/agents-core": minor
-"@inkeep/agents-manage-api": minor
-"@inkeep/agents-manage-ui": minor
-"@inkeep/agents-run-api": minor
-"@inkeep/agents-sdk": minor
-"@inkeep/create-agents": minor
+"@inkeep/agents-cli": patch
+"@inkeep/agents-core": patch
+"@inkeep/agents-manage-api": patch
+"@inkeep/agents-manage-ui": patch
+"@inkeep/agents-run-api": patch
+"@inkeep/agents-sdk": patch
+"@inkeep/create-agents": patch
 ---
 
 Add self-update command to CLI with automatic package manager detection and version checking
