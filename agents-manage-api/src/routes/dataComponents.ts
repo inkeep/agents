@@ -343,7 +343,7 @@ app.openapi(
             message: 'Error streaming preview generation',
           });
         }
-      });
+      }) as any;
     } catch (error) {
       if (error instanceof Error && 'code' in error) {
         throw error;
