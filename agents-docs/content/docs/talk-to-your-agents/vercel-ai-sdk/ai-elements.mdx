@@ -1,0 +1,64 @@
+---
+title: Build chat UIs with Vercel AI Elements
+sidebarTitle: AI Elements
+description: Use Vercel AI Elements to quickly assemble production-ready chat interfaces that connect to your Inkeep agent.
+icon: LuPackage
+keywords: Vercel AI Elements, shadcn ui, chat components, React, agents
+---
+
+## Overview
+
+[Vercel AI Elements](https://ai-sdk.dev/elements/overview) is a set of prebuilt, headless-first UI primitives for building AI chat interfaces. Think of it as a `shadcn/ui`-like library of UI components for conversational experiences.
+
+The library works out of the box with Inkeep Agents via the `/chat` [API endpoint](/talk-to-your-agents/api) since it follows the streaming protocol used by AI Elements.
+
+For fully custom `useChat` hooks and lower-level control, see the [useChat guide](/talk-to-your-agents/vercel-ai-sdk/use-chat).
+
+## Using AI Elements
+
+```tsx
+import { Conversation, Message, PromptInput, Actions } from '@ai-sdk/react-elements';
+import { useChat } from '@ai-sdk/react';
+
+export default function ChatWithElements() {
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "${process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat", // 
+      headers: {
+        "x-inkeep-tenant-id": "default",
+        "x-inkeep-project-id": "weather-project",
+        "x-inkeep-agent-id": "weather-agent",
+      },
+    })
+  });
+
+  return (
+    <Conversation messages={messages}>
+      {messages.map(message => (
+        <Message key={message.id} message={message}>
+          <Actions message={message} />
+        </Message>
+      ))}
+      <PromptInput onSubmit={sendMessage} />
+    </Conversation>
+  );
+}
+```
+
+## Install (one-liner)
+
+```sh
+npx ai-elements@latest
+```
+
+This CLI adds selected components to your project under `@/components/ai-elements/` and wires up any required shadcn/ui primitives.
+
+## Component quick reference
+
+- **Core chat**: `Conversation`, `Message`, `PromptInput`, `Response`, `Actions`, `Sources`
+- **Reasoning & tools**: `Reasoning`, `Tool`, `Task`, `InlineCitation`, `Context`
+- **Workflow (React Flow)**: `Canvas`, `Node`, `Edge`, `Connection`, `Controls`, `Panel`, `Toolbar`
+- **Coding artifacts**: `CodeBlock`, `Artifact`, `WebPreview`, `Image`
+- **UX extras**: `Suggestion`, `Branch`, `Loader`, `OpenIn`
+
+See the [AI Elements](https://ai-sdk.dev/elements/overview) site for detailed props and examples.

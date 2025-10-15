@@ -97,5 +97,15 @@
     "source": "/typescript-sdk/request-context",
     "destination": "/typescript-sdk/headers",
     "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/vercel-ai-sdk",
+    "destination": "/talk-to-your-agents/vercel-ai-sdk/use-chat",
+    "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/api",
+    "destination": "/talk-to-your-agents/chat-api",
+    "permanent": true
   }
 ]
