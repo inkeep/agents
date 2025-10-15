@@ -5,34 +5,10 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Lists of random words for filename generation
-const adjectives = [
-  'brave', 'bright', 'calm', 'clever', 'cool', 'daring', 'eager', 'fair',
-  'fancy', 'gentle', 'happy', 'jolly', 'kind', 'lively', 'merry', 'nice',
-  'proud', 'quick', 'quiet', 'silly', 'smooth', 'strong', 'tender', 'wise',
-  'witty', 'young', 'zealous', 'cuddly', 'tame', 'six', 'blue', 'green',
-  'pink', 'wild', 'soft', 'warm', 'cold', 'loud', 'swift', 'slow'
-];
-
-const nouns = [
-  'apples', 'bears', 'birds', 'books', 'boxes', 'buttons', 'cats', 'chairs',
-  'clouds', 'coins', 'doors', 'eagles', 'fishes', 'flowers', 'foxes', 'frogs',
-  'games', 'gardens', 'gifts', 'grapes', 'hearts', 'hotels', 'houses', 'islands',
-  'jewels', 'keys', 'kites', 'lakes', 'lamps', 'lemons', 'lions', 'moons',
-  'mountains', 'paths', 'pearls', 'roses', 'stars', 'stones', 'trees', 'waters',
-  'waves', 'winds', 'beers', 'tigers', 'rivers'
-];
-
-const verbs = [
-  'dance', 'dream', 'fly', 'glow', 'grow', 'jump', 'laugh', 'learn', 'play',
-  'rest', 'run', 'shine', 'sing', 'sleep', 'smile', 'speak', 'swim', 'think',
-  'walk', 'whisper', 'work', 'write', 'mate', 'repeat', 'start', 'begin',
-  'travel', 'wonder', 'celebrate', 'discover', 'explore', 'imagine'
-];
 
 // Packages to include in changeset (excluding ignored packages)
 const packages = [
@@ -46,10 +22,13 @@ const packages = [
 ];
 
 function generateRandomFilename() {
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const verb = verbs[Math.floor(Math.random() * verbs.length)];
-  return `${adjective}-${noun}-${verb}.md`;
+  const name = uniqueNamesGenerator({
+    dictionaries: [adjectives, colors, animals],
+    separator: '-',
+    length: 3,
+    style: 'lowerCase'
+  });
+  return `${name}.md`;
 }
 
 function createChangesetFile(bumpType, message) {
