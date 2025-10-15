@@ -1,0 +1,59 @@
+---
+title: Quick Start
+description: Start developing your agents with the Inkeep Agent framework
+icon: "LuRocket"    
+---
+
+## Launch your first agent
+
+### Prerequisites
+
+Before getting started, ensure you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [pnpm](https://pnpm.io/installation) version 10 or higher
+
+You can verify your installations by running:
+
+```bash
+node --version
+pnpm --version
+```
+
+### Step 1: Create a new agents project
+
+First, create a new agents project.
+
+```bash
+npx @inkeep/create-agents my-agent-directory 
+```
+
+Navigate to the new agents project.
+
+```bash
+cd my-agent-directory
+```
+
+### Step 2: Launch the dev environment
+
+```bash
+pnpm dev
+```
+
+The Visual Builder automatically opens at http://localhost:3000.
+
+### Step 3: Chat with your agent
+
+Navigate to the Event Planner agent at http://localhost:3000, click "Try It", and ask about fun activities at a location of your choice.
+
+<img src="/gifs/event-planner.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
+
+### Next steps
+
+Next, we recommend using `inkeep push` and `inkeep pull` to push your code to the no-code Visual Builder and pull the Visual Builder back to your code. See [Push / Pull](/get-started/push-pull) to get started.
+
+<Cards>
+  <Card title="Push / Pull" icon="LuArrowLeftRight" href="/get-started/push-pull">
+    Push and pull your agents to and from the Visual Builder
+  </Card>
+</Cards>

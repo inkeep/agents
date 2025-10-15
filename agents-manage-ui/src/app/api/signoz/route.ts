@@ -11,7 +11,7 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
-const SIGNOZ_URL = process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
+const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // Validation schema for the request body
@@ -144,7 +144,7 @@ export async function GET() {
 
     const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
     logger.info({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
-    
+
     const response = await axios.post(signozEndpoint, testPayload, {
       headers: {
         'Content-Type': 'application/json',
@@ -184,7 +184,7 @@ export async function GET() {
         errorMessage = 'SigNoz connection timed out';
       }
     }
-    
+
     return NextResponse.json({
       status: 'connection_failed',
       configured: false,

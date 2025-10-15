@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+
 ## 0.22.2
 
 ### Patch Changes
