@@ -525,6 +525,55 @@ export class Agent {
             try {
               const rawResult = await originalTool.execute(args, { toolCallId });
 
+              if (rawResult && typeof rawResult === 'object' && 'isError' in rawResult && rawResult.isError) {
+                const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
+                logger.error(
+                  { toolName, toolCallId, errorMessage, rawResult },
+                  'MCP tool returned error status'
+                );
+
+                toolSessionManager.recordToolResult(sessionId, {
+                  toolCallId,
+                  toolName,
+                  args,
+                  result: { error: errorMessage, failed: true },
+                  timestamp: Date.now(),
+                });
+
+                if (streamRequestId) {
+                  agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
+                    message: `MCP tool "${toolName}" failed: ${errorMessage}`,
+                    code: 'mcp_tool_error',
+                    severity: 'error',
+                    context: {
+                      toolName,
+                      toolCallId,
+                      errorMessage,
+                    },
+                  });
+                }
+
+                const activeSpan = trace.getActiveSpan();
+                if (activeSpan) {
+                  const error = new Error(
+                    `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                  );
+                  activeSpan.recordException(error);
+                  activeSpan.setStatus({
+                    code: SpanStatusCode.ERROR,
+                    message: `MCP tool returned error: ${errorMessage}`,
+                  });
+                  activeSpan.setAttributes({
+                    'tool.error': errorMessage,
+                    'tool.failed': true,
+                  });
+                }
+
+                throw new Error(
+                  `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                );
+              }
+
               const parsedResult = parseEmbeddedJson(rawResult);
 
               const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
