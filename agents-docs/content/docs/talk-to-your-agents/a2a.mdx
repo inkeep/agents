@@ -5,7 +5,18 @@ description: Use the Agent2Agent JSON-RPC protocol to send messages to your agen
 icon: "LuNetwork"
 ---
 
-The A2A (Agent-to-Agent) endpoint lets external agents/services talk to your agent using a JSON-RPC 2.0 protocol compatible with Google's A2A schema.
+The A2A (Agent-to-Agent) endpoint lets third-party agents, agent platforms, or agent workspaces interact with your Inkeep Agent using a standard agent protocol.
+
+Here are some example platforms that you can add Inkeep Agents to:
+| Platform                                                                                                                                                                                                       | Description                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **[Google Gemini Enterprise](https://cloud.google.com/gemini-enterprise/faq)**                                                                                                                                 | Bring‑your‑own A2A agents into an enterprise agentspace and orchestrate alongside Google/vendor agents. |
+| **[Microsoft Copilot Studio / Azure AI Foundry](https://microsoftlearning.github.io/mslearn-ai-agents/Instructions/06-multi-remote-agents-with-a2a.html)**                                                     | Copilots can invoke external A2A agents as peer services in multi‑agent flows.                    |
+| **[Salesforce Agentforce](https://architect.salesforce.com/fundamentals/agentic-patterns)**                                                                                                                    | Add third‑party A2A agents (e.g., via AgentExchange) and compose them in CRM workflows.         |
+| **[SAP Joule](https://learning.sap.com/courses/boosting-ai-driven-business-transformation-with-joule-agents/enabling-interoperability-for-ai-agents)**                                                         | Federate non‑SAP A2A agents into SAP’s business agent fabric.                                     |
+| **[ServiceNow AI Agent Fabric](https://www.servicenow.com/community/now-assist-articles/introducing-ai-agent-fabric-enable-mcp-and-a2a-for-your-agentic/ta-p/3373907)**                                        | Discover and call external A2A agents within IT/business automations.                                      |
+| **[Atlassian Rovo](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/)**                                                                       | Configure Rovo to call external A2A agents for cross‑tool tasks.                                  |
+| **[Workday AI (Agent Gateway / ASOR)](https://investor.workday.com/2025-06-03-Workday-Announces-New-AI-Agent-Partner-Network-and-Agent-Gateway-to-Power-the-Next-Generation-of-Human-and-Digital-Workforces)** | Register external customer/partner A2A agents alongside Workday agents.                  |
 
 <Snippet file="auth/RunApiAuthModes.mdx" />
 
