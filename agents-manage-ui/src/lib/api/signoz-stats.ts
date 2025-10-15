@@ -180,11 +180,7 @@ class SigNozStatsAPI {
       const aiCallsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
       const lastActivitySeries = this.extractSeries(resp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
       const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
-      const contextErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONTEXT_ERRORS);
-      const agentGenerationErrorsSeries = this.extractSeries(
-        resp,
-        QUERY_EXPRESSIONS.AGENT_GENERATION_ERRORS
-      );
+      const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
       const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
 
       // metadata map
@@ -239,8 +235,7 @@ class SigNozStatsAPI {
         delegationsSeries,
         aiCallsSeries,
         metaByConv,
-        contextErrorsSeries,
-        agentGenerationErrorsSeries,
+        spansWithErrorsSeries,
         firstMsgByConv
       );
 
@@ -484,8 +479,7 @@ class SigNozStatsAPI {
       const delegationsSeries = this.extractSeries(resp, 'delegations');
       const aiCallsSeries = this.extractSeries(resp, 'aiCalls');
       const metadataSeries = this.extractSeries(resp, 'conversationMetadata');
-      const contextErrSeries = this.extractSeries(resp, 'contextErrors');
-      const agentGenErrSeries = this.extractSeries(resp, 'agentGenerationErrors');
+      const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
 
       const metaByConv = new Map<
         string,
@@ -507,8 +501,7 @@ class SigNozStatsAPI {
         delegationsSeries,
         aiCallsSeries,
         metaByConv,
-        contextErrSeries,
-        agentGenErrSeries,
+        spansWithErrorsSeries,
         new Map<string, { content: string; timestamp: number }>()
       );
 
@@ -630,8 +623,7 @@ class SigNozStatsAPI {
     delegationSeries: Series[],
     aiCallsSeries: Series[],
     metaByConv: Map<string, { tenantId: string; agentId: string; agentName: string }>,
-    contextErrSeries: Series[],
-    agentGenErrSeries: Series[],
+    spansWithErrorsSeries: Series[],
     firstMsgByConv: Map<string, { content: string; timestamp: number }>
   ): ConversationStats[] {
     type Acc = {
@@ -725,13 +717,32 @@ class SigNozStatsAPI {
       ensure(id).totalAICalls += count;
     }
 
-    // errors
-    for (const s of [...contextErrSeries, ...agentGenErrSeries]) {
+    // errors - only count critical errors
+    const CRITICAL_ERROR_SPAN_NAMES = [
+      'execution_handler.execute',
+      'agent.load_tools',
+      'context.handle_context_resolution',
+      'context.resolve',
+      'agent.generate',
+      'context-resolver.resolve_single_fetch_definition',
+      'agent_session.generate_structured_update',
+      'agent_session.process_artifact',
+      'agent_session.generate_artifact_metadata',
+      'response.format_object_response',
+      'response.format_response',
+      'ai.toolCall',
+    ];
+
+    for (const s of spansWithErrorsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
+      const spanName = s.labels?.[SPAN_KEYS.NAME] || '';
       const count = countFromSeries(s);
       if (!count) continue;
-      ensure(id).totalErrors += count;
+      
+      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
+        ensure(id).totalErrors += count;
+      }
     }
 
     // finalize
@@ -1631,9 +1642,9 @@ class SigNozStatsAPI {
             limit: QUERY_DEFAULTS.LIMIT_NULL,
           },
 
-          contextErrors: {
+          spansWithErrors: {
             dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.CONTEXT_ERRORS,
+            queryName: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
             aggregateOperator: AGGREGATE_OPERATORS.COUNT,
             aggregateAttribute: {
               key: SPAN_KEYS.SPAN_ID,
@@ -1644,20 +1655,12 @@ class SigNozStatsAPI {
               items: withProjectAndAgent([
                 {
                   key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.CONTEXT_HANDLE,
-                },
-                {
-                  key: {
                     key: SPAN_KEYS.HAS_ERROR,
                     ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
                   },
                   op: OPERATORS.EQUALS,
                   value: true,
-                }, // real boolean
+                },
                 {
                   key: {
                     key: SPAN_KEYS.CONVERSATION_ID,
@@ -1673,62 +1676,12 @@ class SigNozStatsAPI {
                 key: SPAN_KEYS.CONVERSATION_ID,
                 ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
-            ],
-            expression: QUERY_EXPRESSIONS.CONTEXT_ERRORS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
-          },
-
-          agentGenerationErrors: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.AGENT_GENERATION_ERRORS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
-                {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AGENT_GENERATION,
-                },
-                {
-                  key: {
-                    key: SPAN_KEYS.HAS_ERROR,
-                    ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: true,
-                }, // real boolean
-                {
-                  key: {
-                    key: SPAN_KEYS.CONVERSATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-              ]),
-            },
-            groupBy: [
               {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
               },
             ],
-            expression: QUERY_EXPRESSIONS.AGENT_GENERATION_ERRORS,
+            expression: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],

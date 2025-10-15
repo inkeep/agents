@@ -563,10 +563,6 @@ export class Agent {
                     code: SpanStatusCode.ERROR,
                     message: `MCP tool returned error: ${errorMessage}`,
                   });
-                  activeSpan.setAttributes({
-                    'tool.error': errorMessage,
-                    'tool.failed': true,
-                  });
                 }
 
                 throw new Error(

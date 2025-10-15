@@ -882,6 +882,7 @@ export async function GET(
       'agent_session.generate_artifact_metadata',
       'response.format_object_response',
       'response.format_response',
+      'ai.toolCall',
     ];
 
     let errorCount = 0;
@@ -947,6 +948,7 @@ export async function GET(
       toolPurpose?: string;
       toolCallArgs?: string;
       toolCallResult?: string;
+      toolStatusMessage?: string;
       aiTelemetryFunctionId?: string;
       // delegation/transfer
       delegationFromSubAgentId?: string;
@@ -1012,7 +1014,7 @@ export async function GET(
         type: ACTIVITY_TYPES.TOOL_CALL,
         name,
         toolName: name,
-        description: hasError && statusMessage ? statusMessage : `Called ${name}`,
+        description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1026,6 +1028,7 @@ export async function GET(
         transferToSubAgentId: transferToSubAgentId || undefined,
         toolCallArgs: toolCallArgs || undefined,
         toolCallResult: toolCallResult || undefined,
+        toolStatusMessage: statusMessage || undefined,
       });
     }
 

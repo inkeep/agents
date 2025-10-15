@@ -83,6 +83,7 @@ export interface ActivityItem {
   aiStreamObjectOperationId?: string;
   toolCallArgs?: string;
   toolCallResult?: string;
+  toolStatusMessage?: string;
   aiResponseText?: string;
   aiResponseToolCalls?: string;
   aiPromptMessages?: string;
