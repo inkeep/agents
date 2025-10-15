@@ -94,10 +94,5 @@ describe('version-check', () => {
       expect(url).toContain('agents-cli');
       expect(url).toContain('CHANGELOG.md');
     });
-
-    it('should accept custom package name', () => {
-      const url = getChangelogUrl('@custom/package');
-      expect(url).toContain('github.com');
-    });
   });
 });

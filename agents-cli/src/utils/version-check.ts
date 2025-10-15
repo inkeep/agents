@@ -82,6 +82,6 @@ export async function checkForUpdate(): Promise<VersionInfo> {
 /**
  * Get the changelog URL for the package
  */
-export function getChangelogUrl(_packageName = '@inkeep/agents-cli'): string {
+export function getChangelogUrl(): string {
   return `https://github.com/inkeep/agents/blob/main/agents-cli/CHANGELOG.md`;
 }
