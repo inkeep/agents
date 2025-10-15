@@ -6,7 +6,7 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: ['quick-start/start-development', 'quick-start/traces', 'quick-start/credentials'],
+          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces', 'get-started/credentials'],
         },
         'concepts',
       ],
