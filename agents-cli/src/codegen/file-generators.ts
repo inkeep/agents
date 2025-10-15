@@ -9,12 +9,11 @@ import { writeFileSync } from 'node:fs';
 import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
   cleanGeneratedCode,
-  createModel,
-  generateTextWithPlaceholders,
   getTypeDefinitions,
   IMPORT_INSTRUCTIONS,
   NAMING_CONVENTION_RULES,
-} from '../commands/pull.llm-generate';
+} from '@inkeep/agents-sdk';
+import { createModel, generateTextWithPlaceholders } from '../commands/pull.llm-generate';
 import type { DetectedPatterns } from './pattern-analyzer';
 import type { FileInfo, GenerationPlan } from './plan-builder';
 import type { VariableNameRegistry } from './variable-name-registry';

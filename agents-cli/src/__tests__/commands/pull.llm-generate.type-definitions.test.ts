@@ -48,8 +48,8 @@ describe('getTypeDefinitions', () => {
     // Set default mock implementations
     mockJoin.mockImplementation((...args: string[]) => args.join('/'));
 
-    // Dynamically import the function after mocks are set up
-    const module = await import('../../commands/pull.llm-generate.js');
+    // Dynamically import the function from SDK after mocks are set up
+    const module = await import('@inkeep/agents-sdk');
     getTypeDefinitions = module.getTypeDefinitions;
   });
 

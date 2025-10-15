@@ -1,0 +1,290 @@
+---
+title: Code generation utilities
+sidebarTitle: Codegen utilities
+description: Utilities for LLM-based code generation and TypeScript file creation
+keywords: code generation, LLM, TypeScript, utilities, SDK, codegen helpers
+---
+
+The Agents SDK provides utilities for LLM-based code generation, particularly useful for creating TypeScript files from project definitions.
+
+## Overview
+
+These utilities are used internally by the CLI's `pull` command but are exported from the SDK for use in custom code generation tools and workflows.
+
+## Available utilities
+
+### Constants
+
+#### `NAMING_CONVENTION_RULES`
+
+A comprehensive guide for naming conventions when generating TypeScript code from agent definitions.
+
+```typescript
+import { NAMING_CONVENTION_RULES } from '@inkeep/agents-sdk';
+
+// Use in LLM prompts to ensure consistent naming
+const prompt = `Generate TypeScript code following these rules:
+${NAMING_CONVENTION_RULES}`;
+```
+
+**Key rules:**
+- File names use the original ID exactly
+- Exported variable names use camelCase versions of IDs
+- Handles underscores (`inkeep_facts` → `inkeepFacts`)
+- Handles hyphens (`weather-api` → `weatherApi`)
+- Preserves random/UUID IDs as-is
+- ID field in objects keeps original format
+
+#### `IMPORT_INSTRUCTIONS`
+
+Guidelines for import patterns and organization in generated TypeScript files.
+
+```typescript
+import { IMPORT_INSTRUCTIONS } from '@inkeep/agents-sdk';
+
+// Use in LLM prompts to ensure correct import patterns
+const prompt = `Generate imports following these patterns:
+${IMPORT_INSTRUCTIONS}`;
+```
+
+**Key patterns:**
+- Tools: `import { toolName } from '../tools/{toolId}'`
+- Data components: `import { componentName } from '../data-components/{componentId}'`
+- Artifact components: `import { componentName } from '../artifact-components/{componentId}'`
+- Agents: `import { agentName } from './agent/{agentId}'`
+- All imports must be alphabetically sorted
+- Never use barrel imports from directories
+
+#### `PROJECT_JSON_EXAMPLE`
+
+A complete example of a project JSON structure, useful for providing context to LLMs when generating project code.
+
+```typescript
+import { PROJECT_JSON_EXAMPLE } from '@inkeep/agents-sdk';
+
+// Use in LLM prompts to provide structural examples
+const prompt = `Generate a project following this example:
+${PROJECT_JSON_EXAMPLE}`;
+```
+
+### Functions
+
+#### `cleanGeneratedCode(text: string): string`
+
+Removes markdown code fences from LLM-generated code.
+
+```typescript
+import { cleanGeneratedCode } from '@inkeep/agents-sdk';
+
+const rawLLMOutput = `\`\`\`typescript
+export const myAgent = agent({
+  id: 'my-agent',
+  name: 'My Agent'
+});
+\`\`\``;
+
+const cleanCode = cleanGeneratedCode(rawLLMOutput);
+// Result: "export const myAgent = agent({\n  id: 'my-agent',\n  name: 'My Agent'\n});"
+```
+
+**Features:**
+- Removes opening code fences (`\`\`\`typescript`, `\`\`\`ts`, `\`\`\``)
+- Removes closing code fences (`\`\`\``)
+- Trims whitespace
+- Preserves internal code structure
+
+#### `getTypeDefinitions(): string`
+
+Reads and formats the complete TypeScript type definitions from the Agents SDK package.
+
+```typescript
+import { getTypeDefinitions } from '@inkeep/agents-sdk';
+
+// Use in LLM prompts to provide full type context
+const typeInfo = getTypeDefinitions();
+const prompt = `Generate TypeScript code using these types:
+${typeInfo}`;
+```
+
+**Features:**
+- Automatically resolves SDK package location
+- Reads from `dist/index.d.ts`
+- Formats with clear boundaries for LLM parsing
+- Provides fallback message if types can't be loaded
+- Works in monorepos and published packages
+
+## Usage examples
+
+### Basic code generation workflow
+
+```typescript
+import {
+  cleanGeneratedCode,
+  getTypeDefinitions,
+  NAMING_CONVENTION_RULES,
+  IMPORT_INSTRUCTIONS,
+  PROJECT_JSON_EXAMPLE,
+} from '@inkeep/agents-sdk';
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+async function generateAgentFile(agentData: any, outputPath: string) {
+  // Construct comprehensive prompt with utilities
+  const prompt = `Generate a TypeScript file for an Inkeep agent.
+
+AGENT DATA:
+${JSON.stringify(agentData, null, 2)}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
+EXAMPLE:
+${PROJECT_JSON_EXAMPLE}
+
+Generate ONLY the TypeScript code without markdown formatting.`;
+
+  // Generate code with LLM
+  const { text } = await generateText({
+    model: anthropic('claude-sonnet-4-20250514'),
+    prompt,
+    temperature: 0.1,
+  });
+
+  // Clean and save the generated code
+  const cleanCode = cleanGeneratedCode(text);
+  await fs.writeFile(outputPath, cleanCode);
+}
+```
+
+### Custom naming convention enforcement
+
+```typescript
+import { NAMING_CONVENTION_RULES } from '@inkeep/agents-sdk';
+
+function validateGeneratedCode(code: string, originalId: string): boolean {
+  // Extract the exported name from code
+  const exportMatch = code.match(/export const (\w+) =/);
+  if (!exportMatch) return false;
+
+  const exportedName = exportMatch[1];
+  
+  // Check if it follows naming conventions
+  const expectedName = convertIdToVariableName(originalId);
+  
+  return exportedName === expectedName;
+}
+
+function convertIdToVariableName(id: string): string {
+  // Implement naming rules from NAMING_CONVENTION_RULES
+  return id
+    .replace(/[-_]/g, ' ')
+    .split(' ')
+    .map((word, index) => 
+      index === 0 
+        ? word.charAt(0).toLowerCase() + word.slice(1)
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join('');
+}
+```
+
+### Building comprehensive prompts
+
+```typescript
+import {
+  getTypeDefinitions,
+  NAMING_CONVENTION_RULES,
+  IMPORT_INSTRUCTIONS,
+} from '@inkeep/agents-sdk';
+
+function createToolGenerationPrompt(toolData: any) {
+  return `Generate a TypeScript file for an Inkeep tool.
+
+TOOL DATA:
+${JSON.stringify(toolData, null, 2)}
+
+TYPE DEFINITIONS:
+${getTypeDefinitions()}
+
+NAMING CONVENTIONS:
+${NAMING_CONVENTION_RULES}
+
+IMPORT PATTERNS:
+${IMPORT_INSTRUCTIONS}
+
+REQUIREMENTS:
+1. Import mcpTool from '@inkeep/agents-sdk'
+2. Use proper naming conventions for exports
+3. Follow import patterns for dependencies
+4. Generate clean, well-formatted TypeScript
+
+Generate ONLY the TypeScript code.`;
+}
+```
+
+## Best practices
+
+### Using with LLMs
+
+1. **Provide full context**: Include type definitions, naming rules, and examples in your prompts
+2. **Be specific**: Combine multiple utilities to create comprehensive prompts
+3. **Clean output**: Always use `cleanGeneratedCode` to remove markdown artifacts
+4. **Validate**: Check generated code against naming conventions
+
+### Error handling
+
+```typescript
+import { getTypeDefinitions } from '@inkeep/agents-sdk';
+
+function safeGetTypeDefinitions(): string {
+  try {
+    return getTypeDefinitions();
+  } catch (error) {
+    console.warn('Failed to load type definitions:', error);
+    // Provide minimal fallback
+    return '// Type definitions not available';
+  }
+}
+```
+
+### Temperature settings
+
+For code generation, use low temperature values for consistency:
+
+```typescript
+const { text } = await generateText({
+  model: model,
+  prompt: prompt,
+  temperature: 0.1,  // Low temperature for consistent code generation
+  maxOutputTokens: 4000,
+});
+```
+
+## Integration with CLI
+
+These utilities are used internally by the `inkeep pull` command to generate TypeScript files from cloud-based agent definitions. You can use them to build similar code generation workflows.
+
+## Type safety
+
+All utilities maintain TypeScript type safety:
+
+```typescript
+// Type-safe usage
+const typeDefinitions: string = getTypeDefinitions();
+const cleanCode: string = cleanGeneratedCode(rawCode);
+
+// Constants are strongly typed
+const rules: string = NAMING_CONVENTION_RULES;
+const instructions: string = IMPORT_INSTRUCTIONS;
+const example: string = PROJECT_JSON_EXAMPLE;
+```
+
+## See also
+
+- [CLI pull command](/cli-pull) - Uses these utilities for code generation
+- [Project structure](/project-structure) - Understanding generated file organization
+- [Agent configuration](/agents/configuration) - Details on agent definitions
+
