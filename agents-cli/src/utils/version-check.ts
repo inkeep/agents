@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,7 +15,14 @@ export interface VersionInfo {
  * Get the current installed version from package.json
  */
 export function getCurrentVersion(): string {
-  const packageJsonPath = join(__dirname, '..', '..', 'package.json');
+  // Try going up one level first (for bundled dist/index.js)
+  let packageJsonPath = join(__dirname, '..', 'package.json');
+
+  // If not found, try going up two levels (for source files in src/utils/)
+  if (!existsSync(packageJsonPath)) {
+    packageJsonPath = join(__dirname, '..', '..', 'package.json');
+  }
+
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   return packageJson.version;
 }
