@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage the same Agents in one platform.
+With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in a single platform.
 
 ## Use Cases
 
@@ -8,9 +8,9 @@ Inkeep Agents can operate as real-time **AI Chat Assistants**, for example:
 - a customer experience agent for customer support, technical docs, or in-app product copilot
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
 
-Agents can also be used to automate complex **AI Workflows** for tasks like:
-- Creating and updating knowledge bases, docs, and blogs
-- Updating CRMs, triaging tickets, and automating other business processes
+Agents can also be used for **AI workflow automation** like:
+- Creating and updating knowledge bases, documentation, and blogs
+- Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
 
 To get started, see the [docs](https://docs.inkeep.com).
 
@@ -29,7 +29,7 @@ A no-code drag-and-drop canvas designed to allow any team to create and manage t
 
 ### TypeScript Agents SDK
 
-A code-first approach for building and managing teams of Agents. The SDK allows engineering teams to build agent systems with the tools and developer experience they expect.
+A code-first approach for building and managing multi-agent systems. Engineering teams to build with the tools and developer experience they expect.
 
    ```typescript
    import { agent, subAgent } from "@inkeep/agents-sdk";
@@ -43,7 +43,7 @@ A code-first approach for building and managing teams of Agents. The SDK allows 
 
    export const basicAgent = agent({
      id: "basic-agent",
-     name: "Basic Agent Example",
+     name: "Basic Agent",
      description: "A basic agent",
      defaultSubAgent: helloAgent,
      subAgents: () => [helloAgent],
@@ -56,12 +56,12 @@ The **Visual Builder and TypeScript SDK are fully interoperable**: your technica
 
 **Inkeep Open Source** includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-agent design so agents can collaborate on tasks
-- MCP Tools with credential & permissions management
-- A UI component library for dynamic AI chat experiences
-- Triggering Agents with MCP, A2A, & Vercel SDK APIs
+- Multi-agent architecture to support teams of agents
+- MCP Tools with credentials management
+- A UI component library for dynamic chat experiences
+- Triggering Agents via MCP, A2A, & Vercel SDK APIs
 - Observability via a Traces UI & OpenTelemetry
-- Easy deployment to Vercel and Docker
+- Easy deployment to Vercel and using Docker
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
 
