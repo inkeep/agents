@@ -1,12 +1,14 @@
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import { findUp } from 'find-up';
 import fs from 'fs-extra';
+import inquirer from 'inquirer';
 import ora from 'ora';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from '../utils/templates';
 
 export interface AddOptions {
-  projectTemplate?: string;
-  mcpTemplate?: string;
+  project?: string;
+  mcp?: string;
   targetPath?: string;
   config?: string;
   list: boolean;
@@ -51,7 +53,7 @@ export const defaultAnthropicModelConfigurations = {
 export async function addCommand(options: AddOptions) {
   const projectTemplates = await getAvailableTemplates('template-projects');
   const mcpTemplates = await getAvailableTemplates('template-mcps');
-  if (!options.projectTemplate && !options.mcpTemplate) {
+  if (!options.project && !options.mcp) {
     console.log(chalk.yellow('Available project templates:'));
     for (const template of projectTemplates) {
       console.log(chalk.gray(`  • ${template}`));
@@ -62,29 +64,23 @@ export async function addCommand(options: AddOptions) {
     }
     process.exit(0);
   } else {
-    if (options.projectTemplate && !projectTemplates.includes(options.projectTemplate)) {
-      console.error(`❌ Project template "${options.projectTemplate}" not found`);
+    if (options.project && !projectTemplates.includes(options.project)) {
+      console.error(`❌ Project template "${options.project}" not found`);
       process.exit(1);
     }
-    if (options.mcpTemplate && !mcpTemplates.includes(options.mcpTemplate)) {
-      console.error(`❌ MCP template "${options.mcpTemplate}" not found`);
+    if (options.mcp && !mcpTemplates.includes(options.mcp)) {
+      console.error(`❌ MCP template "${options.mcp}" not found`);
       process.exit(1);
     }
 
-    const spinner = ora('Adding template...').start();
-    if (options.projectTemplate) {
-      await addProjectTemplate(options.projectTemplate, options.targetPath);
-      spinner.succeed(
-        `Project template "${options.projectTemplate}" added to ${options.targetPath}`
-      );
+    const spinner = ora('Adding template...\n').start();
+    if (options.project) {
+      await addProjectTemplate(options.project, options.targetPath);
+      spinner.succeed(`Project template "${options.project}" added to ${options.targetPath}`);
     }
-    if (options.mcpTemplate) {
-      await addMcpTemplate(options.mcpTemplate, options.targetPath);
-      spinner.succeed(`MCP template "${options.mcpTemplate}" added to apps/mcp`);
+    if (options.mcp) {
+      await addMcpTemplate(options.mcp, options.targetPath, spinner);
     }
-    spinner.succeed(
-      `Template "${options.projectTemplate || options.mcpTemplate}" added to ${options.targetPath}`
-    );
     return;
   }
 }
@@ -105,7 +101,7 @@ export async function addProjectTemplate(template: string, targetPath: string | 
 
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openAiKey = process.env.OPENAI_API_KEY;
-    const googleKey = process.env.GOOGLE_API_KEY;
+    const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
     let defaultModelSettings = {};
     if (anthropicKey) {
@@ -164,7 +160,48 @@ export async function addProjectTemplate(template: string, targetPath: string | 
   }
 }
 
-export async function addMcpTemplate(template: string, targetPath: string | undefined) {
+export async function addMcpTemplate(
+  template: string,
+  targetPath: string | undefined,
+  spinner: any
+) {
+  const templates = await getAvailableTemplates('template-mcps');
+  if (!template) {
+    console.log(chalk.yellow('Available templates:'));
+    for (const template of templates) {
+      console.log(chalk.gray(`  • ${template}`));
+    }
+    process.exit(0);
+  }
+
+  if (!targetPath) {
+    const foundPath = await findAppDirectory();
+    targetPath = `${foundPath}/${template}`;
+  }
   const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-mcps/${template}`;
-  await cloneTemplate(fullTemplatePath, `${targetPath}/apps/mcp`);
+  await cloneTemplate(fullTemplatePath, targetPath);
+  spinner.succeed(`MCP template "${template}" added to ${targetPath}`);
+}
+
+export async function findAppDirectory() {
+  const appDirectory = await findUp('apps/mcp/app', { type: 'directory' });
+  if (!appDirectory || !appDirectory.includes('apps/mcp/app')) {
+    console.log(chalk.yellow(`⚠️  No app directory found.`));
+    const { continueAnyway } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'continueAnyway',
+        message: `Do you want to add to ${process.cwd()} instead?`,
+        default: false,
+      },
+    ]);
+
+    if (!continueAnyway) {
+      console.log(chalk.gray('Operation cancelled.'));
+      process.exit(0);
+    }
+
+    return process.cwd();
+  }
+  return `${appDirectory}`;
 }

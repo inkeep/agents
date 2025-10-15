@@ -150,6 +150,17 @@ NANGO_SECRET_KEY=
 
 To prevent anyone from being able to access the UI, we recommend enabling Vercel authentication for all deployments: **Settings > Deployment Protection > Vercel Authentication > All Deployments**.
 
+### Step 9: Create a Vercel project for your MCP server (optional)
+
+![Vercel New Project - MCP Server](/images/vercel-new-project-mcp.png)
+
+<Note>
+  The Framework Preset should be "Next.js" and the Root Directory should be
+  `apps/mcp`.
+</Note>
+
+For more information on how to add MCP servers to your project, see [Create MCP Servers](/typescript-sdk/cli-reference#inkeep-add).
+
 ## Push your Agent
 
 ### Step 1: Configure your root .env file
