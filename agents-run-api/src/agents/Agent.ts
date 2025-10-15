@@ -852,7 +852,7 @@ export class Agent {
                 provider: 'native',
                 runtime: 'node22',
                 timeout: 30000,
-                vcpus: 1,
+                vcpus: 4,
               };
 
               const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
