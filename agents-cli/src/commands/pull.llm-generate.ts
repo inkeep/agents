@@ -235,19 +235,19 @@ const PROJECT_JSON_EXAMPLE = `
  */
 export const NAMING_CONVENTION_RULES = `
 CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
-- File names ALWAYS use the exact original ID. IDs are made of file safe characters (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
-- Name of consts and variables, especially ones that are exported ones, MUST be camelCase versions of the ID, unless the ID is random/UUID then take it verbatim.
-- Conversion rules for import/export names:
+- File paths use kebab-case naming (e.g., '../tools/tool-name', '../data-components/component-name')
+- Variable names MUST be camelCase versions of the entity ID
+- Conversion rules for variable names:
   - IDs with underscores: 'inkeep_facts' → inkeepFacts
   - IDs with hyphens: 'weather-api' → weatherApi
   - IDs with both: 'my_weather-api' → myWeatherApi
   - Random/UUID IDs: Keep as-is (e.g., 'fUI2riwrBVJ6MepT8rjx0' → fUI2riwrBVJ6MepT8rjx0)
-  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym or random or UUID
 - The ID field in the exported object keeps the original format
+- IMPORTANT: Import paths use kebab-case file names, NOT entity IDs
 - Examples:
-  - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
-  - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
-  - Agent: import { myAgent } from './agent/my-agent'; export const myAgent = agent({ id: 'my-agent', ... })
+  - Tool: import { toolName } from '../tools/tool-name'; export const toolName = mcpTool({ id: 'tool_id', ... })
+  - Component: import { componentName } from '../data-components/component-name'; export const componentName = dataComponent({ id: 'component-id', ... })
+  - Agent: import { agentName } from './agents/agent-name'; export const agentName = agent({ id: 'agent-id', ... })
 `;
 
 /**
@@ -258,10 +258,10 @@ export const IMPORT_INSTRUCTIONS = `
 CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
 
 CRITICAL IMPORT PATTERNS:
-- Tools: Import from '../tools/{toolId}' (individual files)
-- Data components: Import from '../data-components/{componentId}' (individual files)
-- Artifact components: Import from '../artifact-components/{componentId}' (individual files)
-- Agent: Import from './agent/{agentId}' (individual files)
+- Tools: Import from '../tools/{file-name}' (use kebab-case file names)
+- Data components: Import from '../data-components/{file-name}' (use kebab-case file names)
+- Artifact components: Import from '../artifact-components/{file-name}' (use kebab-case file names)
+- Agent: Import from './agents/{file-name}' (use kebab-case file names)
 
 NEVER use barrel imports from directories:
 ❌ WRONG: import { ordersList, refundApproval } from '../data-components';
@@ -315,10 +315,11 @@ export async function generateTextWithPlaceholders(
     maxOutputTokens?: number;
     abortSignal?: AbortSignal;
   },
-  debug: boolean = false
+  debug: boolean = false,
+  context?: { fileType?: string }
 ): Promise<string> {
   // Create placeholders to reduce prompt size
-  const { processedData, replacements } = createPlaceholders(data);
+  const { processedData, replacements } = createPlaceholders(data, context);
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -429,6 +430,42 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
+ * Generate import path mappings for the LLM prompt
+ */
+function generateImportMappings(
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>
+): string {
+  let result = '';
+  
+  if (toolFilenames && toolFilenames.size > 0) {
+    result += 'TOOLS (use exact import paths):\n';
+    for (const [toolId, fileName] of toolFilenames.entries()) {
+      result += `  - Tool ID: "${toolId}" → Import: "../tools/${fileName.replace('.ts', '')}"\n`;
+    }
+    result += '\n';
+  }
+  
+  if (componentFilenames && componentFilenames.size > 0) {
+    result += 'COMPONENTS (use exact import paths):\n';
+    for (const [componentId, fileName] of componentFilenames.entries()) {
+      // Determine directory based on component type patterns
+      let directory = 'components'; // fallback
+      if (fileName.includes('data-') || componentId.includes('data-')) {
+        directory = 'data-components';
+      } else if (fileName.includes('artifact-') || componentId.includes('artifact-')) {
+        directory = 'artifact-components';
+      } else if (fileName.includes('status-') || componentId.includes('status-')) {
+        directory = 'status-components';
+      }
+      result += `  - Component ID: "${componentId}" → Import: "../${directory}/${fileName.replace('.ts', '')}"\n`;
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Generate an agent TypeScript file
  */
 export async function generateAgentFile(
@@ -436,6 +473,8 @@ export async function generateAgentFile(
   agentId: string,
   outputPath: string,
   modelSettings: ModelSettings,
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>,
   debug: boolean = false
 ): Promise<void> {
   const model = createModel(modelSettings);
@@ -447,11 +486,22 @@ AGENT DATA:
 
 AGENT ID: ${agentId}
 
-${getTypeDefinitions()}
+${toolFilenames || componentFilenames ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+${generateImportMappings(toolFilenames, componentFilenames)}
+
+!!! WARNING: Entity IDs ≠ File Paths !!!
+- Entity IDs may use underscores or different naming
+- File paths use kebab-case naming convention
+- ALWAYS use the exact import paths from the mappings above
+- NEVER use entity IDs directly as import paths
+
+` : ''}${getTypeDefinitions()}
 
 IMPORTANT CONTEXT:
 - Agents reference resources (tools, components) by their imported variable names
-- The 'tools' field in subAgents contains tool IDs that must match the imported variable names
+- Tools and components are referenced by variable names in code, but imports use FILE PATHS
+- CRITICAL: Import statements use file paths (../tools/tool-filename), NOT tool IDs
+- Variable names in canUse() arrays should match the imported variable names
 - If contextConfig is present, it must be imported from '@inkeep/agents-core' and used to create the context config
 
 ${NAMING_CONVENTION_RULES}
@@ -459,7 +509,10 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. IMPORTS (CRITICAL):
+1. IMPORTS (CRITICAL - USE FILE PATHS, NOT IDs):
+   - For tool/component imports: Use ONLY the exact file paths from IMPORT PATH MAPPINGS above
+   - Import paths are based on actual file names, not entity IDs
+   - Always use kebab-case file paths (../tools/tool-name, not ../tools/tool_name)
    - ALWAYS import { agent, subAgent } from '@inkeep/agents-sdk'
    - ALWAYS import { z } from 'zod' when using ANY Zod schemas (responseSchema, headersSchema, etc.)
    - ALWAYS import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core' when agent has contextConfig

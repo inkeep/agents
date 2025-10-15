@@ -19,6 +19,7 @@ import {
   generateIndexFile,
   generateToolFile,
 } from './pull.llm-generate';
+import { VariableNameGenerator, DEFAULT_NAMING_CONVENTIONS } from '../codegen/variable-name-registry';
 export interface PullOptions {
   project?: string;
   config?: string;
@@ -188,19 +189,19 @@ async function verifyGeneratedFiles(
 
     // Check that expected tool files exist
     const toolsDir = join(projectDir, 'tools');
-    const expectedTools = Object.keys(originalProjectData.tools || {});
+    const expectedTools = Object.entries(originalProjectData.tools || {});
 
-    for (const toolId of expectedTools) {
-      // Convert tool ID to kebab-case to match file naming convention
-      const kebabCaseId = toolId
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase();
-      const toolPath = join(toolsDir, `${kebabCaseId}.ts`);
+    // Create a filename generator to ensure consistent naming
+    const filenameGenerator = new VariableNameGenerator(DEFAULT_NAMING_CONVENTIONS);
+
+    for (const [toolId, toolData] of expectedTools) {
+      // Use the same filename generation logic as the plan builder
+      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
+      const toolPath = join(toolsDir, `${fileName}.ts`);
       if (!existsSync(toolPath)) {
-        errors.push(`Tool file not found: tools/${kebabCaseId}.ts`);
+        errors.push(`Tool file not found: tools/${fileName}.ts`);
       } else if (debug) {
-        console.log(chalk.gray(`  ✓ Tool file exists: tools/${kebabCaseId}.ts`));
+        console.log(chalk.gray(`  ✓ Tool file exists: tools/${fileName}.ts`));
       }
     }
 
@@ -398,6 +399,37 @@ async function _generateProjectFiles(
   const generationTasks: Promise<void>[] = [];
   const fileInfo: { type: string; name: string }[] = [];
 
+  // Create filename generator for consistent naming
+  const filenameGenerator = new VariableNameGenerator(DEFAULT_NAMING_CONVENTIONS);
+
+  // Build filename mappings for tools and components
+  const toolFilenames = new Map<string, string>();
+  const componentFilenames = new Map<string, string>();
+
+  // Collect tool filenames
+  if (tools && Object.keys(tools).length > 0) {
+    for (const [toolId, toolData] of Object.entries(tools)) {
+      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
+      toolFilenames.set(toolId, fileName);
+    }
+  }
+
+  // Collect component filenames (data, artifact, status components)
+  if (dataComponents && Object.keys(dataComponents).length > 0) {
+    for (const [componentId, componentData] of Object.entries(dataComponents)) {
+      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
+      componentFilenames.set(componentId, fileName);
+    }
+  }
+  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
+    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
+      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
+      componentFilenames.set(componentId, fileName);
+    }
+  }
+  // TODO: Add status components when they become available in projectData
+  // TODO: Add credentials/environments when they have their own component structure
+
   // Add index.ts generation task
   const indexPath = join(dirs.projectRoot, 'index.ts');
   generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
@@ -406,40 +438,44 @@ async function _generateProjectFiles(
   // Add agent generation tasks
   if (agents && Object.keys(agents).length > 0) {
     for (const [agentId, agentData] of Object.entries(agents)) {
-      const agentPath = join(dirs.agentsDir, `${agentId}.ts`);
-      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings));
-      fileInfo.push({ type: 'agent', name: `${agentId}.ts` });
+      const fileName = filenameGenerator.generateFileName(agentId, 'agent', agentData);
+      const agentPath = join(dirs.agentsDir, `${fileName}.ts`);
+      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings, toolFilenames, componentFilenames));
+      fileInfo.push({ type: 'agent', name: `${fileName}.ts` });
     }
   }
 
   // Add tool generation tasks
   if (tools && Object.keys(tools).length > 0) {
     for (const [toolId, toolData] of Object.entries(tools)) {
-      const toolPath = join(dirs.toolsDir, `${toolId}.ts`);
+      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
+      const toolPath = join(dirs.toolsDir, `${fileName}.ts`);
       generationTasks.push(generateToolFile(toolData, toolId, toolPath, modelSettings));
-      fileInfo.push({ type: 'tool', name: `${toolId}.ts` });
+      fileInfo.push({ type: 'tool', name: `${fileName}.ts` });
     }
   }
 
   // Add data component generation tasks
   if (dataComponents && Object.keys(dataComponents).length > 0) {
     for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      const componentPath = join(dirs.dataComponentsDir, `${componentId}.ts`);
+      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
+      const componentPath = join(dirs.dataComponentsDir, `${fileName}.ts`);
       generationTasks.push(
         generateDataComponentFile(componentData, componentId, componentPath, modelSettings)
       );
-      fileInfo.push({ type: 'dataComponent', name: `${componentId}.ts` });
+      fileInfo.push({ type: 'dataComponent', name: `${fileName}.ts` });
     }
   }
 
   // Add artifact component generation tasks
   if (artifactComponents && Object.keys(artifactComponents).length > 0) {
     for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      const componentPath = join(dirs.artifactComponentsDir, `${componentId}.ts`);
+      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
+      const componentPath = join(dirs.artifactComponentsDir, `${fileName}.ts`);
       generationTasks.push(
         generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings)
       );
-      fileInfo.push({ type: 'artifactComponent', name: `${componentId}.ts` });
+      fileInfo.push({ type: 'artifactComponent', name: `${fileName}.ts` });
     }
   }
 
@@ -880,7 +916,8 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514,
     };
 
-    const plan = await generatePlan(projectData, patterns, modelSettings, createModel);
+    const targetEnvironment = options.env || 'development';
+    const plan = await generatePlan(projectData, patterns, modelSettings, createModel, targetEnvironment);
     spinner.succeed('Generation plan created');
 
     // Step 3: Display plan and conflicts

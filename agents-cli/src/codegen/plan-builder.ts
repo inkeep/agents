@@ -68,7 +68,8 @@ export async function generatePlan(
   projectData: FullProjectDefinition,
   patterns: DetectedPatterns,
   modelSettings: ModelSettings,
-  createModel: (config: ModelSettings) => any
+  createModel: (config: ModelSettings) => any,
+  targetEnvironment: string = 'development'
 ): Promise<GenerationPlan> {
   // Step 1: Initialize variable name generator with detected conventions
   const nameGenerator = new VariableNameGenerator(patterns.namingConventions);
@@ -87,12 +88,19 @@ export async function generatePlan(
   // Step 3: Generate variable names for all entities from new project data
   const allEntities = collectAllEntities(projectData);
   for (const entity of allEntities) {
-    nameGenerator.generateVariableName(entity.id, entity.type);
+    nameGenerator.generateVariableName(entity.id, entity.type, entity.data);
+  }
+
+  // Step 3.5: Pre-compute filenames for guaranteed consistency
+  const fileNameMappings = new Map<string, string>();
+  for (const entity of allEntities) {
+    const fileName = nameGenerator.generateFileName(entity.id, entity.type, entity.data);
+    fileNameMappings.set(entity.id, fileName);
   }
 
   // Step 4: Use LLM to generate file structure plan with placeholder optimization
   const model = createModel(modelSettings);
-  const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), allEntities);
+  const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), allEntities, fileNameMappings, targetEnvironment);
 
   // Combine projectData and patterns for placeholder processing
   const promptData = {
@@ -136,10 +144,15 @@ export async function generatePlan(
  */
 function createPlanningPromptTemplate(
   registry: VariableNameRegistry,
-  allEntities: Array<{ id: string; type: EntityType }>
+  allEntities: Array<{ id: string; type: EntityType; data?: any }>,
+  fileNameMappings: Map<string, string>,
+  targetEnvironment: string = 'development'
 ): string {
   // Format variable mappings for prompt
   const mappings = formatVariableMappings(registry, allEntities);
+  
+  // Format filename mappings for prompt
+  const fileNames = formatFileNameMappings(fileNameMappings, allEntities);
 
   return `You are a code generation planner. Generate a file structure plan for an Inkeep TypeScript project.
 
@@ -152,6 +165,9 @@ The DATA above contains:
 
 VARIABLE NAME MAPPINGS (MUST USE THESE EXACT NAMES):
 ${mappings}
+
+FILENAME MAPPINGS (MUST USE THESE EXACT FILENAMES):
+${fileNames}
 
 CRITICAL RULES:
 
@@ -168,7 +184,14 @@ CRITICAL RULES:
    - Agents must import status components from status-components/ directory
    - Status components are NEVER inlined in agent files
 
-3. File Structure:
+3. ENVIRONMENT FILES - VERY IMPORTANT:
+   - **When credential references exist**: Create environment files in environments/ directory
+   - **Environment Structure**: Create ONLY "${targetEnvironment}.env.ts" file for target environment (credentials are embedded in this file)
+   - **Environment Index**: Create "environments/index.ts" that imports environment files and exports envSettings using createEnvironmentSettings
+   - **NO separate credential files**: Credentials are defined INSIDE the environment files, not as separate files
+   - **Environment entities**: Use type "environment" for both environment files and index file
+
+4. File Structure:
    - If patterns show "toolsLocation": "inline", ALL tools should be in "inlineContent" of agent files
    - If patterns show "toolsLocation": "separate", MCP tools get separate files, function tools still inline
    - Follow the detected file naming convention (kebab-case, camelCase, or snake_case)
@@ -263,6 +286,40 @@ OUTPUT FORMAT (JSON):
       "inlineContent": null
     },
     {
+      "path": "environments/${targetEnvironment}.env.ts",
+      "type": "environment",
+      "entities": [
+        {
+          "id": "${targetEnvironment}",
+          "variableName": "${targetEnvironment}",
+          "entityType": "environment",
+          "exportName": "${targetEnvironment}"
+        }
+      ],
+      "dependencies": [],
+      "inlineContent": null
+    },
+    {
+      "path": "environments/index.ts", 
+      "type": "environment",
+      "entities": [
+        {
+          "id": "envSettings",
+          "variableName": "envSettings",
+          "entityType": "environment",
+          "exportName": "envSettings"
+        }
+      ],
+      "dependencies": [
+        {
+          "variableName": "${targetEnvironment}",
+          "fromPath": "./${targetEnvironment}.env",
+          "entityType": "environment"
+        }
+      ],
+      "inlineContent": null
+    },
+    {
       "path": "index.ts",
       "type": "index",
       "entities": [
@@ -310,6 +367,7 @@ function formatVariableMappings(
     artifactComponent: [],
     statusComponent: [],
     credential: [],
+    environment: [],
   };
 
   for (const entity of allEntities) {
@@ -326,6 +384,53 @@ function formatVariableMappings(
       result += `\n${type.toUpperCase()}S:\n`;
       for (const entity of entities) {
         result += `  - id: "${entity.id}" → variableName: "${entity.variableName}"\n`;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Format filename mappings for LLM prompt
+ */
+function formatFileNameMappings(
+  fileNameMappings: Map<string, string>,
+  allEntities: Array<{ id: string; type: EntityType; data?: any }>
+): string {
+  let result = '';
+
+  // Group entities by type that have file mappings
+  const byType: Record<string, Array<{ id: string; fileName: string; name?: string }>> = {
+    agent: [],
+    tool: [],
+    dataComponent: [],
+    artifactComponent: [],
+    statusComponent: [],
+    credential: [],
+  };
+
+  for (const entity of allEntities) {
+    const fileName = fileNameMappings.get(entity.id);
+    if (fileName && byType[entity.type]) {
+      byType[entity.type].push({
+        id: entity.id,
+        fileName,
+        name: entity.data?.name // Include human-readable name for context
+      });
+    }
+  }
+
+  // Format output
+  for (const [type, entities] of Object.entries(byType)) {
+    if (entities.length > 0) {
+      result += `\n${type.toUpperCase()}S:\n`;
+      for (const entity of entities) {
+        if (entity.name && entity.name !== entity.id) {
+          result += `  - id: "${entity.id}" (${entity.name}) → filename: "${entity.fileName}.ts"\n`;
+        } else {
+          result += `  - id: "${entity.id}" → filename: "${entity.fileName}.ts"\n`;
+        }
       }
     }
   }
