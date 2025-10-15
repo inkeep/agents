@@ -319,11 +319,14 @@ async function createWorkspaceStructure() {
 }
 
 async function createEnvironmentFiles(config: FileConfig) {
+  // Convert to forward slashes for cross-platform SQLite URI compatibility
+  const dbPath = process.cwd().replace(/\\/g, '/');
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
 # Database
-DB_FILE_NAME=file:${process.cwd()}/local.db
+DB_FILE_NAME=file:${dbPath}/local.db
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
@@ -385,6 +388,8 @@ async function setupProjectInDatabase(config: FileConfig) {
     stdio: ['pipe', 'pipe', 'pipe'],
     detached: true,
     cwd: process.cwd(),
+    shell: true,
+    windowsHide: true,
   });
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -397,13 +402,19 @@ async function setupProjectInDatabase(config: FileConfig) {
   } finally {
     if (devProcess.pid) {
       try {
-        process.kill(-devProcess.pid, 'SIGTERM');
+        if (process.platform === 'win32') {
+          // Windows: Use taskkill to kill process tree
+          await execAsync(`taskkill /pid ${devProcess.pid} /T /F`);
+        } else {
+          // Unix: Use negative PID to kill process group
+          process.kill(-devProcess.pid, 'SIGTERM');
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        try {
-          process.kill(-devProcess.pid, 'SIGKILL');
-        } catch {}
+          try {
+            process.kill(-devProcess.pid, 'SIGKILL');
+          } catch {}
+        }
       } catch (_error) {
         console.log('Note: Dev servers may still be running in background');
       }
