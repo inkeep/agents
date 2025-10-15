@@ -98,6 +98,8 @@ function Flow({
     projectId: string;
   }>();
 
+  const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
+
   const initialNodes = useMemo<Node[]>(
     () => [
       {
@@ -144,9 +146,20 @@ function Flow({
       : { nodes: initialNodes, edges: initialEdges };
     return {
       ...result,
-      nodes: enrichNodes(result.nodes),
+      nodes: nodeId
+        ? enrichNodes(result.nodes).map((node) => ({
+            ...node,
+            selected: node.id === nodeId,
+          }))
+        : enrichNodes(result.nodes),
+      edges: edgeId
+        ? result.edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === edgeId,
+          }))
+        : result.edges,
     };
-  }, [agent, enrichNodes, initialNodes]);
+  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
 
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
     if (!agent?.subAgents) return {} as AgentToolConfigLookup;
@@ -203,11 +216,11 @@ function Flow({
     markSaved,
     clearSelection,
     markUnsaved,
+    reset,
   } = useAgentActions();
 
   // Always use enriched nodes for ReactFlow
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
-  const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   /**
@@ -255,37 +268,15 @@ function Flow({
       toolLookup,
       agentToolConfigLookup
     );
+
+    return () => {
+      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
+      reset();
+    };
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    if (!agent) {
-      openAgentPane();
-      return;
-    }
-
-    if (!nodeId && !edgeId) {
-      openAgentPane();
-    }
-
-    if (nodeId) {
-      setNodes((nodes) =>
-        nodes.map((node) => ({
-          ...node,
-          selected: node.id === nodeId,
-        }))
-      );
-    }
-
-    if (edgeId) {
-      setEdges((edges) =>
-        edges.map((edge) => ({
-          ...edge,
-          selected: edge.id === edgeId,
-        }))
-      );
-    }
-
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
     if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
       setQueryState((prev) => ({
@@ -457,7 +448,6 @@ function Flow({
           ? edges[0]
           : null;
       const defaultPane = isOpen ? 'agent' : null;
-
       setQueryState(
         {
           pane: node ? 'node' : edge ? 'edge' : defaultPane,
@@ -515,7 +505,6 @@ function Flow({
           }))
         );
         setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-
         // Open the sidepane for the selected node
         setQueryState({
           pane: 'node',
