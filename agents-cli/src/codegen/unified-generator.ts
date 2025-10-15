@@ -244,8 +244,8 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       }
       
       // Extract from external agents with credentialReferenceId
-      if (projectData.externalAgents) {
-        for (const [agentId, agentData] of Object.entries(projectData.externalAgents)) {
+      if ((projectData as any).externalAgents) {
+        for (const [agentId, agentData] of Object.entries((projectData as any).externalAgents)) {
           const agent = agentData as any;
           if (agent.credentialReferenceId && !credentialData[agent.credentialReferenceId]) {
             credentialData[agent.credentialReferenceId] = {
