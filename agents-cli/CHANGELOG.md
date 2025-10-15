@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+- Updated dependencies [d00742f]
+- Updated dependencies [7253f2b]
+  - @inkeep/agents-core@0.22.3
+  - @inkeep/agents-manage-ui@0.22.3
+  - @inkeep/agents-sdk@0.22.3
+
 ## 0.22.2
 
 ### Patch Changes
