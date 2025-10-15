@@ -10,6 +10,7 @@ import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
+import { updateCommand } from './commands/update';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -154,6 +155,15 @@ program
       path: options.path,
       export: options.export,
     });
+  });
+
+program
+  .command('update')
+  .description('Update @inkeep/agents-cli to the latest version')
+  .option('--check', 'Check for updates without installing')
+  .option('--force', 'Force update even if already on latest version')
+  .action(async (options) => {
+    await updateCommand(options);
   });
 
 program.parse();
