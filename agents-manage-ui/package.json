@@ -51,7 +51,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-api": "workspace:^",
     "@inkeep/agents-run-api": "workspace:^",
-    "@inkeep/agents-ui": "^0.14.12",
+    "@inkeep/agents-ui": "^0.14.14",
     "@lezer/highlight": "^1.2.1",
     "@nangohq/frontend": "^0.66.0",
     "@nangohq/node": "^0.66.0",
