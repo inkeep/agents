@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+- Updated dependencies [28018a0]
+  - @inkeep/agents-core@0.22.6
+
 ## 0.22.5
 
 ### Patch Changes
