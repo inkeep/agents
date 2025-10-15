@@ -8,6 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
+  AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   DB_FILE_NAME: z.string().optional(),
   TURSO_DATABASE_URL: z.string().optional(),
   TURSO_AUTH_TOKEN: z.string().optional(),

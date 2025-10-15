@@ -16,7 +16,7 @@ interface DataComponentPageProps {
 export default async function DataComponentPage({ params }: DataComponentPageProps) {
   const { tenantId, projectId, dataComponentId } = await params;
   const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
-  const { name, description, props } = dataComponent;
+  const { name, description, props, preview } = dataComponent;
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -38,6 +38,7 @@ export default async function DataComponentPage({ params }: DataComponentPagePro
               name,
               description: description ?? '',
               props,
+              preview,
             }}
           />
         </div>

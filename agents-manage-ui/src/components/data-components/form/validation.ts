@@ -33,6 +33,10 @@ export const dataComponentSchema = z.object({
       }
     })
     .optional(),
+  preview: z.object({
+    code: z.string(),
+    data: z.record(z.string(), z.unknown()),
+  }).nullable().optional(),
 });
 
 export type DataComponentFormData = z.infer<typeof dataComponentSchema>;

@@ -17,6 +17,7 @@ import {
 } from '@/lib/actions/data-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { formatJsonField } from '@/lib/utils';
+import { ComponentPreviewGenerator } from '../preview/component-preview-generator';
 import { defaultValues } from './form-configuration';
 import { type DataComponentFormData, dataComponentSchema } from './validation';
 
@@ -134,6 +135,19 @@ export function DataComponentForm({
           placeholder="Enter a valid JSON Schema..."
           isRequired
         />
+
+        {id && (
+          <ComponentPreviewGenerator
+            tenantId={tenantId}
+            projectId={projectId}
+            dataComponentId={id}
+            existingPreview={initialData?.preview || null}
+            onPreviewChanged={(preview) => {
+              form.setValue('preview', preview);
+            }}
+          />
+        )}
+
         <Button type="submit" disabled={isSubmitting}>
           Save
         </Button>
