@@ -42,7 +42,7 @@ export function formatConversationAsPrettifiedTrace(
     },
     timeline: (conversation.activities || []).map((activity) => {
         // Destructure to exclude unwanted fields
-        const { id: _id, timestamp: _timestamp, ...rest } = activity;
+        const { id: _id, timestamp: _timestamp, subAgentId: _subAgentId, ...rest } = activity;
         return {
           ...rest
         };
