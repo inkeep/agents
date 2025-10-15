@@ -4,17 +4,39 @@
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
-  "main": "./src/index.ts",
+  "main": "dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./constants/models": "./src/constants/models.ts",
-    "./schema": "./src/db/schema.ts",
-    "./types": "./src/types/index.ts",
-    "./validation": "./src/validation/index.ts",
-    "./client-exports": "./src/client-exports.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/db/schema.d.ts",
+      "import": "./dist/db/schema.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "import": "./dist/validation/index.js"
+    },
+    "./client-exports": {
+      "types": "./dist/client-exports.d.ts",
+      "import": "./dist/client-exports.js"
+    },
+    "./constants/models": {
+      "types": "./dist/constants/models.d.ts",
+      "import": "./dist/constants/models.js"
+    },
+    "./utils/schema-conversion": {
+      "types": "./dist/utils/schema-conversion.d.ts",
+      "import": "./dist/utils/schema-conversion.js"
+    },
     "./drizzle": "./drizzle/",
-    "./utils/schema-conversion": "./src/utils/schema-conversion.ts"
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsup",

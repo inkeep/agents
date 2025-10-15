@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     default: {
@@ -19,7 +19,7 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 vi.mock('node:path', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     default: {
@@ -29,6 +29,21 @@ vi.mock('node:path', async (importOriginal) => {
     },
     join: vi.fn((...args: string[]) => args.join('/')),
     resolve: vi.fn((...args: string[]) => args.join('/')),
+  };
+});
+
+vi.mock('node:module', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    createRequire: vi.fn(() => ({
+      resolve: vi.fn((moduleName: string) => {
+        if (moduleName === '@inkeep/agents-sdk/package.json') {
+          return '/mock/path/to/package.json';
+        }
+        return moduleName;
+      }),
+    })),
   };
 });
 
@@ -207,4 +222,3 @@ export { project };
     });
   });
 });
-

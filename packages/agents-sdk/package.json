@@ -2,8 +2,16 @@
   "name": "@inkeep/agents-sdk",
   "version": "0.22.3",
   "description": "Agents SDK for building and managing agents in the Inkeep Agent Framework",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsup",
     "test": "ENVIRONMENT=test vitest --run",
