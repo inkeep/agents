@@ -27,6 +27,7 @@ export async function cloneTemplate(
       await replaceContentInFiles(targetPath, replacements);
     }
   } catch (_error) {
+    console.log(`❌ Error cloning template: ${_error}`);
     process.exit(1);
   }
 }
