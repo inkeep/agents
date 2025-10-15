@@ -66,7 +66,6 @@ async function makeApiRequestInternal<T>(
       );
     }
 
-    // Check if there's actually content to parse
     const contentType = response.headers.get('content-type');
     const hasJsonContent = contentType?.includes('application/json');
 

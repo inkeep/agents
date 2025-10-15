@@ -114,7 +114,6 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
   );
 };
 
-// Helper function for data-operation labels
 const getOperationLabel = (operation: any) => {
   // Use LLM-generated label if available for data-operations
   if (operation.label) {
@@ -211,7 +210,6 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
               components={{
                 // Intercept superscript elements to render citations
                 sup: ({ children, ...props }) => {
-                  // Check if this is a citation (format: ^artifact identifier^)
                   if (children && typeof children === 'string') {
                     // Find the citation part
                     const citation = parts.find(
@@ -337,7 +335,6 @@ export const IkpMessage: FC<IkpMessageProps> = ({
     );
   }
 
-  // Check if we're still streaming text content or if there are incomplete operations
   const hasActiveOperations =
     isStreaming || message.parts.some((part) => part.type === 'text' && part.state === 'streaming');
   const isLoading = isStreaming || hasActiveOperations;

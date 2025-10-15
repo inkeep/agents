@@ -97,7 +97,6 @@ function validateJsonSchema(schema: any): ValidationError[] {
     return errors;
   }
 
-  // Check if it's a valid object schema
   if (!objectValidator.Check(schema)) {
     // Check individual properties for better error messages
     if (!schema.type || schema.type !== 'object') {
@@ -124,7 +123,6 @@ function validateJsonSchema(schema: any): ValidationError[] {
       });
     }
 
-    // Validate each property
     if (schema.properties && typeof schema.properties === 'object') {
       Object.entries(schema.properties).forEach(([propertyName, propertySchema]) => {
         if (!propertyValidator.Check(propertySchema)) {
@@ -205,7 +203,6 @@ function validateLlmRequirements(schema: any): ValidationError[] {
 export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
   const warnings: string[] = [];
 
-  // Step 1: Validate JSON syntax
   const { parsed, errors: syntaxErrors } = validateJsonSyntax(jsonString);
 
   if (syntaxErrors.length > 0) {
@@ -224,10 +221,8 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
     };
   }
 
-  // Step 2: Validate JSON Schema structure
   const schemaErrors = validateJsonSchema(parsed);
 
-  // Step 3: Validate LLM-specific requirements
   const llmErrors = validateLlmRequirements(parsed);
 
   const allErrors = [...schemaErrors, ...llmErrors];

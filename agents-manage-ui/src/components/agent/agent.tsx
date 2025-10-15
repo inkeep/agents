@@ -148,7 +148,6 @@ function Flow({
     };
   }, [agent, enrichNodes, initialNodes]);
 
-  // Create agent tool configuration lookup from agent data
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
     if (!agent?.subAgents) return {} as AgentToolConfigLookup;
 
@@ -227,7 +226,6 @@ function Flow({
       // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
       setTimeout(() => {
         const currentNodes = getNodes();
-        // Check if any of the replaced nodes are intersecting with others
         for (const change of replaceChanges) {
           const node = currentNodes.find((n) => n.id === change.id);
           if (!node) {
@@ -580,7 +578,6 @@ function Flow({
       agentToolConfigLookup
     );
 
-    // Build a map from toolId to React Flow node ID for function tools
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {
       if (node.type === NodeType.FunctionTool) {
@@ -590,10 +587,8 @@ function Flow({
       }
     });
 
-    // Validate the serialized data before saving
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
-      // Convert validation errors to the format expected by parseAgentValidationErrors
       const errorObjects = validationErrors.map((error) => ({
         message: error.message,
         field: error.field,
@@ -625,10 +620,8 @@ function Flow({
 
       // Update MCP nodes with new relationshipIds from backend response
       if (res.data) {
-        // Create a map to track which relationships were processed
         const processedRelationships = new Set<string>();
 
-        // Update nodes with the new relationshipIds
         setNodes((currentNodes) =>
           currentNodes.map((node) => {
             if (node.type === NodeType.MCP) {

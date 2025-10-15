@@ -103,7 +103,6 @@ const asTypedFilterValue = (v: string): FilterValue => {
       return FilterValueSchema.parse(numericValue);
     }
 
-    // Return as validated string
     return FilterValueSchema.parse(v);
   } catch (error) {
     // If validation fails, log the error and return the original string

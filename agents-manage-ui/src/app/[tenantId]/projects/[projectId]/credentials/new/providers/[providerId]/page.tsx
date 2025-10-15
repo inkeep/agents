@@ -39,7 +39,6 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
     async (event: any) => {
       if (!provider || event.type !== 'connect') return;
 
-      // Validate required payload data
       if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
         console.error('Missing required connection data:', event.payload);
         toast.error('Invalid connection data received');

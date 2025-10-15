@@ -272,7 +272,6 @@ export function ChatWidget({
 const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 
-  // Check if we're still streaming - the last event should be a completion data-operation
   const lastPart = message.parts[message.parts.length - 1];
   const isStreaming = !(
     lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'

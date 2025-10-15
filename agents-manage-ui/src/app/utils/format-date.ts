@@ -6,7 +6,6 @@
 export function formatDate(isoString: string) {
   const date = new Date(isoString);
 
-  // Check if the date is valid first
   if (Number.isNaN(date.getTime())) {
     return 'Invalid date';
   }
@@ -42,7 +41,6 @@ export function formatDateAgo(dateString: string) {
   try {
     const date = new Date(dateString);
 
-    // Check if the date is valid
     if (Number.isNaN(date.getTime())) {
       return 'Invalid date';
     }

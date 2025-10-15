@@ -128,7 +128,6 @@ function processValidationError(
     field = error.path.join('.') || 'configuration';
   }
 
-  // Create user-friendly message
   const message = createUserFriendlyMessage(error, field, type, nodeType);
 
   return {
@@ -176,7 +175,6 @@ function createUserFriendlyMessage(
       return `${entityType} ${fieldName} has an invalid value. Please select a valid option`;
 
     case 'invalid_union':
-      // Check if this is an agent type discrimination error
       if (field.includes('type') || error.message.includes('discriminator')) {
         return `${entityType} type must be specified as either 'internal' or 'external'`;
       }

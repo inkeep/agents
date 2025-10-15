@@ -14,11 +14,9 @@ export function getActiveTools({
 }): MCPTool['availableTools'] | undefined {
   if (!availableTools) return undefined;
 
-  // If no activeTools configured (undefined), return all available tools
   if (!activeTools) {
     return availableTools;
   }
 
-  // Return filtered tools based on activeTools configuration
   return availableTools.filter((tool) => activeTools.includes(tool.name));
 }

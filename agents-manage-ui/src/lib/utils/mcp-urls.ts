@@ -18,7 +18,6 @@ export function getOAuthLoginUrl({
   projectId: string;
   id: string;
 }): string {
-  // Validate input parameters
   if (!tenantId || typeof tenantId !== 'string') {
     throw new Error('Invalid tenantId: must be a non-empty string');
   }
@@ -31,7 +30,6 @@ export function getOAuthLoginUrl({
     throw new Error('Invalid projectId: must be a non-empty string');
   }
 
-  // Validate format - only allow alphanumeric, hyphens, and underscores
   const validFormat = /^[a-zA-Z0-9-_]+$/;
 
   if (!validFormat.test(tenantId)) {

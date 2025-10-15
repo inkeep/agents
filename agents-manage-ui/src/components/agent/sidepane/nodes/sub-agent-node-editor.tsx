@@ -65,7 +65,6 @@ export function SubAgentNodeEditor({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
 
-  // Get project and agent data for inheritance indicators
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -74,7 +73,6 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  // Create a wrapper function that provides the current node data for nested updates
   const updateModelPath = useCallback(
     (path: string, value: any) => {
       updateNestedPath(path, value, selectedNode.data);

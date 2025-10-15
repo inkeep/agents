@@ -49,7 +49,6 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
     const selectedCount = selectedTools.length;
     const totalCount = activeTools?.length ?? 0;
 
-    // If no tools selected, show 0
     if (selectedCount === 0) {
       return ['0'];
     }

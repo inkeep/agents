@@ -75,7 +75,6 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
     name: 'models.structuredOutput.providerOptions',
   });
 
-  // Get the base model to show as inherited value
   const baseModel = useWatch({ control, name: 'models.base.model' });
 
   return (
@@ -130,7 +129,6 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
     name: 'models.summarizer.providerOptions',
   });
 
-  // Get the base model to show as inherited value
   const baseModel = useWatch({ control, name: 'models.base.model' });
 
   return (

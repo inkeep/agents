@@ -81,7 +81,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const targetNode = useNodesData(selectedEdge.target);
   const { markUnsaved } = useAgentActions();
 
-  // Check if this is a self-loop (source and target are the same)
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
@@ -110,7 +109,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       };
     }
 
-    // Check if all relationships are now unchecked
     const hasAnyRelationship =
       newRelationships.transferSourceToTarget ||
       newRelationships.transferTargetToSource ||
@@ -124,7 +122,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       // Remove the edge if no relationships remain
       setEdges((edges) => edges.filter((edge) => edge.id !== selectedEdge.id));
     } else {
-      // Update the edge data with the new relationships
       updateEdgeData(selectedEdge.id, {
         relationships: newRelationships,
       });

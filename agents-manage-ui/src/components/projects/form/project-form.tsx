@@ -26,7 +26,6 @@ interface ProjectFormProps {
 
 const serializeData = (data: ProjectFormData) => {
   const cleanProviderOptions = (options: any) => {
-    // Convert null, empty object, or falsy values to undefined
     if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
       return undefined;
     }
@@ -48,7 +47,6 @@ const serializeData = (data: ProjectFormData) => {
       cleaned.stepCountIs = stopWhen.stepCountIs;
     }
 
-    // If no valid properties, return empty object (undefined will not update the field)
     if (Object.keys(cleaned).length === 0) {
       return {};
     }

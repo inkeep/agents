@@ -67,7 +67,6 @@ export function GenericAuthForm({
   // Move hooks before any early returns
   const allFields = formConfig?.sections.flatMap((section) => section.fields) || [];
 
-  // Create a minimal schema if no config is available
   const FormSchema = formConfig
     ? createFormSchema(formConfig)
     : z.object({ _placeholder: z.string().optional() });
