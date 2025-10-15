@@ -1,24 +1,24 @@
 # Inkeep Agents
 
-Inkeep is a platform to build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either code or no-code with **full 2-way sync**, so your technical and non-technical teams can create and manage Agents in a single platform.
+With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage the same Agents in one platform.
 
 ## Use Cases
 
-Inkeep Agents can operate as real-time **AI Chat Assistants** as:
+Inkeep Agents can operate as real-time **AI Chat Assistants**, for example:
 - a customer experience agent for customer support, technical docs, or in-app product copilot
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
 
 Agents can also be used to automate complex **AI Workflows** for tasks like:
 - Creating and updating knowledge bases, docs, and blogs
-- Updating CRMs, triaging tickets, and completing other business processes
+- Updating CRMs, triaging tickets, and automating other business processes
 
 To get started, see the [docs](https://docs.inkeep.com).
 
 ## Two ways to build
 
-### No-Code Visual Agent Builder
+### No-Code Visual Builder
 
-A no-code drag-and-drop canvas designed to let both technical and non-technical teams create and manage Agents.
+A no-code drag-and-drop canvas designed to allow any team to create and manage teams of Agents visually.
 
 <img
   src="agents-docs/public/gifs/visual-builder.gif"
@@ -29,7 +29,7 @@ A no-code drag-and-drop canvas designed to let both technical and non-technical 
 
 ### TypeScript Agents SDK
 
-A code-first approach for building and managing teams of Agents with a multi-agent architecture. The SDK allows developers to build with the tools engineering teams expect.
+A code-first approach for building and managing teams of Agents. The SDK allows engineering teams to build agent systems with the tools and developer experience they expect.
 
    ```typescript
    import { agent, subAgent } from "@inkeep/agents-sdk";
@@ -38,7 +38,7 @@ A code-first approach for building and managing teams of Agents with a multi-age
      id: "hello-agent",
      name: "Hello Agent",
      description: "Says hello",
-     prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+     prompt: 'Only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
    export const basicAgent = agent({
@@ -52,13 +52,13 @@ A code-first approach for building and managing teams of Agents with a multi-age
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Agents in either format and switch or collaborate with others at any time.
 
-## Platform
+## Platform Overview
 
-The Inkeep Agent platform includes:
+**Inkeep Open Source** includes:
 - A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent architecture for building teams of agents
-- MCP Tools with Credential Management
-- A UI Component Library for dynamic AI chat experiences
+- Multi-agent design so agents can collaborate on tasks
+- MCP Tools with credential & permissions management
+- A UI component library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via a Traces UI & OpenTelemetry
 - Easy deployment to Vercel and Docker
@@ -76,7 +76,7 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 - **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
 - **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.
 
-Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs an chat stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
+Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with Vercel's `ai` SDK, and `agents-run-api` outputs a data stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
 
 ## License and Community
 
