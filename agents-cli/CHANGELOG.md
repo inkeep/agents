@@ -1,5 +1,22 @@
 # @inkeep/agents-cli
 
+## 0.22.4
+
+### Patch Changes
+
+- e8ba7de: Add background version check to push and pull commands
+- 0b8c264: Add self-update command to CLI with automatic package manager detection and version checking
+- b788bd8: Use password entry instead of plaintext entry
+- f784f72: New models and clean up
+- Updated dependencies [e8ba7de]
+- Updated dependencies [30a72e2]
+- Updated dependencies [0b8c264]
+- Updated dependencies [b788bd8]
+- Updated dependencies [f784f72]
+  - @inkeep/agents-core@0.22.4
+  - @inkeep/agents-manage-ui@0.22.4
+  - @inkeep/agents-sdk@0.22.4
+
 ## 0.22.3
 
 ### Patch Changes
