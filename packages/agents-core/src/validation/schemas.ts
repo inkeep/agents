@@ -591,7 +591,6 @@ export const FunctionToolApiInsertSchema =
 export const FunctionToolApiUpdateSchema =
   createApiUpdateSchema(FunctionToolUpdateSchema).openapi('FunctionToolUpdate');
 
-// === Function Schemas ===
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: resourceIdSchema,
@@ -604,7 +603,6 @@ export const FunctionApiInsertSchema =
 export const FunctionApiUpdateSchema =
   createApiUpdateSchema(FunctionUpdateSchema).openapi('FunctionUpdate');
 
-// === Context Config Schemas ===
 // Zod schemas for validation
 export const FetchConfigSchema = z
   .object({
@@ -671,7 +669,6 @@ export const ContextConfigApiUpdateSchema = createApiUpdateSchema(ContextConfigU
   })
   .openapi('ContextConfigUpdate');
 
-// === SubAgent Tool Relation Schemas ===
 export const SubAgentToolRelationSelectSchema = createSelectSchema(subAgentToolRelations);
 export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolRelations).extend({
   id: resourceIdSchema,
@@ -693,7 +690,6 @@ export const SubAgentToolRelationApiUpdateSchema = createAgentScopedApiUpdateSch
   SubAgentToolRelationUpdateSchema
 ).openapi('SubAgentToolRelationUpdate');
 
-// === Ledger Artifact Schemas ===
 export const LedgerArtifactSelectSchema = createSelectSchema(ledgerArtifacts);
 export const LedgerArtifactInsertSchema = createInsertSchema(ledgerArtifacts);
 export const LedgerArtifactUpdateSchema = LedgerArtifactInsertSchema.partial();
@@ -702,7 +698,6 @@ export const LedgerArtifactApiSelectSchema = createApiSchema(LedgerArtifactSelec
 export const LedgerArtifactApiInsertSchema = createApiInsertSchema(LedgerArtifactInsertSchema);
 export const LedgerArtifactApiUpdateSchema = createApiUpdateSchema(LedgerArtifactUpdateSchema);
 
-// === Full Agent Definition Schemas ===
 export const StatusComponentSchema = z
   .object({
     type: z.string(),
@@ -760,7 +755,6 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
 });
 
-// === Response wrapper schemas ===
 export const PaginationSchema = z
   .object({
     page: z.coerce.number().min(1).default(1),
@@ -804,7 +798,6 @@ export const RemovedResponseSchema = z
   })
   .openapi('RemovedResponse');
 
-// === Project Schemas ===
 export const ProjectSelectSchema = createSelectSchema(projects);
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
@@ -841,7 +834,6 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   updatedAt: z.string().optional(),
 });
 
-// === Concrete Response Wrapper Schemas ===
 // Single item response wrappers
 export const ProjectResponse = z
   .object({ data: ProjectApiSelectSchema })
@@ -886,7 +878,6 @@ export const MessageResponse = z
   .object({ data: MessageApiSelectSchema })
   .openapi('MessageResponse');
 
-// List response wrappers with pagination
 export const ProjectListResponse = z
   .object({
     data: z.array(ProjectApiSelectSchema),
@@ -1002,7 +993,6 @@ export const SubAgentArtifactComponentListResponse = z
   })
   .openapi('SubAgentArtifactComponentListResponse');
 
-// === Common parameter schemas ===
 export const HeadersScopeSchema = z.object({
   'x-inkeep-tenant-id': z.string().optional().openapi({
     description: 'Tenant identifier',

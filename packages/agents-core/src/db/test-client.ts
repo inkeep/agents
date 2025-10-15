@@ -18,7 +18,6 @@ const __dirname = dirname(__filename);
  * Each call creates a fresh database with all migrations applied
  */
 export async function createTestDatabaseClient(): Promise<DatabaseClient> {
-  // Create in-memory database client
   const client = createClient({
     url: ':memory:',
   });
@@ -68,7 +67,6 @@ export async function createTestDatabaseClient(): Promise<DatabaseClient> {
  * @deprecated Use fresh in-memory databases with beforeEach instead for better test isolation
  */
 export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
-  // Delete data from tables in reverse dependency order to handle foreign keys
   const cleanupTables = [
     'messages',
     'conversations',

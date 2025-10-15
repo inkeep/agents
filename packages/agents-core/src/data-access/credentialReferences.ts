@@ -193,7 +193,6 @@ export const deleteCredentialReference =
       return false;
     }
 
-    // Delete the credential reference
     await db
       .delete(credentialReferences)
       .where(
@@ -277,7 +276,6 @@ export const upsertCredentialReference =
     });
 
     if (existing) {
-      // Update existing credential reference
       const updated = await updateCredentialReference(db)({
         scopes,
         id: params.data.id,
@@ -292,7 +290,6 @@ export const upsertCredentialReference =
       }
       return updated;
     } else {
-      // Create new credential reference
       return await createCredentialReference(db)(params.data);
     }
   };

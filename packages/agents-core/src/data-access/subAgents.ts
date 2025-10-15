@@ -126,7 +126,6 @@ export const upsertSubAgent =
     });
 
     if (existing) {
-      // Update existing agent
       const updated = await updateSubAgent(db)({
         scopes,
         subAgentId: params.data.id,
@@ -144,7 +143,6 @@ export const upsertSubAgent =
       }
       return updated;
     } else {
-      // Create new agent
       return await createSubAgent(db)(params.data);
     }
   };
@@ -162,7 +160,6 @@ export const deleteSubAgent =
         )
       );
 
-    // Check if agent still exists to confirm deletion
     const deletedSubAgent = await getSubAgentById(db)({
       scopes: params.scopes,
       subAgentId: params.subAgentId,

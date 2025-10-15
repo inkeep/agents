@@ -384,7 +384,6 @@ export function headers<R extends z.ZodTypeAny>(
   return new HeadersSchemaBuilder<R>(options);
 }
 
-// Helper function to create fetch definitions
 export function fetchDefinition<R extends z.ZodTypeAny>(
   options: builderFetchDefinition<R>
 ): Omit<builderFetchDefinition<R>, 'credentialReference'> & {

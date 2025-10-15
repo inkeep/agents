@@ -197,7 +197,6 @@ export const upsertExternalAgent =
     });
 
     if (existing) {
-      // Update existing external agent
       const updated = await updateExternalAgent(db)({
         scopes,
         subAgentId: params.data.id,
@@ -214,7 +213,6 @@ export const upsertExternalAgent =
       }
       return updated;
     } else {
-      // Create new external agent
       return await createExternalAgent(db)(params.data);
     }
   };

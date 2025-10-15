@@ -161,7 +161,6 @@ export const upsertFunctionTool =
     });
 
     if (existing) {
-      // Update existing function tool
       return await updateFunctionTool(db)({
         scopes,
         functionToolId: params.data.id,
@@ -172,7 +171,6 @@ export const upsertFunctionTool =
         },
       });
     } else {
-      // Create new function tool
       return await createFunctionTool(db)({
         data: params.data,
         scopes,
@@ -189,13 +187,11 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
     const { tenantId, projectId, agentId } = scopes;
 
     try {
-      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },
       });
 
-      // Get sub_agent-function tool relations for this sub_agent
       const relations = await db
         .select()
         .from(subAgentFunctionToolRelations)
