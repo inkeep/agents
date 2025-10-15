@@ -74,10 +74,16 @@ export async function generatePlan(
   const nameGenerator = new VariableNameGenerator(patterns.namingConventions);
 
   // Step 2: Register existing variables from detected patterns
+  // Only preserve agent/subAgent names (they're usually good)
+  // Skip tools/components - regenerate them with name-based logic
   if (patterns.examples.mappings) {
     for (const mapping of patterns.examples.mappings) {
       try {
-        nameGenerator.register(mapping.id, mapping.variableName, mapping.entityType);
+        // Only preserve agent and subAgent variable names
+        // Tools and components will be regenerated using their name fields
+        if (mapping.entityType === 'agent' || mapping.entityType === 'subAgent') {
+          nameGenerator.register(mapping.id, mapping.variableName, mapping.entityType);
+        }
       } catch {
         // Skip invalid mappings
       }
@@ -87,7 +93,7 @@ export async function generatePlan(
   // Step 3: Generate variable names for all entities from new project data
   const allEntities = collectAllEntities(projectData);
   for (const entity of allEntities) {
-    nameGenerator.generateVariableName(entity.id, entity.type);
+    nameGenerator.generateVariableName(entity.id, entity.type, entity.name);
   }
 
   // Step 4: Use LLM to generate file structure plan with placeholder optimization
@@ -187,11 +193,15 @@ CRITICAL RULES:
    - environments/ directory: Environment/credential files
    - index.ts: Main project file
 
-6. File Paths (CRITICAL):
+6. File Paths and Names (CRITICAL):
+   - File paths MUST use kebab-case version of the VARIABLE NAME (not the entity ID)
+   - Convert variable names to kebab-case for file names
+   - Example: variableName "searchKnowledgeBase" → file path "tools/search-knowledge-base.ts"
+   - Example: variableName "ticketStatus" → file path "status-components/ticket-status.ts"
    - Paths MUST be relative to the project root directory
    - DO NOT include the project name in the path
-   - CORRECT: "agents/weather-agent.ts", "tools/inkeep-facts.ts", "status-components/tool-summary.ts"
-   - WRONG: "my-project/agents/weather-agent.ts", "project-name/tools/inkeep-facts.ts"
+   - CORRECT: "agents/support-agent.ts", "tools/search-knowledge-base.ts", "status-components/ticket-status.ts"
+   - WRONG: "my-project/agents/support-agent.ts", "tools/mcp-search-kb-XyZ123.ts" (using ID instead of variable name)
 
 7. Dependencies:
    - Each file should list which variables it needs to import from other files
@@ -202,61 +212,61 @@ OUTPUT FORMAT (JSON):
 {
   "files": [
     {
-      "path": "agents/weather-agent.ts",
+      "path": "agents/support-agent.ts",
       "type": "agent",
       "entities": [
         {
-          "id": "weather",
-          "variableName": "weatherSubAgent",
+          "id": "support-router",
+          "variableName": "supportRouterSubAgent",
           "entityType": "subAgent",
-          "exportName": "weatherSubAgent"
+          "exportName": "supportRouterSubAgent"
         },
         {
-          "id": "weather",
-          "variableName": "weatherAgent",
+          "id": "support",
+          "variableName": "supportAgent",
           "entityType": "agent",
-          "exportName": "weatherAgent"
+          "exportName": "supportAgent"
         }
       ],
       "dependencies": [
         {
-          "variableName": "weatherApi",
-          "fromPath": "../tools/weather-api",
+          "variableName": "searchKnowledgeBase",
+          "fromPath": "../tools/search-knowledge-base",
           "entityType": "tool"
         }
       ],
       "inlineContent": [
         {
-          "id": "get-forecast",
-          "variableName": "getForecast",
+          "id": "validate-ticket",
+          "variableName": "validateTicket",
           "entityType": "tool",
-          "exportName": "getForecast"
+          "exportName": "validateTicket"
         }
       ]
     },
     {
-      "path": "tools/weather-api.ts",
+      "path": "tools/search-knowledge-base.ts",
       "type": "tool",
       "entities": [
         {
-          "id": "weather-api",
-          "variableName": "weatherApi",
+          "id": "mcp-search-kb-XyZ123",
+          "variableName": "searchKnowledgeBase",
           "entityType": "tool",
-          "exportName": "weatherApi"
+          "exportName": "searchKnowledgeBase"
         }
       ],
       "dependencies": [],
       "inlineContent": null
     },
     {
-      "path": "status-components/tool-summary.ts",
+      "path": "status-components/ticket-status.ts",
       "type": "statusComponent",
       "entities": [
         {
-          "id": "tool_summary",
-          "variableName": "toolSummary",
+          "id": "ticket_status",
+          "variableName": "ticketStatus",
           "entityType": "statusComponent",
-          "exportName": "toolSummary"
+          "exportName": "ticketStatus"
         }
       ],
       "dependencies": [],
@@ -267,21 +277,21 @@ OUTPUT FORMAT (JSON):
       "type": "index",
       "entities": [
         {
-          "id": "my-weather-project",
-          "variableName": "myWeatherProject",
+          "id": "my-support-project",
+          "variableName": "mySupportProject",
           "entityType": "project",
-          "exportName": "myWeatherProject"
+          "exportName": "mySupportProject"
         }
       ],
       "dependencies": [
         {
-          "variableName": "weatherAgent",
-          "fromPath": "./agents/weather-agent",
+          "variableName": "supportAgent",
+          "fromPath": "./agents/support-agent",
           "entityType": "agent"
         },
         {
-          "variableName": "weatherApi",
-          "fromPath": "./tools/weather-api",
+          "variableName": "searchKnowledgeBase",
+          "fromPath": "./tools/search-knowledge-base",
           "entityType": "tool"
         }
       ]
@@ -397,7 +407,7 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   // Create agent files
   for (const [agentId, variableName] of registry.agents.entries()) {
     files.push({
-      path: `agents/${kebabCase(agentId)}.ts`,
+      path: `agents/${kebabCase(variableName)}.ts`,
       type: 'agent',
       entities: [
         {
@@ -414,7 +424,7 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   // Create tool files
   for (const [toolId, variableName] of registry.tools.entries()) {
     files.push({
-      path: `tools/${kebabCase(toolId)}.ts`,
+      path: `tools/${kebabCase(variableName)}.ts`,
       type: 'tool',
       entities: [
         {
@@ -431,7 +441,7 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   // Create data component files
   for (const [compId, variableName] of registry.dataComponents.entries()) {
     files.push({
-      path: `data-components/${kebabCase(compId)}.ts`,
+      path: `data-components/${kebabCase(variableName)}.ts`,
       type: 'dataComponent',
       entities: [
         {
@@ -448,7 +458,7 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   // Create artifact component files
   for (const [compId, variableName] of registry.artifactComponents.entries()) {
     files.push({
-      path: `artifact-components/${kebabCase(compId)}.ts`,
+      path: `artifact-components/${kebabCase(variableName)}.ts`,
       type: 'artifactComponent',
       entities: [
         {
@@ -465,7 +475,7 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   // Create status component files
   for (const [compId, variableName] of registry.statusComponents.entries()) {
     files.push({
-      path: `status-components/${kebabCase(compId)}.ts`,
+      path: `status-components/${kebabCase(variableName)}.ts`,
       type: 'statusComponent',
       entities: [
         {

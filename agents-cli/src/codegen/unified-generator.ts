@@ -22,7 +22,6 @@ export interface GenerationContext {
   plan: GenerationPlan;
   patterns: DetectedPatterns;
   fileInfo: FileInfo;
-  exampleCode?: string;
 }
 
 export interface DirectoryStructure {
@@ -94,15 +93,11 @@ async function generateFile(
   // Extract relevant data for this file
   const fileData = extractDataForFile(fileInfo, projectData);
 
-  // Find example code if available
-  const exampleCode = findExampleCode(fileInfo, plan.patterns);
-
   // Create generation context
   const context: GenerationContext = {
     plan,
     patterns: plan.patterns,
     fileInfo,
-    exampleCode,
   };
 
   // Format registry information for this specific file
@@ -122,7 +117,7 @@ async function generateFile(
       fileData,
       promptTemplate,
       {
-        temperature: 0.1,
+        temperature: 0.3,
         maxOutputTokens: fileInfo.type === 'agent' ? 16000 : 4000,
         abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 240000 : 60000),
       },
@@ -218,20 +213,6 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
 }
 
 /**
- * Find example code from detected patterns
- */
-function findExampleCode(fileInfo: FileInfo, patterns: DetectedPatterns): string | undefined {
-  switch (fileInfo.type) {
-    case 'agent':
-      return patterns.examples.sampleAgentFile;
-    case 'tool':
-      return patterns.examples.sampleToolFile;
-    default:
-      return undefined;
-  }
-}
-
-/**
  * Create prompt for specific file type
  */
 function createPromptForFile(
@@ -243,13 +224,18 @@ function createPromptForFile(
   const commonInstructions = `
 ${getTypeDefinitions()}
 
-DETECTED PATTERNS (FOLLOW THESE):
+CRITICAL - DATA IS SOURCE OF TRUTH:
+- The COMPONENT DATA above is the ONLY source of truth
+- Generate code that EXACTLY matches the data provided
+- Do NOT preserve old code that isn't in the current data
+- Every field in the data MUST appear in the generated code
+- If a field changed in the data, it MUST change in the code
+
+DETECTED PATTERNS (FOLLOW THESE FOR STYLE ONLY):
 - File Structure: ${context.patterns.fileStructure.toolsLocation} tools
 - File Naming: ${context.patterns.fileStructure.preferredFileNaming}
 - Export Style: ${context.patterns.codeStyle.exportNaming}
 - Multi-line strings: ${context.patterns.codeStyle.multiLineStrings}
-
-${context.exampleCode ? `EXAMPLE CODE (your existing style):\n${context.exampleCode}\n` : ''}
 
 VARIABLE NAME REGISTRY (MUST USE EXACT NAMES):
 ${registryInfo}
@@ -490,21 +476,27 @@ Generate ONLY the TypeScript code without markdown.`;
 function createToolPrompt(
   _toolData: any,
   _context: GenerationContext,
-  _registryInfo: string,
+  registryInfo: string,
   commonInstructions: string
 ): string {
   return `Generate TypeScript file for Inkeep tool.
 
-TOOL DATA:
+${registryInfo}
+
+⚠️ CRITICAL: The data below contains an 'id' field. DO NOT use this ID as the variable name!
+Use the EXACT variable name from the registry above.
+
+TOOL DATA (for configuration only - do NOT use 'id' field for variable name):
 {{DATA}}
 
 ${commonInstructions}
 
 REQUIREMENTS:
 1. Import mcpTool or functionTool from '@inkeep/agents-sdk'
-2. Use exact variable name from registry
-3. Include serverUrl property if MCP tool
-4. Handle credentials using envSettings if needed
+2. ⚠️ CRITICAL: Use the EXACT 'export const' variable name shown in the registry above
+3. The tool 'id' field in the data should be used IN the mcpTool() call, NOT as the variable name
+4. Include serverUrl property if MCP tool
+5. Handle credentials using envSettings if needed
 
 Generate ONLY the TypeScript code without markdown.`;
 }
@@ -515,12 +507,16 @@ Generate ONLY the TypeScript code without markdown.`;
 function createDataComponentPrompt(
   _componentData: any,
   _context: GenerationContext,
-  _registryInfo: string,
+  registryInfo: string,
   commonInstructions: string
 ): string {
   return `Generate TypeScript file for Inkeep data component.
 
-COMPONENT DATA:
+${registryInfo}
+
+⚠️ CRITICAL: Use the EXACT 'export const' variable name from the registry above!
+
+COMPONENT DATA (for configuration only):
 {{DATA}}
 
 ${commonInstructions}
@@ -530,46 +526,49 @@ dataComponent({
   id: 'component-id',
   name: 'ComponentName',
   description: 'Component description',
-  props: {  // Use 'props' NOT 'propsSchema'
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    properties: { ... },
-    required: [...],
-    additionalProperties: false
-  }
+  props: z.object({
+    // Define Zod schema here
+  })
 })
 
+IMPORTS (CRITICAL):
+- import { dataComponent } from '@inkeep/agents-sdk';
+- import { z } from 'zod'; (REQUIRED - always import zod)
+
+ZOD SCHEMA RULES:
+- Use z.object() for the props field (NOT JSON Schema)
+- Use z.string(), z.number(), z.boolean(), z.array(), z.object(), etc.
+- Use .optional() for optional fields
+- Use .nullable() for nullable fields
+- Use .describe() to add descriptions
+- Use .strict() to disallow additional properties
+
 EXAMPLE:
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
 export const weatherForecast = dataComponent({
   id: 'weather-forecast',
   name: 'WeatherForecast',
   description: 'Hourly weather forecast',
-  props: {
-    $schema: 'https://json-schema.org/draft/2020-12/schema',
-    type: 'object',
-    properties: {
-      forecast: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            time: { type: 'string' },
-            temperature: { type: 'number' }
-          },
-          required: ['time', 'temperature']
-        }
-      }
-    },
-    required: ['forecast'],
-    additionalProperties: false
-  }
+  props: z.object({
+    forecast: z.array(
+      z.object({
+        time: z.string().describe('The time of current item E.g. 12PM, 1PM'),
+        temperature: z.number().describe('The temperature at given time in Fahrenheit'),
+        code: z.number().describe('Weather code at given time')
+      }).strict()
+    ).describe('The hourly forecast for the weather at a given location')
+  }).strict()
 });
 
 REQUIREMENTS:
-1. Import dataComponent from '@inkeep/agents-sdk'
+1. Import dataComponent from '@inkeep/agents-sdk' and z from 'zod'
 2. Use exact variable name from registry
-3. Use 'props' property with JSON Schema format
+3. Use 'props' property with Zod schema (z.object(...))
 4. Include 'id', 'name', and 'description' properties
+5. Add .describe() to fields for documentation
+6. Use .strict() to prevent additional properties
 
 Generate ONLY the TypeScript code without markdown.`;
 }
@@ -580,22 +579,68 @@ Generate ONLY the TypeScript code without markdown.`;
 function createArtifactComponentPrompt(
   _componentData: any,
   _context: GenerationContext,
-  _registryInfo: string,
+  registryInfo: string,
   commonInstructions: string
 ): string {
   return `Generate TypeScript file for Inkeep artifact component.
 
-COMPONENT DATA:
+${registryInfo}
+
+⚠️ CRITICAL: Use the EXACT 'export const' variable name from the registry above!
+
+COMPONENT DATA (for configuration only):
 {{DATA}}
 
 ${commonInstructions}
 
+ARTIFACT COMPONENT API (CRITICAL):
+artifactComponent({
+  id: 'component-id',
+  name: 'ComponentName',
+  description: 'Component description',
+  props: z.object({
+    // Define Zod schema here
+  })
+})
+
+IMPORTS (CRITICAL):
+- import { artifactComponent } from '@inkeep/agents-sdk';
+- import { z } from 'zod'; (REQUIRED - always import zod)
+- import { preview } from '@inkeep/agents-core'; (REQUIRED - for preview fields)
+
+ZOD SCHEMA RULES:
+- Use z.object() for the props field (NOT JSON Schema)
+- Use z.string(), z.number(), z.boolean(), z.array(), z.object(), etc.
+- Use .optional() for optional fields
+- Use .nullable() for nullable fields
+- Use .describe() to add descriptions
+- Use preview() helper to mark fields for display in UI previews
+- Use .strict() to disallow additional properties
+
+EXAMPLE:
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { preview } from '@inkeep/agents-core';
+import { z } from 'zod';
+
+export const citation = artifactComponent({
+  id: 'citation',
+  name: 'Citation',
+  description: 'Citation with source information',
+  props: z.object({
+    title: preview(z.string().describe('Citation title')),
+    url: z.string().url().describe('Source URL'),
+    snippet: preview(z.string().optional().describe('Text snippet'))
+  }).strict()
+});
+
 REQUIREMENTS:
-1. Import artifactComponent from '@inkeep/agents-sdk'
-2. Import z from 'zod' and preview from '@inkeep/agents-core'
-3. Use exact variable name from registry
-4. Use preview() for fields shown in previews
-5. Include 'id' property
+1. Import artifactComponent from '@inkeep/agents-sdk', z from 'zod', and preview from '@inkeep/agents-core'
+2. Use exact variable name from registry
+3. Use 'props' property with Zod schema (z.object(...))
+4. Use preview() helper to mark fields shown in UI previews
+5. Include 'id', 'name', and 'description' properties
+6. Add .describe() to fields for documentation
+7. Use .strict() to prevent additional properties
 
 Generate ONLY the TypeScript code without markdown.`;
 }
