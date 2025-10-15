@@ -9,8 +9,6 @@
 import { z } from 'zod';
 import { CredentialStoreType, MCPTransportType } from './types';
 
-// === Reusable StopWhen Schemas ===
-// Import from validation schemas
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
@@ -26,10 +24,8 @@ import {
   SubAgentStopWhenSchema,
 } from './validation/schemas';
 
-// Import validation utilities
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 
-// Re-export StopWhen schemas and types for client usage
 export {
   StopWhenSchema,
   AgentStopWhenSchema,
@@ -46,7 +42,6 @@ export {
   SandboxConfigSchema,
 } from './validation/schemas';
 
-// Common parameter schemas
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),
 });
@@ -63,7 +58,6 @@ export const IdParamsSchema = z.object({
   id: z.string(),
 });
 
-// Response wrapper schemas
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
@@ -88,10 +82,8 @@ export const ErrorResponseSchema = z.object({
   details: z.unknown().optional(),
 });
 
-// Model Settings Schema and type - re-exported from validation/schemas via imports above
 export { ModelSettingsSchema, type ModelSettings };
 
-// Agent API schemas (inline definitions to avoid DB imports)
 export const AgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -106,7 +98,6 @@ export const AgentApiInsertSchema = z.object({
   type: z.enum(['internal', 'external']).optional(),
 });
 
-// Tool API schemas (inline definitions)
 export const ToolApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -116,7 +107,6 @@ export const ToolApiInsertSchema = z.object({
   credentialReferenceId: z.string().optional(),
 });
 
-// API Key schemas
 export const ApiKeyApiSelectSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -139,7 +129,6 @@ export const ApiKeyApiCreationResponseSchema = z.object({
   }),
 });
 
-// Credential Reference API schemas
 export const CredentialReferenceApiInsertSchema = z.object({
   id: z.string(),
   tenantId: z.string().optional(),
@@ -149,7 +138,6 @@ export const CredentialReferenceApiInsertSchema = z.object({
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
 });
 
-// Data Component API schemas (inline definitions)
 export const DataComponentApiInsertSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -157,10 +145,8 @@ export const DataComponentApiInsertSchema = z.object({
   props: z.record(z.string(), z.unknown()),
 });
 
-// Artifact Component API schemas (re-exported from validation)
 export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
 
-// Context Config API schemas (inline definitions)
 export const ContextConfigApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
@@ -169,7 +155,6 @@ export const ContextConfigApiInsertSchema = z.object({
   config: z.record(z.string(), z.unknown()).optional(),
 });
 
-// External Agent API schemas (inline definitions)
 export const ExternalAgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -180,7 +165,6 @@ export const ExternalAgentApiInsertSchema = z.object({
   type: z.literal('external').optional(),
 });
 
-// Agent Agent API schemas (inline definitions)
 export const AgentAgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -188,7 +172,6 @@ export const AgentAgentApiInsertSchema = z.object({
   defaultSubAgentId: z.string().optional(),
 });
 
-// Full Agent Definition Schema - extends Agent with agents and tools
 export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
   subAgents: z.record(
     z.string(),
@@ -199,9 +182,6 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
       }),
     ])
   ),
-  // Removed project-scoped resources - these are now managed at project level:
-  // tools, credentialReferences, dataComponents, artifactComponents
-  // Agent relationships to these resources are maintained vian agent.tools, agent.dataComponents, etc.
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({
@@ -256,7 +236,6 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
     .optional(),
 });
 
-// Export inferred types
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
 export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
@@ -275,7 +254,6 @@ export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchem
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
-// Resource ID validation utilities (client-safe)
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
 export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
@@ -288,7 +266,6 @@ export const resourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   });
 
-// ID generation utility
 export function generateIdFromName(name: string): string {
   return name
     .toLowerCase()
@@ -298,13 +275,10 @@ export function generateIdFromName(name: string): string {
     .slice(0, MAX_ID_LENGTH);
 }
 
-// Type aliases for backward compatibility
 export type ToolInsert = ToolApiInsert;
 export type AgentAgentInsert = AgentAgentApiInsert;
 
-// Re-export utility types for client use
 export { CredentialStoreType, MCPTransportType };
 
-// Re-export OpenTelemetry and SigNoz constants for client-side observability and queries
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
