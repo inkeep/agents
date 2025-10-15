@@ -44,7 +44,6 @@
     "monaco-editor": "0.54.0",
     "@ai-sdk/react": "2.0.11",
     "@codemirror/autocomplete": "^6.19.0",
-    "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lint": "^6.8.5",
     "@codemirror/view": "^6.38.4",
     "@hookform/resolvers": "^5.2.1",

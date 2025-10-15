@@ -1,9 +1,10 @@
 'use client';
 
+import { type FC, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { formatJson } from '@/lib/utils';
-import { JsonEditor } from './json-editor';
+import { JsonEditor } from '@/components/editors/json-editor';
 
 interface StandaloneJsonEditorProps {
   value?: string;
@@ -14,58 +15,55 @@ interface StandaloneJsonEditorProps {
   id?: string;
   className?: string;
   readOnly?: boolean;
+  'aria-invalid'?: boolean;
 }
 
-export function StandaloneJsonEditor(props: StandaloneJsonEditorProps) {
-  const handleFormat = () => {
-    const value = props.value;
-    if (value?.trim()) {
+export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
+  value = '',
+  onChange,
+  ...props
+}) => {
+  const handleFormat = useCallback(() => {
+    if (value.trim()) {
       const formatted = formatJson(value);
-      props.onChange(formatted);
+      onChange(formatted);
     }
-  };
+  }, [onChange, value]);
 
-  const handleInsertTemplate = () => {
+  const handleInsertTemplate = useCallback(() => {
     const template = createSchemaTemplate();
-    props.onChange(template);
-  };
+    onChange(template);
+  }, [onChange]);
 
-  return (
-    <div
-      data-slot="json-editor"
-      className={`space-y-3 relative overflow-hidden p-1 ${props.className || ''}`}
-    >
-      <div className="flex items-center gap-2 absolute top-3 right-3 z-10">
-        {!props.value?.trim() && (
-          <Button
-            type="button"
-            onClick={handleInsertTemplate}
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-xs rounded-sm"
-          >
-            Template
-          </Button>
-        )}
+  const actions = (
+    <>
+      {!value.trim() && (
         <Button
           type="button"
-          onClick={handleFormat}
+          onClick={handleInsertTemplate}
           variant="outline"
           size="sm"
           className="h-6 px-2 text-xs rounded-sm"
-          disabled={!props.value?.trim()}
         >
-          Format
+          Template
         </Button>
-      </div>
-
-      <JsonEditor
-        value={props.value || ''}
-        onChange={props.onChange}
-        placeholder={props.placeholder}
-        disabled={props.disabled}
-        readOnly={props.readOnly}
-      />
-    </div>
+      )}
+      <Button
+        type="button"
+        onClick={handleFormat}
+        variant="outline"
+        size="sm"
+        className="h-6 px-2 text-xs rounded-sm"
+        disabled={!value.trim()}
+      >
+        Format
+      </Button>
+    </>
   );
-}
+
+  return (
+    <JsonEditor value={value} onChange={onChange} {...props}>
+      <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
+    </JsonEditor>
+  );
+};

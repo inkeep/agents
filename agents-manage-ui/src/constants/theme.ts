@@ -1,47 +1,46 @@
 import type { editor } from 'monaco-editor';
 
 export const MONACO_THEME_NAME = {
-  dark: 'inkeep-dark',
   light: 'inkeep-light',
+  dark: 'inkeep-dark',
 };
 
-export const MONACO_THEME_DATA: Record<'dark' | 'light', editor.IStandaloneThemeData> = {
-  dark: {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      {
-        token: 'string.key.json',
-        foreground: '#9a86fd',
-      },
-      {
-        token: 'string.value.json',
-        foreground: '#ffb870',
-      },
-    ],
-    colors: {
-      'editor.background': '#ffffff05',
-      // Removes blue border
-      focusBorder: '#00000000', // transparent
-    },
-  },
+const color = {
+  transparent: '#00000000',
+};
+
+const baseColors: editor.IColors = {
+  'editor.background': color.transparent,
+  focusBorder: color.transparent, // Removes blue border
+  'editor.lineHighlightBorder': color.transparent,
+  'editor.wordHighlightBackground': color.transparent,
+};
+
+export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneThemeData> = {
   light: {
     base: 'vs',
     inherit: true,
     rules: [
-      {
-        token: 'string.key.json',
-        foreground: '#b29762',
-      },
-      {
-        token: 'string.value.json',
-        foreground: '#1659df',
-      },
+      { token: 'string.key.json', foreground: '#b29762' },
+      { token: 'string.value.json', foreground: '#1659df' },
     ],
     colors: {
-      'editor.background': '#00000000', // transparent
-      // Removes blue border
-      focusBorder: '#00000000', // transparent
+      ...baseColors,
+      'editor.placeholder.foreground': '#58534d',
+      'editor.lineHighlightBackground': '#ddceb154',
+    },
+  },
+  dark: {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: 'string.key.json', foreground: '#9a86fd' },
+      { token: 'string.value.json', foreground: '#ffb870' },
+    ],
+    colors: {
+      ...baseColors,
+      'editor.placeholder.foreground': '#9797a1',
+      'editor.lineHighlightBackground': '#3633427f',
     },
   },
 };
