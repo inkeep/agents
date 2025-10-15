@@ -51,7 +51,7 @@ export interface ConflictInfo {
 export const DEFAULT_NAMING_CONVENTIONS: NamingConventions = {
   subAgentSuffix: 'SubAgent',
   agentSuffix: 'Agent',
-  toolSuffix: null, // Usually no suffix needed
+  toolSuffix: null,
   dataComponentSuffix: null,
   artifactComponentSuffix: null,
   statusComponentSuffix: null,
@@ -87,7 +87,7 @@ export class VariableNameGenerator {
    * Generate unique variable name for an entity
    * Ensures no conflicts across all entity types
    */
-  generateVariableName(id: string, entityType: EntityType): string {
+  generateVariableName(id: string, entityType: EntityType, name?: string): string {
     // Check if already registered
     const registryMap = this.getRegistryMap(entityType);
     const existing = registryMap.get(id);
@@ -96,7 +96,10 @@ export class VariableNameGenerator {
     }
 
     // Convert ID to base variable name (camelCase)
-    const baseName = this.idToVariableName(id);
+    // For tools and components, prefer using the name field if available
+    const baseName = name && (entityType === 'tool' || entityType === 'dataComponent' || entityType === 'artifactComponent')
+      ? this.idToVariableName(name)
+      : this.idToVariableName(id);
 
     // Check for conflicts
     if (!this.registry.usedNames.has(baseName)) {
@@ -206,11 +209,29 @@ export class VariableNameGenerator {
    * Check if an ID looks random/UUID-like
    */
   private isRandomId(id: string): boolean {
-    // If no hyphens or underscores and has mixed case or numbers, likely random
+    // Detect auto-generated IDs (nanoid, uuid-like, etc.)
+    
+    // Pattern 1: No separators with mixed case/numbers (e.g., 'aB3dEf9GhI')
     if (!id.includes('-') && !id.includes('_')) {
-      // Check if it has numbers or uppercase letters (indicating random)
       return /[0-9]/.test(id) || /[A-Z]/.test(id);
     }
+    
+    // Pattern 2: Has separators but looks random (e.g., 'al-QzWbFtTuunnBRa74Ku')
+    // Characteristics:
+    // - Contains numbers AND uppercase letters mixed together
+    // - OR has multiple uppercase letters in a row (not typical camelCase)
+    // - OR total length > 15 with mixed case
+    if (id.includes('-') || id.includes('_')) {
+      const hasNumbers = /[0-9]/.test(id);
+      const hasUppercase = /[A-Z]/.test(id);
+      const hasMultipleConsecutiveUpper = /[A-Z]{2,}/.test(id);
+      const hasRandomPattern = /[A-Z][a-z]+[A-Z][a-z]+[A-Z]/.test(id); // Like 'QzWbFt'
+      
+      if (hasNumbers && hasUppercase) return true;
+      if (hasMultipleConsecutiveUpper) return true;
+      if (hasRandomPattern && id.length > 15) return true;
+    }
+    
     return false;
   }
 
@@ -266,8 +287,8 @@ export class VariableNameGenerator {
 /**
  * Collect all entities from project data
  */
-export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType }> {
-  const entities: Array<{ id: string; type: EntityType }> = [];
+export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType; name?: string }> {
+  const entities: Array<{ id: string; type: EntityType; name?: string }> = [];
 
   // Collect agents and their subAgents
   if (projectData.agents) {
@@ -283,24 +304,27 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
     }
   }
 
-  // Collect tools
+  // Collect tools (include name for better variable names)
   if (projectData.tools) {
-    for (const toolId of Object.keys(projectData.tools)) {
-      entities.push({ id: toolId, type: 'tool' });
+    for (const [toolId, toolData] of Object.entries(projectData.tools)) {
+      const tool = toolData as any;
+      entities.push({ id: toolId, type: 'tool', name: tool.name });
     }
   }
 
-  // Collect data components
+  // Collect data components (include name for better variable names)
   if (projectData.dataComponents) {
-    for (const compId of Object.keys(projectData.dataComponents)) {
-      entities.push({ id: compId, type: 'dataComponent' });
+    for (const [compId, compData] of Object.entries(projectData.dataComponents)) {
+      const comp = compData as any;
+      entities.push({ id: compId, type: 'dataComponent', name: comp.name });
     }
   }
 
-  // Collect artifact components
+  // Collect artifact components (include name for better variable names)
   if (projectData.artifactComponents) {
-    for (const compId of Object.keys(projectData.artifactComponents)) {
-      entities.push({ id: compId, type: 'artifactComponent' });
+    for (const [compId, compData] of Object.entries(projectData.artifactComponents)) {
+      const comp = compData as any;
+      entities.push({ id: compId, type: 'artifactComponent', name: comp.name });
     }
   }
 

@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import prompts from 'prompts';
 import { ManagementApiClient } from '../api';
+import type { GenerationPlan } from '../codegen/plan-builder';
 import type { NestedInkeepConfig } from '../config';
 import { env } from '../env';
 import { loadConfig } from '../utils/config';
@@ -131,6 +132,7 @@ async function detectCurrentProject(debug: boolean = false): Promise<string | nu
 async function verifyGeneratedFiles(
   projectDir: string,
   originalProjectData: any,
+  plan: GenerationPlan,
   debug: boolean = false
 ): Promise<VerificationResult> {
   const errors: string[] = [];
@@ -168,59 +170,15 @@ async function verifyGeneratedFiles(
       warnings.push('Could not extract project ID from index.ts');
     }
 
-    // Check that expected agent files exist
-    const agentsDir = join(projectDir, 'agents');
-    const expectedAgents = Object.keys(originalProjectData.agents || {});
+    // Check that all files from the plan exist (excluding index.ts which we already checked)
+    for (const fileInfo of plan.files) {
+      if (fileInfo.path === 'index.ts') continue;
 
-    for (const agentId of expectedAgents) {
-      // Convert agent ID to kebab-case to match file naming convention
-      const kebabCaseId = agentId
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase();
-      const agentPath = join(agentsDir, `${kebabCaseId}.ts`);
-      if (!existsSync(agentPath)) {
-        errors.push(`Agent file not found: agents/${kebabCaseId}.ts`);
+      const filePath = join(projectDir, fileInfo.path);
+      if (!existsSync(filePath)) {
+        errors.push(`File not found: ${fileInfo.path}`);
       } else if (debug) {
-        console.log(chalk.gray(`  ✓ Agent file exists: agents/${kebabCaseId}.ts`));
-      }
-    }
-
-    // Check that expected tool files exist
-    const toolsDir = join(projectDir, 'tools');
-    const expectedTools = Object.keys(originalProjectData.tools || {});
-
-    for (const toolId of expectedTools) {
-      // Convert tool ID to kebab-case to match file naming convention
-      const kebabCaseId = toolId
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase();
-      const toolPath = join(toolsDir, `${kebabCaseId}.ts`);
-      if (!existsSync(toolPath)) {
-        errors.push(`Tool file not found: tools/${kebabCaseId}.ts`);
-      } else if (debug) {
-        console.log(chalk.gray(`  ✓ Tool file exists: tools/${kebabCaseId}.ts`));
-      }
-    }
-
-    // Check that expected data component files exist
-    const dataComponentsDir = join(projectDir, 'data-components');
-    const expectedDataComponents = Object.keys(originalProjectData.dataComponents || {});
-
-    for (const componentId of expectedDataComponents) {
-      // Convert component ID to kebab-case to match file naming convention
-      const kebabCaseId = componentId
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .replace(/[\s_]+/g, '-')
-        .toLowerCase();
-      const componentPath = join(dataComponentsDir, `${kebabCaseId}.ts`);
-      if (!existsSync(componentPath)) {
-        errors.push(`Data component file not found: data-components/${kebabCaseId}.ts`);
-      } else if (debug) {
-        console.log(
-          chalk.gray(`  ✓ Data component file exists: data-components/${kebabCaseId}.ts`)
-        );
+        console.log(chalk.gray(`  ✓ File exists: ${fileInfo.path}`));
       }
     }
 
@@ -940,6 +898,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       const verificationResult = await verifyGeneratedFiles(
         dirs.projectRoot,
         projectData,
+        plan,
         options.debug || false
       );
       if (verificationResult.success) {

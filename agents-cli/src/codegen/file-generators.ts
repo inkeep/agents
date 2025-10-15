@@ -23,7 +23,6 @@ export interface GenerationContext {
   plan: GenerationPlan;
   patterns: DetectedPatterns;
   fileInfo: FileInfo;
-  exampleCode?: string; // Similar existing code to learn from
 }
 
 /**
@@ -51,12 +50,17 @@ AGENT ID: ${agentId}
 
 ${getTypeDefinitions()}
 
-DETECTED PATTERNS (FOLLOW THESE):
+CRITICAL - DATA IS SOURCE OF TRUTH:
+- The AGENT DATA above is the ONLY source of truth
+- Generate code that EXACTLY matches the data provided
+- Do NOT preserve old code that isn't in the current data
+- Every field in the data MUST appear in the generated code
+- If a field changed in the data, it MUST change in the code
+
+DETECTED PATTERNS (FOLLOW THESE FOR STYLE ONLY):
 File Structure: ${context.patterns.fileStructure.toolsLocation} tools
 Naming: ${context.patterns.codeStyle.exportNaming}
 Multi-line strings: ${context.patterns.codeStyle.multiLineStrings}
-
-${context.exampleCode ? `EXAMPLE CODE (your existing style):\n${context.exampleCode}\n` : ''}
 
 VARIABLE NAME REGISTRY (MUST USE EXACT NAMES):
 ${registryInfo}
@@ -135,7 +139,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       agentData,
       promptTemplate,
       {
-        temperature: 0.1,
+        temperature: 0.3,
         maxOutputTokens: 16000,
         abortSignal: AbortSignal.timeout(240000),
       },
@@ -182,15 +186,16 @@ export async function generateToolFileWithRegistry(
 
   const promptTemplate = `Generate a TypeScript file for an Inkeep tool.
 
-TOOL DATA:
-{{DATA}}
-
-TOOL ID: ${toolId}
-
-${getTypeDefinitions()}
-
 VARIABLE NAME REGISTRY (MUST USE EXACT NAMES):
 ${registryInfo}
+
+⚠️ CRITICAL: The data below contains an 'id' field (${toolId}). DO NOT use this ID as the variable name!
+Use the EXACT variable name from the registry above.
+
+TOOL DATA (for configuration only - do NOT use 'id' field for variable name):
+{{DATA}}
+
+${getTypeDefinitions()}
 
 ${NAMING_CONVENTION_RULES}
 
@@ -218,7 +223,7 @@ export const inkeepFacts = mcpTool({
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
   const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
-    temperature: 0.1,
+    temperature: 0.3,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000),
   });
@@ -285,7 +290,7 @@ export const myProject = project({
 Generate ONLY the TypeScript code without markdown.`;
 
   const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
-    temperature: 0.1,
+    temperature: 0.3,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000),
   });
@@ -311,10 +316,11 @@ function formatRegistryForFile(fileInfo: FileInfo, _registry: VariableNameRegist
   }
 
   if (fileInfo.dependencies.length > 0) {
-    result += '\nDependencies to import:\n';
+    result += '\n⚠️ REQUIRED IMPORTS (USE THESE EXACT PATHS - DO NOT MODIFY):\n';
     for (const dep of fileInfo.dependencies) {
-      result += `  - import { ${dep.variableName} } from '${dep.fromPath}';\n`;
+      result += `  import { ${dep.variableName} } from '${dep.fromPath}';\n`;
     }
+    result += '\nCRITICAL: Copy these import statements EXACTLY as shown above. The file paths are correct and already exist.\n';
   }
 
   return result;

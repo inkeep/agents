@@ -69,9 +69,9 @@ export async function analyzeExistingPatterns(
     namingConventions,
     codeStyle,
     examples: {
-      sampleAgentFile: codeExamples.agentFiles[0]?.content,
-      sampleToolFile: codeExamples.toolFiles[0]?.content,
-      sampleImports: codeExamples.imports,
+      sampleAgentFile: undefined,
+      sampleToolFile: undefined,
+      sampleImports: [],
       mappings: codeExamples.mappings,
     },
   };
@@ -183,55 +183,27 @@ function collectCodeExamples(
     mappings: [],
   };
 
-  // Collect agent files
   if (fileStructure.hasAgentsDirectory) {
     const agentDir = join(projectDir, 'agents');
     const agentFiles = getFilesInDirectory(agentDir, '.ts');
-    for (const file of agentFiles.slice(0, 3)) {
-      // Sample up to 3 files
+    for (const file of agentFiles) {
       const content = readFileSync(file, 'utf-8');
-      examples.agentFiles.push({ path: file, content });
-
-      // Extract imports
-      const imports = extractImports(content);
-      examples.imports.push(...imports);
-
-      // Extract mappings
       const mappings = extractVariableMappings(content, file);
       examples.mappings.push(...mappings);
     }
   }
 
-  // Collect tool files
   if (fileStructure.hasToolsDirectory) {
     const toolsDir = join(projectDir, 'tools');
     const toolFiles = getFilesInDirectory(toolsDir, '.ts');
-    for (const file of toolFiles.slice(0, 3)) {
+    for (const file of toolFiles) {
       const content = readFileSync(file, 'utf-8');
-      examples.toolFiles.push({ path: file, content });
-
       const mappings = extractVariableMappings(content, file);
       examples.mappings.push(...mappings);
     }
   }
 
-  // Check index file for project-level patterns
-  const indexPath = join(projectDir, 'index.ts');
-  if (existsSync(indexPath)) {
-    const content = readFileSync(indexPath, 'utf-8');
-    const imports = extractImports(content);
-    examples.imports.push(...imports);
-  }
-
   return examples;
-}
-
-/**
- * Extract imports from code
- */
-function extractImports(code: string): string[] {
-  const importRegex = /import\s+.*?\s+from\s+['"].*?['"];?/g;
-  return code.match(importRegex) || [];
 }
 
 /**
