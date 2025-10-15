@@ -20,7 +20,7 @@ import type {
   ApiPublicIntegration,
   ApiPublicIntegrationCredentials,
 } from '@nangohq/types';
-import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
+import { DEFAULT_NANGO_SERVER_URL, DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { NangoError, wrapNangoError } from './nango-types';
 
 // Initialize Nango client with environment variables
@@ -33,7 +33,10 @@ const getNangoClient = () => {
   try {
     return new Nango({
       secretKey,
-      host: process.env.NANGO_SERVER_URL || undefined, // defaults to Nango Cloud
+      host:
+        process.env.NANGO_SERVER_URL ||
+        process.env.PUBLIC_NANGO_SERVER_URL ||
+        DEFAULT_NANGO_SERVER_URL,
     });
   } catch (error) {
     throw new NangoError('Failed to initialize Nango client', 'new Nango', error);
@@ -290,7 +293,7 @@ export async function createNangoApiKeyConnection({
 
     // Step 2: Import the connection to Nango
     try {
-      const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
+      const importConnectionUrl = `${process.env.NANGO_SERVER_URL || process.env.PUBLIC_NANGO_SERVER_URL || DEFAULT_NANGO_SERVER_URL}/connections`;
 
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
