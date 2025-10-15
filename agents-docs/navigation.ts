@@ -94,19 +94,27 @@ export default {
       pages: [
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
-        'talk-to-your-agents/api',
-        'talk-to-your-agents/a2a',
+        'talk-to-your-agents/chat-api',
         {
-          group: 'UI Components',
-          icon: 'LuLayers',
+          group: 'Chat Components',
+          icon: 'LuBlocks',
           pages: [
             'talk-to-your-agents/react/chat-button',
             'talk-to-your-agents/react/custom-trigger',
             'talk-to-your-agents/react/side-bar-chat',
             'talk-to-your-agents/react/embedded-chat',
-            'talk-to-your-agents/vercel-ai-sdk',
+           
           ],
         },
+        {
+          group: 'Vercel AI SDK',
+          icon: 'LuPackage',
+          pages: [
+            'talk-to-your-agents/vercel-ai-sdk/use-chat',
+            'talk-to-your-agents/vercel-ai-sdk/ai-elements',
+          ],
+        },
+        'talk-to-your-agents/a2a',
         'troubleshooting',
       ],
     },
