@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+
 ## 0.22.5
 
 ### Patch Changes
