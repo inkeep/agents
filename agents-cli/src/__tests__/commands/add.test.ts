@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -649,7 +650,6 @@ describe('Add Command', () => {
       it('should proceed when MCP template exists', async () => {
         const mockProjectTemplates = ['weather'];
         const mockMcpTemplates = ['zendesk'];
-        const { findUp } = await import('find-up');
         vi.mocked(getAvailableTemplates)
           .mockResolvedValueOnce(mockProjectTemplates)
           .mockResolvedValueOnce(mockMcpTemplates);
@@ -678,7 +678,6 @@ describe('Add Command', () => {
       });
 
       it('should find and use apps/mcp/app directory when no target path specified', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/root/apps/mcp/app');
 
         const options: AddOptions = {
@@ -698,8 +697,7 @@ describe('Add Command', () => {
         );
       });
 
-      it('should use current directory when apps/mcp/app is not found', async () => {
-        const { findUp } = await import('find-up');
+      it('should use current directory when apps/mcp/app is not found and user confirms', async () => {
         vi.mocked(findUp).mockResolvedValue(undefined);
         vi.mocked(p.confirm).mockResolvedValue(true);
         const originalCwd = process.cwd();
@@ -723,8 +721,22 @@ describe('Add Command', () => {
         );
       });
 
+      it('should exit when apps/mcp/app is not found and user declines', async () => {
+        vi.mocked(findUp).mockResolvedValue(undefined);
+        vi.mocked(p.confirm).mockResolvedValue(false);
+
+        const options: AddOptions = {
+          mcp: 'zendesk',
+          list: false,
+        };
+
+        await expect(addCommand(options)).rejects.toThrow('process.exit called');
+
+        expect(processExitSpy).toHaveBeenCalledWith(0);
+        expect(cloneTemplate).not.toHaveBeenCalled();
+      });
+
       it('should use specified target path when provided', async () => {
-        const { findUp } = await import('find-up');
         const options: AddOptions = {
           mcp: 'zendesk',
           targetPath: './custom-mcp-path',
@@ -754,7 +766,6 @@ describe('Add Command', () => {
       });
 
       it('should clone MCP template successfully', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
 
         const options: AddOptions = {
@@ -776,7 +787,6 @@ describe('Add Command', () => {
       });
 
       it('should construct correct GitHub URL for MCP template', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
 
         const options: AddOptions = {
@@ -793,7 +803,6 @@ describe('Add Command', () => {
       });
 
       it('should handle MCP template cloning errors', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
         vi.mocked(cloneTemplate).mockRejectedValue(new Error('Git clone failed'));
 
@@ -810,7 +819,6 @@ describe('Add Command', () => {
 
       it('should not include model configuration replacements for MCP templates', async () => {
         process.env.ANTHROPIC_API_KEY = 'test-key';
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
 
         const options: AddOptions = {
@@ -839,7 +847,6 @@ describe('Add Command', () => {
       });
 
       it('should add both project and MCP templates when both are specified', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
 
         const options: AddOptions = {
@@ -873,7 +880,6 @@ describe('Add Command', () => {
 
     describe('findAppDirectory function', () => {
       it('should return the apps/mcp/app directory path when found', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/project/root/apps/mcp/app');
 
         const result = await findAppDirectory();
@@ -882,8 +888,7 @@ describe('Add Command', () => {
         expect(vi.mocked(findUp)).toHaveBeenCalledWith('apps/mcp/app', { type: 'directory' });
       });
 
-      it('should return current directory and log warning when not found', async () => {
-        const { findUp } = await import('find-up');
+      it('should prompt and return current directory when not found and user confirms', async () => {
         vi.mocked(findUp).mockResolvedValue(undefined);
         vi.mocked(p.confirm).mockResolvedValue(true);
         const originalCwd = process.cwd();
@@ -897,6 +902,15 @@ describe('Add Command', () => {
         expect(p.confirm).toHaveBeenCalledWith({
           message: `Do you want to add to ${originalCwd} instead?`,
         });
+      });
+
+      it('should exit when not found and user declines', async () => {
+        vi.mocked(findUp).mockResolvedValue(undefined);
+        vi.mocked(p.confirm).mockResolvedValue(false);
+
+        await expect(findAppDirectory()).rejects.toThrow('process.exit called');
+
+        expect(processExitSpy).toHaveBeenCalledWith(0);
       });
     });
 
@@ -926,7 +940,6 @@ describe('Add Command', () => {
       });
 
       it('should use findAppDirectory when no target path provided', async () => {
-        const { findUp } = await import('find-up');
         vi.mocked(findUp).mockResolvedValue('/found/path/apps/mcp/app');
 
         await addMcpTemplate('zendesk', undefined, mockMcpSpinner);
