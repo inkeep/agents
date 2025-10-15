@@ -1,4 +1,3 @@
-// === Core A2A Data Structures ===
 
 export interface PartBase {
   metadata?: { [key: string]: any };
@@ -69,7 +68,6 @@ export interface AgentSkill {
   outputModes?: string[];
 }
 
-// Security Scheme types
 export interface SecuritySchemeBase {
   description?: string;
 }
@@ -205,7 +203,6 @@ export interface TaskArtifactUpdateEvent {
   metadata?: { [key: string]: any };
 }
 
-// === Error Types (Standard and A2A) ===
 
 export interface JSONParseError extends JSONRPCError {
   code: -32700;
@@ -278,7 +275,6 @@ export type A2AError =
   | ContentTypeNotSupportedError
   | InvalidAgentResponseError;
 
-// === Push Notifications ===
 
 export interface PushNotificationAuthenticationInfo {
   schemes: string[];
@@ -296,7 +292,6 @@ export interface TaskPushNotificationConfig {
   pushNotificationConfig: PushNotificationConfig;
 }
 
-// === A2A Request Parameter Types ===
 
 export interface TaskIdParams {
   id: string;
@@ -320,7 +315,6 @@ export interface MessageSendParams {
   metadata?: { [key: string]: any };
 }
 
-// === JSON-RPC Base Structures ===
 
 /**
  * Base interface for all JSON-RPC messages (Requests and Responses).
@@ -363,7 +357,6 @@ export interface JSONRPCErrorResponse extends JSONRPCMessage {
   result?: never;
   error: JSONRPCError | A2AError;
 }
-// === A2A Request Interfaces ===
 
 export interface SendMessageRequest extends JSONRPCRequest {
   method: 'message/send';
@@ -400,42 +393,34 @@ export interface TaskResubscriptionRequest extends JSONRPCRequest {
   params: TaskIdParams;
 }
 
-// === A2A Response Interfaces ===
 
-// --- SendMessage ---
 export interface SendMessageSuccessResponse extends JSONRPCResult<Message | Task> {}
 export type SendMessageResponse = SendMessageSuccessResponse | JSONRPCErrorResponse;
 
-// --- SendStreamingMessage ---
 export interface SendStreamingMessageSuccessResponse
   extends JSONRPCResult<Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent> {}
 export type SendStreamingMessageResponse =
   | SendStreamingMessageSuccessResponse
   | JSONRPCErrorResponse;
 
-// --- GetTask ---
 export interface GetTaskSuccessResponse extends JSONRPCResult<Task> {}
 export type GetTaskResponse = GetTaskSuccessResponse | JSONRPCErrorResponse;
 
-// --- CancelTask ---
 export interface CancelTaskSuccessResponse extends JSONRPCResult<Task> {}
 export type CancelTaskResponse = CancelTaskSuccessResponse | JSONRPCErrorResponse;
 
-// --- SetTaskPushNotificationConfig ---
 export interface SetTaskPushNotificationConfigSuccessResponse
   extends JSONRPCResult<TaskPushNotificationConfig> {}
 export type SetTaskPushNotificationConfigResponse =
   | SetTaskPushNotificationConfigSuccessResponse
   | JSONRPCErrorResponse;
 
-// --- GetTaskPushNotificationConfig ---
 export interface GetTaskPushNotificationConfigSuccessResponse
   extends JSONRPCResult<TaskPushNotificationConfig> {}
 export type GetTaskPushNotificationConfigResponse =
   | GetTaskPushNotificationConfigSuccessResponse
   | JSONRPCErrorResponse;
 
-// === Union Types for A2A Requests/Responses ===
 
 export type A2ARequest =
   | SendMessageRequest
@@ -458,7 +443,6 @@ export type A2AResponse =
   | GetTaskPushNotificationConfigResponse
   | JSONRPCErrorResponse; // Catch-all for other error responses
 
-// === Backward Compatibility Aliases ===
 // These help bridge our simplified implementation with Google's full schema
 
 export type MessagePart = Part;
