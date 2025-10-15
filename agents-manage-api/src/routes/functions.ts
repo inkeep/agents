@@ -23,7 +23,6 @@ const logger = getLogger('functions');
 
 const app = new OpenAPIHono();
 
-// List functions (global entities)
 app.openapi(
   createRoute({
     method: 'get',
@@ -72,7 +71,6 @@ app.openapi(
   }
 );
 
-// Get function by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -123,7 +121,6 @@ app.openapi(
   }
 );
 
-// Create function
 app.openapi(
   createRoute({
     method: 'post',
@@ -221,7 +218,6 @@ app.openapi(
     const updateData = c.req.valid('json');
 
     try {
-      // Check if function exists
       const existing = await getFunction(dbClient)({
         functionId: id,
         scopes: { tenantId, projectId },
@@ -281,7 +277,6 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
-      // Check if function exists
       const existing = await getFunction(dbClient)({
         functionId: id,
         scopes: { tenantId, projectId },

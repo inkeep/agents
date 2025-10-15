@@ -38,7 +38,6 @@ const AgentIdParamsSchema = z
   })
   .openapi('AgentIdParams');
 
-// Create full agent from JSON
 app.openapi(
   createRoute({
     method: 'post',
@@ -82,10 +81,8 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
-    // Validate the agent data
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    // Create the full agent using the server-side data layer operations
     const createdAgent = await createFullAgentServerSide(dbClient, logger)(
       { tenantId, projectId },
       validatedAgentData
@@ -95,7 +92,6 @@ app.openapi(
   }
 );
 
-// Get full agent by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -199,10 +195,8 @@ app.openapi(
     const agentData = c.req.valid('json');
 
     try {
-      // Validate the agent data
       const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-      // Validate that the URL agentId matches the data.id
       if (agentId !== validatedAgentData.id) {
         throw createApiError({
           code: 'bad_request',
@@ -210,7 +204,6 @@ app.openapi(
         });
       }
 
-      // Check if the agent exists first to determine status code
       const existingAgent: FullAgentDefinition | null = await getFullAgent(
         dbClient,
         logger
@@ -254,7 +247,6 @@ app.openapi(
   }
 );
 
-// Delete full Agent
 app.openapi(
   createRoute({
     method: 'delete',

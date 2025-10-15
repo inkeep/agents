@@ -50,7 +50,6 @@ async function findOrCreateCredential(
     // Credential not found, continue with creation
   }
 
-  // Create new credential
   try {
     const credential = await createCredentialReference(dbClient)({
       ...credentialData,
@@ -226,7 +225,6 @@ app.openapi(
     const { tenantId, projectId, toolId } = c.req.valid('query');
 
     try {
-      // 1. Get the tool
       const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
 
       if (!tool) {
@@ -237,7 +235,6 @@ app.openapi(
       const credentialStores = c.get('credentialStores');
       const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
-      // 2. Initiate OAuth flow using centralized service
       const baseUrl = getBaseUrlFromRequest(c);
       const { redirectUrl } = await oauthService.initiateOAuthFlow({
         tool: mcpTool,
@@ -247,7 +244,6 @@ app.openapi(
         baseUrl,
       });
 
-      // 3. Immediate redirect
       return c.redirect(redirectUrl, 302);
     } catch (error) {
       logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
@@ -333,7 +329,6 @@ app.openapi(
 
       const { codeVerifier, toolId, tenantId, projectId, clientId } = pkceData;
 
-      // Get the MCP tool
       const tool = await getToolById(dbClient)({
         scopes: { tenantId, projectId },
         toolId,
@@ -349,7 +344,6 @@ app.openapi(
 
       const credentialStores = c.get('credentialStores');
 
-      // Convert database result to McpTool (using helper function)
       const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
 
       const baseUrl = getBaseUrlFromRequest(c);

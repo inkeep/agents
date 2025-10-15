@@ -30,7 +30,6 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agent relations
 app.openapi(
   createRoute({
     method: 'get',
@@ -108,7 +107,6 @@ app.openapi(
   }
 );
 
-// Get agent relation by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -149,7 +147,6 @@ app.openapi(
   }
 );
 
-// Create agent relation
 app.openapi(
   createRoute({
     method: 'post',
@@ -186,9 +183,7 @@ app.openapi(
     // Determine if this is an external agent relationship
     const isExternalAgent = body.externalSubAgentId != null;
 
-    // Validate that the target agent exists in the appropriate table
     if (isExternalAgent && body.externalSubAgentId) {
-      // Check if external agent exists
       const externalAgentExists = await validateExternalAgent(dbClient)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.externalSubAgentId },
       });
@@ -201,7 +196,6 @@ app.openapi(
     }
 
     if (!isExternalAgent && body.targetSubAgentId) {
-      // Check if internal agent exists
       const internalAgentExists = await validateInternalSubAgent(dbClient)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.targetSubAgentId },
       });
@@ -213,7 +207,6 @@ app.openapi(
       }
     }
 
-    // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentRelations(dbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page: 1, limit: 1000 },
@@ -239,7 +232,6 @@ app.openapi(
       });
     }
 
-    // Create the relation with the correct data structure
     const relationData = {
       agentId,
       tenantId,
@@ -259,7 +251,6 @@ app.openapi(
   }
 );
 
-// Update agent relation
 app.openapi(
   createRoute({
     method: 'put',
@@ -310,7 +301,6 @@ app.openapi(
   }
 );
 
-// Delete agent relation
 app.openapi(
   createRoute({
     method: 'delete',

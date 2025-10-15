@@ -127,14 +127,12 @@ export async function getScopedHistory({
   options?: ConversationHistoryConfig;
 }): Promise<any[]> {
   try {
-    // Get conversation history with internal messages included
     const messages = await getConversationHistory(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       options,
     });
 
-    // If no filters provided, return all messages
     if (!filters || (!filters.subAgentId && !filters.taskId)) {
       return messages;
     }
@@ -245,7 +243,6 @@ export async function getFormattedConversationHistory({
   // Ensure includeInternal defaults to true for formatted history
   const historyOptions = options ?? { includeInternal: true };
 
-  // Get filtered conversation history using unified function
   const conversationHistory = await getScopedHistory({
     tenantId,
     projectId,

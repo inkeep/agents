@@ -126,16 +126,13 @@ class OAuthService {
       throw new Error('OAuth is only supported for MCP tools');
     }
 
-    // 1. Detect OAuth requirements
     const oAuthConfig = await discoverOAuthEndpoints(tool.config.mcp.server.url, logger);
     if (!oAuthConfig) {
       throw new Error('OAuth not supported by this server');
     }
 
-    // 2. Generate PKCE parameters
     const { codeVerifier, codeChallenge } = await this.generatePKCEInternal();
 
-    // 3. Handle dynamic client registration if supported
     const redirectBaseUrl = baseUrl || this.defaultConfig.redirectBaseUrl;
     const redirectUri = `${redirectBaseUrl}/oauth/callback`;
     let clientId = this.defaultConfig.defaultClientId;
@@ -147,7 +144,6 @@ class OAuthService {
       );
     }
 
-    // 4. Build OAuth URL
     const state = `tool_${toolId}`;
     const authUrl = this.buildAuthorizationUrl({
       oAuthConfig,
@@ -158,7 +154,6 @@ class OAuthService {
       resource: tool.config.mcp.server.url,
     });
 
-    // 5. Store PKCE verifier for callback handling
     storePKCEVerifier(state, codeVerifier, toolId, tenantId, projectId, clientId);
 
     logger.info({ toolId, oAuthConfig, tenantId, projectId }, 'OAuth flow initiated successfully');
