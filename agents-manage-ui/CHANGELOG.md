@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+- 7253f2b: - Fallback to PUBLIC\_ envs server side
+- Updated dependencies [d00742f]
+  - @inkeep/agents-core@0.22.3
+  - @inkeep/agents-manage-api@0.22.3
+  - @inkeep/agents-run-api@0.22.3
+
 ## 0.22.2
 
 ### Patch Changes
