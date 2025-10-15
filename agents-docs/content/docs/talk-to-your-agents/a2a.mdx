@@ -21,16 +21,15 @@ Here are some example platforms that you can add Inkeep Agents to:
 <Snippet file="auth/RunApiAuthModes.mdx" />
 
 ## Endpoints
-
-- **Agent card discovery (agent or sub-agent-level):** `GET /agents/.well-known/agent.json`
-- **A2A protocol (agent or sub-agent-level):** `POST /agents/a2a`
+- **Agent card discovery (agent or sub-agent-level):** `GET <INKEEP_AGENTS_RUN_API_URL>/agents/.well-known/agent.json`
+- **A2A protocol (agent or sub-agent-level):** `POST <INKEEP_AGENTS_RUN_API_URL>/agents/.well-known/agent.json`
 
 Notes:
-- If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific Sub Agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the Agent's default Sub Agent. API keys bound to a specific Sub Agent are not yet supported.
+- If you supply `x-inkeep-sub-agent-id` in headers, requests target that specific Sub Agent. This is supported in development (or when using the bypass secret). With production API keys, requests always use the Agent's default Sub Agent.
 
 ## Message Send (Blocking)
 
-- **Path:** `POST /agents/a2a`
+- **Path:** `POST  <INKEEP_AGENTS_RUN_API_URL>/agents/a2a`
 - **Headers:** Per Authentication section (Standard API Key recommended)
 - **Body (JSON-RPC 2.0):**
 
