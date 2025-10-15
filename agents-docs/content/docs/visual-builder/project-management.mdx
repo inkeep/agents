@@ -61,21 +61,21 @@ Define default models at the project level that all agents and Sub Agents will i
   name: "My AI Project",
   models: {
     base: {
-      model: "anthropic/claude-sonnet-4-20250514",
+      model: "anthropic/claude-sonnet-4-5",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
       }
     },
     structuredOutput: {
-      model: "openai/gpt-4o-mini-2024-07-18",
+      model: "openai/gpt-4.1-mini",
       providerOptions: {
         temperature: 0.1,
         maxTokens: 2048
       }
     },
     summarizer: {
-      model: "openai/gpt-4o-mini-2024-07-18",
+      model: "openai/gpt-4.1-nano",
       providerOptions: {
         temperature: 0.3,
         maxTokens: 1024
@@ -117,27 +117,27 @@ Each model type (`base`, `structuredOutput`, `summarizer`) cascades independentl
 // Project Level - Sets defaults for all agents
 Project: {
   models: {
-    base: { model: "claude-sonnet-4-0" },
-    structuredOutput: { model: "gpt-4.1-mini" },
-    summarizer: { model: "gpt-4.1-mini" }
+    base: { model: "anthropic/claude-sonnet-4-5" },
+    structuredOutput: { model: "openai/gpt-4.1-mini" },
+    summarizer: { model: "openai/gpt-4.1-nano" }
   }
 }
 
 // Agent Level - Partially overrides project defaults
 Agent: {
   models: {
-    base: { model: "gpt-4.1" }  // Override: use different base model
-    // structuredOutput: INHERITED from project (gpt-4.1-mini)
-    // summarizer: INHERITED from project (gpt-4.1-mini)
+    base: { model: "openai/gpt-4.1" }  // Override: use different base model
+    // structuredOutput: INHERITED from project (openai/gpt-4.1-mini)
+    // summarizer: INHERITED from project (openai/gpt-4.1-nano)
   }
 }
 
 // Sub Agent Level - Can override any inherited model
 Sub Agent: {
   models: {
-    summarizer: { model: "claude-3.5-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from Agent (gpt-4.1)
-    // structuredOutput: INHERITED from project (gpt-4.1-mini)
+    summarizer: { model: "anthropic/claude-haiku-4-5" }  // Override: use faster summarizer
+    // base: INHERITED from Agent (openai/gpt-4.1)
+    // structuredOutput: INHERITED from project (openai/gpt-4.1-nano)
   }
 }
 ```
@@ -233,7 +233,7 @@ Sub Agent: {
 Project: {
   models: {
     summarizer: {
-      model: "gpt-4.1-mini-2025-04-14";
+      model: "gpt-4.1-mini";
     }
   }
 }
@@ -241,7 +241,7 @@ Project: {
 Sub Agent: {
   models: {
     base: {
-      model: "gpt-4.1-2025-04-14";
+      model: "gpt-4.1";
     }
   }
 }
@@ -249,9 +249,9 @@ Sub Agent: {
 
 **Final Resolution with Inheritance:**
 
-- **base**: `gpt-4.1-2025-04-14` (from Sub Agent)
-- **summarizer**: `gpt-4.1-mini-2025-04-14` (inherited from project - NO fallback to Sub Agent's base)
-- **structuredOutput**: Falls back to Sub Agent's base `gpt-4.1-2025-04-14` (no inheritance available, so fallback occurs)
+- **base**: `gpt-4.1` (from Sub Agent)
+- **summarizer**: `gpt-4.1-mini` (inherited from project - NO fallback to Sub Agent's base)
+- **structuredOutput**: Falls back to Sub Agent's base `gpt-4.1` (no inheritance available, so fallback occurs)
 
 ### StopWhen Inheritance
 

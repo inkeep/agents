@@ -86,10 +86,10 @@ The summarizer model is configured in your Agent's model settings:
 // Agent-level model settings
 models: {
   base: {
-    model: 'anthropic/claude-sonnet-4-20250514' // Primary model
+    model: 'anthropic/claude-sonnet-4-5' // Primary model
   },
   summarizer: {
-    model: 'openai/gpt-4.1-mini-2025-04-14', // Dedicated summarizer
+    model: 'openai/gpt-4.1-mini', // Dedicated summarizer
     providerOptions: {
       temperature: 0.3, // Lower temperature for consistent summaries
       maxTokens: 1024
