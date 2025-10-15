@@ -202,27 +202,14 @@ inkeep pull --config inkeep-cloud.config.ts
 
 ## Function Tools with Vercel Sandbox
 
-When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in Vercel Sandbox MicroVMs instead of native Node.js processes. This is **required** for serverless platforms since child process spawning is restricted.
+When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) MicroVMs instead of your Agent's runtime service. This is **required** for serverless platforms since child process spawning is restricted. 
 
 ### Why Use Vercel Sandbox?
-
-**Native execution limitations in serverless:**
-
-- Serverless platforms (Vercel, AWS Lambda, Cloudflare Workers) restrict child process spawning
-- Function tools using the native provider will fail or timeout in these environments
-- Limited access to system resources and file system
 
 **When to use each provider:**
 
 - **Native** - Use for traditional cloud deployments (VMs, Docker, Kubernetes), self-hosted servers, or local development
-- **Vercel Sandbox** - Required for serverless platforms (Vercel, AWS Lambda, etc.)
-
-**Vercel Sandbox benefits:**
-
-- ✅ Designed specifically for serverless environments
-- ✅ Isolated Linux MicroVMs with full Node.js support
-- ✅ Configurable CPU and memory resources
-- ✅ Reliable execution without child process restrictions
+- **Vercel Sandbox** - Required for serverless platforms (Vercel, AWS Lambda, etc.) or if you'd like to isolate tool executions
 
 ### Setting Up Vercel Sandbox
 
@@ -234,54 +221,21 @@ You'll need three credentials from your Vercel account:
 2. **Team ID** - Find in your team settings at [vercel.com/teams](https://vercel.com/teams)
 3. **Project ID** - Find in your Vercel project settings
 
-#### Step 2: Add Environment Variables to Run API
+#### Step 2: Configure Sandbox in Your Application
 
-Add these environment variables to your **Run API** Vercel project:
+Update your Run API to use Vercel Sandbox.
 
-```bash
-# Vercel Sandbox Configuration
-SANDBOX_VERCEL_TOKEN=your_vercel_access_token
-SANDBOX_VERCEL_TEAM_ID=team_xxxxxxxxxx
-SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
-```
+In the `apps/run-api/src` folder, create a `sandbox.ts` file:
 
-<Warning>
-  Never commit these credentials to your repository. Always use environment
-  variables.
-</Warning>
-
-#### Step 3: Configure Sandbox in Your Application
-
-Update your Run API to use Vercel Sandbox:
-
-```typescript filename="apps/run-api/sandbox.ts"
-import { SandboxConfig } from "@inkeep/agents-run-api";
-
-export const sandboxConfig: SandboxConfig = {
-  provider: "vercel",
-  runtime: "node22", // or 'typescript'
-  timeout: 60000, // 60 second timeout
-  vcpus: 4, // Allocate 4 vCPUs
-  // Credentials from environment variables
-  teamId: process.env.VERCEL_TEAM_ID!,
-  projectId: process.env.VERCEL_PROJECT_ID!,
-  token: process.env.VERCEL_TOKEN!,
-};
-```
-
-### Environment-Specific Configuration
-To save costs, you can use native for local development and Vercel Sandbox for serverless production:
-
-```typescript
+```typescript sandbox.ts
 const isProduction = process.env.ENVIRONMENT === "production";
 
-const app = createExecutionApp({
-  sandboxConfig: isProduction
+export const sandboxConfig = isProduction
     ? {
         provider: "vercel",
-        runtime: "node22",
-        timeout: 60000,
-        vcpus: 4,
+        runtime: "node22", // or 'typescript'
+        timeout: 60000, // 60 second timeout
+        vcpus: 4, // Allocate 4 vCPUs
         teamId: process.env.VERCEL_TEAM_ID!,
         projectId: process.env.VERCEL_PROJECT_ID!,
         token: process.env.VERCEL_TOKEN!,
@@ -291,53 +245,85 @@ const app = createExecutionApp({
         runtime: "node22",
         timeout: 30000,
         vcpus: 2,
-      },
-});
+      }
 ```
 
-This allows you to:
+Import it into your `index.ts` file:
+```typescript index.ts
+import { sandboxConfig } from "./sandbox.ts"
+// ...
+const app: Hono = createExecutionApp({
+  // ...
+	sandboxConfig, // NEW
+});
 
-- ✅ Develop and test locally without Vercel credentials
-- ✅ Use Vercel Sandbox only in serverless production
-- ✅ Keep development fast with native execution
-- ✅ Use native provider in traditional cloud environments (VMs, Docker, K8s)
+```
 
-### Troubleshooting
 
-**"Failed to refresh OIDC token" error:**
+#### Step 3: Add Environment Variables to Run API
 
-- This occurs when using not in vercel environment and you're not passing in a Vercel access token
-- Solution: Use a Vercel access token from [vercel.com/account/tokens](https://vercel.com/account/tokens)
+Add these [environment variables in your Vercel project](https://vercel.com/docs/environment-variables/managing-environment-variables#declare-an-environment-variable) to your **Run API** app:
 
-**Function execution timeouts:**
+```bash
+SANDBOX_VERCEL_TOKEN=your_vercel_access_token
+SANDBOX_VERCEL_TEAM_ID=team_xxxxxxxxxx
+SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
+```
 
-- Increase the `timeout` value in sandbox configuration
-- Consider allocating more `vcpus` for resource-intensive functions
-- Check Vercel Sandbox limits for your plan
+<Accordions>
+  <Accordion title="Troubleshooting Functions">
+    <strong>"Failed to refresh OIDC token" error:</strong>
+    <ul>
+      <li>This occurs when you're not in a Vercel environment or you don't provide a Vercel access token</li>
+      <li>
+        Solution: Use a Vercel access token from
+        <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer">vercel.com/account/tokens</a>
+      </li>
+    </ul>
 
-**Dependency installation failures:**
+    <strong>Function execution timeouts:</strong>
+    <ul>
+      <li>Increase the <code>timeout</code> value in sandbox configuration</li>
+      <li>Consider allocating more <code>vcpus</code> for resource-intensive functions</li>
+      <li>Check Vercel Sandbox limits for your plan</li>
+    </ul>
 
-- Ensure dependencies are compatible with Node.js 22
-- Check that package versions are specified correctly
-- Verify network access to npm registry
+    <strong>Dependency installation failures:</strong>
+    <ul>
+      <li>Ensure dependencies are compatible with Node.js 22</li>
+      <li>Check that package versions are specified correctly</li>
+      <li>Verify network access to npm registry</li>
+    </ul>
 
-**High costs:**
+    <strong>High costs:</strong>
+    <ul>
+      <li>Reduce <code>vcpus</code> allocation if functions don't need maximum resources</li>
+      <li>Optimize function code to execute faster</li>
+      <li>Consider caching results when possible</li>
+    </ul>
+  </Accordion>
+  
+  <Accordion title="Best Practices">
+    <ol>
+      <li><strong>Use environment variables</strong> – Never hardcode credentials</li>
+      <li><strong>Start with fewer vCPUs</strong> – Scale up only if needed</li>
+      <li><strong>Set reasonable timeouts</strong> – Prevent runaway executions</li>
+      <li><strong>Monitor usage</strong> – Track sandbox execution metrics in Vercel dashboard</li>
+      <li><strong>Test thoroughly</strong> – Verify functions work in sandbox environment before deploying</li>
+      <li><strong>Choose the right provider</strong> – Use native for VMs/Docker/K8s, Vercel Sandbox for serverless only</li>
+    </ol>
+    <p>For more information on function tools, see:</p>
+    <ul>
+      <li>
+        <a href="/typescript-sdk/tools/function-tools">Function Tools (TypeScript SDK)</a>
+      </li>
+      <li>
+        <a href="/visual-builder/tools/function-tools">Function Tools (Visual Builder)</a>
+      </li>
+      <li>
+        <a href="https://vercel.com/docs/vercel-sandbox" target="_blank" rel="noopener noreferrer">Vercel Sandbox Documentation</a>
+      </li>
+    </ul>
+  </Accordion>
+</Accordions>
 
-- Reduce `vcpus` allocation if functions don't need maximum resources
-- Optimize function code to execute faster
-- Consider caching results when possible
-
-### Best Practices
-
-1. **Use environment variables** - Never hardcode credentials
-2. **Start with fewer vCPUs** - Scale up only if needed
-3. **Set reasonable timeouts** - Prevent runaway executions
-4. **Monitor usage** - Track sandbox execution metrics in Vercel dashboard
-5. **Test thoroughly** - Verify functions work in sandbox environment before deploying
-6. **Choose the right provider** - Use native for VMs/Docker/K8s, Vercel Sandbox for serverless only
-
-For more information on function tools, see:
-
-- [Function Tools (TypeScript SDK)](/typescript-sdk/tools/function-tools)
-- [Function Tools (Visual Builder)](/visual-builder/tools/function-tools)
-- [Vercel Sandbox Documentation](https://vercel.com/docs/vercel-sandbox)

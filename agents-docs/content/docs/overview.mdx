@@ -1,27 +1,27 @@
 ---
-title: Build AI Agents and Agentic Workflows
+title: Build AI Agents in Code + No-Code
 sidebarTitle: Overview
 icon: "LuBookOpen"
 description: Inkeep is a platform for building Agent-driven AI Chat Assistants and AI Workflows.
 ---
 
-With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either code or no-code with **full 2-way sync**, so your technical and non-technical teams can create and manage Agents in a single platform.
+With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage the same Agents in one platform.
 
-## Use Cases
-
-Inkeep Agents can operate as real-time **AI Chat Assistants** as:
-- a customer experience agent for customer support, technical docs, or in-app product copilot
+## Agentic Chat Assistants
+Inkeep Agents can operate as conversational assistants, for example:
+- a customer experience agent for customer support, technical docs, or in-app copilot
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
 
-Agents can also be used to automate complex **AI Workflows** for tasks like:
-- Creating and updating knowledge bases, docs, and blogs
-- Updating CRMs, triaging tickets, and completing other business processes
+## Agentic Workflows
+Agents can also be used for workflow automation like:
+- Creating and updating knowledge bases, documentation, and blogs
+- Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
 
 ## Two ways to build
 
-### No-Code Visual Agent Builder
+### No-Code Visual Builder
 
-A no-code drag-and-drop canvas designed to let both technical and non-technical teams create and manage Agents.
+A no-code drag-and-drop canvas designed to allow any team to create and manage teams of Agents visually.
 
 <img
   src="/gifs/drag-n-drop.gif"
@@ -32,7 +32,7 @@ A no-code drag-and-drop canvas designed to let both technical and non-technical 
 
 ### TypeScript Agents SDK
 
-A code-first approach for building and managing teams of Agents with a multi-agent architecture. The SDK allows developers to build with the tools engineering teams expect.
+A code-first approach for building and managing teams of Agents. The SDK allows engineering teams to build with the tools and developer experience they expect.
 
    ```typescript
    import { agent, subAgent } from "@inkeep/agents-sdk";
@@ -41,13 +41,13 @@ A code-first approach for building and managing teams of Agents with a multi-age
      id: "hello-agent",
      name: "Hello Agent",
      description: "Says hello",
-     prompt: 'You are a basic Agent that just says hello. You only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
+     prompt: 'Only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
    });
 
    export const basicAgent = agent({
      id: "basic-agent",
      name: "Basic Agent Example",
-     description: "A basic agent",
+     description: "A basic agent that just says hello",
      defaultSubAgent: helloAgent,
      subAgents: () => [helloAgent],
    });
@@ -58,27 +58,27 @@ The **Visual Builder and TypeScript SDK are fully interoperable**: your technica
 ## Platform Overview
 
 **Inkeep Open Source** includes:
-- A Visual Builder & TypeScript SDK with 2-way sync
-- Multi-Agent architecture for building teams of agents
-- MCP Tools with Credential Management
-- A UI Component Library for dynamic AI chat experiences
+- A Visual Builder & TypeScript SDK with full 2-way sync
+- Multi-agent design so agents can collaborate on tasks
+- MCP Tools with credential & permissions management
+- A UI component library for dynamic AI chat experiences
 - Triggering Agents with MCP, A2A, & Vercel SDK APIs
 - Observability via a Traces UI & OpenTelemetry
 - Easy deployment to Vercel and Docker
 
-For unified search (managed RAG) and integration with Slack and support platforms, learn about [Inkeep Cloud](https://inkeep.com/get-started).
+If you'd like a managed platform, check out the [Inkeep Cloud Waitlist](https://inkeep.com/cloud-waitlist) or [Inkeep Enterprise](https://inkeep.com/enterprise).
 
 ## Our Approach
 
-Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via standard protocols, and with a [fair-code](/community/license) license and great devex, easily deploy and self-host Agents in your own infra.
+Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via open protocols, and with a [fair-code](/community/license) license and great devex, easily deploy and self-host Agents in your own infra.
 
-Join our [community](/community/inkeep-community) to stay up to date and get support.
+[Join our community](/community/inkeep-community) to stay up to date and get support.
 
 ## Next Steps
 
 <Cards>
   <Card title="Follow the Quick Start" icon="LuZap" href="/quick-start">
-    Get started with the Visual Builder and SDK in under 5 minutes.
+    Get started with the Visual Builder and TypeScript SDK in under 5 minutes.
   </Card>
   <Card title="Conceptual Overview" icon="LuLightbulb" href="/concepts">
     Learn about the key concepts of building Agents with Inkeep.

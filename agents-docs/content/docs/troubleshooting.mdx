@@ -8,7 +8,7 @@ keywords: troubleshooting, debugging, errors, timeline, signoz, widget implement
 
 ## Overview
 
-When something breaks in your Inkeep agent system, follow this systematic approach to identify and resolve the issue. This guide provides a structured methodology for debugging problems across different components of your agent infrastructure.
+This guide provides a structured methodology for debugging problems across different components of your agent system.
 
 ## Step 1: Check the Timeline
 
@@ -31,55 +31,7 @@ Clicking on this error card reveals:
 
 This detailed error information helps you pinpoint exactly what went wrong and where in your agent's execution chain.
 
-### Copy Trace for Debugging
-
-The `Copy Trace` button in the timeline view allows you to export the entire conversation trace as JSON. This is particularly useful for offline analysis and debugging complex flows.
-
-<img
-  src="/images/copy-trace.png"
-  alt="Copy Trace button in the timeline view for exporting conversation traces"
-  width="100%"
-  style={{ borderRadius: "10px" }}
-/>
-
-#### What's Included in the Trace Export
-
-When you click `Copy Trace`, the system exports a JSON object containing:
-
-```json
-{
-  "metadata": {
-    "conversationId": "unique-conversation-id",
-    "traceId": "distributed-trace-id",
-    "agentId": "agent-identifier",
-    "agentName": "Agent Name",
-    "exportedAt": "2025-10-14T12:00:00.000Z"
-  },
-  "timing": {
-    "startTime": "2025-10-14T11:59:00.000Z",
-    "endTime": "2025-10-14T12:00:00.000Z",
-    "durationMs": 60000
-  },
-  "timeline": [
-    // Array of all activities with complete details:
-    // - Agent messages and responses
-    // - Tool calls and results
-    // - Agent transfers
-    // - Artifact information
-    // - Execution context
-  ]
-}
-```
-
-#### How to Use Copy Trace
-
-1. Navigate to the **Traces** section in the management UI
-2. Open the conversation you want to debug
-3. Click the **Copy Trace** button at the top of the timeline
-4. The complete trace JSON is copied to your clipboard
-5. Paste it into your preferred tool for analysis
-
-This exported trace contains all the activities shown in the timeline, making it easy to share complete execution context with team members or support.
+<Snippet file="copy-trace.mdx" />
 
 ## Step 2: Check Signoz
 
