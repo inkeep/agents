@@ -166,10 +166,22 @@ export class ManagementApiClient extends BaseApiClient {
       if (response.status === 404) {
         throw new Error(`Project "${projectId}" not found`);
       }
-      if (response.status === 401) {
-        throw new Error('Unauthorized - check your API key');
+      if (response.status === 401 || response.status === 403) {
+        const errorText = await response.text().catch(() => '');
+        let errorMessage = 'Authentication failed - check your API key configuration\n\n';
+        errorMessage += 'Common issues:\n';
+        errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
+        errorMessage += '  • API key does not have access to this tenant/project\n';
+        errorMessage += '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
+        if (errorText) {
+          errorMessage += `\nServer response: ${errorText}`;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(`Failed to fetch project: ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch project: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
     }
 
     const responseData = await response.json();
