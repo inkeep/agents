@@ -23,6 +23,7 @@ import {
   subAgentToolRelations,
   taskRelations,
   tasks,
+  teamAgents,
   tools,
 } from '../db/schema';
 import {
@@ -148,6 +149,7 @@ export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations
   sourceSubAgentId: resourceIdSchema,
   targetSubAgentId: resourceIdSchema.optional(),
   externalSubAgentId: resourceIdSchema.optional(),
+  teamSubAgentId: resourceIdSchema.optional(),
 });
 export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
@@ -164,11 +166,14 @@ export const SubAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
     (data) => {
       const hasTarget = data.targetSubAgentId != null;
       const hasExternal = data.externalSubAgentId != null;
-      return hasTarget !== hasExternal; // XOR - exactly one must be true
+      const hasTeam = data.teamSubAgentId != null;
+      const count = [hasTarget, hasExternal, hasTeam].filter(Boolean).length;
+      return count === 1; // Exactly one must be true
     },
     {
-      message: 'Must specify exactly one of targetSubAgentId or externalSubAgentId',
-      path: ['targetSubAgentId', 'externalSubAgentId'],
+      message:
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId',
+      path: ['targetSubAgentId', 'externalSubAgentId', 'teamSubAgentId'],
     }
   )
   .openapi('SubAgentRelationCreate');
@@ -183,17 +188,19 @@ export const SubAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
     (data) => {
       const hasTarget = data.targetSubAgentId != null;
       const hasExternal = data.externalSubAgentId != null;
+      const hasTeam = data.teamSubAgentId != null;
+      const count = [hasTarget, hasExternal, hasTeam].filter(Boolean).length;
 
-      if (!hasTarget && !hasExternal) {
-        return true;
+      if (count === 0) {
+        return true; // No relationship specified - valid for updates
       }
 
-      return hasTarget !== hasExternal; // XOR - exactly one must be true
+      return count === 1; // Exactly one must be true
     },
     {
       message:
-        'Must specify exactly one of targetSubAgentId or externalSubAgentId when updating sub-agent relationships',
-      path: ['targetSubAgentId', 'externalSubAgentId'],
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId when updating sub-agent relationships',
+      path: ['targetSubAgentId', 'externalSubAgentId', 'teamSubAgentId'],
     }
   )
   .openapi('SubAgentRelationUpdate');
@@ -202,6 +209,7 @@ export const SubAgentRelationQuerySchema = z.object({
   sourceSubAgentId: z.string().optional(),
   targetSubAgentId: z.string().optional(),
   externalSubAgentId: z.string().optional(),
+  teamSubAgentId: z.string().optional(),
 });
 
 export const ExternalSubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
@@ -453,9 +461,23 @@ export const ExternalAgentApiInsertSchema =
 export const ExternalAgentApiUpdateSchema =
   createApiUpdateSchema(ExternalAgentUpdateSchema).openapi('ExternalAgentUpdate');
 
+export const TeamAgentSelectSchema = createSelectSchema(teamAgents);
+export const TeamAgentInsertSchema = createInsertSchema(teamAgents).extend({
+  id: resourceIdSchema,
+});
+export const TeamAgentUpdateSchema = TeamAgentInsertSchema.partial();
+
+export const TeamAgentApiSelectSchema =
+  createAgentScopedApiSchema(TeamAgentSelectSchema).openapi('TeamAgent');
+export const TeamAgentApiInsertSchema =
+  createAgentScopedApiInsertSchema(TeamAgentInsertSchema).openapi('TeamAgentCreate');
+export const TeamAgentApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(TeamAgentUpdateSchema).openapi('TeamAgentUpdate');
+
 export const AllAgentSchema = z.discriminatedUnion('type', [
   SubAgentApiSelectSchema.extend({ type: z.literal('internal') }),
   ExternalAgentApiSelectSchema.extend({ type: z.literal('external') }),
+  TeamAgentApiSelectSchema.extend({ type: z.literal('team') }),
 ]);
 
 export const ApiKeySelectSchema = createSelectSchema(apiKeys);

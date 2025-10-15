@@ -21,5 +21,6 @@ export * from './subAgentExternalAgentRelations';
 export * from './subAgentRelations';
 export * from './subAgents';
 export * from './tasks';
+export * from './teamAgents';
 export * from './tools';
 export * from './validation';

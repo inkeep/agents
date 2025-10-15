@@ -193,6 +193,29 @@ export const subAgentRelations = sqliteTable(
   ]
 );
 
+export const teamAgents = sqliteTable(
+  'team_agents',
+  {
+    ...agentScoped,
+    originAgentId: text('origin_agent_id').notNull(),
+    originProjectId: text('origin_project_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'team_agents_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.originProjectId, table.originAgentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'team_agents_origin_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const externalAgents = sqliteTable(
   'external_agents',
   {
@@ -537,6 +560,9 @@ export const messages = sqliteTable(
 
     toExternalAgentId: text('to_external_sub_agent_id'),
 
+    fromTeamAgentId: text('from_team_agent_id'),
+    toTeamAgentId: text('to_team_agent_id'),
+
     content: blob('content', { mode: 'json' }).$type<MessageContent>().notNull(),
 
     visibility: text('visibility').notNull().default('user-facing'),
@@ -680,6 +706,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   functions: many(functions),
   contextConfigs: many(contextConfigs),
   externalAgents: many(externalAgents),
+  teamAgents: many(teamAgents),
   conversations: many(conversations),
   tasks: many(tasks),
   dataComponents: many(dataComponents),
@@ -770,6 +797,23 @@ export const externalAgentsRelations = relations(externalAgents, ({ one, many })
   }),
 }));
 
+export const teamAgentsRelations = relations(teamAgents, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [teamAgents.tenantId, teamAgents.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  agent: one(agents, {
+    fields: [teamAgents.tenantId, teamAgents.projectId, teamAgents.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  originAgent: one(agents, {
+    fields: [teamAgents.tenantId, teamAgents.originProjectId, teamAgents.originAgentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+    relationName: 'originAgentRelation',
+  }),
+  subAgentRelations: many(subAgentRelations),
+}));
+
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   project: one(projects, {
     fields: [apiKeys.tenantId, apiKeys.projectId],
@@ -839,6 +883,16 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     fields: [messages.toSubAgentId],
     references: [subAgents.id],
     relationName: 'receivedMessages',
+  }),
+  fromTeamAgent: one(teamAgents, {
+    fields: [messages.fromTeamAgentId],
+    references: [teamAgents.id],
+    relationName: 'receivedTeamMessages',
+  }),
+  toTeamAgent: one(teamAgents, {
+    fields: [messages.toTeamAgentId],
+    references: [teamAgents.id],
+    relationName: 'sentTeamMessages',
   }),
   fromExternalAgent: one(externalAgents, {
     fields: [messages.tenantId, messages.projectId, messages.fromExternalAgentId],
