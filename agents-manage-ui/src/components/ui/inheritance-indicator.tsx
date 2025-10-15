@@ -102,7 +102,6 @@ export function InheritanceIndicator({
   );
 }
 
-// Helper function to determine inheritance status for models
 export function getModelInheritanceStatus(
   currentLevel: 'project' | 'agent' | 'subagent',
   currentValue: any,
@@ -195,7 +194,6 @@ export function getModelInheritanceStatus(
   };
 }
 
-// Helper function for execution limits inheritance
 export function getExecutionLimitInheritanceStatus(
   currentLevel: 'project' | 'agent' | 'agent',
   limitType: 'transferCountIs' | 'stepCountIs',
@@ -209,7 +207,6 @@ export function getExecutionLimitInheritanceStatus(
   const hasCurrentValue = currentValue !== undefined && currentValue !== null;
   const hasParentValue = parentValue !== undefined && parentValue !== null;
 
-  // Check if current value matches parent value (indicating inheritance after builder resolution)
   if (hasCurrentValue && hasParentValue && currentValue === parentValue) {
     // Inheritance rules for execution limits
     if (limitType === 'transferCountIs' && currentLevel === 'agent') {

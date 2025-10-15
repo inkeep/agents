@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate request body structure
     const validationResult = signozRequestSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
 
     const validatedBody = validationResult.data;
 
-    // Validate time range
     const timeValidation = validateTimeRange(validatedBody.start, validatedBody.end);
     if (!timeValidation.valid) {
       return NextResponse.json(

@@ -98,7 +98,6 @@ export function MCPServerNodeEditor({
       newSelections = [...currentSelections, toolName];
     }
 
-    // Check if all tools are now selected - if so, use null to represent "all selected"
     const allToolNames = activeTools?.map((tool) => tool.name) || [];
     let finalSelection: string[] | null = newSelections;
 

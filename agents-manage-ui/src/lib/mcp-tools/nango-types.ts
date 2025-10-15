@@ -10,7 +10,6 @@ export class NangoError extends Error {
   }
 }
 
-// Helper to wrap errors, preserving existing NangoErrors
 export function wrapNangoError(error: unknown, message: string, operation?: string): never {
   if (error instanceof NangoError) {
     throw error;

@@ -144,7 +144,6 @@ export const agentStore = create<AgentState>()(
         }));
       },
       onNodesChange(changes) {
-        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           // Don't trigger `position` as modified change, since when the nodes are repositioned,
           // they'll be re-laid out during the initial load anyway
@@ -158,7 +157,6 @@ export const agentStore = create<AgentState>()(
         }));
       },
       onEdgesChange(changes) {
-        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
         );

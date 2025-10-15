@@ -35,7 +35,6 @@ export async function fetchArtifactComponents(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`
   );
 
-  // Return the response as-is, preserving null/undefined props
   return response;
 }
 
@@ -54,7 +53,6 @@ export async function fetchArtifactComponent(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
 
-  // Return the response as-is, preserving null/undefined props
   return response.data;
 }
 
@@ -77,7 +75,6 @@ export async function createArtifactComponent(
     }
   );
 
-  // Return the response as-is, preserving null/undefined props
   return response.data;
 }
 
@@ -100,7 +97,6 @@ export async function updateArtifactComponent(
     }
   );
 
-  // Return the response as-is, preserving null/undefined props
   return response.data;
 }
 

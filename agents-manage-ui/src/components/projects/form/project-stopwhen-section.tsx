@@ -16,7 +16,6 @@ interface ProjectStopWhenSectionProps {
 }
 
 export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps) {
-  // Check if any stopWhen values are configured to determine default open state
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);

@@ -270,7 +270,6 @@ export function TimelineWrapper({
         });
         return updated;
       });
-      // Update global state
       const allProcessed = idsToProcess.every((id) => processedIdsRef.current.has(id));
       if (enableAutoScroll) {
         setAiMessagesGloballyCollapsed(allProcessed && aiMessageIds.length > 0);
@@ -303,7 +302,6 @@ export function TimelineWrapper({
     }
     setCollapsedAiMessages(newCollapsed);
 
-    // Update global state based on current state
     const aiMessageIds = sortedActivities
       .filter(
         (activity) =>

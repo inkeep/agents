@@ -21,7 +21,6 @@ export async function findOrCreateCredential(
     // Credential not found, continue with creation
   }
 
-  // Create new credential
   try {
     return await createCredential(tenantId, projectId, credentialData);
   } catch (error) {

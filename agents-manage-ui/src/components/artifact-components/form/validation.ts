@@ -6,7 +6,6 @@ const jsonSchemaValidation = () =>
   z
     .union([z.string(), z.null(), z.undefined()])
     .transform((value, ctx) => {
-      // If no value provided, empty string, or null, return undefined
       if (!value || value === '' || value === null) {
         return undefined;
       }
@@ -14,7 +13,6 @@ const jsonSchemaValidation = () =>
       try {
         const parsed = JSON.parse(value);
 
-        // Validate it's a proper LLM-compatible JSON schema
         const validationResult = validateJsonSchemaForLlm(value);
         if (!validationResult.isValid) {
           const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
