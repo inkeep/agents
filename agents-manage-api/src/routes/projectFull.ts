@@ -43,7 +43,6 @@ const TenantParamsSchema = z
   })
   .openapi('TenantParams');
 
-// Create full project from JSON
 app.openapi(
   createRoute({
     method: 'post',
@@ -87,11 +86,9 @@ app.openapi(
     const { tenantId } = c.req.valid('param');
     const projectData = c.req.valid('json');
 
-    // Validate the project data
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
     try {
-      // Create the full project using the server-side data layer operations
       const createdProject = await createFullProjectServerSide(dbClient, logger)(
         { tenantId, projectId: validatedProjectData.id },
         validatedProjectData
@@ -113,7 +110,6 @@ app.openapi(
   }
 );
 
-// Get full project by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -218,10 +214,8 @@ app.openapi(
     const projectData = c.req.valid('json');
 
     try {
-      // Validate the project data
       const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
 
-      // Validate that the URL projectId matches the data.id
       if (projectId !== validatedProjectData.id) {
         throw createApiError({
           code: 'bad_request',
@@ -229,7 +223,6 @@ app.openapi(
         });
       }
 
-      // Check if the project exists first to determine status code
       const existingProject: FullProjectDefinition | null = await getFullProject(
         dbClient,
         logger
@@ -273,7 +266,6 @@ app.openapi(
   }
 );
 
-// Delete full project
 app.openapi(
   createRoute({
     method: 'delete',

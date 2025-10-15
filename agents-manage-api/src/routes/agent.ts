@@ -29,7 +29,6 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agents
 app.openapi(
   createRoute({
     method: 'get',
@@ -71,7 +70,6 @@ app.openapi(
   }
 );
 
-// Get agent by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -111,7 +109,6 @@ app.openapi(
   }
 );
 
-// Get related agent infos for a specific agent within an agent
 app.openapi(
   createRoute({
     method: 'get',
@@ -164,7 +161,6 @@ app.openapi(
   }
 );
 
-// Get full agent definition
 app.openapi(
   createRoute({
     method: 'get',
@@ -205,7 +201,6 @@ app.openapi(
   }
 );
 
-// Create agent
 app.openapi(
   createRoute({
     method: 'post',
@@ -252,7 +247,6 @@ app.openapi(
   }
 );
 
-// Update agent
 app.openapi(
   createRoute({
     method: 'put',
@@ -305,7 +299,6 @@ app.openapi(
   }
 );
 
-// Delete agent
 app.openapi(
   createRoute({
     method: 'delete',

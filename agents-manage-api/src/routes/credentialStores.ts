@@ -40,7 +40,6 @@ const CreateCredentialInStoreResponseSchema = z.object({
 });
 
 
-// List credential stores
 app.openapi(
   createRoute({
     method: 'get',
@@ -86,7 +85,6 @@ app.openapi(
   }
 );
 
-// Create credential in store (sub-resource)
 app.openapi(
   createRoute({
     method: 'post',
@@ -133,7 +131,6 @@ app.openapi(
     }
 
     try {
-      // Check if store is available
       const { available, reason } = await store.checkAvailability();
       if (!available) {
         throw createApiError({
