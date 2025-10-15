@@ -201,6 +201,7 @@ export const getDataComponentsForAgent =
         props: dataComponents.props,
         createdAt: dataComponents.createdAt,
         updatedAt: dataComponents.updatedAt,
+        preview: dataComponents.preview,
       })
       .from(dataComponents)
       .innerJoin(
