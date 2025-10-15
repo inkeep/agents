@@ -813,7 +813,7 @@ class SigNozStatsAPI {
                 {
                   key: {
                     key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
                   op: OPERATORS.EQUALS,
                   value: AI_OPERATIONS.GENERATE_TEXT,
@@ -847,12 +847,12 @@ class SigNozStatsAPI {
               },
               {
                 key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               {
                 key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
             ],
             expression: QUERY_EXPRESSIONS.AGENT_MODEL_CALLS,
@@ -896,7 +896,7 @@ class SigNozStatsAPI {
                 {
                   key: {
                     key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
                   op: OPERATORS.EQUALS,
                   value: AI_OPERATIONS.GENERATE_TEXT,
@@ -930,7 +930,7 @@ class SigNozStatsAPI {
               },
               {
                 key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
@@ -1556,7 +1556,7 @@ class SigNozStatsAPI {
                 {
                   key: {
                     key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
                   },
                   op: OPERATORS.EQUALS,
                   value: AI_OPERATIONS.GENERATE_TEXT,
@@ -1578,8 +1578,8 @@ class SigNozStatsAPI {
               },
               { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               {
-                key: 'ai.telemetry.functionId',
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
             ],
             expression: QUERY_EXPRESSIONS.AI_CALLS,
@@ -1862,7 +1862,7 @@ class SigNozStatsAPI {
       {
         key: {
           key: SPAN_KEYS.AI_MODEL_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG,
         },
         op: OPERATORS.EXISTS,
         value: '',
@@ -1870,7 +1870,7 @@ class SigNozStatsAPI {
       {
         key: {
           key: SPAN_KEYS.AI_MODEL_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG,
         },
         op: OPERATORS.NOT_EQUALS,
         value: UNKNOWN_VALUE,
@@ -1910,7 +1910,7 @@ class SigNozStatsAPI {
             groupBy: [
               {
                 key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
             ],
             expression: QUERY_EXPRESSIONS.UNIQUE_MODELS,
