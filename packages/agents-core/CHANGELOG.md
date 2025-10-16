@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.22.12
+
+### Patch Changes
+
+- 79b1e87: fixed deadlinks
+
 ## 0.22.11
 
 ### Patch Changes
