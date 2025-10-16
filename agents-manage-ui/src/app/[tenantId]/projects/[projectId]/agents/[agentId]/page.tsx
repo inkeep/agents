@@ -1,4 +1,5 @@
 import { Agent } from '@/components/agent/agent';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
@@ -23,7 +24,16 @@ async function AgentPage({ params }: AgentPageProps) {
     fetchToolsAction(tenantId, projectId),
   ]);
 
-  if (!agent.success) throw new Error(agent.error);
+  if (!agent.success) {
+    return (
+      <FullPageError
+        error={new Error(agent.error)}
+        context="agent"
+        link={`/${tenantId}/projects/${projectId}/agents`}
+        linkText="Back to agents"
+      />
+    );
+  }
   if (
     !dataComponents.success ||
     !artifactComponents.success ||

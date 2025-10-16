@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
@@ -11,7 +12,13 @@ import { fetchProjects } from '@/lib/api/projects';
 
 async function ProjectsPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = await params;
-  const projects = await fetchProjects(tenantId);
+
+  let projects: Awaited<ReturnType<typeof fetchProjects>>;
+  try {
+    projects = await fetchProjects(tenantId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="projects" />;
+  }
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Projects' }]}>

@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { DataComponentsList } from '@/components/data-components/data-components-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
@@ -17,7 +18,13 @@ interface DataComponentsPageProps {
 
 async function DataComponentsPage({ params }: DataComponentsPageProps) {
   const { tenantId, projectId } = await params;
-  const dataComponents = await fetchDataComponents(tenantId, projectId);
+
+  let dataComponents: Awaited<ReturnType<typeof fetchDataComponents>>;
+  try {
+    dataComponents = await fetchDataComponents(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="components" />;
+  }
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
       <MainContent className="min-h-full">

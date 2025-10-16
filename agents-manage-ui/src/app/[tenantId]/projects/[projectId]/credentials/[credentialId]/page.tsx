@@ -2,6 +2,7 @@ import {
   EditCredentialForm,
   type EditCredentialFormData,
 } from '@/components/credentials/views/edit-credential-form';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
@@ -34,9 +35,22 @@ async function EditCredentialsPage({
 }) {
   const { tenantId, projectId, credentialId } = await params;
 
-  // Fetch credential data on the server
-  const credential = await fetchCredential(tenantId, projectId, credentialId);
-  const initialFormData = await credentialToFormData(credential);
+  let credential: Credential;
+  let initialFormData: EditCredentialFormData;
+
+  try {
+    credential = await fetchCredential(tenantId, projectId, credentialId);
+    initialFormData = await credentialToFormData(credential);
+  } catch (error) {
+    return (
+      <FullPageError
+        error={error as Error}
+        link={`/${tenantId}/projects/${projectId}/credentials`}
+        linkText="Back to credentials"
+        context="credential"
+      />
+    );
+  }
 
   return (
     <BodyTemplate

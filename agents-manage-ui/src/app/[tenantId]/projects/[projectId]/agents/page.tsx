@@ -1,4 +1,5 @@
 import { AgentList } from '@/components/agents/agents-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
@@ -15,7 +16,13 @@ interface AgentsPageProps {
 
 async function AgentsPage({ params }: AgentsPageProps) {
   const { tenantId, projectId } = await params;
-  const agents = await fetchAgents(tenantId, projectId);
+
+  let agents: Awaited<ReturnType<typeof fetchAgents>>;
+  try {
+    agents = await fetchAgents(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="agents" />;
+  }
   return (
     <BodyTemplate
       breadcrumbs={[{ label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` }]}

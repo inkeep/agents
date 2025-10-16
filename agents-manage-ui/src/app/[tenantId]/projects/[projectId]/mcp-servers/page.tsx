@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
@@ -16,7 +17,13 @@ async function MCPServersPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
-  const tools = await fetchMCPTools(tenantId, projectId);
+
+  let tools: Awaited<ReturnType<typeof fetchMCPTools>>;
+  try {
+    tools = await fetchMCPTools(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="MCP servers" />;
+  }
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'MCP servers' }]}>

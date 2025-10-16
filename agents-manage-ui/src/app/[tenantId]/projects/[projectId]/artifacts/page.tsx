@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { ArtifactComponentsList } from '@/components/artifact-components/artifact-component-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
@@ -17,7 +18,13 @@ interface ArtifactComponentsPageProps {
 
 async function ArtifactComponentsPage({ params }: ArtifactComponentsPageProps) {
   const { tenantId, projectId } = await params;
-  const artifacts = await fetchArtifactComponents(tenantId, projectId);
+
+  let artifacts: Awaited<ReturnType<typeof fetchArtifactComponents>>;
+  try {
+    artifacts = await fetchArtifactComponents(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="artifacts" />;
+  }
   return (
     <BodyTemplate
       breadcrumbs={[

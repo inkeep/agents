@@ -1,4 +1,5 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
@@ -26,7 +27,14 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     mcpTool = mcpToolResult.value;
   } else {
     console.error('Failed to load MCP tool:', mcpToolResult.reason);
-    throw new Error('Failed to load MCP tool');
+    return (
+      <FullPageError
+        error={mcpToolResult.reason as Error}
+        link={`/${tenantId}/projects/${projectId}/mcp-servers`}
+        linkText="Back to MCP servers"
+        context="MCP server"
+      />
+    );
   }
 
   // Handle credentials result (optional - fallback to empty array)

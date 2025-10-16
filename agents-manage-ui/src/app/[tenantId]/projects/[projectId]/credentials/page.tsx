@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { CredentialsList } from '@/components/credentials/credentials-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { CredentialsIcon } from '@/components/icons/empty-state/credentials';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
@@ -20,7 +21,13 @@ async function CredentialsPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
-  const credentials = await fetchCredentials(tenantId, projectId);
+
+  let credentials: Awaited<ReturnType<typeof fetchCredentials>>;
+  try {
+    credentials = await fetchCredentials(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="credentials" />;
+  }
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Credentials' }]}>
