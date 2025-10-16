@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.9
+
+### Patch Changes
+
+- b01f8a3: - Improve full page errors
+  - @inkeep/agents-manage-api@0.22.9
+  - @inkeep/agents-run-api@0.22.9
+  - @inkeep/agents-core@0.22.9
+
 ## 0.22.8
 
 ### Patch Changes
