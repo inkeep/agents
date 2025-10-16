@@ -524,7 +524,7 @@ function buildConversationListPayload(
             {
               key: {
                 key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
               value: AI_OPERATIONS.GENERATE_TEXT,
@@ -590,7 +590,7 @@ function buildConversationListPayload(
             {
               key: {
                 key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
               value: AI_OPERATIONS.STREAM_TEXT,
@@ -653,7 +653,7 @@ function buildConversationListPayload(
             {
               key: {
                 key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
               },
               op: OPERATORS.EQUALS,
               value: AI_OPERATIONS.STREAM_OBJECT,
