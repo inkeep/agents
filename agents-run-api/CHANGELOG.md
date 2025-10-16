@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.23.1
+
+### Patch Changes
+
+- 80407ab: Revert env detection
+  - @inkeep/agents-core@0.23.1
+
 ## 0.23.0
 
 ### Minor Changes
