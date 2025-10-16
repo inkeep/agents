@@ -39,7 +39,6 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
     async (event: any) => {
       if (!provider || event.type !== 'connect') return;
 
-      // Validate required payload data
       if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
         console.error('Missing required connection data:', event.payload);
         toast.error('Invalid connection data received');
@@ -136,7 +135,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
   if (!provider) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <h2 className="text-xl font-semibold">Provider not found</h2>
+        <h2 className="text-xl font-semibold">Provider not found.</h2>
         <p className="text-muted-foreground">
           The provider "{decodeURIComponent(providerId)}" was not found.
         </p>

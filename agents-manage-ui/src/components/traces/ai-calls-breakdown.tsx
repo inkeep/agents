@@ -394,11 +394,11 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           ) : (
             <div className="text-center py-8">
               <Brain className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No AI calls found</p>
+              <p className="text-sm text-muted-foreground">No AI calls found.</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
                 {selectedAgent === 'all'
-                  ? 'No AI calls detected in the selected time range'
-                  : 'No AI calls found for the selected agent'}
+                  ? 'No AI calls detected in the selected time range.'
+                  : 'No AI calls found for the selected agent.'}
               </p>
             </div>
           )}
@@ -452,11 +452,11 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           ) : (
             <div className="text-center py-8">
               <Cpu className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No model data found</p>
+              <p className="text-sm text-muted-foreground">No model data found.</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
                 {selectedAgent === 'all'
-                  ? 'No model data detected in the selected time range'
-                  : 'No model data found for the selected agent'}
+                  ? 'No model data detected in the selected time range.'
+                  : 'No model data found for the selected agent.'}
               </p>
             </div>
           )}

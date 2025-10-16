@@ -194,7 +194,6 @@ class LoggerFactory {
       return logger;
     }
 
-    // Create logger using factory or default
     let logger: PinoLogger;
     if (this.config.loggerFactory) {
       logger = this.config.loggerFactory(name);

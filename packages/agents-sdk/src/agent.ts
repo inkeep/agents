@@ -7,6 +7,10 @@ import {
   getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
+import {
+  convertZodToJsonSchema,
+  isZodSchema,
+} from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import type {
@@ -51,7 +55,7 @@ export class Agent implements AgentInterface {
     summarizer?: ModelSettings;
   };
   private statusUpdateSettings?: StatusUpdateSettings;
-  private agentPrompt?: string;
+  private prompt?: string;
   private stopWhen?: AgentStopWhen;
   private dbClient: ReturnType<typeof createDatabaseClient>;
 
@@ -79,7 +83,7 @@ export class Agent implements AgentInterface {
       url: dbUrl,
     });
     this.statusUpdateSettings = config.statusUpdates;
-    this.agentPrompt = config.agentPrompt;
+    this.prompt = config.prompt;
     // Set stopWhen - preserve original config or set default during inheritance
     this.stopWhen = config.stopWhen
       ? {
@@ -295,6 +299,39 @@ export class Agent implements AgentInterface {
     // Note: DataComponents and ArtifactComponents are also managed at PROJECT level
     // Agent definitions only reference their IDs, actual definitions are in project
 
+    const processedStatusUpdates = this.statusUpdateSettings
+      ? {
+          ...this.statusUpdateSettings,
+          statusComponents: this.statusUpdateSettings.statusComponents?.map((comp: any) => {
+            if (comp && typeof comp.getType === 'function') {
+              return {
+                type: comp.getType(),
+                description: comp.getDescription(),
+                detailsSchema: comp.getDetailsSchema(),
+              };
+            }
+            if (
+              comp &&
+              typeof comp === 'object' &&
+              comp.detailsSchema &&
+              isZodSchema(comp.detailsSchema)
+            ) {
+              const jsonSchema = convertZodToJsonSchema(comp.detailsSchema);
+              return {
+                type: comp.type,
+                description: comp.description,
+                detailsSchema: {
+                  type: 'object',
+                  properties: (jsonSchema.properties as Record<string, any>) || {},
+                  required: (jsonSchema.required as string[]) || undefined,
+                },
+              };
+            }
+            return comp;
+          }),
+        }
+      : undefined;
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -305,8 +342,8 @@ export class Agent implements AgentInterface {
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
-      statusUpdates: this.statusUpdateSettings,
-      prompt: this.agentPrompt,
+      statusUpdates: processedStatusUpdates,
+      prompt: this.prompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -783,8 +820,8 @@ export class Agent implements AgentInterface {
   /**
    * Get the agent's prompt configuration
    */
-  getAgentPrompt(): string | undefined {
-    return this.agentPrompt;
+  getPrompt(): string | undefined {
+    return this.prompt;
   }
 
   /**

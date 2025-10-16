@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
@@ -43,6 +43,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Tool call details';
     case 'ai_model_streamed_text':
       return 'AI Streaming text details';
+    case 'ai_model_streamed_object':
+      return 'AI Streaming object details';
     case 'mcp_tool_error':
       return 'MCP tool error details';
     case 'artifact_processing':
@@ -61,6 +63,8 @@ interface TimelineWrapperProps {
   refreshOnce?: () => Promise<{ hasNewActivity: boolean }>;
   showConversationTracesLink?: boolean;
   conversationId?: string;
+  onCopyTrace?: () => void;
+  isCopying?: boolean;
 }
 
 function EmptyTimeline({
@@ -150,6 +154,8 @@ export function TimelineWrapper({
   refreshOnce,
   showConversationTracesLink = false,
   conversationId,
+  onCopyTrace,
+  isCopying = false,
 }: TimelineWrapperProps) {
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
@@ -190,7 +196,7 @@ export function TimelineWrapper({
         type: 'tool_call' as const,
         description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
         timestamp: new Date(tc.timestamp).toISOString(),
-        agentName: tc.agentName || 'AI Agent',
+        subAgentName: tc.subAgentName || 'AI Agent',
         toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
       })) || []
     );
@@ -214,6 +220,7 @@ export function TimelineWrapper({
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -222,14 +229,18 @@ export function TimelineWrapper({
   // Memoize stream text IDs for cleaner collapse logic
   const streamTextIds = useMemo(() => {
     return sortedActivities
-      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
+      .filter(
+        (activity) =>
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
+      )
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
   // Track which messages we've already processed
   const processedIdsRef = useRef<Set<string>>(new Set());
   const lastConversationRef = useRef<string | undefined>(undefined);
-  
+
   useEffect(() => {
     // Reset when conversation changes
     if (conversationId !== lastConversationRef.current) {
@@ -238,37 +249,38 @@ export function TimelineWrapper({
       setCollapsedAiMessages(new Set());
       setAiMessagesGloballyCollapsed(false);
     }
-    
+
     // Determine which IDs to auto-collapse based on view type
     const idsToProcess = enableAutoScroll ? aiMessageIds : streamTextIds;
-    
+
     // Find new IDs that haven't been processed yet
-    const newIds = idsToProcess.filter(id => !processedIdsRef.current.has(id));
-    
+    const newIds = idsToProcess.filter((id) => !processedIdsRef.current.has(id));
+
     if (newIds.length > 0) {
       // Mark these as processed
-      newIds.forEach(id => {
+      newIds.forEach((id) => {
         processedIdsRef.current.add(id);
       });
-      
+
       // Add new IDs to collapsed set
-      setCollapsedAiMessages(prev => {
+      setCollapsedAiMessages((prev) => {
         const updated = new Set(prev);
-        newIds.forEach(id => {
+        newIds.forEach((id) => {
           updated.add(id);
         });
         return updated;
       });
-      // Update global state
-      const allProcessed = idsToProcess.every(id => processedIdsRef.current.has(id));
+      const allProcessed = idsToProcess.every((id) => processedIdsRef.current.has(id));
       if (enableAutoScroll) {
         setAiMessagesGloballyCollapsed(allProcessed && aiMessageIds.length > 0);
       } else {
-        setAiMessagesGloballyCollapsed(allProcessed && streamTextIds.length === aiMessageIds.length && aiMessageIds.length > 0);
+        setAiMessagesGloballyCollapsed(
+          allProcessed && streamTextIds.length === aiMessageIds.length && aiMessageIds.length > 0
+        );
       }
     }
   }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
-  
+
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
     setCollapsedAiMessages(new Set());
@@ -290,12 +302,12 @@ export function TimelineWrapper({
     }
     setCollapsedAiMessages(newCollapsed);
 
-    // Update global state based on current state
     const aiMessageIds = sortedActivities
       .filter(
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -336,11 +348,11 @@ export function TimelineWrapper({
     try {
       const result = await refreshOnce();
       if (!result.hasNewActivity) {
-        toast.info('No new activity found');
+        toast.info('No new activity found.');
       }
       setIsRefreshing(false);
     } catch {
-      toast.error('Failed to refresh activities');
+      toast.error('Failed to refresh activities.');
       setIsRefreshing(false);
     }
   };
@@ -353,11 +365,26 @@ export function TimelineWrapper({
             <div className="flex items-center justify-between px-6 pb-4">
               <div className="text-foreground text-md font-medium">Activity timeline</div>
               <div className="flex items-center gap-2">
+                {/* Copy JSON Button */}
+                {onCopyTrace && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onCopyTrace}
+                    disabled={isCopying}
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    title="Copy trace as JSON"
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    {isCopying ? 'Copying...' : 'Copy Trace'}
+                  </Button>
+                )}
                 {/* Expand/Collapse AI Messages Buttons */}
                 {sortedActivities.some(
                   (activity) =>
                     activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
                     activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
                     (activity.hasError && activity.otelStatusDescription)
                 ) && (
                   <div className="flex items-center gap-1">

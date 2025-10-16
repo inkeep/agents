@@ -1,14 +1,15 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import agentRoutes from './agent';
+import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
 import contextConfigsRoutes from './contextConfigs';
+import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
-import agentFullRoutes from './agentFull';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
@@ -42,6 +43,7 @@ app.route(
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/credentials', credentialsRoutes);
+app.route('/projects/:projectId/credential-stores', credentialStoresRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/external-agents', externalAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRoutes);

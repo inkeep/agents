@@ -1,7 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { agentFunctionToolRelations, functionTools } from '../db/schema';
+import { subAgentFunctionToolRelations, functionTools } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
@@ -161,7 +161,6 @@ export const upsertFunctionTool =
     });
 
     if (existing) {
-      // Update existing function tool
       return await updateFunctionTool(db)({
         scopes,
         functionToolId: params.data.id,
@@ -172,7 +171,6 @@ export const upsertFunctionTool =
         },
       });
     } else {
-      // Create new function tool
       return await createFunctionTool(db)({
         data: params.data,
         scopes,
@@ -189,22 +187,20 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
     const { tenantId, projectId, agentId } = scopes;
 
     try {
-      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },
       });
 
-      // Get agent-function tool relations for this agent
       const relations = await db
         .select()
-        .from(agentFunctionToolRelations)
+        .from(subAgentFunctionToolRelations)
         .where(
           and(
-            eq(agentFunctionToolRelations.tenantId, tenantId),
-            eq(agentFunctionToolRelations.projectId, projectId),
-            eq(agentFunctionToolRelations.agentId, agentId),
-            eq(agentFunctionToolRelations.subAgentId, subAgentId)
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId),
+            eq(subAgentFunctionToolRelations.subAgentId, subAgentId)
           )
         );
 
@@ -229,7 +225,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
 };
 
 /**
- * Upsert an agent-function tool relation (create if it doesn't exist, update if it does)
+ * Upsert a sub_agent-function tool relation (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgentFunctionToolRelation =
   (db: DatabaseClient) =>
@@ -239,20 +235,55 @@ export const upsertSubAgentFunctionToolRelation =
     functionToolId: string;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
+    const { scopes, subAgentId, functionToolId, relationId } = params;
+    const { tenantId, projectId, agentId } = scopes;
+
     // If relationId is provided, update that specific relationship
-    if (params.relationId) {
+    if (relationId) {
       return await updateSubAgentFunctionToolRelation(db)({
-        scopes: params.scopes,
-        relationId: params.relationId,
+        scopes,
+        relationId,
         data: {
-          subAgentId: params.subAgentId,
-          functionToolId: params.functionToolId,
+          subAgentId,
+          functionToolId,
         },
       });
     }
 
-    // No relationId provided - always create a new relationship
-    return await addFunctionToolToSubAgent(db)(params);
+    // No relationId provided - check if relation already exists
+    try {
+      const existingRelations = await db
+        .select()
+        .from(subAgentFunctionToolRelations)
+        .where(
+          and(
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId),
+            eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+            eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
+          )
+        )
+        .limit(1);
+
+      // If relation exists, return it instead of creating a new one
+      if (existingRelations.length > 0) {
+        logger.info(
+          { tenantId, projectId, agentId, subAgentId, functionToolId, relationId: existingRelations[0].id },
+          'Sub_agent-function tool relation already exists, returning existing relation'
+        );
+        return { id: existingRelations[0].id };
+      }
+
+      // Relation doesn't exist, create a new one
+      return await addFunctionToolToSubAgent(db)(params);
+    } catch (error) {
+      logger.error(
+        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        'Failed to upsert sub_agent-function tool relation'
+      );
+      throw error;
+    }
   };
 
 /**
@@ -270,7 +301,7 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
     try {
       const relationId = nanoid();
 
-      await db.insert(agentFunctionToolRelations).values({
+      await db.insert(subAgentFunctionToolRelations).values({
         id: relationId,
         tenantId,
         projectId,
@@ -281,7 +312,7 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
 
       logger.info(
         { tenantId, projectId, agentId, subAgentId, functionToolId, relationId },
-        'Function tool added to agent'
+        'Function tool added to sub_agent'
       );
 
       return { id: relationId };
@@ -312,23 +343,23 @@ export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
 
     try {
       await db
-        .update(agentFunctionToolRelations)
+        .update(subAgentFunctionToolRelations)
         .set({
           subAgentId: data.subAgentId,
           functionToolId: data.functionToolId,
         })
         .where(
           and(
-            eq(agentFunctionToolRelations.id, relationId),
-            eq(agentFunctionToolRelations.tenantId, tenantId),
-            eq(agentFunctionToolRelations.projectId, projectId),
-            eq(agentFunctionToolRelations.agentId, agentId)
+            eq(subAgentFunctionToolRelations.id, relationId),
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId)
           )
         );
 
       logger.info(
         { tenantId, projectId, agentId, relationId, data },
-        'Agent-function tool relation updated'
+        'SubAgent-function tool relation updated'
       );
 
       return { id: relationId };

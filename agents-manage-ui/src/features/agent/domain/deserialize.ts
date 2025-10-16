@@ -164,7 +164,6 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
               ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
               : undefined,
             type: agent.type,
-            // Convert canUse back to tools, selectedTools, headers for UI
             tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
             selectedTools: internalAgent.canUse
               ? internalAgent.canUse.reduce(
@@ -201,17 +200,14 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
     nodes.push(agentNode);
   }
 
-  // Create tool nodes from canUse items (using tools and functions lookups)
   for (const subAgentId of subAgentIds) {
     const agent = data.subAgents[subAgentId];
-    // Check if agent has canUse property (internal agents)
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolNodeId = nanoid();
         const relationshipId = canUseItem.agentToolRelationId;
 
-        // Get tool details from lookup
         const tool = data.tools?.[toolId] || data.functionTools?.[toolId];
 
         // Determine node type based on tool type
@@ -277,7 +273,6 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   for (const sourceSubAgentId of subAgentIds) {
     const sourceAgent = data.subAgents[sourceSubAgentId];
 
-    // Check if agent has relationship properties (internal agents only)
     if ('canTransferTo' in sourceAgent && sourceAgent.canTransferTo) {
       for (const targetSubAgentId of sourceAgent.canTransferTo) {
         if (data.subAgents[targetSubAgentId]) {

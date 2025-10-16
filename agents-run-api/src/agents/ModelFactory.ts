@@ -31,7 +31,6 @@ export class ModelFactory {
       case 'google':
         return createGoogleGenerativeAI(config);
       case 'openrouter':
-        // Use official OpenRouter provider, error if text embeddings or image generation are used (https://github.com/OpenRouterTeam/ai-sdk-provider/issues/62)
         return {
           ...createOpenRouter(config),
           textEmbeddingModel: () => {
@@ -61,12 +60,10 @@ export class ModelFactory {
 
     const providerConfig: Record<string, unknown> = {};
 
-    // Handle baseURL variations
     if (providerOptions.baseUrl || providerOptions.baseURL) {
       providerConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
     }
 
-    // Handle AI Gateway configuration if present
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
@@ -102,18 +99,14 @@ export class ModelFactory {
       'Creating language model from config'
     );
 
-    // Extract provider configuration from providerOptions
-    // Pass provider name to determine if apiKey should be included
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    // Only create custom provider if there's actual configuration
     if (Object.keys(providerConfig).length > 0) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       return customProvider.languageModel(modelName);
     }
 
-    // Use default providers when no custom config
     switch (provider) {
       case 'anthropic':
         return anthropic(modelName);
@@ -126,7 +119,6 @@ export class ModelFactory {
       case 'gateway':
         return gateway(modelName);
       default:
-        // Unknown provider not supported
         throw new Error(
           `Unsupported provider: ${provider}. ` +
             `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
@@ -153,12 +145,10 @@ export class ModelFactory {
    *          "claude-sonnet-4" -> { provider: "anthropic", modelName: "claude-sonnet-4" } (default to anthropic)
    */
   static parseModelString(modelString: string): { provider: string; modelName: string } {
-    // Handle format like "provider/model-name"
     if (modelString.includes('/')) {
       const [provider, ...modelParts] = modelString.split('/');
       const normalizedProvider = provider.toLowerCase();
 
-      // Validate provider is supported
       if (!ModelFactory.BUILT_IN_PROVIDERS.includes(normalizedProvider as any)) {
         throw new Error(
           `Unsupported provider: ${normalizedProvider}. ` +
@@ -173,7 +163,6 @@ export class ModelFactory {
       };
     }
 
-    // throw error if no provider specified
     throw new Error(`No provider specified in model string: ${modelString}`);
   }
 
@@ -186,11 +175,8 @@ export class ModelFactory {
       return {};
     }
 
-    // Exclude provider config items (these go to createProvider, not generateText/streamText)
-    // Also exclude maxDuration as it's handled separately for timeouts
     const excludedKeys = ['apiKey', 'baseURL', 'baseUrl', 'maxDuration'];
 
-    // Return all config except excluded items
     const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(providerOptions)) {
       if (!excludedKeys.includes(key) && value !== undefined) {
@@ -212,16 +198,13 @@ export class ModelFactory {
   } & Record<string, unknown> {
     const modelString = modelSettings?.model?.trim();
 
-    // Create the model instance
     const model = ModelFactory.createModel({
       model: modelString,
       providerOptions: modelSettings?.providerOptions,
     });
 
-    // Get generation parameters (excludes maxDuration)
     const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
 
-    // Extract maxDuration if present (Vercel standard, in seconds)
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
 
     return {
@@ -242,9 +225,7 @@ export class ModelFactory {
       errors.push('Model name is required');
     }
 
-    // Validate provider options structure if present
     if (config.providerOptions) {
-      // Security validation: Check for API keys in configuration
       if (config.providerOptions.apiKey) {
         errors.push(
           'API keys should not be stored in provider options. ' +
@@ -252,7 +233,6 @@ export class ModelFactory {
         );
       }
 
-      // Validate maxDuration if present
       if (config.providerOptions.maxDuration !== undefined) {
         const maxDuration = config.providerOptions.maxDuration;
         if (typeof maxDuration !== 'number' || maxDuration <= 0) {

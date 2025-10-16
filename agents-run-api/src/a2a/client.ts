@@ -25,10 +25,8 @@ import { getLogger } from '../logger';
 
 const logger = getLogger('a2aClient');
 
-// Helper type for the data yielded by streaming methods
 type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
 
-// Retry configuration types
 export type BackoffStrategy = {
   initialInterval: number;
   maxInterval: number;
@@ -187,7 +185,6 @@ export class A2AClient {
       return agentCard;
     } catch (error) {
       console.error('Error fetching or parsing Agent Card:', error);
-      // Allow the promise to reject so users of agentCardPromise can handle it.
       throw error;
     }
   }
@@ -217,7 +214,6 @@ export class A2AClient {
       }
       return (await response.json()) as AgentCard;
     }
-    // If no specific URL is given, return the promise for the initially configured agent's card.
     return this.agentCardPromise;
   }
 
@@ -229,11 +225,8 @@ export class A2AClient {
     if (this.serviceEndpointUrl) {
       return this.serviceEndpointUrl;
     }
-    // If serviceEndpointUrl is not set, it means the agent card fetch is pending or failed.
-    // Awaiting agentCardPromise will either resolve it or throw if fetching failed.
     await this.agentCardPromise;
     if (!this.serviceEndpointUrl) {
-      // This case should ideally be covered by the error handling in _fetchAndCacheAgentCard
       throw new Error(
         'Agent Card URL for RPC endpoint is not available. Fetching might have failed.'
       );
@@ -312,7 +305,6 @@ export class A2AClient {
   }
 
   private isRetryableError(error: unknown): boolean {
-    // Check for common network errors that should be retried
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
       return (
@@ -457,10 +449,7 @@ export class A2AClient {
       try {
         errorBodyText = await httpResponse.text();
         const errorJson = JSON.parse(errorBodyText);
-        // If the body is a valid JSON-RPC error response, let it be handled by the standard parsing below.
-        // However, if it's not even a JSON-RPC structure but still an error, throw based on HTTP status.
         if (!errorJson.jsonrpc && errorJson.error) {
-          // Check if it's a JSON-RPC error structure
           throw new Error(
             `RPC error for ${method}: ${errorJson.error.message} (Code: ${errorJson.error.code}, HTTP Status: ${httpResponse.status}) Data: ${JSON.stringify(errorJson.error.data)}`
           );
@@ -471,8 +460,6 @@ export class A2AClient {
           );
         }
       } catch (e: any) {
-        // If parsing the error body fails or it's not a JSON-RPC error, throw a generic HTTP error.
-        // If it was already an error thrown from within the try block, rethrow it.
         if (e.message.startsWith('RPC error for') || e.message.startsWith('HTTP error for'))
           throw e;
         throw new Error(
@@ -484,7 +471,6 @@ export class A2AClient {
     const rpcResponse = await httpResponse.json();
 
     if (rpcResponse.id !== requestId) {
-      // This is a significant issue for request-response matching.
       logger.warn(
         {
           method,
@@ -493,8 +479,6 @@ export class A2AClient {
         },
         'RPC response ID mismatch - this may lead to incorrect response handling'
       );
-      // Depending on strictness, one might throw an error here.
-      // throw new Error(`RPC response ID mismatch for method ${method}. Expected ${requestId}, got ${rpcResponse.id}`);
     }
 
     return rpcResponse as TResponse;
@@ -524,15 +508,9 @@ export class A2AClient {
   public async *sendMessageStream(
     params: MessageSendParams
   ): AsyncGenerator<A2AStreamEventData, void, undefined> {
-    // const agentCard = await this.agentCardPromise; // Ensure agent card is fetched
-    // // if (!agentCard.capabilities?.streaming) {
-    //   throw new Error("Agent does not support streaming (AgentCard.capabilities.streaming is not true).");
-    // }
-
     const endpoint = await this._getServiceEndpoint();
     const clientRequestId = this.requestIdCounter++; // Use a unique ID for this stream request
     const rpcRequest: JSONRPCRequest = {
-      // This is the initial JSON-RPC request to establish the stream
       jsonrpc: '2.0',
       method: 'message/stream',
       params: params as { [key: string]: any },
@@ -550,7 +528,6 @@ export class A2AClient {
     });
 
     if (!response.ok) {
-      // Attempt to read error body for more details
       let errorBody = '';
       try {
         errorBody = await response.text();
@@ -562,7 +539,6 @@ export class A2AClient {
         }
       } catch (e: any) {
         if (e.message.startsWith('HTTP error establishing stream')) throw e;
-        // Fallback if body is not JSON or parsing fails
         throw new Error(
           `HTTP error establishing stream for message/stream: ${response.status} ${response.statusText}. Response: ${errorBody || '(empty)'}`
         );
@@ -572,14 +548,11 @@ export class A2AClient {
       );
     }
     if (!response.headers.get('Content-Type')?.startsWith('text/event-stream')) {
-      // Server should explicitly set this content type for SSE.
       throw new Error(
         "Invalid response Content-Type for SSE stream. Expected 'text/event-stream'."
       );
     }
 
-    // Yield events from the parsed SSE stream.
-    // Each event's 'data' field is a JSON-RPC response.
     yield* this._parseA2ASseStream<A2AStreamEventData>(response, clientRequestId);
   }
 
@@ -598,7 +571,6 @@ export class A2AClient {
         'Agent does not support push notifications (AgentCard.capabilities.pushNotifications is not true).'
       );
     }
-    // The 'params' directly matches the structure expected by the RPC method.
     return this._postRpcRequest<TaskPushNotificationConfig, SetTaskPushNotificationConfigResponse>(
       'tasks/pushNotificationConfig/set',
       params
@@ -613,7 +585,6 @@ export class A2AClient {
   public async getTaskPushNotificationConfig(
     params: TaskIdParams
   ): Promise<GetTaskPushNotificationConfigResponse> {
-    // The 'params' (TaskIdParams) directly matches the structure expected by the RPC method.
     return this._postRpcRequest<TaskIdParams, GetTaskPushNotificationConfigResponse>(
       'tasks/pushNotificationConfig/get',
       params
@@ -656,7 +627,6 @@ export class A2AClient {
     const endpoint = await this._getServiceEndpoint();
     const clientRequestId = this.requestIdCounter++; // Unique ID for this resubscribe request
     const rpcRequest: JSONRPCRequest = {
-      // Initial JSON-RPC request to establish the stream
       jsonrpc: '2.0',
       method: 'tasks/resubscribe',
       params: params as { [key: string]: any },
@@ -699,8 +669,6 @@ export class A2AClient {
       );
     }
 
-    // The events structure for resubscribe is assumed to be the same as message/stream.
-    // Each event's 'data' field is a JSON-RPC response.
     yield* this._parseA2ASseStream<A2AStreamEventData>(response, clientRequestId);
   }
 
@@ -730,7 +698,6 @@ export class A2AClient {
         const { done, value } = await reader.read();
         logger.info({ done, value }, 'parseA2ASseStream');
         if (done) {
-          // Process any final buffered event data if the stream ends abruptly after a 'data:' line
           if (eventDataBuffer.trim()) {
             const result = this._processSseEventData<TStreamItem>(
               eventDataBuffer,
@@ -743,16 +710,13 @@ export class A2AClient {
 
         buffer += value; // Append new chunk to buffer
         let lineEndIndex: number;
-        // Process all complete lines in the buffer
         lineEndIndex = buffer.indexOf('\n');
         while (lineEndIndex >= 0) {
           const line = buffer.substring(0, lineEndIndex).trim(); // Get and trim the line
           buffer = buffer.substring(lineEndIndex + 1); // Remove processed line from buffer
 
           if (line === '') {
-            // Empty line: signifies the end of an event
             if (eventDataBuffer) {
-              // If we have accumulated data for an event
               const result = this._processSseEventData<TStreamItem>(
                 eventDataBuffer,
                 originalRequestId
@@ -763,17 +727,12 @@ export class A2AClient {
           } else if (line.startsWith('data:')) {
             eventDataBuffer += `${line.substring(5).trimStart()}\n`; // Append data (multi-line data is possible)
           } else if (line.startsWith(':')) {
-            // This is a comment line in SSE, ignore it.
           } else if (line.includes(':')) {
-            // Other SSE fields like 'event:', 'id:', 'retry:'.
-            // The A2A spec primarily focuses on the 'data' field for JSON-RPC payloads.
-            // For now, we don't specifically handle these other SSE fields unless required by spec.
           }
           lineEndIndex = buffer.indexOf('\n'); // Update for next iteration
         }
       }
     } catch (error: any) {
-      // Log and re-throw errors encountered during stream processing
       console.error('Error reading or parsing SSE stream:', error.message);
       throw error;
     } finally {

@@ -26,7 +26,6 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agent tool relations
 app.openapi(
   createRoute({
     method: 'get',
@@ -106,7 +105,6 @@ app.openapi(
   }
 );
 
-// Get agent tool relation by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -147,7 +145,6 @@ app.openapi(
   }
 );
 
-// Get agents for a specific tool (with agent details)
 app.openapi(
   createRoute({
     method: 'get',
@@ -187,7 +184,6 @@ app.openapi(
   }
 );
 
-// Create agent tool relation
 app.openapi(
   createRoute({
     method: 'post',
@@ -221,7 +217,6 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentToolRelations(dbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { limit: 1000 },
@@ -264,7 +259,6 @@ app.openapi(
   }
 );
 
-// Update agent tool relation
 app.openapi(
   createRoute({
     method: 'put',
@@ -299,7 +293,6 @@ app.openapi(
     console.log('id', id);
     const body = await c.req.valid('json');
 
-    // Check if there are any fields to update
     if (Object.keys(body).length === 0) {
       throw createApiError({
         code: 'bad_request',
@@ -324,7 +317,6 @@ app.openapi(
   }
 );
 
-// Delete agent tool relation
 app.openapi(
   createRoute({
     method: 'delete',

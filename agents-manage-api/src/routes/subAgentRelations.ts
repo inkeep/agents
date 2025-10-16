@@ -7,8 +7,8 @@ import {
   ErrorResponseSchema,
   getAgentRelationById,
   getAgentRelationsBySource,
-  getAgentRelationsByTarget,
   getExternalAgentRelations,
+  getSubAgentRelationsByTarget,
   ListResponseSchema,
   listAgentRelations,
   type Pagination,
@@ -30,21 +30,20 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List agent relations
 app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Agent Relations',
-    operationId: 'list-agent-relations',
-    tags: ['Agent Relations'],
+    summary: 'List Sub Agent Relations',
+    operationId: 'list-sub-agent-relations',
+    tags: ['Sub Agent Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       query: PaginationQueryParamsSchema.merge(SubAgentRelationQuerySchema),
     },
     responses: {
       200: {
-        description: 'List of agent relations retrieved successfully',
+        description: 'List of sub agent relations retrieved successfully',
         content: {
           'application/json': {
             schema: ListResponseSchema(SubAgentRelationApiSelectSchema),
@@ -77,7 +76,7 @@ app.openapi(
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (targetSubAgentId) {
-        const rawResult = await getAgentRelationsByTarget(dbClient)({
+        const rawResult = await getSubAgentRelationsByTarget(dbClient)({
           scopes: { tenantId, projectId, agentId },
           targetSubAgentId,
           pagination: { page: pageNum, limit: limitNum },
@@ -102,26 +101,25 @@ app.openapi(
     } catch (_error) {
       throw createApiError({
         code: 'internal_server_error',
-        message: 'Failed to retrieve agent relations',
+        message: 'Failed to retrieve sub agent relations',
       });
     }
   }
 );
 
-// Get agent relation by ID
 app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Agent Relation',
-    operationId: 'get-agent-relation-by-id',
-    tags: ['Agent Relations'],
+    summary: 'Get Sub Agent Relation',
+    operationId: 'get-sub-agent-relation-by-id',
+    tags: ['Sub Agent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Agent relation found',
+        description: 'Sub Agent relation found',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
@@ -141,7 +139,7 @@ app.openapi(
     if (!agentRelation) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent relation not found',
+        message: 'Sub Agent Relation not found',
       });
     }
 
@@ -149,14 +147,13 @@ app.openapi(
   }
 );
 
-// Create agent relation
 app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Agent Relation',
-    operationId: 'create-agent-relation',
-    tags: ['Agent Relations'],
+    summary: 'Create Sub Agent Relation',
+    operationId: 'create-sub-agent-relation',
+    tags: ['Sub Agent Relations'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
@@ -169,7 +166,7 @@ app.openapi(
     },
     responses: {
       201: {
-        description: 'Agent relation created successfully',
+        description: 'Sub Agent Relation created successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
@@ -186,9 +183,7 @@ app.openapi(
     // Determine if this is an external agent relationship
     const isExternalAgent = body.externalSubAgentId != null;
 
-    // Validate that the target agent exists in the appropriate table
     if (isExternalAgent && body.externalSubAgentId) {
-      // Check if external agent exists
       const externalAgentExists = await validateExternalAgent(dbClient)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.externalSubAgentId },
       });
@@ -201,7 +196,6 @@ app.openapi(
     }
 
     if (!isExternalAgent && body.targetSubAgentId) {
-      // Check if internal agent exists
       const internalAgentExists = await validateInternalSubAgent(dbClient)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.targetSubAgentId },
       });
@@ -213,7 +207,6 @@ app.openapi(
       }
     }
 
-    // Check if relation already exists (prevent duplicates)
     const existingRelations = await listAgentRelations(dbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page: 1, limit: 1000 },
@@ -239,7 +232,6 @@ app.openapi(
       });
     }
 
-    // Create the relation with the correct data structure
     const relationData = {
       agentId,
       tenantId,
@@ -259,14 +251,13 @@ app.openapi(
   }
 );
 
-// Update agent relation
 app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Agent Relation',
-    operationId: 'update-agent-relation',
-    tags: ['Agent Relations'],
+    summary: 'Update Sub Agent Relation',
+    operationId: 'update-sub-agent-relation',
+    tags: ['Sub Agent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
       body: {
@@ -279,7 +270,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Agent relation updated successfully',
+        description: 'Sub Agent relation updated successfully',
         content: {
           'application/json': {
             schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
@@ -302,7 +293,7 @@ app.openapi(
     if (!updatedAgentRelation) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent relation not found',
+        message: 'Sub Agent Relation not found',
       });
     }
 
@@ -310,23 +301,22 @@ app.openapi(
   }
 );
 
-// Delete agent relation
 app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Agent Relation',
-    operationId: 'delete-agent-relation',
-    tags: ['Agent Relations'],
+    summary: 'Delete Sub Agent Relation',
+    operationId: 'delete-sub-agent-relation',
+    tags: ['Sub Agent Relations'],
     request: {
       params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {
-        description: 'Agent relation deleted successfully',
+        description: 'Sub Agent Relation deleted successfully',
       },
       404: {
-        description: 'Agent relation not found',
+        description: 'Sub Agent Relation not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -346,7 +336,7 @@ app.openapi(
     if (!deleted) {
       throw createApiError({
         code: 'not_found',
-        message: 'Agent relation not found',
+        message: 'Sub Agent Relation not found',
       });
     }
 

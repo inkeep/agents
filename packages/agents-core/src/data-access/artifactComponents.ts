@@ -86,7 +86,6 @@ export const listArtifactComponentsPaginated =
 
 export const createArtifactComponent =
   (db: DatabaseClient) => async (params: ArtifactComponentInsert) => {
-    // Validate props as JSON Schema if provided
     if (params.props !== null && params.props !== undefined) {
       const propsValidation = validatePropsAsJsonSchema(params.props);
       if (!propsValidation.isValid) {
@@ -114,7 +113,6 @@ export const createArtifactComponent =
 export const updateArtifactComponent =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string; data: ArtifactComponentUpdate }) => {
-    // Validate props as JSON Schema if provided
     if (params.data.props !== undefined && params.data.props !== null) {
       const propsValidation = validatePropsAsJsonSchema(params.data.props);
       if (!propsValidation.isValid) {
@@ -372,11 +370,9 @@ export const countArtifactComponentsForAgent =
 export const upsertAgentArtifactComponentRelation =
   (db: DatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
-    // Check if relation already exists
     const exists = await isArtifactComponentAssociatedWithAgent(db)(params);
 
     if (!exists) {
-      // Create the relation if it doesn't exist
       return await associateArtifactComponentWithAgent(db)(params);
     }
 
@@ -399,7 +395,6 @@ export const upsertArtifactComponent =
     });
 
     if (existing) {
-      // Update existing artifact component
       return await updateArtifactComponent(db)({
         scopes,
         id: params.data.id,
@@ -410,7 +405,6 @@ export const upsertArtifactComponent =
         },
       });
     } else {
-      // Create new artifact component
       return await createArtifactComponent(db)(params.data);
     }
   };

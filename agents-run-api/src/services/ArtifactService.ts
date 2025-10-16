@@ -18,7 +18,6 @@ import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('ArtifactService');
 
-// Types moved from ArtifactParser
 export interface ArtifactSummaryData {
   artifactId: string;
   toolCallId: string;
@@ -135,7 +134,6 @@ export class ArtifactService {
       return null;
     }
 
-    // Get the tool result from the session
     const toolResult = toolSessionManager.getToolResult(this.context.sessionId, request.toolCallId);
     if (!toolResult) {
       logger.warn(
@@ -146,7 +144,6 @@ export class ArtifactService {
     }
 
     try {
-      // Clean tool result data
       const toolResultData =
         toolResult && typeof toolResult === 'object' && !Array.isArray(toolResult)
           ? Object.fromEntries(
@@ -154,11 +151,9 @@ export class ArtifactService {
             )
           : toolResult;
 
-      // Extract data using base selector
       const sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
       let selectedData = jmespath.search(toolResultData, sanitizedBaseSelector);
 
-      // Handle array results
       if (Array.isArray(selectedData)) {
         selectedData = selectedData.length > 0 ? selectedData[0] : {};
       }
@@ -174,18 +169,15 @@ export class ArtifactService {
         selectedData = {};
       }
 
-      // Find matching artifact component and extract preview/full schemas
       const component = this.context.artifactComponents?.find((ac) => ac.name === request.type);
 
       let summaryData: Record<string, any> = {};
       let fullData: Record<string, any> = {};
 
       if (component?.props) {
-        // Extract preview and full fields from the unified props schema
         const previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
         const fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
 
-        // Extract data based on schemas and details selector
         summaryData = this.extractPropsFromSchema(
           selectedData,
           previewSchema,
@@ -197,13 +189,10 @@ export class ArtifactService {
           request.detailsSelector || {}
         );
       } else {
-        // Fallback: when no props schema, use the entire selected data
-        // This ensures we always have meaningful data for the artifact
         summaryData = selectedData;
         fullData = selectedData;
       }
 
-      // Fallback: if fullData is empty, use the entire selectedData from base selector
       const isFullDataEmpty =
         !fullData ||
         Object.keys(fullData).length === 0 ||
@@ -220,11 +209,9 @@ export class ArtifactService {
         fullData = { baseSelector: selectedData };
       }
 
-      // Clean the extracted data to remove over-escaping
       const cleanedSummaryData = this.cleanEscapedContent(summaryData);
       const cleanedFullData = this.cleanEscapedContent(fullData);
 
-      // Create artifact data using cleaned data
       const artifactData: ArtifactSummaryData = {
         artifactId: request.artifactId,
         toolCallId: request.toolCallId,
@@ -234,10 +221,8 @@ export class ArtifactService {
         data: cleanedSummaryData,
       };
 
-      // Persist artifact to database using cleaned data
       await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId);
 
-      // Cache artifact for immediate access using cleaned data
       await this.cacheArtifact(
         request.artifactId,
         request.toolCallId,
@@ -249,7 +234,6 @@ export class ArtifactService {
     } catch (error) {
       logger.error({ error, request }, 'Failed to create artifact');
 
-      // Throw a more descriptive error for better error propagation
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Artifact creation failed for ${request.artifactId}: ${errorMessage}`);
     }
@@ -265,7 +249,6 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check agent session cache
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -276,19 +259,16 @@ export class ArtifactService {
       }
     }
 
-    // Check local cache
     if (this.createdArtifacts.has(key)) {
       const cached = this.createdArtifacts.get(key)!;
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
-    // Check provided artifact map
     if (artifactMap?.has(key)) {
       const artifact = artifactMap.get(key);
       return this.formatArtifactSummaryData(artifact, artifactId, toolCallId);
     }
 
-    // Fetch from database
     try {
       if (!this.context.projectId || !this.context.taskId) {
         logger.warn(
@@ -327,7 +307,6 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
-    // Check agent session cache
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -338,19 +317,16 @@ export class ArtifactService {
       }
     }
 
-    // Check local cache
     if (this.createdArtifacts.has(key)) {
       const cached = this.createdArtifacts.get(key)!;
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 
-    // Check provided artifact map
     if (artifactMap?.has(key)) {
       const artifact = artifactMap.get(key);
       return this.formatArtifactFullData(artifact, artifactId, toolCallId);
     }
 
-    // Fetch from database
     try {
       if (!this.context.projectId || !this.context.taskId) {
         logger.warn(
@@ -424,7 +400,6 @@ export class ArtifactService {
     fullData: Record<string, any>,
     subAgentId?: string
   ): Promise<void> {
-    // Use passed subAgentId or fall back to context subAgentId
     const effectiveAgentId = subAgentId || this.context.subAgentId;
 
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
@@ -485,10 +460,8 @@ export class ArtifactService {
       taskId: this.context.taskId,
     };
 
-    // Store in local cache
     this.createdArtifacts.set(cacheKey, artifactForCache);
 
-    // Store in agent session cache
     if (this.context.streamRequestId) {
       await agentSessionManager.setArtifactCache(
         this.context.streamRequestId,
@@ -502,16 +475,13 @@ export class ArtifactService {
    * Sanitize JMESPath selector to fix common syntax issues (with caching)
    */
   private sanitizeJMESPathSelector(selector: string): string {
-    // Check cache first
     const cached = ArtifactService.selectorCache.get(selector);
     if (cached !== undefined) {
       return cached;
     }
 
-    // Perform sanitization
     let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
 
-    // Fix contains syntax with @ references - match patterns like [?field ~ contains(@, "value")]
     sanitized = sanitized.replace(
       /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
       '[?contains($1, `$2`)]'
@@ -524,7 +494,6 @@ export class ArtifactService {
 
     sanitized = sanitized.replace(/\s*~\s*/g, ' ');
 
-    // Cache the result (limit cache size to prevent memory leaks)
     if (ArtifactService.selectorCache.size < 1000) {
       ArtifactService.selectorCache.set(selector, sanitized);
     }
@@ -545,7 +514,6 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    // Get artifact component schema to extract preview fields
     let summaryData = artifact.data;
     let fullData = artifact.data;
 
@@ -559,7 +527,6 @@ export class ArtifactService {
           const previewSchema = extractPreviewFields(schema);
           const fullSchema = extractFullFields(schema);
 
-          // Extract data based on the schemas
           summaryData = this.filterBySchema(artifact.data, previewSchema);
           fullData = this.filterBySchema(artifact.data, fullSchema);
         } catch (error) {
@@ -592,9 +559,6 @@ export class ArtifactService {
       metadata: artifact.metadata || {},
     };
 
-    // Note: Database layer now handles all data sanitization and validation
-
-    // Use atomic upsert to prevent race conditions
     const result = await upsertLedgerArtifact(dbClient)({
       scopes: {
         tenantId: this.context.tenantId,
@@ -607,7 +571,6 @@ export class ArtifactService {
     });
 
     if (!result.created && result.existing) {
-      // Artifact already exists - this is fine, just log it
       logger.debug(
         {
           artifactId: artifact.artifactId,
@@ -623,16 +586,12 @@ export class ArtifactService {
    */
   public cleanEscapedContent(value: any): any {
     if (typeof value === 'string') {
-      // Clean problematic characters and over-escaped content
       let cleaned = value;
 
-      // First, remove control characters that can cause database issues
       cleaned = cleaned
         .replace(/\u0000/g, '') // Remove null bytes
         .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Remove control chars
 
-      // Handle escaped quotes and apostrophes that cause JSON serialization issues
-      // These patterns get double-escaped during JSON serialization for SQLite
       cleaned = cleaned
         .replace(/\\"([^"]+)\\"/g, '"$1"') // \"text\" -> "text"
         .replace(/\\'/g, "'") // \' -> '
@@ -678,39 +637,6 @@ export class ArtifactService {
     }
 
     return value;
-  }
-
-  /**
-   * Extract properties from data using prop selectors
-   */
-  private extractProps(item: any, propSelectors: Record<string, string>): Record<string, any> {
-    const extracted: Record<string, any> = {};
-
-    for (const [propName, selector] of Object.entries(propSelectors)) {
-      try {
-        const sanitizedSelector = this.sanitizeJMESPathSelector(selector);
-
-        const rawValue = sanitizedSelector
-          ? jmespath.search(item, sanitizedSelector)
-          : item[propName];
-
-        if (rawValue !== null && rawValue !== undefined) {
-          // Clean up over-escaped content before storing
-          extracted[propName] = this.cleanEscapedContent(rawValue);
-        }
-      } catch (error) {
-        logger.warn(
-          { propName, selector, error: error instanceof Error ? error.message : 'Unknown error' },
-          'Failed to extract property'
-        );
-        const fallbackValue = item[propName];
-        if (fallbackValue !== null && fallbackValue !== undefined) {
-          extracted[propName] = this.cleanEscapedContent(fallbackValue);
-        }
-      }
-    }
-
-    return extracted;
   }
 
   /**

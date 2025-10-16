@@ -45,13 +45,13 @@ describe('Streaming Integration Tests', () => {
 
     // Mock ArtifactParser
     mockArtifactParser = {
-      parseObject: vi.fn().mockImplementation((obj, artifactMap, subAgentId) => {
+      parseObject: vi.fn().mockImplementation((obj, _artifactMap, _subAgentId) => {
         // Only return artifacts for components that are complete and stable
         const components = obj.dataComponents || [];
         const results = [];
 
         for (const component of components) {
-          if (component && component.id && component.name && component.props) {
+          if (component?.id && component.name && component.props) {
             results.push({
               kind: 'data',
               data: { id: component.id, name: component.name, props: component.props },

@@ -1,7 +1,6 @@
 import { createDatabaseClient } from '@inkeep/agents-core';
 import { env } from '../../env';
 
-// Create database URL - use in-memory for tests, Turso if available, else file
 const getDbConfig = () => {
   // Use in-memory database for tests - each worker gets its own isolated database
   if (env.ENVIRONMENT === 'test') {
@@ -28,6 +27,5 @@ const getDbConfig = () => {
   };
 };
 
-// Create the database client
 const dbClient = createDatabaseClient(getDbConfig());
 export default dbClient;

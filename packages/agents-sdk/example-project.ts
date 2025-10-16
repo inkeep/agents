@@ -14,9 +14,9 @@ const customerSupportProject = project({
 
   // Project-level model settings that cascade to agents and agents
   models: {
-    base: { model: OPENAI_MODELS.GPT_4_1_20250414 },
-    structuredOutput: { model: OPENAI_MODELS.GPT_4_1_MINI_20250414 },
-    summarizer: { model: OPENAI_MODELS.GPT_4_1_NANO_20250414 },
+    base: { model: OPENAI_MODELS.GPT_4_1 },
+    structuredOutput: { model: OPENAI_MODELS.GPT_4_1_MINI },
+    summarizer: { model: OPENAI_MODELS.GPT_4_1_NANO },
   },
 
   // Project-level execution limits

@@ -8,7 +8,10 @@ import { findUp } from 'find-up';
  * @param configPath - Optional specific config file path to use
  * @returns Path to project directory or null if not found
  */
-export async function findProjectDirectory(projectId?: string, configPath?: string): Promise<string | null> {
+export async function findProjectDirectory(
+  projectId?: string,
+  configPath?: string
+): Promise<string | null> {
   // If a specific config path is provided, use its directory
   if (configPath) {
     const absoluteConfigPath = resolve(process.cwd(), configPath);

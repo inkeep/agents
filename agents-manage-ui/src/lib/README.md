@@ -1,13 +1,13 @@
 # Agent Builder Library
 
-This library provides server actions and types for interacting with the GraphFull API from the inkeep-chat backend. It imports the original schemas from the inkeep-chat package to avoid duplication and ensure consistency.
+This library provides server actions and types for interacting with the AgentFull API from the inkeep-chat backend. It imports the original schemas from the inkeep-chat package to avoid duplication and ensure consistency.
 
 ## Configuration
 
 Set the following environment variable in your `.env.local` file:
 
 ```bash
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 ```
 
@@ -17,13 +17,13 @@ INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 
 ```typescript
 import {
-  createFullGraphAction,
-  getFullGraphAction,
-  updateFullGraphAction,
-  deleteFullGraphAction,
-  validateGraphData,
-  FullGraphDefinitionSchema,
-  type FullGraphDefinition,
+  createFullAgentAction,
+  deleteFullAgentAction,
+  getFullAgentAction,
+  updateFullAgentAction,
+  validateAgentData,
+  FullAgentDefinitionSchema,
+  type FullAgentDefinition,
   type ActionResult,
 } from '@/lib';
 ```
@@ -31,10 +31,10 @@ import {
 ### Create a new agent
 
 ```typescript
-const result = await createFullGraphAction('tenant-123', {
+const result = await createFullAgentAction('tenant-123', {
   id: 'my-agent',
   name: 'My Customer Service Agent',
-  description: 'A agent for customer service operations',
+  description: 'An agent for customer service operations',
   defaultSubAgentId: 'support-agent',
   agents: {
     'support-agent': {
@@ -64,7 +64,7 @@ if (result.success) {
 ### Get an existing agent
 
 ```typescript
-const result = await getFullGraphAction('tenant-123', 'my-agent');
+const result = await getFullAgentAction('tenant-123', 'my-agent');
 
 if (result.success) {
   console.log('Agent retrieved:', result.data);
@@ -76,13 +76,13 @@ if (result.success) {
 ### Update an agent
 
 ```typescript
-const updatedGraph = {
+const updatedAgent = {
   id: 'my-agent',
   name: 'Updated Customer Service Agent',
   // ... other properties
 };
 
-const result = await updateFullGraphAction('tenant-123', 'my-agent', updatedGraph);
+const result = await updateFullAgentAction('tenant-123', 'my-agent', updatedAgent);
 
 if (result.success) {
   console.log('Agent updated:', result.data);
@@ -94,7 +94,7 @@ if (result.success) {
 ### Delete an agent
 
 ```typescript
-const result = await deleteFullGraphAction('tenant-123', 'my-agent');
+const result = await deleteFullAgentAction('tenant-123', 'my-agent');
 
 if (result.success) {
   console.log('Agent deleted successfully');
@@ -108,7 +108,7 @@ if (result.success) {
 Use this for form validation before submitting:
 
 ```typescript
-const result = await validateGraphData(formData);
+const result = await validateAgentData(formData);
 
 if (result.success) {
   // Data is valid, proceed with submission

@@ -7,7 +7,6 @@ import type {
 } from '../types/entities';
 import { AgentWithinContextOfProjectSchema } from './schemas';
 
-// Type guard functions
 export function isInternalAgent(agent: SubAgentDefinition): agent is InternalSubAgentDefinition {
   return 'prompt' in agent;
 }
@@ -32,7 +31,6 @@ export function validateToolReferences(
   agentData: FullAgentDefinition,
   availableToolIds?: Set<string>
 ): void {
-  // If no tool IDs provided, skip validation (will be done at project level)
   if (!availableToolIds) {
     return;
   }
@@ -63,7 +61,6 @@ export function validateDataComponentReferences(
   agentData: FullAgentDefinition,
   availableDataComponentIds?: Set<string>
 ): void {
-  // If no dataComponent IDs provided, skip validation (will be done at project level)
   if (!availableDataComponentIds) {
     return;
   }
@@ -96,7 +93,6 @@ export function validateArtifactComponentReferences(
   agentData: FullAgentDefinition,
   availableArtifactComponentIds?: Set<string>
 ): void {
-  // If no artifactComponent IDs provided, skip validation (will be done at project level)
   if (!availableArtifactComponentIds) {
     return;
   }
@@ -131,7 +127,6 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have relationship properties
     if (isInternalAgent(subAgent)) {
-      // Validate transfer targets
       if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
         for (const targetId of subAgent.canTransferTo) {
           if (!availableAgentIds.has(targetId)) {
@@ -142,7 +137,6 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
         }
       }
 
-      // Validate delegation targets
       if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
         for (const targetId of subAgent.canDelegateTo) {
           if (!availableAgentIds.has(targetId)) {
@@ -172,18 +166,15 @@ export function validateAgentStructure(
     artifactComponentIds?: Set<string>;
   }
 ): void {
-  // Validate default agent exists (if specified)
   if (agentData.defaultSubAgentId && !agentData.subAgents[agentData.defaultSubAgentId]) {
     throw new Error(`Default agent '${agentData.defaultSubAgentId}' does not exist in agents`);
   }
 
-  // Validate resource references if project resources are provided
   if (projectResources) {
     validateToolReferences(agentData, projectResources.toolIds);
     validateDataComponentReferences(agentData, projectResources.dataComponentIds);
     validateArtifactComponentReferences(agentData, projectResources.artifactComponentIds);
   }
 
-  // Validate agent relationships (this is always agent-scoped)
   validateAgentRelationships(agentData);
 }

@@ -46,7 +46,6 @@ export function useTracesQueryState() {
     // Span filtering
     spanName: parseAsString.withDefault(''),
     spanAttributes: parseAsJson((value: unknown): SpanAttribute[] => {
-      // Validate that the parsed JSON is an array of SpanAttribute objects
       if (!Array.isArray(value)) return [];
 
       return value.filter(

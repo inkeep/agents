@@ -57,7 +57,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getActiveAgentForConversation: getActiveAgentForConversationMock,
   getFullAgent: getFullAgentMock,
   getTracer: vi.fn(() => ({
-    startActiveSpan: vi.fn((name, options, fn) => {
+    startActiveSpan: vi.fn((_name, options, fn) => {
       // Handle both 2 and 3 argument versions
       const callback = typeof options === 'function' ? options : fn;
       return callback({
@@ -133,7 +133,7 @@ vi.mock('../../utils/agent-session.js', () => ({
 
 vi.mock('../../utils/tracer.js', () => ({
   tracer: {
-    startActiveSpan: vi.fn((name, options, fn) => {
+    startActiveSpan: vi.fn((_name, options, fn) => {
       // Handle both 2 and 3 argument versions
       const callback = typeof options === 'function' ? options : fn;
       return callback({

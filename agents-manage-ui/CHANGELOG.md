@@ -1,5 +1,241 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+- Updated dependencies [1088fb1]
+  - @inkeep/agents-core@0.22.11
+  - @inkeep/agents-manage-api@0.22.11
+  - @inkeep/agents-run-api@0.22.11
+
+## 0.22.9
+
+### Patch Changes
+
+- b01f8a3: - Improve full page errors
+  - @inkeep/agents-manage-api@0.22.9
+  - @inkeep/agents-run-api@0.22.9
+  - @inkeep/agents-core@0.22.9
+
+## 0.22.8
+
+### Patch Changes
+
+- 604fec9: clickhouse query
+  - @inkeep/agents-manage-api@0.22.8
+  - @inkeep/agents-run-api@0.22.8
+  - @inkeep/agents-core@0.22.8
+
+## 0.22.7
+
+### Patch Changes
+
+- 550d251: updated inkeep pull :)
+- Updated dependencies [550d251]
+  - @inkeep/agents-manage-api@0.22.7
+  - @inkeep/agents-run-api@0.22.7
+  - @inkeep/agents-core@0.22.7
+
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+- Updated dependencies [28018a0]
+  - @inkeep/agents-run-api@0.22.6
+  - @inkeep/agents-manage-api@0.22.6
+  - @inkeep/agents-core@0.22.6
+
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+- Updated dependencies [e5fb3a4]
+  - @inkeep/agents-core@0.22.5
+  - @inkeep/agents-manage-api@0.22.5
+  - @inkeep/agents-run-api@0.22.5
+
+## 0.22.4
+
+### Patch Changes
+
+- e8ba7de: Add background version check to push and pull commands
+- 30a72e2: - prevent the sidepane from animating in on first render
+  - add loading state for new agent page
+  - add loading state for node / edge sidepane
+  - reset zustand state when component unmounts
+- 0b8c264: Add self-update command to CLI with automatic package manager detection and version checking
+- b788bd8: Use password entry instead of plaintext entry
+- f784f72: New models and clean up
+- Updated dependencies [e8ba7de]
+- Updated dependencies [0b8c264]
+- Updated dependencies [b788bd8]
+- Updated dependencies [f784f72]
+  - @inkeep/agents-core@0.22.4
+  - @inkeep/agents-manage-api@0.22.4
+  - @inkeep/agents-run-api@0.22.4
+
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+- 7253f2b: - Fallback to PUBLIC\_ envs server side
+- Updated dependencies [d00742f]
+  - @inkeep/agents-core@0.22.3
+  - @inkeep/agents-manage-api@0.22.3
+  - @inkeep/agents-run-api@0.22.3
+
+## 0.22.2
+
+### Patch Changes
+
+- af7446e: update agents-ui to 0.14.14
+- abdf614: Default model configs
+- Updated dependencies [abdf614]
+  - @inkeep/agents-manage-api@0.22.2
+  - @inkeep/agents-run-api@0.22.2
+  - @inkeep/agents-core@0.22.2
+
+## 0.22.1
+
+### Patch Changes
+
+- ba2a297: Support remote sandboxes
+- Updated dependencies [ba2a297]
+  - @inkeep/agents-core@0.22.1
+  - @inkeep/agents-run-api@0.22.1
+  - @inkeep/agents-manage-api@0.22.1
+
+## 0.22.0
+
+### Minor Changes
+
+- 9427ad4: Add PUBLIC env vars for manageui
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+- Updated dependencies [8a10d65]
+  - @inkeep/agents-manage-api@0.22.0
+  - @inkeep/agents-run-api@0.22.0
+  - @inkeep/agents-core@0.22.0
+
+## 0.21.1
+
+### Patch Changes
+
+- 4815d3a: create bearer in keychain
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+- Updated dependencies [4815d3a]
+- Updated dependencies [1aefe88]
+- Updated dependencies [eb0ffa2]
+  - @inkeep/agents-core@0.21.1
+  - @inkeep/agents-manage-api@0.21.1
+  - @inkeep/agents-run-api@0.21.1
+
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+- Updated dependencies [88ff25c]
+- Updated dependencies [43cd2f6]
+  - @inkeep/agents-manage-api@0.21.0
+  - @inkeep/agents-run-api@0.21.0
+  - @inkeep/agents-core@0.21.0
+
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+- Updated dependencies [1e5188d]
+  - @inkeep/agents-run-api@0.20.1
+  - @inkeep/agents-manage-api@0.20.1
+  - @inkeep/agents-core@0.20.1
+
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [fb99085]
+  - @inkeep/agents-core@0.20.0
+  - @inkeep/agents-run-api@0.20.0
+  - @inkeep/agents-manage-api@0.20.0
+
+## 0.19.9
+
+### Patch Changes
+
+- b172a43: Renaming followups
+- 4e9948f: otel trace pretty
+- e9bfd8a: Fix agent prompt field in UI
+  - @inkeep/agents-manage-api@0.19.9
+  - @inkeep/agents-run-api@0.19.9
+  - @inkeep/agents-core@0.19.9
+
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+- Updated dependencies [e9048e2]
+  - @inkeep/agents-run-api@0.19.8
+  - @inkeep/agents-manage-api@0.19.8
+  - @inkeep/agents-core@0.19.8
+
+## 0.19.7
+
+### Patch Changes
+
+- Updated dependencies [ceef086]
+  - @inkeep/agents-run-api@0.19.7
+  - @inkeep/agents-manage-api@0.19.7
+  - @inkeep/agents-core@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 0d0166f: stream object in timeline
+- Updated dependencies [0d0166f]
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-run-api@0.19.6
+  - @inkeep/agents-core@0.19.6
+  - @inkeep/agents-manage-api@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- 20978ac: - Bump agents ui version to 0.14.12
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-manage-api@0.19.5
+  - @inkeep/agents-run-api@0.19.5
+  - @inkeep/agents-core@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- a2c184f: Capitalize name casing for External Agent
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-run-api@0.19.4
+  - @inkeep/agents-manage-api@0.19.4
+  - @inkeep/agents-core@0.19.4
+
 ## 0.19.3
 
 ### Patch Changes

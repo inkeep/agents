@@ -31,7 +31,6 @@ export type ExtendedAgent =
     })
   | ExternalAgent;
 
-// Type guard to check if an agent is an internal agent
 function isInternalAgent(
   agent: ExtendedAgent | FullAgentDefinition['subAgents'][string]
 ): agent is InternalAgent {
@@ -121,7 +120,6 @@ export function serializeAgentData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      // Build canUse array from edges connecting this agent to tool nodes (MCP and Function)
       const canUse: Array<{
         toolId: string;
         toolSelection?: string[] | null;
@@ -143,11 +141,9 @@ export function serializeAgentData(
           const toolId = (mcpNode.data as any).toolId;
 
           if (toolId) {
-            // Get selected tools from MCP node's tempSelectedTools
             const tempSelectedTools = (mcpNode.data as any).tempSelectedTools;
             let toolSelection: string[] | null = null;
 
-            // Get the relationshipId from the MCP node first
             const relationshipId = (mcpNode.data as any).relationshipId;
 
             if (tempSelectedTools !== undefined) {
@@ -217,10 +213,8 @@ export function serializeAgentData(
           const functionToolId = nodeData.functionToolId || nodeData.toolId || functionToolNode.id;
           const relationshipId = nodeData.relationshipId;
 
-          // Get the function ID from the node data (should reference existing function)
           const functionId = nodeData.functionId || functionToolId;
 
-          // Create function tool entry
           const functionToolData = {
             id: functionToolId,
             name: nodeData.name || '',
@@ -424,8 +418,8 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.agentPrompt) {
-    (result as any).agentPrompt = metadata.agentPrompt;
+  if (metadata?.prompt) {
+    (result as any).prompt = metadata.prompt;
   }
 
   if (metadata?.statusUpdates) {
@@ -466,7 +460,7 @@ export function validateSerializedData(
 
   if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents`,
+      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents.`,
       field: 'defaultSubAgentId',
       code: 'invalid_reference',
       path: ['defaultSubAgentId'],
@@ -483,7 +477,7 @@ export function validateSerializedData(
           const toolId = canUseItem.toolId;
           if (!toolsData[toolId]) {
             errors.push({
-              message: `Tool '${toolId}' not found`,
+              message: `Tool '${toolId}' not found.`,
               field: 'toolId',
               code: 'invalid_reference',
               path: ['agents', subAgentId, 'canUse'],
@@ -493,7 +487,6 @@ export function validateSerializedData(
       }
     }
 
-    // Validate function tools for internal agents (check canUse array for function tools)
     if (isInternalAgent(agent) && agent.canUse) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
@@ -519,7 +512,6 @@ export function validateSerializedData(
           // Use the node map to get the React Flow node ID if available
           const nodeId = functionToolNodeMap?.get(toolId) || toolId;
 
-          // Validate required fields for function tools
           if (!functionTool.name || String(functionTool.name).trim() === '') {
             errors.push({
               message: 'Function tool name is required',
@@ -565,7 +557,7 @@ export function validateSerializedData(
       for (const targetId of agent.canTransferTo ?? []) {
         if (!data.subAgents[targetId]) {
           errors.push({
-            message: `Transfer target '${targetId}' not found in agents`,
+            message: `Transfer target '${targetId}' not found in agents.`,
             field: 'canTransferTo',
             code: 'invalid_reference',
             path: ['agents', subAgentId, 'canTransferTo'],
@@ -575,7 +567,7 @@ export function validateSerializedData(
       for (const targetId of agent.canDelegateTo ?? []) {
         if (!data.subAgents[targetId]) {
           errors.push({
-            message: `Delegate target '${targetId}' not found in agents`,
+            message: `Delegate target '${targetId}' not found in agents.`,
             field: 'canDelegateTo',
             code: 'invalid_reference',
             path: ['agents', subAgentId, 'canDelegateTo'],

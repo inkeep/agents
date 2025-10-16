@@ -132,7 +132,6 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Validate props as JSON Schema if provided
     if (body.props !== null && body.props !== undefined) {
       const propsValidation = validatePropsAsJsonSchema(body.props);
       if (!propsValidation.isValid) {
@@ -210,7 +209,6 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Validate props as JSON Schema if provided
     if (body.props !== undefined && body.props !== null) {
       const propsValidation = validatePropsAsJsonSchema(body.props);
       if (!propsValidation.isValid) {

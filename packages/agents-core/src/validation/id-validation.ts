@@ -39,7 +39,6 @@ export function generateIdFromName(name: string): string {
   // Truncate if necessary
   const truncatedId = id.substring(0, MAX_ID_LENGTH);
 
-  // Validate the generated ID
   const result = resourceIdSchema.safeParse(truncatedId);
   if (!result.success) {
     throw new Error(`Generated ID "${truncatedId}" is not valid: ${result.error.message}`);

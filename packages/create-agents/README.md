@@ -102,11 +102,6 @@ my-agent-directory/
    pnpm inkeep push
    ```
 
-5. **Test your agents:**
-   ```bash
-   pnpm inkeep chat
-   ```
-
 ## Available Services
 
 After setup, you'll have access to:
@@ -121,7 +116,6 @@ After setup, you'll have access to:
 - `pnpm db:migrate` - Apply database migrations
 - `inkeep dev` - Start the Manage UI
 - `inkeep push` - Deploy project configurations
-- `inkeep chat` - Interactive chat with your agents
 
 ## Environment Variables
 

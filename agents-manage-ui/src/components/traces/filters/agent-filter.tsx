@@ -52,7 +52,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
   return (
     <Combobox
       defaultValue={selectedValue}
-      notFoundMessage={'No agent found'}
+      notFoundMessage={'No agents found.'}
       onSelect={(value) => {
         onSelect(value);
       }}

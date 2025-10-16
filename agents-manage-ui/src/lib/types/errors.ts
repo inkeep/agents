@@ -8,11 +8,15 @@ export interface ApiErrorData {
 }
 
 export class ApiError extends Error {
-  constructor(
-    public error: ApiErrorData,
-    public status: number
-  ) {
-    super(error.message);
+  public readonly error: ApiErrorData;
+  public readonly status: number;
+
+  constructor(error: ApiErrorData, status: number) {
+    super(`[${status}] ${error.message}`, {
+      cause: { code: error.code, status },
+    });
     this.name = 'ApiError';
+    this.error = error;
+    this.status = status;
   }
 }

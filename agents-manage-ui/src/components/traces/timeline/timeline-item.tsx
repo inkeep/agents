@@ -56,6 +56,7 @@ function statusIcon(
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
+    ai_model_streamed_object: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
     context_resolution: { Icon: Database, cls: 'text-indigo-400' },
     tool_call: { Icon: Hammer, cls: 'text-muted-foreground' },
@@ -191,8 +192,8 @@ export function TimelineItem({
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   title={
                     isAiMessageCollapsed
-                      ? 'Expand AI streaming response'
-                      : 'Collapse AI streaming response'
+                      ? 'Expand AI streaming text'
+                      : 'Collapse AI streaming text'
                   }
                 >
                   {isAiMessageCollapsed ? (
@@ -200,11 +201,45 @@ export function TimelineItem({
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  AI Streaming Response
+                  AI Streaming Text
                 </button>
               )}
               {!isAiMessageCollapsed && (
                 <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
+              )}
+            </div>
+          )}
+
+          {/* streamed object bubble */}
+          {activity.type === 'ai_model_streamed_object' && activity.aiStreamObjectContent && (
+            <div className="space-y-2">
+              {onToggleAiMessageCollapse && (
+                <button
+                  type="button"
+                  onClick={() => onToggleAiMessageCollapse(activity.id)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  title={
+                    isAiMessageCollapsed
+                      ? 'Expand AI streaming object'
+                      : 'Collapse AI streaming object'
+                  }
+                >
+                  {isAiMessageCollapsed ? (
+                    <ChevronRight className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                  AI Streaming Object
+                </button>
+              )}
+              {!isAiMessageCollapsed && (
+                <div className="mt-2">
+                  <JsonEditorWithCopy
+                    value={formatJsonSafely(activity.aiStreamObjectContent)}
+                    title="Structured object response"
+                    uri={`stream-object-${activity.id}.json`}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -227,11 +262,10 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
             activity.toolName?.includes('delegate') && (
               <Flow
-                from={activity.delegationFromAgentId || activity.agentName || 'Unknown Agent'}
+                from={activity.delegationFromSubAgentId || 'Unknown sub agent'}
                 to={
-                  activity.delegationToAgentId ||
-                  activity.toolName?.replace('delegate_to_', '') ||
-                  'Target'
+                  activity.delegationToSubAgentId ||
+                  'Unknown sub agent'
                 }
               />
             )}
@@ -241,11 +275,10 @@ export function TimelineItem({
             (activity.toolType === TOOL_TYPES.TRANSFER ||
               activity.toolName?.includes('transfer')) && (
               <Flow
-                from={activity.transferFromAgentId || activity.agentName || 'Unknown Agent'}
+                from={activity.transferFromSubAgentId || 'Unknown sub agent'}
                 to={
-                  activity.transferToAgentId ||
-                  activity.toolName?.replace('transfer_to_', '') ||
-                  'Target'
+                  activity.transferToSubAgentId ||
+                  'Unknown sub agent'
                 }
               />
             )}
@@ -296,9 +329,9 @@ export function TimelineItem({
           )}
 
           {/* agent name for AI generation */}
-          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.agentName && (
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
             <div className="mb-1">
-              <Badge variant="code">{activity.agentName}</Badge>
+              <Badge variant="code">{activity.subAgentName}</Badge>
             </div>
           )}
 

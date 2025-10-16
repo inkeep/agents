@@ -1,27 +1,28 @@
-import { Plus } from 'lucide-react'
-import Link from 'next/link'
-import { BodyTemplate } from '@/components/layout/body-template'
-import EmptyState from '@/components/layout/empty-state'
-import { MainContent } from '@/components/layout/main-content'
-import { PageHeader } from '@/components/layout/page-header'
-import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list'
-import { Button } from '@/components/ui/button'
-import { fetchMCPTools } from '@/lib/api/tools'
-import type { MCPTool } from '@/lib/types/tools'
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import FullPageError from '@/components/errors/full-page-error';
+import { BodyTemplate } from '@/components/layout/body-template';
+import EmptyState from '@/components/layout/empty-state';
+import { MainContent } from '@/components/layout/main-content';
+import { PageHeader } from '@/components/layout/page-header';
+import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list';
+import { Button } from '@/components/ui/button';
+import { fetchMCPTools } from '@/lib/api/tools';
 
-const mcpServerDescription = 'Create MCP servers that agents can use to access external services.'
+const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
 
 async function MCPServersPage({
   params,
 }: {
-  params: Promise<{ tenantId: string; projectId: string }>
+  params: Promise<{ tenantId: string; projectId: string }>;
 }) {
-  const { tenantId, projectId } = await params
-  let tools: MCPTool[] = []
+  const { tenantId, projectId } = await params;
+
+  let tools: Awaited<ReturnType<typeof fetchMCPTools>>;
   try {
-    tools = await fetchMCPTools(tenantId, projectId)
+    tools = await fetchMCPTools(tenantId, projectId);
   } catch (error) {
-    console.error('Failed to load MCP tools:', error)
+    return <FullPageError error={error as Error} context="MCP servers" />;
   }
 
   return (
@@ -56,7 +57,7 @@ async function MCPServersPage({
         )}
       </MainContent>
     </BodyTemplate>
-  )
+  );
 }
 
-export default MCPServersPage
+export default MCPServersPage;

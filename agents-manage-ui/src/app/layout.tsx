@@ -10,6 +10,8 @@ import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
 import {
   DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
   DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+  DEFAULT_NANGO_CONNECT_BASE_URL,
+  DEFAULT_NANGO_SERVER_URL,
   DEFAULT_SIGNOZ_URL,
 } from '@/lib/runtime-config/defaults';
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
@@ -37,15 +39,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const runtimeConfig: RuntimeConfig = {
-    INKEEP_AGENTS_MANAGE_API_URL:
-      process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
-    INKEEP_AGENTS_RUN_API_URL:
-      process.env.INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL,
-    INKEEP_AGENTS_RUN_API_BYPASS_SECRET: process.env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
-    SIGNOZ_URL: process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
-    NANGO_SERVER_URL: process.env.NANGO_SERVER_URL,
-    NANGO_CONNECT_BASE_URL: process.env.NANGO_CONNECT_BASE_URL,
+    PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:
+      process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
+    PUBLIC_INKEEP_AGENTS_RUN_API_URL:
+      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL || DEFAULT_INKEEP_AGENTS_RUN_API_URL,
+    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET:
+      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
+    PUBLIC_SIGNOZ_URL: process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
+    PUBLIC_NANGO_SERVER_URL: process.env.PUBLIC_NANGO_SERVER_URL || DEFAULT_NANGO_SERVER_URL,
+    PUBLIC_NANGO_CONNECT_BASE_URL:
+      process.env.PUBLIC_NANGO_CONNECT_BASE_URL || DEFAULT_NANGO_CONNECT_BASE_URL,
   };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetBrainsMono.variable} antialiased`}>

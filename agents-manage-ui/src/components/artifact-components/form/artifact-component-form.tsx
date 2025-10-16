@@ -127,7 +127,7 @@ export function ArtifactComponentForm({
           name="props"
           label="Props (JSON schema with inPreview indicators)"
           placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
-          description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response"
+          description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
         />
         <Button type="submit" disabled={isSubmitting}>
           Save

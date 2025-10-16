@@ -6,16 +6,54 @@ icon: "TbInputSpark"
 
 <Snippet file="multi-agent-framework/artifacts.mdx" />
 
+<Callout>
+**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`. You'll find the complete implementation in `artifact-components/citation.ts` in your project. They provide a ready-to-use example for source attribution (for example, when citing webpages) and are automatically rendered by the Inkeep widget with professional styling and interactions.
+</Callout>
+
 ## How to create an artifact component
 
 1. Go to the Artifact Components tab in the left sidebar. Then select "New artifact component".
 2. Add in an id, name, and description. These are required fields.
 3. For the props schema, you can either:
-   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields
+   - **Enter a JSON schema** with `inPreview: true` properties to define specific fields that will be immediately available
    - **Leave empty** to save the entire tool result without filtering
 4. Click "Submit".
 
 To visually add the artifact component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-artifact-components) page for details.
+
+### Preview Fields
+
+Set `inPreview: true` on properties for immediate availability. These fields are:
+- Shown to other agents for reasoning
+- Streamed in real-time to clients (Vercel AI SDK)
+- Auto-rendered by Inkeep's widget (citations as interactive cards)
+- Available immediately in UI (full artifact loads on-demand)
+
+For more details on how artifact data is streamed via the API, see [Data Artifact Events](/talk-to-your-agents/api#data-artifact-events).
+
+**Example:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string", "inPreview": true },
+    "url": { "type": "string", "inPreview": true },
+    "content": { "type": "array" }
+  }
+}
+```
+
+Citation artifacts with `title`, `url`, and `record_type` preview fields are auto-rendered by Inkeep's widget in two ways:
+- **Inline footnotes**: Numbered references [1], [2], etc. appear inline with the response text
+- **Interactive cards**: Source cards with title, URL, and content appear below the response for detailed exploration
+
+<img
+  src="/images/citation-widget-example.png"
+  alt="Citation artifact rendered as an interactive card in the Inkeep widget showing source attribution"
+  width="100%"
+  style={{ borderRadius: "10px", marginTop: "1rem" }}
+/>
 
 ## Artifact Name & Description Generation
 
@@ -44,7 +82,7 @@ const researchAgent = subAgent({
   name: "Research Agent",
   prompt: "You are a research agent that can generate artifact names and descriptions",
   models: {
-    base: { model: "claude-sonnet-4" },
+    base: { model: "claude-sonnet-4-0" },
     summarizer: {
       model: "gpt-4.1-mini", // This model generates artifact names/descriptions
       providerOptions: {

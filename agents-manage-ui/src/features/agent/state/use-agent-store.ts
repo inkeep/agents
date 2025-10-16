@@ -3,9 +3,9 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
+import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { MCPTool } from '@/lib/types/tools';
@@ -38,6 +38,7 @@ type AgentActions = {
     toolLookup?: Record<string, MCPTool>,
     agentToolConfigLookup?: AgentToolConfigLookup
   ): void;
+  reset(): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
   setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
   setToolLookup(toolLookup: Record<string, MCPTool>): void;
@@ -67,32 +68,36 @@ type AgentState = AgentStateData & {
   actions: AgentActions;
 };
 
+const initialAgentState: AgentStateData = {
+  nodes: [],
+  edges: [],
+  metadata: {
+    id: undefined,
+    name: '',
+    description: '',
+    contextConfig: {
+      contextVariables: '',
+      headersSchema: '',
+    },
+    models: undefined,
+    stopWhen: undefined,
+    prompt: undefined,
+    statusUpdates: undefined,
+  },
+  dataComponentLookup: {},
+  artifactComponentLookup: {},
+  toolLookup: {},
+  agentToolConfigLookup: {},
+  dirty: false,
+  history: [],
+  future: [],
+  errors: null,
+  showErrors: false,
+};
+
 export const agentStore = create<AgentState>()(
   devtools((set, get) => ({
-    nodes: [],
-    edges: [],
-    metadata: {
-      id: undefined,
-      name: '',
-      description: '',
-      contextConfig: {
-        contextVariables: '',
-        headersSchema: '',
-      },
-      models: undefined,
-      stopWhen: undefined,
-      agentPrompt: undefined,
-      statusUpdates: undefined,
-    },
-    dataComponentLookup: {},
-    artifactComponentLookup: {},
-    toolLookup: {},
-    agentToolConfigLookup: {},
-    dirty: false,
-    history: [],
-    future: [],
-    errors: null,
-    showErrors: false,
+    ...initialAgentState,
     // Separate "namespace" for actions
     actions: {
       setInitial(
@@ -119,6 +124,9 @@ export const agentStore = create<AgentState>()(
           showErrors: false,
         });
       },
+      reset() {
+        set(initialAgentState);
+      },
       setDataComponentLookup(dataComponentLookup) {
         set({ dataComponentLookup });
       },
@@ -144,7 +152,6 @@ export const agentStore = create<AgentState>()(
         }));
       },
       onNodesChange(changes) {
-        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           // Don't trigger `position` as modified change, since when the nodes are repositioned,
           // they'll be re-laid out during the initial load anyway
@@ -158,7 +165,6 @@ export const agentStore = create<AgentState>()(
         }));
       },
       onEdgesChange(changes) {
-        // Check if any change type would modify the agent (not just selection changes)
         const hasModifyingChange = changes.some(
           (change) => change.type === 'remove' || change.type === 'add' || change.type === 'replace'
         );

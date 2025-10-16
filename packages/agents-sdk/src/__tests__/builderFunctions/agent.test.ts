@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SubAgent } from '../../subAgent';
 import { agent } from '../../builderFunctions';
+import { SubAgent } from '../../subAgent';
 import type { AgentConfig } from '../../types';
 
 describe('agent builder function', () => {

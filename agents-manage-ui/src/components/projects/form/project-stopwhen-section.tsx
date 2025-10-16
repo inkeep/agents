@@ -16,7 +16,6 @@ interface ProjectStopWhenSectionProps {
 }
 
 export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps) {
-  // Check if any stopWhen values are configured to determine default open state
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
@@ -36,7 +35,8 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
       <div>
         <Label className="text-sm font-medium">Execution limits</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Set default execution limits that will be inherited by Agents and Sub Agents in this project
+          Set default execution limits that will be inherited by agents and sub agents in this
+          project.
         </p>
       </div>
 

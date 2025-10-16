@@ -1,11 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { SandboxConfigSchema } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import type { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
@@ -15,7 +13,6 @@ import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
-import { ProjectSandboxSection } from './project-sandbox-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { type ProjectFormData, projectSchema } from './validation';
 
@@ -29,7 +26,6 @@ interface ProjectFormProps {
 
 const serializeData = (data: ProjectFormData) => {
   const cleanProviderOptions = (options: any) => {
-    // Convert null, empty object, or falsy values to undefined
     if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
       return undefined;
     }
@@ -51,44 +47,11 @@ const serializeData = (data: ProjectFormData) => {
       cleaned.stepCountIs = stopWhen.stepCountIs;
     }
 
-    // If no valid properties, return empty object (undefined will not update the field)
     if (Object.keys(cleaned).length === 0) {
       return {};
     }
 
     return cleaned;
-  };
-  const cleanSandboxConfig = (
-    sandboxConfig: z.infer<typeof SandboxConfigSchema> | null | undefined
-  ): z.infer<typeof SandboxConfigSchema> | undefined => {
-    // If sandboxConfig is null, undefined, or empty object, return undefined
-    if (
-      !sandboxConfig ||
-      (typeof sandboxConfig === 'object' && Object.keys(sandboxConfig).length === 0)
-    ) {
-      return undefined;
-    }
-
-    const cleaned: Partial<NonNullable<z.infer<typeof SandboxConfigSchema>>> = {};
-    if (sandboxConfig.provider) {
-      cleaned.provider = sandboxConfig.provider;
-    }
-    if (sandboxConfig.runtime) {
-      cleaned.runtime = sandboxConfig.runtime;
-    }
-    if (sandboxConfig.timeout !== null && sandboxConfig.timeout !== undefined) {
-      cleaned.timeout = sandboxConfig.timeout;
-    }
-    if (sandboxConfig.vcpus !== null && sandboxConfig.vcpus !== undefined) {
-      cleaned.vcpus = sandboxConfig.vcpus;
-    }
-
-    // If no valid properties, return undefined
-    if (Object.keys(cleaned).length === 0) {
-      return undefined;
-    }
-
-    return cleaned as z.infer<typeof SandboxConfigSchema>;
   };
 
   return {
@@ -113,7 +76,6 @@ const serializeData = (data: ProjectFormData) => {
         : undefined,
     },
     stopWhen: cleanStopWhen(data.stopWhen),
-    sandboxConfig: cleanSandboxConfig(data.sandboxConfig),
   };
 };
 
@@ -221,10 +183,6 @@ export function ProjectForm({
         <Separator />
 
         <ProjectStopWhenSection control={form.control} />
-
-        <Separator />
-
-        <ProjectSandboxSection control={form.control} />
 
         <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
           {onCancel && (

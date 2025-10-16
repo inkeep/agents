@@ -1,26 +1,19 @@
-import type { Artifact, DataComponentApiInsert, McpTool } from '@inkeep/agents-core';
+import type { Artifact, McpTool } from '@inkeep/agents-core';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
-// Import template content as raw text
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
-import {
-  type ExtendedJsonSchema,
-  extractFullFields,
-  extractPreviewFields,
-} from '../../../utils/schema-validation';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
-const logger = getLogger('Phase1Config');
+const _logger = getLogger('Phase1Config');
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
     const templates = new Map<string, string>();
 
-    // Map template names to imported content
     templates.set('system-prompt', systemPromptTemplate);
     templates.set('tool', toolTemplate);
     templates.set('artifact', artifactTemplate);
@@ -52,7 +45,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
   private isToolDataArray(tools: ToolData[] | McpTool[]): tools is ToolData[] {
     if (!tools || tools.length === 0) return true; // Default to ToolData[] for empty arrays
-    // Check if the first item has properties of ToolData vs McpTool
     const firstItem = tools[0];
     return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
@@ -65,14 +57,11 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     let systemPrompt = systemPromptTemplate;
 
-    // Replace core prompt
     systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
 
-    // Replace agent context section
-    const agentContextSection = this.generateAgentContextSection(config.agentPrompt);
+    const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    // Handle both McpTool[] and ToolData[] formats
     const toolData = this.isToolDataArray(config.tools)
       ? config.tools
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
@@ -101,7 +90,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       thinkingPreparationSection
     );
 
-    // Generate agent relation instructions based on configuration
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
 
@@ -111,14 +99,14 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return systemPrompt;
   }
 
-  private generateAgentContextSection(agentPrompt?: string): string {
-    if (!agentPrompt) {
+  private generateAgentContextSection(prompt?: string): string {
+    if (!prompt) {
       return '';
     }
 
     return `
   <agent_context>
-    ${agentPrompt}
+    ${prompt}
   </agent_context>`;
   }
 
@@ -212,16 +200,11 @@ COMMON FAILURE POINTS (AVOID THESE):
     templates?: Map<string, string>,
     shouldShowReferencingRules: boolean = true
   ): string {
-    // If we shouldn't show referencing rules at all, return empty
     if (!shouldShowReferencingRules) {
       return '';
     }
-    // Get shared artifact retrieval guidance
     const sharedGuidance = templates?.get('artifact-retrieval-guidance') || '';
 
-    // Phase1Config only handles text responses with annotations (no data components)
-
-    // Scenario 3: CAN create artifacts (use annotations)
     if (hasArtifactComponents) {
       return `${sharedGuidance}
 
@@ -326,7 +309,6 @@ IMPORTANT GUIDELINES:
 - Annotations are automatically converted to interactive elements`;
     }
 
-    // Scenario 4: CANNOT create artifacts (can only reference)
     if (!hasArtifactComponents) {
       return `${sharedGuidance}
 
@@ -358,7 +340,6 @@ IMPORTANT GUIDELINES:
 - References are automatically converted to interactive elements`;
     }
 
-    // This shouldn't happen, but provide a fallback
     return '';
   }
 
@@ -370,9 +351,6 @@ IMPORTANT GUIDELINES:
       return '';
     }
 
-    // Phase1Config doesn't handle structured data component responses
-
-    // For text responses (annotations) - show available types with their schemas
     const typeDescriptions = artifactComponents
       .map((ac) => {
         let schemaDescription = 'No schema defined';
@@ -380,7 +358,6 @@ IMPORTANT GUIDELINES:
         if (ac.props?.properties) {
           const fieldDetails = Object.entries(ac.props.properties)
             .map(([key, value]: [string, any]) => {
-              // Show inPreview flag for LLM display to understand field usage
               const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
               return `${key} (${value.description || value.type || 'field'})${inPreview}`;
             })
@@ -421,7 +398,6 @@ ${typeDescriptions}
     artifactComponents?: any[],
     hasAgentArtifactComponents?: boolean
   ): string {
-    // Show referencing rules if any agent in agent has artifact components OR if artifacts exist
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const rules = this.getArtifactReferencingRules(
       hasArtifactComponents,
@@ -466,13 +442,11 @@ ${creationInstructions}
 
     let artifactXml = artifactTemplate;
 
-    // Extract summary data from artifact parts for context
     const summaryData =
       artifact.parts?.map((part: any) => part.data?.summary).filter(Boolean) || [];
     const artifactSummary =
       summaryData.length > 0 ? JSON.stringify(summaryData, null, 2) : 'No summary data available';
 
-    // Replace artifact variables
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
     artifactXml = artifactXml.replace('{{ARTIFACT_DESCRIPTION}}', artifact.description || '');
     artifactXml = artifactXml.replace('{{TASK_ID}}', artifact.taskId || '');
@@ -502,7 +476,6 @@ ${creationInstructions}
 
     let toolXml = toolTemplate;
 
-    // Replace tool variables
     toolXml = toolXml.replace('{{TOOL_NAME}}', tool.name);
     toolXml = toolXml.replace(
       '{{TOOL_DESCRIPTION}}',
@@ -513,14 +486,11 @@ ${creationInstructions}
       tool.usageGuidelines || 'Use this tool when appropriate.'
     );
 
-    // Convert parameters to XML format
     const parametersXml = this.generateParametersXml(tool.inputSchema);
     toolXml = toolXml.replace('{{TOOL_PARAMETERS_SCHEMA}}', parametersXml);
 
     return toolXml;
   }
-
-  // Data component methods removed - handled by Phase2Config
 
   private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
     if (!inputSchema) {
@@ -531,7 +501,6 @@ ${creationInstructions}
     const properties = (inputSchema.properties as Record<string, any>) || {};
     const required = (inputSchema.required as string[]) || [];
 
-    // Convert JSON schema properties to XML representation
     const propertiesXml = Object.entries(properties)
       .map(([key, value]) => {
         const isRequired = required.includes(key);

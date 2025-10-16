@@ -1,4 +1,4 @@
-import type { ContextConfig, AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { AgentMetadata, ContextConfig } from '@/components/agent/configuration/agent-types';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
 
@@ -22,7 +22,7 @@ export function extractAgentMetadata(
     id: agent?.id,
     name: agent?.name ?? '',
     description: agent?.description ?? '',
-    agentPrompt: agent?.agentPrompt,
+    prompt: agent?.prompt,
     models: agent?.models
       ? {
           base: agent.models.base

@@ -27,7 +27,6 @@ const checkGraphQLErrors: ResponseErrorChecker = (data: unknown) => {
   }
 };
 
-// List of error checkers to validate responses
 // Each checker examines the response and throws if errors are detected
 const responseErrorCheckers: ResponseErrorChecker[] = [
   checkGraphQLErrors,
@@ -104,7 +103,6 @@ export class ContextFetcher {
         transformedData = this.transformResponse(response.data, definition.fetchConfig.transform);
       }
 
-      // Validate against response schema if provided
       if (definition.responseSchema) {
         this.validateResponseWithJsonSchema(
           transformedData,
@@ -370,7 +368,6 @@ export class ContextFetcher {
         'Failed to transform response data'
       );
 
-      // Return original data if transformation fails
       return data;
     }
   }

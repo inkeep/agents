@@ -1,5 +1,5 @@
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import inquirer from 'inquirer';
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
 
 export interface ModelConfigurationResult {
   modelSettings: {
@@ -29,25 +29,25 @@ export const defaultGeminiModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1_20250414,
+    model: OPENAI_MODELS.GPT_4_1,
   },
   structuredOutput: {
-    model: OPENAI_MODELS.GPT_4_1_MINI_20250414,
+    model: OPENAI_MODELS.GPT_4_1_MINI,
   },
   summarizer: {
-    model: OPENAI_MODELS.GPT_4_1_NANO_20250414,
+    model: OPENAI_MODELS.GPT_4_1_NANO,
   },
 };
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   structuredOutput: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {
-    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929,
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
 };
 
@@ -78,19 +78,20 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
-    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1_20250805 },
-    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5_20250929 },
-    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514 },
-    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU_20241022 },
+    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
+    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
+    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
+    { name: 'Claude Haiku 4.5', value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5 },
+    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
   ];
 
   const openaiModels = [
-    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1_20250414 },
-    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI_20250414 },
-    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO_20250414 },
-    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5_20250807 },
-    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI_20250807 },
-    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO_20250807 },
+    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
+    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
+    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
+    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5 },
+    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
+    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
   ];
 
   const googleModels = [

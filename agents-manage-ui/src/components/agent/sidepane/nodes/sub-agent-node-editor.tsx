@@ -26,7 +26,7 @@ const ExecutionLimitInheritanceInfo = () => {
   return (
     <ul className="space-y-1.5 list-disc list-outside pl-4">
       <li>
-        <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
+        <span className="font-medium">stepCountIs</span>: Project → Agent only (sub agent-level
         execution limit)
       </li>
       <li>
@@ -35,10 +35,10 @@ const ExecutionLimitInheritanceInfo = () => {
       </li>
       <li>
         <span className="font-medium">Agent scope</span>: This limit applies only to this specific
-        agent's execution steps
+        sub agent's execution steps
       </li>
       <li>
-        <span className="font-medium">Independent from transfers</span>: Steps are counted per
+        <span className="font-medium">Independent from transfers</span>: Steps are counted per sub
         agent, transfers are counted per conversation
       </li>
     </ul>
@@ -65,7 +65,6 @@ export function SubAgentNodeEditor({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
 
-  // Get project and agent data for inheritance indicators
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -74,7 +73,6 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  // Create a wrapper function that provides the current node data for nested updates
   const updateModelPath = useCallback(
     (path: string, value: any) => {
       updateNestedPath(path, value, selectedNode.data);
@@ -119,7 +117,7 @@ export function SubAgentNodeEditor({
         onChange={(e) => updatePath('id', e.target.value)}
         placeholder="my-agent"
         error={getFieldError('id')}
-        description="Choose a unique identifier for this sub-agent. Using an existing id will replace that sub-agent."
+        description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
         isRequired
       />
       <TextareaField
@@ -129,7 +127,7 @@ export function SubAgentNodeEditor({
         label="Description"
         value={selectedNode.data.description || ''}
         onChange={(e) => updatePath('description', e.target.value)}
-        placeholder="This agent is responsible for..."
+        placeholder="This sub agent is responsible for..."
         error={getFieldError('description')}
       />
 
@@ -160,7 +158,7 @@ export function SubAgentNodeEditor({
       <div className="space-y-8">
         <SectionHeader
           title="Execution limits"
-          description="Configure agent-level execution limits for steps within this agent."
+          description="Configure sub agent-level execution limits for steps within this sub agent."
           titleTooltip={
             <div>
               <p>How execution limit inheritance works:</p>
@@ -197,7 +195,7 @@ export function SubAgentNodeEditor({
             placeholder="50"
           />
           <p className="text-xs text-muted-foreground">
-            Maximum number of execution steps for this agent (defaults to 50 if not set)
+            Maximum number of execution steps for this sub agent (defaults to 50 if not set)
           </p>
         </div>
       </div>

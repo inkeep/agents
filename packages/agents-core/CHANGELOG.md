@@ -1,5 +1,125 @@
 # @inkeep/agents-core
 
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+
+## 0.22.9
+
+## 0.22.8
+
+## 0.22.7
+
+### Patch Changes
+
+- 550d251: updated inkeep pull :)
+
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+
+## 0.22.4
+
+### Patch Changes
+
+- e8ba7de: Add background version check to push and pull commands
+- 0b8c264: Add self-update command to CLI with automatic package manager detection and version checking
+- b788bd8: Use password entry instead of plaintext entry
+- f784f72: New models and clean up
+
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+
+## 0.22.2
+
+### Patch Changes
+
+- abdf614: Default model configs
+
+## 0.22.1
+
+### Patch Changes
+
+- ba2a297: Support remote sandboxes
+
+## 0.22.0
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+
+## 0.21.1
+
+### Patch Changes
+
+- 4815d3a: create bearer in keychain
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+
+## 0.20.0
+
+### Minor Changes
+
+- fb99085: refactors agentPrompt to prompt
+
+## 0.19.9
+
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+
+## 0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- 0d0166f: stream object in timeline
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+
 ## 0.19.3
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import {
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
+import type { SandboxConfig } from '../types/execution-context';
 import dbClient from './db/dbClient';
 
 /**
@@ -115,12 +116,14 @@ async function hydrateAgent({
   baseUrl,
   apiKey,
   credentialStoreRegistry,
+  sandboxConfig,
 }: {
   dbAgent: SubAgentSelect;
   agentId: string;
   baseUrl: string;
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
+  sandboxConfig?: SandboxConfig;
 }): Promise<RegisteredAgent> {
   try {
     // Create task handler for the agent
@@ -131,6 +134,7 @@ async function hydrateAgent({
       subAgentId: dbAgent.id,
       baseUrl: baseUrl,
       apiKey: apiKey,
+      sandboxConfig,
     });
     const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
 
@@ -156,10 +160,12 @@ async function hydrateAgent({
 
 // A2A functions that hydrate agents on-demand
 
-export async function getRegisteredAgent(
-  executionContext: ExecutionContext,
-  credentialStoreRegistry?: CredentialStoreRegistry
-): Promise<RegisteredAgent | null> {
+export async function getRegisteredAgent(params: {
+  executionContext: ExecutionContext;
+  credentialStoreRegistry?: CredentialStoreRegistry;
+  sandboxConfig?: SandboxConfig;
+}): Promise<RegisteredAgent | null> {
+  const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
   const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
 
   if (!subAgentId) {
@@ -182,5 +188,6 @@ export async function getRegisteredAgent(
     baseUrl: agentFrameworkBaseUrl,
     credentialStoreRegistry,
     apiKey,
+    sandboxConfig,
   });
 }

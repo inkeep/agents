@@ -20,12 +20,15 @@ export async function executeTransfer({
   success: boolean;
   targetSubAgentId: string;
 }> {
-  logger.info({
-    targetAgent: targetSubAgentId,
-    threadId,
-    tenantId,
-    projectId,
-  }, 'Executing transfer - calling setActiveAgentForThread');
+  logger.info(
+    {
+      targetAgent: targetSubAgentId,
+      threadId,
+      tenantId,
+      projectId,
+    },
+    'Executing transfer - calling setActiveAgentForThread'
+  );
 
   try {
     await setActiveAgentForThread(dbClient)({
@@ -33,9 +36,15 @@ export async function executeTransfer({
       threadId,
       subAgentId: targetSubAgentId,
     });
-    logger.info({ targetAgent: targetSubAgentId, threadId }, 'Successfully updated active_sub_agent_id in database');
+    logger.info(
+      { targetAgent: targetSubAgentId, threadId },
+      'Successfully updated active_sub_agent_id in database'
+    );
   } catch (error) {
-    logger.error({ error, targetAgent: targetSubAgentId, threadId }, 'Failed to update active_sub_agent_id');
+    logger.error(
+      { error, targetAgent: targetSubAgentId, threadId },
+      'Failed to update active_sub_agent_id'
+    );
     throw error;
   }
 
@@ -46,4 +55,4 @@ export async function executeTransfer({
  * Checks if a response is a transfer response
  * Re-exported from types.ts for backward compatibility
  */
-export { isTransferTask as isTransferResponse, extractTransferData } from './types';
+export { extractTransferData, isTransferTask as isTransferResponse } from './types';

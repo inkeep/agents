@@ -119,7 +119,7 @@ export const getAgentRelationsBySource =
     };
   };
 
-export const getAgentRelationsByTarget =
+export const getSubAgentRelationsByTarget =
   (db: DatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
@@ -195,10 +195,8 @@ export const getExternalAgentRelations =
     };
   };
 
-// Get all related agents (both internal and external) for a given agent
 export const getRelatedAgentsForAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
-    // Get internal agent relations
     const internalRelations = await db
       .select({
         id: subAgents.id,
@@ -226,7 +224,6 @@ export const getRelatedAgentsForAgent =
         )
       );
 
-    // Get external agent relations
     const externalRelations = await db
       .select({
         id: subAgentRelations.id,
@@ -258,7 +255,6 @@ export const getRelatedAgentsForAgent =
         )
       );
 
-    // Return both types of relations separately
     return {
       internalRelations,
       externalRelations,
@@ -267,7 +263,6 @@ export const getRelatedAgentsForAgent =
 
 export const createSubAgentRelation =
   (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
-    // Validate that exactly one of targetSubAgentId or externalSubAgentId is provided
     const hasTargetAgent = params.targetSubAgentId != null;
     const hasExternalAgent = params.externalSubAgentId != null;
 
@@ -325,9 +320,8 @@ export const getAgentRelationByParams =
 /**
  * Upsert agent relation (create if it doesn't exist, no-op if it does)
  */
-export const upsertAgentRelation =
+export const upsertSubAgentRelation =
   (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
-    // Check if relation already exists
     const existing = await getAgentRelationByParams(db)({
       scopes: { tenantId: params.tenantId, projectId: params.projectId, agentId: params.agentId },
       sourceSubAgentId: params.sourceSubAgentId,
@@ -337,15 +331,12 @@ export const upsertAgentRelation =
     });
 
     if (!existing) {
-      // Create the relation if it doesn't exist
       return await createSubAgentRelation(db)(params);
     }
 
-    // Return existing relation if it already exists
     return existing;
   };
 
-// Create external agent relation (convenience function)
 export const createExternalAgentRelation =
   (db: DatabaseClient) => async (params: ExternalSubAgentRelationInsert) => {
     return await createSubAgentRelation(db)({
@@ -411,7 +402,6 @@ export const deleteAgentRelationsByAgent =
     return (result.rowsAffected || 0) > 0;
   };
 
-// Create agent tool relation
 export const createAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
@@ -443,7 +433,6 @@ export const createAgentToolRelation =
     return relation[0];
   };
 
-// Update agent tool relation
 export const updateAgentToolRelation =
   (db: DatabaseClient) =>
   async (params: {
@@ -472,7 +461,6 @@ export const updateAgentToolRelation =
     return relation[0];
   };
 
-// Delete agent tool relation
 export const deleteAgentToolRelation =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     const result = await db
@@ -643,7 +631,6 @@ export const listAgentToolRelations =
     };
   };
 
-// Get tools for a specific agent
 export const getToolsForAgent =
   (db: DatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {

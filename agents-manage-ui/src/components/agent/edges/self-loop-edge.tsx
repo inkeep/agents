@@ -44,7 +44,6 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
   const endX = centerX + nodeWidth / 2;
   const endY = centerY + 10;
 
-  // Create a smooth self-loop path
   const transferPath = `
 		M ${startX} ${startY}
 		C ${startX + loopRadius * 2} ${startY - loopRadius},

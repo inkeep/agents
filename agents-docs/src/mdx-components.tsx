@@ -1,9 +1,3 @@
-import type { ComponentProps } from 'react';
-import type { MDXComponents } from 'mdx/types';
-
-import { APIPage } from 'fumadocs-openapi/ui';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-
 import {
   Accordion,
   Accordions,
@@ -27,6 +21,10 @@ import {
   Video,
   Warning,
 } from '@inkeep/docskit/mdx';
+import { APIPage } from 'fumadocs-openapi/ui';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
+import type { MDXComponents } from 'mdx/types';
+import type { ComponentProps } from 'react';
 
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
@@ -56,14 +54,19 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
   }
 
   // Check if this is a mermaid code block by looking for mermaid syntax
-  if (textContent.trim().startsWith('agent ') ||
-      textContent.trim().startsWith('flowchart ') ||
-      textContent.trim().startsWith('sequenceDiagram') ||
-      textContent.trim().startsWith('classDiagram') ||
-      textContent.trim().startsWith('stateDiagram') ||
-      textContent.trim().startsWith('pie ') ||
-      textContent.trim().includes('agent TD') ||
-      textContent.trim().includes('agent LR')) {
+  if (
+    textContent.trim().startsWith('agent ') ||
+    textContent.trim().startsWith('flowchart ') ||
+    textContent.trim().startsWith('graph ') ||
+    textContent.trim().startsWith('sequenceDiagram') ||
+    textContent.trim().startsWith('classDiagram') ||
+    textContent.trim().startsWith('stateDiagram') ||
+    textContent.trim().startsWith('pie ') ||
+    textContent.trim().includes('agent TD') ||
+    textContent.trim().includes('agent LR') ||
+    textContent.trim().includes('graph TD') ||
+    textContent.trim().includes('graph LR')
+  ) {
     return <Mermaid chart={textContent.trim()} />;
   }
 

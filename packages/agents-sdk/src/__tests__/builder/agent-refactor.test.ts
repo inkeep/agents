@@ -1,7 +1,7 @@
 import * as agentFullModule from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
-import { subAgent, agent, mcpTool } from '../../index';
+import { agent, mcpTool, subAgent } from '../../index';
 import { createTestTenantId } from '../utils/testTenant';
 
 // Mock @inkeep/agents-core

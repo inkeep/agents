@@ -31,7 +31,9 @@ export class FunctionTool implements FunctionToolInterface {
       for (const dep in deps) {
         if (deps[dep] === false) {
           delete deps[dep];
-          throw new Error(`Dependency \x1b[1;32m${dep}\x1b[0m used in function tool \x1b[1;32m${config.name}\x1b[0m is neither installed nor in dependencies object.`);
+          throw new Error(
+            `Dependency \x1b[1;32m${dep}\x1b[0m used in function tool \x1b[1;32m${config.name}\x1b[0m is neither installed nor in dependencies object.`
+          );
         }
       }
       this.config.dependencies = deps as Record<string, string>;

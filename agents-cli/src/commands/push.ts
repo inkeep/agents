@@ -7,6 +7,7 @@ import { env } from '../env';
 import { initializeCommand } from '../utils/cli-pipeline';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 
 export interface PushOptions {
   project?: string;
@@ -43,6 +44,9 @@ async function loadProject(projectDir: string) {
 }
 
 export async function pushCommand(options: PushOptions) {
+  // Perform background version check (non-blocking)
+  performBackgroundVersionCheck();
+
   // Use standardized CLI pipeline for initialization
   const { config } = await initializeCommand({
     configPath: options.config,
@@ -167,9 +171,12 @@ export async function pushCommand(options: PushOptions) {
         // Show a summary of what was saved
         const agentCount = Object.keys(projectDefinition.agents || {}).length;
         const toolCount = Object.keys(projectDefinition.tools || {}).length;
-        const subAgentCount = Object.values(projectDefinition.agents || {}).reduce((total, agent) => {
-          return total + Object.keys(agent.subAgents || {}).length;
-        }, 0);
+        const subAgentCount = Object.values(projectDefinition.agents || {}).reduce(
+          (total, agent) => {
+            return total + Object.keys(agent.subAgents || {}).length;
+          },
+          0
+        );
 
         console.log(chalk.cyan('\n📊 Project Data Summary:'));
         console.log(chalk.gray(`  • Agent: ${agentCount}`));

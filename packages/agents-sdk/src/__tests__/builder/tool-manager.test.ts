@@ -293,7 +293,9 @@ describe.skip('Tool Manager', () => {
       } as Response);
 
       // Tool.start() doesn't exist - simulate error
-      await expect(Promise.reject(new Error('Failed to start tool: 500 Internal Error'))).rejects.toThrow('Failed to start tool: 500 Internal Error');
+      await expect(
+        Promise.reject(new Error('Failed to start tool: 500 Internal Error'))
+      ).rejects.toThrow('Failed to start tool: 500 Internal Error');
     });
   });
 
@@ -361,7 +363,9 @@ describe.skip('Tool Manager', () => {
       } as Response);
 
       // Tool.discoverTools() doesn't exist - simulate error
-      await expect(Promise.reject(new Error('Failed to discover tools: 404 Not Found'))).rejects.toThrow('Failed to discover tools: 404 Not Found');
+      await expect(
+        Promise.reject(new Error('Failed to discover tools: 404 Not Found'))
+      ).rejects.toThrow('Failed to discover tools: 404 Not Found');
     });
   });
 
@@ -372,7 +376,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             type: 'mcp',
             command: ['node', 'tool.js'],
-              } as any)
+          } as any)
       ).toThrow();
     });
 
@@ -382,7 +386,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'Test Tool',
             command: ['node', 'tool.js'],
-              } as any)
+          } as any)
       ).toThrow();
     });
 
@@ -392,7 +396,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'MCP Tool',
             type: 'mcp',
-              } as any)
+          } as any)
       ).toThrow();
     });
 
@@ -402,7 +406,7 @@ describe.skip('Tool Manager', () => {
           new Tool({
             name: 'Hosted Tool',
             type: 'hosted',
-              } as any)
+          } as any)
       ).toThrow();
     });
 
@@ -418,7 +422,7 @@ describe.skip('Tool Manager', () => {
           name: `${transport.type} Tool`,
           serverUrl: 'http://localhost:3000',
           transport,
-          });
+        });
 
         expect(tool.config.transport).toEqual(transport);
       });

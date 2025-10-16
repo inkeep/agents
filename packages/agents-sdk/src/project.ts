@@ -15,7 +15,7 @@ import type { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
-import type { AgentTool, ModelSettings, SandboxConfig } from './types';
+import type { AgentTool, ModelSettings } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -30,7 +30,6 @@ export interface ProjectConfig {
     summarizer?: ModelSettings;
   };
   stopWhen?: StopWhen;
-  sandboxConfig?: SandboxConfig;
   agents?: () => Agent[];
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
@@ -102,7 +101,6 @@ export class Project implements ProjectInterface {
     summarizer?: ModelSettings;
   };
   private stopWhen?: StopWhen;
-  private sandboxConfig?: SandboxConfig;
   private agents: Agent[] = [];
   private agentMap: Map<string, Agent> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
@@ -119,7 +117,6 @@ export class Project implements ProjectInterface {
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;
-    this.sandboxConfig = config.sandboxConfig;
 
     // Initialize agent if provided
     if (config.agents) {
@@ -655,6 +652,28 @@ export class Project implements ProjectInterface {
                   }
                 }
 
+                // Extract inline credential from tool if present
+                if ('credential' in mcpTool.config && mcpTool.config.credential) {
+                  const credential = mcpTool.config.credential;
+                  if (credential && credential.id && credential.__type !== 'credential-ref') {
+                    // Add credential to project-level credentials if not already present
+                    if (!credentialReferencesObject[credential.id]) {
+                      credentialReferencesObject[credential.id] = {
+                        id: credential.id,
+                        type: credential.type,
+                        credentialStoreId: credential.credentialStoreId,
+                        retrievalParams: credential.retrievalParams,
+                      };
+                      credentialUsageMap[credential.id] = [];
+                    }
+                    // Track that this tool uses this credential
+                    credentialUsageMap[credential.id].push({
+                      type: 'tool',
+                      id: toolId,
+                    });
+                  }
+                }
+
                 toolsObject[toolId] = toolData;
               }
             }
@@ -838,7 +857,6 @@ export class Project implements ProjectInterface {
       description: this.projectDescription || '',
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
-      sandboxConfig: this.sandboxConfig,
       agents: agentsObject,
       tools: toolsObject,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,

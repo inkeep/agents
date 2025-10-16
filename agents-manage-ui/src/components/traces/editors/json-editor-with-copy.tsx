@@ -85,7 +85,6 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
       if (model.isDisposed()) {
         return;
       }
-      // Update height based on content
       const contentHeight = editorInstance.getContentHeight();
       if (container) {
         container.style.height = `${contentHeight}px`;
@@ -134,9 +133,7 @@ export const JsonEditorWithCopy: FC<{ value: string; uri: `${string}.json`; titl
 
   const handleDownloadCode = useCallback(() => {
     const code = editorRef.current?.getValue() || '';
-    // Create a blob with the JSON content
     const blob = new Blob([code], { type: 'application/json' });
-    // Create a download link
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

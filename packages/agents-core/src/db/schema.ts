@@ -61,19 +61,9 @@ export const projects = sqliteTable(
     ...tenantScoped,
     ...uiProperties,
 
-    // Project-level default model settings that can be inherited by agents
     models: text('models', { mode: 'json' }).$type<ProjectModels>(),
 
-    // Project-level stopWhen configuration that can be inherited by agents
     stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
-
-    // Project-level sandbox configuration for function execution
-    sandboxConfig: text('sandbox_config', { mode: 'json' }).$type<{
-      provider: 'vercel' | 'local';
-      runtime: 'node22' | 'typescript';
-      timeout?: number;
-      vcpus?: number;
-    }>(),
 
     ...timestamps,
   },
@@ -104,16 +94,13 @@ export const agents = sqliteTable(
   ]
 );
 
-// Context system: Shared context configurations
 export const contextConfigs = sqliteTable(
   'context_configs',
   {
     ...agentScoped,
 
-    // Developer-defined Zod schema for validating incoming request context
     headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(),
 
-    // Object mapping template keys to fetch definitions that use request context data
     contextVariables: blob('context_variables', { mode: 'json' }).$type<
       Record<string, ContextFetchDefinition>
     >(),
@@ -130,24 +117,19 @@ export const contextConfigs = sqliteTable(
   ]
 );
 
-// Context cache: Stores actual fetched context data (conversation-scoped only)
 export const contextCache = sqliteTable(
   'context_cache',
   {
     ...projectScoped,
 
-    // Always scoped to conversation for complete data isolation
     conversationId: text('conversation_id').notNull(),
 
-    // Reference to the context config and specific fetch definition
     contextConfigId: text('context_config_id').notNull(),
     contextVariableKey: text('context_variable_key').notNull(),
     value: blob('value', { mode: 'json' }).$type<unknown>().notNull(),
 
-    // Request hash for cache invalidation based on context changes
     requestHash: text('request_hash'),
 
-    // Metadata for monitoring and debugging
     fetchedAt: text('fetched_at').notNull(),
     fetchSource: text('fetch_source'),
     fetchDurationMs: integer('fetch_duration_ms'),
@@ -192,16 +174,12 @@ export const subAgents = sqliteTable(
   ]
 );
 
-// Define the agent relations table for many-to-many relationships with directionality
-// Supports both internal-internal and internal-external relationships
 export const subAgentRelations = sqliteTable(
   'sub_agent_relations',
   {
     ...agentScoped,
     sourceSubAgentId: text('source_sub_agent_id').notNull(),
-    // For internal relationships
     targetSubAgentId: text('target_sub_agent_id'),
-    // For external relationships
     externalSubAgentId: text('external_sub_agent_id'),
     relationType: text('relation_type'),
     ...timestamps,
@@ -216,7 +194,6 @@ export const subAgentRelations = sqliteTable(
   ]
 );
 
-// Define external agents table for inter-agent communication
 export const externalAgents = sqliteTable(
   'external_agents',
   {
@@ -265,7 +242,6 @@ export const tasks = sqliteTable(
   ]
 );
 
-// Define the task relations table for parent-child relationships
 export const taskRelations = sqliteTable(
   'task_relations',
   {
@@ -291,6 +267,10 @@ export const dataComponents = sqliteTable(
     ...projectScoped,
     ...uiProperties,
     props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
+    preview: blob('preview', { mode: 'json' }).$type<{
+      code: string;
+      data: Record<string, unknown>;
+    }>(),
     ...timestamps,
   },
   (table) => [
@@ -303,7 +283,6 @@ export const dataComponents = sqliteTable(
   ]
 );
 
-// Junction table for agent-specific data component associations
 export const subAgentDataComponents = sqliteTable(
   'sub_agent_data_components',
   {
@@ -344,7 +323,6 @@ export const artifactComponents = sqliteTable(
   ]
 );
 
-// Junction table for agent-specific artifact component associations
 export const subAgentArtifactComponents = sqliteTable(
   'sub_agent_artifact_components',
   {
@@ -390,10 +368,8 @@ export const tools = sqliteTable(
     credentialReferenceId: text('credential_reference_id'),
     headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
 
-    // Image URL for custom tool icon (supports regular URLs and base64 encoded images)
     imageUrl: text('image_url'),
 
-    // Server capabilities and status (only for MCP tools)
     capabilities: blob('capabilities', { mode: 'json' }).$type<ToolServerCapabilities>(),
 
     lastError: text('last_error'),
@@ -426,7 +402,6 @@ export const functionTools = sqliteTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'function_tools_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to functions table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.functionId],
       foreignColumns: [functions.tenantId, functions.projectId, functions.id],
@@ -478,9 +453,8 @@ export const subAgentToolRelations = sqliteTable(
   ]
 );
 
-// Junction table for agent-function tool relations
-export const agentFunctionToolRelations = sqliteTable(
-  'agent_function_tool_relations',
+export const subAgentFunctionToolRelations = sqliteTable(
+  'sub_agent_function_tool_relations',
   {
     ...subAgentScoped,
     functionToolId: text('function_tool_id').notNull(),
@@ -488,13 +462,11 @@ export const agentFunctionToolRelations = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
-    // Foreign key constraint to agents table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
       foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
-      name: 'agent_function_tool_relations_agent_fk',
+      name: 'sub_agent_function_tool_relations_sub_agent_fk',
     }).onDelete('cascade'),
-    // Foreign key constraint to functionTools table
     foreignKey({
       columns: [table.tenantId, table.projectId, table.agentId, table.functionToolId],
       foreignColumns: [
@@ -503,12 +475,11 @@ export const agentFunctionToolRelations = sqliteTable(
         functionTools.agentId,
         functionTools.id,
       ],
-      name: 'agent_function_tool_relations_function_tool_fk',
+      name: 'sub_agent_function_tool_relations_function_tool_fk',
     }).onDelete('cascade'),
   ]
 );
 
-// Define conversations table to track user sessions
 export const conversations = sqliteTable(
   'conversations',
   {
@@ -530,41 +501,32 @@ export const conversations = sqliteTable(
   ]
 );
 
-// Define the unified message model supporting both A2A and OpenAI Chat Completions
 export const messages = sqliteTable(
   'messages',
   {
     ...projectScoped,
     conversationId: text('conversation_id').notNull(),
 
-    // Role mapping: user, agent, system (unified for both formats)
     role: text('role').notNull(),
 
-    // Agent sender/recipient tracking (nullable - only populated when relevant)
     fromSubAgentId: text('from_sub_agent_id'),
     toSubAgentId: text('to_sub_agent_id'),
 
-    // External agent sender tracking
     fromExternalAgentId: text('from_external_sub_agent_id'),
 
-    // External agent recipient tracking
     toExternalAgentId: text('to_external_sub_agent_id'),
 
-    // Message content stored as JSON to support both formats
     content: blob('content', { mode: 'json' }).$type<MessageContent>().notNull(),
 
-    // Message classification and filtering
     visibility: text('visibility').notNull().default('user-facing'),
     messageType: text('message_type').notNull().default('chat'),
 
     taskId: text('task_id'),
     parentMessageId: text('parent_message_id'),
 
-    // A2A specific fields
     a2aTaskId: text('a2a_task_id'),
     a2aSessionId: text('a2a_session_id'),
 
-    // Metadata for extensions
     metadata: blob('metadata', { mode: 'json' }).$type<MessageMetadata>(),
 
     ...timestamps,
@@ -579,25 +541,21 @@ export const messages = sqliteTable(
   ]
 );
 
-// === Ledger tables (artifacts only) ===
 export const ledgerArtifacts = sqliteTable(
   'ledger_artifacts',
   {
     ...projectScoped,
 
-    // Links
     taskId: text('task_id').notNull(),
     toolCallId: text('tool_call_id'),
     contextId: text('context_id').notNull(),
 
-    // Core Artifact fields
     type: text('type').notNull().default('source'),
     name: text('name'),
     description: text('description'),
     parts: blob('parts', { mode: 'json' }).$type<Part[] | null>(),
     metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown> | null>(),
 
-    // Extra ledger information (not part of the Artifact spec – kept optional)
     summary: text('summary'),
     mime: blob('mime', { mode: 'json' }).$type<string[] | null>(),
     visibility: text('visibility').default('context'),
@@ -624,7 +582,6 @@ export const ledgerArtifacts = sqliteTable(
   ]
 );
 
-// API Keys table for secure API authentication
 export const apiKeys = sqliteTable(
   'api_keys',
   {
@@ -759,7 +716,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
     relationName: 'receivedMessages',
   }),
   toolRelations: many(subAgentToolRelations),
-  functionToolRelations: many(agentFunctionToolRelations),
+  functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
 }));
@@ -981,19 +938,19 @@ export const functionToolsRelations = relations(functionTools, ({ one, many }) =
     fields: [functionTools.tenantId, functionTools.projectId, functionTools.functionId],
     references: [functions.tenantId, functions.projectId, functions.id],
   }),
-  agentRelations: many(agentFunctionToolRelations),
+  subAgentRelations: many(subAgentFunctionToolRelations),
 }));
 
-// AgentFunctionToolRelations relations
-export const agentFunctionToolRelationsRelations = relations(
-  agentFunctionToolRelations,
+// SubAgentFunctionToolRelations relations
+export const subAgentFunctionToolRelationsRelations = relations(
+  subAgentFunctionToolRelations,
   ({ one }) => ({
-    agent: one(subAgents, {
-      fields: [agentFunctionToolRelations.subAgentId],
+    subAgent: one(subAgents, {
+      fields: [subAgentFunctionToolRelations.subAgentId],
       references: [subAgents.id],
     }),
     functionTool: one(functionTools, {
-      fields: [agentFunctionToolRelations.functionToolId],
+      fields: [subAgentFunctionToolRelations.functionToolId],
       references: [functionTools.id],
     }),
   })

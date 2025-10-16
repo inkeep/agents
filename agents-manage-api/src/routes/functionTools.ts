@@ -24,7 +24,6 @@ const logger = getLogger('functionTools');
 
 const app = new OpenAPIHono();
 
-// List function tools
 app.openapi(
   createRoute({
     method: 'get',
@@ -69,7 +68,6 @@ app.openapi(
   }
 );
 
-// Get function tool by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -121,7 +119,6 @@ app.openapi(
   }
 );
 
-// Create function tool
 app.openapi(
   createRoute({
     method: 'post',
@@ -180,7 +177,6 @@ app.openapi(
   }
 );
 
-// Update function tool
 app.openapi(
   createRoute({
     method: 'put',
@@ -247,7 +243,6 @@ app.openapi(
   }
 );
 
-// Delete function tool
 app.openapi(
   createRoute({
     method: 'delete',

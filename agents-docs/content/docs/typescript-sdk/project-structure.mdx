@@ -6,7 +6,7 @@ icon: "LuFolder"
 
 ## Overview
 
-Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your Sub Agents, agents, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
+Inkeep Agent projects follow a standardized directory structure that enables the CLI to automatically discover and manage your Agents, Sub Agents, tools, and configurations. This convention-based approach simplifies project organization and deployment workflows.
 
 ## Standard Project Layout
 
@@ -131,24 +131,22 @@ export const databaseQueryTool = tool({
 
 ### `/data-components/`
 
-Data components for managing structured data:
+Data components for structured UI output:
 
 ```typescript
 // data-components/customer-data.ts
 import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 export const customerData = dataComponent({
   id: 'customer-data',
   name: 'Customer Information',
   description: 'Customer profile and interaction history',
-  schema: {
-    type: 'object',
-    properties: {
-      customerId: { type: 'string' },
-      name: { type: 'string' },
-      email: { type: 'string' }
-    }
-  }
+  props: z.object({
+    customerId: z.string().describe("Customer ID"),
+    name: z.string().describe("Customer name"),
+    email: z.string().describe("Customer email"),
+  }),
 });
 ```
 

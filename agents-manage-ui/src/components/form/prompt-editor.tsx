@@ -76,7 +76,6 @@ function isJMESPathExpressions(key: string): boolean {
   return key.includes('[?') || key.includes('[*]');
 }
 
-// Create linter for template variable validation
 function createTemplateVariableLinter(suggestions: string[]) {
   return linter((view) => {
     const diagnostics: Diagnostic[] = [];
@@ -92,7 +91,6 @@ function createTemplateVariableLinter(suggestions: string[]) {
         const to = line.from + match.index + match[0].length;
         const variableName = match[1];
 
-        // Check if variable is valid (in suggestions) or reserved
         const isValid =
           validVariables.has(variableName) ||
           RESERVED_KEYS.has(variableName) ||
@@ -116,14 +114,12 @@ function createTemplateVariableLinter(suggestions: string[]) {
   });
 }
 
-// Create autocomplete source for context variables
 function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
   return (context) => {
     const { state, pos } = context;
     const line = state.doc.lineAt(pos);
     const to = pos - line.from;
     const textBefore = line.text.slice(0, to);
-    // Check if we're after a { character
     const match = textBefore.match(/\{([^}]*)$/);
     if (!match) return null;
 

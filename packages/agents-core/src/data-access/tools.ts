@@ -35,7 +35,6 @@ const logger = getLogger('tools');
  * - schema - another possible location
  */
 function extractInputSchema(toolDef: any): any {
-  // Try different possible locations for the input schema
   if (toolDef.inputSchema) {
     return toolDef.inputSchema;
   }
@@ -52,13 +51,10 @@ function extractInputSchema(toolDef: any): any {
     return toolDef.schema;
   }
 
-  // If none found, return empty object
   return {};
 }
 
-// Helper function to convert McpTool to MCPToolConfig format for CredentialStuffer
 const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
-  // Type guard - this function should only be called for MCP tools
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
   }
@@ -76,13 +72,11 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   };
 };
 
-// Tool discovery, meant to discover available tools and not take into account "active" / "selected" tools.
 const discoverToolsFromServer = async (
   tool: ToolSelect,
   dbClient: DatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry
 ): Promise<McpToolDefinition[]> => {
-  // Type guard - this function should only be called for MCP tools
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
   }
@@ -91,9 +85,7 @@ const discoverToolsFromServer = async (
     const credentialReferenceId = tool.credentialReferenceId;
     let serverConfig: McpServerConfig;
 
-    // Build server config with credentials if available
     if (credentialReferenceId) {
-      // Get credential store configuration
       const credentialReference = await getCredentialReference(dbClient)({
         scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
         id: credentialReferenceId,
@@ -108,7 +100,6 @@ const discoverToolsFromServer = async (
         retrievalParams: credentialReference.retrievalParams || {},
       };
 
-      // Use CredentialStuffer to build proper config with auth headers
       if (!credentialStoreRegistry) {
         throw new Error('CredentialStoreRegistry is required for authenticated tools');
       }
@@ -125,7 +116,6 @@ const discoverToolsFromServer = async (
         storeReference
       );
     } else {
-      // No credentials - build basic config
       const transportType = tool.config.mcp.transport?.type || MCPTransportType.streamableHttp;
       if (transportType === MCPTransportType.sse) {
         serverConfig = {
@@ -152,12 +142,10 @@ const discoverToolsFromServer = async (
 
     await client.connect();
 
-    // Get tools from the MCP client. Does not take into account "active" / "selected" tools.
     const serverTools = await client.tools();
 
     await client.disconnect();
 
-    // Convert to our format
     const toolDefinitions: McpToolDefinition[] = Object.entries(serverTools).map(
       ([name, toolDef]) => ({
         name,
@@ -173,7 +161,6 @@ const discoverToolsFromServer = async (
   }
 };
 
-// Helper function to convert database result to McpTool
 export const dbResultToMcpTool = async (
   dbResult: ToolSelect,
   dbClient: DatabaseClient,
@@ -181,9 +168,7 @@ export const dbResultToMcpTool = async (
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
-  // Only process MCP tools - skip function tools
   if (dbResult.config.type !== 'mcp') {
-    // Return minimal tool data for non-MCP tools
     return {
       ...rest,
       status: 'unknown',
@@ -411,7 +396,6 @@ export const upsertSubAgentToolRelation =
     headers?: Record<string, string> | null;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
-    // If relationId is provided, update that specific relationship
     if (params.relationId) {
       return await updateAgentToolRelation(db)({
         scopes: params.scopes,
@@ -425,7 +409,6 @@ export const upsertSubAgentToolRelation =
       });
     }
 
-    // No relationId provided - always create a new relationship
     return await addToolToAgent(db)(params);
   };
 
@@ -441,7 +424,6 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
   });
 
   if (existing) {
-    // Update existing tool
     return await updateTool(db)({
       scopes,
       toolId: params.data.id,
@@ -454,7 +436,6 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
       },
     });
   } else {
-    // Create new tool
     return await createTool(db)(params.data);
   }
 };

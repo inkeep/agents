@@ -23,7 +23,6 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List artifact components for a specific agent in an agent
 app.openapi(
   createRoute({
     method: 'get',
@@ -63,7 +62,6 @@ app.openapi(
   }
 );
 
-// List agents using a specific artifact component
 app.openapi(
   createRoute({
     method: 'get',
@@ -107,7 +105,6 @@ app.openapi(
   }
 );
 
-// Create agent artifact component association
 app.openapi(
   createRoute({
     method: 'post',
@@ -149,7 +146,6 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { subAgentId, artifactComponentId } = c.req.valid('json');
 
-    // Validate that both agent and artifact component exist before creating association
     const agent = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, agentId },
       subAgentId,
@@ -173,7 +169,6 @@ app.openapi(
       });
     }
 
-    // Check if association already exists
     const exists = await isArtifactComponentAssociatedWithAgent(dbClient)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       artifactComponentId,
@@ -243,7 +238,6 @@ app.openapi(
   }
 );
 
-// Check if artifact component is associated with agent
 app.openapi(
   createRoute({
     method: 'get',

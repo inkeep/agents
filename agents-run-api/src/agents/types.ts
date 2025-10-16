@@ -12,7 +12,7 @@ export interface VersionConfig<TConfig> {
 
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
-  agentPrompt?: string; // Agent-level context and instructions
+  prompt?: string; // Agent-level context and instructions
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];

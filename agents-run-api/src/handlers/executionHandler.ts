@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
-import { isTransferTask, extractTransferData } from '../a2a/types.js';
+import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
@@ -42,7 +42,6 @@ interface ExecutionResult {
 }
 
 export class ExecutionHandler {
-  // Hardcoded error limit - separate from configurable stopWhen
   private readonly MAX_ERRORS = 3;
 
   /**
@@ -72,14 +71,10 @@ export class ExecutionHandler {
 
     const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
 
-    // Register streamHelper so agents can access it via requestId
     registerStreamHelper(requestId, sseHelper);
-
-    // Create AgentSession for this entire message execution using requestId as the session ID
 
     agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
 
-    // Enable emit operations if requested
     if (emitOperations) {
       agentSessionManager.enableEmitOperations(requestId);
     }
@@ -89,7 +84,6 @@ export class ExecutionHandler {
       'Created AgentSession for message execution'
     );
 
-    // Initialize status updates if configured
     let agentConfig: any = null;
     try {
       agentConfig = await getFullAgent(dbClient)({
@@ -120,10 +114,8 @@ export class ExecutionHandler {
     let fromSubAgentId: string | undefined; // Track the agent that executed a transfer
 
     try {
-      // Send agent initializing and ready operations immediately to ensure UI rendering
       await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
 
-      // Use atomic upsert pattern to handle race conditions properly
       const taskId = `task_${conversationId}-${requestId}`;
 
       logger.info(
@@ -132,7 +124,6 @@ export class ExecutionHandler {
       );
 
       try {
-        // Try to create the task atomically
         task = await createTask(dbClient)({
           id: taskId,
           tenantId,
@@ -160,8 +151,6 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        // Handle race condition: if task already exists due to concurrent request,
-        // fetch and reuse the existing task instead of failing
         if (
           error?.message?.includes('UNIQUE constraint failed') ||
           error?.message?.includes('PRIMARY KEY constraint failed') ||
@@ -180,18 +169,15 @@ export class ExecutionHandler {
               'Successfully reused existing task from race condition'
             );
           } else {
-            // This should not happen, but handle gracefully
             logger.error({ taskId, error }, 'Task constraint failed but task not found');
             throw error;
           }
         } else {
-          // Re-throw non-constraint errors
           logger.error({ taskId, error }, 'Failed to create task due to non-constraint error');
           throw error;
         }
       }
 
-      // Debug logging for execution handler (structured logging only)
       logger.debug(
         {
           timestamp: new Date().toISOString(),
@@ -205,27 +191,20 @@ export class ExecutionHandler {
         },
         'ExecutionHandler: Initial task created'
       );
-      // If createTask returns an array, get the first element
       if (Array.isArray(task)) task = task[0];
 
       let currentMessage = userMessage;
 
-      // Get transfer limit from agent configuration
       const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
 
-      // Start execution loop
       while (iterations < maxTransfers) {
         iterations++;
-
-        // Stream iteration start
-        // Iteration start (data operations removed)
 
         logger.info(
           { iterations, currentAgentId, agentId, conversationId, fromSubAgentId },
           `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
         );
 
-        // Step 1: Determine which agent should handle the message
         const activeAgent = await getActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -234,12 +213,8 @@ export class ExecutionHandler {
         if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
           currentAgentId = activeAgent.activeSubAgentId;
           logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
-
-          // Stream agent selection update
-          // Agent selection (data operations removed)
         }
 
-        // Step 2: Send A2A message to selected agent
         const agentBaseUrl = `${baseUrl}/agents`;
         const a2aClient = new A2AClient(agentBaseUrl, {
           headers: {
@@ -251,11 +226,8 @@ export class ExecutionHandler {
           },
         });
 
-        // Check if agent supports streaming
-        // const agentCard = await a2aClient.getAgentCard();
         let messageResponse: SendMessageResponse | null = null;
 
-        // Build message metadata - include fromSubAgentId only if this is a transfer
         const messageMetadata: any = {
           stream_request_id: requestId, // This also serves as the AgentSession ID
         };
@@ -283,7 +255,6 @@ export class ExecutionHandler {
           },
         });
 
-        // Step 3: Parse A2A message response
         if (!messageResponse?.result) {
           errorCount++;
           logger.error(
@@ -291,7 +262,6 @@ export class ExecutionHandler {
             `No response from agent ${currentAgentId} on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
           );
 
-          // Check if we've hit the error limit
           if (errorCount >= this.MAX_ERRORS) {
             const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
             logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
@@ -320,7 +290,6 @@ export class ExecutionHandler {
           continue;
         }
 
-        // Step 4: Handle transfer messages
         if (isTransferTask(messageResponse.result)) {
           const transferData = extractTransferData(messageResponse.result);
 
@@ -334,20 +303,14 @@ export class ExecutionHandler {
 
           const { targetSubAgentId, fromSubAgentId: transferFromAgent } = transferData;
 
-          // Extract transfer reason from second part if available (optional text explanation)
           const firstArtifact = messageResponse.result.artifacts[0];
           const transferReason =
             firstArtifact?.parts[1]?.kind === 'text'
               ? firstArtifact.parts[1].text
               : 'Transfer initiated';
 
-          logger.info(
-            { targetSubAgentId, transferReason, transferFromAgent },
-            'Transfer response'
-          );
+          logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
-          // Update the current message to the transfer reason so as not to duplicate the user message on every transfer
-          // including the xml because the fromSubAgent does not always directly adress the toSubAgent in its text
           currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
@@ -358,7 +321,6 @@ export class ExecutionHandler {
           });
 
           if (success) {
-            // Set fromSubAgentId to track which agent executed this transfer
             fromSubAgentId = currentAgentId;
             currentAgentId = newAgentId;
 
@@ -372,14 +334,11 @@ export class ExecutionHandler {
             );
           }
 
-          // Continue to next iteration with new agent
           continue;
         }
 
-        // Use streamed content for conversation history (what was actually sent to the user)
         let responseParts = [];
 
-        // Check if we have streamed content from the IncrementalStreamParser
         if ((messageResponse.result as any).streamedContent?.parts) {
           responseParts = (messageResponse.result as any).streamedContent.parts;
           logger.info(
@@ -387,7 +346,6 @@ export class ExecutionHandler {
             'Using streamed content for conversation history'
           );
         } else {
-          // Fallback to artifacts if no streamed content available
           responseParts =
             (messageResponse.result as any).artifacts?.flatMap(
               (artifact: any) => artifact.parts || []
@@ -399,15 +357,12 @@ export class ExecutionHandler {
         }
 
         if (responseParts && responseParts.length > 0) {
-          // Log agent session data after completion response
           const agentSessionData = agentSessionManager.getSession(requestId);
           if (agentSessionData) {
             const sessionSummary = agentSessionData.getSummary();
             logger.info(sessionSummary, 'AgentSession data after completion');
           }
 
-          // Process response parts for database storage and A2A protocol
-          // NOTE: Do NOT stream content here - agents handle their own streaming
           let textContent = '';
           for (const part of responseParts) {
             const isTextPart = (part.kind === 'text' || part.type === 'text') && part.text;
@@ -415,7 +370,6 @@ export class ExecutionHandler {
             if (isTextPart) {
               textContent += part.text;
             }
-            // Data parts are already processed by the agent's streaming logic
           }
 
           // Stream completion operation
@@ -425,7 +379,7 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'ai.agent.name': currentAgentId,
+                'ai.subAgent.name': currentAgentId,
               });
 
               // Store the agent response in the database with both text and parts
@@ -512,7 +466,6 @@ export class ExecutionHandler {
           `No valid response or transfer on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
         );
 
-        // Check if we've hit the error limit
         if (errorCount >= this.MAX_ERRORS) {
           const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
           logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);

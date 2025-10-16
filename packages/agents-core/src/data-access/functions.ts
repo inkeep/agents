@@ -20,7 +20,6 @@ export const upsertFunction =
       dependencies = autoDetectDependencies(data.executeCode);
     }
 
-    // Check if function exists
     const existingFunction = await db
       .select()
       .from(functions)
@@ -34,7 +33,6 @@ export const upsertFunction =
       .limit(1);
 
     if (existingFunction.length > 0) {
-      // Update existing function
       await db
         .update(functions)
         .set({
@@ -51,7 +49,6 @@ export const upsertFunction =
           )
         );
     } else {
-      // Create new function
       await db.insert(functions).values({
         tenantId,
         projectId,

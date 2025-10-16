@@ -53,8 +53,8 @@ export const Navbar = () => {
               className="max-sm:hidden text-primary border border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
               asChild
             >
-              <a href="https://inkeep.com/demo?cta_id=docs_nav" target="_blank" rel="noreferrer">
-                Schedule a demo <ChevronRight className="h-4 w-4 text-primary/60" />
+              <a href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav" target="_blank" rel="noreferrer">
+                Join Cloud Waitlist <ChevronRight className="h-4 w-4 text-primary/60" />
               </a>
             </Button>
             <MobileSearchTrigger />

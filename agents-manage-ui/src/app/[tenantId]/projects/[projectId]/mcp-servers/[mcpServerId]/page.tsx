@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { ViewMCPServerDetails } from '@/components/mcp-servers/view-mcp-server-details';
@@ -11,31 +11,38 @@ interface MCPPageProps {
 async function MCPPage({ params }: MCPPageProps) {
   const { mcpServerId, tenantId, projectId } = await params;
 
+  let tool: Awaited<ReturnType<typeof fetchMCPTool>>;
   try {
-    const tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
-
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'MCP servers',
-            href: `/${tenantId}/projects/${projectId}/mcp-servers`,
-          },
-          {
-            label: tool.name,
-            href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
-          },
-        ]}
-      >
-        <MainContent>
-          <ViewMCPServerDetails tool={tool} tenantId={tenantId} projectId={projectId} />
-        </MainContent>
-      </BodyTemplate>
-    );
+    tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
   } catch (error) {
-    console.error('Failed to load MCP server:', error);
-    notFound();
+    return (
+      <FullPageError
+        error={error as Error}
+        link={`/${tenantId}/projects/${projectId}/mcp-servers`}
+        linkText="Back to MCP servers"
+        context="MCP server"
+      />
+    );
   }
+
+  return (
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'MCP servers',
+          href: `/${tenantId}/projects/${projectId}/mcp-servers`,
+        },
+        {
+          label: tool.name,
+          href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
+        },
+      ]}
+    >
+      <MainContent>
+        <ViewMCPServerDetails tool={tool} tenantId={tenantId} projectId={projectId} />
+      </MainContent>
+    </BodyTemplate>
+  );
 }
 
 export default MCPPage;

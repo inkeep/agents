@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI, openai } from '@ai-sdk/openai';
@@ -10,6 +11,9 @@ import {
   createPlaceholders,
   restorePlaceholders,
 } from './pull.placeholder-system';
+
+// Create require function for ESM context
+const require = createRequire(import.meta.url);
 
 /**
  * Read the complete type definitions from @inkeep/agents-sdk package
@@ -51,8 +55,9 @@ ${dtsContent}
 /**
  * Create a language model instance from configuration
  * Similar to ModelFactory but simplified for CLI use
+ * @internal - Exported for use in codegen modules
  */
-function createModel(config: ModelSettings) {
+export function createModel(config: ModelSettings): any {
   // Extract from model settings - model is required
   if (!config.model) {
     throw new Error('Model configuration is required for pull command');
@@ -90,21 +95,21 @@ const PROJECT_JSON_EXAMPLE = `
   "description": "test test",
   "models": {
     "base": {
-      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1_20250805}",
+      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1}",
       "providerOptions": {
         "temperature": 0.7,
         "maxTokens": 2096
       }
     },
     "structuredOutput": {
-      "model": "${OPENAI_MODELS.GPT_4_1_MINI_20250414}",
+      "model": "${OPENAI_MODELS.GPT_4_1_MINI}",
       "providerOptions": {
         "temperature": 0.4,
         "maxTokens": 2048
       }
     },
     "summarizer": {
-      "model": "${OPENAI_MODELS.GPT_5_NANO_20250807}",
+      "model": "${OPENAI_MODELS.GPT_5_NANO}",
       "providerOptions": {
         "temperature": 0.8,
         "maxTokens": 1024
@@ -161,7 +166,7 @@ const PROJECT_JSON_EXAMPLE = `
       "updatedAt": "2025-10-05T16:43:26.813Z",
       "models": {
         "base": {
-          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4_20250514}",
+          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4_5}",
           "providerOptions": {
             "temperature": 0.5
           }
@@ -226,32 +231,37 @@ const PROJECT_JSON_EXAMPLE = `
 
 /**
  * Reusable naming convention rules for all LLM generation functions
+ * @internal - Exported for use in codegen modules
  */
-const NAMING_CONVENTION_RULES = `
+export const NAMING_CONVENTION_RULES = `
 CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
-- File names ALWAYS use the exact original ID. IDs are made of file safe characters (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
-- Name of consts and variables, especially ones that are exported ones, MUST be camelCase versions of the ID, unless the ID is random/UUID then take it verbatim.
-- Conversion rules for import/export names:
+- File paths use kebab-case naming (e.g., '../tools/tool-name', '../data-components/component-name')
+- Variable names MUST be camelCase versions of the entity ID
+- Conversion rules for variable names:
   - IDs with underscores: 'inkeep_facts' → inkeepFacts
   - IDs with hyphens: 'weather-api' → weatherApi
   - IDs with both: 'my_weather-api' → myWeatherApi
   - Random/UUID IDs: Keep as-is (e.g., 'fUI2riwrBVJ6MepT8rjx0' → fUI2riwrBVJ6MepT8rjx0)
-  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym or random or UUID
 - The ID field in the exported object keeps the original format
+- IMPORTANT: Import paths use kebab-case file names, NOT entity IDs
 - Examples:
-  - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
-  - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
-  - Agent: import { myAgent } from './agent/my-agent'; export const myAgent = agent({ id: 'my-agent', ... })
+  - Tool: import { toolName } from '../tools/tool-name'; export const toolName = mcpTool({ id: 'tool_id', ... })
+  - Component: import { componentName } from '../data-components/component-name'; export const componentName = dataComponent({ id: 'component-id', ... })
+  - Agent: import { agentName } from './agents/agent-name'; export const agentName = agent({ id: 'agent-id', ... })
 `;
 
-const IMPORT_INSTRUCTIONS = `
+/**
+ * Import instruction rules for LLM generation
+ * @internal - Exported for use in codegen modules
+ */
+export const IMPORT_INSTRUCTIONS = `
 CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
 
 CRITICAL IMPORT PATTERNS:
-- Tools: Import from '../tools/{toolId}' (individual files)
-- Data components: Import from '../data-components/{componentId}' (individual files)
-- Artifact components: Import from '../artifact-components/{componentId}' (individual files)
-- Agent: Import from './agent/{agentId}' (individual files)
+- Tools: Import from '../tools/{file-name}' (use kebab-case file names)
+- Data components: Import from '../data-components/{file-name}' (use kebab-case file names)
+- Artifact components: Import from '../artifact-components/{file-name}' (use kebab-case file names)
+- Agent: Import from './agents/{file-name}' (use kebab-case file names)
 
 NEVER use barrel imports from directories:
 ❌ WRONG: import { ordersList, refundApproval } from '../data-components';
@@ -275,8 +285,9 @@ import { weatherAgent } from './agent/weather-agent';
 
 /**
  * Clean generated text by removing markdown code fences
+ * @internal - Exported for use in codegen modules
  */
-function cleanGeneratedCode(text: string): string {
+export function cleanGeneratedCode(text: string): string {
   // Remove opening and closing markdown code fences
   // Handles ```typescript, ```ts, or just ```
   return text
@@ -304,10 +315,13 @@ export async function generateTextWithPlaceholders(
     maxOutputTokens?: number;
     abortSignal?: AbortSignal;
   },
-  debug: boolean = false
+  debug: boolean = false,
+  context?: { fileType?: string }
 ): Promise<string> {
   // Create placeholders to reduce prompt size
-  const { processedData, replacements } = createPlaceholders(data);
+  const { processedData, replacements } = context 
+    ? createPlaceholders(data, context)
+    : createPlaceholders(data);
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -418,6 +432,42 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
+ * Generate import path mappings for the LLM prompt
+ */
+function generateImportMappings(
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>
+): string {
+  let result = '';
+  
+  if (toolFilenames && toolFilenames.size > 0) {
+    result += 'TOOLS (use exact import paths):\n';
+    for (const [toolId, fileName] of toolFilenames.entries()) {
+      result += `  - Tool ID: "${toolId}" → Import: "../tools/${fileName.replace('.ts', '')}"\n`;
+    }
+    result += '\n';
+  }
+  
+  if (componentFilenames && componentFilenames.size > 0) {
+    result += 'COMPONENTS (use exact import paths):\n';
+    for (const [componentId, fileName] of componentFilenames.entries()) {
+      // Determine directory based on component type patterns
+      let directory = 'components'; // fallback
+      if (fileName.includes('data-') || componentId.includes('data-')) {
+        directory = 'data-components';
+      } else if (fileName.includes('artifact-') || componentId.includes('artifact-')) {
+        directory = 'artifact-components';
+      } else if (fileName.includes('status-') || componentId.includes('status-')) {
+        directory = 'status-components';
+      }
+      result += `  - Component ID: "${componentId}" → Import: "../${directory}/${fileName.replace('.ts', '')}"\n`;
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Generate an agent TypeScript file
  */
 export async function generateAgentFile(
@@ -425,6 +475,8 @@ export async function generateAgentFile(
   agentId: string,
   outputPath: string,
   modelSettings: ModelSettings,
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>,
   debug: boolean = false
 ): Promise<void> {
   const model = createModel(modelSettings);
@@ -436,11 +488,22 @@ AGENT DATA:
 
 AGENT ID: ${agentId}
 
-${getTypeDefinitions()}
+${toolFilenames || componentFilenames ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+${generateImportMappings(toolFilenames, componentFilenames)}
+
+!!! WARNING: Entity IDs ≠ File Paths !!!
+- Entity IDs may use underscores or different naming
+- File paths use kebab-case naming convention
+- ALWAYS use the exact import paths from the mappings above
+- NEVER use entity IDs directly as import paths
+
+` : ''}${getTypeDefinitions()}
 
 IMPORTANT CONTEXT:
 - Agents reference resources (tools, components) by their imported variable names
-- The 'tools' field in subAgents contains tool IDs that must match the imported variable names
+- Tools and components are referenced by variable names in code, but imports use FILE PATHS
+- CRITICAL: Import statements use file paths (../tools/tool-filename), NOT tool IDs
+- Variable names in canUse() arrays should match the imported variable names
 - If contextConfig is present, it must be imported from '@inkeep/agents-core' and used to create the context config
 
 ${NAMING_CONVENTION_RULES}
@@ -448,22 +511,51 @@ ${NAMING_CONVENTION_RULES}
 ${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Import { agent, subAgent } from '@inkeep/agents-sdk'
+1. IMPORTS (CRITICAL - USE FILE PATHS, NOT IDs):
+   - For tool/component imports: Use ONLY the exact file paths from IMPORT PATH MAPPINGS above
+   - Import paths are based on actual file names, not entity IDs
+   - Always use kebab-case file paths (../tools/tool-name, not ../tools/tool_name)
+   - ALWAYS import { agent, subAgent } from '@inkeep/agents-sdk'
+   - ALWAYS import { z } from 'zod' when using ANY Zod schemas (responseSchema, headersSchema, etc.)
+   - ALWAYS import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core' when agent has contextConfig
+   - Import status components from '../status-components/' when needed
 2. Define each agent using the agent() function following the type definitions provided above
 3. Create the agent using agent() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
-4. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
-   - Single-line strings: use regular quotes 'short string'
-   - Multi-line strings: MUST use template literals starting and ending with backticks
+4. CRITICAL: Template Literals vs Raw Code:
+   - For STRING VALUES: ALWAYS use template literals with backticks: \`string content\`
+   - This includes: prompt, description, query, url, method, body, defaultValue, etc.
+   - This prevents TypeScript syntax errors with apostrophes (user's, don't, etc.)
    - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
-   - Placeholders contain multi-line content and require template literals
-   - This prevents TypeScript syntax errors with newlines and special characters
-   - you must import { z } from 'zod' if you are using zod schemas in the agent file.
-   - you must import { headers } from '@inkeep/agents-core' and use it to create the headers schema if you are using headers in a contextConfig.
+   - For object keys: use quotes only for keys with hyphens ('Content-Type'), omit for simple identifiers (Authorization)
+   
+   EXCEPTION - Schema Fields (NO template literals):
+   - headersSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - responseSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - These are TypeScript expressions, not string values
+   
+   Examples:
+   ✅ prompt: \`You are a helpful assistant.\` (string value, use backticks)
+   ✅ query: \`query GetData { field }\` (string value, use backticks)
+   ✅ responseSchema: z.object({ name: z.string() }) (Zod code, NO backticks)
+   ✅ headersSchema: z.object({ 'inkeep_api_key': z.string() }) (Zod code, NO backticks)
+   ❌ responseSchema: \`z.object({ name: z.string() })\` (WRONG - don't wrap Zod in backticks)
+   
    - convert template literals to use the appropriate headers schema or context config toTemplate method. a template literal is a substring that starts with {{ and ends with }}.
     - if you see a template literal with {{headers.}}, convert it to use the headers schema toTemplate method.
     - if you see a template literal with {{contextVariableKey.field_name}}, convert it to use the context config toTemplate method.
-6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+5. For contextConfig (CRITICAL):
+   - NEVER use plain objects for contextConfig
+   - ALWAYS use helper functions: headers(), fetchDefinition(), contextConfig()
+   - Create separate const variables for each helper before the agent definition
+   - Pattern: const myHeaders = headers({ schema: z.object({ api_key: z.string() }) });
+   - Pattern: const myFetch = fetchDefinition({ id: '...', fetchConfig: {...}, responseSchema: z.object({...}) });
+   - Pattern: const myContext = contextConfig({ headers: myHeaders, contextVariables: { data: myFetch } });
+   - Then use: export const myAgent = agent({ contextConfig: myContext });
+   - Use myHeaders.toTemplate('key_name') for header interpolation in fetch configs
+   - Use myContext.toTemplate('variable.field') for context variable interpolation
+
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
 PLACEHOLDER HANDLING EXAMPLES:
 // CORRECT - Placeholder wrapped in template literals:
@@ -478,6 +570,8 @@ import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
+import { toolSummary } from '../status-components/tool-summary';
+import { progressStatus } from '../status-components/progress-status';
 import { z } from 'zod';
 
 const supportAgentHeaders = headers({
@@ -542,7 +636,16 @@ export const supportAgent = agent({
   name: 'Support Agent',
   description: 'Multi-agent support system', // Only include if description has a value
   defaultSubAgent: routerAgent,
-  subAgents: () => [routerAgent, qaAgent]
+  subAgents: () => [routerAgent, qaAgent],
+  models: {
+    base: { model: 'gpt-4' },
+    summarizer: { model: 'gpt-4' },
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    statusComponents: [toolSummary.config, progressStatus.config],
+  },
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
@@ -862,6 +965,87 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     temperature: 0.1,
     maxOutputTokens: 4000,
     abortSignal: AbortSignal.timeout(60000), // 60 second timeout
+  });
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate a status component TypeScript file
+ */
+export async function generateStatusComponentFile(
+  componentData: any,
+  componentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const promptTemplate = `Generate a TypeScript file for an Inkeep status component.
+
+STATUS COMPONENT DATA:
+{{DATA}}
+
+COMPONENT ID: ${componentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
+REQUIREMENTS:
+1. Import statusComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Create the status component using statusComponent()
+4. Export following naming convention rules (camelCase version of ID)
+5. Use 'type' field as the identifier (like 'tool_summary')
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+8. The statusComponent() function handles conversion to .config automatically
+
+EXAMPLE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const toolSummary = statusComponent({
+  type: 'tool_summary',
+  description: 'Summary of tool calls and their purpose',
+  detailsSchema: z.object({
+    tool_name: z.string().describe('Name of tool used'),
+    summary: z.string().describe('What was discovered or accomplished'),
+  }),
+});
+
+EXAMPLE WITH HYPHEN TYPE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+// Component type 'search-progress' becomes export name 'searchProgress'
+export const searchProgress = statusComponent({
+  type: 'search-progress',
+  description: 'Progress of search operation',
+  detailsSchema: z.object({
+    query: z.string().describe('Search query being executed'),
+    results_found: z.number().describe('Number of results found'),
+    time_elapsed: z.number().optional().describe('Time elapsed in milliseconds'),
+  }),
+});
+
+EXAMPLE WITHOUT DETAILS SCHEMA:
+import { statusComponent } from '@inkeep/agents-sdk';
+
+export const simpleStatus = statusComponent({
+  type: 'simple_status',
+  description: 'A simple status with no additional details',
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
+    temperature: 0.1,
+    maxOutputTokens: 4000,
+    abortSignal: AbortSignal.timeout(60000),
   });
 
   writeFileSync(outputPath, cleanGeneratedCode(text));

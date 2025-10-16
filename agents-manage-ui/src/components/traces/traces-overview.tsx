@@ -110,7 +110,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Build span filters
   const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
     if (!spanName && attributes.length === 0) {
       return undefined;
@@ -122,7 +121,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return filters;
   }, [spanName, attributes]);
 
-  // Get aggregate stats efficiently (server-side aggregation)
   const {
     aggregateStats,
     loading: aggregateLoading,
@@ -136,7 +134,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     agentId: selectedAgent,
   });
 
-  // Get paginated conversations for the list display
   const { stats, loading, error, refresh, pagination } = useConversationStats({
     startTime,
     endTime,
