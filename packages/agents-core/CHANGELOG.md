@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.23.0
+
+### Minor Changes
+
+- f878545: OAuth MCP Connections now use nango mcp-generic
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+
 ## 0.22.12
 
 ### Patch Changes

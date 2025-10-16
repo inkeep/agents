@@ -1,5 +1,14 @@
 # @inkeep/create-agents
 
+## 0.23.0
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+- Updated dependencies [f878545]
+- Updated dependencies [e604038]
+  - @inkeep/agents-core@0.23.0
+
 ## 0.22.12
 
 ### Patch Changes
