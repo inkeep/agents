@@ -25,6 +25,9 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
+    - run: pnpm setup-dev
+      shell: bash
+
     # Start the backend API server
     - name: Start Backend API Server
       shell: bash
