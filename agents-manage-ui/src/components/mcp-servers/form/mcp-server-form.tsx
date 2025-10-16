@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MCPTransportType } from '@inkeep/agents-core/client-exports';
+import { detectAuthenticationRequired, MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,8 @@ import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { InfoCard } from '@/components/ui/info-card';
+import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
@@ -40,7 +42,7 @@ const defaultValues: MCPToolFormData = {
     },
   },
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
-  credentialReferenceId: 'none',
+  credentialReferenceId: 'oauth',
 };
 
 export function MCPServerForm({
@@ -61,6 +63,11 @@ export function MCPServerForm({
     },
   });
 
+  const { handleOAuthLogin } = useOAuthLogin({
+    tenantId,
+    projectId,
+  });
+
   const { isSubmitting } = form.formState;
 
   // Helper function to filter active tools against available tools
@@ -73,6 +80,51 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
+      // handle oauth login
+      if (data.credentialReferenceId === 'oauth') {
+        const toolId = nanoid();
+
+        const isAuthenticationRequired = await detectAuthenticationRequired({
+          serverUrl: data.config.mcp.server.url,
+          toolId,
+        });
+
+        if (!isAuthenticationRequired) {
+          toast.error(
+            'This MCP server does not support OAuth authentication. Please select a different credential.'
+          );
+          return;
+        }
+
+        const mcpToolData = {
+          id: toolId,
+          name: data.name,
+          config: {
+            type: 'mcp' as const,
+            mcp: {
+              server: {
+                url: data.config.mcp.server.url,
+              },
+              transport: {
+                type: data.config.mcp.transport.type,
+              },
+            },
+          },
+          credentialReferenceId: null,
+          imageUrl: data.imageUrl,
+        };
+
+        const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
+
+        handleOAuthLogin({
+          toolId: newTool.id,
+          mcpServerUrl: data.config.mcp.server.url,
+          toolName: data.name,
+        });
+
+        return;
+      }
+
       // Transform form data to API format
       const transformedData = {
         ...data,
@@ -142,20 +194,41 @@ export function MCPServerForm({
           label="Image URL (optional)"
           placeholder="https://example.com/icon.png or data:image/png;base64,..."
         />
-        <GenericSelect
-          control={form.control}
-          selectTriggerClassName="w-full"
-          name="credentialReferenceId"
-          label="Credential"
-          placeholder="Select a credential"
-          options={[
-            { value: 'none', label: 'No Authentication' },
-            ...credentials.map((credential) => ({
-              value: credential.id,
-              label: credential.id,
-            })),
-          ]}
-        />
+
+        <div className="space-y-3">
+          <GenericSelect
+            control={form.control}
+            selectTriggerClassName="w-full"
+            name="credentialReferenceId"
+            label="Credential"
+            placeholder="Select a credential"
+            options={[
+              { value: 'oauth', label: 'OAuth' },
+              { value: 'none', label: 'No Authentication' },
+              ...credentials.map((credential) => ({
+                value: credential.id,
+                label: credential.id,
+              })),
+            ]}
+          />
+          <InfoCard title="How this works">
+            <div className="space-y-2">
+              <p>
+                Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code> to
+                authenticate with the MCP server's OAuth flow, which will start after you click
+                "Create".
+              </p>
+              <p>
+                Select{' '}
+                <code className="bg-background px-1.5 py-0.5 rounded border">
+                  No Authentication
+                </code>{' '}
+                to skip authentication (i.e. none required or add a credential later).
+              </p>
+              <p>Or select from the existing credentials you have already created.</p>
+            </div>
+          </InfoCard>
+        </div>
 
         {mode === 'update' && (
           <ActiveToolsSelector

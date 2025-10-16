@@ -326,11 +326,11 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@nangohq/node':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@nangohq/types':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -430,14 +430,14 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@nangohq/frontend':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@nangohq/node':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@nangohq/types':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -882,11 +882,11 @@ importers:
         specifier: ^1.17.2
         version: 1.19.1
       '@nangohq/node':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@nangohq/types':
-        specifier: ^0.66.0
-        version: 0.66.2
+        specifier: ^0.69.3
+        version: 0.69.3
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
@@ -2385,12 +2385,22 @@ packages:
   '@nangohq/frontend@0.66.2':
     resolution: {integrity: sha512-+Mh1bBCi5YzNpohmzHIoJEoRN0BND2wUvQ5OCsbQwO05GprNlSxIxbdSHRx6hDE5lDkONrqjtI9miYsf4F2DGw==}
 
+  '@nangohq/frontend@0.69.3':
+    resolution: {integrity: sha512-/G5fRYMEoI7zCZkiD7dOAI6E6O1icEdSaQRCY4mGzAsAFWDVQK55dpRSxgaYLvl4m7gQe9/xfERqoUk5LTO4lw==}
+
   '@nangohq/node@0.66.2':
     resolution: {integrity: sha512-iCbQQ8XAq3vFBFekx/yhAfPKy0IX8sb0rS0qB1+CuGfEVLQkVxeZM8ZBkp81J3yBUSaaAQAKuxNtY4ukvJAdog==}
     engines: {node: '>=20.0'}
 
+  '@nangohq/node@0.69.3':
+    resolution: {integrity: sha512-YXZ8MtFaqAdeaEiDvoaw0Rczb55N6snQvQ+Qs7Cl5NE5wO144aQyiw05B/6HQDztwST6wyGhr1d3Lw7woiHwyg==}
+    engines: {node: '>=20.0'}
+
   '@nangohq/types@0.66.2':
     resolution: {integrity: sha512-IliUrlaCA8wc1+iUuvfY/rNtYW4Zp9++Erl8+2Qk3V2Z35dreCHDZFi/DUXZv+bol398K0Tpvp4gXTr7P8JwZg==}
+
+  '@nangohq/types@0.69.3':
+    resolution: {integrity: sha512-/oISl8O4PzXliReG5V8KwsYgbN4IrSh26XOKjvperlVF0Wk5uuwuEOzFzoo1+WCxYrzJ3hajUvtEQqjkwDQzFQ==}
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
@@ -5176,6 +5186,9 @@ packages:
 
   axios@1.11.0:
     resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
+
+  axios@1.12.0:
+    resolution: {integrity: sha512-oXTDccv8PcfjZmPGlWsPSwtOJCZ/b6W5jAMCNcfwJbCzDckwG0jrYJFaWH1yvivfCXjVzV/SPDEhMB3Q+DSurg==}
 
   axios@1.12.2:
     resolution: {integrity: sha512-vMJzPewAlRyOgxV2dU0Cuz2O8zzzx9VYtbJOaBgXFeLc4IV/Eg50n4LowmehOOR61S8ZMpc2K5Sa7g6A4jfkUw==}
@@ -11772,6 +11785,12 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@nangohq/frontend@0.69.3':
+    dependencies:
+      '@nangohq/types': 0.69.3
+    transitivePeerDependencies:
+      - debug
+
   '@nangohq/node@0.66.2':
     dependencies:
       '@nangohq/types': 0.66.2
@@ -11779,9 +11798,24 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  '@nangohq/node@0.69.3':
+    dependencies:
+      '@nangohq/types': 0.69.3
+      axios: 1.12.0
+    transitivePeerDependencies:
+      - debug
+
   '@nangohq/types@0.66.2':
     dependencies:
       axios: 1.11.0
+      json-schema: 0.4.0
+      type-fest: 4.41.0
+    transitivePeerDependencies:
+      - debug
+
+  '@nangohq/types@0.69.3':
+    dependencies:
+      axios: 1.12.0
       json-schema: 0.4.0
       type-fest: 4.41.0
     transitivePeerDependencies:
@@ -15055,6 +15089,14 @@ snapshots:
       is-retry-allowed: 2.2.0
 
   axios@1.11.0:
+    dependencies:
+      follow-redirects: 1.15.11
+      form-data: 4.0.4
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
+  axios@1.12.0:
     dependencies:
       follow-redirects: 1.15.11
       form-data: 4.0.4
