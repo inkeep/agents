@@ -29,7 +29,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
-  const openNangoConnect = useNangoConnect();
+  const { openNangoConnect } = useNangoConnect();
 
   const { providerId, tenantId, projectId } = use(params);
 
@@ -83,6 +83,8 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
       try {
         const connectToken = await createProviderConnectSession({
           providerName: provider.name,
+          uniqueKey: provider.name,
+          displayName: provider.name,
           credentials:
             credentials && provider.auth_mode
               ? ({
