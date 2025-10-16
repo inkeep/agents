@@ -574,26 +574,30 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   // Perform background version check (non-blocking)
   performBackgroundVersionCheck();
 
-  // Validate ANTHROPIC_API_KEY is available for LLM operations
-  // Check for missing, empty, or whitespace-only values
-  const anthropicKey = env.ANTHROPIC_API_KEY?.trim();
-  if (!anthropicKey) {
+  // Detect available LLM provider based on API keys
+  let provider: 'anthropic' | 'openai' | 'google';
+  try {
+    const { detectAvailableProvider } = await import('./pull.llm-generate');
+    provider = detectAvailableProvider();
+    console.log(chalk.gray(`\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`));
+  } catch (error: any) {
     console.error(
-      chalk.red('\n❌ Error: ANTHROPIC_API_KEY is required for the pull command')
+      chalk.red('\n❌ Error: No LLM provider API key found')
     );
     console.error(
       chalk.yellow(
-        '\nThe pull command uses AI to generate TypeScript files from your project configuration.'
+        '\nThe pull command requires AI to generate TypeScript files from your project configuration.'
       )
     );
-    console.error(chalk.yellow('This requires a valid Anthropic API key.\n'));
-    console.error(chalk.cyan('How to fix:'));
-    console.error(chalk.gray('  1. Get an API key from: https://console.anthropic.com/'));
-    console.error(chalk.gray('  2. Set it in your environment:'));
-    console.error(chalk.gray('     export ANTHROPIC_API_KEY=your_api_key_here'));
-    console.error(chalk.gray('  3. Or add it to your .env file:'));
-    console.error(chalk.gray('     ANTHROPIC_API_KEY=your_api_key_here\n'));
-    console.error(chalk.yellow('💡 Note: Make sure the value is not empty or whitespace-only'));
+    console.error(chalk.yellow('You must provide an API key for one of these providers:\n'));
+    console.error(chalk.cyan('Options:'));
+    console.error(chalk.gray('  • Anthropic: https://console.anthropic.com/'));
+    console.error(chalk.gray('    Set: ANTHROPIC_API_KEY=your_api_key_here\n'));
+    console.error(chalk.gray('  • OpenAI: https://platform.openai.com/'));
+    console.error(chalk.gray('    Set: OPENAI_API_KEY=your_api_key_here\n'));
+    console.error(chalk.gray('  • Google: https://ai.google.dev/'));
+    console.error(chalk.gray('    Set: GOOGLE_API_KEY=your_api_key_here\n'));
+    console.error(chalk.yellow('💡 Note: Set the key in your environment or .env file'));
     process.exit(1);
   }
 
@@ -926,11 +930,20 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // Step 2: Generate plan using LLM
     spinner.start('Generating file structure plan...');
     const { generatePlan } = await import('../codegen/plan-builder');
-    const { createModel } = await import('./pull.llm-generate');
+    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import('./pull.llm-generate');
+
+    // Get model and reasoning config based on detected provider
+    const selectedModel = getDefaultModelForProvider(provider);
+    const reasoningConfig = getModelConfigWithReasoning(provider);
 
     const modelSettings: ModelSettings = {
-      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+      model: selectedModel,
     };
+
+    if (options.debug) {
+      console.log(chalk.gray(`\n📍 Debug: Model selected: ${selectedModel}`));
+      console.log(chalk.gray(`📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`));
+    }
 
     const targetEnvironment = options.env || 'development';
     const plan = await generatePlan(projectData, patterns, modelSettings, createModel, targetEnvironment);
@@ -946,7 +959,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     const { generateFilesFromPlan } = await import('../codegen/unified-generator');
 
     const generationStart = Date.now();
-    await generateFilesFromPlan(plan, projectData, dirs, modelSettings, options.debug || false);
+    await generateFilesFromPlan(
+      plan,
+      projectData,
+      dirs,
+      modelSettings,
+      options.debug || false,
+      reasoningConfig // Pass reasoning config for enhanced code generation
+    );
     const generationDuration = Date.now() - generationStart;
 
     spinner.succeed('Project files generated');
