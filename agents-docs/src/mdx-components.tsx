@@ -29,6 +29,12 @@ import type { ComponentProps } from 'react';
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
 
+// Snippet component for MDX snippets
+// This is a placeholder that should be replaced by remark-mdx-snippets plugin
+function Snippet({ file }: { file: string }) {
+  return <div>Snippet: {file}</div>;
+}
+
 // Custom pre component that handles mermaid code blocks
 function pre(props: ComponentProps<typeof OriginalPre>) {
   const { children, ...rest } = props;
@@ -102,5 +108,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tab,
     Video,
     Mermaid,
+    Snippet,
   };
 }

@@ -87,7 +87,7 @@ async function NewCredentialsPage({
           <p className="mb-8">Create credentials for your MCP servers.</p>
           <p>
             Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is available.
-            <ExternalLink href={`${DOCS_BASE_URL}/quick-start/credentials`}>
+            <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
               Learn more
             </ExternalLink>
           </p>
