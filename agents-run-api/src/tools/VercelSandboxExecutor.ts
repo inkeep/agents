@@ -241,23 +241,16 @@ export class VercelSandboxExecutor {
 
   /**
    * Create .env file content from environment variables
+   * Note: Currently creates empty placeholders. Values will be populated in the future.
    */
   private createEnvFileContent(envVarNames: Set<string>): string {
     const envLines: string[] = [];
 
     for (const varName of envVarNames) {
-      const value = process.env[varName];
-      if (value !== undefined) {
-        // Escape quotes and newlines in values
-        const escapedValue = value.replace(/"/g, '\\"').replace(/\n/g, '\\n');
-        envLines.push(`${varName}="${escapedValue}"`);
-        logger.debug({ varName }, 'Adding environment variable to sandbox');
-      } else {
-        logger.warn(
-          { varName },
-          'Environment variable referenced in code but not found in host environment'
-        );
-      }
+      // TODO: Populate with actual values from secure source e.g. credentials manager
+      // For now, just create empty placeholders
+      envLines.push(`${varName}=""`);
+      logger.debug({ varName }, 'Adding environment variable placeholder to sandbox');
     }
 
     return envLines.join('\n');
@@ -417,7 +410,7 @@ export class VercelSandboxExecutor {
                 envVarCount: envVars.size,
                 envVars: Array.from(envVars),
               },
-              'Injecting environment variables into sandbox'
+              'Creating environment variable placeholders in sandbox'
             );
           }
         }
@@ -429,6 +422,7 @@ export class VercelSandboxExecutor {
           {
             functionId,
             runtime: this.config.runtime === 'typescript' ? 'tsx' : 'node',
+            hasEnvVars: envVars.size > 0,
           },
           `Execution code written to file for runtime ${this.config.runtime}`
         );
