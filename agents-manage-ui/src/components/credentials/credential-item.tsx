@@ -99,11 +99,11 @@ export function CredentialItem({
   createdAt,
   tenantId,
   projectId,
-  providerForIcon,
-}: Credential & {
+}: {
+  id: Credential['id'];
+  createdAt: Credential['createdAt'];
   tenantId: string;
   projectId: string;
-  providerForIcon: string;
 }) {
   const linkPath = `/${tenantId}/projects/${projectId}/credentials/${id}`;
 
@@ -113,7 +113,7 @@ export function CredentialItem({
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-md">
             <div className="flex items-center gap-3 min-w-0">
-              <ProviderIcon provider={providerForIcon} size={24} className="flex-shrink-0" />
+              <ProviderIcon provider={id} size={24} className="flex-shrink-0" />
               <span className="truncate">{id}</span>
             </div>
           </ItemCardTitle>
