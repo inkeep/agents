@@ -117,7 +117,7 @@ function processValidationError(
     type = 'node';
     nodeType = 'functionTool';
     nodeId = fullPath[1];
-    field = error.path.join('.') || (error as any).field || 'configuration';
+    field = error.path.slice(2).join('.') || (error as any).field || 'configuration';
   } else if (fullPath[0] === 'subAgents' && fullPath[1]) {
     type = 'node';
     nodeType = 'subAgent';
