@@ -2,18 +2,6 @@
 
 With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in a single platform.
 
-## Use Cases
-
-Inkeep Agents can operate as real-time **AI Chat Assistants**, for example:
-- a customer experience agent for customer support, technical docs, or in-app product copilot
-- an internal copilot to assist your support, sales, marketing, ops, and other teams
-
-Agents can also be used for **AI workflow automation** like:
-- Creating and updating knowledge bases, documentation, and blogs
-- Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
-
-To get started, see the [docs](https://docs.inkeep.com).
-
 ## Two ways to build
 
 ### No-Code Visual Builder
@@ -51,6 +39,18 @@ A code-first approach for building and managing multi-agent systems. Engineering
    ```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Agents in either format and switch or collaborate with others at any time.
+
+## Use Cases
+
+Inkeep Agents can operate as real-time **AI Chat Assistants**, for example:
+- a customer experience agent for customer support, technical docs, or in-app product copilot
+- an internal copilot to assist your support, sales, marketing, ops, and other teams
+
+Agents can also be used for **AI workflow automation** like:
+- Creating and updating knowledge bases, documentation, and blogs
+- Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
+
+To get started, see the [docs](https://docs.inkeep.com).
 
 ## Platform Overview
 
