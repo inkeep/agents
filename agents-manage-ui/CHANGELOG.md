@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+- Updated dependencies [1088fb1]
+  - @inkeep/agents-core@0.22.11
+  - @inkeep/agents-manage-api@0.22.11
+  - @inkeep/agents-run-api@0.22.11
+
 ## 0.22.9
 
 ### Patch Changes
