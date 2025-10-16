@@ -961,7 +961,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     const generationStart = Date.now();
     await generateFilesFromPlan(
       plan,
-      projectData,
+      plan.processedProjectData, // Use processed data with suffixed IDs
       dirs,
       modelSettings,
       options.debug || false,

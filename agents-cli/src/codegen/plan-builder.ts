@@ -49,6 +49,7 @@ export interface GenerationPlan {
   files: FileInfo[];
   variableRegistry: VariableNameRegistry;
   patterns: DetectedPatterns;
+  processedProjectData: FullProjectDefinition; // Include processed data with suffixed IDs
   metadata: {
     totalFiles: number;
     newFiles: number;
@@ -85,8 +86,11 @@ export async function generatePlan(
     }
   }
 
-  // Step 3: Generate variable names for all entities from new project data
-  const allEntities = collectAllEntities(projectData);
+  // Step 3: Apply ID suffixes to resolve conflicts at the data level
+  const processedProjectData = applyIdSuffixes(projectData, nameGenerator);
+  
+  // Step 4: Generate variable names for all entities from processed project data
+  const allEntities = collectAllEntities(processedProjectData);
   for (const entity of allEntities) {
     nameGenerator.generateVariableName(entity.id, entity.type, entity.data);
   }
@@ -102,9 +106,9 @@ export async function generatePlan(
   const model = createModel(modelSettings);
   const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), allEntities, fileNameMappings, targetEnvironment);
 
-  // Combine projectData and patterns for placeholder processing
+  // Combine processedProjectData and patterns for placeholder processing
   const promptData = {
-    projectData,
+    projectData: processedProjectData,
     patterns,
   };
 
@@ -127,6 +131,7 @@ export async function generatePlan(
     files: filePlan,
     variableRegistry: nameGenerator.getRegistry(),
     patterns,
+    processedProjectData,
     metadata: {
       totalFiles: filePlan.length,
       newFiles: filePlan.length, // TODO: Compare with existing files
@@ -593,6 +598,78 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
   });
 
   return files;
+}
+
+/**
+ * Apply ID suffixes to resolve conflicts at the data level
+ * This prevents data loss during collision resolution
+ */
+function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: VariableNameGenerator): FullProjectDefinition {
+  // Create a deep copy of project data
+  const processedData = JSON.parse(JSON.stringify(projectData));
+  
+  // Process agents
+  if (processedData.agents) {
+    const newAgents: Record<string, any> = {};
+    for (const [agentId, agentData] of Object.entries(processedData.agents)) {
+      const newAgentId = nameGenerator.generateUniqueId(agentId, 'agent');
+      const updatedAgentData = { ...agentData, id: newAgentId };
+      
+      // Process subAgents within this agent
+      if (updatedAgentData.subAgents) {
+        const newSubAgents: Record<string, any> = {};
+        for (const [subAgentId, subAgentData] of Object.entries(updatedAgentData.subAgents)) {
+          const newSubAgentId = nameGenerator.generateUniqueId(subAgentId, 'subAgent');
+          const updatedSubAgentData = { ...subAgentData, id: newSubAgentId };
+          newSubAgents[newSubAgentId] = updatedSubAgentData;
+          
+          // Update defaultSubAgentId reference if it matches this subAgent
+          if (updatedAgentData.defaultSubAgentId === subAgentId) {
+            updatedAgentData.defaultSubAgentId = newSubAgentId;
+          }
+        }
+        updatedAgentData.subAgents = newSubAgents;
+      }
+      
+      newAgents[newAgentId] = updatedAgentData;
+    }
+    processedData.agents = newAgents;
+  }
+  
+  // Process tools
+  if (processedData.tools) {
+    const newTools: Record<string, any> = {};
+    for (const [toolId, toolData] of Object.entries(processedData.tools)) {
+      const newToolId = nameGenerator.generateUniqueId(toolId, 'tool');
+      const updatedToolData = { ...toolData, id: newToolId };
+      newTools[newToolId] = updatedToolData;
+    }
+    processedData.tools = newTools;
+  }
+  
+  // Process data components
+  if (processedData.dataComponents) {
+    const newDataComponents: Record<string, any> = {};
+    for (const [compId, compData] of Object.entries(processedData.dataComponents)) {
+      const newCompId = nameGenerator.generateUniqueId(compId, 'dataComponent');
+      const updatedCompData = { ...compData, id: newCompId };
+      newDataComponents[newCompId] = updatedCompData;
+    }
+    processedData.dataComponents = newDataComponents;
+  }
+  
+  // Process artifact components
+  if (processedData.artifactComponents) {
+    const newArtifactComponents: Record<string, any> = {};
+    for (const [compId, compData] of Object.entries(processedData.artifactComponents)) {
+      const newCompId = nameGenerator.generateUniqueId(compId, 'artifactComponent');
+      const updatedCompData = { ...compData, id: newCompId };
+      newArtifactComponents[newCompId] = updatedCompData;
+    }
+    processedData.artifactComponents = newArtifactComponents;
+  }
+  
+  return processedData;
 }
 
 /**

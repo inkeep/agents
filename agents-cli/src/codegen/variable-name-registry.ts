@@ -28,6 +28,9 @@ export interface VariableNameRegistry {
 
   // Reverse lookup: variable name -> { id, type }
   usedNames: Map<string, { id: string; type: EntityType }>;
+  
+  // Track used IDs across all entity types to detect collisions
+  usedIds: Set<string>;
 }
 
 export interface NamingConventions {
@@ -46,6 +49,7 @@ export interface ConflictInfo {
   id: string;
   types: EntityType[];
   resolvedNames: Record<EntityType, string>;
+  resolvedIds: Record<EntityType, string>;
 }
 
 /**
@@ -83,9 +87,53 @@ export class VariableNameGenerator {
       credentials: new Map(),
       environments: new Map(),
       usedNames: new Map(),
+      usedIds: new Set(),
     };
     this.conventions = conventions;
     this.conflicts = [];
+  }
+
+  /**
+   * Generate unique ID for an entity
+   * Adds suffix when ID conflicts are detected across entity types
+   */
+  generateUniqueId(originalId: string, entityType: EntityType): string {
+    // Check if this ID is already used by any entity type
+    if (!this.registry.usedIds.has(originalId)) {
+      // No conflict - use original ID
+      this.registry.usedIds.add(originalId);
+      return originalId;
+    }
+
+    // Conflict detected - generate suffixed ID
+    const suffix = this.getIdSuffixForType(entityType);
+    const suffixedId = `${originalId}-${suffix.toLowerCase()}`;
+    
+    // If still conflict (rare), add number
+    let finalId = suffixedId;
+    let counter = 2;
+    while (this.registry.usedIds.has(finalId)) {
+      finalId = `${suffixedId}-${counter}`;
+      counter++;
+    }
+    
+    this.registry.usedIds.add(finalId);
+    
+    // Record the conflict for display
+    const existingConflict = this.conflicts.find((c) => c.id === originalId);
+    if (existingConflict) {
+      existingConflict.types.push(entityType);
+      existingConflict.resolvedIds[entityType] = finalId;
+    } else {
+      this.conflicts.push({
+        id: originalId,
+        types: [entityType],
+        resolvedNames: {} as Record<EntityType, string>,
+        resolvedIds: { [entityType]: finalId } as Record<EntityType, string>,
+      });
+    }
+    
+    return finalId;
   }
 
   /**
@@ -264,7 +312,7 @@ export class VariableNameGenerator {
   }
 
   /**
-   * Get appropriate suffix for entity type
+   * Get appropriate suffix for entity type (for variable names)
    */
   private getSuffixForType(entityType: EntityType): string {
     switch (entityType) {
@@ -286,6 +334,32 @@ export class VariableNameGenerator {
         return this.conventions.environmentSuffix || '';
       default:
         return '';
+    }
+  }
+
+  /**
+   * Get suffix for entity type (for ID suffixing)
+   */
+  private getIdSuffixForType(entityType: EntityType): string {
+    switch (entityType) {
+      case 'agent':
+        return 'agent';
+      case 'subAgent':
+        return 'subagent';
+      case 'tool':
+        return 'tool';
+      case 'dataComponent':
+        return 'data';
+      case 'artifactComponent':
+        return 'artifact';
+      case 'statusComponent':
+        return 'status';
+      case 'credential':
+        return 'cred';
+      case 'environment':
+        return 'env';
+      default:
+        return 'item';
     }
   }
 
