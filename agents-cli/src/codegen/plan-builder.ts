@@ -360,6 +360,7 @@ function formatVariableMappings(
 
   // Group entities by type
   const byType: Record<string, Array<{ id: string; variableName: string }>> = {
+    project: [],
     agent: [],
     subAgent: [],
     tool: [],
@@ -402,12 +403,15 @@ function formatFileNameMappings(
 
   // Group entities by type that have file mappings
   const byType: Record<string, Array<{ id: string; fileName: string; name?: string }>> = {
+    project: [],
     agent: [],
+    subAgent: [],
     tool: [],
     dataComponent: [],
     artifactComponent: [],
     statusComponent: [],
     credential: [],
+    environment: [],
   };
 
   for (const entity of allEntities) {
@@ -446,6 +450,8 @@ function getRegistryMap(
   entityType: EntityType
 ): Map<string, string> {
   switch (entityType) {
+    case 'project':
+      return registry.projects;
     case 'agent':
       return registry.agents;
     case 'subAgent':
@@ -460,6 +466,8 @@ function getRegistryMap(
       return registry.statusComponents;
     case 'credential':
       return registry.credentials;
+    case 'environment':
+      return registry.environments;
     default:
       throw new Error(`Unknown entity type: ${entityType}`);
   }
