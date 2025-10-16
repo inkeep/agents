@@ -747,8 +747,9 @@ function Flow({
             setEdges((prevEdges) =>
               prevEdges.map((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
-                const toolData = toolLookup[node.data.toolId];
-                const hasTool = toolData?.availableTools.some((tool) => tool.name === toolName);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
                 const hasDots = edge.source === subAgentId && hasTool;
                 return hasDots
                   ? {
@@ -759,11 +760,11 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const toolData = toolLookup[node.data.toolId];
-              // console.log('node.data.toolId', node.data.toolId);
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
 
               return node.data.id === subAgentId ||
-                toolData?.availableTools.some((tool) => tool.name === toolName)
+                toolData?.availableTools?.some((tool) => tool.name === toolName)
                 ? {
                     ...node,
                     data: { ...node.data, isDelegating: true },
@@ -777,8 +778,9 @@ function Flow({
           const { toolName } = data.details.data;
           setNodes((prevNodes) => {
             return prevNodes.map((node) => {
-              const toolData = toolLookup[node.data.toolId];
-              return toolData?.availableTools.some((tool) => tool.name === toolName)
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+              return toolData?.availableTools?.some((tool) => tool.name === toolName)
                 ? {
                     ...node,
                     data: { ...node.data, isExecuting: true },
