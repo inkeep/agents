@@ -6,9 +6,9 @@ icon: "LuArrowLeftRight"
 
 ## Push code to visual
 
-One of the key advantages of Inkeep is its **code-to-visual** workflow. You can define your agents in code, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface.
+With Inkeep, you can define your agents in code, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface. You can switch back to code any time.
 
-We'll walk through the process of pushing your code to the Visual Builder in 5 easy steps.
+Lets walk through the process.
 
 ### Step 1: Install the Inkeep CLI
 
@@ -52,33 +52,29 @@ inkeep push
 
 ### Step 5: Chat with your agent
 
-Refresh http://localhost:3000, switch to the Docs Assistant project, navigate to the Docs Assistant agent, click **Try it**, and ask a question about Inkeep.
+Refresh http://localhost:3000, switch to the **Docs Assistant** project (in the bottom left).
+
+Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a question about Inkeep.
 
 <img src="/gifs/docs-assistant.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
 
+
+
 ## Pull code from visual
 
-You can also pull code from the Visual Builder to your local project using `inkeep pull`.
-
-```bash
-inkeep pull
-```
+Make some changes, like changing a prompt, and lets walk through `inkeep pull`. The `inkeep pull` command uses AI to sync your TypeScript files to the state of your Visual Builder.
 
 <Note>
-**Prerequisites:** The `inkeep pull` command uses AI to generate TypeScript files from your project configuration. You must have an `ANTHROPIC_API_KEY` environment variable set before running the pull command.
+**Prerequisites:** urrently, we currently only support Anthropic. Support for other providers will be coming soon.
 
-```bash
-export ANTHROPIC_API_KEY=your_api_key_here
-```
+If you don't already have an ANTHROPIC_API_KEY, you can get one from the [Anthropic Console](https://console.anthropic.com/).
 
-Or add it to your `.env` file:
-```bash
+Then add it to your `.env` file:
+```txt .env
 ANTHROPIC_API_KEY=your_api_key_here
 ```
 
-Get your API key from the [Anthropic Console](https://console.anthropic.com/).
 </Note>
-
 
 ### Step 1: Make an edit visually
 
