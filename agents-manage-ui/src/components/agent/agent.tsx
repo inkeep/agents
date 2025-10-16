@@ -838,7 +838,7 @@ function Flow({
       document.removeEventListener('ikp-data-operation', onDataOperation);
       document.removeEventListener('ikp-aborted', onCompletion);
     };
-  }, [setEdges]);
+  }, [setEdges, toolLookup]);
 
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
