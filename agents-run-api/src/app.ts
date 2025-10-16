@@ -19,6 +19,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
+import dataComponentPreviewRoutes from './routes/dataComponentPreview';
 import mcpRoutes from './routes/mcp';
 import type { SandboxConfig } from './types/execution-context';
 
@@ -263,6 +264,7 @@ function createExecutionHono(
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);
   app.route('/agents', agentRoutes);
+  app.route('/v1', dataComponentPreviewRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

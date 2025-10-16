@@ -5,6 +5,7 @@ import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
+import type { DataComponent } from '@/lib/api/data-components';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
@@ -14,6 +15,7 @@ interface PlaygroundProps {
   tenantId: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
+  dataComponentLookup?: Record<string, DataComponent>;
 }
 
 export const Playground = ({
@@ -22,6 +24,7 @@ export const Playground = ({
   tenantId,
   closeSidePane,
   setShowPlayground,
+  dataComponentLookup = {},
 }: PlaygroundProps) => {
   const [conversationId, setConversationId] = useState<string>(nanoid());
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
@@ -83,6 +86,7 @@ export const Playground = ({
               tenantId={tenantId}
               customHeaders={customHeaders}
               chatActivities={chatActivities}
+              dataComponentLookup={dataComponentLookup}
               key={JSON.stringify(customHeaders)}
             />
           </ResizablePanel>

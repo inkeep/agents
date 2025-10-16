@@ -766,6 +766,7 @@ function Flow({
           tenantId={tenantId}
           setShowPlayground={setShowPlayground}
           closeSidePane={closeSidePane}
+          dataComponentLookup={dataComponentLookup}
         />
       )}
     </div>

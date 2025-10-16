@@ -71,6 +71,13 @@
       "when": 1760480808208,
       "tag": "0009_old_black_cat",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1760564153811,
+      "tag": "0010_wet_vampiro",
+      "breakpoints": true
     }
   ]
 }
