@@ -3,40 +3,10 @@ import type {
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
-  AgentArtifactComponentApiInsertSchema,
-  AgentArtifactComponentApiSelectSchema,
-  AgentArtifactComponentApiUpdateSchema,
-  AgentArtifactComponentInsertSchema,
-  AgentArtifactComponentSelectSchema,
-  AgentArtifactComponentUpdateSchema,
-  AgentDataComponentApiInsertSchema,
-  AgentDataComponentApiSelectSchema,
-  AgentDataComponentApiUpdateSchema,
-  AgentDataComponentInsertSchema,
-  AgentDataComponentSelectSchema,
-  AgentDataComponentUpdateSchema,
-  AgentGraphApiInsertSchema,
-  AgentGraphApiSelectSchema,
-  AgentGraphApiUpdateSchema,
-  AgentGraphInsertSchema,
-  AgentGraphSelectSchema,
-  AgentGraphUpdateSchema,
   AgentInsertSchema,
-  AgentRelationApiInsertSchema,
-  AgentRelationApiSelectSchema,
-  AgentRelationApiUpdateSchema,
-  AgentRelationInsertSchema,
-  AgentRelationQuerySchema,
-  AgentRelationSelectSchema,
-  AgentRelationUpdateSchema,
   AgentSelectSchema,
-  AgentToolRelationApiInsertSchema,
-  AgentToolRelationApiSelectSchema,
-  AgentToolRelationApiUpdateSchema,
-  AgentToolRelationInsertSchema,
-  AgentToolRelationSelectSchema,
-  AgentToolRelationUpdateSchema,
   AgentUpdateSchema,
+  AgentWithinContextOfProjectSchema,
   AllAgentSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -85,15 +55,23 @@ import type {
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
   ExternalAgentInsertSchema,
-  ExternalAgentRelationApiInsertSchema,
-  ExternalAgentRelationInsertSchema,
   ExternalAgentSelectSchema,
   ExternalAgentUpdateSchema,
+  ExternalSubAgentRelationApiInsertSchema,
+  ExternalSubAgentRelationInsertSchema,
   FetchConfigSchema,
   FetchDefinitionSchema,
-  FullGraphAgentInsertSchema,
-  FullGraphDefinitionSchema,
+  FullAgentAgentInsertSchema,
   FullProjectDefinitionSchema,
+  FunctionApiInsertSchema,
+  FunctionApiSelectSchema,
+  FunctionApiUpdateSchema,
+  FunctionInsertSchema,
+  FunctionSelectSchema,
+  FunctionToolApiInsertSchema,
+  FunctionToolApiSelectSchema,
+  FunctionToolApiUpdateSchema,
+  FunctionUpdateSchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -115,6 +93,37 @@ import type {
   ProjectInsertSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  SubAgentApiInsertSchema,
+  SubAgentApiSelectSchema,
+  SubAgentApiUpdateSchema,
+  SubAgentArtifactComponentApiInsertSchema,
+  SubAgentArtifactComponentApiSelectSchema,
+  SubAgentArtifactComponentApiUpdateSchema,
+  SubAgentArtifactComponentInsertSchema,
+  SubAgentArtifactComponentSelectSchema,
+  SubAgentArtifactComponentUpdateSchema,
+  SubAgentDataComponentApiInsertSchema,
+  SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentApiUpdateSchema,
+  SubAgentDataComponentInsertSchema,
+  SubAgentDataComponentSelectSchema,
+  SubAgentDataComponentUpdateSchema,
+  SubAgentInsertSchema,
+  SubAgentRelationApiInsertSchema,
+  SubAgentRelationApiSelectSchema,
+  SubAgentRelationApiUpdateSchema,
+  SubAgentRelationInsertSchema,
+  SubAgentRelationQuerySchema,
+  SubAgentRelationSelectSchema,
+  SubAgentRelationUpdateSchema,
+  SubAgentSelectSchema,
+  SubAgentToolRelationApiInsertSchema,
+  SubAgentToolRelationApiSelectSchema,
+  SubAgentToolRelationApiUpdateSchema,
+  SubAgentToolRelationInsertSchema,
+  SubAgentToolRelationSelectSchema,
+  SubAgentToolRelationUpdateSchema,
+  SubAgentUpdateSchema,
   TaskApiInsertSchema,
   TaskApiSelectSchema,
   TaskApiUpdateSchema,
@@ -135,7 +144,26 @@ import type {
   ToolUpdateSchema,
 } from '../validation/schemas';
 
-// === Agent Types ===
+export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
+export type SubAgentInsert = z.infer<typeof SubAgentInsertSchema>;
+export type SubAgentUpdate = z.infer<typeof SubAgentUpdateSchema>;
+export type SubAgentApiSelect = z.infer<typeof SubAgentApiSelectSchema>;
+export type SubAgentApiInsert = z.infer<typeof SubAgentApiInsertSchema>;
+export type SubAgentApiUpdate = z.infer<typeof SubAgentApiUpdateSchema>;
+
+export type SubAgentRelationSelect = z.infer<typeof SubAgentRelationSelectSchema>;
+export type SubAgentRelationInsert = z.infer<typeof SubAgentRelationInsertSchema>;
+export type SubAgentRelationUpdate = z.infer<typeof SubAgentRelationUpdateSchema>;
+export type SubAgentRelationApiSelect = z.infer<typeof SubAgentRelationApiSelectSchema>;
+export type SubAgentRelationApiInsert = z.infer<typeof SubAgentRelationApiInsertSchema>;
+export type SubAgentRelationApiUpdate = z.infer<typeof SubAgentRelationApiUpdateSchema>;
+export type SubAgentRelationQuery = z.infer<typeof SubAgentRelationQuerySchema>;
+
+export type ExternalSubAgentRelationInsert = z.infer<typeof ExternalSubAgentRelationInsertSchema>;
+export type ExternalSubAgentRelationApiInsert = z.infer<
+  typeof ExternalSubAgentRelationApiInsertSchema
+>;
+
 export type AgentSelect = z.infer<typeof AgentSelectSchema>;
 export type AgentInsert = z.infer<typeof AgentInsertSchema>;
 export type AgentUpdate = z.infer<typeof AgentUpdateSchema>;
@@ -143,28 +171,6 @@ export type AgentApiSelect = z.infer<typeof AgentApiSelectSchema>;
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type AgentApiUpdate = z.infer<typeof AgentApiUpdateSchema>;
 
-// === Agent Relation Types ===
-export type AgentRelationSelect = z.infer<typeof AgentRelationSelectSchema>;
-export type AgentRelationInsert = z.infer<typeof AgentRelationInsertSchema>;
-export type AgentRelationUpdate = z.infer<typeof AgentRelationUpdateSchema>;
-export type AgentRelationApiSelect = z.infer<typeof AgentRelationApiSelectSchema>;
-export type AgentRelationApiInsert = z.infer<typeof AgentRelationApiInsertSchema>;
-export type AgentRelationApiUpdate = z.infer<typeof AgentRelationApiUpdateSchema>;
-export type AgentRelationQuery = z.infer<typeof AgentRelationQuerySchema>;
-
-// === External Agent Relation Types ===
-export type ExternalAgentRelationInsert = z.infer<typeof ExternalAgentRelationInsertSchema>;
-export type ExternalAgentRelationApiInsert = z.infer<typeof ExternalAgentRelationApiInsertSchema>;
-
-// === Agent Graph Types ===
-export type AgentGraphSelect = z.infer<typeof AgentGraphSelectSchema>;
-export type AgentGraphInsert = z.infer<typeof AgentGraphInsertSchema>;
-export type AgentGraphUpdate = z.infer<typeof AgentGraphUpdateSchema>;
-export type AgentGraphApiSelect = z.infer<typeof AgentGraphApiSelectSchema>;
-export type AgentGraphApiInsert = z.infer<typeof AgentGraphApiInsertSchema>;
-export type AgentGraphApiUpdate = z.infer<typeof AgentGraphApiUpdateSchema>;
-
-// === Task Types ===
 export type TaskSelect = z.infer<typeof TaskSelectSchema>;
 export type TaskInsert = z.infer<typeof TaskInsertSchema>;
 export type TaskUpdate = z.infer<typeof TaskUpdateSchema>;
@@ -172,7 +178,6 @@ export type TaskApiSelect = z.infer<typeof TaskApiSelectSchema>;
 export type TaskApiInsert = z.infer<typeof TaskApiInsertSchema>;
 export type TaskApiUpdate = z.infer<typeof TaskApiUpdateSchema>;
 
-// === Task Relation Types ===
 export type TaskRelationSelect = z.infer<typeof TaskRelationSelectSchema>;
 export type TaskRelationInsert = z.infer<typeof TaskRelationInsertSchema>;
 export type TaskRelationUpdate = z.infer<typeof TaskRelationUpdateSchema>;
@@ -180,7 +185,6 @@ export type TaskRelationApiSelect = z.infer<typeof TaskRelationApiSelectSchema>;
 export type TaskRelationApiInsert = z.infer<typeof TaskRelationApiInsertSchema>;
 export type TaskRelationApiUpdate = z.infer<typeof TaskRelationApiUpdateSchema>;
 
-// === Tool Types ===
 export type ToolSelect = z.infer<typeof ToolSelectSchema>;
 export type ToolInsert = z.infer<typeof ToolInsertSchema>;
 export type ToolUpdate = z.infer<typeof ToolUpdateSchema>;
@@ -190,7 +194,17 @@ export type ToolApiUpdate = z.infer<typeof ToolApiUpdateSchema>;
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
 
-// === Conversation Types ===
+export type FunctionSelect = z.infer<typeof FunctionSelectSchema>;
+export type FunctionInsert = z.infer<typeof FunctionInsertSchema>;
+export type FunctionUpdate = z.infer<typeof FunctionUpdateSchema>;
+export type FunctionApiSelect = z.infer<typeof FunctionApiSelectSchema>;
+export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
+export type FunctionApiUpdate = z.infer<typeof FunctionApiUpdateSchema>;
+
+export type FunctionToolApiSelect = z.infer<typeof FunctionToolApiSelectSchema>;
+export type FunctionToolApiInsert = z.infer<typeof FunctionToolApiInsertSchema>;
+export type FunctionToolApiUpdate = z.infer<typeof FunctionToolApiUpdateSchema>;
+
 export type ConversationSelect = z.infer<typeof ConversationSelectSchema>;
 export type ConversationInsert = z.infer<typeof ConversationInsertSchema>;
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
@@ -198,7 +212,6 @@ export type ConversationApiSelect = z.infer<typeof ConversationApiSelectSchema>;
 export type ConversationApiInsert = z.infer<typeof ConversationApiInsertSchema>;
 export type ConversationApiUpdate = z.infer<typeof ConversationApiUpdateSchema>;
 
-// === Message Types ===
 export type MessageSelect = z.infer<typeof MessageSelectSchema>;
 export type MessageInsert = z.infer<typeof MessageInsertSchema>;
 export type MessageUpdate = z.infer<typeof MessageUpdateSchema>;
@@ -206,7 +219,6 @@ export type MessageApiSelect = z.infer<typeof MessageApiSelectSchema>;
 export type MessageApiInsert = z.infer<typeof MessageApiInsertSchema>;
 export type MessageApiUpdate = z.infer<typeof MessageApiUpdateSchema>;
 
-// === Context Config Types ===
 export type ContextConfigSelect = z.infer<typeof ContextConfigSelectSchema>;
 export type ContextConfigInsert = z.infer<typeof ContextConfigInsertSchema>;
 export type ContextConfigUpdate = z.infer<typeof ContextConfigUpdateSchema>;
@@ -216,7 +228,6 @@ export type ContextConfigApiUpdate = z.infer<typeof ContextConfigApiUpdateSchema
 export type FetchDefinition = z.infer<typeof FetchDefinitionSchema>;
 export type FetchConfig = z.infer<typeof FetchConfigSchema>;
 
-// === Context Cache Types ===
 export type ContextCacheSelect = z.infer<typeof ContextCacheSelectSchema>;
 export type ContextCacheInsert = z.infer<typeof ContextCacheInsertSchema>;
 export type ContextCacheUpdate = z.infer<typeof ContextCacheUpdateSchema>;
@@ -224,7 +235,6 @@ export type ContextCacheApiSelect = z.infer<typeof ContextCacheApiSelectSchema>;
 export type ContextCacheApiInsert = z.infer<typeof ContextCacheApiInsertSchema>;
 export type ContextCacheApiUpdate = z.infer<typeof ContextCacheApiUpdateSchema>;
 
-// === Data Component Types ===
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
 export type DataComponentUpdate = z.infer<typeof DataComponentUpdateSchema>;
@@ -232,16 +242,14 @@ export type DataComponentApiSelect = z.infer<typeof DataComponentApiSelectSchema
 export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema>;
 export type DataComponentApiUpdate = z.infer<typeof DataComponentApiUpdateSchema>;
 
-// === Agent Data Component Types ===
 
-export type AgentDataComponentSelect = z.infer<typeof AgentDataComponentSelectSchema>;
-export type AgentDataComponentInsert = z.infer<typeof AgentDataComponentInsertSchema>;
-export type AgentDataComponentUpdate = z.infer<typeof AgentDataComponentUpdateSchema>;
-export type AgentDataComponentApiSelect = z.infer<typeof AgentDataComponentApiSelectSchema>;
-export type AgentDataComponentApiInsert = z.infer<typeof AgentDataComponentApiInsertSchema>;
-export type AgentDataComponentApiUpdate = z.infer<typeof AgentDataComponentApiUpdateSchema>;
+export type SubAgentDataComponentSelect = z.infer<typeof SubAgentDataComponentSelectSchema>;
+export type SubAgentDataComponentInsert = z.infer<typeof SubAgentDataComponentInsertSchema>;
+export type SubAgentDataComponentUpdate = z.infer<typeof SubAgentDataComponentUpdateSchema>;
+export type SubAgentDataComponentApiSelect = z.infer<typeof SubAgentDataComponentApiSelectSchema>;
+export type SubAgentDataComponentApiInsert = z.infer<typeof SubAgentDataComponentApiInsertSchema>;
+export type SubAgentDataComponentApiUpdate = z.infer<typeof SubAgentDataComponentApiUpdateSchema>;
 
-// === Artifact Component Types ===
 export type ArtifactComponentSelect = z.infer<typeof ArtifactComponentSelectSchema>;
 export type ArtifactComponentInsert = z.infer<typeof ArtifactComponentInsertSchema>;
 export type ArtifactComponentUpdate = z.infer<typeof ArtifactComponentUpdateSchema>;
@@ -249,24 +257,27 @@ export type ArtifactComponentApiSelect = z.infer<typeof ArtifactComponentApiSele
 export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;
 export type ArtifactComponentApiUpdate = z.infer<typeof ArtifactComponentApiUpdateSchema>;
 
-// === Agent Artifact Component Types ===
-export type AgentArtifactComponentSelect = z.infer<typeof AgentArtifactComponentSelectSchema>;
-export type AgentArtifactComponentInsert = z.infer<typeof AgentArtifactComponentInsertSchema>;
-export type AgentArtifactComponentUpdate = z.infer<typeof AgentArtifactComponentUpdateSchema>;
-export type AgentArtifactComponentApiSelect = z.infer<typeof AgentArtifactComponentApiSelectSchema>;
-export type AgentArtifactComponentApiInsert = z.infer<typeof AgentArtifactComponentApiInsertSchema>;
-export type AgentArtifactComponentApiUpdate = z.infer<typeof AgentArtifactComponentApiUpdateSchema>;
+export type SubAgentArtifactComponentSelect = z.infer<typeof SubAgentArtifactComponentSelectSchema>;
+export type SubAgentArtifactComponentInsert = z.infer<typeof SubAgentArtifactComponentInsertSchema>;
+export type SubAgentArtifactComponentUpdate = z.infer<typeof SubAgentArtifactComponentUpdateSchema>;
+export type SubAgentArtifactComponentApiSelect = z.infer<
+  typeof SubAgentArtifactComponentApiSelectSchema
+>;
+export type SubAgentArtifactComponentApiInsert = z.infer<
+  typeof SubAgentArtifactComponentApiInsertSchema
+>;
+export type SubAgentArtifactComponentApiUpdate = z.infer<
+  typeof SubAgentArtifactComponentApiUpdateSchema
+>;
 
-// === External Agent Types ===
 export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;
 export type ExternalAgentUpdate = z.infer<typeof ExternalAgentUpdateSchema>;
 export type ExternalAgentApiSelect = z.infer<typeof ExternalAgentApiSelectSchema>;
-export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
+export type ExternalSubAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type ExternalAgentApiUpdate = z.infer<typeof ExternalAgentApiUpdateSchema>;
 export type AllAgentSelect = z.infer<typeof AllAgentSchema>;
 
-// === API Key Types ===
 export type ApiKeySelect = z.infer<typeof ApiKeySelectSchema>;
 export type ApiKeyInsert = z.infer<typeof ApiKeyInsertSchema>;
 export type ApiKeyUpdate = z.infer<typeof ApiKeyUpdateSchema>;
@@ -275,7 +286,6 @@ export type ApiKeyApiInsert = z.infer<typeof ApiKeyApiInsertSchema>;
 export type ApiKeyApiUpdate = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 
-// === Credential Reference Types ===
 export type CredentialReferenceSelect = z.infer<typeof CredentialReferenceSelectSchema>;
 export type CredentialReferenceInsert = z.infer<typeof CredentialReferenceInsertSchema>;
 export type CredentialReferenceUpdate = z.infer<typeof CredentialReferenceUpdateSchema>;
@@ -283,15 +293,13 @@ export type CredentialReferenceApiSelect = z.infer<typeof CredentialReferenceApi
 export type CredentialReferenceApiInsert = z.infer<typeof CredentialReferenceApiInsertSchema>;
 export type CredentialReferenceApiUpdate = z.infer<typeof CredentialReferenceApiUpdateSchema>;
 
-// === Agent Tool Relation Types ===
-export type AgentToolRelationSelect = z.infer<typeof AgentToolRelationSelectSchema>;
-export type AgentToolRelationInsert = z.infer<typeof AgentToolRelationInsertSchema>;
-export type AgentToolRelationUpdate = z.infer<typeof AgentToolRelationUpdateSchema>;
-export type AgentToolRelationApiSelect = z.infer<typeof AgentToolRelationApiSelectSchema>;
-export type AgentToolRelationApiInsert = z.infer<typeof AgentToolRelationApiInsertSchema>;
-export type AgentToolRelationApiUpdate = z.infer<typeof AgentToolRelationApiUpdateSchema>;
+export type SubAgentToolRelationSelect = z.infer<typeof SubAgentToolRelationSelectSchema>;
+export type SubAgentToolRelationInsert = z.infer<typeof SubAgentToolRelationInsertSchema>;
+export type SubAgentToolRelationUpdate = z.infer<typeof SubAgentToolRelationUpdateSchema>;
+export type SubAgentToolRelationApiSelect = z.infer<typeof SubAgentToolRelationApiSelectSchema>;
+export type SubAgentToolRelationApiInsert = z.infer<typeof SubAgentToolRelationApiInsertSchema>;
+export type SubAgentToolRelationApiUpdate = z.infer<typeof SubAgentToolRelationApiUpdateSchema>;
 
-// === Ledger Artifact Types ===
 export type LedgerArtifactSelect = z.infer<typeof LedgerArtifactSelectSchema>;
 export type LedgerArtifactInsert = z.infer<typeof LedgerArtifactInsertSchema>;
 export type LedgerArtifactUpdate = z.infer<typeof LedgerArtifactUpdateSchema>;
@@ -299,19 +307,18 @@ export type LedgerArtifactApiSelect = z.infer<typeof LedgerArtifactApiSelectSche
 export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSchema>;
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
-// === Full Graph Types ===
-export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
-export type FullGraphAgentInsert = z.infer<typeof FullGraphAgentInsertSchema>;
+export type FullAgentDefinition = z.infer<typeof AgentWithinContextOfProjectSchema>;
+export type FullAgentAgentInsert = z.infer<typeof FullAgentAgentInsertSchema>;
 
-// === Full Project Types ===
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
-// Type helpers for better TypeScript support
 export type CanUseItem = {
   toolId: string;
   toolSelection?: string[] | null;
+  headers?: Record<string, string> | null;
+  agentToolRelationId?: string;
 };
 
-export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
+export type InternalSubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
   canUse: CanUseItem[];
   dataComponents?: string[];
   artifactComponents?: string[];
@@ -319,10 +326,9 @@ export type InternalAgentDefinition = z.infer<typeof AgentApiInsertSchema> & {
   canDelegateTo?: string[];
 };
 
-export type AgentDefinition = InternalAgentDefinition | ExternalAgentApiInsert;
+export type SubAgentDefinition = InternalSubAgentDefinition | ExternalSubAgentApiInsert;
 export type ToolDefinition = ToolApiInsert & { credentialReferenceId?: string | null };
 
-// === Project Types ===
 export type ProjectSelect = z.infer<typeof ProjectSelectSchema>;
 export type ProjectInsert = z.infer<typeof ProjectInsertSchema>;
 export type ProjectUpdate = z.infer<typeof ProjectUpdateSchema>;
@@ -330,14 +336,12 @@ export type ProjectApiSelect = z.infer<typeof ProjectApiSelectSchema>;
 export type ProjectApiInsert = z.infer<typeof ProjectApiInsertSchema>;
 export type ProjectApiUpdate = z.infer<typeof ProjectApiUpdateSchema>;
 
-// === Pagination Types ===
 export type Pagination = z.infer<typeof PaginationSchema>;
 
-// === Summary Event Types ===
 export interface SummaryEvent {
   type: string; // Summary type to distinguish different summary categories (e.g., 'progress', 'status', 'completion')
   label: string; // LLM-generated label for the UI (use sentence case)
   details?: {
-    [key: string]: any; // Structured data from graph session
+    [key: string]: any; // Structured data from agent session
   };
 }

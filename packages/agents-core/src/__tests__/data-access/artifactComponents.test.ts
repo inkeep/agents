@@ -8,7 +8,7 @@ import {
   getAgentsUsingArtifactComponent,
   getArtifactComponentById,
   getArtifactComponentsForAgent,
-  graphHasArtifactComponents,
+  agentHasArtifactComponents,
   isArtifactComponentAssociatedWithAgent,
   listArtifactComponents,
   listArtifactComponentsPaginated,
@@ -23,7 +23,7 @@ describe('Artifact Components Data Access', () => {
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
-  const testGraphId = 'test-graph';
+  const testSubAgentId = 'test-sub-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -38,8 +38,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const mockQuery = {
@@ -254,8 +259,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const expectedComponent = {
@@ -288,8 +298,13 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         name: 'Test Component',
         description: 'Test artifact component',
-        summaryProps: { type: 'summary' },
-        fullProps: { type: 'full' },
+        props: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', inPreview: true },
+            description: { type: 'string', inPreview: false },
+          },
+        },
       };
 
       const expectedComponent = {
@@ -472,8 +487,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -489,7 +504,7 @@ describe('Artifact Components Data Access', () => {
         id: expect.any(String),
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
+        subAgentId: testSubAgentId,
         artifactComponentId: componentId,
         createdAt: expect.any(String),
       };
@@ -509,8 +524,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -539,8 +554,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -570,8 +585,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -587,8 +602,8 @@ describe('Artifact Components Data Access', () => {
     it('should get all agents using a specific artifact component', async () => {
       const componentId = 'artifact-1';
       const expectedAgents = [
-        { agentId: 'agent-1', createdAt: '2024-01-01T00:00:00Z' },
-        { agentId: 'agent-2', createdAt: '2024-01-02T00:00:00Z' },
+        { subAgentId: 'agent-1', createdAt: '2024-01-01T00:00:00Z' },
+        { subAgentId: 'agent-2', createdAt: '2024-01-02T00:00:00Z' },
       ];
 
       const mockSelect = vi.fn().mockReturnValue({
@@ -638,8 +653,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -667,8 +682,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
         artifactComponentId: componentId,
       });
@@ -677,8 +692,8 @@ describe('Artifact Components Data Access', () => {
     });
   });
 
-  describe('graphHasArtifactComponents', () => {
-    it('should return true when graph has artifact components', async () => {
+  describe('agentHasArtifactComponents', () => {
+    it('should return true when agent has artifact components', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -696,18 +711,18 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
       expect(result).toBe(true);
     });
 
-    it('should return false when graph has no artifact components', async () => {
+    it('should return false when agent has no artifact components', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -725,11 +740,11 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
@@ -754,11 +769,11 @@ describe('Artifact Components Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await graphHasArtifactComponents(mockDb)({
+      const result = await agentHasArtifactComponents(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
       });
 
@@ -852,8 +867,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 
@@ -877,8 +892,8 @@ describe('Artifact Components Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
           agentId: testAgentId,
+          subAgentId: testSubAgentId,
         },
       });
 

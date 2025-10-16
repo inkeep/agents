@@ -1,5 +1,375 @@
 # @inkeep/agents-manage-api
 
+## 0.23.0
+
+### Minor Changes
+
+- f878545: OAuth MCP Connections now use nango mcp-generic
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+- Updated dependencies [f878545]
+- Updated dependencies [e604038]
+  - @inkeep/agents-core@0.23.0
+
+## 0.22.12
+
+### Patch Changes
+
+- 79b1e87: fixed deadlinks
+- Updated dependencies [79b1e87]
+  - @inkeep/agents-core@0.22.12
+
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+- Updated dependencies [1088fb1]
+  - @inkeep/agents-core@0.22.11
+
+## 0.22.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.22.9
+
+## 0.22.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.22.8
+
+## 0.22.7
+
+### Patch Changes
+
+- 550d251: updated inkeep pull :)
+- Updated dependencies [550d251]
+  - @inkeep/agents-core@0.22.7
+
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+- Updated dependencies [28018a0]
+  - @inkeep/agents-core@0.22.6
+
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+- Updated dependencies [e5fb3a4]
+  - @inkeep/agents-core@0.22.5
+
+## 0.22.4
+
+### Patch Changes
+
+- e8ba7de: Add background version check to push and pull commands
+- 0b8c264: Add self-update command to CLI with automatic package manager detection and version checking
+- b788bd8: Use password entry instead of plaintext entry
+- Updated dependencies [e8ba7de]
+- Updated dependencies [0b8c264]
+- Updated dependencies [b788bd8]
+- Updated dependencies [f784f72]
+  - @inkeep/agents-core@0.22.4
+
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+- Updated dependencies [d00742f]
+  - @inkeep/agents-core@0.22.3
+
+## 0.22.2
+
+### Patch Changes
+
+- abdf614: Default model configs
+- Updated dependencies [abdf614]
+  - @inkeep/agents-core@0.22.2
+
+## 0.22.1
+
+### Patch Changes
+
+- Updated dependencies [ba2a297]
+  - @inkeep/agents-core@0.22.1
+
+## 0.22.0
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+- Updated dependencies [8a10d65]
+  - @inkeep/agents-core@0.22.0
+
+## 0.21.1
+
+### Patch Changes
+
+- 4815d3a: create bearer in keychain
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+- Updated dependencies [4815d3a]
+- Updated dependencies [1aefe88]
+- Updated dependencies [eb0ffa2]
+  - @inkeep/agents-core@0.21.1
+
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+- Updated dependencies [88ff25c]
+- Updated dependencies [43cd2f6]
+  - @inkeep/agents-core@0.21.0
+
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+- Updated dependencies [1e5188d]
+  - @inkeep/agents-core@0.20.1
+
+## 0.20.0
+
+### Patch Changes
+
+- Updated dependencies [fb99085]
+  - @inkeep/agents-core@0.20.0
+
+## 0.19.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.19.9
+
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+- Updated dependencies [e9048e2]
+  - @inkeep/agents-core@0.19.8
+
+## 0.19.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- Updated dependencies [76fb9aa]
+- Updated dependencies [0d0166f]
+  - @inkeep/agents-core@0.19.6
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+- Updated dependencies [22b96c4]
+  - @inkeep/agents-core@0.19.5
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+- Updated dependencies [7a3fc7f]
+  - @inkeep/agents-core@0.19.4
+
+## 0.19.3
+
+### Patch Changes
+
+- Updated dependencies [079a18a]
+  - @inkeep/agents-core@0.19.3
+
+## 0.19.2
+
+### Patch Changes
+
+- Updated dependencies [717d483]
+  - @inkeep/agents-core@0.19.2
+
+## 0.19.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.19.1
+
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- Updated dependencies [849c6e9]
+- Updated dependencies [71a9f03]
+  - @inkeep/agents-core@0.19.0
+
+## 0.18.1
+
+### Patch Changes
+
+- Updated dependencies [71892f2]
+  - @inkeep/agents-core@0.18.1
+
+## 0.18.0
+
+### Minor Changes
+
+- 1600323: rename agents to subAgents within the agents-sdk
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+- 9bdf630: Fixed streamed non final output text tracking
+- Updated dependencies [81d5a7e]
+- Updated dependencies [2165d9b]
+- Updated dependencies [1600323]
+- Updated dependencies [3684a31]
+- Updated dependencies [9bdf630]
+  - @inkeep/agents-core@0.18.0
+
+## 0.17.0
+
+### Patch Changes
+
+- Updated dependencies [94c0c18]
+  - @inkeep/agents-core@0.17.0
+
+## 0.16.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.16.3
+
+## 0.16.2
+
+### Patch Changes
+
+- Updated dependencies [4df3308]
+  - @inkeep/agents-core@0.16.2
+
+## 0.16.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.16.1
+
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+- Updated dependencies [5c3bbec]
+- Updated dependencies [35e6c9e]
+  - @inkeep/agents-core@0.16.0
+
+## 0.15.0
+
+### Minor Changes
+
+- ad5528c: Context config route changes
+
+### Patch Changes
+
+- Updated dependencies [ad5528c]
+  - @inkeep/agents-core@0.15.0
+
+## 0.14.16
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.16
+
+## 0.14.15
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.15
+
+## 0.14.14
+
+### Patch Changes
+
+- Updated dependencies [8fe8c3e]
+  - @inkeep/agents-core@0.14.14
+
+## 0.14.13
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+- Updated dependencies [a05d397]
+  - @inkeep/agents-core@0.14.12
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+- Updated dependencies [ef0a682]
+  - @inkeep/agents-core@0.14.11
+
+## 0.14.10
+
+### Patch Changes
+
+- Updated dependencies [cee3fa1]
+  - @inkeep/agents-core@0.14.10
+
+## 0.14.9
+
+### Patch Changes
+
+- Updated dependencies [c7194ce]
+  - @inkeep/agents-core@0.14.9
+
+## 0.14.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.14.8
+
+## 0.14.7
+
+### Patch Changes
+
+- Updated dependencies [d891309]
+- Updated dependencies [735d238]
+  - @inkeep/agents-core@0.14.7
+
 ## 0.14.6
 
 ### Patch Changes

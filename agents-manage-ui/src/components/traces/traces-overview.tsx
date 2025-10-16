@@ -1,19 +1,22 @@
 'use client';
 
-import { ArrowRightLeft, RefreshCw, SparklesIcon, Users, Wrench } from 'lucide-react';
+import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 import { AreaChartCard } from './charts/area-chart-card';
 import { StatCard } from './charts/stat-card';
 import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
 import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
-import { GraphFilter } from './filters/graph-filter';
+import { AgentFilter } from './filters/agent-filter';
 import { SpanFilters } from './filters/span-filters';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 // Time range options
 const TIME_RANGES = {
@@ -42,14 +45,17 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     setSpanFilter,
   } = useTracesQueryState();
 
-  const [selectedGraph, setSelectedGraph] = useState<string | undefined>(undefined);
+  // Check if Signoz is configured
+  const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
+
+  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   // Aggregate stats now come from useAggregateStats hook
-  const [aiCallsByGraph, setAiCallsByGraph] = useState<
-    Array<{ graphId: string; totalCalls: number }>
+  const [aiCallsByAgent, setAiCallsByAgent] = useState<
+    Array<{ agentId: string; totalCalls: number }>
   >([]);
   const [_aiCallsLoading, setAiCallsLoading] = useState(true);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
@@ -104,7 +110,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Build span filters
   const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
     if (!spanName && attributes.length === 0) {
       return undefined;
@@ -116,7 +121,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return filters;
   }, [spanName, attributes]);
 
-  // Get aggregate stats efficiently (server-side aggregation)
   const {
     aggregateStats,
     loading: aggregateLoading,
@@ -127,10 +131,9 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
-    graphId: selectedGraph,
+    agentId: selectedAgent,
   });
 
-  // Get paginated conversations for the list display
   const { stats, loading, error, refresh, pagination } = useConversationStats({
     startTime,
     endTime,
@@ -138,7 +141,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     projectId: projectId as string,
     searchQuery: debouncedSearchQuery,
     pagination: { enabled: true, pageSize: 10 },
-    graphId: selectedGraph,
+    agentId: selectedAgent,
   });
 
   // Server-side pagination is now handled by the hook
@@ -153,22 +156,22 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   // Aggregate stats now come directly from server-side aggregation
 
-  // Fetch AI calls by graph
+  // Fetch AI calls by agent
   useEffect(() => {
-    const fetchAICallsByGraph = async () => {
+    const fetchAICallsByAgent = async () => {
       try {
         setAiCallsLoading(true);
         const client = getSigNozStatsClient();
-        const aiCallsData = await client.getAICallsByGraph(startTime, endTime, projectId as string);
-        setAiCallsByGraph(aiCallsData);
+        const aiCallsData = await client.getAICallsByAgent(startTime, endTime, projectId as string);
+        setAiCallsByAgent(aiCallsData);
       } catch (err) {
-        console.error('Error fetching AI calls by graph:', err);
+        console.error('Error fetching AI calls by agent:', err);
       } finally {
         setAiCallsLoading(false);
       }
     };
 
-    fetchAICallsByGraph();
+    fetchAICallsByAgent();
   }, [startTime, endTime, projectId]);
 
   // Fetch conversations per day activity
@@ -177,17 +180,17 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       try {
         setActivityLoading(true);
         const client = getSigNozStatsClient();
-        const graphId = selectedGraph ? selectedGraph : undefined;
+        const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
           endTime,
-          graphId,
-          selectedGraph,
+          agentId,
+          selectedAgent,
         });
         const data = await client.getConversationsPerDay(
           startTime,
           endTime,
-          graphId,
+          agentId,
           projectId as string
         );
         console.log('🔍 Activity data received:', data);
@@ -202,9 +205,9 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     if (startTime && endTime) {
       fetchActivity();
     }
-  }, [startTime, endTime, selectedGraph, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId]);
 
-  // Fetch available span names when time range or selected graph changes
+  // Fetch available span names when time range or selected agent changes
   useEffect(() => {
     const fetchSpanNames = async () => {
       if (!startTime || !endTime) return;
@@ -215,7 +218,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         const spanNames = await client.getAvailableSpanNames(
           startTime,
           endTime,
-          selectedGraph,
+          selectedAgent,
           projectId as string
         );
         setAvailableSpanNames(spanNames);
@@ -231,19 +234,19 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     if (startTime && endTime) {
       fetchSpanNames();
     }
-  }, [startTime, endTime, selectedGraph, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId]);
 
-  // Filter stats based on selected graph (for aggregate calculations)
+  // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
 
-  // Get AI calls for selected graph
-  const selectedGraphAICalls = useMemo(() => {
-    if (!selectedGraph) {
+  // Get AI calls for selected agent
+  const selectedAgentAICalls = useMemo(() => {
+    if (!selectedAgent) {
       return aggregateStats.totalAICalls;
     }
-    const graphAICalls = aiCallsByGraph.find((ac) => ac.graphId === selectedGraph);
-    return graphAICalls?.totalCalls || 0;
-  }, [selectedGraph, aiCallsByGraph, aggregateStats.totalAICalls]);
+    const agentAICalls = aiCallsByAgent.find((ac) => ac.agentId === selectedAgent);
+    return agentAICalls?.totalCalls || 0;
+  }, [selectedAgent, aiCallsByAgent, aggregateStats.totalAICalls]);
 
   if (error) {
     return (
@@ -296,31 +299,46 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Graph Filter */}
-          <GraphFilter onSelect={setSelectedGraph} selectedValue={selectedGraph} />
-          {/* Time Range Filter */}
-          <DatePickerWithPresets
-            label="Time range"
-            onRemove={() => setSelectedTimeRange('15d')}
-            value={
-              selectedTimeRange === CUSTOM
-                ? { from: customStartDate, to: customEndDate }
-                : selectedTimeRange
-            }
-            onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-            setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
-            options={Object.entries(TIME_RANGES).map(([value, config]) => ({
-              value,
-              label: config.label,
-            }))}
-          />
-        </div>
-        <Button variant="outline" size="sm" onClick={refresh}>
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+      {/* Signoz Configuration Banner */}
+      {!isSignozConfigLoading && signozConfigError && (
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>SigNoz Configuration Error</AlertTitle>
+          <AlertDescription>
+            <p>
+              {signozConfigError} Please follow the instructions in the{' '}
+              <ExternalLink
+                className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
+                iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
+                href={`${DOCS_BASE_URL}/get-started/traces`}
+              >
+                traces setup guide
+              </ExternalLink>
+              .
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center gap-4">
+        {/* Agent Filter */}
+        <AgentFilter onSelect={setSelectedAgent} selectedValue={selectedAgent} />
+        {/* Time Range Filter */}
+        <DatePickerWithPresets
+          label="Time range"
+          onRemove={() => setSelectedTimeRange('15d')}
+          value={
+            selectedTimeRange === CUSTOM
+              ? { from: customStartDate, to: customEndDate }
+              : selectedTimeRange
+          }
+          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
+          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          options={Object.entries(TIME_RANGES).map(([value, config]) => ({
+            value,
+            label: config.label,
+          }))}
+        />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -335,7 +353,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           updateAttribute={updateAttribute}
           isNumeric={isNumeric}
           spanNamesLoading={spanNamesLoading}
-          selectedGraph={selectedGraph}
+          selectedAgent={selectedAgent}
         />
       </div>
 
@@ -406,7 +424,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
             {/* AI Usage */}
             <StatCard
               title="AI calls"
-              stat={selectedGraphAICalls}
+              stat={selectedAgentAICalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={SparklesIcon}

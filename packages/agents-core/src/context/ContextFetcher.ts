@@ -20,14 +20,13 @@ const checkGraphQLErrors: ResponseErrorChecker = (data: unknown) => {
   if (data && typeof data === 'object' && 'errors' in data) {
     const errorObj = data as any;
     if (Array.isArray(errorObj.errors) && errorObj.errors.length > 0) {
-      const graphqlErrors = errorObj.errors;
-      const errorMessage = `GraphQL request failed with ${graphqlErrors.length} errors: ${graphqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
+      const agentqlErrors = errorObj.errors;
+      const errorMessage = `GraphQL request failed with ${agentqlErrors.length} errors: ${agentqlErrors.map((e: any) => e.message || 'Unknown error').join(', ')}`;
       throw new Error(errorMessage);
     }
   }
 };
 
-// List of error checkers to validate responses
 // Each checker examines the response and throws if errors are detected
 const responseErrorCheckers: ResponseErrorChecker[] = [
   checkGraphQLErrors,
@@ -104,7 +103,6 @@ export class ContextFetcher {
         transformedData = this.transformResponse(response.data, definition.fetchConfig.transform);
       }
 
-      // Validate against response schema if provided
       if (definition.responseSchema) {
         this.validateResponseWithJsonSchema(
           transformedData,
@@ -370,7 +368,6 @@ export class ContextFetcher {
         'Failed to transform response data'
       );
 
-      // Return original data if transformation fails
       return data;
     }
   }

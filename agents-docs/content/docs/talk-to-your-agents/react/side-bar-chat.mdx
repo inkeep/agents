@@ -11,16 +11,17 @@ The InkeepSidebarChat component provides a slide-out panel interface for convers
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/cxkit-react-oss
+npm install @inkeep/agents-ui
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/cxkit-react-oss
+yarn add @inkeep/agents-ui
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/cxkit-react-oss
+pnpm add @inkeep/agents-ui
 ```
+
 </CodeGroup>
 
 ## Quick Start
@@ -34,14 +35,14 @@ pnpm add @inkeep/cxkit-react-oss
     
     ```tsx
     import { useState } from "react";
-    import { InkeepSidebarChat, type InkeepSidebarChatProps } from "@inkeep/cxkit-react-oss";
+    import { InkeepSidebarChat, type InkeepSidebarChatProps } from "@inkeep/agents-ui";
 
     export default function App() {
       const [isOpen, setIsOpen] = useState(false);
 
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "https://your-api.example.com/api/chat",
+          agentUrl: "https://your-api.example.com/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
         position: "right",
@@ -60,19 +61,19 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     ### Trigger through data attributes
-    
+
     ```tsx
     import {
       InkeepSidebarChat,
       type InkeepSidebarChatProps,
-    } from "@inkeep/cxkit-react-oss";
+    } from "@inkeep/agents-ui";
 
     export default function App() {
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "https://your-api.example.com/api/chat",
+          agentUrl: "https://your-api.example.com/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
         position: "right",
@@ -89,17 +90,18 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     **To get an API key:**
     1. Open the Visual Builder Dashboard
     2. Navigate to your Project → **API Keys**
-    3. Click **Create New Key** and select your agent graph
+    3. Click **Create New Key** and select your agent
     4. Copy the key (shown once) and store it in your environment variables
+
   </Tab>
   
   <Tab title="Development">
     
-    For local development, use headers with your graph IDs:
+    For local development, use headers with your agent IDs:
     
     ### Trigger through React state
     
@@ -108,18 +110,18 @@ pnpm add @inkeep/cxkit-react-oss
     import {
       InkeepSidebarChat,
       type InkeepSidebarChatProps,
-    } from "@inkeep/cxkit-react-oss";
+    } from "@inkeep/agents-ui";
 
     export default function App() {
       const [isOpen, setIsOpen] = useState(false);
 
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-graph-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
         position: "right",
@@ -138,23 +140,23 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     ### Trigger through data attributes
-    
+
     ```tsx
     import {
       InkeepSidebarChat,
       type InkeepSidebarChatProps,
-    } from "@inkeep/cxkit-react-oss";
+    } from "@inkeep/agents-ui";
 
     export default function App() {
       const sidebarChatProps: InkeepSidebarChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-graph-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
         position: "right",
@@ -171,8 +173,9 @@ pnpm add @inkeep/cxkit-react-oss
       );
     }
     ```
-    
+
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
   </Tab>
 </Tabs>
 
@@ -183,5 +186,7 @@ pnpm add @inkeep/cxkit-react-oss
 | Property                  | Type   | Description                                         |
 | ------------------------- | ------ | --------------------------------------------------- |
 | `aiChatSettings`          | object | Configuration for the AI chat connection            |
-| `aiChatSettings.graphUrl` | string | The URL of your agent graph endpoint                |
-| `aiChatSettings.headers`  | object | Headers for authentication and graph identification |
+| `aiChatSettings.agentUrl` | string | The URL of your agent endpoint                |
+| `aiChatSettings.headers`  | object | Headers for authentication and agent identification |
+
+<Snippet file="ui/CustomizationTip.mdx" />

@@ -7,7 +7,6 @@ import { getLogger } from '../utils/logger';
 
 const logger = getLogger('nango-credential-store');
 
-// Schema for validating credential key structure
 const CredentialKeySchema = z.object({
   connectionId: z.string().min(1, 'connectionId must be a non-empty string'),
   providerConfigKey: z.string().min(1, 'providerConfigKey must be a non-empty string'),
@@ -28,6 +27,7 @@ export interface NangoCredentialData {
   provider: string;
   token?: string;
   metadata?: Record<string, any>;
+  expiresAt?: Date | undefined,
 }
 
 const SUPPORTED_AUTH_MODES = [
@@ -77,7 +77,6 @@ export class NangoCredentialStore implements CredentialStore {
     const extractAccessTokenForBearerType = (
       tokenString: string | undefined
     ): string | undefined => {
-      // Token is always a string, but might be a stringified JSON object
       if (tokenString && typeof tokenString === 'string') {
         try {
           const parsedToken = JSON.parse(tokenString);
@@ -124,6 +123,7 @@ export class NangoCredentialStore implements CredentialStore {
         return {
           token: extractAccessTokenForBearerType(credentials.access_token),
           refresh_token: credentials.refresh_token,
+          expiresAt: credentials.expires_at,
         };
       case 'OAUTH2_CC':
         return {
@@ -168,7 +168,6 @@ export class NangoCredentialStore implements CredentialStore {
       );
       const integration = response.data;
 
-      // Determine if credentials are set (server-side only)
       let areCredentialsSet = false;
 
       if (
@@ -187,7 +186,6 @@ export class NangoCredentialStore implements CredentialStore {
         areCredentialsSet = true;
       }
 
-      // Strip credentials before returning to frontend
       const { credentials: _credentials, ...integrationWithoutCredentials } = integration;
 
       return {
@@ -195,7 +193,6 @@ export class NangoCredentialStore implements CredentialStore {
         areCredentialsSet,
       };
     } catch (error) {
-      // Check if this is a 404 (integration not found) - return null for this case
       if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
         return null;
       }
@@ -223,7 +220,6 @@ export class NangoCredentialStore implements CredentialStore {
       refresh_token: parsed.refresh_token,
     };
 
-    // Remove undefined fields
     Object.keys(essential).forEach((key) => {
       if (essential[key as keyof typeof essential] === undefined) {
         delete essential[key as keyof typeof essential];
@@ -232,7 +228,6 @@ export class NangoCredentialStore implements CredentialStore {
 
     const result = JSON.stringify(essential);
 
-    // If still too big after removing unnecessary fields, we cannot store in Nango
     if (result.length > 1024) {
       logger.error(
         {
@@ -269,7 +264,6 @@ export class NangoCredentialStore implements CredentialStore {
     const provider = 'private-api-bearer';
 
     try {
-      // Step 1: Ensure Nango integration exists
       let integration: ApiPublicIntegration | undefined;
 
       /*
@@ -286,7 +280,6 @@ export class NangoCredentialStore implements CredentialStore {
        * where true race conditions could occur.
        */
       try {
-        // Optimistic creation - assume integration doesn't exist
         const response = await this.nangoClient.createIntegration({
           provider,
           unique_key: name,
@@ -295,12 +288,10 @@ export class NangoCredentialStore implements CredentialStore {
 
         integration = response.data;
       } catch (error: any) {
-        // Safe fallback: fetch the existing integration (idempotent operation)
         const existingIntegration = await this.fetchNangoIntegration(name);
         if (existingIntegration) {
           integration = existingIntegration;
         } else {
-          // Edge case: 400 error wasn't about duplicate key
           console.log(`Integration creation failed for unexpected reasons`, error);
         }
       }
@@ -309,10 +300,8 @@ export class NangoCredentialStore implements CredentialStore {
         throw new Error(`Integration '${name}' not found`);
       }
 
-      // Step 2: Import the connection to Nango
       const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
 
-      // Optimize the OAuth token data to fit within Nango's 1024 character limit
       const optimizedApiKey = this.optimizeOAuthTokenForNango(apiKeyToSet);
 
       if (!optimizedApiKey) {
@@ -378,7 +367,6 @@ export class NangoCredentialStore implements CredentialStore {
 
       const tokenAndCredentials = this.getAccessToken(nangoConnection.credentials) ?? {};
 
-      // Return credential data with Nango MCP server headers
       const credentialData: NangoCredentialData = {
         ...tokenAndCredentials,
         connectionId,
@@ -408,7 +396,6 @@ export class NangoCredentialStore implements CredentialStore {
    */
   async get(key: string): Promise<string | null> {
     try {
-      // Parse and validate the JSON key structure
       let parsedKey: unknown;
       try {
         parsedKey = JSON.parse(key);
@@ -424,7 +411,6 @@ export class NangoCredentialStore implements CredentialStore {
         return null;
       }
 
-      // Validate the parsed key structure using Zod
       const validationResult = CredentialKeySchema.safeParse(parsedKey);
       if (!validationResult.success) {
         logger.warn(
@@ -496,7 +482,6 @@ export class NangoCredentialStore implements CredentialStore {
    */
   async delete(key: string): Promise<boolean> {
     try {
-      // Parse and validate the JSON key structure
       let parsedKey: unknown;
       try {
         parsedKey = JSON.parse(key);
@@ -512,7 +497,6 @@ export class NangoCredentialStore implements CredentialStore {
         return false;
       }
 
-      // Validate the parsed key structure using Zod
       const validationResult = CredentialKeySchema.safeParse(parsedKey);
       if (!validationResult.success) {
         logger.warn(
@@ -541,6 +525,29 @@ export class NangoCredentialStore implements CredentialStore {
       );
       return false;
     }
+  }
+
+  /**
+   * Check if the credential store is available and functional
+   */
+  async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    if (!this.nangoConfig.secretKey) {
+      return {
+        available: false,
+        reason: 'Nango secret key not configured',
+      };
+    }
+
+    if (this.nangoConfig.secretKey.includes('mock') || this.nangoConfig.secretKey === 'your_nango_secret_key') {
+      return {
+        available: false,
+        reason: 'Nango secret key appears to be a placeholder or mock value',
+      };
+    }
+
+    return {
+      available: true,
+    };
   }
 }
 

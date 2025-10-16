@@ -50,8 +50,8 @@ export async function saveA2AMessageResponse(
     conversationId: string;
     messageType: 'a2a-response' | 'a2a-request';
     visibility: 'internal' | 'external' | 'user-facing';
-    fromAgentId?: string;
-    toAgentId?: string;
+    fromSubAgentId?: string;
+    toSubAgentId?: string;
     fromExternalAgentId?: string;
     toExternalAgentId?: string;
     a2aTaskId?: string;
@@ -59,19 +59,15 @@ export async function saveA2AMessageResponse(
     metadata?: Record<string, unknown>;
   }
 ): Promise<any | null> {
-  // Handle error responses
   if (response.error) {
     throw new Error(response.error.message);
   }
 
-  // Extract text content based on result type
   let messageText = '';
 
   if (response.result.kind === 'message') {
-    // Handle Message type with parts array
     messageText = extractA2AMessageText(response.result.parts);
   } else if (response.result.kind === 'task') {
-    // Handle Task type - extract text from artifacts if available
     if (response.result.artifacts && response.result.artifacts.length > 0) {
       const firstArtifact = response.result.artifacts[0];
       if (firstArtifact.parts) {
@@ -79,16 +75,13 @@ export async function saveA2AMessageResponse(
       }
     }
   } else if (typeof response.result === 'string') {
-    // Handle direct string responses (for backward compatibility)
     messageText = response.result;
   }
 
-  // Only save if we have meaningful text content
   if (!messageText || messageText.trim() === '') {
     return null;
   }
 
-  // Save the message
   return await createMessage(dbClient)({
     id: nanoid(),
     tenantId: params.tenantId,
@@ -100,8 +93,8 @@ export async function saveA2AMessageResponse(
     },
     visibility: params.visibility,
     messageType: params.messageType,
-    fromAgentId: params.fromAgentId,
-    toAgentId: params.toAgentId,
+    fromSubAgentId: params.fromSubAgentId,
+    toSubAgentId: params.toSubAgentId,
     fromExternalAgentId: params.fromExternalAgentId,
     toExternalAgentId: params.toExternalAgentId,
     a2aTaskId: params.a2aTaskId,
@@ -128,46 +121,38 @@ export async function getScopedHistory({
   options?: ConversationHistoryConfig;
 }): Promise<any[]> {
   try {
-    // Get conversation history with internal messages included
     const messages = await getConversationHistory(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       options,
     });
 
-    // If no filters provided, return all messages
-    if (!filters || (!filters.agentId && !filters.taskId)) {
+    if (!filters || (!filters.subAgentId && !filters.taskId)) {
       return messages;
     }
 
-    // Filter messages based on provided criteria
     const relevantMessages = messages.filter((msg) => {
-      // Always include user messages
       if (msg.role === 'user') return true;
 
       let matchesAgent = true;
       let matchesTask = true;
 
-      // Apply agent filtering if agentId is provided
-      if (filters.agentId) {
+      if (filters.subAgentId) {
         matchesAgent =
           (msg.role === 'agent' && msg.visibility === 'user-facing') ||
-          msg.toAgentId === filters.agentId ||
-          msg.fromAgentId === filters.agentId;
+          msg.toSubAgentId === filters.subAgentId ||
+          msg.fromSubAgentId === filters.subAgentId;
       }
 
-      // Apply task filtering if taskId is provided
       if (filters.taskId) {
         matchesTask = msg.taskId === filters.taskId || msg.a2aTaskId === filters.taskId;
       }
 
-      // For combined filtering (both agent and task), both must match
-      // For single filtering, only the relevant one needs to match
-      if (filters.agentId && filters.taskId) {
+      if (filters.subAgentId && filters.taskId) {
         return matchesAgent && matchesTask;
       }
 
-      if (filters.agentId) {
+      if (filters.subAgentId) {
         return matchesAgent;
       }
 
@@ -243,10 +228,8 @@ export async function getFormattedConversationHistory({
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
 }): Promise<string> {
-  // Ensure includeInternal defaults to true for formatted history
   const historyOptions = options ?? { includeInternal: true };
 
-  // Get filtered conversation history using unified function
   const conversationHistory = await getScopedHistory({
     tenantId,
     projectId,
@@ -255,12 +238,10 @@ export async function getFormattedConversationHistory({
     options: historyOptions,
   });
 
-  // Filter out the current message if it's the most recent one
   let messagesToFormat = conversationHistory;
   if (currentMessage && conversationHistory.length > 0) {
     const lastMessage = conversationHistory[conversationHistory.length - 1];
     if (lastMessage.content.text === currentMessage) {
-      // Remove the last message if it matches the current prompt
       messagesToFormat = conversationHistory.slice(0, -1);
     }
   }
@@ -279,16 +260,14 @@ export async function getFormattedConversationHistory({
         msg.role === 'agent' &&
         (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
       ) {
-        // For agent messages, include sender and recipient info when available
-        const fromAgent = msg.fromAgentId || msg.fromExternalAgentId || 'unknown';
-        const toAgent = msg.toAgentId || msg.toExternalAgentId || 'unknown';
+        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
 
-        roleLabel = `${fromAgent} to ${toAgent}`;
+        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
-        const fromAgent = msg.fromAgentId || 'unknown';
-        roleLabel = `${fromAgent} to User`;
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to User`;
       } else {
-        // System or other message types
         roleLabel = msg.role || 'system';
       }
 
@@ -317,12 +296,10 @@ export async function getConversationScopedArtifacts(params: {
   }
 
   try {
-    // If history mode is 'none', no artifacts should be shown
     if (historyConfig.mode === 'none') {
       return [];
     }
 
-    // Get the visible messages using the same logic as getFormattedConversationHistory
     const visibleMessages = await getScopedHistory({
       tenantId,
       projectId,
@@ -334,25 +311,27 @@ export async function getConversationScopedArtifacts(params: {
       return [];
     }
 
-    // Extract message IDs from visible messages (skip truncation summaries)
     const visibleMessageIds = visibleMessages
-      .filter(msg => !(msg.messageType === 'system' && msg.content?.text?.includes('Previous conversation history truncated')))
-      .map(msg => msg.id);
+      .filter(
+        (msg) =>
+          !(
+            msg.messageType === 'system' &&
+            msg.content?.text?.includes('Previous conversation history truncated')
+          )
+      )
+      .map((msg) => msg.id);
 
     if (visibleMessageIds.length === 0) {
       return [];
     }
 
-    // Get task IDs from these visible messages by querying messages table
     const { getLedgerArtifacts } = await import('@inkeep/agents-core');
     const dbClient = (await import('../data/db/dbClient')).default;
 
-    // Get task IDs directly from the visible messages
     const visibleTaskIds = visibleMessages
-      .map(msg => msg.taskId)
+      .map((msg) => msg.taskId)
       .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
 
-    // Get artifacts only from these visible tasks
     const referenceArtifacts: Artifact[] = [];
     for (const taskId of visibleTaskIds) {
       const artifacts = await getLedgerArtifacts(dbClient)({
@@ -384,9 +363,7 @@ export async function getConversationScopedArtifacts(params: {
       },
       'Failed to get conversation-scoped artifacts'
     );
-    
-    // Return empty array on error rather than falling back to all artifacts
-    // This is safer - better to have no artifacts than incorrect ones
+
     return [];
   }
 }

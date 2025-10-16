@@ -1,18 +1,22 @@
-import type { Artifact, ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentApiInsert } from '@inkeep/agents-core';
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
+import type {
+  Artifact,
+  ArtifactComponentApiInsert,
+  ArtifactComponentApiSelect,
+  DataComponentApiInsert,
+} from '@inkeep/agents-core';
+import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
+import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.xml?raw';
 // Import template content as raw text
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
-import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.xml?raw';
-import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
-import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 
 /**
  * Configuration for Phase 2 structured output generation
  * Handles data components, artifact creation, and JSON formatting guidance
  */
 export class Phase2Config {
-  
   private getArtifactCreationGuidance(): string {
     return `🚨 MANDATORY ARTIFACT CREATION 🚨
 You MUST create artifacts from tool results to provide citations. This is REQUIRED, not optional.
@@ -56,17 +60,15 @@ When the same field names appear at different levels (like 'content', 'title', '
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
-- summary_props/full_props: Contain JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then summary_props uses "title" not "documents[0].title"
+- details_selector: Contains JMESPath selectors RELATIVE to the base selector  
+- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
 
 ❌ WRONG EXAMPLE:
 {
   "base_selector": "result.content[?title=='Guide']",
-  "summary_props": {
+  "details_selector": {
     "title": "Guide",  // ❌ This is a literal value, not a selector!
-    "url": "result.content[?title=='Guide'].url"  // ❌ This is absolute, not relative!
-  },
-  "full_props": {
+    "url": "result.content[?title=='Guide'].url",  // ❌ This is absolute, not relative!
     "description": "A comprehensive guide",  // ❌ Literal value instead of selector!
     "content": "result.content[?title=='Guide'].content"  // ❌ Absolute path instead of relative!
   }
@@ -75,11 +77,9 @@ CRITICAL: SELECTOR HIERARCHY
 ✅ CORRECT EXAMPLE:
 {
   "base_selector": "result.content[?title=='Guide']",
-  "summary_props": {
+  "details_selector": {
     "title": "title",  // ✅ Relative selector to get title field
-    "url": "url"       // ✅ Relative selector to get url field
-  },
-  "full_props": {
+    "url": "url",       // ✅ Relative selector to get url field  
     "description": "description",    // ✅ Relative selector
     "content": "content",            // ✅ Relative selector
     "metadata": "metadata.details"  // ✅ Relative selector with nesting
@@ -118,10 +118,10 @@ COMMON FAILURE POINTS (AVOID THESE):
     if (!shouldShowReferencingRules) {
       return '';
     }
-    
+
     // Get the shared retrieval guidance
     const sharedGuidance = artifactRetrievalGuidance;
-    
+
     // Scenario 1: Has data components AND can create artifacts
     if (hasArtifactComponents && artifactComponents && artifactComponents.length > 0) {
       return `${sharedGuidance}
@@ -175,8 +175,7 @@ EXAMPLE STRUCTURED RESPONSE:
         "tool_call_id": "call_abc123",
         "type": "APIDoc",
         "base_selector": "result.documents[?type=='api']",
-        "summary_props": {"title": "metadata.title", "endpoint": "api.endpoint"},
-        "full_props": {"description": "content.description", "parameters": "spec.parameters", "examples": "examples.sample_code"}
+        "details_selector": {"title": "metadata.title", "endpoint": "api.endpoint", "description": "content.description", "parameters": "spec.parameters", "examples": "examples.sample_code"}
       }
     },
     {
@@ -206,7 +205,7 @@ COMPONENT GUIDELINES:
 - Only add Artifact reference components when citing the SAME artifact again for a different point
 - Use tool_call_id exactly as it appears in tool execution results`;
     }
-    
+
     // Scenario 2: Has data components but CANNOT create artifacts (can only reference)
     return `${sharedGuidance}
 
@@ -265,24 +264,20 @@ IMPORTANT GUIDELINES:
     // For structured responses - show available component types
     const componentDescriptions = artifactComponents
       .map((ac) => {
-        const summaryProps = ac.summaryProps?.properties
-          ? Object.entries(ac.summaryProps.properties)
-              .map(([key, value]: [string, any]) => `      - ${key}: ${value.description || 'Field from tool result'}`)
-              .join('\n')
-          : '      No properties defined';
-
-        const fullProps = ac.fullProps?.properties
-          ? Object.entries(ac.fullProps.properties)
-              .map(([key, value]: [string, any]) => `      - ${key}: ${value.description || 'Field from tool result'}`)
+        const schemaProps = ac.props?.properties
+          ? Object.entries(ac.props.properties)
+              .map(([key, value]: [string, any]) => {
+                // Show inPreview flag for LLM display to understand field usage
+                const inPreview = value.inPreview ? ' [PREVIEW]' : ' [FULL]';
+                return `      - ${key}: ${value.description || 'Field from tool result'}${inPreview}`;
+              })
               .join('\n')
           : '      No properties defined';
 
         return `  ArtifactCreate_${ac.name}:
     Description: ${ac.description || 'Extract and structure data'}
-    Summary Properties:
-${summaryProps}
-    Full Properties:
-${fullProps}`;
+    Schema Properties:
+${schemaProps}`;
       })
       .join('\n\n');
 
@@ -306,8 +301,14 @@ ${componentDescriptions}`;
       .join('\n  ');
 
     let dataComponentsSection = dataComponentsTemplate;
-    dataComponentsSection = dataComponentsSection.replace('{{DATA_COMPONENTS_LIST}}', dataComponentsDescription);
-    dataComponentsSection = dataComponentsSection.replace('{{DATA_COMPONENTS_XML}}', dataComponentsXml);
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_LIST}}',
+      dataComponentsDescription
+    );
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_XML}}',
+      dataComponentsXml
+    );
 
     return dataComponentsSection;
   }
@@ -401,17 +402,24 @@ ${artifactRetrievalGuidance}
     dataComponents: DataComponentApiInsert[];
     artifactComponents?: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>;
     hasArtifactComponents: boolean;
-    hasGraphArtifactComponents?: boolean;
+    hasAgentArtifactComponents?: boolean;
     artifacts?: Artifact[];
   }): string {
-    const { corePrompt, dataComponents, artifactComponents, hasArtifactComponents, hasGraphArtifactComponents, artifacts = [] } = config;
+    const {
+      corePrompt,
+      dataComponents,
+      artifactComponents,
+      hasArtifactComponents,
+      hasAgentArtifactComponents,
+      artifacts = [],
+    } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
     if (hasArtifactComponents && artifactComponents) {
       const artifactCreateComponents = ArtifactCreateSchema.getDataComponents(
         'tenant', // placeholder - not used in Phase2
-        '', // placeholder - not used in Phase2  
+        '', // placeholder - not used in Phase2
         artifactComponents
       );
       allDataComponents = [...dataComponents, ...artifactCreateComponents];
@@ -419,9 +427,16 @@ ${artifactRetrievalGuidance}
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
     const artifactsSection = this.generateArtifactsSection(artifacts);
-    const shouldShowReferencingRules = hasGraphArtifactComponents || artifacts.length > 0;
-    const artifactGuidance = this.getStructuredArtifactGuidance(hasArtifactComponents, artifactComponents, shouldShowReferencingRules);
-    const artifactTypes = this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
+    const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
+    const artifactGuidance = this.getStructuredArtifactGuidance(
+      hasArtifactComponents,
+      artifactComponents,
+      shouldShowReferencingRules
+    );
+    const artifactTypes = this.getArtifactCreationInstructions(
+      hasArtifactComponents,
+      artifactComponents
+    );
 
     let phase2Prompt = systemPromptTemplate;
     phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);

@@ -108,11 +108,18 @@ html {
   scrollbar-color: var(--scrollbar-thumb-color) transparent;
 }
 
+#nd-page {
+  /* max-width: calc(var(--fd-page-width) - var(--fd-sidebar-width)); */
+  max-width: calc(100% - var(--fd-sidebar-width));
+  @apply mx-0!;
+}
+
 #nd-page > article {
-  @apply lg:pl-12 lg:pr-20;
+  @apply lg:pl-12 lg:pr-12;
 }
 /* mobile toc */
 #nd-tocnav {
+  left: calc(var(--fd-sidebar-width) + 1.1rem);
   /* @apply rounded-none lg:px-1 mx-0 shadow-none w-full border-0 bg-background top-[calc(var(--fd-banner-height)_+_var(--fd-nav-height))] after:bg-gradient-to-b after:from-[hsl(var(--background))] after:absolute after:w-full after:h-6 after:top-full after:left-0; */
 }
 /* hide the 'on this page' text */

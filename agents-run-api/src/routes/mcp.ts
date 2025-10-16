@@ -6,7 +6,6 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod/v3';
 
-// Type bridge for MCP SDK compatibility with Zod v4
 function createMCPSchema<T>(schema: z.ZodType<T>): any {
   return schema;
 }
@@ -16,15 +15,15 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -42,7 +41,6 @@ class MockResponseSingleton {
   private mockRes: any;
 
   private constructor() {
-    // Create the mock response object once
     this.mockRes = {
       statusCode: 200,
       headers: {} as Record<string, string>,
@@ -66,7 +64,6 @@ class MockResponseSingleton {
   }
 
   getMockResponse(): any {
-    // Reset headers for each use to avoid state pollution
     this.mockRes.headers = {};
     this.mockRes.statusCode = 200;
     return this.mockRes;
@@ -113,7 +110,6 @@ const spoofTransportInitialization = async (
   const mockRes = MockResponseSingleton.getInstance().getMockResponse();
 
   try {
-    // Send the spoof initialization to set internal state. The transport errors but it still sets the initialized flag.
     await transport.handleRequest(req, mockRes, spoofInitMessage);
     logger.info({ sessionId }, 'Successfully spoofed initialization');
   } catch (spoofError) {
@@ -127,7 +123,7 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  graphId: string
+  agentId: string
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -156,27 +152,25 @@ const validateSession = async (
     return false;
   }
 
-  // Get conversation (which stores our session data)
   const conversation = await getConversation(dbClient)({
     scopes: { tenantId, projectId },
     conversationId: sessionId,
   });
 
-  // After line 342 - Add logging to debug conversation lookup
   logger.info(
     {
       sessionId,
       conversationFound: !!conversation,
       sessionType: conversation?.metadata?.sessionData?.sessionType,
-      storedGraphId: conversation?.metadata?.sessionData?.graphId,
-      requestGraphId: graphId,
+      storedAgentId: conversation?.metadata?.sessionData?.agentId,
+      requestAgentId: agentId,
     },
     'Conversation lookup result'
   );
   if (
     !conversation ||
     conversation.metadata?.sessionData?.sessionType !== 'mcp' ||
-    conversation.metadata?.sessionData?.graphId !== graphId
+    conversation.metadata?.sessionData?.agentId !== agentId
   ) {
     logger.info(
       { sessionId, conversationId: conversation?.id },
@@ -200,13 +194,13 @@ const validateSession = async (
 /**
  * Sets up tracing attributes for the active span
  */
-const setupTracing = (conversationId: string, tenantId: string, graphId: string): void => {
+const setupTracing = (conversationId: string, tenantId: string, agentId: string): void => {
   const activeSpan = trace.getActiveSpan();
   if (activeSpan) {
     activeSpan.setAttributes({
       'conversation.id': conversationId,
       'tenant.id': tenantId,
-      'graph.id': graphId,
+      'agent.id': agentId,
     });
   }
 };
@@ -249,7 +243,7 @@ const executeAgentQuery = async (
   executionContext: ExecutionContext,
   conversationId: string,
   query: string,
-  defaultAgentId: string
+  defaultSubAgentId: string
 ): Promise<CallToolResult> => {
   const requestId = `mcp-${Date.now()}`;
   const mcpStreamHelper = createMCPStreamHelper();
@@ -259,7 +253,7 @@ const executeAgentQuery = async (
     executionContext,
     conversationId,
     userMessage: query,
-    initialAgentId: defaultAgentId,
+    initialAgentId: defaultSubAgentId,
     requestId,
     sseHelper: mcpStreamHelper,
   });
@@ -297,20 +291,20 @@ const executeAgentQuery = async (
  * Creates and configures an MCP server for the given context
  */
 const getServer = async (
-  requestContext: Record<string, unknown>,
+  headers: Record<string, unknown>,
   executionContext: ExecutionContext,
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
-  setupTracing(conversationId, tenantId, graphId);
+  const { tenantId, projectId, agentId } = executionContext;
+  setupTracing(conversationId, tenantId, agentId);
 
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
   });
 
-  if (!agentGraph) {
-    throw new Error('Agent graph not found');
+  if (!agent) {
+    throw new Error('Agent not found');
   }
 
   const server = new McpServer(
@@ -321,31 +315,30 @@ const getServer = async (
     { capabilities: { logging: {} } }
   );
 
-  // Register tools and prompts
   server.tool(
     'send-query-to-agent',
-    `Send a query to the ${agentGraph.name} agent. The agent has the following description: ${agentGraph.description}`,
+    `Send a query to the ${agent.name} agent. The agent has the following description: ${agent.description}`,
     {
       query: createMCPSchema(z.string().describe('The query to send to the agent')),
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
-        if (!agentGraph.defaultAgentId) {
+        if (!agent.defaultSubAgentId) {
           return {
             content: [
               {
                 type: 'text',
-                text: `Graph does not have a default agent configured`,
+                text: `Agent does not have a default agent configured`,
               },
             ],
             isError: true,
           };
         }
-        const defaultAgentId = agentGraph.defaultAgentId;
+        const defaultSubAgentId = agent.defaultSubAgentId;
 
-        const agentInfo = await getAgentById(dbClient)({
-          scopes: { tenantId, projectId, graphId },
-          agentId: defaultAgentId,
+        const agentInfo = await getSubAgentById(dbClient)({
+          scopes: { tenantId, projectId, agentId },
+          subAgentId: defaultSubAgentId,
         });
         if (!agentInfo) {
           return {
@@ -362,9 +355,9 @@ const getServer = async (
         const resolvedContext = await handleContextResolution({
           tenantId,
           projectId,
-          graphId,
+          agentId,
           conversationId,
-          requestContext,
+          headers,
           dbClient,
           credentialStores,
         });
@@ -373,10 +366,10 @@ const getServer = async (
           {
             tenantId,
             projectId,
-            graphId,
+            agentId,
             conversationId,
-            hasContextConfig: !!agentGraph.contextConfigId,
-            hasRequestContext: !!requestContext,
+            hasContextConfig: !!agent.contextConfigId,
+            hasHeaders: !!headers,
             hasValidatedContext: !!resolvedContext,
           },
           'parameters'
@@ -384,7 +377,7 @@ const getServer = async (
 
         await processUserMessage(tenantId, projectId, conversationId, query);
 
-        return executeAgentQuery(executionContext, conversationId, query, defaultAgentId);
+        return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
         return {
           content: [
@@ -409,7 +402,6 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-// Only apply context validation to POST requests (GET requests are for SSE streams)
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
     return contextValidationMiddleware(dbClient)(c, next);
@@ -425,9 +417,9 @@ const validateRequestParameters = (
 ): { valid: true; executionContext: ExecutionContext } | { valid: false; response: Response } => {
   try {
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
-    getLogger('mcp').debug({ tenantId, projectId, graphId }, 'Extracted MCP entity parameters');
+    getLogger('mcp').debug({ tenantId, projectId, agentId }, 'Extracted MCP entity parameters');
 
     return { valid: true, executionContext };
   } catch (error) {
@@ -461,82 +453,96 @@ const handleInitializationRequest = async (
   c: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
-  // Get the default agent for the graph
-  const agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-    scopes: { tenantId, projectId, graphId },
-  });
-  if (!agentGraph) {
-    return c.json(
-      {
-        jsonrpc: '2.0',
-        error: { code: -32001, message: 'Agent graph not found' },
-        id: body.id || null,
-      },
-      { status: 404 }
-    );
+  const activeSpan = trace.getActiveSpan();
+  if (activeSpan) {
+    activeSpan.setAttributes({
+      'conversation.id': sessionId,
+      'tenant.id': tenantId,
+      'agent.id': agentId,
+      'project.id': projectId,
+    });
   }
 
-  if (!agentGraph.defaultAgentId) {
-    return c.json(
-      {
-        jsonrpc: '2.0',
-        error: { code: -32001, message: 'Graph does not have a default agent configured' },
-        id: body.id || null,
-      },
-      { status: 400 }
-    );
+  let currentBag = propagation.getBaggage(otelContext.active());
+  if (!currentBag) {
+    currentBag = propagation.createBaggage();
   }
+  currentBag = currentBag.setEntry('conversation.id', { value: sessionId });
+  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+  return await otelContext.with(ctxWithBaggage, async () => {
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
+    });
+    if (!agent) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Agent not found' },
+          id: body.id || null,
+        },
+        { status: 404 }
+      );
+    }
 
-  // Create/get conversation with MCP session metadata
-  const conversation = await createOrGetConversation(dbClient)({
-    id: sessionId,
-    tenantId,
-    projectId,
-    activeAgentId: agentGraph.defaultAgentId,
-    metadata: {
-      sessionData: {
-        graphId,
-        sessionType: 'mcp',
-        mcpProtocolVersion: c.req.header('mcp-protocol-version'),
-        initialized: false, // Track initialization state
+    if (!agent.defaultSubAgentId) {
+      return c.json(
+        {
+          jsonrpc: '2.0',
+          error: { code: -32001, message: 'Agent does not have a default agent configured' },
+          id: body.id || null,
+        },
+        { status: 400 }
+      );
+    }
+
+    const conversation = await createOrGetConversation(dbClient)({
+      id: sessionId,
+      tenantId,
+      projectId,
+      activeSubAgentId: agent.defaultSubAgentId,
+      metadata: {
+        sessionData: {
+          agentId,
+          sessionType: 'mcp',
+          mcpProtocolVersion: c.req.header('mcp-protocol-version'),
+          initialized: false, // Track initialization state
+        },
       },
-    },
+    });
+
+    logger.info(
+      { sessionId, conversationId: conversation.id },
+      'Created MCP session as conversation'
+    );
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => sessionId,
+    });
+
+    const server = await getServer(validatedContext, executionContext, sessionId, credentialStores);
+    await server.connect(transport);
+    logger.info({ sessionId }, 'Server connected for initialization');
+
+    res.setHeader('Mcp-Session-Id', sessionId);
+
+    logger.info(
+      {
+        sessionId,
+        bodyMethod: body?.method,
+        bodyId: body?.id,
+      },
+      'About to handle initialization request'
+    );
+
+    await transport.handleRequest(req, res, body);
+    logger.info({ sessionId }, 'Successfully handled initialization request');
+
+    return toFetchResponse(res);
   });
-
-  logger.info(
-    { sessionId, conversationId: conversation.id },
-    'Created MCP session as conversation'
-  );
-
-  // Create fresh transport and server for this request
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => sessionId,
-  });
-
-  const server = await getServer(validatedContext, executionContext, sessionId, credentialStores);
-  await server.connect(transport);
-  logger.info({ sessionId }, 'Server connected for initialization');
-
-  // Tell client the session ID
-  res.setHeader('Mcp-Session-Id', sessionId);
-
-  logger.info(
-    {
-      sessionId,
-      bodyMethod: body?.method,
-      bodyId: body?.id,
-    },
-    'About to handle initialization request'
-  );
-
-  await transport.handleRequest(req, res, body);
-  logger.info({ sessionId }, 'Successfully handled initialization request');
-
-  return toFetchResponse(res);
 };
 
 /**
@@ -550,25 +556,20 @@ const handleExistingSessionRequest = async (
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, graphId } = executionContext;
-  // Validate the session id
-  const conversation = await validateSession(req, res, body, tenantId, projectId, graphId);
+  const { tenantId, projectId, agentId } = executionContext;
+  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
   if (!conversation) {
     return toFetchResponse(res);
   }
 
   const sessionId = conversation.id;
 
-  // Update last activity
   await updateConversation(dbClient)({
     scopes: { tenantId, projectId },
     conversationId: sessionId,
-    data: {
-      // Just updating the timestamp by calling update
-    },
+    data: {},
   });
 
-  // Recreate transport and server from stored session data
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => sessionId,
   });
@@ -576,7 +577,6 @@ const handleExistingSessionRequest = async (
   const server = await getServer(validatedContext, executionContext, sessionId, credentialStores);
   await server.connect(transport);
 
-  // Spoof initialization to set the transport's _initialized flag
   await spoofTransportInitialization(
     transport,
     req,
@@ -586,7 +586,6 @@ const handleExistingSessionRequest = async (
 
   logger.info({ sessionId }, 'Server connected and transport initialized');
 
-  // Add debugging before transport.handleRequest()
   logger.info(
     {
       sessionId,
@@ -646,7 +645,7 @@ app.openapi(
         description: 'Unauthorized - API key authentication required',
       },
       404: {
-        description: 'Not Found - Agent graph not found',
+        description: 'Not Found - Agent not found',
       },
       500: {
         description: 'Internal Server Error',
@@ -655,7 +654,6 @@ app.openapi(
   }),
   async (c) => {
     try {
-      // Validate parameters
       const paramValidation = validateRequestParameters(c);
       if (!paramValidation.valid) {
         return paramValidation.response;
@@ -663,7 +661,6 @@ app.openapi(
 
       const { executionContext } = paramValidation;
 
-      // Get parsed body from middleware (shared across all handlers)
       const body = c.get('requestBody') || {};
       logger.info({ body, bodyKeys: Object.keys(body || {}) }, 'Parsed request body');
 
@@ -721,7 +718,6 @@ app.get('/', async (c) => {
   );
 });
 
-// We want to maintain conversations in the database. (https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#session-management)
 app.delete('/', async (c) => {
   logger.info({}, 'Received DELETE MCP request');
 

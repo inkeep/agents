@@ -11,7 +11,7 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
-const SIGNOZ_URL = process.env.SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
+const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
 const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // Validation schema for the request body
@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate request body structure
     const validationResult = signozRequestSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
 
     const validatedBody = validationResult.data;
 
-    // Validate time range
     const timeValidation = validateTimeRange(validatedBody.start, validatedBody.end);
     if (!timeValidation.valid) {
       return NextResponse.json(
@@ -110,8 +108,85 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    configured: !!SIGNOZ_URL && !!SIGNOZ_API_KEY,
-  });
+  const logger = getLogger('signoz-config-check');
+  
+  logger.info({ 
+    hasUrl: !!SIGNOZ_URL, 
+    hasApiKey: !!SIGNOZ_API_KEY,
+    url: SIGNOZ_URL 
+  }, 'Checking SigNoz configuration');
+  
+  // First check if credentials are set
+  if (!SIGNOZ_URL || !SIGNOZ_API_KEY) {
+    logger.warn('SigNoz credentials not set');
+    return NextResponse.json({
+      status: 'not_configured',
+      configured: false,
+      error: 'SIGNOZ_URL or SIGNOZ_API_KEY not set.',
+    });
+  }
+
+  // Test the connection with minimal authenticated query
+  // 200/400 = valid API key 
+  try {
+    const testPayload = {
+      start: Date.now() - 300000, // 5 minutes ago
+      end: Date.now(),
+      step: 60,
+      compositeQuery: {
+        queryType: 'builder',
+        panelType: 'agent',
+        builderQueries: {},
+      },
+    };
+
+    const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
+    logger.info({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
+
+    const response = await axios.post(signozEndpoint, testPayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'SIGNOZ-API-KEY': SIGNOZ_API_KEY,
+      },
+      timeout: 5000,
+      validateStatus: (status) => {
+        // Accept both 200 and 400 as success (both mean valid API key)
+        return status === 200 || status === 400;
+      },
+    });
+
+    logger.info({ 
+      status: response.status,
+    }, 'SigNoz health check successful (authenticated)');
+    
+    return NextResponse.json({
+      status: 'ok',
+      configured: true,
+    });
+  } catch (error) {
+    logger.error({ 
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: axios.isAxiosError(error) ? error.code : undefined,
+      status: axios.isAxiosError(error) ? error.response?.status : undefined,
+      responseData: axios.isAxiosError(error) ? error.response?.data : undefined,
+    }, 'SigNoz connection test failed');
+    
+    let errorMessage = 'Failed to connect to SigNoz';
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        errorMessage = 'Check SIGNOZ_URL.';
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        errorMessage = 'Invalid SIGNOZ_API_KEY.';
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+        errorMessage = 'SigNoz connection timed out';
+      }
+    }
+
+    return NextResponse.json({
+      status: 'connection_failed',
+      configured: false,
+      error: errorMessage,
+    });
+  }
 }

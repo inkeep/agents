@@ -1,7 +1,6 @@
 import { MCPTransportType } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -13,6 +12,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
   const createToolData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
     id: nanoid(16),
     name: `Test MCP Tool${suffix}`,
+    description: `Test MCP tool description${suffix}`,
     config: {
       type: 'mcp' as const,
       mcp: {

@@ -10,7 +10,6 @@ import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
 
-// Fetched data in context resolution
 export interface ResolvedContext {
   [templateKey: string]: unknown;
 }
@@ -18,13 +17,13 @@ export interface ResolvedContext {
 export interface ContextResolutionOptions {
   triggerEvent: 'initialization' | 'invocation';
   conversationId: string;
-  requestContext?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
   tenantId: string;
 }
 
 export interface ContextResolutionResult {
   resolvedContext: ResolvedContext;
-  requestContext: Record<string, unknown>;
+  headers: Record<string, unknown>;
   fetchedDefinitions: string[];
   cacheHits: string[];
   cacheMisses: string[];
@@ -79,7 +78,6 @@ export class ContextResolver {
       'Starting context resolution'
     );
 
-    // Create parent span for the entire context resolution process
     return tracer.startActiveSpan(
       'context.resolve',
       {
@@ -92,7 +90,7 @@ export class ContextResolver {
         try {
           const result: ContextResolutionResult = {
             resolvedContext: {},
-            requestContext: options.requestContext || {},
+            headers: options.headers || {},
             fetchedDefinitions: [],
             cacheHits: [],
             cacheMisses: [],
@@ -100,18 +98,16 @@ export class ContextResolver {
             totalDurationMs: 0,
           };
 
-          // Include request context in resolved context under the key 'requestContext'
-          result.resolvedContext.requestContext = result.requestContext;
+          result.resolvedContext.headers = result.headers;
 
-          const currentRequestContext = await this.cache.get({
+          const currentHeaders = await this.cache.get({
             conversationId: options.conversationId,
             contextConfigId: contextConfig.id,
-            contextVariableKey: 'requestContext',
+            contextVariableKey: 'headers',
           });
 
-          if (options.requestContext && Object.keys(options.requestContext).length > 0) {
-            // Invalidate the current request context
-            await this.cache.invalidateRequestContext(
+          if (options.headers && Object.keys(options.headers).length > 0) {
+            await this.cache.invalidateHeaders(
               this.tenantId,
               this.projectId,
               options.conversationId,
@@ -123,14 +119,13 @@ export class ContextResolver {
                 conversationId: options.conversationId,
                 contextConfigId: contextConfig.id,
               },
-              'Invalidated request context in cache'
+              'Invalidated headers in cache'
             );
-            // Push the new request context to the cache
             await this.cache.set({
               contextConfigId: contextConfig.id,
-              contextVariableKey: 'requestContext',
+              contextVariableKey: 'headers',
               conversationId: options.conversationId,
-              value: options.requestContext,
+              value: options.headers,
               tenantId: this.tenantId,
             });
             logger.info(
@@ -138,17 +133,16 @@ export class ContextResolver {
                 conversationId: options.conversationId,
                 contextConfigId: contextConfig.id,
               },
-              'Request context set in cache'
+              'Headers set in cache'
             );
-          } else if (currentRequestContext) {
-            result.requestContext = currentRequestContext.value as Record<string, unknown>;
+          } else if (currentHeaders) {
+            result.headers = currentHeaders.value as Record<string, unknown>;
           } else {
-            result.requestContext = {};
+            result.headers = {};
           }
 
-          result.resolvedContext.requestContext = result.requestContext;
+          result.resolvedContext.headers = result.headers;
 
-          // Get all context variables - we'll handle trigger events through cache invalidation
           const contextVariables = contextConfig.contextVariables || {};
           const contextVariableEntries = Object.entries(contextVariables);
 
@@ -164,7 +158,6 @@ export class ContextResolver {
             return result;
           }
 
-          // Separate definitions by trigger type for cache invalidation logic
           const _initializationDefs = contextVariableEntries.filter(
             ([, def]) => def.trigger === 'initialization'
           );
@@ -172,7 +165,6 @@ export class ContextResolver {
             ([, def]) => def.trigger === 'invocation'
           );
 
-          // For invocation trigger, invalidate invocation definition cache entries first
           if (options.triggerEvent === 'invocation' && invocationDefs.length > 0) {
             await this.cache.invalidateInvocationDefinitions(
               this.tenantId,
@@ -183,10 +175,8 @@ export class ContextResolver {
             );
           }
 
-          // Create request hash for cache invalidation
-          const requestHash = this.createRequestHash(result.requestContext);
+          const requestHash = this.createRequestHash(result.headers);
 
-          // Execute all context variables in parallel (no dependencies)
           const fetchPromises = contextVariableEntries.map(([templateKey, definition]) =>
             this.resolveSingleFetchDefinition(
               contextConfig,
@@ -196,7 +186,6 @@ export class ContextResolver {
               requestHash,
               result
             ).catch((error) => {
-              // Handle individual fetch failures without stopping others
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
               logger.error(
                 {
@@ -213,7 +202,6 @@ export class ContextResolver {
                 error: errorMessage,
               });
 
-              // Use default value if available
               if (definition.defaultValue !== undefined) {
                 result.resolvedContext[templateKey] = definition.defaultValue;
                 logger.info(
@@ -228,7 +216,6 @@ export class ContextResolver {
             })
           );
 
-          // Wait for all fetches to complete
           await Promise.all(fetchPromises);
 
           result.totalDurationMs = Date.now() - startTime;
@@ -238,14 +225,12 @@ export class ContextResolver {
             fetched_definitions: result.fetchedDefinitions,
           });
 
-          // Check if there were any errors during context resolution
           if (result.errors.length > 0) {
             parentSpan.setStatus({
               code: SpanStatusCode.ERROR,
               message: `Context resolution completed with errors`,
             });
           } else {
-            // Mark span as successful if no errors
             parentSpan.setStatus({ code: SpanStatusCode.OK });
           }
 
@@ -266,8 +251,7 @@ export class ContextResolver {
         } catch (error) {
           const durationMs = Date.now() - startTime;
 
-          // Use helper function for consistent error handling
-          setSpanWithError(parentSpan, error);
+          setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
 
           logger.error(
             {
@@ -297,7 +281,6 @@ export class ContextResolver {
     requestHash: string,
     result: ContextResolutionResult
   ): Promise<void> {
-    // Check cache first
     const cachedEntry = await this.cache.get({
       conversationId: options.conversationId,
       contextConfigId: contextConfig.id,
@@ -320,7 +303,6 @@ export class ContextResolver {
       return;
     }
 
-    // Cache miss - fetch the data
     result.cacheMisses.push(definition.id);
 
     logger.debug(
@@ -332,7 +314,6 @@ export class ContextResolver {
       'Cache miss for context variable, fetching data'
     );
 
-    // Fetch the data with conversationId in the fetch config
     const definitionWithConversationId = {
       ...definition,
       fetchConfig: {
@@ -341,7 +322,6 @@ export class ContextResolver {
       },
     };
 
-    // Create span only for the fetch operation
     const fetchedData = await tracer.startActiveSpan(
       'context-resolver.resolve_single_fetch_definition',
       {
@@ -360,7 +340,6 @@ export class ContextResolver {
             result.resolvedContext
           );
 
-          // Mark span as successful
           parentSpan.setStatus({ code: SpanStatusCode.OK });
           parentSpan.addEvent('context.fetch_success', {
             definition_id: definition.id,
@@ -370,8 +349,7 @@ export class ContextResolver {
 
           return data;
         } catch (error) {
-          // Use helper function for consistent error handling
-          setSpanWithError(parentSpan, error);
+          setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
           throw error;
         } finally {
           parentSpan.end();
@@ -379,11 +357,9 @@ export class ContextResolver {
       }
     );
 
-    // Store in resolved context
     result.resolvedContext[templateKey] = fetchedData;
     result.fetchedDefinitions.push(definition.id);
 
-    // Cache the result (unified cache)
     await this.cache.set({
       contextConfigId: contextConfig.id,
       contextVariableKey: templateKey,
@@ -404,16 +380,16 @@ export class ContextResolver {
   }
 
   /**
-   * Resolve the request context for a given conversation
+   * Resolve the headers for a given conversation
    */
-  async resolveRequestContext(
+  async resolveHeaders(
     conversationId: string,
     contextConfigId: string
   ): Promise<Record<string, unknown>> {
     const cachedEntry = await this.cache.get({
       conversationId: conversationId,
       contextConfigId: contextConfigId,
-      contextVariableKey: 'requestContext',
+      contextVariableKey: 'headers',
     });
 
     if (cachedEntry) {
@@ -424,10 +400,10 @@ export class ContextResolver {
   }
 
   /**
-   * Create a hash of the request context for cache invalidation
+   * Create a hash of the headers for cache invalidation
    */
-  private createRequestHash(requestContext: Record<string, unknown>): string {
-    const contextString = JSON.stringify(requestContext, Object.keys(requestContext).sort());
+  private createRequestHash(headers: Record<string, unknown>): string {
+    const contextString = JSON.stringify(headers, Object.keys(headers).sort());
     return crypto.createHash('sha256').update(contextString).digest('hex').substring(0, 16);
   }
 

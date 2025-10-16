@@ -1,15 +1,17 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { agentDataComponents, dataComponents } from '../db/schema';
+import { dataComponents, subAgentDataComponents } from '../db/schema';
 import type {
-  AgentScopeConfig,
   DataComponentInsert,
   DataComponentSelect,
   DataComponentUpdate,
   PaginationConfig,
   ProjectScopeConfig,
+  SubAgentScopeConfig,
 } from '../types/index';
+import { validatePreview } from '../validation/preview-validation';
+import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 /**
  * Get a data component by ID
@@ -107,6 +109,26 @@ export const listDataComponentsPaginated =
 export const createDataComponent =
   (db: DatabaseClient) =>
   async (params: DataComponentInsert): Promise<DataComponentSelect> => {
+    if (params.props) {
+      const propsValidation = validatePropsAsJsonSchema(params.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.preview !== undefined && params.preview !== null) {
+      const previewValidation = validatePreview(params.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
+      }
+    }
+
     const dataComponent = await db.insert(dataComponents).values(params).returning();
 
     return dataComponent[0];
@@ -122,6 +144,26 @@ export const updateDataComponent =
     dataComponentId: string;
     data: DataComponentUpdate;
   }): Promise<DataComponentSelect | null> => {
+    if (params.data.props !== undefined && params.data.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(params.data.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.data.preview !== undefined && params.data.preview !== null) {
+      const previewValidation = validatePreview(params.data.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
+      }
+    }
+
     const now = new Date().toISOString();
 
     await db
@@ -169,7 +211,7 @@ export const deleteDataComponent =
  */
 export const getDataComponentsForAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<DataComponentSelect[]> => {
+  async (params: { scopes: SubAgentScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select({
         id: dataComponents.id,
@@ -180,15 +222,19 @@ export const getDataComponentsForAgent =
         props: dataComponents.props,
         createdAt: dataComponents.createdAt,
         updatedAt: dataComponents.updatedAt,
+        preview: dataComponents.preview,
       })
       .from(dataComponents)
-      .innerJoin(agentDataComponents, eq(dataComponents.id, agentDataComponents.dataComponentId))
+      .innerJoin(
+        subAgentDataComponents,
+        eq(dataComponents.id, subAgentDataComponents.dataComponentId)
+      )
       .where(
         and(
           eq(dataComponents.tenantId, params.scopes.tenantId),
           eq(dataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId)
+          eq(subAgentDataComponents.agentId, params.scopes.agentId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
       )
       .orderBy(desc(dataComponents.createdAt));
@@ -198,15 +244,16 @@ export const getDataComponentsForAgent =
  * Associate a data component with an agent
  */
 export const associateDataComponentWithAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; dataComponentId: string }) => {
+  (db: DatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }) => {
     const association = await db
-      .insert(agentDataComponents)
+      .insert(subAgentDataComponents)
       .values({
         id: nanoid(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        graphId: params.scopes.graphId,
         agentId: params.scopes.agentId,
+        subAgentId: params.scopes.subAgentId,
         dataComponentId: params.dataComponentId,
       })
       .returning();
@@ -219,16 +266,16 @@ export const associateDataComponentWithAgent =
  */
 export const removeDataComponentFromAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
+  async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
-      .delete(agentDataComponents)
+      .delete(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.agentId, params.scopes.agentId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
       .returning();
@@ -237,14 +284,14 @@ export const removeDataComponentFromAgent =
   };
 
 export const deleteAgentDataComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
-      .delete(agentDataComponents)
+      .delete(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.agentId, params.scopes.agentId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
       );
     return (result.rowsAffected || 0) > 0;
@@ -258,18 +305,18 @@ export const getAgentsUsingDataComponent =
   async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
-        agentId: agentDataComponents.agentId,
-        createdAt: agentDataComponents.createdAt,
+        subAgentId: subAgentDataComponents.subAgentId,
+        createdAt: subAgentDataComponents.createdAt,
       })
-      .from(agentDataComponents)
+      .from(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
-      .orderBy(desc(agentDataComponents.createdAt));
+      .orderBy(desc(subAgentDataComponents.createdAt));
   };
 
 /**
@@ -277,17 +324,17 @@ export const getAgentsUsingDataComponent =
  */
 export const isDataComponentAssociatedWithAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
+  async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
-      .select({ id: agentDataComponents.id })
-      .from(agentDataComponents)
+      .select({ id: subAgentDataComponents.id })
+      .from(subAgentDataComponents)
       .where(
         and(
-          eq(agentDataComponents.tenantId, params.scopes.tenantId),
-          eq(agentDataComponents.projectId, params.scopes.projectId),
-          eq(agentDataComponents.graphId, params.scopes.graphId),
-          eq(agentDataComponents.agentId, params.scopes.agentId),
-          eq(agentDataComponents.dataComponentId, params.dataComponentId)
+          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
+          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          eq(subAgentDataComponents.agentId, params.scopes.agentId),
+          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
       .limit(1);
@@ -299,12 +346,11 @@ export const isDataComponentAssociatedWithAgent =
  * Upsert agent-data component relation (create if it doesn't exist, no-op if it does)
  */
 export const upsertAgentDataComponentRelation =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; dataComponentId: string }) => {
-    // Check if relation already exists
+  (db: DatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }) => {
     const exists = await isDataComponentAssociatedWithAgent(db)(params);
 
     if (!exists) {
-      // Create the relation if it doesn't exist
       return await associateDataComponentWithAgent(db)(params);
     }
 
@@ -347,7 +393,6 @@ export const upsertDataComponent =
     });
 
     if (existing) {
-      // Update existing data component
       return await updateDataComponent(db)({
         scopes,
         dataComponentId: params.data.id,
@@ -358,7 +403,6 @@ export const upsertDataComponent =
         },
       });
     } else {
-      // Create new data component
       return await createDataComponent(db)(params.data);
     }
   };

@@ -11,28 +11,31 @@ import type {
   ArtifactComponentConfig,
   DataComponentConfig,
   MCPServerConfig,
+  StatusComponentConfig,
 } from './builders';
 import { DataComponent } from './data-component';
-import { AgentGraph } from './graph';
+import { FunctionTool } from './function-tool';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
+import { StatusComponent } from './status-component';
+import { SubAgent } from './subAgent';
 import { Tool } from './tool';
-import type { AgentConfig, GraphConfig } from './types';
+import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
- * Helper function to create graphs - OpenAI style
+ * Helper function to create agent - OpenAI style
  */
 
-export function agentGraph(config: GraphConfig): AgentGraph {
-  return new AgentGraph(config);
+export function agent(config: AgentConfig): Agent {
+  return new Agent(config);
 }
 
 /**
  * Helper function to create projects - OpenAI style
  *
- * Projects are the top-level organizational unit that contains graphs, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to graphs and agents.
+ * Projects are the top-level organizational unit that contains Agents, Sub Agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to Agents and Sub Agents.
  *
  * @param config - Project configuration
  * @returns A new Project instance
@@ -44,18 +47,18 @@ export function agentGraph(config: GraphConfig): AgentGraph {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4o-mini' },
- *     structuredOutput: { model: 'gpt-4o' }
+ *     base: { model: 'gpt-4.1-mini' },
+ *     structuredOutput: { model: 'gpt-4.1' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,
  *     stepCountIs: 50
  *   },
- *   graphs: () => [
- *     agentGraph({
- *       id: 'support-graph',
- *       name: 'Support Graph',
- *       // ... graph config
+ *   agent: () => [
+ *     agent({
+ *       id: 'support-agent',
+ *       name: 'Support Agent',
+ *       // ... agent config
  *     })
  *   ]
  * });
@@ -75,7 +78,7 @@ export function project(config: ProjectConfig): Project {
  * This is different from tools which auto-generate IDs from their names.
  *
  * @param config - Agent configuration including required stable ID
- * @returns A new Agent instance
+ * @returns A new SubAgent instance
  * @throws {Error} If config.id is not provided
  *
  * @example
@@ -88,13 +91,13 @@ export function project(config: ProjectConfig): Project {
  * ```
  */
 
-export function agent(config: AgentConfig): Agent {
+export function subAgent(config: SubAgentConfig): SubAgent {
   if (!config.id) {
     throw new Error(
-      'Agent ID is required. Agents must have stable IDs for consistency across deployments.'
+      'Sub-Agent ID is required. Sub-Agents must have stable IDs for consistency across deployments.'
     );
   }
-  return new Agent(config);
+  return new SubAgent(config);
 } // ============================================================================
 // Credential Builders
 // ============================================================================
@@ -178,6 +181,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
       : undefined,
   });
 }
+
 /**
  * Creates an MCP tool from a raw configuration object.
  *
@@ -197,9 +201,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
  * });
  * ```
  */
-
 export function mcpTool(config: MCPToolConfig): Tool {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -208,9 +210,6 @@ export function mcpTool(config: MCPToolConfig): Tool {
   return new Tool(validatedConfig);
 }
 
-// ============================================================================
-// Component Builders
-// ============================================================================
 /**
  * Creates an artifact component with automatic ID generation.
  *
@@ -225,28 +224,26 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * const productCard = artifactComponent({
  *   name: 'Product Card',
  *   description: 'Display product information',
- *   summaryProps: {
- *     title: 'Product',
- *     price: '$0'
- *   },
- *   fullProps: {
- *     title: 'Product',
- *     price: '$0',
- *     description: 'Product description',
- *     image: 'product.jpg'
+ *   props: {
+ *     type: 'object',
+ *     properties: {
+ *       title: { type: 'string', inPreview: true },
+ *       price: { type: 'string', inPreview: true },
+ *       description: { type: 'string' },
+ *       image: { type: 'string' }
+ *     }
  *   }
  * });
  * ```
  */
-
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new ArtifactComponent(configWithId);
 }
+
 /**
  * Creates a data component with automatic ID generation.
  *
@@ -269,14 +266,41 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  * });
  * ```
  */
-
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new DataComponent(configWithId);
+}
+
+/**
+ * Creates a status component for structured status updates.
+ *
+ * Status components define the structure of status updates
+ * that agents can generate during long-running operations.
+ *
+ * @param config - Status component configuration
+ * @returns A StatusComponent instance
+ *
+ * @example
+ * ```typescript
+ * import { z } from 'zod';
+ *
+ * const toolCallStatus = statusComponent({
+ *   type: 'tool_call_summary',
+ *   description: 'Summary of a tool execution',
+ *   detailsSchema: z.object({
+ *     tool_name: z.string(),
+ *     summary: z.string(),
+ *     status: z.enum(['success', 'error', 'in_progress'])
+ *   })
+ * });
+ * ```
+ */
+
+export function statusComponent(config: StatusComponentConfig): StatusComponent {
+  return new StatusComponent(config);
 }
 
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
@@ -285,4 +309,47 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
     selectedTools: config.selectedTools,
     headers: config.headers,
   };
+}
+
+/**
+ * Creates a function tool that executes user-defined code in a sandboxed environment.
+ *
+ * Function tools allow users to define custom logic that runs securely in isolated
+ * environments. Dependencies are installed automatically in the sandbox.
+ *
+ * @param config - Function tool configuration
+ * @returns A FunctionTool instance
+ *
+ * @example
+ * ```typescript
+ * const calculatorTool = functionTool({
+ *   name: 'calculator',
+ *   description: 'Performs basic math operations',
+ *   inputSchema: {
+ *     type: 'object',
+ *     properties: {
+ *       operation: { type: 'string', enum: ['add', 'subtract', 'multiply', 'divide'] },
+ *       a: { type: 'number' },
+ *       b: { type: 'number' }
+ *     },
+ *     required: ['operation', 'a', 'b']
+ *   },
+ *   dependencies: {
+ *     'lodash': '^4.17.21'
+ *   },
+ *   execute: async (params) => {
+ *     const { operation, a, b } = params;
+ *     switch (operation) {
+ *       case 'add': return { result: a + b };
+ *       case 'subtract': return { result: a - b };
+ *       case 'multiply': return { result: a * b };
+ *       case 'divide': return { result: a / b };
+ *       default: throw new Error(`Unknown operation: ${operation}`);
+ *     }
+ *   }
+ * });
+ * ```
+ */
+export function functionTool(config: FunctionToolConfig): FunctionTool {
+  return new FunctionTool(config);
 }

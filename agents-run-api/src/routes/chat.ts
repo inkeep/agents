@@ -6,16 +6,15 @@ import {
   createMessage,
   createOrGetConversation,
   getActiveAgentForConversation,
-  getAgentById,
-  getAgentGraphWithDefaultAgent,
+  getAgentWithDefaultSubAgent,
   getConversationId,
-  getFullGraph,
+  getFullAgent,
   getRequestExecutionContext,
+  getSubAgentById,
   handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
-// import { Hono } from 'hono';
-import { trace } from '@opentelemetry/api';
+import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -34,14 +33,13 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('completionsHandler');
 
-// Define the OpenAPI route schema
 const chatCompletionsRoute = createRoute({
   method: 'post',
   path: '/completions',
   tags: ['chat'],
   summary: 'Create chat completion',
   description:
-    'Creates a new chat completion with streaming SSE response using the configured agent graph',
+    'Creates a new chat completion with streaming SSE response using the configured agent',
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -82,11 +80,11 @@ const chatCompletionsRoute = createRoute({
             conversationId: z.string().optional().describe('Conversation ID for multi-turn chat'),
             tools: z.array(z.string()).optional().describe('Available tools'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
-            requestContext: z
+            headers: z
               .record(z.string(), z.unknown())
               .optional()
               .describe(
-                'Context data for template processing (validated against context config schema)'
+                'Headers data for template processing (validated against context config schema)'
               ),
           }),
         },
@@ -127,7 +125,7 @@ const chatCompletionsRoute = createRoute({
       },
     },
     404: {
-      description: 'Agent graph or agent not found',
+      description: 'Agent or agent not found',
       content: {
         'application/json': {
           schema: z.object({
@@ -150,7 +148,6 @@ const chatCompletionsRoute = createRoute({
   },
 });
 
-// Apply context validation middleware
 app.use('/completions', contextValidationMiddleware(dbClient));
 
 app.openapi(chatCompletionsRoute, async (c) => {
@@ -178,229 +175,232 @@ app.openapi(chatCompletionsRoute, async (c) => {
     'OpenTelemetry headers: chat'
   );
   try {
-    // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, graphId } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('chat').debug(
       {
         tenantId,
-        graphId,
+        agentId,
       },
       'Extracted chat parameters from API key context'
     );
 
-    // Get conversationId from request body or generate new one
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
-    // Get the graph from the full graph system first, fall back to legacy system
-    const fullGraph = await getFullGraph(dbClient)({
-      scopes: { tenantId, projectId, graphId },
-    });
-
-    let agentGraph: any;
-    let defaultAgentId: string;
-
-    if (fullGraph) {
-      // Use full graph system
-      agentGraph = {
-        id: fullGraph.id,
-        name: fullGraph.name,
-        tenantId,
-        projectId,
-        defaultAgentId: fullGraph.defaultAgentId,
-      };
-      const agentKeys = Object.keys((fullGraph.agents as Record<string, any>) || {});
-      const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-      defaultAgentId = (fullGraph.defaultAgentId as string) || firstAgentId; // Use first agent if no defaultAgentId
-    } else {
-      // Fall back to legacy system
-      agentGraph = await getAgentGraphWithDefaultAgent(dbClient)({
-        scopes: { tenantId, projectId, graphId },
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttributes({
+        'conversation.id': conversationId,
+        'tenant.id': tenantId,
+        'agent.id': agentId,
+        'project.id': projectId,
       });
-      if (!agentGraph) {
+    }
+
+    let currentBag = propagation.getBaggage(otelContext.active());
+    if (!currentBag) {
+      currentBag = propagation.createBaggage();
+    }
+    currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
+    const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
+    return await otelContext.with(ctxWithBaggage, async () => {
+      const fullAgent = await getFullAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+      });
+
+      let agent: any;
+      let defaultSubAgentId: string;
+
+      if (fullAgent) {
+        agent = {
+          id: fullAgent.id,
+          name: fullAgent.name,
+          tenantId,
+          projectId,
+          defaultSubAgentId: fullAgent.defaultSubAgentId,
+        };
+        const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+        const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+        defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
+      } else {
+        agent = await getAgentWithDefaultSubAgent(dbClient)({
+          scopes: { tenantId, projectId, agentId },
+        });
+        if (!agent) {
+          throw createApiError({
+            code: 'not_found',
+            message: 'Agent not found',
+          });
+        }
+        defaultSubAgentId = agent.defaultSubAgentId || '';
+      }
+
+      if (!defaultSubAgentId) {
         throw createApiError({
           code: 'not_found',
-          message: 'Agent graph not found',
+          message: 'No default agent found in agent',
         });
       }
-      defaultAgentId = agentGraph.defaultAgentId || '';
-    }
 
-    if (!defaultAgentId) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'No default agent found in graph',
-      });
-    }
-
-    // Get or create conversation with the default agent
-    await createOrGetConversation(dbClient)({
-      tenantId,
-      projectId,
-      id: conversationId,
-      activeAgentId: defaultAgentId,
-    });
-
-    const activeAgent = await getActiveAgentForConversation(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-    });
-    if (!activeAgent) {
-      // Use the default agent from the graph instead of headAgentId
-      setActiveAgentForConversation(dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-        agentId: defaultAgentId,
-      });
-    }
-    const agentId = activeAgent?.activeAgentId || defaultAgentId;
-
-    const agentInfo = await getAgentById(dbClient)({
-      scopes: { tenantId, projectId, graphId },
-      agentId: agentId as string,
-    });
-
-    if (!agentInfo) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Agent not found',
-      });
-    }
-
-    // Get validated context from middleware (falls back to body.context if no validation)
-    const validatedContext = (c as any).get('validatedContext') || body.requestContext || {};
-
-    const credentialStores = c.get('credentialStores');
-
-    // Context resolution with intelligent conversation state detection
-    await handleContextResolution({
-      tenantId,
-      projectId,
-      graphId,
-      conversationId,
-      requestContext: validatedContext,
-      dbClient,
-      credentialStores,
-    });
-
-    logger.info(
-      {
+      await createOrGetConversation(dbClient)({
         tenantId,
         projectId,
-        graphId,
+        id: conversationId,
+        activeSubAgentId: defaultSubAgentId,
+      });
+
+      const activeAgent = await getActiveAgentForConversation(dbClient)({
+        scopes: { tenantId, projectId },
         conversationId,
-        defaultAgentId,
-        activeAgentId: activeAgent?.activeAgentId || 'none',
-        hasContextConfig: !!agentGraph.contextConfigId,
-        hasRequestContext: !!body.requestContext,
-        hasValidatedContext: !!validatedContext,
-        validatedContextKeys: Object.keys(validatedContext),
-      },
-      'parameters'
-    );
-
-    const requestId = `chatcmpl-${Date.now()}`;
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    // Extract user message for context
-    const lastUserMessage = body.messages
-      .filter((msg: Message) => msg.role === 'user')
-      .slice(-1)[0];
-    const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
-
-    const messageSpan = trace.getActiveSpan();
-    if (messageSpan) {
-      messageSpan.setAttributes({
-        'message.content': userMessage,
-        'message.timestamp': Date.now(),
       });
-    }
-
-    // Store the user message in the database
-    await createMessage(dbClient)({
-      id: nanoid(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: {
-        text: userMessage,
-      },
-      visibility: 'user-facing',
-      messageType: 'chat',
-    });
-    if (messageSpan) {
-      messageSpan.addEvent('user.message.stored', {
-        'message.id': conversationId,
-        'database.operation': 'insert',
-      });
-    }
-
-    // Use Hono's streamSSE helper for proper SSE formatting
-    return streamSSE(c, async (stream) => {
-      try {
-        // Create SSE stream helper
-        const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
-
-        // Start with the role
-        await sseHelper.writeRole();
-
-        logger.info({ agentId }, 'Starting execution');
-
-        // Use the execution handler
-        const executionHandler = new ExecutionHandler();
-        const result = await executionHandler.execute({
-          executionContext,
+      if (!activeAgent) {
+        setActiveAgentForConversation(dbClient)({
+          scopes: { tenantId, projectId },
           conversationId,
-          userMessage,
-          initialAgentId: agentId,
-          requestId,
-          sseHelper,
+          subAgentId: defaultSubAgentId,
         });
-
-        logger.info(
-          { result },
-          `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
-        );
-
-        if (!result.success) {
-          // If execution failed and no error was already streamed, send a default error
-          await sseHelper.writeOperation(
-            errorOp(
-              'Sorry, I was unable to process your request at this time. Please try again.',
-              'system'
-            )
-          );
-        }
-
-        // Complete the stream
-        await sseHelper.complete();
-      } catch (error) {
-        logger.error(
-          {
-            error: error instanceof Error ? error.message : error,
-            stack: error instanceof Error ? error.stack : undefined,
-          },
-          'Error during streaming execution'
-        );
-
-        try {
-          // Try to send error as stream content if possible
-          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
-          await sseHelper.writeOperation(
-            errorOp(
-              'Sorry, I was unable to process your request at this time. Please try again.',
-              'system'
-            )
-          );
-          await sseHelper.complete();
-        } catch (streamError) {
-          // If we can't write to stream, just log it
-          logger.error({ streamError }, 'Failed to write error to stream');
-        }
       }
+      const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
+
+      const agentInfo = await getSubAgentById(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: subAgentId,
+      });
+
+      if (!agentInfo) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
+
+      const validatedContext = (c as any).get('validatedContext') || body.headers || {};
+
+      const credentialStores = c.get('credentialStores');
+
+      await handleContextResolution({
+        tenantId,
+        projectId,
+        agentId,
+        conversationId,
+        headers: validatedContext,
+        dbClient,
+        credentialStores,
+      });
+
+      logger.info(
+        {
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          defaultSubAgentId,
+          activeSubAgentId: activeAgent?.activeSubAgentId || 'none',
+          hasContextConfig: !!agent.contextConfigId,
+          hasHeaders: !!body.headers,
+          hasValidatedContext: !!validatedContext,
+          validatedContextKeys: Object.keys(validatedContext),
+        },
+        'parameters'
+      );
+
+      const requestId = `chatcmpl-${Date.now()}`;
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      const lastUserMessage = body.messages
+        .filter((msg: Message) => msg.role === 'user')
+        .slice(-1)[0];
+      const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
+
+      const messageSpan = trace.getActiveSpan();
+      if (messageSpan) {
+        messageSpan.setAttributes({
+          'message.content': userMessage,
+          'message.timestamp': Date.now(),
+        });
+      }
+
+      await createMessage(dbClient)({
+        id: nanoid(),
+        tenantId,
+        projectId,
+        conversationId,
+        role: 'user',
+        content: {
+          text: userMessage,
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
+      if (messageSpan) {
+        messageSpan.addEvent('user.message.stored', {
+          'message.id': conversationId,
+          'database.operation': 'insert',
+        });
+      }
+
+      return streamSSE(c, async (stream) => {
+        try {
+          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+
+          await sseHelper.writeRole();
+
+          logger.info({ subAgentId }, 'Starting execution');
+
+          const emitOperationsHeader = c.req.header('x-emit-operations');
+          const emitOperations = emitOperationsHeader === 'true';
+
+          const executionHandler = new ExecutionHandler();
+          const result = await executionHandler.execute({
+            executionContext,
+            conversationId,
+            userMessage,
+            initialAgentId: subAgentId,
+            requestId,
+            sseHelper,
+            emitOperations,
+          });
+
+          logger.info(
+            { result },
+            `Execution completed: ${result.success ? 'success' : 'failed'} after ${result.iterations} iterations`
+          );
+
+          if (!result.success) {
+            await sseHelper.writeOperation(
+              errorOp(
+                'Sorry, I was unable to process your request at this time. Please try again.',
+                'system'
+              )
+            );
+          }
+
+          await sseHelper.complete();
+        } catch (error) {
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : error,
+              stack: error instanceof Error ? error.stack : undefined,
+            },
+            'Error during streaming execution'
+          );
+
+          try {
+            const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+            await sseHelper.writeOperation(
+              errorOp(
+                'Sorry, I was unable to process your request at this time. Please try again.',
+                'system'
+              )
+            );
+            await sseHelper.complete();
+          } catch (streamError) {
+            logger.error({ streamError }, 'Failed to write error to stream');
+          }
+        }
+      });
     });
   } catch (error) {
     logger.error(
@@ -411,12 +411,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       'Error in chat completions endpoint before streaming'
     );
 
-    // Re-throw if already an API error
     if (error && typeof error === 'object' && 'status' in error) {
       throw error;
     }
 
-    // Convert other errors to API errors
     throw createApiError({
       code: 'internal_server_error',
       message: error instanceof Error ? error.message : 'Failed to process chat completion',
@@ -424,7 +422,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
   }
 });
 
-// Helper function to extract text from content
 const getMessageText = (content: string | ContentItem[]): string => {
   if (typeof content === 'string') {
     return content;

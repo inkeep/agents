@@ -2,11 +2,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Agent Builder
 
-This application provides a UI for building and managing agent graphs. It integrates with the agents-manage-api and agents-run-api backend services to provide full CRUD operations for agent graph management and real-time chat execution.
+This application provides a UI for building and managing agents. It integrates with the agents-manage-api and agents-run-api backend services to provide full CRUD operations for agent management and real-time chat execution.
 
 ### Features
 
-- **GraphFull API Integration**: Complete server actions for creating, reading, updating, and deleting agent graphs
+- **Full Agent API Integration**: Complete server actions for creating, reading, updating, and deleting agents
 - **Type Safety**: Full TypeScript support with Zod schema validation
 - **Server Actions**: Next.js server actions for seamless client-server communication
 - **Error Handling**: Comprehensive error handling with proper error codes and messages
@@ -49,10 +49,12 @@ Create a `.env.local` file with the following configuration:
 # Inkeep Configuration
 TENANT_ID="default"
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002" # URL where agents-manage-api is running
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 # URL where agents-manage-api is running
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
 
 # SigNoz Configuration (for Traces feature)
 SIGNOZ_URL=http://localhost:3080
+PUBLIC_SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key-here
 ```
 

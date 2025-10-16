@@ -66,13 +66,13 @@ describe('Init Command', () => {
 
       // Verify all required parts are present
       expect(writtenContent).toContain("tenantId: 'test-tenant-123'");
-      expect(writtenContent).toContain("agentsManageApi:");
-      expect(writtenContent).toContain("agentsRunApi:");
+      expect(writtenContent).toContain('agentsManageApi:');
+      expect(writtenContent).toContain('agentsRunApi:');
       expect(writtenContent).toContain("url: 'http://localhost:3002'");
 
       // Verify it's using nested format (not flat)
-      expect(writtenContent).not.toContain("agentsManageApiUrl:");
-      expect(writtenContent).not.toContain("agentsRunApiUrl:");
+      expect(writtenContent).not.toContain('agentsManageApiUrl:');
+      expect(writtenContent).not.toContain('agentsRunApiUrl:');
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.any(String), // The checkmark
@@ -201,11 +201,10 @@ describe('Init Command', () => {
 
       vi.mocked(existsSync).mockReturnValue(false);
       const promptMock = vi.mocked(inquirer.default.prompt);
-      promptMock
-        .mockResolvedValueOnce({
-          tenantId: 'test-tenant',
-          apiUrl: 'http://localhost:3002',
-        });
+      promptMock.mockResolvedValueOnce({
+        tenantId: 'test-tenant',
+        apiUrl: 'http://localhost:3002',
+      });
 
       await initCommand({ path: './custom/path' });
 

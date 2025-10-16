@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@libsql/client';
@@ -12,63 +12,46 @@ export type DatabaseClient = LibSQLDatabase<typeof schema>;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Path for test database - unique per test run to avoid conflicts
-const TEST_DB_DIR = join(__dirname, '../../../temp');
-
 /**
- * Creates a test database client for a test suite using a temporary SQLite file
- * This provides real database operations for integration testing
+ * Creates a test database client using an in-memory SQLite database
+ * This provides real database operations for integration testing with perfect isolation
+ * Each call creates a fresh database with all migrations applied
  */
-export async function createTestDatabaseClient(
-  suiteName?: string
-): Promise<{ client: DatabaseClient; path: string }> {
-  // Generate database path for the test suite
-  const testDbPath = join(
-    TEST_DB_DIR,
-    `${suiteName || 'test'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`
-  );
-
-  // Ensure temp directory exists
-  try {
-    mkdirSync(TEST_DB_DIR, { recursive: true });
-  } catch {
-    // Directory already exists, that's fine
-  }
-
-  // Create database client with file
+export async function createTestDatabaseClient(): Promise<DatabaseClient> {
   const client = createClient({
-    url: `file:${testDbPath}`,
+    url: ':memory:',
   });
 
   const db = drizzle(client, { schema });
 
-  // Initialize schema by running migration SQL
+  // Initialize schema by running ALL migration SQL files
   try {
-    // Find the first migration file dynamically (drizzle uses random names)
     const drizzleDir = join(__dirname, '../../drizzle');
     const files = readdirSync(drizzleDir);
-    const migrationFile = files.find((f) => f.startsWith('0000_') && f.endsWith('.sql'));
 
-    if (!migrationFile) {
-      throw new Error('No migration file found. Run: pnpm drizzle-kit generate');
+    // Find all SQL migration files and sort them
+    const migrationFiles = files.filter((f) => f.endsWith('.sql')).sort(); // This sorts 0000_, 0001_, 0002_, etc. in order
+
+    if (migrationFiles.length === 0) {
+      throw new Error('No migration files found. Run: pnpm drizzle-kit generate');
     }
 
-    const migrationPath = join(drizzleDir, migrationFile);
-    const migrationSql = readFileSync(migrationPath, 'utf8');
+    // Run all migrations in order
+    for (const migrationFile of migrationFiles) {
+      const migrationPath = join(drizzleDir, migrationFile);
+      const migrationSql = readFileSync(migrationPath, 'utf8');
 
-    // Parse and execute SQL statements
-    const statements = migrationSql
-      .split('-->')
-      .map((s) => s.replace(/statement-breakpoint/g, '').trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--'));
+      // Parse and execute SQL statements
+      const statements = migrationSql
+        .split('-->')
+        .map((s) => s.replace(/statement-breakpoint/g, '').trim())
+        .filter((s) => s.length > 0 && !s.startsWith('--'));
 
-    for (const statement of statements) {
-      if (
-        statement.includes('CREATE TABLE') ||
-        statement.includes('CREATE INDEX') ||
-        statement.includes('CREATE UNIQUE INDEX')
-      ) {
-        await db.run(sql.raw(statement));
+      for (const statement of statements) {
+        // Execute all SQL statements (CREATE, ALTER, etc.)
+        if (statement.trim().length > 0) {
+          await db.run(sql.raw(statement));
+        }
       }
     }
   } catch (error) {
@@ -76,21 +59,22 @@ export async function createTestDatabaseClient(
     throw error;
   }
 
-  return { client: db, path: testDbPath };
+  return db;
 }
 
 /**
  * Cleans up test database by removing all data but keeping schema
+ * @deprecated Use fresh in-memory databases with beforeEach instead for better test isolation
  */
 export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
-  // Delete data from tables in reverse dependency order to handle foreign keys
   const cleanupTables = [
     'messages',
     'conversations',
     'tasks',
     'task_relations',
     'agent_relations',
-    'agent_graph',
+    'agent',
+    'agent_tool_relations',
     'tools',
     'agents',
     'api_keys',
@@ -98,12 +82,13 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
     'ledger_artifacts',
     'agent_artifact_components',
     'agent_data_components',
-    'agent_tool_relations',
     'artifact_components',
     'context_configs',
     'credential_references',
     'data_components',
     'external_agents',
+    'functions', // Global functions table
+    'projects',
   ];
 
   for (const table of cleanupTables) {
@@ -125,6 +110,7 @@ export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
 
 /**
  * Closes the test database and removes the file
+ * @deprecated Use in-memory databases which auto-cleanup instead
  */
 export async function closeTestDatabase(db: DatabaseClient, testDbPath: string): Promise<void> {
   // Close the database connection

@@ -31,9 +31,6 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
     projectId,
-    onError: () => {
-      setLoadingServerId(undefined);
-    },
   });
 
   const handleSelectPrebuiltServer = async (server: PrebuiltMCPServer) => {
@@ -65,7 +62,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       } else {
-        handleOAuthLogin(newTool.id);
+        handleOAuthLogin({toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name});
       }
     } catch (error) {
       console.error('Failed to create prebuilt MCP server:', error);

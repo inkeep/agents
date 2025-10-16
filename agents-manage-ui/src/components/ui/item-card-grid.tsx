@@ -29,6 +29,8 @@ export interface ItemCardGridProps<T> {
   gridClassName?: string;
   /** Optional className for individual cards */
   cardClassName?: string;
+  /** Function to determine if an item is disabled */
+  isDisabled?: (item: T) => boolean;
 }
 
 export function ItemCardGrid<T>({
@@ -41,12 +43,15 @@ export function ItemCardGrid<T>({
   renderContent,
   gridClassName = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4',
   cardClassName,
+  isDisabled,
 }: ItemCardGridProps<T>) {
   return (
     <div className={gridClassName}>
       {items.map((item) => {
+        const disabled = isDisabled?.(item) ?? false;
+
         const cardHeader = (
-          <ItemCardHeader>
+          <ItemCardHeader key={`header-${getKey(item)}`}>
             <ItemCardTitle className="text-md">
               {renderHeader ? renderHeader(item) : getKey(item)}
             </ItemCardTitle>
@@ -55,12 +60,12 @@ export function ItemCardGrid<T>({
         );
 
         const cardContent = renderContent ? (
-          <ItemCardContent>
+          <ItemCardContent key={`content-${getKey(item)}`}>
             {renderContent(item)}
             <ItemCardFooter footerText={getFooterText ? getFooterText(item) : ''} />
           </ItemCardContent>
         ) : (
-          <ItemCardContent>
+          <ItemCardContent key={`content-${getKey(item)}`}>
             <ItemCardDescription hasContent={!!getDescription} className="line-clamp-2">
               {getDescription ? getDescription(item) : ''}
             </ItemCardDescription>
@@ -70,8 +75,12 @@ export function ItemCardGrid<T>({
 
         const fullCardContent = (
           <>
-            {getHref ? <ItemCardLink href={getHref(item)}>{cardHeader}</ItemCardLink> : cardHeader}
-            {getHref ? (
+            {getHref && !disabled ? (
+              <ItemCardLink href={getHref(item)}>{cardHeader}</ItemCardLink>
+            ) : (
+              cardHeader
+            )}
+            {getHref && !disabled ? (
               <ItemCardLink href={getHref(item)} className="group flex h-full">
                 {cardContent}
               </ItemCardLink>
@@ -82,7 +91,14 @@ export function ItemCardGrid<T>({
         );
 
         return (
-          <ItemCardRoot key={getKey(item)} className={cn('h-full min-w-0', cardClassName)}>
+          <ItemCardRoot
+            key={getKey(item)}
+            className={cn(
+              'h-full min-w-0',
+              disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
+              cardClassName
+            )}
+          >
             {fullCardContent}
           </ItemCardRoot>
         );
@@ -97,5 +113,4 @@ export interface CardItem {
   [key: string]: any;
 }
 
-// Helper function for items that have an id property
 export const getItemId = <T extends CardItem>(item: T): string | number => item.id;

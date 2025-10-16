@@ -18,7 +18,7 @@ interface ApiKeyFormProps {
   tenantId: string;
   projectId: string;
   initialData?: ApiKeyFormData;
-  graphsOptions: SelectOption[];
+  agentsOptions: SelectOption[];
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
 }
 
@@ -56,7 +56,7 @@ export function ApiKeyForm({
   tenantId,
   projectId,
   initialData,
-  graphsOptions,
+  agentsOptions,
   onApiKeyCreated,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
@@ -72,7 +72,7 @@ export function ApiKeyForm({
       const name = data.name;
 
       const payload: Partial<ApiKey> = {
-        graphId: data.graphId,
+        agentId: data.agentId,
         expiresAt,
         name,
       };
@@ -114,11 +114,11 @@ export function ApiKeyForm({
         />
         <GenericComboBox
           control={form.control}
-          name="graphId"
-          label="Graph"
-          options={graphsOptions}
-          placeholder="Select a graph"
-          searchPlaceholder="Search graphs..."
+          name="agentId"
+          label="Agent"
+          options={agentsOptions}
+          placeholder="Select an agent"
+          searchPlaceholder="Search agent..."
           isRequired
         />
         <div className="flex justify-end">

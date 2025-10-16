@@ -31,6 +31,28 @@ export async function cloneTemplate(
   }
 }
 
+export async function cloneTemplateLocal(
+  templatePath: string,
+  targetPath: string,
+  replacements: ContentReplacement[]
+) {
+  await fs.mkdir(targetPath, { recursive: true });
+
+  try {
+    await fs.copy(templatePath, targetPath, {
+      overwrite: true,
+      errorOnExist: false,
+    });
+
+    if (replacements && replacements.length > 0) {
+      await replaceContentInFiles(targetPath, replacements);
+    }
+  } catch (error) {
+    console.error(`Failed to clone template from ${templatePath}:`, error);
+    process.exit(1);
+  }
+}
+
 /**
  * Replace content in cloned template files
  */

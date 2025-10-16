@@ -1,8 +1,13 @@
-import type { ArtifactComponentApiInsert, ArtifactComponentApiSelect, DataComponentInsert } from '@inkeep/agents-core';
+import type {
+  ArtifactComponentApiInsert,
+  ArtifactComponentApiSelect,
+  DataComponentInsert,
+} from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';
+import type { ExtendedJsonSchema } from './schema-validation';
 
 const _logger = getLogger('ArtifactComponentSchema');
 
@@ -13,17 +18,17 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
   // Convert artifact component configs to a union schema
   const componentSchemas =
     artifactComponents?.map((component) => {
-      // Convert the JSON Schema props to Zod - handle both summaryProps and fullProps
-      const summaryPropsSchema = jsonSchemaToZod(component.summaryProps);
-      const fullPropsSchema = jsonSchemaToZod(component.fullProps);
+      // Use the unified props schema directly - remove inPreview flags for LLM
+      const cleanSchema = component.props
+        ? removePreviewFlags(component.props as ExtendedJsonSchema)
+        : {};
+      const propsSchema = jsonSchemaToZod(cleanSchema);
 
-      // Return schema with both summary and full props
       return z
         .object({
           id: z.string().describe(component.id),
           name: z.literal(component.name).describe(component.name),
-          summaryProps: summaryPropsSchema,
-          fullProps: fullPropsSchema,
+          props: propsSchema,
         })
         .describe(`${component.name}: ${component.description}`);
     }) || [];
@@ -39,59 +44,22 @@ export function createArtifactComponentsSchema(artifactComponents?: ArtifactComp
 }
 
 /**
- * Create schema for artifact component summary props only (for quick display)
+ * Remove inPreview flags from schema properties (for LLM consumption)
  */
-export function createArtifactComponentsSummarySchema(
-  artifactComponents?: ArtifactComponentApiSelect[]
-) {
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      const summaryPropsSchema = jsonSchemaToZod(component.summaryProps);
+function removePreviewFlags(schema: ExtendedJsonSchema): Record<string, any> {
+  const cleanSchema = { ...schema };
 
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          summaryProps: summaryPropsSchema,
-        })
-        .describe(`${component.name} Summary: ${component.description}`);
-    }) || [];
-
-  if (componentSchemas.length === 0) {
-    return z.object({});
+  if (cleanSchema.properties) {
+    const cleanProperties: Record<string, any> = {};
+    for (const [key, prop] of Object.entries(cleanSchema.properties)) {
+      const cleanProp = { ...prop };
+      delete cleanProp.inPreview;
+      cleanProperties[key] = cleanProp;
+    }
+    cleanSchema.properties = cleanProperties;
   }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0];
-  }
-  return z.union(componentSchemas as any);
-}
 
-/**
- * Create schema for artifact component full props only (for detailed display)
- */
-export function createArtifactComponentsFullSchema(
-  artifactComponents?: ArtifactComponentApiSelect[]
-) {
-  const componentSchemas =
-    artifactComponents?.map((component) => {
-      const fullPropsSchema = jsonSchemaToZod(component.fullProps);
-
-      return z
-        .object({
-          id: z.string().describe(component.id),
-          name: z.literal(component.name).describe(component.name),
-          fullProps: fullPropsSchema,
-        })
-        .describe(`${component.name} Full: ${component.description}`);
-    }) || [];
-
-  if (componentSchemas.length === 0) {
-    return z.object({});
-  }
-  if (componentSchemas.length === 1) {
-    return componentSchemas[0];
-  }
-  return z.union(componentSchemas as any);
+  return cleanSchema;
 }
 
 /**
@@ -104,8 +72,7 @@ export class ArtifactReferenceSchema {
     properties: {
       artifact_id: {
         type: 'string',
-        description:
-          'The artifact_id from your artifact:create tag. Must match exactly.',
+        description: 'The artifact_id from your artifact:create tag. Must match exactly.',
       },
       tool_call_id: {
         type: 'string',
@@ -152,11 +119,14 @@ export class ArtifactCreateSchema {
    * @param artifactComponents - The available artifact components to generate schemas for
    * @returns Array of Zod schemas, one for each artifact component
    */
-  static getSchemas(artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>): z.ZodType<any>[] {
-    return artifactComponents.map(component => {
-      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
-      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
-      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+  static getSchemas(
+    artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
+  ): z.ZodType<any>[] {
+    return artifactComponents.map((component) => {
+      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
+      const enhancedSchema = component.props
+        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
+        : { type: 'object', properties: {} };
 
       const propsSchema = {
         type: 'object',
@@ -167,7 +137,8 @@ export class ArtifactCreateSchema {
           },
           tool_call_id: {
             type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+            description:
+              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
           type: {
             type: 'string',
@@ -176,10 +147,10 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+            description:
+              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
+          details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };
@@ -202,10 +173,11 @@ export class ArtifactCreateSchema {
     projectId: string = '',
     artifactComponents: Array<ArtifactComponentApiInsert | ArtifactComponentApiSelect>
   ): DataComponentInsert[] {
-    return artifactComponents.map(component => {
-      // Use SchemaProcessor to enhance the component's schemas with JMESPath guidance
-      const enhancedSummaryProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.summaryProps);
-      const enhancedFullProps = SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.fullProps);
+    return artifactComponents.map((component) => {
+      // Use SchemaProcessor to enhance the component's unified props schema with JMESPath guidance
+      const enhancedSchema = component.props
+        ? SchemaProcessor.enhanceSchemaWithJMESPathGuidance(component.props)
+        : { type: 'object', properties: {} };
 
       const propsSchema = {
         type: 'object',
@@ -216,7 +188,8 @@ export class ArtifactCreateSchema {
           },
           tool_call_id: {
             type: 'string',
-            description: 'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
+            description:
+              'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
           type: {
             type: 'string',
@@ -225,10 +198,10 @@ export class ArtifactCreateSchema {
           },
           base_selector: {
             type: 'string',
-            description: 'JMESPath selector starting with "result." to navigate to ONE specific item. Summary/full props will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']"). EXAMPLE: For JSON {"result":{"structuredContent":{"content":[{"type":"document","title":"Guide"}]}}} - WRONG: "result.content[?type==\'document\']" (skips structuredContent) - RIGHT: "result.structuredContent.content[?type==\'document\']".',
+            description:
+              'JMESPath selector starting with "result." to navigate to ONE specific item. Details selector will be relative to this selection. Use filtering to avoid arrays (e.g., "result.items[?type==\'guide\']").',
           },
-          summary_props: enhancedSummaryProps,
-          full_props: enhancedFullProps,
+          details_selector: enhancedSchema,
         },
         required: ['id', 'tool_call_id', 'type', 'base_selector'],
       };

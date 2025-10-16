@@ -32,9 +32,9 @@ vi.mock('../../context/TemplateEngine.js', () => ({
 }));
 
 // Mock ContextResolver - create interface implementation
-const mockResolveRequestContext = vi.fn();
+const mockResolveHeaders = vi.fn();
 const mockContextResolver = {
-  resolveRequestContext: mockResolveRequestContext,
+  resolveHeaders: mockResolveHeaders,
 };
 
 describe('CredentialStuffer', () => {
@@ -58,6 +58,7 @@ describe('CredentialStuffer', () => {
       set: vi.fn().mockResolvedValue(null),
       has: vi.fn().mockResolvedValue(false),
       delete: vi.fn().mockResolvedValue(false),
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
     };
 
     mockMemoryStore = {
@@ -67,6 +68,7 @@ describe('CredentialStuffer', () => {
       set: vi.fn().mockResolvedValue(null),
       has: vi.fn().mockResolvedValue(false),
       delete: vi.fn().mockResolvedValue(false),
+      checkAvailability: vi.fn().mockResolvedValue({ available: true }),
     };
 
     // Create registry and add stores
@@ -448,7 +450,7 @@ describe('CredentialStuffer', () => {
     });
   });
 
-  describe('getCredentialsFromRequestContext', () => {
+  describe('getCredentialsFromHeaders', () => {
     const mockContextWithIds: CredentialContext = {
       tenantId: 'test-tenant',
       contextConfigId: 'test-context-config',
@@ -462,41 +464,35 @@ describe('CredentialStuffer', () => {
 
     test('should resolve headers with template variables from request context', async () => {
       const headers = {
-        Authorization: 'Bearer {{requestContext.headers.authorization}}',
-        'X-Custom-Header': '{{requestContext.customField}}',
+        Authorization: 'Bearer {{headers.authorization}}',
+        'X-Custom-Header': '{{customField}}',
       };
 
-      const mockRequestContext = {
+      const mockContext = {
         headers: {
           authorization: 'secret-token-123',
         },
         customField: 'custom-value',
       };
 
-      mockResolveRequestContext.mockResolvedValue(mockRequestContext);
+      mockResolveHeaders.mockResolvedValue(mockContext);
       mockTemplateRender
         .mockReturnValueOnce('Bearer secret-token-123')
         .mockReturnValueOnce('custom-value');
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
-        mockContextWithIds,
-        headers
-      );
+      const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
-      expect(mockResolveRequestContext).toHaveBeenCalledWith(
-        'test-conversation',
-        'test-context-config'
-      );
+      expect(mockResolveHeaders).toHaveBeenCalledWith('test-conversation', 'test-context-config');
 
       expect(mockTemplateRender).toHaveBeenCalledWith(
-        'Bearer {{requestContext.headers.authorization}}',
-        { requestContext: mockRequestContext },
+        'Bearer {{headers.authorization}}',
+        mockContext,
         { strict: true }
       );
 
       expect(mockTemplateRender).toHaveBeenCalledWith(
-        '{{requestContext.customField}}',
-        { requestContext: mockRequestContext },
+        '{{customField}}',
+        mockContext,
         { strict: true }
       );
 
@@ -518,16 +514,16 @@ describe('CredentialStuffer', () => {
       };
 
       const headers = {
-        Authorization: 'Bearer {{requestContext.headers.authorization}}',
+        Authorization: 'Bearer {{headers.authorization}}',
       };
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
+      const result = await credentialStuffer.getCredentialsFromHeaders(
         contextWithoutConfigId,
         headers
       );
 
       expect(result).toBeNull();
-      expect(mockResolveRequestContext).not.toHaveBeenCalled();
+      expect(mockResolveHeaders).not.toHaveBeenCalled();
       expect(mockTemplateRender).not.toHaveBeenCalled();
     });
 
@@ -540,39 +536,33 @@ describe('CredentialStuffer', () => {
       };
 
       const headers = {
-        Authorization: 'Bearer {{requestContext.headers.authorization}}',
+        Authorization: 'Bearer {{headers.authorization}}',
       };
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
+      const result = await credentialStuffer.getCredentialsFromHeaders(
         contextWithoutConversationId,
         headers
       );
 
       expect(result).toBeNull();
-      expect(mockResolveRequestContext).not.toHaveBeenCalled();
+      expect(mockResolveHeaders).not.toHaveBeenCalled();
       expect(mockTemplateRender).not.toHaveBeenCalled();
     });
 
     test('should handle empty headers object', async () => {
       const headers = {};
 
-      const mockRequestContext = {
+      const mockHeadersContext = {
         headers: {
           authorization: 'secret-token-123',
         },
       };
 
-      mockResolveRequestContext.mockResolvedValue(mockRequestContext);
+      mockResolveHeaders.mockResolvedValue(mockHeadersContext);
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
-        mockContextWithIds,
-        headers
-      );
+      const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
-      expect(mockResolveRequestContext).toHaveBeenCalledWith(
-        'test-conversation',
-        'test-context-config'
-      );
+      expect(mockResolveHeaders).toHaveBeenCalledWith('test-conversation', 'test-context-config');
 
       expect(mockTemplateRender).not.toHaveBeenCalled();
 
@@ -584,27 +574,22 @@ describe('CredentialStuffer', () => {
 
     test('should handle multiple template variables in single header value', async () => {
       const headers = {
-        Authorization: 'Bearer {{requestContext.token}} {{requestContext.secret}}',
+        Authorization: 'Bearer {{token}} {{secret}}',
       };
 
-      const mockRequestContext = {
+      const mockContext = {
         token: 'token-123',
         secret: 'secret-456',
       };
 
-      mockResolveRequestContext.mockResolvedValue(mockRequestContext);
+      mockResolveHeaders.mockResolvedValue(mockContext);
       mockTemplateRender.mockReturnValue('Bearer token-123 secret-456');
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
-        mockContextWithIds,
-        headers
-      );
+      const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
-      expect(mockTemplateRender).toHaveBeenCalledWith(
-        'Bearer {{requestContext.token}} {{requestContext.secret}}',
-        { requestContext: mockRequestContext },
-        { strict: true }
-      );
+      expect(mockTemplateRender).toHaveBeenCalledWith('Bearer {{token}} {{secret}}', mockContext, {
+        strict: true,
+      });
 
       expect(result).toEqual({
         headers: {
@@ -620,31 +605,24 @@ describe('CredentialStuffer', () => {
         'X-Static-Header': 'static-value',
       };
 
-      const mockRequestContext = {
+      const mockContext = {
         someField: 'some-value',
       };
 
-      mockResolveRequestContext.mockResolvedValue(mockRequestContext);
+      mockResolveHeaders.mockResolvedValue(mockContext);
       mockTemplateRender
         .mockReturnValueOnce('application/json')
         .mockReturnValueOnce('static-value');
 
-      const result = await credentialStuffer.getCredentialsFromRequestContext(
-        mockContextWithIds,
-        headers
-      );
+      const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
       expect(mockTemplateRender).toHaveBeenCalledTimes(2);
-      expect(mockTemplateRender).toHaveBeenCalledWith(
-        'application/json',
-        { requestContext: mockRequestContext },
-        { strict: true }
-      );
-      expect(mockTemplateRender).toHaveBeenCalledWith(
-        'static-value',
-        { requestContext: mockRequestContext },
-        { strict: true }
-      );
+      expect(mockTemplateRender).toHaveBeenCalledWith('application/json', mockContext, {
+        strict: true,
+      });
+      expect(mockTemplateRender).toHaveBeenCalledWith('static-value', mockContext, {
+        strict: true,
+      });
 
       expect(result).toEqual({
         headers: {
@@ -657,34 +635,34 @@ describe('CredentialStuffer', () => {
 
     test('should handle context resolver errors gracefully', async () => {
       const headers = {
-        Authorization: 'Bearer {{requestContext.headers.authorization}}',
+        Authorization: 'Bearer {{headers.authorization}}',
       };
 
-      mockResolveRequestContext.mockRejectedValue(new Error('Context resolution failed'));
+      mockResolveHeaders.mockRejectedValue(new Error('Context resolution failed'));
 
       await expect(
-        credentialStuffer.getCredentialsFromRequestContext(mockContextWithIds, headers)
+        credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers)
       ).rejects.toThrow('Context resolution failed');
     });
 
     test('should error on invalid variable path', async () => {
       const headers = {
-        Authorization: 'Bearer {{requestContext.headers.auth}}',
+        Authorization: 'Bearer {{headers.auth}}',
       };
 
-      const mockRequestContext = {
+      const mockContext = {
         headers: {
           authorization: 'secret-token-123',
         },
       };
 
-      mockResolveRequestContext.mockResolvedValue(mockRequestContext);
+      mockResolveHeaders.mockResolvedValue(mockContext);
       mockTemplateRender.mockImplementation(() => {
         throw new Error('Failed to resolve template variable');
       });
 
       await expect(
-        credentialStuffer.getCredentialsFromRequestContext(mockContextWithIds, headers)
+        credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers)
       ).rejects.toThrow('Failed to resolve template variable');
     });
   });

@@ -1,0 +1,158 @@
+---
+title: Artifact Components
+description: Learn how to use artifact components to store and retrieve data from the agent
+icon: "TbInputSpark"
+---
+
+<Snippet file="multi-agent-framework/artifacts.mdx" />
+
+## Defining Artifact Components
+
+Artifact components are defined using the `artifactComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
+
+<Callout>
+**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`, providing a ready-to-use example.
+</Callout>
+
+```typescript
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
+export const citation = artifactComponent({
+  id: "citation",
+  name: "Citation",
+  description: "Structured factual information extracted from search results",
+  props: z.object({
+    title: preview(z.string().describe("Title of the source document")),
+    url: preview(z.string().describe("URL of the source document")),
+    record_type: preview(
+      z.string().describe("Type of record (documentation, blog, guide, etc.)")
+    ),
+    content: z
+      .array(
+        z.object({
+          type: z.string().describe("Type of content (text, image, video, etc.)"),
+          text: z.string().describe("The actual text content"),
+        })
+      )
+      .describe("Array of structured content blocks extracted from the document"),
+  }),
+});
+```
+
+<Callout>
+JSON Schema is also supported. Set `inPreview: true` on properties instead of using `preview()`.
+</Callout>
+
+## Preview Fields
+
+Use `preview()` to mark fields for immediate availability. The `preview()` helper automatically sets `inPreview: true` in the generated schema.
+
+**Preview fields are:**
+- Shown to other agents for reasoning
+- Streamed in real-time to clients (Vercel AI SDK)
+- Auto-rendered by Inkeep's widget (citations as interactive cards)
+- Available immediately in UI (full artifact loads on-demand)
+
+**Non-preview fields** require explicitly fetching the full artifact.
+
+**No schema?** Omit `props` to save the entire tool result without filtering.
+
+## Artifact Creation
+
+When an agent uses a tool:
+
+1. The tool processes the request and returns a response
+2. **The agent decides** whether to create an artifact from the tool response
+3. If created, the artifact is parsed according to the artifact component schema
+4. The artifact can be associated with any data components that reference this information
+
+## Artifacts vs Data Components
+
+**Artifacts** and **Data Components** are different:
+
+- **Artifacts**: Citations/sources from tool results stored in the database
+- **Data Components**: UI elements agents output in responses (Text, Fact, etc.)
+
+Artifacts provide the source citations that back up information in data components.
+
+## Using in Agents
+
+After defining your artifact component, use it in an agent:
+
+```typescript
+import { agent } from '@inkeep/agents-sdk';
+import { citation } from './artifact-components/citation';
+
+const searchAgent = agent({
+  id: "search-agent",
+  canUse: () => [searchTool],
+  prompt: "Search for information and cite sources using artifacts.",
+  artifactComponents: () => [citation],
+});
+```
+
+## Citation Artifacts
+
+Citation artifacts with `title`, `url`, and `record_type` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
+
+<img
+  src="/images/citation-widget-example.png"
+  alt="Citation artifact rendered as an interactive card in the Inkeep widget showing source attribution"
+  width="100%"
+  style={{ borderRadius: "10px", marginTop: "1rem" }}
+/>
+
+## Example Flow
+
+Here's a complete example with inline artifact component definition:
+
+```typescript
+import { agent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
+const searchAgent = subAgent({
+  id: "search",
+  canUse: () => [searchTool],
+  prompt: "Search for information and cite sources using artifacts.",
+  artifactComponents: [
+    {
+      id: "document",
+      name: "Document",
+      description: "Search result document",
+      props: z.object({
+        title: preview(z.string().describe("Document title")),
+        url: preview(z.string().describe("Document URL")),
+        content: z.string().describe("Document content"),
+      }),
+    },
+  ],
+});
+```
+
+## No Schema Example
+
+```typescript
+const rawDataAgent = subAgent({
+  id: "raw-data",
+  canUse: () => [apiTool],
+  prompt: "Fetch data and save complete responses.",
+  artifactComponents: [
+    {
+      id: "api-response",
+      name: "API Response",
+      description: "Complete API response data",
+      // No props - saves entire tool result
+    },
+  ],
+});
+```
+
+Example flow:
+
+1. Agent uses search tool and gets results
+2. **Agent decides** to create an artifact citing the source document
+3. Artifact is stored with preview fields (title, url) shown to other agents
+4. Other agents can reference this artifact or get full content when needed

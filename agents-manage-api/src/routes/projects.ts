@@ -6,13 +6,13 @@ import {
   deleteProject,
   ErrorResponseSchema,
   getProject,
-  ListResponseSchema,
   listProjectsPaginated,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
   ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
-  SingleResponseSchema,
+  ProjectListResponse,
+  ProjectResponse,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
@@ -39,7 +39,7 @@ app.openapi(
         description: 'List of projects retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ProjectApiSelectSchema),
+            schema: ProjectListResponse,
           },
         },
       },
@@ -75,7 +75,7 @@ app.openapi(
         description: 'Project found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ProjectApiSelectSchema),
+            schema: ProjectResponse,
           },
         },
       },
@@ -120,7 +120,7 @@ app.openapi(
         description: 'Project created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ProjectApiSelectSchema),
+            schema: ProjectResponse,
           },
         },
       },
@@ -147,7 +147,6 @@ app.openapi(
 
       return c.json({ data: project }, 201);
     } catch (error: any) {
-      // Check if it's a unique constraint violation
       if (
         error?.message?.includes('UNIQUE constraint') ||
         error?.message?.includes('UNIQUE') ||
@@ -187,7 +186,7 @@ app.openapi(
         description: 'Project updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ProjectApiSelectSchema),
+            schema: ProjectResponse,
           },
         },
       },

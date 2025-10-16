@@ -57,7 +57,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getExternalAgent: getExternalAgentMock,
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -80,7 +80,6 @@ vi.mock('../../data/conversations.js');
 describe('External Agent Credential Handling', () => {
   const mockTenantId = 'test-tenant';
   const mockAgentId = 'external-agent-1';
-  const mockGraphId = 'test-graph';
   const mockContextId = 'test-context';
   const mockProjectId = 'test-project';
 
@@ -137,14 +136,14 @@ describe('External Agent Credential Handling', () => {
         },
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
-        graphId: mockGraphId,
+        agentId: mockAgentId,
         projectId: mockProjectId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -226,13 +225,13 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockAgentId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -298,13 +297,13 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockAgentId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,
@@ -357,13 +356,13 @@ describe('External Agent Credential Handling', () => {
         callingAgentId: 'caller-agent',
         tenantId: mockTenantId,
         projectId: mockProjectId,
-        graphId: mockGraphId,
+        agentId: mockAgentId,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        agent: {
+        subAgent: {
           getStreamingHelper: () => null,
         },
         credentialStoreRegistry: mockCredentialStoreRegistry,

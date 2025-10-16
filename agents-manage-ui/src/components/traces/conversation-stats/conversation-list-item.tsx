@@ -14,8 +14,8 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
     conversationId,
     firstUserMessage,
     tenantId,
-    graphId,
-    graphName,
+    agentId,
+    agentName,
     hasErrors,
     totalErrors,
     toolsUsed,
@@ -40,7 +40,6 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                 (() => {
                   try {
                     const date = new Date(startTime);
-                    // Check if the date is valid
                     if (Number.isNaN(date.getTime())) return null;
 
                     const isoString = date.toISOString();
@@ -92,7 +91,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
               </Badge>
             )}
             <Badge variant="code" className="text-xs">
-              {graphName ? `${graphName} (${graphId})` : graphId}
+              {agentName ? `${agentName} (${agentId})` : agentId}
             </Badge>
           </div>
         </div>

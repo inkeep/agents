@@ -6,12 +6,16 @@ icon: "LuTerminal"
 
 ## Overview
 
-The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framework. It allows you to push agent configurations and interact with your multi-agent system.
+The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framework. It allows you to push Agent configurations and interact with your multi-agent system.
 
 ## Installation
 
 ```bash
+# Install the CLI globally
 npm install -g @inkeep/agents-cli
+
+# Install the dashboard package (for visual agents orchestration)
+npm install @inkeep/agents-manage-ui
 ```
 
 ## Global Options
@@ -54,7 +58,7 @@ inkeep init --config ./template-config.ts
 
 ### `inkeep push`
 
-**Primary use case:** Push a project containing agent configurations to your server. This command deploys your entire multi-agent project, including all graphs, agents, and tools.
+**Primary use case:** Push a project containing Agent configurations to your server. This command deploys your entire multi-agent project, including all Agents, Sub Agents, and tools.
 
 ```bash
 inkeep push
@@ -140,7 +144,7 @@ The `inkeep push` command follows this discovery process:
    ├── inkeep.config.ts          # Inkeep configuration file
    ├── my-project/               # Individual project directory
    │   ├── index.ts              # Project entry point
-   │   ├── graphs/               # Agent graph definitions
+   │   ├── agents/               # Agent definitions
    │   │   └── *.ts
    │   ├── tools/                # Tool definitions
    │   │   └── *.ts
@@ -156,7 +160,7 @@ The `inkeep push` command follows this discovery process:
 3. **Resource Compilation**: Automatically discovers and compiles:
    - All project directories containing `index.ts`
    - All TypeScript files within each project directory
-   - Categorizes files by type (graphs, agents, tools, data components)
+   - Categorizes files by type (agents, Sub Agents, tools, data components)
    - Resolves dependencies and relationships within each project
 
 #### Push Behavior
@@ -167,7 +171,7 @@ When pushing, the CLI:
 - Discovers all project directories containing `index.ts`
 - Applies environment-specific settings if `--env` is specified
 - Compiles all project resources defined in each project's `index.ts`
-- Validates agent relationships and tool configurations across all projects
+- Validates Sub Agent relationships and tool configurations across all projects
 - Deploys all projects to the management API
 - Prints deployment summary with resource counts per project
 
@@ -188,15 +192,32 @@ inkeep pull
 - `--json` - Save project data as JSON file instead of updating TypeScript files
 - `--debug` - Enable debug logging for LLM generation
 
+**Directory-Aware Pull (Mirrors `inkeep push` behavior):**
+
+The pull command automatically detects if you're in a project directory and pulls to that location:
+
+1. **Automatic Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Current Directory Pull**: Files are pulled directly to your current directory (no subdirectory is created)
+3. **Conflict Prevention**: If you specify `--project` while in a project directory, an error is shown to prevent confusion
+
+**Pull Modes:**
+
+| Scenario | Command | Behavior |
+|----------|---------|----------|
+| In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
+| In project directory | `inkeep pull --project <id>` | ❌ Error: Cannot specify --project when in project directory |
+| Not in project directory | `inkeep pull` | Prompts for project ID, creates subdirectory |
+| Not in project directory | `inkeep pull --project <id>` | Pulls specified project to subdirectory |
+
 **How it Works:**
 
 The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
 
 1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
-2. **Smart Categorization**: Categorizes files as index, graphs, agents, tools, or other files
+2. **Smart Categorization**: Categorizes files as index, agents, Sub Agents, tools, or other files
 3. **Context-Aware Updates**: Updates each file with relevant context from the server:
-   - **Graph files**: Updated with specific graph data
-   - **Agent files**: Updated with specific agent configurations
+   - **Agent files**: Updated with specific agent data
+   - **Sub Agent files**: Updated with specific Sub Agent configurations
    - **Tool files**: Updated with specific tool definitions
    - **Other files**: Updated with full project context
 4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
@@ -207,16 +228,26 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 
 1. **Context Preservation**: Maintains your existing code structure and patterns
 2. **Selective Updates**: Only updates relevant parts based on server configuration changes
-3. **File-Specific Context**: Each file type receives appropriate context (graphs get graph data, agents get agent data, etc.)
+3. **File-Specific Context**: Each file type receives appropriate context (Agents get Agent data, Sub Agents get Sub Agent data, etc.)
 
 **Examples:**
 
 ```bash
-# Pull and update all project files from current directory
-inkeep pull
+# Directory-aware pull: Automatically detects project from current directory
+cd my-project  # Directory contains index.ts with project export
+inkeep pull    # Pulls to current directory, no subdirectory created
 
-# Pull specific project directory
-inkeep pull --project ./my-project
+# Pull when NOT in a project directory (prompts for project ID)
+cd ~/projects
+inkeep pull    # Prompts for project ID, creates subdirectory
+
+# Pull specific project (only works when NOT in a project directory)
+cd ~/projects
+inkeep pull --project my-project  # Creates my-project/ subdirectory
+
+# Error case: --project flag in project directory
+cd my-project  # Directory contains index.ts
+inkeep pull --project my-project  # ERROR: Cannot specify --project in project directory
 
 # Save project data as JSON file instead of updating files
 inkeep pull --json
@@ -227,8 +258,8 @@ inkeep pull --agents-manage-api-url https://api.example.com
 # Enable debug logging
 inkeep pull --debug
 
-# Override tenant ID when using custom API URL
-inkeep pull --agents-manage-api-url https://api.example.com --env production
+# Generate environment-specific credentials
+inkeep pull --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
@@ -250,49 +281,17 @@ The `inkeep pull` command currently uses a fixed model for LLM generation: `anth
 - Check the generated file manually for obvious issues
 - Try pulling as JSON first to verify the source data: `inkeep pull --json`
 
-### `inkeep chat`
+### `inkeep list-agents`
 
-Start an interactive chat session with a graph.
+List all available agents for a specific project.
 
 ```bash
-inkeep chat [graph-id]
+inkeep list-agents --project <project-id>
 ```
 
 **Options:**
 
-- `--tenant-id <tenant-id>` - Tenant ID
-- `--agents-manage-api-url <url>` - Agents manage API URL
-- `--agents-run-api-url <url>` - Agents run API URL
-- `--config <path>` - Path to configuration file
-- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
-
-**Examples:**
-
-```bash
-# Interactive graph selection
-inkeep chat
-
-# Chat with specific graph
-inkeep chat my-graph-id
-
-# Use a specific config file
-inkeep chat --config ./inkeep.config.ts
-
-# Override tenant and API URLs
-inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
-```
-
-### `inkeep list-graphs`
-
-List all available graphs for a specific project.
-
-```bash
-inkeep list-graphs --project <project-id>
-```
-
-**Options:**
-
-- `--project <project-id>` - **Required.** Project ID to list graphs for
+- `--project <project-id>` - **Required.** Project ID to list agents for
 - `--tenant-id <tenant-id>` - Tenant ID
 - `--agents-manage-api-url <url>` - Agents manage API URL
 - `--config <path>` - Path to configuration file
@@ -301,19 +300,21 @@ inkeep list-graphs --project <project-id>
 **Examples:**
 
 ```bash
-# List graphs for a specific project
-inkeep list-graphs --project my-project
+# List agents for a specific project
+inkeep list-agents --project my-project
 
-# List graphs using a specific config file
-inkeep list-graphs --project my-project --config ./inkeep.config.ts
+# List agents using a specific config file
+inkeep list-agents --project my-project --config ./inkeep.config.ts
 
 # Override tenant and API URL
-inkeep list-graphs --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
+inkeep list-agents --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
 ```
 
 ### `inkeep dev`
 
 Start the Inkeep dashboard server, build for production, or export the Next.js project.
+
+> **Note:** This command requires `@inkeep/agents-manage-ui` to be installed for visual agents orchestration.
 
 ```bash
 inkeep dev
@@ -436,14 +437,89 @@ inkeep add [template]
 
 ```bash
 # Add a template
-inkeep add weather-project
+inkeep add event-planner
 
 # Add template to specific path
-inkeep add weather-project --target-path ./src/templates
+inkeep add event-planner --target-path ./src/templates
 
 # Using specific config file
-inkeep add weather-project --config ./my-config.ts
+inkeep add event-planner --config ./my-config.ts
 ```
+
+### `inkeep update`
+
+Update the Inkeep CLI to the latest version from npm.
+
+```bash
+inkeep update
+```
+
+**Options:**
+
+- `--check` - Check for updates without installing
+- `--force` - Force update even if already on latest version
+
+**How it Works:**
+
+The update command automatically:
+
+1. **Detects Package Manager**: Identifies which package manager (npm, pnpm, bun, or yarn) was used to install the CLI globally
+2. **Checks Version**: Compares your current version with the latest available on npm
+3. **Updates CLI**: Executes the appropriate update command for your package manager
+4. **Displays Changelog**: Shows a link to the changelog for release notes
+
+**Examples:**
+
+```bash
+# Check if an update is available (no installation)
+inkeep update --check
+
+# Update to latest version (with confirmation prompt)
+inkeep update
+
+# Force reinstall current version
+inkeep update --force
+
+# Skip confirmation prompt (useful for CI/CD)
+inkeep update --force
+```
+
+**Output Example:**
+
+```
+📦 Version Information:
+  • Current version: 0.22.3
+  • Latest version:  0.23.0
+
+📖 Changelog:
+  • https://github.com/inkeep/agents/blob/main/agents-cli/CHANGELOG.md
+
+🔍 Detected package manager: pnpm
+
+✅ Updated to version 0.23.0
+```
+
+**Troubleshooting:**
+
+If you encounter permission errors, try running with elevated permissions:
+
+```bash
+# For npm, pnpm, yarn
+sudo inkeep update
+
+# For bun
+sudo -E bun add -g @inkeep/agents-cli@latest
+```
+
+**Package Manager Detection:**
+
+The CLI automatically detects which package manager you used by checking global package installations:
+- npm: Checks `npm list -g @inkeep/agents-cli`
+- pnpm: Checks `pnpm list -g @inkeep/agents-cli`
+- bun: Checks `bun pm ls -g`
+- yarn: Checks `yarn global list`
+
+If automatic detection fails, the CLI will prompt you to select your package manager.
 
 ## Configuration File
 

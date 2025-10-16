@@ -1,5 +1,5 @@
 import './App.css';
-import { InkeepEmbeddedChat } from '@inkeep/cxkit-react-oss';
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 
 function App() {
   return (
@@ -9,7 +9,7 @@ function App() {
           primaryBrandColor: '#3784ff',
         }}
         aiChatSettings={{
-          graphUrl: 'http://localhost:3003/api/chat',
+          agentUrl: 'http://localhost:3003/api/chat',
           apiKey: 'YOUR_API_KEY',
         }}
       />

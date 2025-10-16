@@ -41,6 +41,7 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+.env.docker
 
 # Keep providers.yaml for Nango integrations
 !providers.yaml

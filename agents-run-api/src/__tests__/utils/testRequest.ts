@@ -9,7 +9,7 @@ export const makeRequest = async (url: string, options: RequestInit = {}) => {
       Authorization: 'Bearer test-api-key',
       'x-inkeep-tenant-id': 'test-tenant',
       'x-inkeep-project-id': 'default',
-      'x-inkeep-graph-id': 'test-graph',
+      'x-inkeep-agent-id': 'test-agent',
       'x-test-bypass-auth': 'true',
       ...options.headers,
     },
@@ -22,8 +22,8 @@ export const makeRequestWithContext = async (
   context: {
     tenantId?: string;
     projectId?: string;
-    graphId?: string;
     agentId?: string;
+    subAgentId?: string;
   },
   options: RequestInit = {}
 ) => {
@@ -34,9 +34,9 @@ export const makeRequestWithContext = async (
       Authorization: 'Bearer test-api-key',
       'x-inkeep-tenant-id': context.tenantId || 'test-tenant',
       'x-inkeep-project-id': context.projectId || 'test-project',
-      'x-inkeep-graph-id': context.graphId || 'test-graph',
+      'x-inkeep-agent-id': context.agentId || 'test-agent',
       'x-test-bypass-auth': 'true',
-      ...(context.agentId && { 'x-inkeep-agent-id': context.agentId }),
+      ...(context.subAgentId && { 'x-inkeep-sub-agent-id': context.subAgentId }),
       ...options.headers,
     },
   });

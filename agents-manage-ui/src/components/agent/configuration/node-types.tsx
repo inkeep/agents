@@ -1,0 +1,131 @@
+import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
+import { ExternalAgentNode } from '../nodes/external-agent-node';
+import { FunctionToolNode } from '../nodes/function-tool-node';
+import { MCPNode } from '../nodes/mcp-node';
+import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
+import { SubAgentNode } from '../nodes/sub-agent-node';
+import type { AgentModels } from './agent-types';
+
+interface NodeData {
+  name: string;
+  isDefault?: boolean;
+  subAgentId?: string | null; // Optional for MCP nodes
+  relationshipId?: string | null; // Optional for MCP nodes
+}
+
+import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
+
+export interface MCPNodeData extends Record<string, unknown> {
+  toolId: string;
+  subAgentId?: string | null; // null when unconnected, string when connected to specific agent
+  relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
+  name?: string;
+  imageUrl?: string;
+  provider?: string;
+}
+
+// Re-export the shared type for consistency
+export type { SubAgentStopWhen };
+
+export interface AgentNodeData extends Record<string, unknown> {
+  id: string;
+  name: string;
+  description?: string;
+  prompt?: string;
+  dataComponents?: string[];
+  artifactComponents?: string[];
+  models?: AgentModels; // Use same structure as agent
+  stopWhen?: SubAgentStopWhen;
+}
+
+export interface ExternalAgentNodeData extends Record<string, unknown> {
+  id: string;
+  name: string;
+  description?: string;
+  baseUrl: string;
+  headers: string;
+  credentialReferenceId?: string | null;
+}
+
+export interface FunctionToolNodeData extends Record<string, unknown> {
+  functionToolId: string;
+  toolId?: string;
+  agentId?: string | null;
+  relationshipId?: string;
+  name?: string;
+  description?: string;
+  code?: string;
+  inputSchema?: Record<string, unknown>;
+  dependencies?: Record<string, unknown>;
+}
+
+export enum NodeType {
+  SubAgent = 'agent',
+  ExternalAgent = 'external-agent',
+  MCP = 'mcp',
+  MCPPlaceholder = 'mcp-placeholder',
+  FunctionTool = 'function-tool',
+}
+
+export const nodeTypes = {
+  [NodeType.SubAgent]: SubAgentNode,
+  [NodeType.ExternalAgent]: ExternalAgentNode,
+  [NodeType.MCP]: MCPNode,
+  [NodeType.MCPPlaceholder]: MCPPlaceholderNode,
+  [NodeType.FunctionTool]: FunctionToolNode,
+};
+
+export const mcpNodeHandleId = 'target-mcp';
+export const agentNodeSourceHandleId = 'source-agent';
+export const agentNodeTargetHandleId = 'target-agent';
+export const externalAgentNodeTargetHandleId = 'target-external-agent';
+export const functionToolNodeHandleId = 'target-function-tool';
+
+export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
+  [NodeType.SubAgent]: {
+    name: '',
+  },
+  [NodeType.ExternalAgent]: {
+    name: '',
+  },
+  [NodeType.MCP]: {
+    name: 'MCP',
+    subAgentId: null,
+    relationshipId: null,
+  },
+  [NodeType.MCPPlaceholder]: {
+    name: 'Select MCP server',
+  },
+  [NodeType.FunctionTool]: {
+    name: 'Function Tool',
+    subAgentId: null,
+  },
+};
+
+export const nodeTypeMap = {
+  [NodeType.SubAgent]: {
+    type: NodeType.SubAgent,
+    name: 'Sub Agent',
+    Icon: Bot,
+  },
+  [NodeType.ExternalAgent]: {
+    type: NodeType.ExternalAgent,
+    name: 'External Agent',
+    Icon: BotMessageSquare,
+  },
+  [NodeType.MCPPlaceholder]: {
+    type: NodeType.MCPPlaceholder,
+    name: 'MCP',
+    Icon: Hammer,
+  },
+  [NodeType.MCP]: {
+    type: NodeType.MCP,
+    name: 'MCP',
+    Icon: Hammer,
+  },
+  [NodeType.FunctionTool]: {
+    type: NodeType.FunctionTool,
+    name: 'Function Tool',
+    Icon: Code,
+  },
+};

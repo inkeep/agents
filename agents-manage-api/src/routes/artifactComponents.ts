@@ -3,19 +3,20 @@ import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
+  ArtifactComponentListResponse,
+  ArtifactComponentResponse,
   commonGetErrorResponses,
   createApiError,
   createArtifactComponent,
   deleteArtifactComponent,
   ErrorResponseSchema,
   getArtifactComponentById,
-  IdParamsSchema,
-  ListResponseSchema,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateArtifactComponent,
+  validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
@@ -38,7 +39,7 @@ app.openapi(
         description: 'List of artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentListResponse,
           },
         },
       },
@@ -66,14 +67,14 @@ app.openapi(
     operationId: 'get-artifact-component-by-id',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Artifact component found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -120,7 +121,7 @@ app.openapi(
         description: 'Artifact component created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -131,6 +132,19 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
+    if (body.props !== null && body.props !== undefined) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
+
     const finalId = body.id ? String(body.id) : nanoid();
     const componentData = {
       tenantId,
@@ -138,8 +152,7 @@ app.openapi(
       id: finalId,
       name: String(body.name),
       description: String(body.description),
-      summaryProps: body.summaryProps || undefined,
-      fullProps: body.fullProps || undefined,
+      props: body.props ?? null,
     };
 
     try {
@@ -171,7 +184,7 @@ app.openapi(
     operationId: 'update-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -185,7 +198,7 @@ app.openapi(
         description: 'Artifact component updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(ArtifactComponentApiSelectSchema),
+            schema: ArtifactComponentResponse,
           },
         },
       },
@@ -196,15 +209,36 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
+    if (body.props !== undefined && body.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
+
+    const updateData: any = {};
+
+    // Only include fields that are actually provided in the request
+    if (body.name !== undefined) {
+      updateData.name = String(body.name);
+    }
+    if (body.description !== undefined) {
+      updateData.description = String(body.description);
+    }
+    if (body.props !== undefined) {
+      updateData.props = body.props ?? null;
+    }
+
     const updatedArtifactComponent = await updateArtifactComponent(dbClient)({
       scopes: { tenantId, projectId },
       id,
-      data: {
-        name: body.name ? String(body.name) : undefined,
-        description: body.description ? String(body.description) : undefined,
-        summaryProps: body.summaryProps || undefined,
-        fullProps: body.fullProps || undefined,
-      },
+      data: updateData,
     });
 
     if (!updatedArtifactComponent) {
@@ -226,7 +260,7 @@ app.openapi(
     operationId: 'delete-artifact-component',
     tags: ['Artifact Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

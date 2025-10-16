@@ -7,18 +7,13 @@ import { getLogger } from '../logger';
 import { createExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
-/**
- * Middleware to authenticate API requests using Bearer token authentication
- * First checks if token matches INKEEP_AGENTS_RUN_API_BYPASS_SECRET, then falls back to API key validation
- * Extracts and validates API keys, then adds execution context to the request
- */
+
 export const apiKeyAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: ExecutionContext;
     };
   }>(async (c, next) => {
-    // Skip authentication for OPTIONS requests (CORS preflight)
     if (c.req.method === 'OPTIONS') {
       await next();
       return;
@@ -27,29 +22,37 @@ export const apiKeyAuth = () =>
     const authHeader = c.req.header('Authorization');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
-    const graphId = c.req.header('x-inkeep-graph-id');
     const agentId = c.req.header('x-inkeep-agent-id');
-    const baseUrl = new URL(c.req.url).origin;
+    const subAgentId = c.req.header('x-inkeep-sub-agent-id');
+    const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
+    const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
+    const host = fwdHost ?? c.req.header('host');
+    const reqUrl = new URL(c.req.url);
 
-    // Bypass authentication only for integration tests with specific header
+    const baseUrl =
+      proto && host
+        ? `${proto}://${host}`
+        : host
+          ? `${reqUrl.protocol}//${host}`
+          : `${reqUrl.origin}`;
+
     if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {
       let executionContext: ExecutionContext;
 
       if (authHeader?.startsWith('Bearer ')) {
         try {
           executionContext = await extractContextFromApiKey(authHeader.substring(7), baseUrl);
-          executionContext.agentId = agentId;
+          executionContext.subAgentId = subAgentId;
           logger.info({}, 'Development/test environment - API key authenticated successfully');
         } catch {
-          // If API key extraction fails, fallback to default context
           executionContext = createExecutionContext({
             apiKey: 'development',
             tenantId: tenantId || 'test-tenant',
             projectId: projectId || 'test-project',
-            graphId: graphId || 'test-graph',
+            agentId: agentId || 'test-agent',
             apiKeyId: 'test-key',
             baseUrl: baseUrl,
-            agentId: agentId,
+            subAgentId: subAgentId,
           });
           logger.info(
             {},
@@ -57,15 +60,14 @@ export const apiKeyAuth = () =>
           );
         }
       } else {
-        // No API key provided, use default context
         executionContext = createExecutionContext({
           apiKey: 'development',
           tenantId: tenantId || 'test-tenant',
           projectId: projectId || 'test-project',
-          graphId: graphId || 'test-graph',
+          agentId: agentId || 'test-agent',
           apiKeyId: 'test-key',
           baseUrl: baseUrl,
-          agentId: agentId,
+          subAgentId: subAgentId,
         });
         logger.info(
           {},
@@ -77,35 +79,31 @@ export const apiKeyAuth = () =>
       await next();
       return;
     }
-    // Check for Bearer token
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new HTTPException(401, {
         message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
       });
     }
 
-    const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const apiKey = authHeader.substring(7);
 
-    // If bypass secret is configured, allow bypass authentication or api key validation
     if (env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
       if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-        // Extract base URL from request
-
-        if (!tenantId || !projectId || !graphId) {
+        if (!tenantId || !projectId || !agentId) {
           throw new HTTPException(401, {
-            message: 'Missing or invalid tenant, project, or graph ID',
+            message: 'Missing or invalid tenant, project, or agent ID',
           });
         }
 
-        // Create bypass execution context with default values
         const executionContext = createExecutionContext({
           apiKey: apiKey,
           tenantId: tenantId,
           projectId: projectId,
-          graphId: graphId,
+          agentId: agentId,
           apiKeyId: 'bypass',
           baseUrl: baseUrl,
-          agentId: agentId,
+          subAgentId: subAgentId,
         });
 
         c.set('executionContext', executionContext);
@@ -116,7 +114,7 @@ export const apiKeyAuth = () =>
         return;
       } else if (apiKey) {
         const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-        executionContext.agentId = agentId;
+        executionContext.subAgentId = subAgentId;
 
         c.set('executionContext', executionContext);
 
@@ -125,15 +123,12 @@ export const apiKeyAuth = () =>
         await next();
         return;
       } else {
-        // Bypass secret is set but token doesn't match - reject
         throw new HTTPException(401, {
           message: 'Invalid Token',
         });
       }
     }
 
-    // No bypass secret configured - continue with normal API key validation
-    // Validate API key format (basic validation)
     if (!apiKey || apiKey.length < 16) {
       throw new HTTPException(401, {
         message: 'Invalid API key format',
@@ -142,29 +137,26 @@ export const apiKeyAuth = () =>
 
     try {
       const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-      executionContext.agentId = agentId;
+      executionContext.subAgentId = subAgentId;
 
       c.set('executionContext', executionContext);
 
-      // Log successful authentication (without sensitive data)
       logger.debug(
         {
           tenantId: executionContext.tenantId,
           projectId: executionContext.projectId,
-          graphId: executionContext.graphId,
           agentId: executionContext.agentId,
+          subAgentId: executionContext.subAgentId,
         },
         'API key authenticated successfully'
       );
 
       await next();
     } catch (error) {
-      // Re-throw HTTPException
       if (error instanceof HTTPException) {
         throw error;
       }
 
-      // Log unexpected errors and return generic message
       logger.error({ error }, 'API key authentication error');
       throw new HTTPException(500, {
         message: 'Authentication failed',
@@ -185,11 +177,12 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     apiKey: apiKey,
     tenantId: apiKeyRecord.tenantId,
     projectId: apiKeyRecord.projectId,
-    graphId: apiKeyRecord.graphId,
+    agentId: apiKeyRecord.agentId,
     apiKeyId: apiKeyRecord.id,
     baseUrl: baseUrl,
   });
 };
+
 /**
  * Helper middleware for endpoints that optionally support API key authentication
  * If no auth header is present, it continues without setting the executionContext
@@ -202,12 +195,10 @@ export const optionalAuth = () =>
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
 
-    // If no auth header, continue without authentication
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       await next();
       return;
     }
 
-    // If auth header exists, use the regular auth middleware
     return apiKeyAuth()(c as any, next);
   });

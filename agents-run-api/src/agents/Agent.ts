@@ -1,18 +1,19 @@
 import {
   type AgentConversationHistoryConfig,
-  type AgentStopWhen,
   type Artifact,
   type ArtifactComponentApiInsert,
+  agentHasArtifactComponents,
   ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
   type DataComponentApiInsert,
   getContextConfigById,
   getCredentialReference,
-  getFullGraphDefinition,
+  getFullAgentDefinition,
+  getFunction,
+  getFunctionToolsForSubAgent,
   getLedgerArtifacts,
   getToolsForAgent,
-  graphHasArtifactComponents,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -23,6 +24,7 @@ import {
   type MessageContent,
   type ModelSettings,
   type Models,
+  type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
@@ -40,13 +42,12 @@ import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
 } from '../data/conversations';
-
 import dbClient from '../data/db/dbClient';
-import { defaultBatchProcessor } from '../instrumentation';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { ResponseFormatter } from '../services/ResponseFormatter';
+import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
@@ -79,15 +80,13 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-// Constants for agent configuration
 const CONSTANTS = {
   MAX_GENERATION_STEPS: 12,
-  PHASE_1_TIMEOUT_MS: 270_000, // 4.5 minutes for streaming phase 1
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000, // 1.5 minutes for non-streaming phase 1
-  PHASE_2_TIMEOUT_MS: 90_000, // 1.5 minutes for phase 2 structured output
+  PHASE_1_TIMEOUT_MS: 270_000,
+  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000,
+  PHASE_2_TIMEOUT_MS: 90_000,
 } as const;
 
-// Helper function to validate model strings
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -101,14 +100,14 @@ export type AgentConfig = {
   id: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
   name: string;
   description: string;
-  agentPrompt: string;
-  agentRelations: AgentConfig[];
+  prompt: string;
+  subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
   tools?: McpTool[];
@@ -125,7 +124,8 @@ export type AgentConfig = {
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
-  stopWhen?: AgentStopWhen;
+  stopWhen?: SubAgentStopWhen;
+  sandboxConfig?: SandboxConfig;
 };
 
 export type ExternalAgentConfig = {
@@ -141,7 +141,6 @@ export type DelegateRelation =
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
-// Type guard to validate MCP tools have the expected AI SDK structure
 function isValidTool(
   tool: any
 ): tool is Tool<any, any> & { execute: (args: any, context?: any) => Promise<any> } {
@@ -153,8 +152,6 @@ function isValidTool(
     typeof tool.execute === 'function'
   );
 }
-
-// LLM Generated Information as a config LLM? Separate Step?
 
 export class Agent {
   private config: AgentConfig;
@@ -171,10 +168,8 @@ export class Agent {
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
-    // Store artifact components separately
     this.artifactComponents = config.artifactComponents || [];
 
-    // Process dataComponents (now only component-type)
     let processedDataComponents = config.dataComponents || [];
 
     if (processedDataComponents.length > 0) {
@@ -197,7 +192,6 @@ export class Agent {
       });
     }
 
-    // If we have artifact components, add the default artifact data components for response hydration
     if (
       this.artifactComponents.length > 0 &&
       config.dataComponents &&
@@ -212,15 +206,12 @@ export class Agent {
     this.config = {
       ...config,
       dataComponents: processedDataComponents,
-      // Set default conversation history if not provided
       conversationHistoryConfig:
         config.conversationHistoryConfig || createDefaultConversationHistoryConfig(),
     };
 
-    // Store the credential store registry
     this.credentialStoreRegistry = credentialStoreRegistry;
 
-    // Use provided credential store registry if available
     if (credentialStoreRegistry) {
       this.contextResolver = new ContextResolver(
         config.tenantId,
@@ -248,7 +239,6 @@ export class Agent {
     const sanitizedTools: ToolSet = {};
 
     for (const [originalKey, toolDef] of Object.entries(tools)) {
-      // Sanitize the tool key (object property name)
       let sanitizedKey = originalKey.replace(/[^a-zA-Z0-9_-]/g, '_');
       sanitizedKey = sanitizedKey.replace(/_+/g, '_');
       sanitizedKey = sanitizedKey.replace(/^_+|_+$/g, '');
@@ -261,7 +251,6 @@ export class Agent {
         sanitizedKey = sanitizedKey.substring(0, 100);
       }
 
-      // Clone the tool with a sanitized ID
       const originalId = (toolDef as any).id || originalKey;
       let sanitizedId = originalId.replace(/[^a-zA-Z0-9_.-]/g, '_');
       sanitizedId = sanitizedId.replace(/_+/g, '_');
@@ -271,7 +260,6 @@ export class Agent {
         sanitizedId = sanitizedId.substring(0, 128);
       }
 
-      // Create a new tool object with sanitized ID
       const sanitizedTool = {
         ...toolDef,
         id: sanitizedId,
@@ -310,11 +298,9 @@ export class Agent {
       );
     }
 
-    // Use structured output config if available, otherwise fall back to base
     const structuredConfig = this.config.models.structuredOutput;
     const baseConfig = this.config.models.base;
 
-    // If structured output is explicitly configured, use only its config
     if (structuredConfig) {
       return {
         model: validateModel(structuredConfig.model, 'Structured output'),
@@ -322,7 +308,6 @@ export class Agent {
       };
     }
 
-    // Fall back to base model settings if structured output not configured
     if (!baseConfig) {
       throw new Error(
         'Base model configuration is required for structured output fallback. Please configure models at the project level.'
@@ -354,7 +339,7 @@ export class Agent {
   }
 
   /**
-   * Wraps a tool with streaming lifecycle tracking (start, complete, error) and GraphSession recording
+   * Wraps a tool with streaming lifecycle tracking (start, complete, error) and AgentSession recording
    */
   private wrapToolWithStreaming(
     toolName: string,
@@ -371,8 +356,7 @@ export class Agent {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
-        // Use the AI SDK's toolCallId consistently instead of generating our own
-        const toolId = context?.toolCallId || generateToolId();
+        const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
@@ -380,29 +364,34 @@ export class Agent {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
-            'ai.agentName': this.config.name || 'unknown',
-            'graph.id': this.config.graphId || 'unknown',
+            'ai.subAgentName': this.config.name || 'unknown',
+            'agent.id': this.config.agentId || 'unknown',
           });
         }
 
-        // Check if this is an internal tool to skip from recording
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
           toolName.startsWith('transfer_to_') ||
           toolName.startsWith('delegate_to_');
 
+        if (streamRequestId && !isInternalTool) {
+          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+            toolName,
+            input: args,
+            toolCallId,
+          });
+        }
+
         try {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
-          // Record complete tool execution in GraphSession (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              args,
-              result,
-              toolId,
+              output: result,
+              toolCallId,
               duration,
             });
           }
@@ -412,14 +401,13 @@ export class Agent {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // Record tool execution with error (skip internal tools)
           if (streamRequestId && !isInternalTool) {
-            graphSessionManager.recordEvent(streamRequestId, 'tool_execution', this.config.id, {
+            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
-              args,
-              result: { error: errorMessage },
-              toolId,
+              output: null,
+              toolCallId,
               duration,
+              error: errorMessage,
             });
           }
 
@@ -444,8 +432,8 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, agentId: string) =>
-      `${prefix}_to_${agentId.toLowerCase().replace(/\s+/g, '_')}`;
+    const createToolName = (prefix: string, subAgentId: string) =>
+      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
         const toolName = createToolName('transfer', agentConfig.id);
@@ -456,7 +444,7 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              agent: this,
+              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -475,7 +463,7 @@ export class Agent {
               callingAgentId: this.config.id,
               tenantId: this.config.tenantId,
               projectId: this.config.projectId,
-              graphId: this.config.graphId,
+              agentId: this.config.agentId,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -484,7 +472,7 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              agent: this,
+              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -496,16 +484,18 @@ export class Agent {
   }
 
   async getMcpTools(sessionId?: string, streamRequestId?: string) {
-    const tools =
-      (await Promise.all(this.config.tools?.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const mcpTools =
+      this.config.tools?.filter((tool) => {
+        return tool.config?.type === 'mcp';
+      }) || [];
 
-    // If no sessionId, return tools as-is (for system prompt building)
+    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+
     if (!sessionId) {
       const combinedTools = tools.reduce((acc, tool) => {
         return Object.assign(acc, tool) as ToolSet;
       }, {} as ToolSet);
 
-      // Just wrap with streaming capability
       const wrappedTools: ToolSet = {};
       for (const [toolName, toolDef] of Object.entries(combinedTools)) {
         wrappedTools[toolName] = this.wrapToolWithStreaming(
@@ -518,17 +508,14 @@ export class Agent {
       return wrappedTools;
     }
 
-    // Wrap each MCP tool to record results immediately upon execution
     const wrappedTools: ToolSet = {};
     for (const toolSet of tools) {
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
-        // Type guard to ensure we have a valid AI SDK tool
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
 
-        // First wrap with session management
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
@@ -536,16 +523,56 @@ export class Agent {
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
-              // Call the original MCP tool with proper error handling
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              // Parse any embedded JSON in the result
+              if (rawResult && typeof rawResult === 'object' && 'isError' in rawResult && rawResult.isError) {
+                const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
+                logger.error(
+                  { toolName, toolCallId, errorMessage, rawResult },
+                  'MCP tool returned error status'
+                );
+
+                toolSessionManager.recordToolResult(sessionId, {
+                  toolCallId,
+                  toolName,
+                  args,
+                  result: { error: errorMessage, failed: true },
+                  timestamp: Date.now(),
+                });
+
+                if (streamRequestId) {
+                  agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
+                    message: `MCP tool "${toolName}" failed: ${errorMessage}`,
+                    code: 'mcp_tool_error',
+                    severity: 'error',
+                    context: {
+                      toolName,
+                      toolCallId,
+                      errorMessage,
+                    },
+                  });
+                }
+
+                const activeSpan = trace.getActiveSpan();
+                if (activeSpan) {
+                  const error = new Error(
+                    `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                  );
+                  activeSpan.recordException(error);
+                  activeSpan.setStatus({
+                    code: SpanStatusCode.ERROR,
+                    message: `MCP tool returned error: ${errorMessage}`,
+                  });
+                }
+
+                throw new Error(
+                  `Tool "${toolName}" failed: ${errorMessage}. This tool is currently unavailable. Please try a different approach or inform the user of the issue.`
+                );
+              }
+
               const parsedResult = parseEmbeddedJson(rawResult);
 
-              // Analyze result structure and add path hints for artifact creation
               const enhancedResult = this.enhanceToolResultWithStructureHints(parsedResult);
-
-              // Record the enhanced result in the session manager
 
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
@@ -563,7 +590,6 @@ export class Agent {
           },
         });
 
-        // Then wrap with streaming capability
         wrappedTools[toolName] = this.wrapToolWithStreaming(
           toolName,
           sessionWrappedTool,
@@ -583,6 +609,10 @@ export class Agent {
     tool: McpTool,
     agentToolRelationHeaders?: Record<string, string>
   ): MCPToolConfig {
+    if (tool.config.type !== 'mcp') {
+      throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
+    }
+
     return {
       id: tool.id,
       name: tool.name,
@@ -609,8 +639,8 @@ export class Agent {
       scopes: {
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
-        graphId: this.config.graphId,
-        agentId: this.config.id,
+        agentId: this.config.agentId,
+        subAgentId: this.config.id,
       },
     });
 
@@ -620,11 +650,9 @@ export class Agent {
     const selectedTools =
       toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
 
-    // Build server config with credentials using new architecture
     let serverConfig: McpServerConfig;
 
     if (credentialReferenceId && this.credentialStuffer) {
-      // Database lookup to get credential store configuration
       const credentialReference = await getCredentialReference(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
@@ -666,7 +694,11 @@ export class Agent {
         selectedTools
       );
     } else {
-      // No credentials - build basic config
+      // Type guard - should only reach here for MCP tools
+      if (tool.config.type !== 'mcp') {
+        throw new Error(`Cannot build server config for non-MCP tool: ${tool.id}`);
+      }
+
       serverConfig = {
         type: tool.config.mcp.transport?.type || MCPTransportType.streamableHttp,
         url: tool.config.mcp.server.url,
@@ -694,26 +726,22 @@ export class Agent {
     }
 
     if (!client) {
-      // Check if there's already a connection attempt in progress
       let connectionPromise = this.mcpConnectionLocks.get(cacheKey);
 
       if (!connectionPromise) {
-        // No existing attempt - create new connection promise
         connectionPromise = this.createMcpConnection(tool, serverConfig);
         this.mcpConnectionLocks.set(cacheKey, connectionPromise);
       }
 
       try {
         client = await connectionPromise;
-        // Only cache successful connections
         this.mcpClientCache.set(cacheKey, client);
       } catch (error) {
-        // Clean up failed connection attempt
         this.mcpConnectionLocks.delete(cacheKey);
         logger.error(
           {
             toolName: tool.name,
-            agentId: this.config.id,
+            subAgentId: this.config.id,
             cacheKey,
             error: error instanceof Error ? error.message : String(error),
           },
@@ -723,8 +751,48 @@ export class Agent {
       }
     }
 
-    // For all cases (cached, locked, or newly created), get the tools
     const tools = await client.tools();
+
+    if (!tools || Object.keys(tools).length === 0) {
+      const streamRequestId = this.getStreamRequestId();
+      if (streamRequestId) {
+        tracer.startActiveSpan(
+          'ai.toolCall',
+          {
+            attributes: {
+              'ai.toolCall.name': tool.name,
+              'ai.toolCall.args': JSON.stringify({ operation: 'mcp_tool_discovery' }),
+              'ai.toolCall.result': JSON.stringify({
+                status: 'no_tools_available',
+                message: `MCP server has 0 effective tools. Double check the selected tools in your agent and the active tools in the MCP server configuration.`,
+                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
+                originalToolName: tool.name,
+              }),
+              'ai.toolType': 'mcp',
+              'ai.subAgentName': this.config.name || 'unknown',
+              'conversation.id': this.conversationId || 'unknown',
+              'agent.id': this.config.agentId || 'unknown',
+              'tenant.id': this.config.tenantId || 'unknown',
+              'project.id': this.config.projectId || 'unknown',
+            },
+          },
+          (span) => {
+            setSpanWithError(span, new Error(`0 effective tools available for ${tool.name}`));
+            agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
+              message: `MCP server has 0 effective tools. Double check the selected tools in your graph and the active tools in the MCP server configuration.`,
+              code: 'no_tools_available',
+              severity: 'error',
+              context: {
+                toolName: tool.name,
+                serverUrl: tool.config.type === 'mcp' ? tool.config.mcp.server.url : 'unknown',
+                operation: 'mcp_tool_discovery',
+              },
+            });
+            span.end();
+          }
+        );
+      }
+    }
 
     return tools;
   }
@@ -733,7 +801,6 @@ export class Agent {
     tool: McpTool,
     serverConfig: McpServerConfig
   ): Promise<McpClient> {
-    // Create and connect MCP client
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
@@ -746,34 +813,133 @@ export class Agent {
       logger.error(
         {
           toolName: tool.name,
-          agentId: this.config.id,
+          subAgentId: this.config.id,
           error: error instanceof Error ? error.message : String(error),
         },
         'Agent failed to connect to MCP server'
       );
+      if (error instanceof Error) {
+        if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
+          const errorMessage = 'Connection refused. Please check if the MCP server is running.';
+          throw new Error(errorMessage);
+        } else if (error.message.includes('404')) {
+          const errorMessage = 'Error accessing endpoint (HTTP 404)';
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(`MCP server connection failed: ${error.message}`);
+        }
+      }
+
       throw error;
     }
   }
 
-  getFunctionTools(streamRequestId?: string) {
-    if (!this.config.functionTools) return {};
-
+  async getFunctionTools(sessionId?: string, streamRequestId?: string) {
     const functionTools: ToolSet = {};
 
-    for (const funcTool of this.config.functionTools) {
-      // Convert function tool to AI SDK format and wrap with streaming
-      const aiTool = tool({
-        description: funcTool.description,
-        inputSchema: funcTool.schema || z.object({}),
-        execute: funcTool.execute,
+    try {
+      const functionToolsForAgent = await getFunctionToolsForSubAgent(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          agentId: this.config.agentId,
+        },
+        subAgentId: this.config.id,
       });
 
-      functionTools[funcTool.name] = this.wrapToolWithStreaming(
-        funcTool.name,
-        aiTool,
-        streamRequestId,
-        'tool'
-      );
+      const functionToolsData = functionToolsForAgent.data || [];
+
+      if (functionToolsData.length === 0) {
+        return functionTools;
+      }
+
+      const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
+      const sandboxExecutor = SandboxExecutorFactory.getInstance();
+
+      for (const functionToolDef of functionToolsData) {
+        const functionId = functionToolDef.functionId;
+        if (!functionId) {
+          logger.warn(
+            { functionToolId: functionToolDef.id },
+            'Function tool missing functionId reference'
+          );
+          continue;
+        }
+
+        const functionData = await getFunction(dbClient)({
+          functionId,
+          scopes: {
+            tenantId: this.config.tenantId || 'default',
+            projectId: this.config.projectId || 'default',
+          },
+        });
+        if (!functionData) {
+          logger.warn(
+            { functionId, functionToolId: functionToolDef.id },
+            'Function not found in functions table'
+          );
+          continue;
+        }
+
+        const zodSchema = jsonSchemaToZod(functionData.inputSchema);
+
+        const aiTool = tool({
+          description: functionToolDef.description || functionToolDef.name,
+          inputSchema: zodSchema,
+          execute: async (args, { toolCallId }) => {
+            logger.debug(
+              { toolName: functionToolDef.name, toolCallId, args },
+              'Function Tool Called'
+            );
+
+            try {
+              const defaultSandboxConfig: SandboxConfig = {
+                provider: 'native',
+                runtime: 'node22',
+                timeout: 30000,
+                vcpus: 4,
+              };
+
+              const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
+                description: functionToolDef.description || functionToolDef.name,
+                inputSchema: functionData.inputSchema || {},
+                executeCode: functionData.executeCode,
+                dependencies: functionData.dependencies || {},
+                sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
+              });
+
+              toolSessionManager.recordToolResult(sessionId || '', {
+                toolCallId,
+                toolName: functionToolDef.name,
+                args,
+                result,
+                timestamp: Date.now(),
+              });
+
+              return { result, toolCallId };
+            } catch (error) {
+              logger.error(
+                {
+                  toolName: functionToolDef.name,
+                  toolCallId,
+                  error: error instanceof Error ? error.message : String(error),
+                },
+                'Function tool execution failed'
+              );
+              throw error;
+            }
+          },
+        });
+
+        functionTools[functionToolDef.name] = this.wrapToolWithStreaming(
+          functionToolDef.name,
+          aiTool,
+          streamRequestId || '',
+          'tool'
+        );
+      }
+    } catch (error) {
+      logger.error({ error }, 'Failed to load function tools from database');
     }
 
     return functionTools;
@@ -784,17 +950,20 @@ export class Agent {
    */
   async getResolvedContext(
     conversationId: string,
-    requestContext?: Record<string, unknown>
+    headers?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> {
     try {
       if (!this.config.contextConfigId) {
-        logger.debug({ graphId: this.config.graphId }, 'No context config found for graph');
+        logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
-      // Get context configuration
       const contextConfig = await getContextConfigById(dbClient)({
-        scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId },
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          agentId: this.config.agentId,
+        },
         id: this.config.contextConfigId,
       });
       if (!contextConfig) {
@@ -806,15 +975,13 @@ export class Agent {
         throw new Error('Context resolver not found');
       }
 
-      // Resolve context with 'invocation' trigger to ensure fresh data for invocation definitions
       const result = await this.contextResolver.resolve(contextConfig, {
         triggerEvent: 'invocation',
         conversationId,
-        requestContext: requestContext || {},
+        headers: headers || {},
         tenantId: this.config.tenantId,
       });
 
-      // Add built-in variables to resolved context
       const contextWithBuiltins = {
         ...result.resolvedContext,
         $now: new Date().toISOString(),
@@ -848,73 +1015,71 @@ export class Agent {
   }
 
   /**
-   * Get the graph prompt for this agent's graph
+   * Get the agent prompt for this agent's agent
    */
-  private async getGraphPrompt(): Promise<string | undefined> {
+  private async getPrompt(): Promise<string | undefined> {
     try {
-      const graphDefinition = await getFullGraphDefinition(dbClient)({
+      const agentDefinition = await getFullAgentDefinition(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
-      return graphDefinition?.graphPrompt || undefined;
+      return agentDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to get graph prompt'
+        'Failed to get agent prompt'
       );
       return undefined;
     }
   }
 
   /**
-   * Check if any agent in the graph has artifact components configured
+   * Check if any agent in the agent has artifact components configured
    */
-  private async hasGraphArtifactComponents(): Promise<boolean> {
+  private async hasAgentArtifactComponents(): Promise<boolean> {
     try {
-      const graphDefinition = await getFullGraphDefinition(dbClient)({
+      const agentDefinition = await getFullAgentDefinition(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
 
-      if (!graphDefinition) {
+      if (!agentDefinition) {
         return false;
       }
 
-      // Check if any agent in the graph has artifact components
-      return Object.values(graphDefinition.agents).some(
-        (agent) =>
-          'artifactComponents' in agent &&
-          agent.artifactComponents &&
-          agent.artifactComponents.length > 0
+      return Object.values(agentDefinition.subAgents).some(
+        (subAgent) =>
+          'artifactComponents' in subAgent &&
+          subAgent.artifactComponents &&
+          subAgent.artifactComponents.length > 0
       );
     } catch (error) {
       logger.warn(
         {
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        'Failed to check graph artifact components, assuming none exist'
+        'Failed to check agent artifact components, assuming none exist'
       );
-      // Fallback to current agent's artifact components if graph query fails
       return this.artifactComponents.length > 0;
     }
   }
 
   /**
    * Build adaptive system prompt for Phase 2 structured output generation
-   * based on configured data components and artifact components across the graph
+   * based on configured data components and artifact components across the agent
    */
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
@@ -926,17 +1091,15 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
-    // Get resolved context using ContextResolver
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    // Process agent prompt with context (same logic as buildSystemPrompt)
-    let processedPrompt = this.config.agentPrompt;
+    let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
-        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+        processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -948,11 +1111,10 @@ export class Agent {
           },
           'Failed to process agent prompt with context for Phase 2, using original'
         );
-        processedPrompt = this.config.agentPrompt;
+        processedPrompt = this.config.prompt;
       }
     }
 
-    // Get reference artifacts from existing tasks (same logic as buildSystemPrompt)
     const referenceTaskIds: string[] = await listTaskIdsByContextId(dbClient)({
       contextId: this.conversationId || '',
     });
@@ -974,7 +1136,7 @@ export class Agent {
       dataComponents: this.config.dataComponents || [],
       artifactComponents: this.artifactComponents,
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
-      hasGraphArtifactComponents,
+      hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
     });
   }
@@ -991,21 +1153,18 @@ export class Agent {
     },
     excludeDataComponents: boolean = false
   ): Promise<string> {
-    // Get resolved context using ContextResolver
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-    // Set conversation ID if available
     if (conversationId) {
       this.setConversationId(conversationId);
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    // Process agent prompt with context
-    let processedPrompt = this.config.agentPrompt;
+    let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
-        processedPrompt = TemplateEngine.render(this.config.agentPrompt, resolvedContext, {
+        processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1017,18 +1176,32 @@ export class Agent {
           },
           'Failed to process agent prompt with context, using original'
         );
-        processedPrompt = this.config.agentPrompt;
+        processedPrompt = this.config.prompt;
       }
     }
 
-    // Get MCP tools, function tools, and relational tools
     const streamRequestId = runtimeContext?.metadata?.streamRequestId;
     const mcpTools = await this.getMcpTools(undefined, streamRequestId);
-    const functionTools = this.getFunctionTools(streamRequestId);
+    const functionTools = await this.getFunctionTools(streamRequestId || '');
     const relationTools = this.getRelationTools(runtimeContext);
 
-    // Convert ToolSet objects to ToolData array format for system prompt
     const allTools = { ...mcpTools, ...functionTools, ...relationTools };
+
+    logger.info(
+      {
+        mcpTools: Object.keys(mcpTools),
+        functionTools: Object.keys(functionTools),
+        relationTools: Object.keys(relationTools),
+        allTools: Object.keys(allTools),
+        functionToolsDetails: Object.entries(functionTools).map(([name, tool]) => ({
+          name,
+          hasExecute: typeof (tool as any).execute === 'function',
+          hasDescription: !!(tool as any).description,
+          hasInputSchema: !!(tool as any).inputSchema,
+        })),
+      },
+      'Tools loaded for agent'
+    );
 
     const toolDefinitions = Object.entries(allTools).map(([name, tool]) => ({
       name,
@@ -1040,7 +1213,6 @@ export class Agent {
           : 'Use this tool when appropriate for the task at hand.',
     }));
 
-    // Get artifacts that match the conversation history scope
     const { getConversationScopedArtifacts } = await import('../data/conversations');
     const historyConfig =
       this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
@@ -1052,20 +1224,16 @@ export class Agent {
       historyConfig,
     });
 
-    // Use component dataComponents for system prompt (artifacts already separated in constructor)
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
 
-    // Use thinking/preparation mode when we have data components but are excluding them (Phase 1)
     const isThinkingPreparation =
       this.config.dataComponents && this.config.dataComponents.length > 0 && excludeDataComponents;
 
-    // Get graph prompt for additional context
-    let graphPrompt = await this.getGraphPrompt();
+    let prompt = await this.getPrompt();
 
-    // Process graph prompt with context variables
-    if (graphPrompt && resolvedContext) {
+    if (prompt && resolvedContext) {
       try {
-        graphPrompt = TemplateEngine.render(graphPrompt, resolvedContext, {
+        prompt = TemplateEngine.render(prompt, resolvedContext, {
           strict: false,
           preserveUnresolved: false,
         });
@@ -1075,27 +1243,23 @@ export class Agent {
             conversationId,
             error: error instanceof Error ? error.message : 'Unknown error',
           },
-          'Failed to process graph prompt with context, using original'
+          'Failed to process agent prompt with context, using original'
         );
-        // graphPrompt remains unchanged if processing fails
       }
     }
 
-    // When excludeDataComponents = true (Phase 1 of two-phase), don't include artifact components
-    // When excludeDataComponents = false (Phase 2 or single-phase), include artifact components
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    // Check if any agent in the graph has artifact components (for referencing guidance)
-    const hasGraphArtifactComponents = await this.hasGraphArtifactComponents();
+    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
-      graphPrompt,
+      prompt,
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,
       artifactComponents: shouldIncludeArtifactComponents ? this.artifactComponents : [],
-      hasGraphArtifactComponents,
+      hasAgentArtifactComponents,
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
@@ -1106,23 +1270,34 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to get the artifact with the given artifactId. Only retrieve this when the description of the artifact is insufficient to understand the artifact and you need to see the actual artifact for more context. Please refrain from using this tool unless absolutely necessary.',
+        'Call this tool to get the complete artifact data with the given artifactId. This retrieves the full artifact content (not just the summary). Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
+        toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
       }),
-      execute: async ({ artifactId }) => {
-        logger.info({ artifactId }, 'get_artifact executed');
-        const artifact = await getLedgerArtifacts(dbClient)({
-          scopes: {
-            tenantId: this.config.tenantId,
-            projectId: this.config.projectId,
-          },
-          artifactId,
-        });
-        if (!artifact) {
-          throw new Error(`Artifact ${artifactId} not found`);
+      execute: async ({ artifactId, toolCallId }) => {
+        logger.info({ artifactId, toolCallId }, 'get_artifact_full executed');
+
+        // Use shared ArtifactService from AgentSessionManager
+        const streamRequestId = this.getStreamRequestId();
+        const artifactService = agentSessionManager.getArtifactService(streamRequestId);
+
+        if (!artifactService) {
+          throw new Error(`ArtifactService not found for session ${streamRequestId}`);
         }
-        return { artifact: artifact[0] };
+
+        const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
+        if (!artifactData) {
+          throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
+        }
+
+        return {
+          artifactId: artifactData.artifactId,
+          name: artifactData.name,
+          description: artifactData.description,
+          type: artifactData.type,
+          data: artifactData.data,
+        };
       },
     });
   }
@@ -1145,12 +1320,12 @@ export class Agent {
   }
 
   // Provide a default tool set that is always available to the agent.
-  private async getDefaultTools(sessionId?: string, streamRequestId?: string): Promise<ToolSet> {
+  private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the graph has artifact components
-    // This enables cross-agent artifact collaboration within the same graph
-    if (await this.graphHasArtifactComponents()) {
+    // Add get_reference_artifact if any agent in the agent has artifact components
+    // This enables cross-agent artifact collaboration within the same agent
+    if (await this.agentHasArtifactComponents()) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
@@ -1198,7 +1373,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedForAnalysis = parseEmbeddedJson(result);
-      } catch (error) {
+      } catch (_error) {
         // If parsing fails, analyze the original result
         parsedForAnalysis = result;
       }
@@ -1267,13 +1442,19 @@ export class Agent {
         // Check first few items for common field patterns
         obj.slice(0, 3).forEach((item) => {
           if (item && typeof item === 'object') {
-            Object.keys(item).forEach((key) => fields.add(key));
+            Object.keys(item).forEach((key) => {
+              fields.add(key);
+            });
           }
         });
       } else if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach((key) => fields.add(key));
+        Object.keys(obj).forEach((key) => {
+          fields.add(key);
+        });
         Object.values(obj).forEach((value) => {
-          findCommonFields(value, depth + 1).forEach((field) => fields.add(field));
+          findCommonFields(value, depth + 1).forEach((field) => {
+            fields.add(field);
+          });
         });
       }
       return fields;
@@ -1402,10 +1583,8 @@ export class Agent {
               '🚨 CRITICAL: Artifacts must be CREATED before they can be referenced. Use ArtifactCreate_[Type] components FIRST, then reference with Artifact components only if citing the SAME artifact again.',
             baseSelector:
               "🎯 CRITICAL: Use base_selector to navigate to ONE specific item. For deeply nested structures with repeated keys, use full paths with specific filtering (e.g., \"result.data.content.items[?type=='guide' && status=='active']\")",
-            summaryProps:
-              '📝 Use relative selectors from that item (e.g., "title", "metadata.category", "properties.status")',
-            fullProps:
-              '📖 Use relative selectors for detailed data (e.g., "content.details", "specifications.data", "attributes")',
+            detailsSelector:
+              '📝 Use relative selectors for specific fields (e.g., "title", "metadata.category", "properties.status", "content.details")',
             avoidLiterals:
               '❌ NEVER use literal values - always use field selectors to extract from data',
             avoidArrays:
@@ -1443,20 +1622,20 @@ export class Agent {
     }
   }
 
-  // Check if any agents in the graph have artifact components
-  private async graphHasArtifactComponents(): Promise<boolean> {
+  // Check if any agents in the agent have artifact components
+  private async agentHasArtifactComponents(): Promise<boolean> {
     try {
-      return await graphHasArtifactComponents(dbClient)({
+      return await agentHasArtifactComponents(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
-          graphId: this.config.graphId,
+          agentId: this.config.agentId,
         },
       });
     } catch (error) {
       logger.error(
-        { error, graphId: this.config.graphId },
-        'Failed to check graph artifact components'
+        { error, agentId: this.config.agentId },
+        'Failed to check agent artifact components'
       );
       return false;
     }
@@ -1476,14 +1655,14 @@ export class Agent {
     }
   ) {
     return tracer.startActiveSpan('agent.generate', async (span) => {
-      // Use the ToolSession created by GraphSession
+      // Use the ToolSession created by AgentSession
       // All agents in this execution share the same session
       const contextId = runtimeContext?.contextId || 'default';
       const taskId = runtimeContext?.metadata?.taskId || 'unknown';
       const streamRequestId = runtimeContext?.metadata?.streamRequestId;
       const sessionId = streamRequestId || 'fallback-session';
 
-      // Note: ToolSession is now created by GraphSession, not by agents
+      // Note: ToolSession is now created by AgentSession, not by agents
       // This ensures proper lifecycle management and session coordination
 
       try {
@@ -1492,7 +1671,6 @@ export class Agent {
         this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
         const conversationId = runtimeContext?.metadata?.conversationId;
 
-        // Set conversation ID if available
         if (conversationId) {
           this.setConversationId(conversationId);
         }
@@ -1510,7 +1688,7 @@ export class Agent {
           'agent.load_tools',
           {
             attributes: {
-              'agent.name': this.config.name,
+              'subAgent.name': this.config.name,
               'session.id': sessionId || 'none',
             },
           },
@@ -1520,16 +1698,17 @@ export class Agent {
                 this.getMcpTools(sessionId, streamRequestId),
                 this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
                 this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
-                Promise.resolve(this.getFunctionTools(streamRequestId)),
+                this.getFunctionTools(sessionId, streamRequestId),
                 Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
-                this.getDefaultTools(sessionId, streamRequestId),
+                this.getDefaultTools(streamRequestId),
               ]);
 
               childSpan.setStatus({ code: SpanStatusCode.OK });
               return result;
             } catch (err) {
               // Use helper function for consistent error handling
-              setSpanWithError(childSpan, err);
+              const errorObj = err instanceof Error ? err : new Error(String(err));
+              setSpanWithError(childSpan, errorObj);
               throw err;
             } finally {
               childSpan.end();
@@ -1571,7 +1750,7 @@ export class Agent {
               currentMessage: userMessage,
               options: historyConfig,
               filters: {
-                agentId: this.config.id,
+                subAgentId: this.config.id,
                 taskId: taskId,
               },
             });
@@ -1645,11 +1824,10 @@ export class Agent {
             messages,
             tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
-              // Track the last step's text reasoning
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
-                  await graphSessionManager.recordEvent(
+                  await agentSessionManager.recordEvent(
                     this.getStreamRequestId(),
                     'agent_reasoning',
                     this.config.id,
@@ -1662,11 +1840,22 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some((tc: any) => tc.toolName.startsWith('transfer_to_'));
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasTransferCall = previousStep.toolCalls.some((tc: any) =>
+                    tc.toolName.startsWith('transfer_to_')
+                  );
+                  if (
+                    hasTransferCall &&
+                    'toolResults' in previousStep &&
+                    previousStep.toolResults
+                  ) {
+                    return true; // Stop after transfer tool has executed
+                  }
+                }
               }
-              // Safety cap at configured max steps
+
               return steps.length >= this.getMaxGenerationSteps();
             },
             experimental_telemetry: {
@@ -1678,12 +1867,10 @@ export class Agent {
             abortSignal: AbortSignal.timeout(timeoutMs),
           });
 
-          // Create incremental parser that will format and stream to user
           const streamHelper = this.getStreamingHelper();
           if (!streamHelper) {
             throw new Error('Stream helper is unexpectedly undefined in streaming context');
           }
-          // Get session info from tool session manager
           const session = toolSessionManager.getSession(sessionId);
           const artifactParserOptions = {
             sessionId,
@@ -1691,7 +1878,7 @@ export class Agent {
             projectId: session?.projectId,
             artifactComponents: this.artifactComponents,
             streamRequestId: this.getStreamRequestId(),
-            agentId: this.config.id,
+            subAgentId: this.config.id,
           };
           const parser = new IncrementalStreamParser(
             streamHelper,
@@ -1700,38 +1887,36 @@ export class Agent {
             artifactParserOptions
           );
 
-          // Process the full stream - track all events including tool calls
-          // Note: stopWhen will automatically stop on transfer_to_
           for await (const event of streamResult.fullStream) {
             switch (event.type) {
               case 'text-delta':
                 await parser.processTextChunk(event.text);
                 break;
               case 'tool-call':
-                // Mark that a tool call happened
                 parser.markToolResult();
                 break;
               case 'tool-result':
-                // Tool result finished, next text should have spacing
                 parser.markToolResult();
                 break;
               case 'finish':
-                // Stream finished, check if it was due to tool calls
                 if (event.finishReason === 'tool-calls') {
                   parser.markToolResult();
                 }
                 break;
-              // Handle other event types if needed
+              case 'error':
+                if (event.error instanceof Error) {
+                  throw event.error;
+                } else {
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
             }
           }
 
-          // Finalize the stream
           await parser.finalize();
 
-          // Get the complete result for A2A protocol
           response = await streamResult;
 
-          // Build formattedContent from collected parts
           const collectedParts = parser.getCollectedParts();
           if (collectedParts.length > 0) {
             response.formattedContent = {
@@ -1742,8 +1927,18 @@ export class Agent {
               })),
             };
           }
+
+          const streamedContent = parser.getAllStreamedContent();
+          if (streamedContent.length > 0) {
+            response.streamedContent = {
+              parts: streamedContent.map((part: any) => ({
+                kind: part.kind,
+                ...(part.kind === 'text' && { text: part.text }),
+                ...(part.kind === 'data' && { data: part.data }),
+              })),
+            };
+          }
         } else {
-          // Non-streaming Phase 1
           let genConfig: any;
           if (hasStructuredOutput) {
             genConfig = {
@@ -1757,17 +1952,15 @@ export class Agent {
             };
           }
 
-          // Use generateText for Phase 1 planning
           response = await generateText({
             ...genConfig,
             messages,
             tools: sanitizedTools,
             stopWhen: async ({ steps }) => {
-              // Track the last step's text reasoning
               const last = steps.at(-1);
               if (last && 'text' in last && last.text) {
                 try {
-                  await graphSessionManager.recordEvent(
+                  await agentSessionManager.recordEvent(
                     this.getStreamRequestId(),
                     'agent_reasoning',
                     this.config.id,
@@ -1780,14 +1973,19 @@ export class Agent {
                 }
               }
 
-              // Return the actual stop condition
-              if (last && 'toolCalls' in last && last.toolCalls) {
-                return last.toolCalls.some(
-                  (tc: any) =>
-                    tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
-                );
+              if (steps.length >= 2) {
+                const previousStep = steps[steps.length - 2];
+                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                  const hasStopTool = previousStep.toolCalls.some(
+                    (tc: any) =>
+                      tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
+                  );
+                  if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
+                    return true; // Stop after transfer/thinking_complete tool has executed
+                  }
+                }
               }
-              // Safety cap at configured max steps
+
               return steps.length >= this.getMaxGenerationSteps();
             },
             experimental_telemetry: {
@@ -1803,25 +2001,20 @@ export class Agent {
           });
         }
 
-        // Resolve steps Promise so task handler can access the array properly
         if (response.steps) {
           const resolvedSteps = await response.steps;
           response = { ...response, steps: resolvedSteps };
         }
 
-        // ----- PHASE 2: Structured Output Generation -----
         if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
-          // Check if thinking_complete was called (successful Phase 1)
           const thinkingCompleteCall = response.steps
             ?.flatMap((s: any) => s.toolCalls || [])
             ?.find((tc: any) => tc.toolName === 'thinking_complete');
 
           if (thinkingCompleteCall) {
-            // Build reasoning flow from Phase 1 steps
             const reasoningFlow: any[] = [];
             if (response.steps) {
               response.steps.forEach((step: any) => {
-                // Add tool calls and results as formatted messages
                 if (step.toolCalls && step.toolResults) {
                   step.toolCalls.forEach((call: any, index: number) => {
                     const result = step.toolResults[index];
@@ -1832,15 +2025,12 @@ export class Agent {
                       );
                       const toolName = storedResult?.toolName || call.toolName;
 
-                      // Skip tool_thinking tool
                       if (toolName === 'thinking_complete') {
                         return;
                       }
-                      // Default formatting for all other tools
                       const actualResult = storedResult?.result || result.result || result;
                       const actualArgs = storedResult?.args || call.args;
 
-                      // Filter out _structureHints from the result for clean JSON output
                       const cleanResult =
                         actualResult &&
                         typeof actualResult === 'object' &&
@@ -1858,7 +2048,6 @@ export class Agent {
                           ? cleanResult
                           : JSON.stringify(cleanResult, null, 2);
 
-                      // Format structure hints if present and artifact components are available
                       let structureHintsFormatted = '';
                       if (
                         actualResult?._structureHints &&
@@ -1912,10 +2101,8 @@ ${output}${structureHintsFormatted}`;
               });
             }
 
-            // Build component schemas using reusable classes
             const componentSchemas: z.ZodType<any>[] = [];
 
-            // Add data component schemas
             if (this.config.dataComponents && this.config.dataComponents.length > 0) {
               this.config.dataComponents.forEach((dc) => {
                 const propsSchema = jsonSchemaToZod(dc.props);
@@ -1929,14 +2116,11 @@ ${output}${structureHintsFormatted}`;
               });
             }
 
-            // Add artifact schemas only when artifact components are available
             if (this.artifactComponents.length > 0) {
-              // Add one ArtifactCreate schema for each artifact component type
               const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
                 this.artifactComponents
               );
               componentSchemas.push(...artifactCreateSchemas);
-              // Add the single reference schema for all types
               componentSchemas.push(ArtifactReferenceSchema.getSchema());
             }
 
@@ -1949,7 +2133,6 @@ ${output}${structureHintsFormatted}`;
               );
             }
 
-            // Phase 2: Generate structured output
             const structuredModelSettings = ModelFactory.prepareGenerationConfig(
               this.getStructuredOutputModel()
             );
@@ -1957,11 +2140,9 @@ ${output}${structureHintsFormatted}`;
               ? structuredModelSettings.maxDuration * 1000
               : CONSTANTS.PHASE_2_TIMEOUT_MS;
 
-            // Check if we should stream Phase 2 structured output
             const shouldStreamPhase2 = this.getStreamingHelper();
 
             if (shouldStreamPhase2) {
-              // Streaming Phase 2: Stream structured output with incremental parser
               const phase2Messages: any[] = [
                 {
                   role: 'system',
@@ -1969,7 +2150,6 @@ ${output}${structureHintsFormatted}`;
                 },
               ];
 
-              // Add conversation history if available
               if (conversationHistory.trim() !== '') {
                 phase2Messages.push({ role: 'user', content: conversationHistory });
               }
@@ -1995,12 +2175,10 @@ ${output}${structureHintsFormatted}`;
                 abortSignal: AbortSignal.timeout(phase2TimeoutMs),
               });
 
-              // Create incremental parser for object streaming
               const streamHelper = this.getStreamingHelper();
               if (!streamHelper) {
                 throw new Error('Stream helper is unexpectedly undefined in streaming context');
               }
-              // Get session info for artifact parser
               const session = toolSessionManager.getSession(sessionId);
               const artifactParserOptions = {
                 sessionId,
@@ -2008,7 +2186,7 @@ ${output}${structureHintsFormatted}`;
                 projectId: session?.projectId,
                 artifactComponents: this.artifactComponents,
                 streamRequestId: this.getStreamRequestId(),
-                agentId: this.config.id,
+                subAgentId: this.config.id,
               };
               const parser = new IncrementalStreamParser(
                 streamHelper,
@@ -2017,21 +2195,16 @@ ${output}${structureHintsFormatted}`;
                 artifactParserOptions
               );
 
-              // Process the object stream with better delta handling
               for await (const delta of streamResult.partialObjectStream) {
                 if (delta) {
-                  // Process object deltas directly
                   await parser.processObjectDelta(delta);
                 }
               }
 
-              // Finalize the stream
               await parser.finalize();
 
-              // Get the complete structured response
               const structuredResponse = await streamResult;
 
-              // Build formattedContent from collected parts
               const collectedParts = parser.getCollectedParts();
               if (collectedParts.length > 0) {
                 response.formattedContent = {
@@ -2043,22 +2216,18 @@ ${output}${structureHintsFormatted}`;
                 };
               }
 
-              // Merge structured output into response
               response = {
                 ...response,
                 object: structuredResponse.object,
               };
               textResponse = JSON.stringify(structuredResponse.object, null, 2);
             } else {
-              // Non-streaming Phase 2: Use generateObject as fallback
               const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
-              // Build Phase 2 messages with conversation history
               const phase2Messages: any[] = [
                 { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
               ];
 
-              // Add conversation history if available
               if (conversationHistory.trim() !== '') {
                 phase2Messages.push({ role: 'user', content: conversationHistory });
               }
@@ -2086,7 +2255,6 @@ ${output}${structureHintsFormatted}`;
                 })
               );
 
-              // Merge structured output into response
               response = {
                 ...response,
                 object: structuredResponse.object,
@@ -2100,16 +2268,12 @@ ${output}${structureHintsFormatted}`;
           textResponse = response.steps[response.steps.length - 1].text || '';
         }
 
-        // Mark span as successful
         span.setStatus({ code: SpanStatusCode.OK });
         span.end();
 
-        // Format response - handle object vs text responses differently
-        // Only format if we don't already have formattedContent from streaming
         let formattedContent: MessageContent | null = response.formattedContent || null;
 
         if (!formattedContent) {
-          // Create ResponseFormatter with proper context
           const session = toolSessionManager.getSession(sessionId);
           const responseFormatter = new ResponseFormatter(this.config.tenantId, {
             sessionId,
@@ -2118,17 +2282,15 @@ ${output}${structureHintsFormatted}`;
             contextId,
             artifactComponents: this.artifactComponents,
             streamRequestId: this.getStreamRequestId(),
-            agentId: this.config.id,
+            subAgentId: this.config.id,
           });
 
           if (response.object) {
-            // For object responses, replace artifact markers and convert to parts array
             formattedContent = await responseFormatter.formatObjectResponse(
               response.object,
               contextId
             );
           } else if (textResponse) {
-            // For text responses, apply artifact marker formatting to create text/data parts
             formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
           }
         }
@@ -2138,11 +2300,10 @@ ${output}${structureHintsFormatted}`;
           formattedContent: formattedContent,
         };
 
-        // Record agent generation in GraphSession
         if (streamRequestId) {
           const generationType = response.object ? 'object_generation' : 'text_generation';
 
-          graphSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
+          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
             parts: (formattedContent?.parts || []).map((part) => ({
               type:
                 part.kind === 'text'
@@ -2156,17 +2317,13 @@ ${output}${structureHintsFormatted}`;
           });
         }
 
-        // Don't clean up ToolSession here - let ToolSessionManager handle timeout-based cleanup
-        // The ToolSession might still be needed by other agents in the graph execution
-
         return formattedResponse;
       } catch (error) {
         // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
-
-        // Record exception and mark span as error
-        setSpanWithError(span, error);
+        const errorToThrow = error instanceof Error ? error : new Error(String(error));
+        setSpanWithError(span, errorToThrow);
         span.end();
-        throw error;
+        throw errorToThrow;
       }
     });
   }

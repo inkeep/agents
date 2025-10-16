@@ -4,20 +4,22 @@ import {
   createApiError,
   createDataComponent,
   DataComponentApiInsertSchema,
-  DataComponentApiSelectSchema,
   DataComponentApiUpdateSchema,
+  DataComponentListResponse,
+  DataComponentResponse,
   deleteDataComponent,
   ErrorResponseSchema,
   getDataComponent,
-  IdParamsSchema,
-  ListResponseSchema,
   listDataComponentsPaginated,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateDataComponent,
+  validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
+import { stream } from 'hono/streaming';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 
 const app = new OpenAPIHono();
 
@@ -37,7 +39,7 @@ app.openapi(
         description: 'List of data components retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentListResponse,
           },
         },
       },
@@ -65,14 +67,14 @@ app.openapi(
     operationId: 'get-data-component-by-id',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Data component found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
@@ -119,7 +121,7 @@ app.openapi(
         description: 'Data component created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
@@ -129,6 +131,19 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
+
+    if (body.props) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
 
     const dataComponentData = {
       ...body,
@@ -150,7 +165,7 @@ app.openapi(
     operationId: 'update-data-component',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -164,7 +179,7 @@ app.openapi(
         description: 'Data component updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DataComponentApiSelectSchema),
+            schema: DataComponentResponse,
           },
         },
       },
@@ -174,6 +189,19 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
+
+    if (body.props !== undefined && body.props !== null) {
+      const propsValidation = validatePropsAsJsonSchema(body.props);
+      if (!propsValidation.isValid) {
+        const errorMessages = propsValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
+      }
+    }
 
     const updatedDataComponent = await updateDataComponent(dbClient)({
       scopes: { tenantId, projectId },
@@ -200,7 +228,7 @@ app.openapi(
     operationId: 'delete-data-component',
     tags: ['Data Component'],
     request: {
-      params: TenantProjectParamsSchema.merge(IdParamsSchema),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
@@ -232,6 +260,99 @@ app.openapi(
     }
 
     return c.body(null, 204);
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/generate-preview',
+    summary: 'Generate Component Preview',
+    operationId: 'generate-component-preview',
+    tags: ['Data Component'],
+    request: {
+      params: TenantProjectIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Streaming component code generation',
+        content: {
+          'text/plain': {
+            schema: { type: 'string' },
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, id } = c.req.valid('param');
+
+    const runApiUrl = env.AGENTS_RUN_API_URL;
+    const url = `${runApiUrl}/v1/${tenantId}/projects/${projectId}/data-components/${id}/generate-preview`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: `Failed to generate preview: ${response.statusText}`,
+        });
+      }
+
+      if (!response.body) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'No response body from preview generation',
+        });
+      }
+
+      c.header('Content-Type', 'text/plain; charset=utf-8');
+      c.header('Cache-Control', 'no-cache');
+      c.header('Connection', 'keep-alive');
+
+      return stream(c, async (stream) => {
+        const responseBody = response.body;
+        if (!responseBody) {
+          throw createApiError({
+            code: 'internal_server_error',
+            message: 'Response body is null',
+          });
+        }
+
+        const reader = responseBody.getReader();
+        const decoder = new TextDecoder();
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const text = decoder.decode(value, { stream: true });
+            await stream.write(text);
+          }
+        } catch {
+          throw createApiError({
+            code: 'internal_server_error',
+            message: 'Error streaming preview generation',
+          });
+        }
+      }) as any;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error) {
+        throw error;
+      }
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to generate component preview',
+      });
+    }
   }
 );
 

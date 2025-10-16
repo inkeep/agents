@@ -1,24 +1,26 @@
-export { Agent } from './agent';
+export { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 export { ArtifactComponent, type ArtifactComponentInterface } from './artifact-component';
 export {
   agent,
-  agentGraph,
   agentMcp,
   artifactComponent,
   credential,
   dataComponent,
+  functionTool,
   mcpServer,
   mcpTool,
   project,
+  statusComponent,
+  subAgent,
 } from './builderFunctions';
+export { transfer } from './builders';
 export {
-  credentialRef,
-  isCredentialReference,
   type CredentialReference,
+  credentialRef,
   type ExtractCredentialIds,
+  isCredentialReference,
   type UnionCredentialIds,
 } from './credential-ref';
-export { transfer } from './builders';
 export { DataComponent, type DataComponentInterface } from './data-component';
 export {
   createEnvironmentSettings,
@@ -29,6 +31,7 @@ export {
   externalAgent,
   externalAgents,
 } from './externalAgent';
+export { FunctionTool } from './function-tool';
 export { Project } from './project';
 export {
   createFullProjectViaAPI,
@@ -36,6 +39,8 @@ export {
   getFullProjectViaAPI,
   updateFullProjectViaAPI,
 } from './projectFullClient';
-export { Runner, raceGraphs, run, stream } from './runner';
+export { Runner, raceAgents, run, stream } from './runner';
+export { StatusComponent, type StatusComponentInterface } from './status-component';
+export { SubAgent } from './subAgent';
 export { Tool } from './tool';
 export type * from './types';

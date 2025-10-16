@@ -1,5 +1,10 @@
 // Import shared API client from agents-core
-import { apiFetch } from '@inkeep/agents-core';
+import {
+  type AgentApiInsert,
+  type AgentApiSelect,
+  apiFetch,
+  OPENAI_MODELS,
+} from '@inkeep/agents-core';
 
 abstract class BaseApiClient {
   protected apiUrl: string;
@@ -87,69 +92,68 @@ export class ManagementApiClient extends BaseApiClient {
     return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
   }
 
-  async listGraphs(): Promise<any[]> {
+  async listAgents(): Promise<AgentApiSelect[]> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agent-graphs`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`,
       {
         method: 'GET',
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to list graphs: ${response.statusText}`);
+      throw new Error(
+        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`
+      );
     }
 
     const data = await response.json();
     return data.data || [];
   }
 
-  async getGraph(graphId: string): Promise<any> {
-    // Since there's no dedicated GET endpoint for graphs,
-    // we check if the graph exists in the CRUD endpoint
-    const graphs = await this.listGraphs();
-    const graph = graphs.find((g) => g.id === graphId);
+  async getAgent(agentId: string): Promise<AgentApiSelect | null> {
+    // Since there's no dedicated GET endpoint for agents,
+    // we check if the agent exists in the CRUD endpoint
+    const agents = await this.listAgents();
+    const agent = agents.find((g) => g.id === agentId);
 
-    // If found in CRUD, return it as a valid graph
-    // The graph is usable for chat even without a dedicated GET endpoint
-    return graph || null;
+    // If found in CRUD, return it as a valid agent
+    // The agent is usable for chat even without a dedicated GET endpoint
+    return agent || null;
   }
 
-  async pushGraph(graphDefinition: any): Promise<any> {
+  async pushAgent(agentDefinition: AgentApiInsert): Promise<any> {
     const tenantId = this.checkTenantId();
     const projectId = this.getProjectId();
 
-    // Ensure the graph has the correct tenant ID
-    graphDefinition.tenantId = tenantId;
-
-    const graphId = graphDefinition.id;
-    if (!graphId) {
-      throw new Error('Graph must have an id property');
+    const agentId = agentDefinition.id;
+    if (!agentId) {
+      throw new Error('Agent must have an id property');
     }
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/graph/${graphId}`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
-        body: JSON.stringify(graphDefinition),
+        body: JSON.stringify({
+          ...agentDefinition,
+          tenantId,
+        }),
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to push graph: ${response.statusText}\n${errorText}`);
+      throw new Error(`Failed to push agent: ${response.statusText}\n${errorText}`);
     }
 
     const data = await response.json();
     return data.data;
   }
 
-  /**
-   * Fetch full project data including all graphs, tools, and components
-   */
   async getFullProject(projectId: string): Promise<any> {
     const tenantId = this.checkTenantId();
 
@@ -164,10 +168,23 @@ export class ManagementApiClient extends BaseApiClient {
       if (response.status === 404) {
         throw new Error(`Project "${projectId}" not found`);
       }
-      if (response.status === 401) {
-        throw new Error('Unauthorized - check your API key');
+      if (response.status === 401 || response.status === 403) {
+        const errorText = await response.text().catch(() => '');
+        let errorMessage = 'Authentication failed - check your API key configuration\n\n';
+        errorMessage += 'Common issues:\n';
+        errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
+        errorMessage += '  • API key does not have access to this tenant/project\n';
+        errorMessage +=
+          '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
+        if (errorText) {
+          errorMessage += `\nServer response: ${errorText}`;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(`Failed to fetch project: ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to fetch project: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
     }
 
     const responseData = await response.json();
@@ -204,9 +221,10 @@ export class ExecutionApiClient extends BaseApiClient {
   }
 
   async chatCompletion(
-    graphId: string,
+    agentId: string,
     messages: any[],
-    conversationId?: string
+    conversationId?: string,
+    emitOperations?: boolean
   ): Promise<ReadableStream<Uint8Array> | string> {
     const response = await this.authenticatedFetch(`${this.apiUrl}/v1/chat/completions`, {
       method: 'POST',
@@ -214,10 +232,11 @@ export class ExecutionApiClient extends BaseApiClient {
         Accept: 'text/event-stream',
         'x-inkeep-tenant-id': this.tenantId || 'test-tenant-id',
         'x-inkeep-project-id': this.projectId,
-        'x-inkeep-graph-id': graphId,
+        'x-inkeep-agent-id': agentId,
+        ...(emitOperations && { 'x-emit-operations': 'true' }),
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Required but will be overridden by graph config
+        model: OPENAI_MODELS.GPT_4_1_MINI, // Required but will be overridden by graph config
         messages,
         conversationId,
         stream: true,

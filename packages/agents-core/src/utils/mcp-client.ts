@@ -173,24 +173,25 @@ export class McpClient {
 
     const { selectedTools, activeTools } = this.serverConfig;
 
-    // Priority: selectedTools > activeTools > all tools
-    let toolsToFilter: string[] | undefined;
+    let availableTools: Tool[];
 
-    if (selectedTools && selectedTools.length > 0) {
-      // Use selectedTools (user's specific selection from UI)
-      toolsToFilter = selectedTools;
-    } else if (activeTools && activeTools.length > 0) {
-      // Fall back to activeTools (available tools)
-      toolsToFilter = activeTools;
+    if (activeTools === undefined) {
+      availableTools = tools;
+    } else if (activeTools.length === 0) {
+      return [];
     } else {
-      // No filtering - return all tools
-      return tools;
+      availableTools = tools.filter((tool: Tool) => activeTools.includes(tool.name));
     }
 
-    const toolNames = tools.map((tool: Tool) => tool.name);
-    this.validateSelectedTools(toolNames, toolsToFilter);
-
-    return tools.filter((tool: Tool) => toolsToFilter.includes(tool.name));
+    if (selectedTools === undefined) {
+      return availableTools;
+    } else if (selectedTools.length === 0) {
+      return [];
+    } else {
+      const toolNames = availableTools.map((tool: Tool) => tool.name);
+      this.validateSelectedTools(toolNames, selectedTools);
+      return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
+    }
   }
 
   async tools() {
@@ -199,7 +200,6 @@ export class McpClient {
 
     for (const def of tools) {
       try {
-        // Convert JSON Schema to Zod schema
         const createZodSchema = (inputSchema: any) => {
           if (!inputSchema || !inputSchema.properties) {
             return z.object({});
@@ -232,7 +232,6 @@ export class McpClient {
               zodType = zodType.describe(propDef.description);
             }
 
-            // Make field optional if not in required array
             const isRequired = inputSchema.required?.includes(key);
             if (!isRequired) {
               zodType = zodType.optional();

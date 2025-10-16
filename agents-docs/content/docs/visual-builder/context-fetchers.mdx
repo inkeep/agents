@@ -13,7 +13,7 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 
 - **Dynamic data retrieval**: Fetch real-time data from APIs.
 - **Dynamic Prompting**: Use dynamic data in your agent prompts
-- **Request context integration**: Use request-specific parameters to customize data fetching.
+- **Headers integration**: Use request-specific parameters to customize data fetching.
 - **Data transformation**: Transform API responses into the exact format your agent needs.
 
 ## Context Fetchers vs Tools
@@ -31,7 +31,7 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 
 ## Basic Usage
 
-1. Go to the Graphs tab in the left sidebar. Then click on the graph you want to configure.
+1. Go to the Agents tab in the left sidebar. Then click on the agent you want to configure.
 2. On the right pane scroll down to the "Context Variables" section.
 3. Add your context variables in JSON format.
 4. Click on the "Save" button.
@@ -44,8 +44,8 @@ Each key in the JSON should map to a fetch definition with the following propert
 - **`id`** (required): Unique identifier for the fetch definition
 - **`name`** (optional): Human-readable name for the fetch definition
 - **`trigger`** (required): When to execute the fetch:
-  - `"initialization"`: Fetch only once when a conversation is started with the graph
-  - `"invocation"`: Fetch every time a request is made to the graph
+  - `"initialization"`: Fetch only once when a conversation is started with the agent
+  - `"invocation"`: Fetch every time a request is made to the agent
 - **`fetchConfig`** (required): HTTP request configuration:
   - **`url`** (required): The API endpoint URL (supports template variables)
   - **`method`** (optional): HTTP method - `GET`, `POST`, `PUT`, `DELETE`, or `PATCH` (defaults to `GET`)
@@ -65,10 +65,10 @@ Here is an example of a valid Context Variables JSON object:
     "name": "User Information",
     "trigger": "initialization",
     "fetchConfig": {
-      "url": "https://api.example.com/users/{{requestContext.user_id}}",
+      "url": "https://api.example.com/users/{{headers.user_id}}",
       "method": "GET",
       "headers": {
-        "Authorization": "Bearer {{requestContext.api_key}}"
+        "Authorization": "Bearer {{headers.api_key}}"
       },
       "transform": "user"
     },
@@ -102,4 +102,4 @@ You are a helpful assistant for {{userInfo.name}}.
 
 # Related documentation
 
-- [Request Context](/visual-builder/request-context) - Learn how to pass dynamic context to your agents via HTTP headers
+- [Headers](/visual-builder/headers) - Learn how to pass dynamic context to your agents via HTTP headers

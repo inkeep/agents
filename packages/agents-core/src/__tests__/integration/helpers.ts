@@ -1,18 +1,19 @@
-import type { AgentGraphInsert, AgentInsert, AgentRelationInsert } from '../../types/index';
+import { OPENAI_MODELS } from '../../constants/models';
+import type { AgentInsert, SubAgentInsert, SubAgentRelationInsert } from '../../types/index';
 
-export const createTestAgentData = (
+export const createTestSubAgentData = (
   tenantId: string,
   projectId: string,
   suffix: string,
-  graphId?: string
-): AgentInsert => {
+  agentId?: string
+): SubAgentInsert => {
   return {
     id: `default-agent-${suffix}`,
     tenantId,
     projectId,
-    graphId: graphId || `test-graph-${suffix}`,
+    agentId: agentId || `test-agent-${suffix}`,
     name: `Default Agent ${suffix}`,
-    description: 'The default agent for the graph',
+    description: 'The default agent for the agent',
     prompt: 'Route requests appropriately',
   };
 };
@@ -21,33 +22,33 @@ export const createTestRelationData = (
   tenantId: string,
   projectId: string,
   suffix: string
-): AgentRelationInsert => {
+): SubAgentRelationInsert => {
   return {
     id: `test-relation-${suffix}`,
     tenantId,
     projectId,
-    graphId: `test-graph-${suffix}`,
-    sourceAgentId: `default-agent-${suffix}`,
-    targetAgentId: `default-agent-${suffix}`,
+    agentId: `test-agent-${suffix}`,
+    sourceSubAgentId: `default-agent-${suffix}`,
+    targetSubAgentId: `default-agent-${suffix}`,
     relationType: 'transfer' as const,
   };
 };
 
-export const createTestGraphData = (
+export const createTestAgentData = (
   tenantId: string,
   projectId: string,
   suffix: string
-): AgentGraphInsert => {
+): AgentInsert => {
   return {
-    id: `test-graph-${suffix}`,
+    id: `test-agent-${suffix}`,
     tenantId,
     projectId,
-    name: `Test Agent Graph ${suffix}`,
-    description: 'A comprehensive test graph',
-    defaultAgentId: `default-agent-${suffix}`,
+    name: `Test Agent Agent ${suffix}`,
+    description: 'A comprehensive test agent',
+    defaultSubAgentId: `default-agent-${suffix}`,
     models: {
       base: {
-        model: 'gpt-4',
+        model: OPENAI_MODELS.GPT_4_1,
       },
     },
   };

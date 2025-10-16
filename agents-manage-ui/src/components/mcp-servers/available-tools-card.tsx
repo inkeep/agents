@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
+import { cn } from '@/lib/utils';
 import { getTypeBadgeVariant, parseMCPInputSchema } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -11,9 +12,10 @@ interface ToolCardProps {
     description?: string;
     inputSchema?: any;
   };
+  isActive: boolean;
 }
 
-function ToolCard({ tool }: ToolCardProps) {
+function ToolCard({ tool, isActive }: ToolCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
@@ -33,7 +35,10 @@ function ToolCard({ tool }: ToolCardProps) {
       {/* Tool header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge variant="code" className="bg-transparent text-foreground">
+          <Badge
+            variant={isActive ? 'primary' : 'code'}
+            className={cn(!isActive && 'bg-transparent text-foreground')}
+          >
             {tool.name}
           </Badge>
           {parsedSchema?.hasProperties && (
@@ -97,7 +102,13 @@ function ToolCard({ tool }: ToolCardProps) {
   );
 }
 
-export function AvailableToolsCard({ tools }: { tools: MCPTool['availableTools'] }) {
+export function AvailableToolsCard({
+  tools,
+  activeTools,
+}: {
+  tools: MCPTool['availableTools'];
+  activeTools: string[] | undefined;
+}) {
   if (!tools) return null; // parent component already makes sure to handle this
 
   return (
@@ -109,9 +120,11 @@ export function AvailableToolsCard({ tools }: { tools: MCPTool['availableTools']
         </Badge>
       </div>
       <div className="space-y-2">
-        {tools.map((availableTool) => (
-          <ToolCard key={availableTool.name} tool={availableTool} />
-        ))}
+        {tools.map((availableTool) => {
+          const isActive =
+            activeTools === undefined ? true : activeTools?.includes(availableTool.name);
+          return <ToolCard key={availableTool.name} tool={availableTool} isActive={!!isActive} />;
+        })}
       </div>
     </div>
   );

@@ -42,7 +42,6 @@ export const listConversations =
       .limit(limit)
       .offset(offset);
 
-    // Get total count for pagination
     const totalResult = await db
       .select({ count: count() })
       .from(conversations)
@@ -102,7 +101,6 @@ export const deleteConversation =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
-      // Delete messages first (due to foreign key constraints)
       await db
         .delete(messages)
         .where(
@@ -113,7 +111,6 @@ export const deleteConversation =
           )
         );
 
-      // Delete conversation
       await db
         .delete(conversations)
         .where(
@@ -133,12 +130,16 @@ export const deleteConversation =
 
 export const updateConversationActiveAgent =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; conversationId: string; activeAgentId: string }) => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    activeSubAgentId: string;
+  }) => {
     return updateConversation(db)({
       scopes: params.scopes,
       conversationId: params.conversationId,
       data: {
-        activeAgentId: params.activeAgentId,
+        activeSubAgentId: params.activeSubAgentId,
       },
     });
   };
@@ -156,41 +157,37 @@ export const getConversation =
     });
   };
 
-// Create or get existing conversation
 export const createOrGetConversation =
   (db: DatabaseClient) => async (input: ConversationInsert) => {
     const conversationId = input.id || getConversationId();
 
-    // Check if conversation already exists
     if (input.id) {
       const existing = await db.query.conversations.findFirst({
         where: and(eq(conversations.tenantId, input.tenantId), eq(conversations.id, input.id)),
       });
 
       if (existing) {
-        // Update active agent if different
-        if (existing.activeAgentId !== input.activeAgentId) {
+        if (existing.activeSubAgentId !== input.activeSubAgentId) {
           await db
             .update(conversations)
             .set({
-              activeAgentId: input.activeAgentId,
+              activeSubAgentId: input.activeSubAgentId,
               updatedAt: new Date().toISOString(),
             })
             .where(eq(conversations.id, input.id));
 
-          return { ...existing, activeAgentId: input.activeAgentId };
+          return { ...existing, activeSubAgentId: input.activeSubAgentId };
         }
         return existing;
       }
     }
 
-    // Create new conversation
-    const newConversation = {
+    const newConversation: ConversationInsert = {
       id: conversationId,
       tenantId: input.tenantId,
       projectId: input.projectId,
       userId: input.userId,
-      activeAgentId: input.activeAgentId,
+      activeSubAgentId: input.activeSubAgentId,
       title: input.title,
       lastContextResolution: input.lastContextResolution,
       metadata: input.metadata,
@@ -270,7 +267,7 @@ export const getConversationHistory =
     scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
-  }): Promise<any[]> => {
+  }) => {
     const { scopes, conversationId, options = {} } = params;
     const { tenantId, projectId } = scopes;
 
@@ -332,7 +329,7 @@ export const setActiveAgentForConversation =
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
-    agentId: string;
+    subAgentId: string;
   }): Promise<void> => {
     await db
       .insert(conversations)
@@ -340,14 +337,14 @@ export const setActiveAgentForConversation =
         id: params.conversationId,
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
-        activeAgentId: params.agentId,
+        activeSubAgentId: params.subAgentId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .onConflictDoUpdate({
         target: [conversations.tenantId, conversations.projectId, conversations.id],
         set: {
-          activeAgentId: params.agentId,
+          activeSubAgentId: params.subAgentId,
           updatedAt: new Date().toISOString(),
         },
       });
@@ -358,11 +355,15 @@ export const setActiveAgentForThread =
   async ({
     scopes,
     threadId,
-    agentId,
+    subAgentId,
   }: {
     scopes: ProjectScopeConfig;
     threadId: string;
-    agentId: string;
+    subAgentId: string;
   }) => {
-    return setActiveAgentForConversation(db)({ scopes, conversationId: threadId, agentId });
+    return setActiveAgentForConversation(db)({
+      scopes,
+      conversationId: threadId,
+      subAgentId,
+    });
   };

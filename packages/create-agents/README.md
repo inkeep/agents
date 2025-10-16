@@ -52,7 +52,7 @@ After running `@inkeep/create-agents`, you'll have a complete Agent Framework Di
 my-agent-directory/
 ├── src/
 │   └── <project-id>/           # Agent configurations
-│       ├── hello.graph.ts      # Example agent graph
+│       ├── hello-agent.ts      # Example agent configuration
 │       ├── inkeep.config.ts    # Inkeep CLI configuration
 │       └── .env                # CLI environment variables
 ├── apps/
@@ -102,11 +102,6 @@ my-agent-directory/
    pnpm inkeep push
    ```
 
-5. **Test your agents:**
-   ```bash
-   pnpm inkeep chat
-   ```
-
 ## Available Services
 
 After setup, you'll have access to:
@@ -121,7 +116,6 @@ After setup, you'll have access to:
 - `pnpm db:migrate` - Apply database migrations
 - `inkeep dev` - Start the Manage UI
 - `inkeep push` - Deploy project configurations
-- `inkeep chat` - Interactive chat with your agents
 
 ## Environment Variables
 

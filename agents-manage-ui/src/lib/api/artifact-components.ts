@@ -18,11 +18,8 @@ import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
-// Note: ArtifactComponentApiSelect might have nullable props, but UI expects non-nullable
-export type ArtifactComponent = Omit<ArtifactComponentApiSelect, 'summaryProps' | 'fullProps'> & {
-  summaryProps: Record<string, any>; // Ensure summaryProps is non-nullable for UI compatibility
-  fullProps: Record<string, any>; // Ensure fullProps is non-nullable for UI compatibility
-};
+// Props can be null/undefined for optional artifact components
+export type ArtifactComponent = ArtifactComponentApiSelect;
 
 /**
  * Fetch all artifacts for a tenant
@@ -38,15 +35,7 @@ export async function fetchArtifactComponents(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response,
-    data: response.data.map((item) => ({
-      ...item,
-      summaryProps: item.summaryProps || {},
-      fullProps: item.fullProps || {},
-    })),
-  };
+  return response;
 }
 
 /**
@@ -64,12 +53,7 @@ export async function fetchArtifactComponent(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
-  };
+  return response.data;
 }
 
 /**
@@ -91,12 +75,7 @@ export async function createArtifactComponent(
     }
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
-  };
+  return response.data;
 }
 
 /**
@@ -118,12 +97,7 @@ export async function updateArtifactComponent(
     }
   );
 
-  // Transform the response to ensure props are non-nullable
-  return {
-    ...response.data,
-    summaryProps: response.data.summaryProps || {},
-    fullProps: response.data.fullProps || {},
-  };
+  return response.data;
 }
 
 /**

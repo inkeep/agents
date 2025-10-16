@@ -1,6 +1,6 @@
 'use client';
 
-import { Lock, LockOpen, Pencil } from 'lucide-react';
+import { AlertCircle, Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -67,6 +67,12 @@ export function ViewMCPServerDetails({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const isExpired = (expiresAt: string | Date | null | undefined): boolean => {
+    if (!expiresAt) return false;
+    const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
+    return expirationDate < new Date();
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -157,27 +163,42 @@ export function ViewMCPServerDetails({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <ItemLabel>Status</ItemLabel>
-          <ItemValue className="items-center">
-            {tool.status === 'needs_auth' ? (
-              <Badge
-                variant="outline"
-                className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleOAuthLogin(tool.id);
-                }}
-              >
-                Click to Login
-              </Badge>
-            ) : (
-              <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
-                {tool.status}
-              </Badge>
-            )}
-          </ItemValue>
+        {/* Status and Transport Type */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <ItemLabel>Status</ItemLabel>
+            <ItemValue className="items-center">
+              {tool.status === 'needs_auth' ? (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleOAuthLogin({
+                      toolId: tool.id,
+                      mcpServerUrl: tool.config.mcp.server.url,
+                      toolName: tool.name,
+                    });
+                  }}
+                >
+                  Click to Login
+                </Badge>
+              ) : (
+                <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
+                  {tool.status}
+                </Badge>
+              )}
+            </ItemValue>
+          </div>
+          {(tool.config as any).mcp.transport && (
+            <div className="space-y-2">
+              <ItemLabel>Transport Type</ItemLabel>
+              <ItemValue>
+                {<Badge variant="code">{(tool.config as any).mcp.transport.type}</Badge>}
+              </ItemValue>
+            </div>
+          )}
         </div>
 
         {/* Last Error */}
@@ -191,19 +212,13 @@ export function ViewMCPServerDetails({
         {/* Server URL */}
         <div className="space-y-2">
           <ItemLabel>Server URL</ItemLabel>
-          <CopyableSingleLineCode code={tool.config.mcp.server.url} />
+          {tool.config.type === 'mcp' && (
+            <CopyableSingleLineCode code={tool.config.mcp.server.url} />
+          )}
         </div>
 
-        {/* Transport and Credential */}
+        {/* Credential Name and Expires At */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tool.config.mcp.transport && (
-            <div className="space-y-2">
-              <ItemLabel>Transport Type</ItemLabel>
-              <ItemValue>
-                {<Badge variant="code">{tool.config.mcp.transport.type}</Badge>}
-              </ItemValue>
-            </div>
-          )}
           <div className="space-y-2">
             <ItemLabel>Credential</ItemLabel>
             <ItemValue className="items-center">
@@ -228,6 +243,19 @@ export function ViewMCPServerDetails({
               )}
             </ItemValue>
           </div>
+          {tool.expiresAt && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <ItemLabel>Credential Expires At</ItemLabel>
+                {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
+              </div>
+              <ItemValue>
+                {formatDate(
+                  typeof tool.expiresAt === 'string' ? tool.expiresAt : tool.expiresAt.toISOString()
+                )}
+              </ItemValue>
+            </div>
+          )}
         </div>
 
         {/* Active Tools */}
@@ -235,13 +263,13 @@ export function ViewMCPServerDetails({
           <div className="flex gap-2 items-center">
             <ItemLabel>Active Tools</ItemLabel>
             <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
-              {tool.config.mcp.activeTools === undefined
+              {(tool.config as any).mcp.activeTools === undefined
                 ? (tool.availableTools?.length ?? 0)
-                : (tool.config.mcp.activeTools?.length ?? 0)}
+                : ((tool.config as any).mcp.activeTools?.length ?? 0)}
             </Badge>
           </div>
           <ItemValue>
-            {tool.config.mcp.activeTools === undefined ? (
+            {(tool.config as any).mcp.activeTools === undefined ? (
               // All tools are active (undefined means all)
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
@@ -256,10 +284,11 @@ export function ViewMCPServerDetails({
               ) : (
                 <div className="text-sm text-muted-foreground">No tools available</div>
               )
-            ) : tool.config.mcp.activeTools && tool.config.mcp.activeTools.length > 0 ? (
+            ) : (tool.config as any).mcp.activeTools &&
+              (tool.config as any).mcp.activeTools.length > 0 ? (
               // Specific tools are active - check availability
               <div className="flex flex-wrap gap-2">
-                {tool.config.mcp.activeTools.map((toolName) => {
+                {(tool.config as any).mcp.activeTools.map((toolName: string) => {
                   const isAvailable =
                     tool.availableTools?.some((t) => t.name === toolName) ?? false;
                   return (
@@ -276,7 +305,10 @@ export function ViewMCPServerDetails({
 
         {/* Available Tools */}
         {tool.availableTools && tool.availableTools.length > 0 && (
-          <AvailableToolsCard tools={tool.availableTools} />
+          <AvailableToolsCard
+            tools={tool.availableTools}
+            activeTools={(tool.config as any).mcp.activeTools}
+          />
         )}
       </div>
     </div>

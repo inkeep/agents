@@ -2,9 +2,22 @@ import {
   type ArtifactComponentInsert as ArtifactComponentType,
   getLogger,
 } from '@inkeep/agents-core';
+import {
+  convertZodToJsonSchemaWithPreview,
+  isZodSchema,
+} from '@inkeep/agents-core/utils/schema-conversion';
+import type { z } from 'zod';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 const logger = getLogger('artifactComponent');
+
+// Type for the config that can accept Zod schemas
+type ArtifactComponentConfigWithZod = Omit<
+  ArtifactComponentType,
+  'tenantId' | 'projectId' | 'props'
+> & {
+  props?: Record<string, unknown> | z.ZodObject<any> | null;
+};
 
 export interface ArtifactComponentInterface {
   config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>;
@@ -12,8 +25,7 @@ export interface ArtifactComponentInterface {
   getId(): ArtifactComponentType['id'];
   getName(): ArtifactComponentType['name'];
   getDescription(): ArtifactComponentType['description'];
-  getSummaryProps(): ArtifactComponentType['summaryProps'];
-  getFullProps(): ArtifactComponentType['fullProps'];
+  getProps(): ArtifactComponentType['props'];
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
 }
 
@@ -25,12 +37,21 @@ export class ArtifactComponent implements ArtifactComponentInterface {
   private initialized = false;
   private id: ArtifactComponentType['id'];
 
-  constructor(config: Omit<ArtifactComponentType, 'tenantId' | 'projectId'>) {
+  constructor(config: ArtifactComponentConfigWithZod) {
     this.id = config.id || generateIdFromName(config.name);
+
+    // Convert Zod schema to JSON Schema if needed
+    let processedProps: Record<string, unknown> | null | undefined;
+    if (config.props && isZodSchema(config.props)) {
+      processedProps = convertZodToJsonSchemaWithPreview(config.props) as Record<string, unknown>;
+    } else {
+      processedProps = config.props as Record<string, unknown> | null | undefined;
+    }
 
     this.config = {
       ...config,
       id: this.id,
+      props: processedProps,
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     // tenantId and projectId will be set by setContext method
@@ -45,7 +66,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     );
   }
 
-  // Set context (tenantId, projectId, and baseURL) from external source (agent, graph, CLI, etc)
+  // Set context (tenantId, projectId, and baseURL) from external source (agent, agent, CLI, etc)
   setContext(tenantId: string, projectId: string, baseURL?: string): void {
     this.tenantId = tenantId;
     this.projectId = projectId;
@@ -67,12 +88,8 @@ export class ArtifactComponent implements ArtifactComponentInterface {
     return this.config.description;
   }
 
-  getSummaryProps(): ArtifactComponentType['summaryProps'] {
-    return this.config.summaryProps;
-  }
-
-  getFullProps(): ArtifactComponentType['fullProps'] {
-    return this.config.fullProps;
+  getProps(): ArtifactComponentType['props'] {
+    return this.config.props;
   }
 
   // Public method to ensure artifact component exists in backend (with upsert behavior)
@@ -109,8 +126,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
       id: this.getId(),
       name: this.config.name,
       description: this.config.description,
-      summaryProps: this.config.summaryProps,
-      fullProps: this.config.fullProps,
+      props: this.config.props,
     };
 
     logger.info({ artifactComponentData }, 'artifactComponentData for create/update');

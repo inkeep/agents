@@ -1,30 +1,53 @@
 import type {
-  AgentApiInsert,
   AgentConversationHistoryConfig,
   AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
-  FullGraphDefinition,
-  GraphStopWhen,
+  FullAgentDefinition,
   McpTransportConfig,
+  ModelSettings,
   StatusUpdateSettings,
+  SubAgentApiInsert,
   ToolInsert,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import type { z } from 'zod';
+
+export interface ArtifactComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
+export interface DataComponentWithZodProps {
+  id: string;
+  name: string;
+  description: string;
+  props?: z.ZodObject<any>;
+}
+
 import type { ArtifactComponentInterface } from './artifact-component';
-import type { AgentMcpConfig } from './builders';
+import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
 import type { ExternalAgentConfig } from './externalAgent';
+import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
+
+export type { ModelSettings };
 
 /**
  * Tool instance that may have additional metadata attached during agent processing
  */
-export type AgentTool = Tool & {
-  selectedTools?: string[];
-  headers?: Record<string, string>;
-};
+export type AgentTool =
+  | (Tool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    })
+  | (FunctionTool & {
+      selectedTools?: string[];
+      headers?: Record<string, string>;
+    });
 
 // Core message types following OpenAI pattern
 export interface UserMessage {
@@ -53,7 +76,6 @@ export type Message = UserMessage | AssistantMessage | ToolMessage | SystemMessa
 
 export type MessageInput = string | string[] | Message | Message[];
 
-// Tool types
 export interface ToolCall {
   id: string;
   type: 'function';
@@ -68,49 +90,34 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
-export type AllAgentInterface = AgentInterface | ExternalAgentInterface;
+export type AllSubAgentInterface = SubAgentInterface | ExternalAgentInterface;
 
-export type AgentCanUseType = Tool | AgentMcpConfig;
+export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
-// Agent configuration types
-export interface AgentConfig extends Omit<AgentApiInsert, 'projectId'> {
+export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
-  canUse?: () => AgentCanUseType[];
-  canTransferTo?: () => AgentInterface[];
-  canDelegateTo?: () => AllAgentInterface[];
-  models?: {
-    base?: ModelSettings;
-    structuredOutput?: ModelSettings;
-    summarizer?: ModelSettings;
-  };
-  stopWhen?: AgentStopWhen;
-  memory?: {
-    type: 'conversation' | 'episodic' | 'short_term';
-    capacity?: number;
-  };
-  dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
-  artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
+  canUse?: () => SubAgentCanUseType[];
+  canTransferTo?: () => SubAgentInterface[];
+  canDelegateTo?: () => AllSubAgentInterface[];
+  dataComponents?: () => (
+    | DataComponentApiInsert
+    | DataComponentInterface
+    | DataComponentWithZodProps
+  )[];
+  artifactComponents?: () => (
+    | ArtifactComponentApiInsert
+    | ArtifactComponentInterface
+    | ArtifactComponentWithZodProps
+  )[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
-export interface ModelSettings {
-  model?: string;
-  providerOptions?: Record<string, Record<string, unknown>>;
-}
-
-export const ModelSettingsSchema = z.object({
-  model: z.string().optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-});
-
-// Tool configuration types
 export interface ToolConfig extends ToolInsert {
   execute: (params: any) => Promise<any>;
   parameters?: Record<string, any>;
   schema?: z.ZodJSONSchema;
 }
 
-// Registry-based server configuration
 export interface ServerConfig {
   type: string;
   version?: string;
@@ -147,6 +154,8 @@ export interface FetchDefinitionConfig {
   credential?: CredentialReferenceApiInsert;
 }
 
+export type { FunctionToolConfig } from '@inkeep/agents-core';
+
 export interface RequestSchemaDefinition {
   body?: z.ZodSchema<any>;
   headers?: z.ZodSchema<any>;
@@ -159,14 +168,12 @@ export interface RequestSchemaConfig {
   optional?: ('body' | 'headers' | 'query' | 'params')[];
 }
 
-// Transfer types
 export interface TransferConfig {
-  agent: AgentInterface;
+  agent: SubAgentInterface;
   description?: string;
   condition?: (context: any) => boolean;
 }
 
-// Generation options
 export interface GenerateOptions {
   maxTurns?: number;
   maxSteps?: number;
@@ -175,10 +182,9 @@ export interface GenerateOptions {
   resourceId?: string;
   conversationId?: string;
   stream?: boolean;
-  customBodyParams?: Record<string, unknown>; // Request context for agent execution
+  customBodyParams?: Record<string, unknown>;
 }
 
-// Response types
 export interface AgentResponse {
   id?: string;
   text: string;
@@ -204,10 +210,9 @@ export interface StreamEvent {
   timestamp: Date;
 }
 
-// Run result types
 export interface RunResult {
   finalOutput: string;
-  agent: AgentInterface;
+  agent: SubAgentInterface;
   turnCount: number;
   usage?: {
     inputTokens: number;
@@ -220,26 +225,24 @@ export interface RunResult {
   };
 }
 
-// Graph types
-export interface GraphConfig {
+export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultAgent?: AgentInterface;
-  agents?: () => AllAgentInterface[];
-  contextConfig?: any; // ContextConfigBuilder - avoiding import for now
+  defaultSubAgent?: SubAgentInterface;
+  subAgents?: () => AllSubAgentInterface[];
+  contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];
-  stopWhen?: GraphStopWhen;
-  graphPrompt?: string;
+  stopWhen?: AgentStopWhen;
+  prompt?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
-  statusUpdates?: StatusUpdateSettings; // Configuration for LLM-powered status updates
+  statusUpdates?: StatusUpdateSettings;
 }
 
-// Error types
 export class AgentError extends Error {
   constructor(
     message: string,
@@ -274,9 +277,8 @@ export class TransferError extends AgentError {
   }
 }
 
-// Forward declaration for circular dependency
-export interface AgentInterface {
-  config: AgentConfig;
+export interface SubAgentInterface {
+  config: SubAgentConfig;
   type: 'internal';
   init(): Promise<void>;
   getId(): string;
@@ -284,14 +286,14 @@ export interface AgentInterface {
   getDescription(): string;
   getInstructions(): string;
   getTools(): Record<string, AgentTool>;
-  getTransfers(): AgentInterface[];
-  getDelegates(): AllAgentInterface[];
+  getTransfers(): SubAgentInterface[];
+  getDelegates(): AllSubAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
-  addTransfer(...agents: AgentInterface[]): void;
-  addDelegate(...agents: AgentInterface[]): void;
+  addTransfer(...agents: SubAgentInterface[]): void;
+  addDelegate(...agents: SubAgentInterface[]): void;
 }
 
 export interface ExternalAgentInterface {
@@ -302,13 +304,12 @@ export interface ExternalAgentInterface {
   getName(): string;
   getDescription(): string;
   getBaseUrl(): string;
+  setContext?(tenantId: string, baseURL?: string): void;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
-  setContext?(tenantId: string, baseURL?: string): void;
 }
 
-// Graph interface for runner operations
-export interface GraphInterface {
+export interface AgentInterface {
   init(): Promise<void>;
   setConfig(tenantId: string, projectId: string, apiUrl: string): void;
   getId(): string;
@@ -318,13 +319,12 @@ export interface GraphInterface {
   generate(input: MessageInput, options?: GenerateOptions): Promise<string>;
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
-  getDefaultAgent(): AgentInterface | undefined;
-  getAgent(name: string): AllAgentInterface | undefined;
-  getAgents(): AllAgentInterface[];
-  toFullGraphDefinition(): Promise<FullGraphDefinition>;
+  getDefaultSubAgent(): SubAgentInterface | undefined;
+  getSubAgent(name: string): AllSubAgentInterface | undefined;
+  getSubAgents(): AllSubAgentInterface[];
+  toFullAgentDefinition(): Promise<FullAgentDefinition>;
 }
 
-// Legacy builder types (for backward compatibility)
 export interface BuilderToolConfig {
   name: string;
   description: string;

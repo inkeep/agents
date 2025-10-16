@@ -31,7 +31,6 @@
  * ```
  */
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  // Build headers with defaults
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',

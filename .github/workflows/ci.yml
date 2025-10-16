@@ -61,6 +61,8 @@ jobs:
           pnpm install --frozen-lockfile
           # Ensure agents-manage-ui dependencies are properly installed
           cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        env:
+          HUSKY: 0
 
       # Clean database files before running tests
       - name: Clean database files
@@ -86,6 +88,7 @@ jobs:
           DB_FILE_NAME: test.db
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
+          HUSKY: 0
 
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests

@@ -33,7 +33,6 @@ export const useChatActivitiesPolling = ({
     try {
       setError(null);
 
-      // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
       const currentConversationId = conversationId; // Capture current ID
 
@@ -63,7 +62,6 @@ export const useChatActivitiesPolling = ({
 
       const data: ConversationDetail = await response.json();
 
-      // Validate that the response is still for the current conversation
       if (isComponentMountedRef.current && currentConversationId === conversationId) {
         // Only update state if data actually changed (by checking activity count)
         const newCount = data.activities?.length || 0;

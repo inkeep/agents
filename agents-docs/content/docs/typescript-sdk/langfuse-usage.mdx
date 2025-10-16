@@ -54,6 +54,13 @@ export const defaultSDK = new NodeSDK({
 
 defaultSDK.start();
 ```
+<Note>
+Make sure to install the required dependencies in your run API directory:
+```bash
+cd apps/run-api
+pnpm add @opentelemetry/sdk-node @langfuse/otel
+```
+</Note>
 
 #### What This Configuration Does
 
@@ -90,7 +97,7 @@ INKEEP_AGENTS_RUN_API_URL=your_chat_api_base_url
 # Execution context (for dataset runner)
 INKEEP_TENANT_ID=your_tenant_id
 INKEEP_PROJECT_ID=your_project_id
-INKEEP_GRAPH_ID=your_graph_id
+INKEEP_AGENT_ID=your_agent_id
 ```
 
 #### 2. Initialize Dataset with Sample Data
@@ -115,7 +122,7 @@ pnpm run langfuse-run-dataset
 
 This script will:
 - Read items from your Langfuse dataset
-- Execute each item against your weather graph
+- Execute each item against your weather agent
 - Generate the data needed for evaluation
 
 ## Running LLM Evaluations in Langfuse Dashboard

@@ -11,23 +11,23 @@ npm install @inkeep/agents-sdk
 ## Usage
 
 ```typescript
-import { agent, agentGraph, tool } from '@inkeep/agents-sdk';
+import { agent, subAgent, tool } from '@inkeep/agents-sdk';
 
-// Create an agent
-const myAgent = agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  description: 'A helpful agent',
-  instructions: 'You are a helpful assistant.',
+// Create a sub-agent
+const mySubAgent = subAgent({
+  id: 'my-sub-agent',
+  name: 'My Sub Agent',
+  description: 'A helpful sub-agent',
+  prompt: 'You are a helpful assistant.',
 });
 
-// Create a graph
-export const graph = agentGraph({
-  id: 'my-graph',
-  name: 'My Graph',
-  description: 'My agent graph',
-  defaultAgent: myAgent,
-  agents: [myAgent],
+// Create an agent
+export const myAgent = agent({
+  id: 'my-agent',
+  name: 'My Agent',
+  description: 'My agent',
+  defaultSubAgent: mySubAgent,
+  subAgents: () => [mySubAgent],
 });
 ```
 
@@ -35,8 +35,8 @@ export const graph = agentGraph({
 
 ### Builders
 
-- `agent()` - Create an agent configuration
-- `agentGraph()` - Create an agent graph
+- `agent()` - Create an agent (top-level container with multiple sub-agents)
+- `subAgent()` - Create a sub-agent configuration
 - `tool()` - Create a tool configuration
 - `mcpServer()` - Create an MCP server configuration
 - `mcpTool()` - Create an MCP tool

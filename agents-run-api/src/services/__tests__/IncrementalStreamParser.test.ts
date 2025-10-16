@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, type MockedFunction, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamHelper } from '../../utils/stream-helpers';
 import { ArtifactParser } from '../ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
 
 // Mock dependencies
 vi.mock('../ArtifactParser');
-vi.mock('../GraphSession', () => ({
-  graphSessionManager: {
+vi.mock('../AgentSession', () => ({
+  agentSessionManager: {
     getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
   },
 }));
@@ -36,7 +36,7 @@ describe('IncrementalStreamParser', () => {
 
     // Create the mock instance for direct access
     mockArtifactParser = {
-      parseObject: vi.fn().mockImplementation((obj, artifactMap, agentId) => {
+      parseObject: vi.fn().mockImplementation((obj, _artifactMap, _subAgentId) => {
         // Return the expected array format based on the component data
         const component = obj.dataComponents?.[0];
         if (!component || !component.id || !component.name) {
@@ -60,10 +60,10 @@ describe('IncrementalStreamParser', () => {
       sessionId: 'test-session',
       taskId: 'test-task',
       projectId: 'test-project',
-      agentId: 'test-agent',
-      streamRequestId: 'test-stream-request'
+      subAgentId: 'test-agent',
+      streamRequestId: 'test-stream-request',
     });
-    
+
     // Initialize artifact map
     await parser.initializeArtifactMap();
   });
@@ -248,7 +248,7 @@ describe('IncrementalStreamParser', () => {
           ],
         },
         expect.any(Map), // artifactMap
-        expect.any(String) // agentId
+        expect.any(String) // subAgentId
       );
     });
 

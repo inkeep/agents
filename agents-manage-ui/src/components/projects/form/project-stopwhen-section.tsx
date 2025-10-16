@@ -16,7 +16,6 @@ interface ProjectStopWhenSectionProps {
 }
 
 export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps) {
-  // Check if any stopWhen values are configured to determine default open state
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
@@ -36,7 +35,8 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
       <div>
         <Label className="text-sm font-medium">Execution limits</Label>
         <p className="text-sm text-muted-foreground mt-1">
-          Set default execution limits that will be inherited by graphs and agents in this project
+          Set default execution limits that will be inherited by agents and sub agents in this
+          project.
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
               <GenericInput
                 control={control}
                 name="stopWhen.transferCountIs"
-                description="Maximum number of agent transfers per conversation (graph-level, default: 10)"
+                description="Maximum number of agent transfers per conversation (agent-level, default: 10)"
                 label="Max transfers"
                 type="number"
                 placeholder="10"
@@ -87,8 +87,8 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
           <InfoCard title="How inheritance works:" Icon={Info}>
             <ul className="space-y-1.5 list-disc list-outside pl-4">
               <li>
-                <span className="font-medium">transferCountIs</span>: Project → Graph only
-                (graph-level limit)
+                <span className="font-medium">transferCountIs</span>: Project → Agent only
+                (agent-level limit)
               </li>
               <li>
                 <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level

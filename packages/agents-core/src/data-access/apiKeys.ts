@@ -28,14 +28,14 @@ export const getApiKeyByPublicId = (db: DatabaseClient) => async (publicId: stri
 };
 
 export const listApiKeys =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; graphId?: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
 
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     return await db.query.apiKeys.findMany({
@@ -49,7 +49,7 @@ export const listApiKeysPaginated =
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
-    graphId?: string;
+    agentId?: string;
   }): Promise<{
     data: ApiKeySelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
@@ -62,8 +62,8 @@ export const listApiKeysPaginated =
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     const whereClause = and(...conditions);
@@ -99,7 +99,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
       name: params.name,
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.agentId,
       publicId: params.publicId,
       keyHash: params.keyHash,
       keyPrefix: params.keyPrefix,
@@ -140,7 +140,6 @@ export const deleteApiKey =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
-      // Check if the API key exists
       const existingKey = await getApiKeyById(db)({
         scopes: params.scopes,
         id: params.id,
@@ -185,14 +184,14 @@ export const updateApiKeyLastUsed =
 
 export const countApiKeys =
   (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; graphId?: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; agentId?: string }): Promise<number> => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
     ];
 
-    if (params.graphId) {
-      conditions.push(eq(apiKeys.graphId, params.graphId));
+    if (params.agentId) {
+      conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
     const result = await db
@@ -212,7 +211,7 @@ export const generateAndCreateApiKey = async (
   params: CreateApiKeyParams,
   db: DatabaseClient
 ): Promise<ApiKeyCreateResult> => {
-  const { tenantId, projectId, graphId, expiresAt, name } = params;
+  const { tenantId, projectId, agentId, expiresAt, name } = params;
 
   // Generate the API key
   const keyData = await generateApiKey();
@@ -221,7 +220,7 @@ export const generateAndCreateApiKey = async (
   const apiKey = await createApiKey(db)({
     tenantId,
     projectId,
-    graphId,
+    agentId,
     name,
     expiresAt,
     ...keyData,
@@ -253,18 +252,15 @@ export const validateAndGetApiKey = async (
     return null;
   }
 
-  // Validate the full key against the stored hash
   const isValid = await validateApiKey(key, apiKey.keyHash);
   if (!isValid) {
     return null;
   }
 
-  // Check if the key has expired
   if (isApiKeyExpired(apiKey.expiresAt)) {
     return null;
   }
 
-  // Update last used timestamp
   await updateApiKey(db)({
     scopes: { tenantId: apiKey.tenantId, projectId: apiKey.projectId },
     id: apiKey.id,

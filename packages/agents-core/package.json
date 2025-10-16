@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.14.6",
+  "version": "0.23.0",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -8,10 +8,13 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./constants/models": "./src/constants/models.ts",
     "./schema": "./src/db/schema.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",
-    "./client-exports": "./src/client-exports.ts"
+    "./client-exports": "./src/client-exports.ts",
+    "./drizzle": "./drizzle/",
+    "./utils/schema-conversion": "./src/utils/schema-conversion.ts"
   },
   "scripts": {
     "build": "tsup",
@@ -25,6 +28,7 @@
     "format": "biome format --write src",
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:drop": "drizzle-kit drop",
@@ -42,8 +46,8 @@
     "@hono/zod-openapi": "^1.0.2",
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.17.2",
-    "@nangohq/node": "^0.66.0",
-    "@nangohq/types": "^0.66.0",
+    "@nangohq/node": "^0.69.3",
+    "@nangohq/types": "^0.69.3",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
@@ -91,6 +95,7 @@
   },
   "files": [
     "dist",
+    "drizzle",
     "README.md",
     "LICENSE.md",
     "SUPPLEMENTAL_TERMS.md"

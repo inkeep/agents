@@ -41,19 +41,19 @@ describe('VercelDataStreamHelper Memory Management', () => {
 
   test('should allow buffer to grow during request but prevent catastrophic growth', async () => {
     // Mock parsePartialJson to return successful parse with some items so writes happen
-    mockParsePartialJson.mockImplementation(async (content: string) => ({
+    mockParsePartialJson.mockImplementation(async (_content: string) => ({
       value: [{ type: 'test', content: 'x'.repeat(100) }], // Return an array with item
       state: 'successful-parse' as const,
     }));
 
     // Create large JSON array content that approaches but doesn't exceed the 5MB limit
     const largeItem = { type: 'test', content: 'x'.repeat(1024 * 1024) }; // 1MB item
-    const largeJsonBase = '[' + JSON.stringify(largeItem); // Start of a JSON array
+    const largeJsonBase = `[${JSON.stringify(largeItem)}`; // Start of a JSON array
 
     // Add content multiple times (should be allowed during request)
     await helper.writeContent(largeJsonBase);
-    await helper.writeContent(',' + JSON.stringify(largeItem));
-    await helper.writeContent(',' + JSON.stringify(largeItem) + ']');
+    await helper.writeContent(`,${JSON.stringify(largeItem)}`);
+    await helper.writeContent(`,${JSON.stringify(largeItem)}]`);
 
     // Should not throw and should continue working
     expect(mockParsePartialJson).toHaveBeenCalledTimes(3);
@@ -68,7 +68,7 @@ describe('VercelDataStreamHelper Memory Management', () => {
   });
 
   test('should clean up all memory when stream completes', async () => {
-    mockParsePartialJson.mockImplementation(async (content: string) => ({
+    mockParsePartialJson.mockImplementation(async (_content: string) => ({
       value: [{ type: 'test', content: 'item1' }],
       state: 'successful-parse' as const,
     }));

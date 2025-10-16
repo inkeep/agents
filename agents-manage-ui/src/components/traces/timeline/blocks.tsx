@@ -62,7 +62,7 @@ export function ModelBadge({ model }: { model: string }) {
       ) : model?.startsWith('gemini-') || model?.startsWith('google/') ? (
         <GoogleIcon className="size-3 text-xs flex-shrink-0" />
       ) : null}
-      <div className="truncate w-full">{model}</div>
+      <span className="truncate w-full">{model}</span>
     </Badge>
   );
 }

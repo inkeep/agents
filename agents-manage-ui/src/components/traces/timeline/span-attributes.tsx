@@ -1,11 +1,18 @@
 'use client';
 
-import { Streamdown } from 'streamdown';
-import { CodeBubble } from '@/components/traces/timeline/bubble';
-import { LabeledBlock } from '@/components/traces/timeline/blocks';
+import dynamic from 'next/dynamic';
+import { cn } from '@/lib/utils';
+
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
 
 // Constants for attribute categorization and sorting
-const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.'] as const;
+const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
@@ -13,7 +20,7 @@ const PINNED_ATTRIBUTE_KEYS = [
   'traceID',
   'tenant.id',
   'project.id',
-  'graph.id',
+  'agent.id',
   'conversation.id',
 ] as const;
 
@@ -32,10 +39,6 @@ interface SeparatedAttributes {
   hasProcessAttributes: boolean;
 }
 
-interface ProcessAttributesSectionProps {
-  processAttributes: AttributeMap;
-}
-
 /**
  * Separates span attributes into process-related and other attributes
  */
@@ -44,10 +47,8 @@ function separateAttributes(span: AttributeMap): SeparatedAttributes {
   const otherAttributes: AttributeMap = {};
 
   Object.entries(span).forEach(([key, value]) => {
-    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some(prefix => 
-      key.startsWith(prefix)
-    );
-    
+    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some((prefix) => key.startsWith(prefix));
+
     if (isProcessAttribute) {
       processAttributes[key] = value;
     } else {
@@ -70,43 +71,21 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   const remainingAttributes: AttributeMap = {};
 
   // Extract pinned attributes in order
-  PINNED_ATTRIBUTE_KEYS.forEach(key => {
+  PINNED_ATTRIBUTE_KEYS.forEach((key) => {
     if (key in attributes) {
       pinnedAttributes[key] = attributes[key];
     }
   });
 
-  // Get remaining attributes sorted alphabetically
   const remainingKeys = Object.keys(attributes)
-    .filter(key => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
+    .filter((key) => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
     .sort();
 
-  remainingKeys.forEach(key => {
+  remainingKeys.forEach((key) => {
     remainingAttributes[key] = attributes[key];
   });
 
   return { ...pinnedAttributes, ...remainingAttributes };
-}
-
-/**
- * Renders process attributes
- */
-function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectionProps) {
-  return (
-    <div className="border rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-lg">
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          Process Attributes
-        </span>
-      </div>
-      
-      <div className="p-3 rounded-b-lg">
-        <CodeBubble className="max-h-60 overflow-y-auto">
-          <Streamdown>{`\`\`\`json\n${JSON.stringify(processAttributes, null, 2)}\n\`\`\``}</Streamdown>
-        </CodeBubble>
-      </div>
-    </div>
-  );
 }
 
 /**
@@ -115,24 +94,35 @@ function ProcessAttributesSection({ processAttributes }: ProcessAttributesSectio
 export function SpanAttributes({ span, className }: SpanAttributesProps) {
   const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
   const sortedOtherAttributes = sortAttributes(otherAttributes);
-  
+
+  // Sort process attributes alphabetically
+  const sortedProcessAttributes = Object.keys(processAttributes)
+    .sort()
+    .reduce<AttributeMap>((acc, key) => {
+      acc[key] = processAttributes[key];
+      return acc;
+    }, {});
   const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
   const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
 
   return (
-    <div className={`space-y-3 ${className ?? ''}`}>
+    <div className={cn('space-y-3', className)}>
       {/* Main span attributes */}
       {hasOtherAttributes && (
-        <LabeledBlock label="Advanced Span Attributes">
-          <CodeBubble className="max-h-60 overflow-y-auto">
-            <Streamdown>{`\`\`\`json\n${JSON.stringify(sortedOtherAttributes, null, 2)}\n\`\`\``}</Streamdown>
-          </CodeBubble>
-        </LabeledBlock>
+        <JsonEditorWithCopy
+          value={JSON.stringify(sortedOtherAttributes, null, 2)}
+          uri="advanced-span-attributes.json"
+          title="Advanced Span Attributes"
+        />
       )}
 
       {/* Process attributes section */}
       {hasProcessAttributes && (
-        <ProcessAttributesSection processAttributes={processAttributes} />
+        <JsonEditorWithCopy
+          value={JSON.stringify(sortedProcessAttributes, null, 2)}
+          uri="process-attributes.json"
+          title="Process Attributes"
+        />
       )}
 
       {/* Empty state */}

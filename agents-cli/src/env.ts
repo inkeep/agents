@@ -16,6 +16,8 @@ const envSchema = z.object({
   DEBUG: z.string().optional(),
   // Secrets loaded from .env files (relative to where CLI is executed)
   ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
 });
 
 const parseEnv = () => {

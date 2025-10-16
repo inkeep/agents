@@ -9,14 +9,13 @@ export interface ConfigOptions {
 
 export async function configGetCommand(key?: string, options?: ConfigOptions) {
   // Use new config parameter, fall back to configFilePath for backward compatibility
-  const configPath = options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
+  const configPath =
+    options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
 
   if (!existsSync(configPath)) {
     console.error(chalk.red('No configuration file found.'));
     console.log(
-      chalk.gray(
-        'Run "inkeep init" to create one, or specify a config file with --config'
-      )
+      chalk.gray('Run "inkeep init" to create one, or specify a config file with --config')
     );
     process.exit(1);
   }
@@ -58,7 +57,8 @@ export async function configGetCommand(key?: string, options?: ConfigOptions) {
 
 export async function configSetCommand(key: string, value: string, options?: ConfigOptions) {
   // Use new config parameter, fall back to configFilePath for backward compatibility
-  const configPath = options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
+  const configPath =
+    options?.config || options?.configFilePath || join(process.cwd(), 'inkeep.config.ts');
 
   // Validate the key
   if (!['tenantId', 'apiUrl'].includes(key)) {

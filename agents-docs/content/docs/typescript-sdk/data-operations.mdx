@@ -1,0 +1,400 @@
+---
+title: Data Operations
+sidebarTitle: Data Operations
+description: Learn about data operations emitted by agents and how to use the x-emit-operations header to control their visibility.
+icon: LuActivity
+keywords: data operations, emit operations, debugging, agent events, x-emit-operations header, agent monitoring
+---
+
+## Overview
+
+Data operations are detailed, real-time events that provide visibility into what agents are doing during execution. They include agent reasoning, tool executions, transfers, delegations, and artifact creation. By default, these operations are hidden from end users to keep the interface clean, but they can be enabled for debugging and monitoring purposes.
+
+## The x-emit-operations Header
+
+The `x-emit-operations` header controls whether data operations are included in the response stream. When set to `true`, the system will emit detailed operational events alongside the regular response content.
+
+### Usage
+
+```bash
+curl -N \
+  -X POST "http://localhost:3003/api/chat" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-emit-operations: true" \
+  -d '{
+    "messages": [
+      { "role": "user", "content": "What can you do?" }
+    ],
+    "conversationId": "chat-1234"
+  }'
+```
+
+### CLI Usage
+
+In the CLI, you can toggle data operations using the `operations` command:
+
+```bash
+# Start a chat session
+inkeep chat
+
+# Toggle data operations on/off
+> operations
+🔧 Emit operations: ON
+Data operations will be shown during responses.
+
+> operations  
+🔧 Emit operations: OFF
+Data operations are hidden.
+```
+
+## Data Operation Types
+
+### Agent Events
+
+#### `agent_generate`
+Emitted when an agent generates content (text or structured data).
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "agent_generate",
+    "label": "Agent search-agent generating response",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "parts": [
+          {
+            "type": "text",
+            "content": "I found 5 relevant documents..."
+          }
+        ],
+        "generationType": "text_generation"
+      }
+    }
+  }
+}
+```
+
+#### `agent_reasoning`
+Emitted when an agent is reasoning through a request or planning its approach.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "agent_reasoning",
+    "label": "Agent search-agent reasoning through request",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "parts": [
+          {
+            "type": "text",
+            "content": "I need to search for information about..."
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### Tool Execution Events
+
+#### `tool_call`
+Emitted when an agent starts calling a tool or function.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_call",
+    "label": "Tool call: search_documents",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "toolName": "search_documents",
+        "args": {
+          "query": "machine learning best practices",
+          "limit": 10
+        },
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789"
+      }
+    }
+  }
+}
+```
+
+#### `tool_result`
+Emitted when a tool execution completes (success or failure).
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool result: search_documents",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "toolName": "search_documents",
+        "result": {
+          "documents": [
+            {
+              "title": "ML Best Practices Guide",
+              "url": "/docs/ml-guide",
+              "relevance": 0.95
+            }
+          ]
+        },
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789",
+        "duration": 1250
+      }
+    }
+  }
+}
+```
+
+**Error Example:**
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_result",
+    "label": "Tool error: search_documents",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "toolName": "search_documents",
+        "result": null,
+        "toolCallId": "call_abc123",
+        "toolId": "tool_xyz789",
+        "duration": 500,
+        "error": "API rate limit exceeded"
+      }
+    }
+  }
+}
+```
+
+### Agent Interaction Events
+
+#### `transfer`
+Emitted when control is transferred from one agent to another.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "transfer",
+    "label": "Agent transfer: search-agent → analysis-agent",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "fromSubAgent": "search-agent",
+        "targetAgent": "analysis-agent",
+        "reason": "Specialized analysis required",
+        "context": {
+          "searchResults": "...",
+          "userQuery": "..."
+        }
+      }
+    }
+  }
+}
+```
+
+#### `delegation_sent`
+Emitted when an agent delegates a task to another agent.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "delegation_sent",
+    "label": "Task delegated: coordinator-agent → search-agent",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "coordinator-agent",
+      "data": {
+        "delegationId": "deleg_xyz789",
+        "fromSubAgent": "coordinator-agent",
+        "targetAgent": "search-agent",
+        "taskDescription": "Search for information about machine learning",
+        "context": {
+          "priority": "high",
+          "deadline": "2024-01-15T10:00:00Z"
+        }
+      }
+    }
+  }
+}
+```
+
+#### `delegation_returned`
+Emitted when a delegated task is completed and returned.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "delegation_returned",
+    "label": "Task completed: search-agent → coordinator-agent",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "search-agent",
+      "data": {
+        "delegationId": "deleg_xyz789",
+        "fromSubAgent": "search-agent",
+        "targetAgent": "coordinator-agent",
+        "result": {
+          "status": "completed",
+          "documents": [...],
+          "summary": "Found 5 relevant documents"
+        }
+      }
+    }
+  }
+}
+```
+
+### Artifact Events
+
+#### `artifact_saved`
+Emitted when an agent creates or saves an artifact (document, chart, file, etc.).
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "artifact_saved",
+    "label": "Artifact saved: chart",
+    "details": {
+      "timestamp": 1726247200000,
+      "agentId": "analysis-agent",
+      "data": {
+        "artifactId": "art_123456",
+        "taskId": "task_789",
+        "toolCallId": "tool_abc123",
+        "artifactType": "chart",
+        "summaryData": {
+          "title": "Sales Performance Q4 2023",
+          "type": "bar_chart"
+        },
+        "fullData": {
+          "chartData": [...],
+          "config": {...}
+        },
+        "metadata": {
+          "createdBy": "analysis-agent",
+          "version": "1.0"
+        }
+      }
+    }
+  }
+}
+```
+
+## System Events
+
+### `agent_initializing`
+Emitted when the agent runtime is starting up.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "agent_initializing",
+    "details": {
+      "sessionId": "session_abc123",
+      "agentId": "graph_xyz789"
+    }
+  }
+}
+```
+
+### `completion`
+Emitted when an agent completes its task.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "completion",
+    "details": {
+      "agent": "search-agent",
+      "iteration": 1
+    }
+  }
+}
+```
+
+### `error`
+Emitted when an error occurs during execution.
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "error",
+    "message": "Tool execution failed: API rate limit exceeded",
+    "agent": "search-agent",
+    "severity": "error",
+    "code": "RATE_LIMIT_EXCEEDED",
+    "timestamp": 1726247200000
+  }
+}
+```
+
+## Example: Complete Request with Data Operations
+
+Here's a complete example showing a request with data operations enabled:
+
+```bash
+curl -N \
+  -X POST "http://localhost:3003/api/chat" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-emit-operations: true" \
+  -d '{
+    "messages": [
+      { "role": "user", "content": "Create a sales report for Q4" }
+    ],
+    "conversationId": "chat-1234"
+  }'
+```
+
+**Response Stream:**
+```text
+data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","agentId":"graph_xyz789"}}
+
+data: {"type":"data-operation","data":{"type":"agent_reasoning","label":"Agent coordinator-agent reasoning through request","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"parts":[{"type":"text","content":"I need to create a sales report for Q4. This will require gathering data and generating a chart."}]}}}}
+
+data: {"type":"data-operation","data":{"type":"tool_call","label":"Tool call: get_sales_data","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"toolName":"get_sales_data","args":{"quarter":"Q4","year":"2023"},"toolCallId":"call_abc123","toolId":"tool_xyz789"}}}}
+
+data: {"type":"data-operation","data":{"type":"tool_result","label":"Tool result: get_sales_data","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"toolName":"get_sales_data","result":{"sales":[...]},"toolCallId":"call_abc123","toolId":"tool_xyz789","duration":850}}}}
+
+data: {"type":"data-artifact","data":{ ... }}
+
+data: {"type":"data-operation","data":{"type":"artifact_saved","label":"Artifact saved: chart","details":{"timestamp":1726247200000,"agentId":"coordinator-agent","data":{"artifactId":"art_123456","artifactType":"chart","summaryData":{"title":"Q4 Sales Report"}}}}}
+
+data: {"type":"text-start","id":"1726247200-abc123"}
+
+data: {"type":"text-delta","id":"1726247200-abc123","delta":"I've created a comprehensive Q4 sales report..."}
+
+data: {"type":"text-end","id":"1726247200-abc123"}
+
+data: {"type":"completion","details":{"agent":"coordinator-agent","iteration":1}}
+```
+
+This provides complete visibility into the agent's execution process, from initialization through reasoning, tool execution, artifact creation, and final response generation.

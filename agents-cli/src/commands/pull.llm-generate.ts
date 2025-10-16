@@ -1,20 +1,136 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
-import type { ModelSettings } from '@inkeep/agents-core';
+import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
+import { env } from '../env';
 import {
   calculateTokenSavings,
   createPlaceholders,
   restorePlaceholders,
 } from './pull.placeholder-system';
 
+// Create require function for ESM context
+const require = createRequire(import.meta.url);
+
+/**
+ * Read the complete type definitions from @inkeep/agents-sdk package
+ * This provides the LLM with full type context for generating code
+ * @internal - Exported for testing purposes
+ */
+export function getTypeDefinitions(): string {
+  try {
+    // Resolve package from node_modules using require.resolve
+    // This mirrors TypeScript's actual module resolution and works in:
+    // - Monorepo workspaces (resolves to workspace package)
+    // - Published packages (resolves to node_modules)
+    // - Different environments (no hardcoded relative paths)
+    const sdkPackagePath = require.resolve('@inkeep/agents-sdk/package.json');
+    const sdkPackageDir = join(sdkPackagePath, '..');
+    const sdkDtsPath = join(sdkPackageDir, 'dist/index.d.ts');
+
+    // Read the entire declaration file - let the LLM see all available types
+    const dtsContent = readFileSync(sdkDtsPath, 'utf-8');
+
+    return `
+TYPESCRIPT TYPE DEFINITIONS (from @inkeep/agents-sdk):
+
+The following is the complete type definition file from '@inkeep/agents-sdk'.
+
+---START OF TYPE DEFINITIONS---
+${dtsContent}
+---END OF TYPE DEFINITIONS---
+`;
+  } catch (error) {
+    // Fallback to comment if extraction fails
+    console.warn('Could not read type definitions:', error);
+    return `
+// Type definitions from @inkeep/agents-sdk could not be loaded.
+`;
+  }
+}
+
+/**
+ * Detect which LLM provider is available based on API keys in environment
+ * Priority: Anthropic → OpenAI → Google
+ * @returns The first available provider or throws an error if none are available
+ * @internal - Exported for testing
+ */
+export function detectAvailableProvider(): 'anthropic' | 'openai' | 'google' {
+  const anthropicKey = env.ANTHROPIC_API_KEY?.trim();
+  const openaiKey = env.OPENAI_API_KEY?.trim();
+  const googleKey = env.GOOGLE_API_KEY?.trim();
+
+  if (anthropicKey) {
+    return 'anthropic';
+  }
+  if (openaiKey) {
+    return 'openai';
+  }
+  if (googleKey) {
+    return 'google';
+  }
+
+  throw new Error('No LLM provider API key found. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY');
+}
+
+/**
+ * Get the default high-capability model for a given provider
+ * Selects models that are widely available and don't require team approval
+ * @internal - Exported for testing
+ */
+export function getDefaultModelForProvider(provider: 'anthropic' | 'openai' | 'google'): string {
+  switch (provider) {
+    case 'anthropic':
+      return ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
+    case 'openai':
+      return OPENAI_MODELS.GPT_4_1;
+    case 'google':
+      return GOOGLE_MODELS.GEMINI_2_5_PRO;
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
+/**
+ * Get provider-specific configuration with reasoning/thinking enabled
+ * @internal - Exported for testing
+ */
+export function getModelConfigWithReasoning(provider: 'anthropic' | 'openai' | 'google'): Record<string, any> {
+  switch (provider) {
+    case 'anthropic':
+      // Enable extended thinking for Anthropic models
+      return {
+        thinking: {
+          type: 'enabled',
+          budget: {},
+        },
+      };
+    case 'google':
+      // Enable thinking mode for Google models
+      return {
+        thinkingConfig: {
+          mode: 'thinking',
+        },
+      };
+    case 'openai':
+      // OpenAI GPT-4.1 doesn't have explicit reasoning mode
+      return {};
+    default:
+      return {};
+  }
+}
+
 /**
  * Create a language model instance from configuration
  * Similar to ModelFactory but simplified for CLI use
+ * @internal - Exported for use in codegen modules
  */
-function createModel(config: ModelSettings) {
+export function createModel(config: ModelSettings): any {
   // Extract from model settings - model is required
   if (!config.model) {
     throw new Error('Model configuration is required for pull command');
@@ -39,63 +155,216 @@ function createModel(config: ModelSettings) {
       }
       return openai(modelName);
 
+    case 'google':
+      // Google provider currently doesn't support custom provider options
+      return google(modelName);
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
 }
 
+const PROJECT_JSON_EXAMPLE = `
+---START OF PROJECT JSON EXAMPLE---
+{
+  "id": "my-project",
+  "name": "My Project",
+  "description": "test test",
+  "models": {
+    "base": {
+      "model": "${ANTHROPIC_MODELS.CLAUDE_OPUS_4_1}",
+      "providerOptions": {
+        "temperature": 0.7,
+        "maxTokens": 2096
+      }
+    },
+    "structuredOutput": {
+      "model": "${OPENAI_MODELS.GPT_4_1_MINI}",
+      "providerOptions": {
+        "temperature": 0.4,
+        "maxTokens": 2048
+      }
+    },
+    "summarizer": {
+      "model": "${OPENAI_MODELS.GPT_5_NANO}",
+      "providerOptions": {
+        "temperature": 0.8,
+        "maxTokens": 1024
+      }
+    }
+  },
+  "stopWhen": {
+    "transferCountIs": 10,
+    "stepCountIs": 24
+  },
+  "agent": {
+    "customer-service": {
+      "id": "customer-service",
+      "name": "customer-service",
+      "description": "respond to customer service requests",
+      "defaultSubAgentId": "router",
+      "subAgents": {
+        "refund-agent": {
+          "id": "refund-agent",
+          "name": "Refund Agent",
+          "description": "This agent is responsible for refunding customer orders",
+          "prompt": "Refund customer orders based on the following criteria:\n- Order is under $100\n- Order was placed in the last 30 days\n- Customer has no other refunds in the last 30 days",
+          "models": {
+            "base": {
+              "model": "${GOOGLE_MODELS.GEMINI_2_5_FLASH}"
+            }
+          },
+          "stopWhen": {
+            "stepCountIs": 24
+          },
+          "canTransferTo": ["router"],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "router": {
+          "id": "router",
+          "name": "Router",
+          "description": "Routing incoming requests",
+          "prompt": "You route incoming requests to the correect agent",
+          "models": null,
+          "stopWhen": {
+            "stepCountIs": 24
+          },
+          "canTransferTo": ["refund-agent"],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        }
+      },
+      "createdAt": "2025-10-05T16:40:22.655Z",
+      "updatedAt": "2025-10-05T16:43:26.813Z",
+      "models": {
+        "base": {
+          "model": "${ANTHROPIC_MODELS.CLAUDE_SONNET_4_5}",
+          "providerOptions": {
+            "temperature": 0.5
+          }
+        }
+      },
+      "statusUpdates": {
+        "numEvents": 10,
+        "timeInSeconds": 13
+      },
+      "stopWhen": {
+        "transferCountIs": 5
+      }
+    }
+  },
+  "tools": {},
+  "dataComponents": {
+    "listorders": {
+      "id": "listorders",
+      "name": "ListOrders",
+      "description": "Display a list of customer orders",
+      "props": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "An object containing a list of orders.",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "description": "A list of order objects.",
+            "items": {
+              "type": "object",
+              "description": "An individual order with identifying and creation details.",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier for the order."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Human-readable name or label for the order."
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Timestamp when the order was created, in ISO 8601 format."
+                }
+              },
+              "required": ["id", "name", "createdAt"]
+            }
+          }
+        },
+        "required": ["orders"]
+      }
+    }
+  },
+  "artifactComponents": {},
+  "credentialReferences": {},
+  "createdAt": "2025-10-05T16:25:10.238Z",
+  "updatedAt": "2025-10-05T16:27:27.777Z"
+}
+---END OF PROJECT JSON EXAMPLE---
+`;
+
 /**
  * Reusable naming convention rules for all LLM generation functions
+ * @internal - Exported for use in codegen modules
  */
-const NAMING_CONVENTION_RULES = `
+export const NAMING_CONVENTION_RULES = `
 CRITICAL NAMING CONVENTION RULES (Apply to ALL imports/exports):
-- File paths ALWAYS use the exact original ID (e.g., '../tools/inkeep_facts', '../data-components/user-profile')
-- Import/export names MUST be camelCase versions of the ID
-- Conversion rules for import/export names:
+- File paths use kebab-case naming (e.g., '../tools/tool-name', '../data-components/component-name')
+- Variable names MUST be camelCase versions of the entity ID
+- Conversion rules for variable names:
   - IDs with underscores: 'inkeep_facts' → inkeepFacts
   - IDs with hyphens: 'weather-api' → weatherApi
   - IDs with both: 'my_weather-api' → myWeatherApi
   - Random/UUID IDs: Keep as-is (e.g., 'fUI2riwrBVJ6MepT8rjx0' → fUI2riwrBVJ6MepT8rjx0)
-  - IDs starting with uppercase: Make first letter lowercase unless it's an acronym
 - The ID field in the exported object keeps the original format
+- IMPORTANT: Import paths use kebab-case file names, NOT entity IDs
 - Examples:
-  - Tool: import { inkeepFacts } from '../tools/inkeep_facts'; export const inkeepFacts = mcpTool({ id: 'inkeep_facts', ... })
-  - Component: import { userProfile } from '../data-components/user-profile'; export const userProfile = dataComponent({ id: 'user-profile', ... })
-  - Graph: import { myGraph } from './graphs/my-graph'; export const myGraph = agentGraph({ id: 'my-graph', ... })
+  - Tool: import { toolName } from '../tools/tool-name'; export const toolName = mcpTool({ id: 'tool_id', ... })
+  - Component: import { componentName } from '../data-components/component-name'; export const componentName = dataComponent({ id: 'component-id', ... })
+  - Agent: import { agentName } from './agents/agent-name'; export const agentName = agent({ id: 'agent-id', ... })
 `;
 
-const IMPORT_INSTRUCTIONS = `
+/**
+ * Import instruction rules for LLM generation
+ * @internal - Exported for use in codegen modules
+ */
+export const IMPORT_INSTRUCTIONS = `
+CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
+
 CRITICAL IMPORT PATTERNS:
-- Tools: Import from '../tools/{toolId}' (individual files)
-- Data components: Import from '../data-components/{componentId}' (individual files)
-- Artifact components: Import from '../artifact-components/{componentId}' (individual files)
-- Graphs: Import from './graphs/{graphId}' (individual files)
+- Tools: Import from '../tools/{file-name}' (use kebab-case file names)
+- Data components: Import from '../data-components/{file-name}' (use kebab-case file names)
+- Artifact components: Import from '../artifact-components/{file-name}' (use kebab-case file names)
+- Agent: Import from './agents/{file-name}' (use kebab-case file names)
 
 NEVER use barrel imports from directories:
-❌ WRONG: import { ambiguity, fact } from '../data-components';
+❌ WRONG: import { ordersList, refundApproval } from '../data-components';
 ✅ CORRECT:
-   import { ambiguity } from '../data-components/ambiguity';
-   import { fact } from '../data-components/fact';
+   import { ordersList } from '../data-components/orders-list';
+   import { refundApproval } from '../data-components/refund-approval';
 
-EXAMPLES:
+EXAMPLES: 
 // Multiple data components - each from individual file:
-import { ambiguity } from '../data-components/ambiguity';
-import { clarifyingquestion } from '../data-components/clarifyingquestion';
-import { fact } from '../data-components/fact';
+import { ordersList } from '../data-components/orders-list';
+import { refundApproval } from '../data-components/refund-approval';
 
 // Tools - each from individual file:
 import { inkeepFacts } from '../tools/inkeep_facts';
 import { weatherApi } from '../tools/weather-api';
 
-// Graphs - each from individual file:
-import { inkeepQaGraph } from './graphs/inkeep-qa-graph';
-import { weatherGraph } from './graphs/weather-graph';
+// Agent - each from individual file:
+import { inkeepQaAgent } from './agent/inkeep-qa-agent';
+import { weatherAgent } from './agent/weather-agent';
 `;
 
 /**
  * Clean generated text by removing markdown code fences
+ * @internal - Exported for use in codegen modules
  */
-function cleanGeneratedCode(text: string): string {
+export function cleanGeneratedCode(text: string): string {
   // Remove opening and closing markdown code fences
   // Handles ```typescript, ```ts, or just ```
   return text
@@ -112,6 +381,7 @@ function cleanGeneratedCode(text: string): string {
  * @param promptTemplate - Template string with {{DATA}} placeholder for data insertion
  * @param options - Generation options (temperature, maxTokens, etc.)
  * @param debug - Whether to log debug information
+ * @param reasoningConfig - Provider-specific reasoning/thinking configuration
  * @returns Generated and processed text with placeholders restored
  */
 export async function generateTextWithPlaceholders(
@@ -123,10 +393,14 @@ export async function generateTextWithPlaceholders(
     maxOutputTokens?: number;
     abortSignal?: AbortSignal;
   },
-  debug: boolean = false
+  debug: boolean = false,
+  context?: { fileType?: string },
+  reasoningConfig?: Record<string, any>
 ): Promise<string> {
   // Create placeholders to reduce prompt size
-  const { processedData, replacements } = createPlaceholders(data);
+  const { processedData, replacements } = context 
+    ? createPlaceholders(data, context)
+    : createPlaceholders(data);
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -151,6 +425,7 @@ export async function generateTextWithPlaceholders(
     model,
     prompt,
     ...options,
+    ...reasoningConfig, // Merge in reasoning/thinking config if provided
   });
 
   // Restore placeholders in the generated code
@@ -188,175 +463,243 @@ function parseModelString(modelString: string): { provider: string; modelName: s
 export async function generateIndexFile(
   projectData: any,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
   const promptTemplate = `Generate a TypeScript index.ts file for an Inkeep project with the following data:
 
-PROJECT DATA:
+PROJECT JSON DATA:
 {{DATA}}
+
+
+${getTypeDefinitions()}
 
 ${NAMING_CONVENTION_RULES}
 
-CRITICAL IMPORT PATTERNS FOR INDEX.TS:
-- Tools: Import from './tools/{toolId}' (individual files)
-- Data components: Import from './data-components/{componentId}' (individual files)
-- Artifact components: Import from './artifact-components/{componentId}' (individual files)
-- Graphs: Import from './graphs/{graphId}' (individual files)
+${IMPORT_INSTRUCTIONS}
 
-NEVER use barrel imports from directories:
-❌ WRONG: import { ambiguity, fact } from './data-components';
-✅ CORRECT:
-   import { ambiguity } from './data-components/ambiguity';
-   import { fact } from './data-components/fact';
-
-EXAMPLES:
-// Multiple data components - each from individual file:
-import { ambiguity } from './data-components/ambiguity';
-import { clarifyingquestion } from './data-components/clarifyingquestion';
-import { fact } from './data-components/fact';
 
 REQUIREMENTS:
 1. Import the project function from '@inkeep/agents-sdk'
-2. Import each graph from individual files in the graphs directory
-3. Import each tool from individual files in the tools directory
-4. Import each data component from individual files in the data-components directory
-5. Import each artifact component from individual files in the artifact-components directory
-6. CRITICAL: All imports MUST be alphabetically sorted (both named imports and path names)
-7. Export a const named after the project ID (in camelCase) using the project() function
-8. The project object should include:
-   - id: project ID
-   - name: project name
-   - description: project description (if provided)
-   - models: model configuration (if provided)
-   - stopWhen: stop configuration (if provided)
-   - graphs: arrow function returning array of imported graphs
-   - tools: arrow function returning array of imported tools by their IDs (if any)
-   - dataComponents: arrow function returning array of imported data components (if any)
-   - artifactComponents: arrow function returning array of imported artifact components (if any)
+2. The project object should include all required properties and any optional properties (according to the type definitions) that are present in the project data
 
-EXAMPLE (note: tools are imported and referenced by ID, not name):
+PROJECT JSON EXAMPLE:
+${PROJECT_JSON_EXAMPLE}
+
+
+EXAMPLE OUTPUT:
 import { project } from '@inkeep/agents-sdk';
-import { weatherForecast } from './data-components/weather-forecast';
-import { basicGraph } from './graphs/basic-graph';  // Note: 'basic-graph' becomes camelCase 'basicGraph'
-import { myGraphId } from './graphs/my-graph-id';  // Note: 'my-graph-id' becomes camelCase 'myGraphId'
-import { weatherGraph } from './graphs/weather-graph';
-import { fUI2riwrBVJ6MepT8rjx0 } from './tools/fUI2riwrBVJ6MepT8rjx0';
-import { fdxgfv9HL7SXlfynPx8hf } from './tools/fdxgfv9HL7SXlfynPx8hf';
 
-export const weatherProject = project({
-  id: 'weather-project',
-  name: 'Weather Project',
-  description: 'A weather information system',
+export const myProject = project({
+  id: 'my-project',
+  name: 'My Project',
+  description: 'test test',
   models: {
     base: { model: 'gpt-4o-mini' }
-  },
-  graphs: () => [basicGraph, myGraphId, weatherGraph],
-  tools: () => [fUI2riwrBVJ6MepT8rjx0, fdxgfv9HL7SXlfynPx8hf],
-  dataComponents: () => [weatherForecast]
+  }
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    projectData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
 
 /**
- * Generate a graph TypeScript file
+ * Generate import path mappings for the LLM prompt
  */
-export async function generateGraphFile(
-  graphData: any,
-  graphId: string,
+function generateImportMappings(
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>
+): string {
+  let result = '';
+  
+  if (toolFilenames && toolFilenames.size > 0) {
+    result += 'TOOLS (use exact import paths):\n';
+    for (const [toolId, fileName] of toolFilenames.entries()) {
+      result += `  - Tool ID: "${toolId}" → Import: "../tools/${fileName.replace('.ts', '')}"\n`;
+    }
+    result += '\n';
+  }
+  
+  if (componentFilenames && componentFilenames.size > 0) {
+    result += 'COMPONENTS (use exact import paths):\n';
+    for (const [componentId, fileName] of componentFilenames.entries()) {
+      // Determine directory based on component type patterns
+      let directory = 'components'; // fallback
+      if (fileName.includes('data-') || componentId.includes('data-')) {
+        directory = 'data-components';
+      } else if (fileName.includes('artifact-') || componentId.includes('artifact-')) {
+        directory = 'artifact-components';
+      } else if (fileName.includes('status-') || componentId.includes('status-')) {
+        directory = 'status-components';
+      }
+      result += `  - Component ID: "${componentId}" → Import: "../${directory}/${fileName.replace('.ts', '')}"\n`;
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Generate an agent TypeScript file
+ */
+export async function generateAgentFile(
+  agentData: FullAgentDefinition,
+  agentId: string,
   outputPath: string,
   modelSettings: ModelSettings,
-  debug: boolean = false
+  toolFilenames?: Map<string, string>,
+  componentFilenames?: Map<string, string>,
+  debug: boolean = false,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
-  const promptTemplate = `Generate a TypeScript file for an Inkeep agent graph.
+  const promptTemplate = `Generate a TypeScript file for an Inkeep agent.
 
-GRAPH DATA:
+AGENT DATA:
 {{DATA}}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
+
+${toolFilenames || componentFilenames ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+${generateImportMappings(toolFilenames, componentFilenames)}
+
+!!! WARNING: Entity IDs ≠ File Paths !!!
+- Entity IDs may use underscores or different naming
+- File paths use kebab-case naming convention
+- ALWAYS use the exact import paths from the mappings above
+- NEVER use entity IDs directly as import paths
+
+` : ''}${getTypeDefinitions()}
 
 IMPORTANT CONTEXT:
-- Tools are defined at the project level and imported from '../tools' directory
-- Data components are imported from individual files in '../data-components' directory
-- Artifact components are imported from individual files in '../artifact-components' directory
-- CRITICAL: Tool files are named by their IDs (e.g., '../tools/fUI2riwrBVJ6MepT8rjx0')
-- CRITICAL: Import tools using their IDs as both file name and variable name
-- Agents reference these resources by their imported variable names
-- The 'tools' field in agents contains tool IDs that must match the imported variable names
+- Agents reference resources (tools, components) by their imported variable names
+- Tools and components are referenced by variable names in code, but imports use FILE PATHS
+- CRITICAL: Import statements use file paths (../tools/tool-filename), NOT tool IDs
+- Variable names in canUse() arrays should match the imported variable names
+- If contextConfig is present, it must be imported from '@inkeep/agents-core' and used to create the context config
 
 ${NAMING_CONVENTION_RULES}
 
-REQUIREMENTS:
-1. Import { agent, agentGraph } from '@inkeep/agents-sdk' - ALWAYS sort named imports alphabetically
-2. Import tools from '../tools/{toolId}' following naming convention rules
-3. Import data components from '../data-components/{componentId}' following naming convention rules
-4. Import artifact components from '../artifact-components/{componentId}' following naming convention rules
-5. Define each agent using the agent() function with:
-   - id, name, description, prompt
-   - canUse: arrow function returning array of imported tool variables (using their IDs)
-   - selectedTools: if present, maps tool ID variable to selected tool names
-   - dataComponents: arrow function returning array of imported component configs
-   - artifactComponents: arrow function returning array of imported component configs
-   - canTransferTo/canDelegateTo: arrow functions returning agent variables
-6. Create the graph using agentGraph() with proper structure
-   - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
-   - Only include description if it has a meaningful value
-7. CRITICAL: Export the graph with proper camelCase naming:
-   - Convert graph IDs with hyphens to camelCase (e.g., 'basic-graph' becomes 'basicGraph')
-   - Remove hyphens and capitalize the letter after each hyphen
-   - First letter should be lowercase
-8. Ensure all imports are sorted alphabetically
-9. CRITICAL: For multi-line strings (especially prompts), ALWAYS use template literals with backticks:
-   - Single-line strings: use regular quotes 'short string'
-   - Multi-line strings: MUST use template literals starting and ending with backticks
-   - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
-   - Placeholders contain multi-line content and require template literals
-   - This prevents TypeScript syntax errors with newlines and special characters
-
-NAMING CONVENTION EXAMPLES:
-// Tool with underscore ID 'inkeep_facts':
-import { inkeepFacts } from '../tools/inkeep_facts';  // camelCase import, exact ID in path
-
-// Tool with hyphen ID 'weather-api':
-import { weatherApi } from '../tools/weather-api';  // camelCase import, exact ID in path
-
-// Data component with hyphen ID 'user-profile':
-import { userProfile } from '../data-components/user-profile';  // camelCase import, exact ID in path
-
-// Random ID (no conversion needed):
-import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/fUI2riwrBVJ6MepT8rjx0';
-
-// PLACEHOLDER HANDLING EXAMPLES:
-// CORRECT - Placeholder wrapped in template literals:
-prompt: \`<{{agents.facts.prompt.abc12345}}>\`
-
-// INCORRECT - Placeholder wrapped in single quotes (causes syntax errors):
-prompt: '<{{agents.facts.prompt.abc12345}}>'
-
 ${IMPORT_INSTRUCTIONS}
 
+REQUIREMENTS:
+1. IMPORTS (CRITICAL - USE FILE PATHS, NOT IDs):
+   - For tool/component imports: Use ONLY the exact file paths from IMPORT PATH MAPPINGS above
+   - Import paths are based on actual file names, not entity IDs
+   - Always use kebab-case file paths (../tools/tool-name, not ../tools/tool_name)
+   - ALWAYS import { agent, subAgent } from '@inkeep/agents-sdk'
+   - ALWAYS import { z } from 'zod' when using ANY Zod schemas (responseSchema, headersSchema, etc.)
+   - ALWAYS import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core' when agent has contextConfig
+   - Import status components from '../status-components/' when needed
+2. Define each agent using the agent() function following the type definitions provided above
+3. Create the agent using agent() with proper structure
+   - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
+4. CRITICAL: Template Literals vs Raw Code:
+   - For STRING VALUES: ALWAYS use template literals with backticks: \`string content\`
+   - This includes: prompt, description, query, url, method, body, defaultValue, etc.
+   - This prevents TypeScript syntax errors with apostrophes (user's, don't, etc.)
+   - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
+   - For object keys: use quotes only for keys with hyphens ('Content-Type'), omit for simple identifiers (Authorization)
+   
+   EXCEPTION - Schema Fields (NO template literals):
+   - headersSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - responseSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - These are TypeScript expressions, not string values
+   
+   Examples:
+   ✅ prompt: \`You are a helpful assistant.\` (string value, use backticks)
+   ✅ query: \`query GetData { field }\` (string value, use backticks)
+   ✅ responseSchema: z.object({ name: z.string() }) (Zod code, NO backticks)
+   ✅ headersSchema: z.object({ 'inkeep_api_key': z.string() }) (Zod code, NO backticks)
+   ❌ responseSchema: \`z.object({ name: z.string() })\` (WRONG - don't wrap Zod in backticks)
+   
+   - convert template literals to use the appropriate headers schema or context config toTemplate method. a template literal is a substring that starts with {{ and ends with }}.
+    - if you see a template literal with {{headers.}}, convert it to use the headers schema toTemplate method.
+    - if you see a template literal with {{contextVariableKey.field_name}}, convert it to use the context config toTemplate method.
+5. For contextConfig (CRITICAL):
+   - NEVER use plain objects for contextConfig
+   - ALWAYS use helper functions: headers(), fetchDefinition(), contextConfig()
+   - Create separate const variables for each helper before the agent definition
+   - Pattern: const myHeaders = headers({ schema: z.object({ api_key: z.string() }) });
+   - Pattern: const myFetch = fetchDefinition({ id: '...', fetchConfig: {...}, responseSchema: z.object({...}) });
+   - Pattern: const myContext = contextConfig({ headers: myHeaders, contextVariables: { data: myFetch } });
+   - Then use: export const myAgent = agent({ contextConfig: myContext });
+   - Use myHeaders.toTemplate('key_name') for header interpolation in fetch configs
+   - Use myContext.toTemplate('variable.field') for context variable interpolation
+
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+
+PLACEHOLDER HANDLING EXAMPLES:
+// CORRECT - Placeholder wrapped in template literals:
+prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
+
+// INCORRECT - Placeholder wrapped in single quotes (causes syntax errors):
+prompt: '<{{subAgents.facts.prompt.abc12345}}>'
+
 FULL EXAMPLE:
-import { agent, agentGraph } from '@inkeep/agents-sdk';
+import { agent, agent } from '@inkeep/agents-sdk';
+import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
-import { inkeepFacts } from '../tools/inkeep_facts';
-import { weatherApi } from '../tools/weather-api';
+import { searchTool } from '../tools/search-tool';
+import { weatherTool } from '../tools/weather-tool';
+import { toolSummary } from '../status-components/tool-summary';
+import { progressStatus } from '../status-components/progress-status';
+import { z } from 'zod';
+
+const supportAgentHeaders = headers({
+  schema: z.object({
+    userId: z.string(),
+    sessionToken: z.string(),
+  }),
+});
+
+const supportDescriptionFetchDefinition = fetchDefinition({
+  id: 'support-description',
+  name: 'Support Description',
+  trigger: 'initialization',
+  fetchConfig: {
+    url: 'https://api.example.com/support-description',
+    method: 'GET',
+    headers: {
+      'Authorization': \`Bearer \${supportAgentHeaders.toTemplate('sessionToken')}\`,
+    },
+    transform: 'data',
+  },
+  responseSchema: z.object({
+    description: z.string(),
+  }),
+  defaultValue: 'Support Description',
+});
+
+const supportAgentContext = contextConfig({
+  headers: supportAgentHeaders,
+  contextVariables: {
+    supportDescription: supportDescriptionDefinition,
+  },
+});
 
 const routerAgent = agent({
   id: 'router',
   name: 'Router Agent',
-  prompt: 'Route requests to appropriate agents',
+  prompt: \`Route requests to appropriate agents using \${supportAgentContext.toTemplate('supportDescription.description')} for the user \${supportAgentHeaders.toTemplate('userId')}\`,
   canTransferTo: () => [qaAgent]
 });
 
@@ -368,6 +711,7 @@ const qaAgent = agent({
 Follow these rules:
 - Always be helpful
 - Provide accurate answers
+- Use the user's name \${supportAgentHeaders.toTemplate('userId')} when applicable
 - Use available tools\`,
   canUse: () => [searchTool, weatherTool],
   selectedTools: {
@@ -377,39 +721,37 @@ Follow these rules:
   dataComponents: () => [userProfile.config]
 });
 
-// Example: Graph ID 'support-graph' becomes 'supportGraph'
-export const supportGraph = agentGraph({
-  id: 'support-graph',
-  name: 'Support Graph',
+export const supportAgent = agent({
+  id: 'support-agent',
+  name: 'Support Agent',
   description: 'Multi-agent support system', // Only include if description has a value
-  defaultAgent: routerAgent,
-  agents: () => [routerAgent, qaAgent]
-});
-
-// Example without description (when null or undefined):
-export const weatherGraph = agentGraph({
-  id: 'weather-graph',
-  name: 'Weather Graph',
-  // description is omitted when null, undefined, or empty
-  defaultAgent: routerAgent,
-  agents: () => [routerAgent, qaAgent]
+  defaultSubAgent: routerAgent,
+  subAgents: () => [routerAgent, qaAgent],
+  models: {
+    base: { model: 'gpt-4' },
+    summarizer: { model: 'gpt-4' },
+  },
+  statusUpdates: {
+    numEvents: 3,
+    timeInSeconds: 15,
+    statusComponents: [toolSummary.config, progressStatus.config],
+  },
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
   if (debug) {
-    console.log(`\n[DEBUG] === Starting graph generation for: ${graphId} ===`);
+    console.log(`\n[DEBUG] === Starting agent generation for: ${agentId} ===`);
     console.log(`[DEBUG] Output path: ${outputPath}`);
     console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
-    console.log(`[DEBUG] Graph data size: ${JSON.stringify(graphData).length} characters`);
+    console.log(`[DEBUG] Agent data size: ${JSON.stringify(agentData).length} characters`);
 
-    // Log graph complexity
-    const agentCount = Object.keys(graphData.agents || {}).length;
+    // Log agent complexity
+    const agentCount = Object.keys(agentData.subAgents || {}).length;
     const toolIds = new Set();
     const dataComponentIds = new Set();
     const artifactComponentIds = new Set();
-
-    for (const agent of Object.values(graphData.agents || {})) {
+    for (const agent of Object.values(agentData.subAgents || {})) {
       const agentData = agent as any;
       if (agentData.tools) {
         for (const toolId of Object.keys(agentData.tools)) {
@@ -428,14 +770,12 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       }
     }
 
-    console.log(`[DEBUG] Graph complexity:`);
+    console.log(`[DEBUG] Agent complexity:`);
     console.log(`[DEBUG]   - Agents: ${agentCount}`);
     console.log(`[DEBUG]   - Unique tools: ${toolIds.size}`);
     console.log(`[DEBUG]   - Data components: ${dataComponentIds.size}`);
     console.log(`[DEBUG]   - Artifact components: ${artifactComponentIds.size}`);
-    console.log(
-      `[DEBUG]   - Has relations: ${graphData.relations ? Object.keys(graphData.relations).length : 0}`
-    );
+    console.log(`[DEBUG]   - Context config: ${agentData.contextConfig ? 'Yes' : 'No'}`);
   }
 
   try {
@@ -447,14 +787,16 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 
     const text = await generateTextWithPlaceholders(
       model,
-      graphData,
+      agentData,
       promptTemplate,
       {
         temperature: 0.1,
         maxOutputTokens: 16000,
-        abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex graphs
+        abortSignal: AbortSignal.timeout(300000), // 300 second timeout for complex agent (5 min, increased for reasoning)
       },
-      debug // Pass debug flag to show placeholder optimization info
+      debug, // Pass debug flag to show placeholder optimization info
+      undefined, // context
+      reasoningConfig // reasoning config
     );
 
     const duration = Date.now() - startTime;
@@ -469,17 +811,17 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
     writeFileSync(outputPath, cleanedCode);
 
     if (debug) {
-      console.log(`[DEBUG] Graph file written successfully`);
-      console.log(`[DEBUG] === Completed graph generation for: ${graphId} ===\n`);
+      console.log(`[DEBUG] Agent file written successfully`);
+      console.log(`[DEBUG] === Completed agent generation for: ${agentId} ===\n`);
     }
   } catch (error: any) {
     if (debug) {
-      console.error(`[DEBUG] === ERROR generating graph file ${graphId} ===`);
+      console.error(`[DEBUG] === ERROR generating agent file ${agentId} ===`);
       console.error(`[DEBUG] Error name: ${error.name}`);
       console.error(`[DEBUG] Error message: ${error.message}`);
       if (error.name === 'AbortError') {
         console.error(`[DEBUG] Request timed out after 240 seconds`);
-        console.error(`[DEBUG] This might indicate the graph is too complex or the API is slow`);
+        console.error(`[DEBUG] This might indicate the agent is too complex or the API is slow`);
       }
       if (error.response) {
         console.error(`[DEBUG] Response status: ${error.response.status}`);
@@ -498,7 +840,8 @@ export async function generateToolFile(
   toolData: any,
   toolId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -509,36 +852,26 @@ TOOL DATA:
 
 TOOL ID: ${toolId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
 
+${IMPORT_INSTRUCTIONS}
+
 REQUIREMENTS:
-1. Import mcpTool from '@inkeep/agents-sdk' - ensure imports are alphabetically sorted
+1. Import mcpTool from '@inkeep/agents-sdk'
 2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
 3. CRITICAL: Use individual properties supported by mcpTool - do NOT use nested config object
 4. Extract configuration properties and map them to mcpTool's expected properties (serverUrl, transport, etc.)
-5. Export the tool following naming convention rules (camelCase version of ID)
-6. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
-7. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
-8. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
-9. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
-10. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
+5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
+8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
 
-EXAMPLE FOR TOOL WITH UNDERSCORE ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// Tool ID 'inkeep_facts' becomes export name 'inkeepFacts'
-export const inkeepFacts = mcpTool({
-  id: 'inkeep_facts',  // Keep original ID here
-  name: 'Inkeep Facts',
-  serverUrl: 'https://facts.inkeep.com/mcp'
-});
-
-EXAMPLE FOR TOOL WITH CREDENTIAL REFERENCE:
-import { mcpTool } from '@inkeep/agents-sdk';
+EXAMPLE WITH CREDENTIAL REFERENCE:
 import { envSettings } from '../environments';
+import { mcpTool } from '@inkeep/agents-sdk';
 
-// Tool with credential reference - note credentialReferenceId 'inkeep-api-credential' becomes 'inkeep_api_credential'
-// IMPORTANT: Use individual properties only, no nested config object
 export const inkeepFacts = mcpTool({
   id: 'inkeep_facts',
   name: 'inkeep_facts',
@@ -546,10 +879,9 @@ export const inkeepFacts = mcpTool({
   credential: envSettings.getEnvironmentSetting('inkeep_api_credential')
 });
 
-EXAMPLE FOR TOOL WITH TRANSPORT CONFIG:
+EXAMPLE WITH TRANSPORT CONFIG:
 import { mcpTool } from '@inkeep/agents-sdk';
 
-// Tool with transport config - extract transport from config.mcp.transport
 export const transportTool = mcpTool({
   id: 'transport_tool',
   name: 'Transport Tool',
@@ -559,34 +891,21 @@ export const transportTool = mcpTool({
   }
 });
 
-EXAMPLE FOR TOOL WITH HYPHEN ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// Tool ID 'weather-api' becomes export name 'weatherApi'
-export const weatherApi = mcpTool({
-  id: 'weather-api',  // Keep original ID here
-  name: 'Weather API',
-  serverUrl: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-weather']
-});
-
-EXAMPLE FOR RANDOM ID:
-import { mcpTool } from '@inkeep/agents-sdk';
-
-// If tool ID is 'fUI2riwrBVJ6MepT8rjx0', export name is 'fUI2riwrBVJ6MepT8rjx0'
-export const fUI2riwrBVJ6MepT8rjx0 = mcpTool({
-  id: 'fUI2riwrBVJ6MepT8rjx0',
-  name: 'Weather Forecast',
-  serverUrl: 'https://weather-forecast-mcp.vercel.app/mcp'
-});
-
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    toolData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -598,7 +917,8 @@ export async function generateDataComponentFile(
   componentData: any,
   componentId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -609,51 +929,70 @@ DATA COMPONENT DATA:
 
 COMPONENT ID: ${componentId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import dataComponent from '@inkeep/agents-sdk'
-2. Create the data component using dataComponent()
-3. Include all properties from the component data INCLUDING the 'id' property
-4. Export following naming convention rules (camelCase version of ID)
+2. Import z from 'zod' for schema definitions
+3. Create the data component using dataComponent()
+4. Include all properties from the component data INCLUDING the 'id' property
 5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
-EXAMPLE WITH UNDERSCORE ID:
+EXAMPLE:
 import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
-// Component ID 'user_profile' becomes export name 'userProfile'
-export const userProfile = dataComponent({
-  id: 'user_profile',
-  name: 'User Profile',
-  description: 'User profile information',
-  props: {
-    userId: { type: 'string', required: true },
-    email: { type: 'string', required: true },
-    preferences: { type: 'object' }
-  }
-});
-
-EXAMPLE WITH HYPHEN ID:
-import { dataComponent } from '@inkeep/agents-sdk';
-
-// Component ID 'weather-data' becomes export name 'weatherData'
 export const weatherData = dataComponent({
   id: 'weather-data',
   name: 'Weather Data',
   description: 'Weather information',
-  props: {
-    temperature: { type: 'number', required: true },
-    conditions: { type: 'string' }
-  }
+  props: z.object({
+    temperature: z.number().describe('Temperature value'),
+    conditions: z.string().describe('Weather conditions'),
+    humidity: z.number().optional().describe('Humidity percentage'),
+  }),
+});
+
+EXAMPLE WITH HYPHEN ID:
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+// Component ID 'user-profile' becomes export name 'userProfile'
+export const userProfile = dataComponent({
+  id: 'user-profile',
+  name: 'User Profile',
+  description: 'User profile information',
+  props: z.object({
+    userId: z.string().describe('Unique user identifier'),
+    name: z.string().describe('User full name'),
+    email: z.string().email().describe('User email address'),
+    preferences: z.object({
+      theme: z.enum(['light', 'dark']),
+      notifications: z.boolean(),
+    }).optional().describe('User preferences'),
+  }),
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -665,7 +1004,8 @@ export async function generateArtifactComponentFile(
   componentData: any,
   componentId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -676,60 +1016,165 @@ ARTIFACT COMPONENT DATA:
 
 COMPONENT ID: ${componentId}
 
+${getTypeDefinitions()}
+
 ${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
 1. Import artifactComponent from '@inkeep/agents-sdk'
-2. Create the artifact component using artifactComponent()
-3. Include summaryProps and fullProps from the component data
-4. Export following naming convention rules (camelCase version of ID)
-5. Include the 'id' property to preserve the original component ID
-6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+2. Import z from 'zod' and preview from '@inkeep/agents-core' for schema definitions
+3. Create the artifact component using artifactComponent()
+4. Use preview() helper for fields that should be shown in previews
+5. Export following naming convention rules (camelCase version of ID)
+6. Include the 'id' property to preserve the original component ID
+7. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+8. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 
-EXAMPLE WITH UNDERSCORE ID:
+EXAMPLE:
+import { preview } from '@inkeep/agents-core';
 import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 // Component ID 'pdf_export' becomes export name 'pdfExport'
 export const pdfExport = artifactComponent({
   id: 'pdf_export',
   name: 'PDF Export',
   description: 'Export data as PDF',
-  summaryProps: {
-    filename: { type: 'string', required: true }
-  },
-  fullProps: {
-    filename: { type: 'string', required: true },
-    content: { type: 'object', required: true }
-  }
+  props: z.object({
+    filename: preview(z.string().describe('Name of the PDF file')),
+    content: z.object({}).describe('PDF content data'),
+  }),
 });
 
 EXAMPLE WITH HYPHEN ID:
+import { preview } from '@inkeep/agents-core';
 import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 // Component ID 'order-summary' becomes export name 'orderSummary'
 export const orderSummary = artifactComponent({
   id: 'order-summary',
   name: 'Order Summary',
   description: 'Summary of customer order',
-  summaryProps: {
-    orderId: { type: 'string', required: true },
-    total: { type: 'number', required: true }
-  },
-  fullProps: {
-    orderId: { type: 'string', required: true },
-    items: { type: 'array', required: true },
-    total: { type: 'number', required: true },
-    tax: { type: 'number' }
-  }
+  props: z.object({
+    orderId: preview(z.string().describe('Unique identifier for the order')),
+    total: preview(z.number().describe('Total order amount')),
+    items: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      price: z.number(),
+    })).describe('List of order items'),
+    tax: z.number().optional().describe('Tax amount'),
+  }),
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate a status component TypeScript file
+ */
+export async function generateStatusComponentFile(
+  componentData: any,
+  componentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const promptTemplate = `Generate a TypeScript file for an Inkeep status component.
+
+STATUS COMPONENT DATA:
+{{DATA}}
+
+COMPONENT ID: ${componentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
+REQUIREMENTS:
+1. Import statusComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Create the status component using statusComponent()
+4. Export following naming convention rules (camelCase version of ID)
+5. Use 'type' field as the identifier (like 'tool_summary')
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+8. The statusComponent() function handles conversion to .config automatically
+
+EXAMPLE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const toolSummary = statusComponent({
+  type: 'tool_summary',
+  description: 'Summary of tool calls and their purpose',
+  detailsSchema: z.object({
+    tool_name: z.string().describe('Name of tool used'),
+    summary: z.string().describe('What was discovered or accomplished'),
+  }),
+});
+
+EXAMPLE WITH HYPHEN TYPE:
+import { statusComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+// Component type 'search-progress' becomes export name 'searchProgress'
+export const searchProgress = statusComponent({
+  type: 'search-progress',
+  description: 'Progress of search operation',
+  detailsSchema: z.object({
+    query: z.string().describe('Search query being executed'),
+    results_found: z.number().describe('Number of results found'),
+    time_elapsed: z.number().optional().describe('Time elapsed in milliseconds'),
+  }),
+});
+
+EXAMPLE WITHOUT DETAILS SCHEMA:
+import { statusComponent } from '@inkeep/agents-sdk';
+
+export const simpleStatus = statusComponent({
+  type: 'simple_status',
+  description: 'A simple status with no additional details',
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -824,12 +1269,10 @@ async function updateEnvironmentIndex(environmentsDir: string, environment: stri
 
   // Generate the complete index.ts content
   const importStatements = existingEnvironments
-    .map(env => `import { ${env} } from './${env}.env';`)
+    .map((env) => `import { ${env} } from './${env}.env';`)
     .join('\n');
 
-  const environmentObject = existingEnvironments
-    .map(env => `  ${env},`)
-    .join('\n');
+  const environmentObject = existingEnvironments.map((env) => `  ${env},`).join('\n');
 
   const exportStatement = existingEnvironments.join(', ');
 
@@ -849,11 +1292,11 @@ export { ${exportStatement} };
 
 /**
  * Legacy function for backward compatibility
- * Generate TypeScript code using LLM to intelligently merge graph data
+ * Generate TypeScript code using LLM to intelligently merge agent data
  */
 export async function generateTypeScriptFileWithLLM(
-  graphData: any,
-  graphId: string,
+  agentData: any,
+  agentId: string,
   outputFilePath: string,
   modelSettings: ModelSettings,
   retryContext?: {
@@ -880,7 +1323,7 @@ export async function generateTypeScriptFileWithLLM(
   const model = createModel(modelSettings);
 
   // Prepare the prompt
-  const prompt = createPrompt(graphData, graphId, existingContent, fileExists, retryContext);
+  const prompt = createPrompt(agentData, agentId, existingContent, fileExists, retryContext);
 
   try {
     // Generate the updated code using the LLM
@@ -906,8 +1349,8 @@ export async function generateTypeScriptFileWithLLM(
  * Create a comprehensive prompt for the LLM to generate/update TypeScript code
  */
 function createPrompt(
-  graphData: any,
-  graphId: string,
+  agentData: any,
+  agentId: string,
   existingContent: string,
   fileExists: boolean,
   retryContext?: {
@@ -916,7 +1359,7 @@ function createPrompt(
     previousDifferences?: string[];
   }
 ): string {
-  const graphDataJson = JSON.stringify(graphData, null, 2);
+  const agentDataJson = JSON.stringify(agentData, null, 2);
 
   // Add retry context to the prompt if this is a retry
   const retryInstructions =
@@ -936,36 +1379,42 @@ IMPORTANT: Pay special attention to these specific issues and ensure they are re
     : ''
 }
 
-CRITICAL: This is a retry attempt. You must be extremely careful to match the exact structure and values from the graph data. Double-check all IDs, names, and configurations.
+CRITICAL: This is a retry attempt. You must be extremely careful to match the exact structure and values from the agent data. Double-check all IDs, names, and configurations.
 `
       : '';
 
   if (!fileExists) {
     // Create new file
-    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent graph configuration.${retryInstructions}
+    return `You are an expert TypeScript developer. Generate a complete TypeScript file for an Inkeep agent configuration.${retryInstructions}
 
-GRAPH DATA (JSON):
-${graphDataJson}
+AGENT DATA (JSON):
+${agentDataJson}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 REQUIREMENTS:
-1. Create a complete TypeScript file that exports an agentGraph configuration
-2. Use the exact structure and patterns shown in the graph data
+1. Create a complete TypeScript file that exports an agent configuration
+2. Use the exact structure and patterns shown in the agent data
 3. For agents, use the \`agent()\` function with proper configuration
 4. For MCP tools, use the \`mcpTool()\` function with proper configuration
 5. For context configs, use the \`contextConfig()\` function
 6. For credential references, use the \`credential()\` function
 7. Use proper TypeScript syntax with correct imports
 8. Handle multi-line strings with template literals (backticks) when needed
-9. Preserve the exact structure and relationships from the graph data
+9. Preserve the exact structure and relationships from the agent data
 10. Use descriptive variable names based on IDs (e.g., \`qaAgent\`, \`factsTool\`)
 11. Include helpful comments for complex configurations
-12. Preserve all configuration details exactly as provided in the graph data
+12. Preserve all configuration details exactly as provided in the agent data
 
 IMPORTANT:
 - Agents use \`canUse\` for tools, not \`tools\`
-- Graph's \`agents\` property should be an arrow function: agents: () => [...]
+- Agent's \`subAgents\` property should be an arrow function: subAgents: () => [...]
 - DataComponents don't have \`id\` field in their config
 - Use \`undefined\` instead of \`null\` for missing optional values
 - If tools array contains numeric indices, use the actual tool IDs instead
@@ -973,7 +1422,7 @@ IMPORTANT:
 - Use proper TypeScript formatting and indentation
 - Include all necessary imports at the top
 - Add comments for complex objects like GraphQL queries or multi-line instructions
-- Keep the same structure and organization as typical Inkeep graph files
+- Keep the same structure and organization as typical Inkeep agent files
 
 CRITICAL: Generate ONLY the raw TypeScript code. Do NOT wrap it in markdown code blocks (no triple backticks with typescript). Do NOT include any explanations, comments, or markdown formatting. Return only the pure TypeScript code that can be written directly to a .ts file.`;
   } else {
@@ -985,14 +1434,20 @@ EXISTING FILE CONTENT:
 ${existingContent}
 \`\`\`
 
-NEW GRAPH DATA (JSON):
-${graphDataJson}
+NEW AGENT DATA (JSON):
+${agentDataJson}
 
-GRAPH ID: ${graphId}
+AGENT ID: ${agentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
 
 CRITICAL RULES - FOLLOW THESE EXACTLY:
 1. PRESERVE ALL EXISTING CONTENT - Do not delete, rewrite, or restructure anything
-2. ONLY change property values that are actually different between the existing file and new graph data
+2. ONLY change property values that are actually different between the existing file and new agent data
 3. KEEP ALL COMMENTS - Do not remove any comments unless they are factually incorrect
 4. KEEP ALL FORMATTING - Preserve exact spacing, indentation, line breaks, and code style
 5. KEEP ALL IMPORTS - Do not change import statements
@@ -1002,8 +1457,8 @@ CRITICAL RULES - FOLLOW THESE EXACTLY:
 WHAT TO CHANGE:
 - Only update property values (like id, name, description, instructions, etc.) that are different
 - If a property value is the same, leave it exactly as it is
-- If a new agent/tool/config is added in the graph data, add it following the existing patterns
-- If an agent/tool/config is removed from the graph data, remove it from the file
+- If a new agent/tool/config is added in the agent data, add it following the existing patterns
+- If an agent/tool/config is removed from the agent data, remove it from the file
 
 WHAT NOT TO CHANGE:
 - Do not rewrite entire functions or objects

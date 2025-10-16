@@ -1,16 +1,16 @@
 import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
+import { agentSessionManager } from '../AgentSession';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
   type ArtifactServiceContext,
 } from '../ArtifactService';
-import { graphSessionManager } from '../GraphSession';
 
 // Mock dependencies
 vi.mock('../../agents/ToolSessionManager');
-vi.mock('../GraphSession');
+vi.mock('../AgentSession');
 vi.mock('@inkeep/agents-core');
 vi.mock('../../data/db/dbClient', () => ({
   default: 'mock-db-client',
@@ -30,22 +30,18 @@ describe('ArtifactService', () => {
       projectId: 'test-project',
       contextId: 'test-context',
       streamRequestId: 'test-stream-request',
-      agentId: 'test-agent',
+      subAgentId: 'test-agent',
       artifactComponents: [
         {
           id: 'test-component-id',
           name: 'TestComponent',
           description: 'Test component description',
-          summaryProps: {
+          props: {
             properties: {
-              title: { type: 'string', description: 'Title' },
-              summary: { type: 'string', description: 'Summary' },
-            },
-          },
-          fullProps: {
-            properties: {
-              content: { type: 'string', description: 'Content' },
-              details: { type: 'object', description: 'Details' },
+              title: { type: 'string', description: 'Title', inPreview: true },
+              summary: { type: 'string', description: 'Summary', inPreview: true },
+              content: { type: 'string', description: 'Content', inPreview: false },
+              details: { type: 'object', description: 'Details', inPreview: false },
             },
           },
         },
@@ -65,12 +61,12 @@ describe('ArtifactService', () => {
       const mockTask = {
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         id: 'task1',
         contextId: 'test-context',
         status: 'active',
         metadata: null,
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -111,12 +107,12 @@ describe('ArtifactService', () => {
           Promise.resolve({
             tenantId: 'test-tenant',
             projectId: 'test-project',
-            graphId: 'test-graph',
+            agentId: 'test-agent',
             id: 'task1',
             contextId: 'test-context',
             status: 'active',
             metadata: null,
-            agentId: 'test-agent',
+            subAgentId: 'test-agent',
             createdAt: '2024-01-01T00:00:00Z',
             updatedAt: '2024-01-01T00:00:00Z',
           })
@@ -157,8 +153,12 @@ describe('ArtifactService', () => {
       toolCallId: 'test-tool-call',
       type: 'TestComponent',
       baseSelector: 'result.data[0]',
-      summaryProps: { title: 'title', summary: 'summary' },
-      fullProps: { content: 'content', details: 'details' },
+      detailsSelector: {
+        title: 'title',
+        summary: 'summary',
+        content: 'content',
+        details: 'details',
+      },
     };
 
     it('should create artifact successfully with valid tool result', async () => {
@@ -179,8 +179,8 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
-      vi.mocked(graphSessionManager.setArtifactCache).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.setArtifactCache).mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact(mockRequest);
 
@@ -190,13 +190,13 @@ describe('ArtifactService', () => {
         name: 'Processing...',
         description: 'Name and description being generated...',
         type: 'TestComponent',
-        artifactSummary: {
+        data: {
           title: 'Test Title',
           summary: 'Test Summary',
         },
       });
 
-      expect(graphSessionManager.recordEvent).toHaveBeenCalledWith(
+      expect(agentSessionManager.recordEvent).toHaveBeenCalledWith(
         'test-stream-request',
         'artifact_saved',
         'test-agent',
@@ -222,12 +222,12 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
-      vi.mocked(graphSessionManager.setArtifactCache).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.setArtifactCache).mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact(mockRequest);
 
-      expect(result?.artifactSummary).toEqual({
+      expect(result?.data).toEqual({
         title: 'First',
         summary: 'First Summary',
       });
@@ -261,14 +261,14 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
         baseSelector: 'result.nonexistent[0]',
       });
 
-      expect(result?.artifactSummary).toEqual({});
+      expect(result?.data).toEqual({});
     });
 
     it('should sanitize JMESPath selectors correctly', async () => {
@@ -282,7 +282,7 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
@@ -293,8 +293,8 @@ describe('ArtifactService', () => {
     });
   });
 
-  describe('getArtifactData', () => {
-    it('should return cached artifact from graph session', async () => {
+  describe('getArtifactSummary', () => {
+    it('should return cached artifact from agent session', async () => {
       const mockCachedArtifact = {
         name: 'Cached Artifact',
         description: 'Cached Description',
@@ -302,9 +302,9 @@ describe('ArtifactService', () => {
         metadata: { artifactType: 'TestType' },
       };
 
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(mockCachedArtifact);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(mockCachedArtifact);
 
-      const result = await artifactService.getArtifactData('test-artifact', 'test-tool-call');
+      const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 
       expect(result).toEqual({
         artifactId: 'test-artifact',
@@ -312,12 +312,12 @@ describe('ArtifactService', () => {
         name: 'Cached Artifact',
         description: 'Cached Description',
         type: 'TestType',
-        artifactSummary: { test: 'data' },
+        data: { test: 'data' },
       });
     });
 
     it('should return artifact from provided map when not in cache', async () => {
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
 
       const artifactMap = new Map();
       const mockArtifact = {
@@ -328,7 +328,7 @@ describe('ArtifactService', () => {
       };
       artifactMap.set('test-artifact:test-tool-call', mockArtifact);
 
-      const result = await artifactService.getArtifactData(
+      const result = await artifactService.getArtifactSummary(
         'test-artifact',
         'test-tool-call',
         artifactMap
@@ -340,12 +340,12 @@ describe('ArtifactService', () => {
         name: 'Map Artifact',
         description: 'Map Description',
         type: 'MapType',
-        artifactSummary: { map: 'data' },
+        data: { map: 'data' },
       });
     });
 
     it('should fetch from database when not in cache or map', async () => {
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
 
       const mockDbArtifact = {
         artifactId: 'test-artifact',
@@ -356,7 +356,7 @@ describe('ArtifactService', () => {
       };
       vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([mockDbArtifact]));
 
-      const result = await artifactService.getArtifactData('test-artifact', 'test-tool-call');
+      const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 
       expect(result).toEqual({
         artifactId: 'test-artifact',
@@ -364,28 +364,31 @@ describe('ArtifactService', () => {
         name: 'DB Artifact',
         description: 'DB Description',
         type: 'DBType',
-        artifactSummary: { db: 'data' },
+        data: { db: 'data' },
       });
 
       expect(getLedgerArtifacts).toHaveBeenCalledWith('mock-db-client');
     });
 
     it('should return null when artifact not found anywhere', async () => {
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
       vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([]));
 
-      const result = await artifactService.getArtifactData('missing-artifact', 'missing-tool-call');
+      const result = await artifactService.getArtifactSummary(
+        'missing-artifact',
+        'missing-tool-call'
+      );
 
       expect(result).toBeNull();
     });
 
     it('should handle database errors gracefully', async () => {
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
       vi.mocked(getLedgerArtifacts).mockReturnValue(() =>
         Promise.reject(new Error('Database error'))
       );
 
-      const result = await artifactService.getArtifactData('test-artifact', 'test-tool-call');
+      const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 
       expect(result).toBeNull();
     });
@@ -397,9 +400,12 @@ describe('ArtifactService', () => {
         taskId: undefined,
       });
 
-      vi.mocked(graphSessionManager.getArtifactCache).mockResolvedValue(null);
+      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
 
-      const result = await serviceWithoutContext.getArtifactData('test-artifact', 'test-tool-call');
+      const result = await serviceWithoutContext.getArtifactSummary(
+        'test-artifact',
+        'test-tool-call'
+      );
 
       expect(result).toBeNull();
     });
@@ -417,20 +423,20 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const request: ArtifactCreateRequest = {
         artifactId: 'test',
         toolCallId: 'test',
         type: 'TestComponent',
         baseSelector: 'result.data[?type=="test"]', // Should be sanitized to single quotes
-        summaryProps: { title: 'title' },
+        detailsSelector: { title: 'title' },
       };
 
       const result = await artifactService.createArtifact(request);
 
       expect(result).not.toBeNull();
-      expect(result?.artifactSummary.title).toBe('Test Title');
+      expect(result?.data.title).toBe('Test Title');
     });
 
     it('should fix contains syntax with @ references', async () => {
@@ -444,14 +450,14 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const request: ArtifactCreateRequest = {
         artifactId: 'test',
         toolCallId: 'test',
         type: 'TestComponent',
         baseSelector: 'result.data[?content ~ contains(@, "test")]', // Should be sanitized
-        summaryProps: { title: 'title' },
+        detailsSelector: { title: 'title' },
       };
 
       const result = await artifactService.createArtifact(request);
@@ -478,24 +484,28 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const testRequest: ArtifactCreateRequest = {
         artifactId: 'test-artifact',
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        summaryProps: { title: 'title', summary: 'summary' },
-        fullProps: { content: 'content', details: 'details' },
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
       };
 
       const result = await artifactService.createArtifact(testRequest);
 
-      expect(result?.artifactSummary).toEqual({
+      expect(result?.data).toEqual({
         title: 'Test Title',
         summary: 'Test Summary',
       });
-      expect(result?.artifactSummary.extraField).toBeUndefined();
+      expect(result?.data.extraField).toBeUndefined();
     });
 
     it('should handle missing schema properties gracefully', async () => {
@@ -514,7 +524,7 @@ describe('ArtifactService', () => {
       };
 
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(graphSessionManager.recordEvent).mockResolvedValue(undefined);
+      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
       const serviceWithoutComponents = new ArtifactService({
         ...mockContext,
@@ -526,13 +536,17 @@ describe('ArtifactService', () => {
         toolCallId: 'test-tool-call',
         type: 'TestComponent',
         baseSelector: 'result.data[0]',
-        summaryProps: { title: 'title', summary: 'summary' },
-        fullProps: { content: 'content', details: 'details' },
+        detailsSelector: {
+          title: 'title',
+          summary: 'summary',
+          content: 'content',
+          details: 'details',
+        },
       };
 
       const result = await serviceWithoutComponents.createArtifact(testRequest2);
 
-      expect(result?.artifactSummary).toEqual({
+      expect(result?.data).toEqual({
         title: 'Test Title',
         summary: 'Test Summary',
       });

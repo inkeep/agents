@@ -11,7 +11,7 @@ import CodeMirror, {
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { getContextSuggestions } from '@/lib/context-suggestions';
-import { useGraphStore } from '@/features/graph/state/use-graph-store';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 // Decoration for template variables
 const templateVariableDecoration = Decoration.mark({
@@ -76,7 +76,6 @@ function isJMESPathExpressions(key: string): boolean {
   return key.includes('[?') || key.includes('[*]');
 }
 
-// Create linter for template variable validation
 function createTemplateVariableLinter(suggestions: string[]) {
   return linter((view) => {
     const diagnostics: Diagnostic[] = [];
@@ -92,7 +91,6 @@ function createTemplateVariableLinter(suggestions: string[]) {
         const to = line.from + match.index + match[0].length;
         const variableName = match[1];
 
-        // Check if variable is valid (in suggestions) or reserved
         const isValid =
           validVariables.has(variableName) ||
           RESERVED_KEYS.has(variableName) ||
@@ -116,14 +114,12 @@ function createTemplateVariableLinter(suggestions: string[]) {
   });
 }
 
-// Create autocomplete source for context variables
 function createContextAutocompleteSource(suggestions: string[]): CompletionSource {
   return (context) => {
     const { state, pos } = context;
     const line = state.doc.lineAt(pos);
     const to = pos - line.from;
     const textBefore = line.text.slice(0, to);
-    // Check if we're after a { character
     const match = textBefore.match(/\{([^}]*)$/);
     if (!match) return null;
 
@@ -146,7 +142,7 @@ export interface TextareaWithSuggestionsProps extends Omit<ReactCodeMirrorProps,
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
-  ref?: RefObject<{ insertTemplateVariable: () => void }>;
+  ref?: RefObject<{ insertTemplateVariable: () => void }| null>;
 }
 
 function tryJsonParse(json: string): object {
@@ -195,13 +191,13 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
     },
   }));
 
-  const contextConfig = useGraphStore((state) => state.metadata.contextConfig);
+  const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
 
   const extensions = useMemo(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
-    const requestContextSchema = tryJsonParse(contextConfig.requestContextSchema);
+    const headersSchema = tryJsonParse(contextConfig.headersSchema);
     const suggestions = getContextSuggestions({
-      requestContextSchema,
+      headersSchema,
       // @ts-expect-error -- todo: improve type
       contextVariables,
     });
@@ -216,6 +212,7 @@ export const PromptEditor: FC<TextareaWithSuggestionsProps> = ({
       templateVariablePlugin,
       templateVariableTheme,
       createTemplateVariableLinter(suggestions),
+      EditorView.lineWrapping,
     ];
   }, [contextConfig]);
 

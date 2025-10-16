@@ -8,7 +8,7 @@ const {
   updateTaskMock,
   createMessageMock,
   getActiveAgentForConversationMock,
-  getFullGraphMock,
+  getFullAgentMock,
 } = vi.hoisted(() => {
   const createTaskMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
@@ -28,11 +28,11 @@ const {
   );
   const getActiveAgentForConversationMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      activeAgentId: 'default-agent',
+      activeSubAgentId: 'default-agent',
       conversationId: 'conv-123',
     })
   );
-  const getFullGraphMock = vi.fn(() =>
+  const getFullAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       agents: [],
       relations: [],
@@ -44,7 +44,7 @@ const {
     updateTaskMock,
     createMessageMock,
     getActiveAgentForConversationMock,
-    getFullGraphMock,
+    getFullAgentMock,
   };
 });
 
@@ -55,9 +55,9 @@ vi.mock('@inkeep/agents-core', () => ({
   updateTask: updateTaskMock,
   createMessage: createMessageMock,
   getActiveAgentForConversation: getActiveAgentForConversationMock,
-  getFullGraph: getFullGraphMock,
+  getFullAgent: getFullAgentMock,
   getTracer: vi.fn(() => ({
-    startActiveSpan: vi.fn((name, options, fn) => {
+    startActiveSpan: vi.fn((_name, options, fn) => {
       // Handle both 2 and 3 argument versions
       const callback = typeof options === 'function' ? options : fn;
       return callback({
@@ -86,32 +86,35 @@ vi.mock('../../data/conversations.js', () => ({
 }));
 
 vi.mock('../../a2a/client.js', () => ({
-  A2AClient: vi.fn().mockImplementation(() => ({
-    sendMessage: vi.fn().mockResolvedValue({
-      result: {
-        artifacts: [
-          {
-            parts: [
+  A2AClient: vi.fn().mockImplementation(
+    () =>
+      ({
+        sendMessage: vi.fn().mockResolvedValue({
+          result: {
+            artifacts: [
               {
-                kind: 'text',
-                text: 'Hello! How can I help you?',
+                parts: [
+                  {
+                    kind: 'text',
+                    text: 'Hello! How can I help you?',
+                  },
+                ],
               },
             ],
           },
-        ],
-      },
-    }),
-    getAgentCard: vi.fn().mockResolvedValue({
-      capabilities: { streaming: true },
-    }),
-  } as any)),
+        }),
+        getAgentCard: vi.fn().mockResolvedValue({
+          capabilities: { streaming: true },
+        }),
+      }) as any
+  ),
 }));
 
 vi.mock('../../a2a/transfer.js', () => ({
   isTransferResponse: vi.fn().mockReturnValue(false),
   executeTransfer: vi.fn().mockResolvedValue({
     success: true,
-    targetAgentId: 'transfer-target',
+    targetSubAgentId: 'transfer-target',
   }),
 }));
 
@@ -120,8 +123,8 @@ vi.mock('../../utils/stream-registry.js', () => ({
   unregisterStreamHelper: vi.fn(),
 }));
 
-vi.mock('../../utils/graph-session.js', () => ({
-  graphSessionManager: {
+vi.mock('../../utils/agent-session.js', () => ({
+  agentSessionManager: {
     createSession: vi.fn(),
     endSession: vi.fn(),
     getSession: vi.fn().mockReturnValue(null),
@@ -130,7 +133,7 @@ vi.mock('../../utils/graph-session.js', () => ({
 
 vi.mock('../../utils/tracer.js', () => ({
   tracer: {
-    startActiveSpan: vi.fn((name, options, fn) => {
+    startActiveSpan: vi.fn((_name, options, fn) => {
       // Handle both 2 and 3 argument versions
       const callback = typeof options === 'function' ? options : fn;
       return callback({
@@ -181,7 +184,7 @@ describe('Integration Tests', () => {
         apiKey: 'test-api-key',
         tenantId: 'test-tenant',
         projectId: 'test-project',
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         apiKeyId: 'test-key',
         baseUrl: 'http://localhost:3003',
       });
@@ -242,7 +245,7 @@ describe('Integration Tests', () => {
                   {
                     kind: 'data',
                     data: {
-                      targetAgentId: 'support-agent',
+                      targetSubAgentId: 'support-agent',
                     },
                   },
                   {
@@ -270,10 +273,13 @@ describe('Integration Tests', () => {
           },
         });
 
-      vi.mocked(A2AClient).mockImplementation(() => ({
-        sendMessage: mockSendMessage,
-        getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      } as any));
+      vi.mocked(A2AClient).mockImplementation(
+        () =>
+          ({
+            sendMessage: mockSendMessage,
+            getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
+          }) as any
+      );
 
       // Mock transfer detection
       const { isTransferResponse } = await import('../../a2a/transfer.js');
@@ -320,10 +326,13 @@ describe('Integration Tests', () => {
         },
       });
 
-      vi.mocked(A2AClient).mockImplementation(() => ({
-        sendMessage: mockSendMessage,
-        getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      } as any));
+      vi.mocked(A2AClient).mockImplementation(
+        () =>
+          ({
+            sendMessage: mockSendMessage,
+            getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
+          }) as any
+      );
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -359,31 +368,34 @@ describe('Integration Tests', () => {
     it.skip('should handle tool execution requests', async () => {
       // Mock A2A response with tool execution result
       const { A2AClient } = await import('../../a2a/client.js');
-      vi.mocked(A2AClient).mockImplementation(() => ({
-        sendMessage: vi.fn().mockResolvedValue({
-          result: {
-            artifacts: [
-              {
-                parts: [
+      vi.mocked(A2AClient).mockImplementation(
+        () =>
+          ({
+            sendMessage: vi.fn().mockResolvedValue({
+              result: {
+                artifacts: [
                   {
-                    kind: 'text',
-                    text: 'I calculated that for you: ',
-                  },
-                  {
-                    kind: 'data',
-                    data: {
-                      type: 'tool_result',
-                      name: 'calculator',
-                      result: '4',
-                    },
+                    parts: [
+                      {
+                        kind: 'text',
+                        text: 'I calculated that for you: ',
+                      },
+                      {
+                        kind: 'data',
+                        data: {
+                          type: 'tool_result',
+                          name: 'calculator',
+                          result: '4',
+                        },
+                      },
+                    ],
                   },
                 ],
               },
-            ],
-          },
-        }),
-        getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      } as any));
+            }),
+            getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
+          }) as any
+      );
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -411,10 +423,13 @@ describe('Integration Tests', () => {
     it.skip('should handle error scenarios gracefully', async () => {
       // Mock A2A client to throw an error
       const { A2AClient } = await import('../../a2a/client.js');
-      vi.mocked(A2AClient).mockImplementation(() => ({
-        sendMessage: vi.fn().mockRejectedValue(new Error('Agent communication failed')),
-        getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
-      } as any));
+      vi.mocked(A2AClient).mockImplementation(
+        () =>
+          ({
+            sendMessage: vi.fn().mockRejectedValue(new Error('Agent communication failed')),
+            getAgentCard: vi.fn().mockResolvedValue({ capabilities: { streaming: true } }),
+          }) as any
+      );
 
       const executionContext = await createTestExecutionContext();
       const params = {
@@ -436,7 +451,7 @@ describe('Integration Tests', () => {
       expect(mockStreamHelper.writeOperation).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'error',
-          message: expect.stringContaining('Agent communication failed')
+          message: expect.stringContaining('Agent communication failed'),
         })
       );
 

@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import { getActiveTools } from '@/app/utils/active-tools';
-import type { MCPNodeData } from '@/components/graph/configuration/node-types';
-import { NodeType } from '@/components/graph/configuration/node-types';
+import type { MCPNodeData } from '@/components/agent/configuration/node-types';
+import { NodeType } from '@/components/agent/configuration/node-types';
 import type { MCPTool } from '@/lib/types/tools';
 
 interface OrphanedToolsInfo {
@@ -28,15 +28,15 @@ export function detectOrphanedToolsAndGetWarning(
   >,
   toolLookup: Record<string, MCPTool>
 ): string | null {
-  const result = detectOrphanedToolsInGraph(nodes, agentToolConfigLookup, toolLookup);
+  const result = detectOrphanedToolsInAgent(nodes, agentToolConfigLookup, toolLookup);
   return result.hasOrphanedTools ? createOrphanedToolsWarningMessage(result) : null;
 }
 
 /**
- * Detects orphaned tools across all MCP nodes in the graph
+ * Detects orphaned tools across all MCP nodes in the agent
  * Orphaned tools are tools that were selected but are no longer available in the MCP server
  */
-function detectOrphanedToolsInGraph(
+function detectOrphanedToolsInAgent(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,
@@ -55,7 +55,7 @@ function detectOrphanedToolsInGraph(
 
     const activeTools = getActiveTools({
       availableTools: toolData.availableTools,
-      activeTools: toolData.config?.mcp?.activeTools,
+      activeTools: (toolData.config as any)?.mcp?.activeTools,
     });
 
     const selectedTools = getCurrentSelectedToolsForNode(node, agentToolConfigLookup, []);

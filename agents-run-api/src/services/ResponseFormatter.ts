@@ -1,8 +1,8 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
+import { agentSessionManager } from '../services/AgentSession';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
-import { tracer, setSpanWithError } from '../utils/tracer';
-import { graphSessionManager } from '../services/GraphSession';
+import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('ResponseFormatter');
 
@@ -12,7 +12,7 @@ const logger = getLogger('ResponseFormatter');
  */
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
-  private agentId?: string;
+  private subAgentId?: string;
 
   constructor(
     tenantId: string,
@@ -23,24 +23,38 @@ export class ResponseFormatter {
       contextId?: string;
       artifactComponents?: any[];
       streamRequestId?: string;
-      agentId?: string;
+      subAgentId?: string;
     }
   ) {
-    // Store agentId for passing to parsing methods
-    this.agentId = artifactParserOptions?.agentId;
-    
-    // Get the shared ArtifactParser from GraphSession
+    this.subAgentId = artifactParserOptions?.subAgentId;
+
     if (artifactParserOptions?.streamRequestId) {
-      const sessionParser = graphSessionManager.getArtifactParser(artifactParserOptions.streamRequestId);
-      
+      const sessionParser = agentSessionManager.getArtifactParser(
+        artifactParserOptions.streamRequestId
+      );
+
       if (sessionParser) {
         this.artifactParser = sessionParser;
         return;
       }
     }
-    
-    // Fallback: create new parser if session parser not available (for tests, etc.)
-    this.artifactParser = new ArtifactParser(tenantId, artifactParserOptions);
+
+    let sharedArtifactService = null;
+    if (
+      artifactParserOptions?.streamRequestId &&
+      typeof agentSessionManager.getArtifactService === 'function'
+    ) {
+      try {
+        sharedArtifactService = agentSessionManager.getArtifactService(
+          artifactParserOptions.streamRequestId
+        );
+      } catch (_error) {}
+    }
+
+    this.artifactParser = new ArtifactParser(tenantId, {
+      ...artifactParserOptions,
+      artifactService: sharedArtifactService, // Use shared ArtifactService if available
+    });
   }
 
   /**
@@ -49,7 +63,6 @@ export class ResponseFormatter {
   async formatObjectResponse(responseObject: any, contextId: string): Promise<MessageContent> {
     return tracer.startActiveSpan('response.format_object_response', async (span) => {
       try {
-        // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
 
         span.setAttributes({
@@ -57,10 +70,12 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse the object using unified parser, passing agentId for artifact persistence
-        const parts = await this.artifactParser.parseObject(responseObject, artifactMap, this.agentId);
+        const parts = await this.artifactParser.parseObject(
+          responseObject,
+          artifactMap,
+          this.subAgentId
+        );
 
-        // Count and log metrics
         const uniqueArtifacts = this.countUniqueArtifacts(parts);
         span.setAttributes({
           'response.dataPartsCount': parts.length,
@@ -76,7 +91,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        setSpanWithError(span, error);
+        setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
         logger.error({ error, responseObject }, 'Error formatting object response');
         return {
           parts: [{ kind: 'data' as const, data: responseObject }],
@@ -100,7 +115,6 @@ export class ResponseFormatter {
           'response.textLength': responseText.length,
         });
 
-        // Check if the response contains artifact markers
         if (!this.artifactParser.hasArtifactMarkers(responseText)) {
           span.setAttributes({
             'response.result': 'no_markers_found',
@@ -108,7 +122,6 @@ export class ResponseFormatter {
           return { parts: [{ kind: 'text', text: responseText }] };
         }
 
-        // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
 
         span.setAttributes({
@@ -116,15 +129,16 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse text using unified parser, passing agentId for artifact persistence
-        const parts = await this.artifactParser.parseText(responseText, artifactMap, this.agentId);
+        const parts = await this.artifactParser.parseText(
+          responseText,
+          artifactMap,
+          this.subAgentId
+        );
 
-        // If only one text part, return as plain text
         if (parts.length === 1 && parts[0].kind === 'text') {
           return { text: parts[0].text };
         }
 
-        // Count and log metrics
         const textParts = parts.filter((p) => p.kind === 'text').length;
         const dataParts = parts.filter((p) => p.kind === 'data').length;
         const uniqueArtifacts = this.countUniqueArtifacts(parts);
@@ -144,7 +158,7 @@ export class ResponseFormatter {
 
         return { parts };
       } catch (error) {
-        setSpanWithError(span, error);
+        setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
         logger.error({ error, responseText }, 'Error formatting response');
         return { text: responseText };
       } finally {

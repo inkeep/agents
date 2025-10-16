@@ -1,10 +1,10 @@
 import {
   addLedgerArtifacts,
-  agentGraph,
   agents,
   conversations,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
+  subAgents,
   tasks,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -26,28 +26,28 @@ describe('Ledger Artifacts – Data Layer', () => {
 
   // Helper function to create required parent records
   async function createTestData(contextId: string, taskId: string, tenantId: string) {
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
     await ensureTestProject(tenantId, projectId);
 
-    // Create graph first
-    const graphId = 'test-graph';
-    await dbClient.insert(agentGraph).values({
-      id: graphId,
-      tenantId,
-      projectId,
-      name: 'Test Graph',
-      defaultAgentId: agentId,
-    });
-
-    // Create agent with graphId
+    // Create agent first
+    const agentId = 'test-agent';
     await dbClient.insert(agents).values({
       id: agentId,
       tenantId,
       projectId,
-      graphId,
+      name: 'Test Agent',
+      defaultSubAgentId: subAgentId,
+    });
+
+    // Create agent with agentId
+    await dbClient.insert(subAgents).values({
+      id: subAgentId,
+      tenantId,
+      projectId,
+      agentId: agentId,
       name: 'Test Agent',
       description: 'Test agent for ledger artifacts',
       prompt: 'Test instructions',
@@ -58,7 +58,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: conversationId,
       tenantId,
       projectId,
-      activeAgentId: agentId,
+      activeSubAgentId: subAgentId,
       title: 'Test Conversation',
     });
 
@@ -67,10 +67,10 @@ describe('Ledger Artifacts – Data Layer', () => {
       id: taskId,
       tenantId,
       projectId,
-      graphId,
+      agentId: agentId,
       contextId,
       status: 'completed',
-      agentId,
+      subAgentId,
       metadata: {
         conversation_id: conversationId,
         message_id: `msg-${nanoid()}`,
@@ -85,7 +85,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await dbClient.delete(ledgerArtifactsTable);
     await dbClient.delete(tasks);
     await dbClient.delete(conversations);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   // Extra safety – clear again when the suite finishes.
@@ -93,7 +93,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await dbClient.delete(ledgerArtifactsTable);
     await dbClient.delete(tasks);
     await dbClient.delete(conversations);
-    await dbClient.delete(agents);
+    await dbClient.delete(subAgents);
   });
 
   it('should persist and retrieve artifacts by taskId', async () => {

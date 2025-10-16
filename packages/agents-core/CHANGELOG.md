@@ -1,5 +1,261 @@
 # @inkeep/agents-core
 
+## 0.23.0
+
+### Minor Changes
+
+- f878545: OAuth MCP Connections now use nango mcp-generic
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+
+## 0.22.12
+
+### Patch Changes
+
+- 79b1e87: fixed deadlinks
+
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+
+## 0.22.9
+
+## 0.22.8
+
+## 0.22.7
+
+### Patch Changes
+
+- 550d251: updated inkeep pull :)
+
+## 0.22.6
+
+### Patch Changes
+
+- 28018a0: mcp tool error handling
+
+## 0.22.5
+
+### Patch Changes
+
+- e5fb3a4: windows quickstart support
+
+## 0.22.4
+
+### Patch Changes
+
+- e8ba7de: Add background version check to push and pull commands
+- 0b8c264: Add self-update command to CLI with automatic package manager detection and version checking
+- b788bd8: Use password entry instead of plaintext entry
+- f784f72: New models and clean up
+
+## 0.22.3
+
+### Patch Changes
+
+- d00742f: misnamed model
+
+## 0.22.2
+
+### Patch Changes
+
+- abdf614: Default model configs
+
+## 0.22.1
+
+### Patch Changes
+
+- ba2a297: Support remote sandboxes
+
+## 0.22.0
+
+### Patch Changes
+
+- 8a10d65: updated inkeep pull and added new zod schema support for status components
+
+## 0.21.1
+
+### Patch Changes
+
+- 4815d3a: create bearer in keychain
+- 1aefe88: Update default project
+- eb0ffa2: removed model pinning
+
+## 0.21.0
+
+### Minor Changes
+
+- 88ff25c: Fix table name for sub agent function tool relations
+
+### Patch Changes
+
+- 43cd2f6: updated tests
+
+## 0.20.1
+
+### Patch Changes
+
+- 1e5188d: split tool execution into tool call and tool result
+
+## 0.20.0
+
+### Minor Changes
+
+- fb99085: refactors agentPrompt to prompt
+
+## 0.19.9
+
+## 0.19.8
+
+### Patch Changes
+
+- e9048e2: split tool execution into tool call and tool result
+
+## 0.19.7
+
+## 0.19.6
+
+### Patch Changes
+
+- 76fb9aa: clean-up-env
+- 0d0166f: stream object in timeline
+
+## 0.19.5
+
+### Patch Changes
+
+- 22b96c4: inkeep cli pull command uses dynamic planner
+
+## 0.19.4
+
+### Patch Changes
+
+- 7a3fc7f: Fixed tests
+
+## 0.19.3
+
+### Patch Changes
+
+- 079a18a: more-model-def-fixes
+
+## 0.19.2
+
+### Patch Changes
+
+- 717d483: fixes-sonnet-definition
+
+## 0.19.1
+
+## 0.19.0
+
+### Minor Changes
+
+- 71a9f03: Rename Graphs to Agents, complete migration from agents to sub agents, various cleanup
+
+### Patch Changes
+
+- 849c6e9: added new cosntants for model and inkeep pull
+
+## 0.18.1
+
+### Patch Changes
+
+- 71892f2: types added
+
+## 0.18.0
+
+### Minor Changes
+
+- 1600323: rename agents to subAgents within the agents-sdk
+- 3684a31: Rename Agents to SubAgents
+
+### Patch Changes
+
+- 81d5a7e: Template variable preservation in placeholders
+- 2165d9b: improve errors and fix bug
+- 9bdf630: Fixed streamed non final output text tracking
+
+## 0.17.0
+
+### Minor Changes
+
+- 94c0c18: Only allow headers template creation through headers builder
+
+## 0.16.3
+
+## 0.16.2
+
+### Patch Changes
+
+- 4df3308: fix schema conversion export
+
+## 0.16.1
+
+## 0.16.0
+
+### Minor Changes
+
+- 5c3bbec: Request context refactor
+
+### Patch Changes
+
+- 35e6c9e: Updated Artifact Schema
+
+## 0.15.0
+
+### Minor Changes
+
+- ad5528c: Context config route changes
+
+## 0.14.16
+
+## 0.14.15
+
+## 0.14.14
+
+### Patch Changes
+
+- 8fe8c3e: exports drizzle
+
+## 0.14.13
+
+## 0.14.12
+
+### Patch Changes
+
+- a05d397: reduce log spam during tests runs
+
+## 0.14.11
+
+### Patch Changes
+
+- ef0a682: Release
+
+## 0.14.10
+
+### Patch Changes
+
+- cee3fa1: use type defs from @inkeep/agents-core in llm generated @inkeep/agents-cli pull command prompts
+
+## 0.14.9
+
+### Patch Changes
+
+- c7194ce: error surfacing
+
+## 0.14.8
+
+## 0.14.7
+
+### Patch Changes
+
+- d891309: Fix default graph id
+- 735d238: normalize conversation ids
+
 ## 0.14.6
 
 ## 0.14.5

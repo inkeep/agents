@@ -12,7 +12,6 @@ function validateArtifactData(artifact: Artifact, index: number): void {
     throw new Error(`Artifact at index ${index} missing required artifactId`);
   }
 
-  // Validate that JSON-serializable fields don't contain problematic values
   if (artifact.parts) {
     try {
       JSON.stringify(artifact.parts);
@@ -39,7 +38,6 @@ function validateArtifactData(artifact: Artifact, index: number): void {
  * Uses the 'kind' values from parts to determine content types (A2A principle)
  */
 function determineMimeTypes(artifact: Artifact): string[] {
-  // Extract unique 'kind' values from parts
   if (artifact.parts && artifact.parts.length > 0) {
     const kinds = new Set<string>();
 
@@ -49,13 +47,11 @@ function determineMimeTypes(artifact: Artifact): string[] {
       }
     }
 
-    // Return unique kinds as MIME types
     if (kinds.size > 0) {
       return Array.from(kinds);
     }
   }
 
-  // Fallback: infer from artifact type
   if (artifact.type?.toLowerCase().includes('document')) {
     return ['text'];
   }
@@ -68,7 +64,6 @@ function determineMimeTypes(artifact: Artifact): string[] {
     return ['text'];
   }
 
-  // Default fallback
   return ['data'];
 }
 
@@ -78,10 +73,8 @@ function determineMimeTypes(artifact: Artifact): string[] {
 function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
   return {
     ...artifact,
-    // Ensure text fields don't exceed reasonable limits
     name: artifact.name?.slice(0, 255) || undefined,
     description: artifact.description?.slice(0, 1000) || undefined,
-    // Clean any undefined values from JSON fields
     parts: artifact.parts ? JSON.parse(JSON.stringify(artifact.parts)) : null,
     metadata: artifact.metadata ? JSON.parse(JSON.stringify(artifact.metadata)) : null,
   };
@@ -95,13 +88,11 @@ async function tryFallbackInsert(
   rows: any[],
   _originalError: any
 ): Promise<void> {
-  // Try inserting one row at a time to isolate problematic data
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
       await db.insert(ledgerArtifacts).values([row]);
     } catch (_fallbackError: any) {
-      // Try with minimal data as last resort
       try {
         const minimalRow = {
           id: row.id,
@@ -126,7 +117,6 @@ async function tryFallbackInsert(
 
         await db.insert(ledgerArtifacts).values([minimalRow]);
       } catch (_finalError: any) {
-        // Don't throw here - we want to continue with other artifacts
       }
     }
   }
@@ -146,7 +136,6 @@ export const upsertLedgerArtifact =
   }): Promise<{ created: boolean; existing?: any }> => {
     const { scopes, contextId, taskId, toolCallId = null, artifact } = params;
 
-    // Validate artifact data
     validateArtifactData(artifact, 0);
 
     const sanitizedArt = sanitizeArtifactForDatabase(artifact);
@@ -174,13 +163,10 @@ export const upsertLedgerArtifact =
     };
 
     try {
-      // Try insert first (race-condition safe)
       await db.insert(ledgerArtifacts).values([artifactRow]);
       return { created: true };
     } catch (error: any) {
-      // Check if it's a constraint violation (artifact already exists)
       if (error.message?.includes('UNIQUE') || error.message?.includes('duplicate')) {
-        // Fetch the existing artifact
         const existing = await db
           .select()
           .from(ledgerArtifacts)
@@ -198,7 +184,6 @@ export const upsertLedgerArtifact =
           return { created: false, existing: existing[0] };
         }
       }
-      // Re-throw if it's not a constraint violation
       throw error;
     }
   };
@@ -218,17 +203,14 @@ export const addLedgerArtifacts =
     const { scopes, contextId, taskId = null, toolCallId = null, artifacts } = params;
     if (artifacts.length === 0) return;
 
-    // Validate all artifacts before processing
     for (let i = 0; i < artifacts.length; i++) {
       validateArtifactData(artifacts[i], i);
     }
 
     const now = new Date().toISOString();
     const rows = artifacts.map((art) => {
-      // Sanitize the artifact data first
       const sanitizedArt = sanitizeArtifactForDatabase(art);
 
-      // Resolve taskId precedence: explicit param -> artifact.taskId -> metadata.taskId
       const resolvedTaskId =
         taskId ?? sanitizedArt.taskId ?? (sanitizedArt.metadata as any)?.taskId ?? null;
 
@@ -245,7 +227,6 @@ export const addLedgerArtifacts =
         parts: sanitizedArt.parts,
         metadata: sanitizedArt.metadata,
 
-        // extra (optional) ledger fields
         summary: sanitizedArt.description?.slice(0, 200) ?? null,
         mime: determineMimeTypes(sanitizedArt), // Simple string fallback until we debug the issue
         visibility: (sanitizedArt.metadata as any)?.visibility ?? 'context',
@@ -257,7 +238,6 @@ export const addLedgerArtifacts =
       };
     });
 
-    // Retry logic for transient database failures
     const maxRetries = 3;
     let lastError: any = null;
 
@@ -265,14 +245,11 @@ export const addLedgerArtifacts =
       try {
         await db.insert(ledgerArtifacts).values(rows);
 
-        // Success - no need to retry
         return;
       } catch (error: any) {
         lastError = error;
 
-        // Store error for potential retry or fallback
 
-        // Check if this is a retryable error
         const isRetryable =
           error.code === 'SQLITE_BUSY' ||
           error.code === 'SQLITE_LOCKED' ||
@@ -281,18 +258,15 @@ export const addLedgerArtifacts =
           error.message?.includes('timeout');
 
         if (!isRetryable || attempt === maxRetries) {
-          // For non-retryable errors or final attempt, try a fallback strategy
           await tryFallbackInsert(db, rows, error);
           return;
         }
 
-        // Wait before retrying (exponential backoff)
         const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 5000);
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
     }
 
-    // If we get here, all retries failed
     throw lastError;
   };
 
@@ -338,7 +312,6 @@ export const getLedgerArtifacts =
 
     const results = await query;
 
-    // Convert the database rows back to Artifact type using structured fields
     return results.map(
       (row): Artifact => ({
         artifactId: row.id,

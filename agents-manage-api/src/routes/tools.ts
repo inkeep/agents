@@ -8,13 +8,13 @@ import {
   deleteTool,
   ErrorResponseSchema,
   getToolById,
-  IdParamsSchema,
   ListResponseSchema,
   listTools,
   type McpTool,
   McpToolSchema,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   ToolApiInsertSchema,
   ToolApiUpdateSchema,
@@ -34,7 +34,6 @@ type AppVariables = {
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-// List tools
 app.openapi(
   createRoute({
     method: 'get',
@@ -111,7 +110,6 @@ app.openapi(
   }
 );
 
-// Get tool by ID
 app.openapi(
   createRoute({
     method: 'get',
@@ -120,7 +118,7 @@ app.openapi(
     operationId: 'get-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -152,7 +150,6 @@ app.openapi(
   }
 );
 
-// Create tool
 app.openapi(
   createRoute({
     method: 'post',
@@ -211,7 +208,6 @@ app.openapi(
   }
 );
 
-// Update tool
 app.openapi(
   createRoute({
     method: 'put',
@@ -220,7 +216,7 @@ app.openapi(
     operationId: 'update-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -246,7 +242,6 @@ app.openapi(
     const body = c.req.valid('json');
     const credentialStores = c.get('credentialStores');
 
-    // Check if there are any fields to update
     if (Object.keys(body).length === 0) {
       throw createApiError({
         code: 'bad_request',
@@ -279,7 +274,6 @@ app.openapi(
   }
 );
 
-// Delete tool
 app.openapi(
   createRoute({
     method: 'delete',
@@ -288,7 +282,7 @@ app.openapi(
     operationId: 'delete-tool',
     tags: ['Tools'],
     request: {
-      params: TenantProjectParamsSchema.extend(IdParamsSchema.shape),
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {

@@ -6,6 +6,7 @@ import {
   createMessage,
   getCredentialReference,
   getExternalAgent,
+  SPAN_KEYS,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
@@ -15,7 +16,7 @@ import { A2AClient } from '../a2a/client';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { graphSessionManager } from '../services/GraphSession';
+import { agentSessionManager } from '../services/AgentSession';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
@@ -46,49 +47,57 @@ Delegate a specific task to agent ${config.id} when it seems like the agent can 
 export const createTransferToAgentTool = ({
   transferConfig,
   callingAgentId,
-  agent,
+  subAgent,
   streamRequestId,
 }: {
   transferConfig: AgentConfig;
   callingAgentId: string;
-  agent: any; // Will be properly typed as Agent, but avoiding circular import
+  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   streamRequestId?: string;
 }) => {
   return tool({
     description: generateTransferToolDescription(transferConfig),
     inputSchema: z.object({}),
     execute: async () => {
-      // Add span attributes to indicate transfer source and target
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
-          'transfer.from_agent_id': callingAgentId,
-          'transfer.to_agent_id': transferConfig.id ?? 'unknown',
+          [SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID]: callingAgentId,
+          [SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID]: transferConfig.id ?? 'unknown',
         });
       }
 
       logger.info(
         {
           transferTo: transferConfig.id ?? 'unknown',
-          fromAgent: callingAgentId,
+          fromSubAgent: callingAgentId,
         },
         'invoked transferToAgentTool'
       );
 
-      // Record transfer event in GraphSession
       if (streamRequestId) {
-        graphSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
-          fromAgent: callingAgentId,
-          targetAgent: transferConfig.id ?? 'unknown',
+        agentSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
+          fromSubAgent: callingAgentId,
+          targetSubAgent: transferConfig.id ?? 'unknown',
           reason: `Transfer to ${transferConfig.name || transferConfig.id}`,
         });
       }
 
-      return {
+      const transferResult = {
         type: 'transfer',
-        target: transferConfig.id ?? 'unknown',
-        fromAgentId: callingAgentId, // Include the calling agent ID for tracking
+        targetSubAgentId: transferConfig.id ?? 'unknown', // Changed from "target" for type safety
+        fromSubAgentId: callingAgentId, // Include the calling agent ID for tracking
       };
+
+      logger.info(
+        {
+          transferResult,
+          transferResultKeys: Object.keys(transferResult),
+        },
+        '[DEBUG] Transfer tool returning'
+      );
+
+      return transferResult;
     },
   });
 };
@@ -98,18 +107,18 @@ export function createDelegateToAgentTool({
   callingAgentId,
   tenantId,
   projectId,
-  graphId,
+  agentId,
   contextId,
   metadata,
   sessionId,
-  agent,
+  subAgent,
   credentialStoreRegistry,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   contextId: string;
   metadata: {
     conversationId: string;
@@ -119,36 +128,33 @@ export function createDelegateToAgentTool({
     apiKey?: string;
   };
   sessionId?: string;
-  agent: any; // Will be properly typed as Agent, but avoiding circular import
+  subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
   return tool({
     description: generateDelegateToolDescription(delegateConfig.config),
     inputSchema: z.object({ message: z.string() }),
     execute: async (input: { message: string }, context?: any) => {
-      // Generate unique delegation ID for tracking
       const delegationId = `del_${nanoid()}`;
 
-      // Add span attributes to indicate delegation source and target
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
         activeSpan.setAttributes({
-          'delegation.from_agent_id': callingAgentId,
-          'delegation.to_agent_id': delegateConfig.config.id ?? 'unknown',
-          'delegation.id': delegationId,
+          [SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID]: callingAgentId,
+          [SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID]: delegateConfig.config.id ?? 'unknown',
+          [SPAN_KEYS.DELEGATION_ID]: delegationId,
         });
       }
 
-      // Record delegation sent event in GraphSession
       if (metadata.streamRequestId) {
-        graphSessionManager.recordEvent(
+        agentSessionManager.recordEvent(
           metadata.streamRequestId,
           'delegation_sent',
           callingAgentId,
           {
             delegationId,
-            fromAgent: callingAgentId,
-            targetAgent: delegateConfig.config.id,
+            fromSubAgent: callingAgentId,
+            targetSubAgent: delegateConfig.config.id,
             taskDescription: input.message,
           }
         );
@@ -156,24 +162,21 @@ export function createDelegateToAgentTool({
 
       const isInternal = delegateConfig.type === 'internal';
 
-      // Get the base URL for the agent
       let _agentBaseUrl: string;
       let resolvedHeaders: Record<string, string> = {};
 
       if (!isInternal) {
         _agentBaseUrl = delegateConfig.config.baseUrl;
 
-        // For external agents, fetch configuration
         const externalAgent = await getExternalAgent(dbClient)({
           scopes: {
             tenantId,
             projectId,
-            graphId,
+            agentId,
           },
-          agentId: delegateConfig.config.id,
+          subAgentId: delegateConfig.config.id,
         });
 
-        // If the external agent has a credential reference ID or headers, resolve them
         if (
           externalAgent &&
           (externalAgent.credentialReferenceId || externalAgent.headers) &&
@@ -197,7 +200,6 @@ export function createDelegateToAgentTool({
 
           let storeReference: CredentialStoreReference | undefined;
           if (externalAgent.credentialReferenceId) {
-            // Get credential store configuration
             const credentialReference = await getCredentialReference(dbClient)({
               scopes: {
                 tenantId,
@@ -212,7 +214,6 @@ export function createDelegateToAgentTool({
               };
             }
           }
-          // Resolve credentials using CredentialStuffer
           resolvedHeaders = await credentialStuffer.getCredentialHeaders({
             context: credentialContext,
             storeReference,
@@ -224,12 +225,11 @@ export function createDelegateToAgentTool({
           Authorization: `Bearer ${metadata.apiKey}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
-          'x-inkeep-graph-id': graphId,
-          'x-inkeep-agent-id': delegateConfig.config.id,
+          'x-inkeep-agent-id': agentId,
+          'x-inkeep-sub-agent-id': delegateConfig.config.id,
         };
       }
 
-      // Configure retry behavior for A2A client with custom settings and resolved headers
       const a2aClient = new A2AClient(delegateConfig.config.baseUrl, {
         headers: resolvedHeaders,
         retryConfig: {
@@ -245,8 +245,6 @@ export function createDelegateToAgentTool({
         },
       });
 
-      // Create the message to send to the agent
-      // Keep streamRequestId for GraphSession access, add isDelegation flag to prevent streaming
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
@@ -258,13 +256,12 @@ export function createDelegateToAgentTool({
           isDelegation: true, // Flag to prevent streaming in delegated agents
           delegationId, // Include delegation ID for tracking
           ...(isInternal
-            ? { fromAgentId: callingAgentId }
+            ? { fromSubAgentId: callingAgentId }
             : { fromExternalAgentId: callingAgentId }),
         },
       };
       logger.info({ messageToSend }, 'messageToSend');
 
-      // Record the outgoing message to the agent
       await createMessage(dbClient)({
         id: nanoid(),
         tenantId: tenantId,
@@ -276,9 +273,9 @@ export function createDelegateToAgentTool({
         },
         visibility: isInternal ? 'internal' : 'external',
         messageType: 'a2a-request',
-        fromAgentId: callingAgentId,
+        fromSubAgentId: callingAgentId,
         ...(isInternal
-          ? { toAgentId: delegateConfig.config.id }
+          ? { toSubAgentId: delegateConfig.config.id }
           : { toExternalAgentId: delegateConfig.config.id }),
       });
 
@@ -290,20 +287,18 @@ export function createDelegateToAgentTool({
         throw new Error(response.error.message);
       }
 
-      // Save the response using the reusable function
       await saveA2AMessageResponse(response, {
         tenantId,
         projectId,
         conversationId: contextId,
         messageType: 'a2a-response',
         visibility: isInternal ? 'internal' : 'external',
-        toAgentId: callingAgentId,
+        toSubAgentId: callingAgentId,
         ...(isInternal
-          ? { fromAgentId: delegateConfig.config.id }
+          ? { fromSubAgentId: delegateConfig.config.id }
           : { fromExternalAgentId: delegateConfig.config.id }),
       });
 
-      // Record the delegation result as a tool result for the parent agent
       if (sessionId && context?.toolCallId) {
         const toolResult = {
           toolCallId: context.toolCallId,
@@ -315,16 +310,15 @@ export function createDelegateToAgentTool({
         toolSessionManager.recordToolResult(sessionId, toolResult);
       }
 
-      // Record delegation returned event in GraphSession
       if (metadata.streamRequestId) {
-        graphSessionManager.recordEvent(
+        agentSessionManager.recordEvent(
           metadata.streamRequestId,
           'delegation_returned',
           callingAgentId,
           {
             delegationId,
-            fromAgent: delegateConfig.config.id,
-            targetAgent: callingAgentId,
+            fromSubAgent: delegateConfig.config.id,
+            targetSubAgent: callingAgentId,
             result: response.result,
           }
         );

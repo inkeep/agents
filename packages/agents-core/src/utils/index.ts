@@ -6,4 +6,5 @@ export * from './error';
 export * from './execution';
 export * from './logger';
 export * from './mcp-client';
+export * from './schema-conversion';
 export * from './tracer-factory';

@@ -2,5 +2,110 @@
   {
     "source": "/",
     "destination": "/overview"
+  },
+  {
+    "source": "/visual-builder/graphs",
+    "destination": "/visual-builder/sub-agents",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/data-components",
+    "destination": "/typescript-sdk/structured-outputs/data-components",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/artifact-components",
+    "destination": "/typescript-sdk/structured-outputs/artifact-components",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/status-updates",
+    "destination": "/typescript-sdk/structured-outputs/status-updates",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/data-components",
+    "destination": "/visual-builder/structured-outputs/data-components",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/artifact-components",
+    "destination": "/visual-builder/structured-outputs/artifact-components",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/status-components",
+    "destination": "/visual-builder/structured-outputs/status-components",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/tools-and-mcp-servers",
+    "destination": "/typescript-sdk/tools/mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/create-mcp-servers",
+    "destination": "/typescript-sdk/tools/create-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/function-tools",
+    "destination": "/typescript-sdk/tools/function-tools",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/mcp-servers",
+    "destination": "/visual-builder/tools/mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/function-tools",
+    "destination": "/visual-builder/tools/function-tools",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/credentials",
+    "destination": "/typescript-sdk/tools/credentials",
+    "permanent": true
+  },
+  {
+    "source": "/visual-builder/credentials",
+    "destination": "/visual-builder/tools/credentials",
+    "permanent": true
+  },
+  {
+    "source": "/self-hosting/add-sentry",
+    "destination": "/self-hosting/add-other-services/sentry",
+    "permanent": true
+  },
+  {
+    "source": "/self-hosting/add-datadog-apm",
+    "destination": "/self-hosting/add-other-services/datadog-apm",
+    "permanent": true
+  },
+  {
+    "source": "/self-hosting/add-other-services/add-sentry",
+    "destination": "/self-hosting/add-other-services/sentry",
+    "permanent": true
+  },
+  {
+    "source": "/self-hosting/add-other-services/add-datadog-apm",
+    "destination": "/self-hosting/add-other-services/datadog-apm",
+    "permanent": true
+  },
+  {
+    "source": "/typescript-sdk/request-context",
+    "destination": "/typescript-sdk/headers",
+    "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/vercel-ai-sdk",
+    "destination": "/talk-to-your-agents/vercel-ai-sdk/use-chat",
+    "permanent": true
+  },
+  {
+    "source": "/talk-to-your-agents/api",
+    "destination": "/talk-to-your-agents/chat-api",
+    "permanent": true
   }
 ]

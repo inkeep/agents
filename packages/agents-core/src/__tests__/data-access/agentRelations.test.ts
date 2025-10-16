@@ -1,31 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createAgentRelation,
   createAgentToolRelation,
   createExternalAgentRelation,
-  deleteAgentRelation,
+  createSubAgentRelation,
   deleteAgentToolRelation,
+  deleteSubAgentRelation,
   getAgentRelationById,
   getAgentRelations,
   getAgentRelationsBySource,
-  getAgentRelationsByTarget,
   getExternalAgentRelations,
-  getRelatedAgentsForGraph,
+  getRelatedAgentsForAgent,
+  getSubAgentRelationsByTarget,
   getToolsForAgent,
   listAgentRelations,
   updateAgentRelation,
   updateAgentToolRelation,
   validateExternalAgent,
-  validateInternalAgent,
-} from '../../data-access/agentRelations';
+  validateInternalSubAgent,
+} from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
+import type { SubAgentRelationInsert } from '../../types/index';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
-  const testGraphId = 'test-graph';
+  const testAgentId = 'test-agent';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -38,14 +39,14 @@ describe('Agent Relations Data Access', () => {
         id: relationId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
-        targetAgentId: 'agent-2',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
+        targetSubAgentId: 'agent-2',
         relationType: 'transfer',
       };
 
       const mockQuery = {
-        agentRelations: {
+        subAgentRelations: {
           findFirst: vi.fn().mockResolvedValue(expectedRelation),
         },
       };
@@ -59,18 +60,18 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
 
-      expect(mockQuery.agentRelations.findFirst).toHaveBeenCalled();
+      expect(mockQuery.subAgentRelations.findFirst).toHaveBeenCalled();
       expect(result).toEqual(expectedRelation);
     });
 
     it('should return null if relation not found', async () => {
       const mockQuery = {
-        agentRelations: {
+        subAgentRelations: {
           findFirst: vi.fn().mockResolvedValue(null),
         },
       };
@@ -84,7 +85,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId: 'non-existent',
       });
@@ -96,8 +97,8 @@ describe('Agent Relations Data Access', () => {
   describe('listAgentRelations', () => {
     it('should list agent relations with pagination', async () => {
       const expectedRelations = [
-        { id: 'relation-1', sourceAgentId: 'agent-1', targetAgentId: 'agent-2' },
-        { id: 'relation-2', sourceAgentId: 'agent-2', targetAgentId: 'agent-3' },
+        { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
+        { id: 'relation-2', sourceSubAgentId: 'agent-2', targetSubAgentId: 'agent-3' },
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
@@ -136,7 +137,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         pagination: {
           page: 1,
@@ -158,11 +159,11 @@ describe('Agent Relations Data Access', () => {
   describe('getAgentRelations', () => {
     it('should get relations for a specific agent', async () => {
       const expectedRelations = [
-        { id: 'relation-1', sourceAgentId: 'agent-1', targetAgentId: 'agent-2' },
+        { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
       const mockQuery = {
-        agentRelations: {
+        subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(expectedRelations),
         },
       };
@@ -176,12 +177,12 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'agent-1',
+          agentId: testAgentId,
+          subAgentId: 'agent-1',
         },
       });
 
-      expect(mockQuery.agentRelations.findMany).toHaveBeenCalled();
+      expect(mockQuery.subAgentRelations.findMany).toHaveBeenCalled();
       expect(result).toEqual(expectedRelations);
     });
   });
@@ -189,7 +190,7 @@ describe('Agent Relations Data Access', () => {
   describe('getAgentRelationsBySource', () => {
     it('should get relations by source agent', async () => {
       const expectedRelations = [
-        { id: 'relation-1', sourceAgentId: 'agent-1', targetAgentId: 'agent-2' },
+        { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
@@ -228,9 +229,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        sourceAgentId: 'agent-1',
+        sourceSubAgentId: 'agent-1',
       });
 
       expect(mockSelect).toHaveBeenCalled();
@@ -247,7 +248,7 @@ describe('Agent Relations Data Access', () => {
   describe('getAgentRelationsByTarget', () => {
     it('should get relations by target agent', async () => {
       const expectedRelations = [
-        { id: 'relation-1', sourceAgentId: 'agent-1', targetAgentId: 'agent-2' },
+        { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
       const mockSelect = vi.fn().mockImplementation((fields) => {
@@ -282,13 +283,13 @@ describe('Agent Relations Data Access', () => {
       const originalPromiseAll = Promise.all;
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 1 }]]);
 
-      const result = await getAgentRelationsByTarget(mockDb)({
+      const result = await getSubAgentRelationsByTarget(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        targetAgentId: 'agent-2',
+        targetSubAgentId: 'agent-2',
       });
 
       expect(mockSelect).toHaveBeenCalled();
@@ -302,7 +303,7 @@ describe('Agent Relations Data Access', () => {
     });
   });
 
-  describe('getRelatedAgentsForGraph', () => {
+  describe('getRelatedAgentsForAgent', () => {
     it('should get both internal and external related agents', async () => {
       const internalRelations = [
         { id: 'agent-2', name: 'Agent 2', description: 'Internal agent', relationType: 'transfer' },
@@ -337,13 +338,13 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await getRelatedAgentsForGraph(mockDb)({
+      const result = await getRelatedAgentsForAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
       });
 
       expect(result).toEqual({
@@ -395,8 +396,8 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'agent-1',
+          agentId: testAgentId,
+          subAgentId: 'agent-1',
         },
       });
 
@@ -417,9 +418,9 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
-        targetAgentId: 'agent-2',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
+        targetSubAgentId: 'agent-2',
         relationType: 'transfer',
       };
 
@@ -434,7 +435,7 @@ describe('Agent Relations Data Access', () => {
         insert: mockInsert,
       } as any;
 
-      const result = await createAgentRelation(mockDb)(relationData);
+      const result = await createSubAgentRelation(mockDb)(relationData);
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result).toEqual(relationData);
@@ -445,9 +446,9 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
-        externalAgentId: 'ext-agent-1',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
+        externalSubAgentId: 'ext-agent-1',
         relationType: 'delegate',
       };
 
@@ -462,7 +463,7 @@ describe('Agent Relations Data Access', () => {
         insert: mockInsert,
       } as any;
 
-      const result = await createAgentRelation(mockDb)({
+      const result = await createSubAgentRelation(mockDb)({
         ...relationData,
       });
 
@@ -470,22 +471,22 @@ describe('Agent Relations Data Access', () => {
     });
 
     it('should throw error when both target and external agent are specified', async () => {
-      const relationData = {
+      const relationData: SubAgentRelationInsert = {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
-        targetAgentId: 'agent-2',
-        externalAgentId: 'ext-agent-1',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
+        targetSubAgentId: 'agent-2',
+        externalSubAgentId: 'ext-agent-1',
         relationType: 'transfer',
       };
 
       await expect(
-        createAgentRelation(db)({
+        createSubAgentRelation(db)({
           ...relationData,
         })
-      ).rejects.toThrow('Cannot specify both targetAgentId and externalAgentId');
+      ).rejects.toThrow('Cannot specify both targetSubAgentId and externalSubAgentId');
     });
 
     it('should throw error when neither target nor external agent is specified', async () => {
@@ -493,16 +494,16 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
         relationType: 'transfer',
       };
 
       await expect(
-        createAgentRelation(db)({
+        createSubAgentRelation(db)({
           ...relationData,
         })
-      ).rejects.toThrow('Must specify either targetAgentId or externalAgentId');
+      ).rejects.toThrow('Must specify either targetSubAgentId or externalSubAgentId');
     });
   });
 
@@ -512,9 +513,9 @@ describe('Agent Relations Data Access', () => {
         id: 'relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        graphId: testGraphId,
-        sourceAgentId: 'agent-1',
-        externalAgentId: 'ext-agent-1',
+        agentId: testAgentId,
+        sourceSubAgentId: 'agent-1',
+        externalSubAgentId: 'ext-agent-1',
         relationType: 'delegate',
       };
 
@@ -583,9 +584,9 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
-        externalAgentId: 'ext-1',
+        externalSubAgentId: 'ext-1',
       });
 
       expect(result).toEqual({
@@ -628,7 +629,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
         data: updateData,
@@ -652,11 +653,11 @@ describe('Agent Relations Data Access', () => {
         delete: mockDelete,
       } as any;
 
-      const result = await deleteAgentRelation(mockDb)({
+      const result = await deleteSubAgentRelation(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
@@ -672,7 +673,7 @@ describe('Agent Relations Data Access', () => {
         id: 'tool-relation-1',
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: 'agent-1',
+        subAgentId: 'agent-1',
         toolId: 'tool-1',
       };
 
@@ -691,10 +692,10 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId: 'tool-relation-1',
-        data: { agentId: 'agent-1', toolId: 'tool-1' },
+        data: { subAgentId: 'agent-1', toolId: 'tool-1' },
       });
 
       expect(mockInsert).toHaveBeenCalled();
@@ -732,7 +733,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
         data: updateData,
@@ -760,7 +761,7 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
+          agentId: testAgentId,
         },
         relationId,
       });
@@ -785,12 +786,12 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalAgent(mockDb)({
+      const result = await validateInternalSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'agent-1',
+          agentId: testAgentId,
+          subAgentId: 'agent-1',
         },
       });
 
@@ -811,12 +812,12 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalAgent(mockDb)({
+      const result = await validateInternalSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'non-existent',
+          agentId: testAgentId,
+          subAgentId: 'non-existent',
         },
       });
 
@@ -843,8 +844,8 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'ext-agent-1',
+          agentId: testAgentId,
+          subAgentId: 'ext-agent-1',
         },
       });
 
@@ -869,8 +870,8 @@ describe('Agent Relations Data Access', () => {
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
-          graphId: testGraphId,
-          agentId: 'non-existent',
+          agentId: testAgentId,
+          subAgentId: 'non-existent',
         },
       });
 

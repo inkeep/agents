@@ -9,30 +9,38 @@
 import { z } from 'zod';
 import { CredentialStoreType, MCPTransportType } from './types';
 
-// === Reusable StopWhen Schemas ===
-// Import from validation schemas
 import {
   type AgentStopWhen,
   AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
-  FullGraphAgentInsertSchema,
-  type GraphStopWhen,
-  GraphStopWhenSchema,
+  ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
+  FullAgentAgentInsertSchema,
+  type FunctionApiInsertSchema,
+  type ModelSettings,
+  ModelSettingsSchema,
   type StopWhen,
   StopWhenSchema,
+  type SubAgentStopWhen,
+  SubAgentStopWhenSchema,
 } from './validation/schemas';
 
-// Re-export StopWhen schemas and types for client usage
+export { validatePropsAsJsonSchema } from './validation/props-validation';
+
 export {
   StopWhenSchema,
-  GraphStopWhenSchema,
   AgentStopWhenSchema,
+  SubAgentStopWhenSchema,
   type StopWhen,
-  type GraphStopWhen,
   type AgentStopWhen,
+  type SubAgentStopWhen,
 };
 
-// Common parameter schemas
+export {
+  FunctionApiInsertSchema,
+  FunctionApiSelectSchema,
+  FunctionApiUpdateSchema,
+} from './validation/schemas';
+
 export const TenantParamsSchema = z.object({
   tenantId: z.string(),
 });
@@ -49,7 +57,6 @@ export const IdParamsSchema = z.object({
   id: z.string(),
 });
 
-// Response wrapper schemas
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
@@ -74,15 +81,8 @@ export const ErrorResponseSchema = z.object({
   details: z.unknown().optional(),
 });
 
-// Model Settings Schema
-export const ModelSettingsSchema = z.object({
-  model: z.string().optional(),
-  structuredOutput: z.string().optional(),
-  summarizer: z.string().optional(),
-  providerOptions: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
-});
+export { ModelSettingsSchema, type ModelSettings };
 
-// Agent API schemas (inline definitions to avoid DB imports)
 export const AgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -97,7 +97,6 @@ export const AgentApiInsertSchema = z.object({
   type: z.enum(['internal', 'external']).optional(),
 });
 
-// Tool API schemas (inline definitions)
 export const ToolApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -107,12 +106,11 @@ export const ToolApiInsertSchema = z.object({
   credentialReferenceId: z.string().optional(),
 });
 
-// API Key schemas
 export const ApiKeyApiSelectSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
   projectId: z.string(),
-  graphId: z.string(),
+  agentId: z.string(),
   publicId: z.string(),
   keyHash: z.string(),
   keyPrefix: z.string(),
@@ -130,7 +128,6 @@ export const ApiKeyApiCreationResponseSchema = z.object({
   }),
 });
 
-// Credential Reference API schemas
 export const CredentialReferenceApiInsertSchema = z.object({
   id: z.string(),
   tenantId: z.string().optional(),
@@ -140,7 +137,6 @@ export const CredentialReferenceApiInsertSchema = z.object({
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
 });
 
-// Data Component API schemas (inline definitions)
 export const DataComponentApiInsertSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -148,16 +144,8 @@ export const DataComponentApiInsertSchema = z.object({
   props: z.record(z.string(), z.unknown()),
 });
 
-// Artifact Component API schemas (inline definitions)
-export const ArtifactComponentApiInsertSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  summaryProps: z.record(z.string(), z.unknown()),
-  fullProps: z.record(z.string(), z.unknown()),
-});
+export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
 
-// Context Config API schemas (inline definitions)
 export const ContextConfigApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
@@ -166,7 +154,6 @@ export const ContextConfigApiInsertSchema = z.object({
   config: z.record(z.string(), z.unknown()).optional(),
 });
 
-// External Agent API schemas (inline definitions)
 export const ExternalAgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
@@ -177,28 +164,23 @@ export const ExternalAgentApiInsertSchema = z.object({
   type: z.literal('external').optional(),
 });
 
-// Agent Graph API schemas (inline definitions)
-export const AgentGraphApiInsertSchema = z.object({
+export const AgentAgentApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultSubAgentId: z.string().optional(),
 });
 
-// Full Graph Definition Schema - extends AgentGraph with agents and tools
-export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
-  agents: z.record(
+export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
+  subAgents: z.record(
     z.string(),
     z.union([
-      FullGraphAgentInsertSchema,
+      FullAgentAgentInsertSchema,
       ExternalAgentApiInsertSchema.extend({
         id: z.string(),
       }),
     ])
   ),
-  // Removed project-scoped resources - these are now managed at project level:
-  // tools, credentialReferences, dataComponents, artifactComponents
-  // Agent relationships to these resources are maintained via agent.tools, agent.dataComponents, etc.
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({
@@ -227,7 +209,7 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
       transferCountIs: z.number().min(1).max(100).optional(),
     })
     .optional(),
-  graphPrompt: z.string().max(5000).optional(),
+  prompt: z.string().max(5000).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),
@@ -253,9 +235,9 @@ export const FullGraphDefinitionSchema = AgentGraphApiInsertSchema.extend({
     .optional(),
 });
 
-// Export inferred types
 export type AgentApiInsert = z.infer<typeof AgentApiInsertSchema>;
 export type ToolApiInsert = z.infer<typeof ToolApiInsertSchema>;
+export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;
@@ -264,15 +246,13 @@ export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema
 export type ArtifactComponentApiInsert = z.infer<typeof ArtifactComponentApiInsertSchema>;
 export type ContextConfigApiInsert = z.infer<typeof ContextConfigApiInsertSchema>;
 export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
-export type AgentGraphApiInsert = z.infer<typeof AgentGraphApiInsertSchema>;
-export type FullGraphDefinition = z.infer<typeof FullGraphDefinitionSchema>;
-export type InternalAgentDefinition = z.infer<typeof FullGraphAgentInsertSchema>;
+export type AgentAgentApiInsert = z.infer<typeof AgentAgentApiInsertSchema>;
+export type FullAgentDefinition = z.infer<typeof FullAgentDefinitionSchema>;
+export type InternalAgentDefinition = z.infer<typeof FullAgentAgentInsertSchema>;
 export type ExternalAgentDefinition = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type TenantParams = z.infer<typeof TenantParamsSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
-export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 
-// Resource ID validation utilities (client-safe)
 export const MIN_ID_LENGTH = 1;
 export const MAX_ID_LENGTH = 255;
 export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
@@ -285,7 +265,6 @@ export const resourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   });
 
-// ID generation utility
 export function generateIdFromName(name: string): string {
   return name
     .toLowerCase()
@@ -295,9 +274,11 @@ export function generateIdFromName(name: string): string {
     .slice(0, MAX_ID_LENGTH);
 }
 
-// Type aliases for backward compatibility
 export type ToolInsert = ToolApiInsert;
-export type AgentGraphInsert = AgentGraphApiInsert;
+export type AgentAgentInsert = AgentAgentApiInsert;
 
-// Re-export utility types for client use
 export { CredentialStoreType, MCPTransportType };
+
+export * from './constants/otel-attributes';
+export * from './constants/signoz-queries';
+export { detectAuthenticationRequired } from './utils/auth-detection';

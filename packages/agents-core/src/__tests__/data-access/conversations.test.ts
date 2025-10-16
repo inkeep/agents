@@ -34,7 +34,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         userId: testUserId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'Test Conversation',
       };
 
@@ -87,7 +87,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         userId: testUserId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
       };
 
       const mockQuery = {
@@ -200,7 +200,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         userId: testUserId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'New Conversation',
         metadata: { userContext: { test: 'data' } },
       };
@@ -235,7 +235,7 @@ describe('Conversations Data Access', () => {
 
     it('should create a conversation without optional fields', async () => {
       const conversationData = {
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         id: 'conv-1',
         tenantId: testTenantId,
         projectId: testProjectId,
@@ -248,7 +248,7 @@ describe('Conversations Data Access', () => {
               id: expect.any(String),
               tenantId: testTenantId,
               projectId: testProjectId,
-              activeAgentId: 'agent-1',
+              activeSubAgentId: 'agent-1',
               createdAt: expect.any(String),
               updatedAt: expect.any(String),
             },
@@ -266,7 +266,7 @@ describe('Conversations Data Access', () => {
       });
 
       expect(mockInsert).toHaveBeenCalled();
-      expect(result.activeAgentId).toBe('agent-1');
+      expect(result.activeSubAgentId).toBe('agent-1');
     });
   });
 
@@ -275,7 +275,7 @@ describe('Conversations Data Access', () => {
       const conversationId = 'conv-1';
       const updateData = {
         title: 'Updated Title',
-        activeAgentId: 'agent-2',
+        activeSubAgentId: 'agent-2',
         metadata: { updated: true },
       };
 
@@ -306,7 +306,7 @@ describe('Conversations Data Access', () => {
 
       expect(mockUpdate).toHaveBeenCalled();
       expect(result.title).toBe(updateData.title);
-      expect(result.activeAgentId).toBe(updateData.activeAgentId);
+      expect(result.activeSubAgentId).toBe(updateData.activeSubAgentId);
     });
   });
 
@@ -370,7 +370,7 @@ describe('Conversations Data Access', () => {
             returning: vi.fn().mockResolvedValue([
               {
                 id: conversationId,
-                activeAgentId: newActiveAgentId,
+                activeSubAgentId: newActiveAgentId,
                 updatedAt: new Date().toISOString(),
               },
             ]),
@@ -386,11 +386,11 @@ describe('Conversations Data Access', () => {
       const result = await updateConversationActiveAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId,
-        activeAgentId: newActiveAgentId,
+        activeSubAgentId: newActiveAgentId,
       });
 
       expect(mockUpdate).toHaveBeenCalled();
-      expect(result.activeAgentId).toBe(newActiveAgentId);
+      expect(result.activeSubAgentId).toBe(newActiveAgentId);
     });
   });
 
@@ -401,7 +401,7 @@ describe('Conversations Data Access', () => {
         projectId: testProjectId,
         id: 'test-conversation',
         userId: testUserId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'New Conversation',
         metadata: { userContext: { test: 'data' } },
       };
@@ -426,14 +426,14 @@ describe('Conversations Data Access', () => {
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result.tenantId).toBe(testTenantId);
-      expect(result.activeAgentId).toBe('agent-1');
+      expect(result.activeSubAgentId).toBe('agent-1');
     });
 
     it('should return existing conversation when found', async () => {
       const existingConversation = {
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'Existing Conversation',
       };
 
@@ -441,7 +441,7 @@ describe('Conversations Data Access', () => {
         id: 'test-conversation',
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         conversationId: 'conv-1',
       };
 
@@ -466,7 +466,7 @@ describe('Conversations Data Access', () => {
       const existingConversation = {
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-1',
+        activeSubAgentId: 'agent-1',
         title: 'Existing Conversation',
       };
 
@@ -474,7 +474,7 @@ describe('Conversations Data Access', () => {
         id: 'test-conversation',
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-2', // Different agent
+        activeSubAgentId: 'agent-2', // Different agent
         conversationId: 'conv-1',
       };
 
@@ -500,7 +500,7 @@ describe('Conversations Data Access', () => {
 
       expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
       expect(mockUpdate).toHaveBeenCalled();
-      expect(result.activeAgentId).toBe('agent-2');
+      expect(result.activeSubAgentId).toBe('agent-2');
     });
   });
 
@@ -510,7 +510,7 @@ describe('Conversations Data Access', () => {
         id: testConversationId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-123',
+        activeSubAgentId: 'agent-123',
         userId: 'user-123',
         title: 'Test Conversation',
         createdAt: '2024-01-01T00:00:00Z',
@@ -574,7 +574,7 @@ describe('Conversations Data Access', () => {
       await setActiveAgentForConversation(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: testConversationId,
-        agentId: 'agent-456',
+        subAgentId: 'agent-456',
       });
 
       expect(mockInsert).toHaveBeenCalled();
@@ -583,7 +583,7 @@ describe('Conversations Data Access', () => {
         id: testConversationId,
         tenantId: testTenantId,
         projectId: testProjectId,
-        activeAgentId: 'agent-456',
+        activeSubAgentId: 'agent-456',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
@@ -592,7 +592,7 @@ describe('Conversations Data Access', () => {
       expect(onConflictCall).toHaveBeenCalledWith({
         target: [expect.anything(), expect.anything(), expect.anything()],
         set: {
-          activeAgentId: 'agent-456',
+          activeSubAgentId: 'agent-456',
           updatedAt: expect.any(String),
         },
       });
@@ -848,7 +848,7 @@ describe('Conversations Data Access', () => {
           tenantId: testTenantId,
           projectId: testProjectId,
           id: 'conv-123',
-          activeAgentId: 'agent-1',
+          activeSubAgentId: 'agent-1',
         })
       ).rejects.toThrow('DB Error');
     });

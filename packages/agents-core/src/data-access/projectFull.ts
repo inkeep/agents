@@ -1,24 +1,24 @@
 /**
  * Server-side data access layer for Full Project operations.
  * This module provides functions for creating, retrieving, updating, and deleting
- * complete project definitions with all nested resources (graphs, agents, tools, etc.).
+ * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
-import { listAgentGraphs } from './agentGraphs';
+import {
+  createFullAgentServerSide,
+  deleteFullAgent,
+  getFullAgent,
+  updateFullAgentServerSide,
+} from './agentFull';
+import { listAgents } from './agents';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listContextConfigs } from './contextConfigs';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
-import {
-  createFullGraphServerSide,
-  deleteFullGraph,
-  getFullGraph,
-  updateFullGraphServerSide,
-} from './graphFull';
+import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
 
@@ -30,13 +30,12 @@ export type ProjectLogger = ReturnType<typeof getLogger>;
  * Validate and type the project data
  */
 function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
-  // The validation should already be done at the API layer
   return projectData as FullProjectDefinition;
 }
 
 /**
  * Server-side implementation of createFullProject that performs actual database operations.
- * This function creates a complete project with all graphs and their nested resources.
+ * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
@@ -51,13 +50,12 @@ export const createFullProjectServerSide =
       {
         tenantId,
         projectId: typed.id,
-        graphCount: Object.keys(typed.graphs || {}).length,
+        agentCount: Object.keys(typed.agents || {}).length,
       },
       'Creating full project in database'
     );
 
     try {
-      // Step 1: Create the project itself
       const projectPayload = {
         id: typed.id,
         name: typed.name,
@@ -73,7 +71,6 @@ export const createFullProjectServerSide =
       await createProject(db)(projectPayload);
       logger.info({ projectId: typed.id }, 'Project metadata created successfully');
 
-      // Step 2: Create credentialReferences at project level if they exist
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
           {
@@ -121,7 +118,41 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 3: Create tools at project level if they exist
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Creating project function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+                scopes: { tenantId, projectId: typed.id },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Project function created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to create global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All project functions created successfully'
+        );
+      }
+
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -161,7 +192,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 5: Create dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -209,7 +239,6 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 6: Create artifactComponents at project level if they exist
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
         logger.info(
           {
@@ -257,59 +286,55 @@ export const createFullProjectServerSide =
         );
       }
 
-      // Step 7: Create all graphs if they exist
-      if (typed.graphs && Object.keys(typed.graphs).length > 0) {
+      if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
             projectId: typed.id,
-            graphCount: Object.keys(typed.graphs).length,
+            agentCount: Object.keys(typed.agents).length,
           },
-          'Creating project graphs'
+          'Creating project agent'
         );
 
-        const graphPromises = Object.entries(typed.graphs).map(async ([graphId, graphData]) => {
+        const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, graphId }, 'Creating graph in project');
+            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
 
-            // Create the full graph with project scoping
-            // When creating graphs within a project context, we need to pass the project-level resources
-            // for validation, even though they're stored at the project level
-            const graphDataWithProjectResources = {
-              ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+            const agentDataWithProjectResources = {
+              ...agentData,
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},
-              statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
+              statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullGraphServerSide(db, logger)(
+            await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              graphDataWithProjectResources
+              agentDataWithProjectResources
             );
 
-            logger.info({ projectId: typed.id, graphId }, 'Graph created successfully in project');
+            logger.info({ projectId: typed.id, agentId }, 'Agent created successfully in project');
           } catch (error) {
             logger.error(
-              { projectId: typed.id, graphId, error },
-              'Failed to create graph in project'
+              { projectId: typed.id, agentId, error },
+              'Failed to create agent in project'
             );
             throw error;
           }
         });
 
-        await Promise.all(graphPromises);
+        await Promise.all(agentPromises);
         logger.info(
           {
             projectId: typed.id,
-            graphCount: Object.keys(typed.graphs).length,
+            agentCount: Object.keys(typed.agents).length,
           },
-          'All project graphs created successfully'
+          'All project agent created successfully'
         );
       }
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      // Return the complete project definition
       return (await getFullProject(
         db,
         logger
@@ -331,7 +356,7 @@ export const createFullProjectServerSide =
 
 /**
  * Server-side implementation of updateFullProject that performs actual database operations.
- * This function updates a complete project with all graphs and their nested resources.
+ * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
@@ -350,19 +375,17 @@ export const updateFullProjectServerSide =
       {
         tenantId,
         projectId: typed.id,
-        graphCount: Object.keys(typed.graphs || {}).length,
+        agentCount: Object.keys(typed.agents || {}).length,
       },
       'Updating full project in database'
     );
 
     try {
-      // Check if project exists first
       const existingProject = await getProject(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
       if (!existingProject) {
-        // Project doesn't exist, create it instead
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
         return await createFullProjectServerSide(db, logger)(
           { tenantId, projectId: typed.id },
@@ -370,7 +393,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 1: Update the project itself
       const projectUpdatePayload = {
         name: typed.name,
         description: typed.description || '',
@@ -385,7 +407,6 @@ export const updateFullProjectServerSide =
       });
       logger.info({ projectId: typed.id }, 'Project metadata updated successfully');
 
-      // Step 2: Update credentialReferences at project level if they exist
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
         logger.info(
           {
@@ -433,7 +454,49 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 3: Update tools at project level if they exist
+      if (typed.functions && Object.keys(typed.functions).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'Updating project functions'
+        );
+
+        const functionPromises = Object.entries(typed.functions).map(
+          async ([functionId, functionData]) => {
+            try {
+              logger.info({ projectId: typed.id, functionId }, 'Updating project function');
+              await upsertFunction(db)({
+                data: {
+                  ...functionData,
+                },
+                scopes: { tenantId, projectId: typed.id },
+              });
+              logger.info(
+                { projectId: typed.id, functionId },
+                'Project function updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, functionId, error },
+                'Failed to update global function'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(functionPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            functionCount: Object.keys(typed.functions).length,
+          },
+          'All project functions updated successfully'
+        );
+      }
+
       if (typed.tools && Object.keys(typed.tools).length > 0) {
         logger.info(
           {
@@ -473,7 +536,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 5: Update dataComponents at project level if they exist
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -521,7 +583,6 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 6: Update artifactComponents at project level if they exist
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
         logger.info(
           {
@@ -569,100 +630,92 @@ export const updateFullProjectServerSide =
         );
       }
 
-      // Step 6a: Delete graphs that are no longer in the project definition
-      const incomingGraphIds = new Set(Object.keys(typed.graphs || {}));
+      const incomingAgentIds = new Set(Object.keys(typed.agents || {}));
 
-      // Get existing graphs for this project
-      const existingGraphs = await listAgentGraphs(db)({
+      const existingAgents = await listAgents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      // Delete graphs not in incoming set
-      let deletedGraphCount = 0;
-      for (const graph of existingGraphs) {
-        if (!incomingGraphIds.has(graph.id)) {
+      let deletedAgentCount = 0;
+      for (const agent of existingAgents) {
+        if (!incomingAgentIds.has(agent.id)) {
           try {
-            await deleteFullGraph(
+            await deleteFullAgent(
               db,
               logger
             )({
-              scopes: { tenantId, projectId: typed.id, graphId: graph.id },
+              scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
-            deletedGraphCount++;
-            logger.info({ graphId: graph.id }, 'Deleted orphaned graph from project');
+            deletedAgentCount++;
+            logger.info({ agentId: agent.id }, 'Deleted orphaned agent from project');
           } catch (error) {
             logger.error(
-              { graphId: graph.id, error },
-              'Failed to delete orphaned graph from project'
+              { agentId: agent.id, error },
+              'Failed to delete orphaned agent from project'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
 
-      if (deletedGraphCount > 0) {
+      if (deletedAgentCount > 0) {
         logger.info(
           {
-            deletedGraphCount,
+            deletedAgentCount,
             projectId: typed.id,
           },
-          'Deleted orphaned graphs from project'
+          'Deleted orphaned agent from project'
         );
       }
 
-      // Step 7: Update all graphs if they exist
-      if (typed.graphs && Object.keys(typed.graphs).length > 0) {
+      if (typed.agents && Object.keys(typed.agents).length > 0) {
         logger.info(
           {
             projectId: typed.id,
-            graphCount: Object.keys(typed.graphs).length,
+            agentCount: Object.keys(typed.agents).length,
           },
-          'Updating project graphs'
+          'Updating project agent'
         );
 
-        const graphPromises = Object.entries(typed.graphs).map(async ([graphId, graphData]) => {
+        const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, graphId }, 'Updating graph in project');
+            logger.info({ projectId: typed.id, agentId }, 'Updating agent in project');
 
-            // Update/create the full graph with project scoping
-            // When updating graphs within a project context, we need to pass the project-level resources
-            // for validation, even though they're stored at the project level
-            const graphDataWithProjectResources = {
-              ...graphData,
-              tools: typed.tools || {}, // Pass project-level resources for validation
+            const agentDataWithProjectResources = {
+              ...agentData,
+              tools: typed.tools || {}, // Pass project-level MCP tools for validation
+              functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
               credentialReferences: typed.credentialReferences || {},
-              statusUpdates: graphData.statusUpdates === null ? undefined : graphData.statusUpdates,
+              statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullGraphServerSide(db, logger)(
+            await updateFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              graphDataWithProjectResources
+              agentDataWithProjectResources
             );
 
-            logger.info({ projectId: typed.id, graphId }, 'Graph updated successfully in project');
+            logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
             logger.error(
-              { projectId: typed.id, graphId, error },
-              'Failed to update graph in project'
+              { projectId: typed.id, agentId, error },
+              'Failed to update agent in project'
             );
             throw error;
           }
         });
 
-        await Promise.all(graphPromises);
+        await Promise.all(agentPromises);
         logger.info(
           {
             projectId: typed.id,
-            graphCount: Object.keys(typed.graphs).length,
+            agentCount: Object.keys(typed.agents).length,
           },
-          'All project graphs updated successfully'
+          'All project agent updated successfully'
         );
       }
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      // Return the complete updated project definition
       return (await getFullProject(
         db,
         logger
@@ -694,7 +747,6 @@ export const getFullProject =
     logger.info({ tenantId, projectId }, 'Retrieving full project definition');
 
     try {
-      // Step 1: Get the project metadata
       const project: ProjectSelect | null = await getProject(db)({
         scopes: { tenantId, projectId },
       });
@@ -706,8 +758,7 @@ export const getFullProject =
 
       logger.info({ tenantId, projectId }, 'Project metadata retrieved');
 
-      // Step 2: Get all graphs for this project
-      const graphList = await listAgentGraphs(db)({
+      const agentList = await listAgents(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -715,12 +766,11 @@ export const getFullProject =
         {
           tenantId,
           projectId,
-          graphCount: graphList.length,
+          agentCount: agentList.length,
         },
-        'Found graphs for project'
+        'Found agent for project'
       );
 
-      // Step 3: Get all tools for this project
       const projectTools: Record<string, ToolApiInsert> = {};
       try {
         const toolsList = await listTools(db)({
@@ -737,8 +787,6 @@ export const getFullProject =
             imageUrl: tool.imageUrl || undefined,
             capabilities: tool.capabilities || undefined,
             lastError: tool.lastError || undefined,
-            // Don't include runtime fields in configuration
-            // status, lastHealthCheck, availableTools, activeTools, lastToolsSync are all runtime
           };
         }
         logger.info(
@@ -749,7 +797,6 @@ export const getFullProject =
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
       }
 
-      // Step 4: Get all dataComponents for this project
       const projectDataComponents: Record<string, any> = {};
       try {
         const dataComponentsList = await listDataComponents(db)({
@@ -775,7 +822,6 @@ export const getFullProject =
         );
       }
 
-      // Step 5: Get all artifactComponents for this project
       const projectArtifactComponents: Record<string, any> = {};
       try {
         const artifactComponentsList = await listArtifactComponents(db)({
@@ -787,8 +833,7 @@ export const getFullProject =
             id: component.id,
             name: component.name,
             description: component.description,
-            summaryProps: component.summaryProps,
-            fullProps: component.fullProps,
+            props: component.props,
           };
         }
         logger.info(
@@ -802,34 +847,6 @@ export const getFullProject =
         );
       }
 
-      // Step 6: Get all contextConfigs for this project
-      const projectContextConfigs: Record<string, any> = {};
-      try {
-        const contextConfigsList = await listContextConfigs(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const config of contextConfigsList) {
-          projectContextConfigs[config.id] = {
-            id: config.id,
-            name: config.name,
-            description: config.description,
-            requestContextSchema: config.requestContextSchema,
-            contextVariables: config.contextVariables,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectContextConfigs).length },
-          'ContextConfigs retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve contextConfigs for project'
-        );
-      }
-
-      // Step 7: Get all credentialReferences for this project
       const projectCredentialReferences: Record<string, any> = {};
       try {
         const credentialReferencesList = await listCredentialReferences(db)({
@@ -855,40 +872,38 @@ export const getFullProject =
         );
       }
 
-      // Step 8: Get full definitions for each graph
-      const graphs: Record<string, any> = {};
+      const agents: Record<string, any> = {};
 
-      if (graphList.length > 0) {
-        const graphPromises = graphList.map(async (graph) => {
+      if (agentList.length > 0) {
+        const agentPromises = agentList.map(async (agent) => {
           try {
             logger.info(
-              { tenantId, projectId, graphId: graph.id },
-              'Retrieving full graph definition'
+              { tenantId, projectId, agentId: agent.id },
+              'Retrieving full agent definition'
             );
 
-            const fullGraph = await getFullGraph(db)({
-              scopes: { tenantId, projectId, graphId: graph.id },
+            const fullAgent = await getFullAgent(db)({
+              scopes: { tenantId, projectId, agentId: agent.id },
             });
 
-            if (fullGraph) {
-              graphs[graph.id] = fullGraph;
+            if (fullAgent) {
+              agents[agent.id] = fullAgent;
               logger.info(
-                { tenantId, projectId, graphId: graph.id },
-                'Full graph definition retrieved'
+                { tenantId, projectId, agentId: agent.id },
+                'Full agent definition retrieved'
               );
             } else {
-              logger.warn({ tenantId, projectId, graphId: graph.id }, 'Graph definition not found');
+              logger.warn({ tenantId, projectId, agentId: agent.id }, 'Agent definition not found');
             }
           } catch (error) {
             logger.error(
-              { tenantId, projectId, graphId: graph.id, error },
-              'Failed to retrieve full graph definition'
+              { tenantId, projectId, agentId: agent.id, error },
+              'Failed to retrieve full agent definition'
             );
-            // Don't throw - continue with other graphs
           }
         });
 
-        await Promise.all(graphPromises);
+        await Promise.all(agentPromises);
       }
 
       // Ensure project has required models configuration
@@ -904,7 +919,7 @@ export const getFullProject =
         description: project.description,
         models: project.models,
         stopWhen: project.stopWhen || undefined,
-        graphs,
+        agents,
         tools: projectTools,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,
@@ -917,7 +932,7 @@ export const getFullProject =
         {
           tenantId,
           projectId,
-          graphCount: Object.keys(fullProjectDefinition.graphs).length,
+          agentCount: Object.keys(fullProjectDefinition.agents).length,
         },
         'Full project definition retrieved'
       );
@@ -948,7 +963,6 @@ export const deleteFullProject =
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      // Step 1: Get the project first to ensure it exists and get its graphs
       const project = await getFullProject(
         db,
         logger
@@ -961,53 +975,51 @@ export const deleteFullProject =
         return false;
       }
 
-      // Step 2: Delete all graphs in the project
-      if (project.graphs && Object.keys(project.graphs).length > 0) {
+      if (project.agents && Object.keys(project.agents).length > 0) {
         logger.info(
           {
             tenantId,
             projectId,
-            graphCount: Object.keys(project.graphs).length,
+            agentCount: Object.keys(project.agents).length,
           },
-          'Deleting project graphs'
+          'Deleting project agent'
         );
 
-        const graphPromises = Object.keys(project.graphs).map(async (graphId) => {
+        const agentPromises = Object.keys(project.agents).map(async (agentId) => {
           try {
-            logger.info({ tenantId, projectId, graphId }, 'Deleting graph from project');
+            logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
 
-            await deleteFullGraph(
+            await deleteFullAgent(
               db,
               logger
             )({
-              scopes: { tenantId, projectId, graphId },
+              scopes: { tenantId, projectId, agentId },
             });
 
             logger.info(
-              { tenantId, projectId, graphId },
-              'Graph deleted successfully from project'
+              { tenantId, projectId, agentId },
+              'Agent deleted successfully from project'
             );
           } catch (error) {
             logger.error(
-              { tenantId, projectId, graphId, error },
-              'Failed to delete graph from project'
+              { tenantId, projectId, agentId, error },
+              'Failed to delete agent from project'
             );
             throw error;
           }
         });
 
-        await Promise.all(graphPromises);
+        await Promise.all(agentPromises);
         logger.info(
           {
             tenantId,
             projectId,
-            graphCount: Object.keys(project.graphs).length,
+            agentCount: Object.keys(project.agents).length,
           },
-          'All project graphs deleted successfully'
+          'All project agent deleted successfully'
         );
       }
 
-      // Step 3: Delete the project itself
       const deleted = await deleteProject(db)({
         scopes: { tenantId, projectId },
       });

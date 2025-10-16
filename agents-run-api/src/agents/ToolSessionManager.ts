@@ -51,7 +51,7 @@ export class ToolSessionManager {
   }
 
   /**
-   * Create a new tool session with a specific ID (for coordination with GraphSession)
+   * Create a new tool session with a specific ID (for coordination with AgentSession)
    */
   createSessionWithId(
     sessionId: string,
@@ -85,10 +85,10 @@ export class ToolSessionManager {
   }
 
   /**
-   * Ensure a graph-scoped session exists (idempotent)
-   * All agents in the same graph execution share this session
+   * Ensure an agent-scoped session exists (idempotent)
+   * All agents in the same agent execution share this session
    */
-  ensureGraphSession(
+  ensureAgentSession(
     sessionId: string,
     tenantId: string,
     projectId: string,
@@ -96,13 +96,13 @@ export class ToolSessionManager {
     taskId: string
   ): string {
     if (this.sessions.has(sessionId)) {
-      logger.debug({ sessionId }, 'Graph session already exists, reusing');
+      logger.debug({ sessionId }, 'Agent session already exists, reusing');
       return sessionId;
     }
 
     logger.debug(
       { sessionId, tenantId, contextId, taskId },
-      'Creating new graph-scoped tool session'
+      'Creating new agent-scoped tool session'
     );
     return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
   }

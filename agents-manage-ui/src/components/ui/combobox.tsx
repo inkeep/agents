@@ -44,7 +44,7 @@ export function Combobox({
   defaultValue,
   searchPlaceholder = 'Search...',
   placeholder = '...',
-  notFoundMessage = 'Not found',
+  notFoundMessage = 'Not found.',
   shouldCloseOnSelect = true,
   TriggerComponent,
   onOpenChange,

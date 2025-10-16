@@ -9,11 +9,18 @@ function createMockMcpTool(name: string, availableTools: any[]): McpTool {
   return {
     id: `tool-${name}`,
     name,
-    config: { mcp: { server: { url: 'http://example.com' } } },
+    tenantId: 'test-tenant',
+    projectId: 'test-project',
+    description: '',
+    config: {
+      type: 'mcp',
+      mcp: { server: { url: 'http://example.com' } },
+    },
     availableTools,
+    status: 'healthy',
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as McpTool;
+  };
 }
 
 describe('SystemPromptBuilder', () => {

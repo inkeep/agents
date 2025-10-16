@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function isMacOs() {
-  return typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
+  return navigator?.userAgent.includes('Mac');
 }
 
 export function cn(...inputs: ClassValue[]) {

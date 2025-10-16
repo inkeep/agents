@@ -6,7 +6,6 @@ import {
 } from '@inkeep/agents-core';
 import { createManagementHono } from './app';
 
-// Create default configuration
 const defaultConfig: ServerConfig = {
   port: 3002,
   serverOptions: {
@@ -16,11 +15,9 @@ const defaultConfig: ServerConfig = {
   },
 };
 
-// Create default credential stores
 const defaultStores = createDefaultCredentialStores();
 const defaultRegistry = new CredentialStoreRegistry(defaultStores);
 
-// Create default app instance for simple usage
 const app = createManagementHono(defaultConfig, defaultRegistry);
 
 // Export the default app for Vite dev server and simple deployments

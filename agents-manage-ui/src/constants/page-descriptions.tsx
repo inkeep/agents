@@ -21,18 +21,18 @@ export const dataComponentDescription = (
   </>
 );
 
-export const graphDescription = (
+export const agentDescription = (
   <>
-    Graphs are visual representations of the data flow between agents and tools.
+    Agents are visual representations of the data flow between sub agents and tools.
     {'\n'}
-    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/graphs`}>Learn more</ExternalLink>
+    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
   </>
 );
 
 export const apiKeyDescription = (
   <>
-    API keys are use to authenticate against the Inkeep Agents Run API. They are associated with a
-    graph and can be used to chat with the graph programmatically.
+    API keys are use to authenticate against the Inkeep Agents Run API. They are associated with an
+    agent and can be used to chat with the agent programmatically.
     {'\n'}
   </>
 );

@@ -32,7 +32,7 @@ export class PinoLogger {
   ) {
     this.options = {
       name: this.name,
-      level: process.env.LOG_LEVEL || 'info',
+      level: process.env.LOG_LEVEL || (process.env.ENVIRONMENT === 'test' ? 'silent' : 'info'),
       serializers: {
         obj: (value: any) => ({ ...value }),
       },
@@ -194,7 +194,6 @@ class LoggerFactory {
       return logger;
     }
 
-    // Create logger using factory or default
     let logger: PinoLogger;
     if (this.config.loggerFactory) {
       logger = this.config.loggerFactory(name);

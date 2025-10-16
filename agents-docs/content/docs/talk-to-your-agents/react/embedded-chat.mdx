@@ -10,16 +10,17 @@ The InkeepEmbeddedChat component provides a fully embedded chat interface that y
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/cxkit-react-oss
+npm install @inkeep/agents-ui
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/cxkit-react-oss
+yarn add @inkeep/agents-ui
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/cxkit-react-oss
+pnpm add @inkeep/agents-ui
 ```
+
 </CodeGroup>
 
 ## Quick Start
@@ -30,12 +31,12 @@ pnpm add @inkeep/cxkit-react-oss
     Use an API key for secure authentication in production:
     
     ```tsx
-    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/cxkit-react-oss";
+    import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from "@inkeep/agents-ui";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          graphUrl: "https://your-api.example.com/api/chat",
+          agentUrl: "https://your-api.example.com/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
       };
@@ -43,32 +44,33 @@ pnpm add @inkeep/cxkit-react-oss
       return <InkeepEmbeddedChat {...embeddedChatProps} />;
     }
     ```
-    
+
     **To get an API key:**
     1. Open the Visual Builder Dashboard
     2. Navigate to your Project → **API Keys**
-    3. Click **Create New Key** and select your agent graph
+    3. Click **Create New Key** and select your agent
     4. Copy the key (shown once) and store it in your environment variables
+
   </Tab>
   
   <Tab title="Development">
     
-    For local development, use headers with your graph IDs:
-    
+    For local development, use headers with your agent IDs:
+
     ```tsx
     import {
       InkeepEmbeddedChat,
       type InkeepEmbeddedChatProps,
-    } from "@inkeep/cxkit-react-oss";
+    } from "@inkeep/agents-ui";
 
     export default function App() {
       const embeddedChatProps: InkeepEmbeddedChatProps = {
         aiChatSettings: {
-          graphUrl: "http://localhost:3003/api/chat",
+          agentUrl: "http://localhost:3003/api/chat",
           headers: {
             "x-inkeep-tenant-id": "your-tenant-id",
             "x-inkeep-project-id": "your-project-id",
-            "x-inkeep-graph-id": "your-graph-id",
+            "x-inkeep-agent-id": "your-agent-id",
           },
         },
       };
@@ -76,7 +78,10 @@ pnpm add @inkeep/cxkit-react-oss
       return <InkeepEmbeddedChat {...embeddedChatProps} />;
     }
     ```
-    
+
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
   </Tab>
 </Tabs>
+
+<Snippet file="ui/CustomizationTip.mdx" />

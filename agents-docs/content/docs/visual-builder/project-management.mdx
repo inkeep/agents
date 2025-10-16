@@ -6,7 +6,7 @@ icon: "LuFolder"
 
 ## Overview
 
-Projects are the top-level organizational unit in the Inkeep Agent Framework. Each project contains its own agents, graphs, tools, and resources. This allows you to separate different applications or environments within a single tenant.
+Projects are the top-level organizational unit in the Inkeep Agent Framework. Each project contains its own agents, tools, and resources. This allows you to separate different applications or environments within a single tenant.
 
 ## Creating a Project
 
@@ -39,7 +39,7 @@ When creating a project, you'll need to provide:
 
 Each project can contain:
 
-- **Agent Graphs**: Collections of AI agents that work together
+- **Agents**: Collections of AI agents that work together
 - **API Keys**: Authentication keys for accessing your agents via API
 - **MCP Servers**: Model Context Protocol servers for external tools
 - **Data Components**: Reusable data structures for your agents
@@ -48,11 +48,11 @@ Each project can contain:
 
 ## Project-Level Configuration
 
-Projects can define default configurations that cascade down to all graphs and agents within the project. This provides a consistent baseline while allowing specific overrides where needed.
+Projects can define default configurations that cascade down to all agents and Sub Agents within the project. This provides a consistent baseline while allowing specific overrides where needed.
 
 ### Model Settings
 
-Define default models at the project level that all graphs and agents will inherit:
+Define default models at the project level that all agents and Sub Agents will inherit:
 
 ```typescript
 // Project configuration
@@ -61,21 +61,21 @@ Define default models at the project level that all graphs and agents will inher
   name: "My AI Project",
   models: {
     base: {
-      model: "anthropic/claude-sonnet-4-20250514",
+      model: "anthropic/claude-sonnet-4-5",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
       }
     },
     structuredOutput: {
-      model: "openai/gpt-4o-mini-2024-07-18",
+      model: "openai/gpt-4.1-mini",
       providerOptions: {
         temperature: 0.1,
         maxTokens: 2048
       }
     },
     summarizer: {
-      model: "openai/gpt-4o-mini-2024-07-18",
+      model: "openai/gpt-4.1-nano",
       providerOptions: {
         temperature: 0.3,
         maxTokens: 1024
@@ -87,14 +87,14 @@ Define default models at the project level that all graphs and agents will inher
 
 ### StopWhen Configuration
 
-Configure default stopping conditions that apply across your project:
+Configure default stopping conditions to prevent infinite loops:
 
 ```typescript
 {
   id: "my-project",
   stopWhen: {
-    transferCountIs: 5,    // Max transfers within a single conversation/session
-    stepCountIs: 20       // Max generation steps per individual agent execution
+    transferCountIs: 5,    // Max transfers between Sub Agents per conversation
+    stepCountIs: 20        // Max tool calls + LLM responses per Sub Agent execution
   }
 }
 ```
@@ -105,7 +105,7 @@ The framework uses a cascading inheritance system with specific rules for differ
 
 ### Model Inheritance - Partial Cascading
 
-**Project** → **Graph** → **Agent**
+**Project** → **Agent** → **Sub Agent**
 
 The framework supports **partial cascading**, meaning each level can override specific model types while inheriting others. This provides maximum flexibility while maintaining sensible defaults.
 
@@ -114,41 +114,41 @@ The framework supports **partial cascading**, meaning each level can override sp
 Each model type (`base`, `structuredOutput`, `summarizer`) cascades independently:
 
 ```typescript
-// Project Level - Sets defaults for all graphs
+// Project Level - Sets defaults for all agents
 Project: {
   models: {
-    base: { model: "claude-sonnet-4" },
-    structuredOutput: { model: "gpt-4.1-mini" },
-    summarizer: { model: "gpt-4.1-mini" }
+    base: { model: "anthropic/claude-sonnet-4-5" },
+    structuredOutput: { model: "openai/gpt-4.1-mini" },
+    summarizer: { model: "openai/gpt-4.1-nano" }
   }
 }
 
-// Graph Level - Partially overrides project defaults
-Graph: {
-  models: {
-    base: { model: "gpt-4.1" }  // Override: use different base model
-    // structuredOutput: INHERITED from project (gpt-4.1-mini)
-    // summarizer: INHERITED from project (gpt-4.1-mini)
-  }
-}
-
-// Agent Level - Can override any inherited model
+// Agent Level - Partially overrides project defaults
 Agent: {
   models: {
-    summarizer: { model: "claude-3.5-haiku" }  // Override: use faster summarizer
-    // base: INHERITED from graph (gpt-4.1)
-    // structuredOutput: INHERITED from project (gpt-4.1-mini)
+    base: { model: "openai/gpt-4.1" }  // Override: use different base model
+    // structuredOutput: INHERITED from project (openai/gpt-4.1-mini)
+    // summarizer: INHERITED from project (openai/gpt-4.1-nano)
+  }
+}
+
+// Sub Agent Level - Can override any inherited model
+Sub Agent: {
+  models: {
+    summarizer: { model: "anthropic/claude-haiku-4-5" }  // Override: use faster summarizer
+    // base: INHERITED from Agent (openai/gpt-4.1)
+    // structuredOutput: INHERITED from project (openai/gpt-4.1-nano)
   }
 }
 ```
 
 #### Final Resolution Example
 
-In the above example, the agent ends up with:
+In the above example, the Sub Agent ends up with:
 
-- **base**: `gpt-4.1` (from graph)
+- **base**: `gpt-4.1` (from Agent)
 - **structuredOutput**: `gpt-4.1-mini` (from project)
-- **summarizer**: `claude-3.5-haiku` (from agent)
+- **summarizer**: `claude-3.5-haiku` (from Sub Agent)
 
 #### Provider Options Override
 
@@ -159,7 +159,7 @@ When a model is overridden at any level, the entire configuration (including pro
 Project: {
   models: {
     base: {
-      model: "claude-sonnet-4",
+      model: "claude-sonnet-4-0",
       providerOptions: {
         temperature: 0.7,
         maxTokens: 4096
@@ -172,7 +172,7 @@ Project: {
 Agent: {
   models: {
     base: {
-      model: "claude-sonnet-4", // Same model
+      model: "claude-sonnet-4-0", // Same model
       providerOptions: {
         temperature: 0.3,  // New temperature
         maxTokens: 2048    // New maxTokens - project maxTokens is NOT inherited
@@ -184,7 +184,7 @@ Agent: {
 
 #### Fallback to Base Model
 
-**Important**: `structuredOutput` and `summarizer` only fall back to the `base` model when there's nothing to inherit from higher levels (project/graph).
+**Important**: `structuredOutput` and `summarizer` only fall back to the `base` model when there's nothing to inherit from higher levels (project/agent).
 
 #### System Defaults
 
@@ -202,11 +202,11 @@ Project: {
   // No models configured
 }
 
-Graph: {
+Agent: {
   // No models configured
 }
 
-Agent: {
+Sub Agent: {
   models: {
     base: {
       model: "gpt-4.1-2025-04-14",
@@ -222,9 +222,9 @@ Agent: {
 
 **Final Resolution with Fallback:**
 
-- **base**: `gpt-4.1-2025-04-14` with specified provider options (from agent)
-- **structuredOutput**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
-- **summarizer**: `gpt-4.1-2025-04-14` with same provider options (falls back to agent's base)
+- **base**: `gpt-4.1-2025-04-14` with specified provider options (from Agent)
+- **structuredOutput**: `gpt-4.1-2025-04-14` with same provider options (falls back to Agent's base)
+- **summarizer**: `gpt-4.1-2025-04-14` with same provider options (falls back to Agent's base)
 
 **Contrast with Inheritance:**
 
@@ -233,15 +233,15 @@ Agent: {
 Project: {
   models: {
     summarizer: {
-      model: "gpt-4.1-mini-2025-04-14";
+      model: "gpt-4.1-mini";
     }
   }
 }
 
-Agent: {
+Sub Agent: {
   models: {
     base: {
-      model: "gpt-4.1-2025-04-14";
+      model: "gpt-4.1";
     }
   }
 }
@@ -249,39 +249,39 @@ Agent: {
 
 **Final Resolution with Inheritance:**
 
-- **base**: `gpt-4.1-2025-04-14` (from agent)
-- **summarizer**: `gpt-4.1-mini-2025-04-14` (inherited from project - NO fallback to agent's base)
-- **structuredOutput**: Falls back to agent's base `gpt-4.1-2025-04-14` (no inheritance available, so fallback occurs)
+- **base**: `gpt-4.1` (from Sub Agent)
+- **summarizer**: `gpt-4.1-mini` (inherited from project - NO fallback to Sub Agent's base)
+- **structuredOutput**: Falls back to Sub Agent's base `gpt-4.1` (no inheritance available, so fallback occurs)
 
 ### StopWhen Inheritance
 
-Different cascade rules apply based on the control scope:
+StopWhen settings inherit from Project → Agent → Sub Agent:
 
-- **`transferCountIs`**: Controls graph-level behavior → **Project** → **Graph** only
-- **`stepCountIs`**: Controls individual agent behavior → **Project** → **Graph** → **Agent**
+- **`transferCountIs`**: Project or Agent level
+- **`stepCountIs`**: Project or Sub Agent level
 
 ```typescript
 // Project sets defaults
 Project: {
   stopWhen: {
     transferCountIs: 5,   // Max transfers per conversation
-    stepCountIs: 15      // Max steps per agent
+    stepCountIs: 15      // Max steps per Sub Agent
   }
 }
 
-// Graph can override transfer limit, inherits step limit
-Graph: {
+// Agent can override transfer limit, inherits step limit
+Agent: {
   stopWhen: {
-    transferCountIs: 8    // Override: allow more transfers in this graph
+    transferCountIs: 8    // Override: allow more transfers in this Agent
     // stepCountIs: 15 (inherited from project)
   }
 }
 
-// Individual agent can override its own step limit
-Agent: {
+// Individual Sub Agent can override its own step limit
+Sub Agent: {
   stopWhen: {
-    stepCountIs: 25      // This agent can take more steps
-    // transferCountIs not applicable at agent level
+    stepCountIs: 25      // This Sub Agent can take more steps
+    // transferCountIs not applicable at Sub Agent level
   }
 }
 ```
@@ -338,6 +338,6 @@ DELETE /tenants/{tenantId}/crud/projects/{projectId}
 
 After creating a project, you can:
 
-- [Create your first agent graph](/visual-builder/graphs)
-- [Configure MCP servers for tools](/visual-builder/mcp-servers)
+- [Create your first Agent](/visual-builder/sub-agents)
+- [Configure MCP servers for tools](/visual-builder/tools/mcp-servers)
 - [Set up API keys for external access](/api-keys)

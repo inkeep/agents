@@ -1,3 +1,4 @@
+import type { DataOperationEvent } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 
 // =============================================================================
@@ -9,20 +10,9 @@ import { nanoid } from 'nanoid';
  */
 export interface AgentInitializingEvent {
   type: 'agent_initializing';
-  ctx: {
+  details: {
     sessionId: string;
-    graphId: string;
-  };
-}
-
-/**
- * Agent ready operation event
- */
-export interface AgentReadyEvent {
-  type: 'agent_ready';
-  ctx: {
-    sessionId: string;
-    graphId: string;
+    agentId: string;
   };
 }
 
@@ -31,7 +21,7 @@ export interface AgentReadyEvent {
  */
 export interface CompletionEvent {
   type: 'completion';
-  ctx: {
+  details: {
     agent: string;
     iteration: number;
   };
@@ -51,24 +41,13 @@ export interface ErrorEvent {
 }
 
 /**
- * Agent thinking operation event
- */
-export interface AgentThinkingEvent {
-  type: 'agent_thinking';
-  ctx: {
-    agent: string;
-  };
-}
-
-/**
  * Discriminated union of all operation events
  */
 export type OperationEvent =
   | AgentInitializingEvent
-  | AgentReadyEvent
-  | AgentThinkingEvent
   | CompletionEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | DataOperationEvent;
 
 // =============================================================================
 // OPERATION FUNCTIONS
@@ -77,37 +56,12 @@ export type OperationEvent =
 /**
  * Creates an agent initializing operation
  */
-export function agentInitializingOp(sessionId: string, graphId: string): AgentInitializingEvent {
+export function agentInitializingOp(sessionId: string, agentId: string): AgentInitializingEvent {
   return {
     type: 'agent_initializing',
-    ctx: {
+    details: {
       sessionId,
-      graphId,
-    },
-  };
-}
-
-/**
- * Creates an agent ready operation
- */
-export function agentReadyOp(sessionId: string, graphId: string): AgentReadyEvent {
-  return {
-    type: 'agent_ready',
-    ctx: {
-      sessionId,
-      graphId,
-    },
-  };
-}
-
-/**
- * Creates an agent thinking operation
- */
-export function agentThinkingOp(agent: string): AgentThinkingEvent {
-  return {
-    type: 'agent_thinking',
-    ctx: {
-      agent,
+      agentId,
     },
   };
 }
@@ -115,11 +69,11 @@ export function agentThinkingOp(agent: string): AgentThinkingEvent {
 /**
  * Creates a completion operation
  */
-export function completionOp(agentId: string, iterations: number): CompletionEvent {
+export function completionOp(subAgentId: string, iterations: number): CompletionEvent {
   return {
     type: 'completion',
-    ctx: {
-      agent: agentId,
+    details: {
+      agent: subAgentId,
       iteration: iterations,
     },
   };
@@ -128,20 +82,20 @@ export function completionOp(agentId: string, iterations: number): CompletionEve
 /**
  * Creates a unified error event
  * @param message - Error message
- * @param agentId - Optional agent ID for context
+ * @param subAgentId - Optional agent ID for context
  * @param severity - Error severity level
  * @param code - Optional error code
  */
 export function errorOp(
-  message: string, 
-  agentId?: string, 
+  message: string,
+  subAgentId?: string,
   severity: 'error' | 'warning' | 'info' = 'error',
   code?: string
 ): ErrorEvent {
   return {
     type: 'error',
     message,
-    agent: agentId,
+    agent: subAgentId,
     severity,
     code,
     timestamp: Date.now(),
@@ -154,4 +108,3 @@ export function errorOp(
 export function generateToolId(): string {
   return `tool_${nanoid(8)}`;
 }
-

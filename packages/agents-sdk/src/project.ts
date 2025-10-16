@@ -9,13 +9,12 @@ import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('project');
 
+import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
-import type { AgentGraph } from './graph';
+import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
-
 import type { Tool } from './tool';
-
 import type { AgentTool, ModelSettings } from './types';
 
 /**
@@ -31,10 +30,11 @@ export interface ProjectConfig {
     summarizer?: ModelSettings;
   };
   stopWhen?: StopWhen;
-  graphs?: () => AgentGraph[];
+  agents?: () => Agent[];
   tools?: () => Tool[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
+  credentialReferences?: () => CredentialReferenceApiInsert[];
 }
 
 /**
@@ -49,13 +49,13 @@ export interface ProjectInterface {
   getTenantId(): string;
   getModels(): ProjectConfig['models'];
   getStopWhen(): ProjectConfig['stopWhen'];
-  getGraphs(): AgentGraph[];
-  addGraph(graph: AgentGraph): void;
-  removeGraph(id: string): boolean;
+  getAgents(): Agent[];
+  addAgent(agent: Agent): void;
+  removeAgent(id: string): boolean;
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   };
   validate(): { valid: boolean; errors: string[] };
@@ -64,8 +64,8 @@ export interface ProjectInterface {
 /**
  * Project class for managing agent projects
  *
- * Projects are the top-level organizational unit that contains graphs, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to graphs and agents.
+ * Projects are the top-level organizational unit that contains Agents, Sub Agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to Agents and Sub Agents.
  *
  * @example
  * ```typescript
@@ -74,8 +74,8 @@ export interface ProjectInterface {
  *   name: 'Customer Support System',
  *   description: 'Multi-agent customer support system',
  *   models: {
- *     base: { model: 'gpt-4o-mini' },
- *     structuredOutput: { model: 'gpt-4o' }
+ *     base: { model: 'gpt-4.1-mini' },
+ *     structuredOutput: { model: 'gpt-4.1' }
  *   },
  *   stopWhen: {
  *     transferCountIs: 10,
@@ -101,9 +101,12 @@ export class Project implements ProjectInterface {
     summarizer?: ModelSettings;
   };
   private stopWhen?: StopWhen;
-  private graphs: AgentGraph[] = [];
-  private graphMap: Map<string, AgentGraph> = new Map();
+  private agents: Agent[] = [];
+  private agentMap: Map<string, Agent> = new Map();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
+  private projectTools: Tool[] = [];
+  private projectDataComponents: DataComponent[] = [];
+  private projectArtifactComponents: ArtifactComponent[] = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -115,22 +118,42 @@ export class Project implements ProjectInterface {
     this.models = config.models;
     this.stopWhen = config.stopWhen;
 
-    // Initialize graphs if provided
-    if (config.graphs) {
-      this.graphs = config.graphs();
-      this.graphMap = new Map(this.graphs.map((graph) => [graph.getId(), graph]));
+    // Initialize agent if provided
+    if (config.agents) {
+      this.agents = config.agents();
+      this.agentMap = new Map(this.agents.map((agent) => [agent.getId(), agent]));
 
-      // Set project context on graphs
-      for (const graph of this.graphs) {
-        graph.setConfig(this.tenantId, this.projectId, this.baseURL);
+      // Set project context on agent
+      for (const agent of this.agents) {
+        agent.setConfig(this.tenantId, this.projectId, this.baseURL);
       }
+    }
+
+    // Initialize project-level tools if provided
+    if (config.tools) {
+      this.projectTools = config.tools();
+    }
+
+    // Initialize project-level dataComponents if provided
+    if (config.dataComponents) {
+      this.projectDataComponents = config.dataComponents();
+    }
+
+    // Initialize project-level artifactComponents if provided
+    if (config.artifactComponents) {
+      this.projectArtifactComponents = config.artifactComponents();
+    }
+
+    // Initialize project-level credentialReferences if provided
+    if (config.credentialReferences) {
+      this.credentialReferences = config.credentialReferences();
     }
 
     logger.info(
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.graphs.length,
+        agentCount: this.agents.length,
       },
       'Project created'
     );
@@ -159,9 +182,9 @@ export class Project implements ProjectInterface {
       this.models = models;
     }
 
-    // Update all graphs with new config
-    for (const graph of this.graphs) {
-      graph.setConfig(tenantId, this.projectId, apiUrl);
+    // Update all agent with new config
+    for (const agent of this.agents) {
+      agent.setConfig(tenantId, this.projectId, apiUrl);
     }
 
     logger.info(
@@ -205,7 +228,7 @@ export class Project implements ProjectInterface {
       {
         projectId: this.projectId,
         tenantId: this.tenantId,
-        graphCount: this.graphs.length,
+        agentCount: this.agents.length,
       },
       'Initializing project using full project endpoint'
     );
@@ -239,7 +262,7 @@ export class Project implements ProjectInterface {
         {
           projectId: this.projectId,
           tenantId: this.tenantId,
-          graphCount: Object.keys((createdProject as any).graphs || {}).length,
+          agentCount: Object.keys((createdProject as any).agent || {}).length,
         },
         'Project initialized successfully using full project endpoint'
       );
@@ -316,11 +339,11 @@ export class Project implements ProjectInterface {
    */
   async getCredentialTracking(): Promise<{
     credentials: Record<string, any>;
-    usage: Record<string, Array<{ type: string; id: string; graphId?: string }>>;
+    usage: Record<string, Array<{ type: string; id: string; agentId?: string }>>;
   }> {
     const fullDef = await this.toFullProjectDefinition();
     const credentials = fullDef.credentialReferences || {};
-    const usage: Record<string, Array<{ type: string; id: string; graphId?: string }>> = {};
+    const usage: Record<string, Array<{ type: string; id: string; agentId?: string }>> = {};
 
     // Extract usage information from credentials
     for (const [credId, credData] of Object.entries(credentials)) {
@@ -332,54 +355,58 @@ export class Project implements ProjectInterface {
     return { credentials, usage };
   }
 
-  /**
-   * Get all graphs in the project
-   */
-  getGraphs(): AgentGraph[] {
-    return this.graphs;
+  async getFullDefinition(): Promise<FullProjectDefinition> {
+    return await this.toFullProjectDefinition();
   }
 
   /**
-   * Get a graph by ID
+   * Get all agent in the project
    */
-  getGraph(id: string): AgentGraph | undefined {
-    return this.graphMap.get(id);
+  getAgents(): Agent[] {
+    return this.agents;
   }
 
   /**
-   * Add a graph to the project
+   * Get an agent by ID
    */
-  addGraph(graph: AgentGraph): void {
-    this.graphs.push(graph);
-    this.graphMap.set(graph.getId(), graph);
+  getAgent(id: string): Agent | undefined {
+    return this.agentMap.get(id);
+  }
 
-    // Set project context on the graph
-    graph.setConfig(this.tenantId, this.projectId, this.baseURL);
+  /**
+   * Add an agent to the project
+   */
+  addAgent(agent: Agent): void {
+    this.agents.push(agent);
+    this.agentMap.set(agent.getId(), agent);
+
+    // Set project context on the agent
+    agent.setConfig(this.tenantId, this.projectId, this.baseURL);
 
     logger.info(
       {
         projectId: this.projectId,
-        graphId: graph.getId(),
+        agentId: agent.getId(),
       },
-      'Graph added to project'
+      'Agent added to project'
     );
   }
 
   /**
-   * Remove a graph from the project
+   * Remove an agent from the project
    */
-  removeGraph(id: string): boolean {
-    const graphToRemove = this.graphMap.get(id);
-    if (graphToRemove) {
-      this.graphMap.delete(id);
-      this.graphs = this.graphs.filter((graph) => graph.getId() !== id);
+  removeAgent(id: string): boolean {
+    const agentToRemove = this.agentMap.get(id);
+    if (agentToRemove) {
+      this.agentMap.delete(id);
+      this.agents = this.agents.filter((agent) => agent.getId() !== id);
 
       logger.info(
         {
           projectId: this.projectId,
-          graphId: id,
+          agentId: id,
         },
-        'Graph removed from project'
+        'Agent removed from project'
       );
 
       return true;
@@ -394,13 +421,13 @@ export class Project implements ProjectInterface {
   getStats(): {
     projectId: string;
     tenantId: string;
-    graphCount: number;
+    agentCount: number;
     initialized: boolean;
   } {
     return {
       projectId: this.projectId,
       tenantId: this.tenantId,
-      graphCount: this.graphs.length,
+      agentCount: this.agents.length,
       initialized: this.initialized,
     };
   }
@@ -419,21 +446,21 @@ export class Project implements ProjectInterface {
       errors.push('Project must have a name');
     }
 
-    // Validate graph IDs are unique
-    const graphIds = new Set<string>();
-    for (const graph of this.graphs) {
-      const id = graph.getId();
-      if (graphIds.has(id)) {
-        errors.push(`Duplicate graph ID: ${id}`);
+    // Validate agent IDs are unique
+    const agentIds = new Set<string>();
+    for (const agent of this.agents) {
+      const id = agent.getId();
+      if (agentIds.has(id)) {
+        errors.push(`Duplicate agent ID: ${id}`);
       }
-      graphIds.add(id);
+      agentIds.add(id);
     }
 
-    // Validate individual graphs
-    for (const graph of this.graphs) {
-      const graphValidation = graph.validate();
-      if (!graphValidation.valid) {
-        errors.push(...graphValidation.errors.map((error) => `Graph '${graph.getId()}': ${error}`));
+    // Validate individual agent
+    for (const agent of this.agents) {
+      const agentValidation = agent.validate();
+      if (!agentValidation.valid) {
+        errors.push(...agentValidation.errors.map((error) => `Agent '${agent.getId()}': ${error}`));
       }
     }
 
@@ -447,27 +474,29 @@ export class Project implements ProjectInterface {
    * Convert the Project to FullProjectDefinition format
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
-    const graphsObject: Record<string, any> = {};
+    const agentsObject: Record<string, any> = {};
     const toolsObject: Record<string, ToolApiInsert> = {};
+    const functionToolsObject: Record<string, any> = {};
+    const functionsObject: Record<string, any> = {};
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
-      Array<{ type: string; id: string; graphId?: string }>
+      Array<{ type: string; id: string; agentId?: string }>
     > = {};
 
-    // Convert all graphs to FullGraphDefinition format and collect components
-    for (const graph of this.graphs) {
-      // Get the graph's full definition
-      const graphDefinition = await graph.toFullGraphDefinition();
-      graphsObject[graph.getId()] = graphDefinition;
+    // Convert all agent to FullAgentDefinition format and collect components
+    for (const agent of this.agents) {
+      // Get the agent's full definition
+      const agentDefinition = await agent.toFullAgentDefinition();
+      agentsObject[agent.getId()] = agentDefinition;
 
-      // Collect credentials from this graph
-      const graphCredentials = (graph as any).credentials;
-      if (graphCredentials && Array.isArray(graphCredentials)) {
-        for (const credential of graphCredentials) {
+      // Collect credentials from this agent
+      const agentCredentials = (agent as any).credentials;
+      if (agentCredentials && Array.isArray(agentCredentials)) {
+        for (const credential of agentCredentials) {
           // Skip credential references - they don't define credentials
           if (credential?.__type === 'credential-ref') {
             continue;
@@ -484,20 +513,20 @@ export class Project implements ProjectInterface {
               };
               credentialUsageMap[credential.id] = [];
             }
-            // Track that this graph uses this credential
+            // Track that this agent uses this credential
             credentialUsageMap[credential.id].push({
-              type: 'graph',
-              id: graph.getId(),
+              type: 'agent',
+              id: agent.getId(),
             });
           }
         }
       }
 
       // Check context config for credentials
-      const graphContextConfig = (graph as any).contextConfig;
-      if (graphContextConfig) {
+      const agentContextConfig = (agent as any).contextConfig;
+      if (agentContextConfig) {
         const contextVariables =
-          graphContextConfig.getContextVariables?.() || graphContextConfig.contextVariables;
+          agentContextConfig.getContextVariables?.() || agentContextConfig.contextVariables;
         if (contextVariables) {
           for (const [key, variable] of Object.entries(contextVariables)) {
             // Check for credential references in fetch definitions
@@ -532,7 +561,7 @@ export class Project implements ProjectInterface {
                 credentialUsageMap[credId].push({
                   type: 'contextVariable',
                   id: key,
-                  graphId: graph.getId(),
+                  agentId: agent.getId(),
                 });
               }
             }
@@ -545,64 +574,116 @@ export class Project implements ProjectInterface {
               credentialUsageMap[credId].push({
                 type: 'contextVariable',
                 id: key,
-                graphId: graph.getId(),
+                agentId: agent.getId(),
               });
             }
           }
         }
       }
 
-      // Collect tools from all agents in this graph
-      for (const agent of graph.getAgents()) {
-        if (agent.type === 'external') {
+      // Collect tools from all agents in this agent
+      for (const subAgent of agent.getSubAgents()) {
+        if (subAgent.type === 'external') {
           continue; // Skip external agents
         }
 
-        const agentTools = agent.getTools();
+        const agentTools = subAgent.getTools();
         for (const [, toolInstance] of Object.entries(agentTools)) {
           // toolInstance is now properly typed as AgentTool from getTools()
-          const actualTool: AgentTool = toolInstance;
+          const actualTool: AgentTool | FunctionTool = toolInstance;
           const toolId = actualTool.getId();
 
-          // Only add if not already added (avoid duplicates across graphs)
-          if (!toolsObject[toolId]) {
-            const toolConfig: ToolApiInsert['config'] = {
-              type: 'mcp',
-              mcp: {
-                server: {
-                  url: actualTool.config.serverUrl,
-                },
-                transport: actualTool.config.transport,
-                activeTools: actualTool.config.activeTools,
-              },
-            };
-
-            const toolData: ToolApiInsert = {
-              id: toolId,
-              name: actualTool.getName(),
-              config: toolConfig,
-            };
-
-            // Add additional fields if available
-            if (actualTool.config?.imageUrl) {
-              toolData.imageUrl = actualTool.config.imageUrl;
-            }
-            if (actualTool.config?.headers) {
-              toolData.headers = actualTool.config.headers;
-            }
-            const credentialId = actualTool.getCredentialReferenceId();
-            if (credentialId) {
-              toolData.credentialReferenceId = credentialId;
+          // Handle function tools and MCP tools
+          if (
+            actualTool.constructor.name === 'FunctionTool' &&
+            actualTool instanceof FunctionTool
+          ) {
+            // Add to functions object (global entity)
+            if (!functionsObject[toolId]) {
+              const functionData = actualTool.serializeFunction();
+              functionsObject[toolId] = functionData;
             }
 
-            toolsObject[toolId] = toolData;
+            // Add to functionTools object (function tools are now separate)
+            if (!functionToolsObject[toolId]) {
+              const toolData = actualTool.serializeTool();
+
+              functionToolsObject[toolId] = {
+                id: toolData.id,
+                name: toolData.name,
+                description: toolData.description,
+                functionId: toolData.functionId,
+              };
+            }
+          } else {
+            // Add to tools object (MCP tools)
+            if (!toolsObject[toolId]) {
+              // Type guard to ensure this is a Tool (MCP tool)
+              if ('config' in actualTool && 'serverUrl' in actualTool.config) {
+                const mcpTool = actualTool as any; // Cast to access MCP-specific properties
+                const toolConfig: ToolApiInsert['config'] = {
+                  type: 'mcp',
+                  mcp: {
+                    server: {
+                      url: mcpTool.config.serverUrl,
+                    },
+                    transport: mcpTool.config.transport,
+                    activeTools: mcpTool.config.activeTools,
+                  },
+                };
+
+                const toolData: ToolApiInsert = {
+                  id: toolId,
+                  name: actualTool.getName(),
+                  config: toolConfig,
+                };
+
+                // Add additional fields if available
+                if (mcpTool.config?.imageUrl) {
+                  toolData.imageUrl = mcpTool.config.imageUrl;
+                }
+                if (mcpTool.config?.headers) {
+                  toolData.headers = mcpTool.config.headers;
+                }
+                if ('getCredentialReferenceId' in actualTool) {
+                  const credentialId = (actualTool as any).getCredentialReferenceId();
+                  if (credentialId) {
+                    toolData.credentialReferenceId = credentialId;
+                  }
+                }
+
+                // Extract inline credential from tool if present
+                if ('credential' in mcpTool.config && mcpTool.config.credential) {
+                  const credential = mcpTool.config.credential;
+                  if (credential && credential.id && credential.__type !== 'credential-ref') {
+                    // Add credential to project-level credentials if not already present
+                    if (!credentialReferencesObject[credential.id]) {
+                      credentialReferencesObject[credential.id] = {
+                        id: credential.id,
+                        type: credential.type,
+                        credentialStoreId: credential.credentialStoreId,
+                        retrievalParams: credential.retrievalParams,
+                      };
+                      credentialUsageMap[credential.id] = [];
+                    }
+                    // Track that this tool uses this credential
+                    credentialUsageMap[credential.id].push({
+                      type: 'tool',
+                      id: toolId,
+                    });
+                  }
+                }
+
+                toolsObject[toolId] = toolData;
+              }
+            }
           }
         }
 
         // Collect data components from this agent
-        const agentDataComponents = (agent as any).getDataComponents?.();
-        if (agentDataComponents) {
-          for (const dataComponent of agentDataComponents) {
+        const subAgentDataComponents = (subAgent as any).getDataComponents?.();
+        if (subAgentDataComponents) {
+          for (const dataComponent of subAgentDataComponents) {
             // Handle both DataComponent instances and plain objects
             let dataComponentId: string;
             let dataComponentName: string;
@@ -638,23 +719,22 @@ export class Project implements ProjectInterface {
         }
 
         // Collect artifact components from this agent
-        const agentArtifactComponents = (agent as any).getArtifactComponents?.();
-        if (agentArtifactComponents) {
-          for (const artifactComponent of agentArtifactComponents) {
+        const subAgentArtifactComponents = subAgent.getArtifactComponents();
+        if (subAgentArtifactComponents) {
+          for (const artifactComponent of subAgentArtifactComponents) {
             // Handle both ArtifactComponent instances and plain objects
             let artifactComponentId: string;
             let artifactComponentName: string;
             let artifactComponentDescription: string;
-            let artifactComponentSummaryProps: any;
-            let artifactComponentFullProps: any;
+            let artifactComponentProps: any;
 
-            if (artifactComponent.getId) {
-              // ArtifactComponent instance
-              artifactComponentId = artifactComponent.getId();
-              artifactComponentName = artifactComponent.getName();
-              artifactComponentDescription = artifactComponent.getDescription() || '';
-              artifactComponentSummaryProps = artifactComponent.getSummaryProps() || {};
-              artifactComponentFullProps = artifactComponent.getFullProps() || {};
+            if ('getId' in artifactComponent && typeof artifactComponent.getId === 'function') {
+              // ArtifactComponent instance - cast to access methods
+              const component = artifactComponent as any;
+              artifactComponentId = component.getId();
+              artifactComponentName = component.getName();
+              artifactComponentDescription = component.getDescription() || '';
+              artifactComponentProps = component.getProps() || {};
             } else {
               // Plain object from agent config
               artifactComponentId =
@@ -664,8 +744,7 @@ export class Project implements ProjectInterface {
                   : '');
               artifactComponentName = artifactComponent.name || '';
               artifactComponentDescription = artifactComponent.description || '';
-              artifactComponentSummaryProps = artifactComponent.summaryProps || {};
-              artifactComponentFullProps = artifactComponent.fullProps || {};
+              artifactComponentProps = artifactComponent.props || {};
             }
 
             // Only add if not already added (avoid duplicates)
@@ -674,12 +753,81 @@ export class Project implements ProjectInterface {
                 id: artifactComponentId,
                 name: artifactComponentName,
                 description: artifactComponentDescription,
-                summaryProps: artifactComponentSummaryProps,
-                fullProps: artifactComponentFullProps,
+                props: artifactComponentProps,
               };
             }
           }
         }
+      }
+    }
+
+    // Add project-level tools, dataComponents, and artifactComponents
+    for (const tool of this.projectTools) {
+      const toolId = tool.getId();
+      if (!toolsObject[toolId]) {
+        const toolConfig: ToolApiInsert['config'] = {
+          type: 'mcp',
+          mcp: {
+            server: {
+              url: tool.config.serverUrl,
+            },
+            transport: tool.config.transport,
+            activeTools: tool.config.activeTools,
+          },
+        };
+
+        const toolData: ToolApiInsert = {
+          id: toolId,
+          name: tool.getName(),
+          config: toolConfig,
+        };
+
+        if (tool.config?.imageUrl) {
+          toolData.imageUrl = tool.config.imageUrl;
+        }
+        if (tool.config?.headers) {
+          toolData.headers = tool.config.headers;
+        }
+        const credentialId = tool.getCredentialReferenceId();
+        if (credentialId) {
+          toolData.credentialReferenceId = credentialId;
+        }
+
+        toolsObject[toolId] = toolData;
+      }
+    }
+
+    // Add project-level data components
+    for (const dataComponent of this.projectDataComponents) {
+      const dataComponentId = dataComponent.getId();
+      const dataComponentName = dataComponent.getName();
+      const dataComponentDescription = dataComponent.getDescription() || '';
+      const dataComponentProps = dataComponent.getProps() || {};
+
+      if (!dataComponentsObject[dataComponentId] && dataComponentName) {
+        dataComponentsObject[dataComponentId] = {
+          id: dataComponentId,
+          name: dataComponentName,
+          description: dataComponentDescription,
+          props: dataComponentProps,
+        };
+      }
+    }
+
+    // Add project-level artifact components
+    for (const artifactComponent of this.projectArtifactComponents) {
+      const artifactComponentId = artifactComponent.getId();
+      const artifactComponentName = artifactComponent.getName();
+      const artifactComponentDescription = artifactComponent.getDescription() || '';
+      const artifactComponentProps = artifactComponent.getProps() || {};
+
+      if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
+        artifactComponentsObject[artifactComponentId] = {
+          id: artifactComponentId,
+          name: artifactComponentName,
+          description: artifactComponentDescription,
+          props: artifactComponentProps,
+        };
       }
     }
 
@@ -709,8 +857,9 @@ export class Project implements ProjectInterface {
       description: this.projectDescription || '',
       models: this.models as ProjectModels,
       stopWhen: this.stopWhen,
-      graphs: graphsObject,
+      agents: agentsObject,
       tools: toolsObject,
+      functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
       artifactComponents:

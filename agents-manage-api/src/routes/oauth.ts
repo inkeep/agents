@@ -16,7 +16,6 @@ import {
   type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
-  dbResultToMcpTool,
   generateIdFromName,
   getCredentialReferenceWithTools,
   getToolById,
@@ -50,7 +49,6 @@ async function findOrCreateCredential(
     // Credential not found, continue with creation
   }
 
-  // Create new credential
   try {
     const credential = await createCredentialReference(dbClient)({
       ...credentialData,
@@ -226,7 +224,6 @@ app.openapi(
     const { tenantId, projectId, toolId } = c.req.valid('query');
 
     try {
-      // 1. Get the tool
       const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
 
       if (!tool) {
@@ -234,20 +231,15 @@ app.openapi(
         return c.text('Tool not found', 404);
       }
 
-      const credentialStores = c.get('credentialStores');
-      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
-
-      // 2. Initiate OAuth flow using centralized service
       const baseUrl = getBaseUrlFromRequest(c);
       const { redirectUrl } = await oauthService.initiateOAuthFlow({
-        tool: mcpTool,
         tenantId,
         projectId,
         toolId,
+        mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
       });
 
-      // 3. Immediate redirect
       return c.redirect(redirectUrl, 302);
     } catch (error) {
       logger.error({ toolId, tenantId, projectId, error }, 'OAuth login failed');
@@ -331,9 +323,16 @@ app.openapi(
         return c.html(expiredPage);
       }
 
-      const { codeVerifier, toolId, tenantId, projectId, clientId } = pkceData;
+      const {
+        codeVerifier,
+        toolId,
+        tenantId,
+        projectId,
+        clientInformation,
+        metadata,
+        resourceUrl,
+      } = pkceData;
 
-      // Get the MCP tool
       const tool = await getToolById(dbClient)({
         scopes: { tenantId, projectId },
         toolId,
@@ -349,15 +348,14 @@ app.openapi(
 
       const credentialStores = c.get('credentialStores');
 
-      // Convert database result to McpTool (using helper function)
-      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
-
       const baseUrl = getBaseUrlFromRequest(c);
       const { tokens } = await oauthService.exchangeCodeForTokens({
         code,
         codeVerifier,
-        clientId,
-        tool: mcpTool,
+        clientInformation,
+        metadata,
+        resourceUrl,
+        mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
       });
 
@@ -366,7 +364,7 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in keychain, or fall back to nango
+      // Store access token in keychain.
       const credentialTokenKey = `oauth_token_${toolId}`;
       let newCredentialData: CredentialReferenceApiInsert | undefined;
 
@@ -375,32 +373,19 @@ app.openapi(
         try {
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
-            id: generateIdFromName(mcpTool.name),
+            id: generateIdFromName(tool.name),
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
             retrievalParams: {
               key: credentialTokenKey,
             },
           };
-        } catch {
-          // Fall through to Nango fallback
+        } catch (error) {
+          logger.info(
+            { error: error instanceof Error ? error.message : error },
+            'Keychain store not available.'
+          );
         }
-      }
-
-      if (!newCredentialData && process.env.NANGO_SECRET_KEY) {
-        const nangoStore = credentialStores.get('nango-default');
-        await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
-        newCredentialData = {
-          id: generateIdFromName(mcpTool.name),
-          type: CredentialStoreType.nango,
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: credentialTokenKey,
-            providerConfigKey: credentialTokenKey,
-            provider: 'private-api-bearer',
-            authMode: 'API_KEY',
-          },
-        };
       }
 
       if (!newCredentialData) {

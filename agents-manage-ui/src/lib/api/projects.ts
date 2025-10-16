@@ -13,7 +13,6 @@ export async function fetchProjects(tenantId: string): Promise<ListResponse<Proj
     `tenants/${tenantId}/projects`
   );
 
-  // Map backend 'id' field to 'projectId' for frontend consistency
   if (response.data) {
     response.data = response.data.map((project: any) => ({
       ...project,
@@ -34,7 +33,6 @@ export async function fetchProject(
     `tenants/${tenantId}/projects/${projectId}`
   );
 
-  // Map backend 'id' field to 'projectId' for frontend consistency
   if (response.data) {
     response.data = {
       ...response.data,
@@ -59,7 +57,6 @@ export async function createProject(
     }
   );
 
-  // Map backend 'id' field to 'projectId' for frontend consistency
   if (response.data) {
     response.data = {
       ...response.data,
@@ -84,7 +81,6 @@ export async function updateProject(
       body: JSON.stringify(project),
     }
   );
-  // Map backend 'id' field to 'projectId' for frontend consistency
   if (response.data) {
     response.data = {
       ...response.data,

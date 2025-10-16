@@ -63,23 +63,23 @@ const {
   getContextConfigByIdMock,
   getLedgerArtifactsMock,
   listTaskIdsByContextIdMock,
-  getFullGraphDefinitionMock,
-  graphHasArtifactComponentsMock,
+  getFullAgentDefinitionMock,
+  agentHasArtifactComponentsMock,
   getToolsForAgentMock,
 } = vi.hoisted(() => {
   const getCredentialReferenceMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getContextConfigByIdMock = vi.fn(() => vi.fn().mockResolvedValue(null));
   const getLedgerArtifactsMock = vi.fn(() => vi.fn().mockResolvedValue([]));
   const listTaskIdsByContextIdMock = vi.fn(() => vi.fn().mockResolvedValue([]));
-  const getFullGraphDefinitionMock = vi.fn(() =>
+  const getFullAgentDefinitionMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      id: 'test-graph',
+      id: 'test-agent',
       agents: [],
       transferRelations: [],
       delegateRelations: [],
     })
   );
-  const graphHasArtifactComponentsMock = vi.fn(() => vi.fn().mockResolvedValue(false));
+  const agentHasArtifactComponentsMock = vi.fn(() => vi.fn().mockResolvedValue(false));
   const getToolsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       data: [],
@@ -92,8 +92,8 @@ const {
     getContextConfigByIdMock,
     getLedgerArtifactsMock,
     listTaskIdsByContextIdMock,
-    getFullGraphDefinitionMock,
-    graphHasArtifactComponentsMock,
+    getFullAgentDefinitionMock,
+    agentHasArtifactComponentsMock,
     getToolsForAgentMock,
   };
 });
@@ -106,13 +106,13 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getContextConfigById: getContextConfigByIdMock,
     getLedgerArtifacts: getLedgerArtifactsMock,
     listTaskIdsByContextId: listTaskIdsByContextIdMock,
-    getFullGraphDefinition: getFullGraphDefinitionMock,
-    graphHasArtifactComponents: graphHasArtifactComponentsMock,
+    getFullAgentDefinition: getFullAgentDefinitionMock,
+    agentHasArtifactComponents: agentHasArtifactComponentsMock,
     getToolsForAgent: getToolsForAgentMock,
     createDatabaseClient: vi.fn().mockReturnValue({}),
     contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
       c.set('validatedContext', {
-        graphId: 'test-graph',
+        agentId: 'test-agent',
         tenantId: 'test-tenant',
         projectId: 'default',
       });
@@ -173,9 +173,9 @@ vi.mock('../../agents/ToolSessionManager.js', () => ({
   },
 }));
 
-// Mock GraphSessionManager
-vi.mock('../../utils/graph-session.js', () => ({
-  graphSessionManager: {
+// Mock AgentSessionManager
+vi.mock('../../utils/agent-session.js', () => ({
+  agentSessionManager: {
     recordEvent: vi.fn(),
   },
 }));
@@ -354,26 +354,26 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for integration testing',
-      agentPrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentRelations: [],
+      prompt: `You are a helpful test agent that can search databases and assist users.`,
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [mockTool],
       dataComponents: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
         summarizer: {
-          model: 'openai/gpt-4.1-nano-2025-04-14',
+          model: 'openai/gpt-4.1-nano',
         },
       },
     };
@@ -393,7 +393,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(result).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      graphPrompt: undefined,
+      prompt: undefined,
       tools: [
         {
           name: 'search_database',
@@ -418,7 +418,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
-      hasGraphArtifactComponents: false,
+      hasAgentArtifactComponents: false,
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -436,12 +436,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      graphPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
-      hasGraphArtifactComponents: false,
+      hasAgentArtifactComponents: false,
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -459,12 +459,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      graphPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
-      hasGraphArtifactComponents: false,
+      hasAgentArtifactComponents: false,
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -493,12 +493,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      graphPrompt: undefined,
+      prompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
-      hasGraphArtifactComponents: false,
+      hasAgentArtifactComponents: false,
       isThinkingPreparation: false,
       hasTransferRelations: false,
       hasDelegateRelations: false,
@@ -642,13 +642,13 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for conversation history testing',
-      agentPrompt: `You are a helpful test agent.`,
-      agentRelations: [],
+      prompt: `You are a helpful test agent.`,
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [],
@@ -768,7 +768,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       currentMessage: 'Test prompt',
       options: configWithScopedMode.conversationHistoryConfig,
       filters: {
-        agentId: 'test-agent',
+        subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },
     });
@@ -847,13 +847,13 @@ describe('Agent Credential Integration', () => {
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent with credentials',
-      agentPrompt: `You are a test agent with MCP tools.`,
-      agentRelations: [],
+      prompt: `You are a test agent with MCP tools.`,
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [],
@@ -1078,13 +1078,13 @@ describe('Agent Credential Integration', () => {
     const contextConfig = {
       id: 'context-agent',
       tenantId: 'context-tenant',
-      graphId: 'context-graph',
+      agentId: 'context-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Context Agent',
       description: 'Agent for testing context',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [mockToolConfig],
@@ -1136,18 +1136,22 @@ describe('Two-Pass Generation System', () => {
       props: { type: 'object', properties: { message: { type: 'string' } } },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      preview: {
+        code: 'console.log("Hello, World!");',
+        data: { message: 'Hello, World!' },
+      },
     };
 
     mockAgentConfig = {
       id: 'test-agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       projectId: 'test-project',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       tools: [],
@@ -1227,17 +1231,17 @@ describe('Agent Model Settings', () => {
       id: 'test-agent',
       tenantId: 'test-tenant',
       projectId: 'test-project',
-      graphId: 'test-graph',
+      agentId: 'test-agent',
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent for model settingsuration',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
       },
     };
@@ -1250,7 +1254,7 @@ describe('Agent Model Settings', () => {
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1291,7 +1295,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -1308,7 +1312,7 @@ describe('Agent Model Settings', () => {
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4-5',
         providerOptions: {
           anthropic: {
             temperature: 0.8,
@@ -1339,7 +1343,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1347,7 +1351,7 @@ describe('Agent Model Settings', () => {
           },
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
       },
       dataComponents: [
@@ -1367,7 +1371,7 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation with custom model, once for structured output with OpenAI model
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: {
         anthropic: {
           temperature: 0.5,
@@ -1375,7 +1379,7 @@ describe('Agent Model Settings', () => {
       },
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
+      model: 'openai/gpt-4.1-mini',
     });
   });
 
@@ -1399,11 +1403,11 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation, once for structured output (both use base model)
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1433,7 +1437,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
         },
       },
     };
@@ -1443,16 +1447,16 @@ describe('Agent Model Settings', () => {
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: undefined,
     });
   });
 });
 
 describe('Agent Conditional Tool Availability', () => {
-  test('agent without artifact components in graph without components should have no artifact tools', async () => {
-    // Mock graphHasArtifactComponents to return false
-    graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
+  test('agent without artifact components in agent without components should have no artifact tools', async () => {
+    // Mock agentHasArtifactComponents to return false
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
 
     const config: AgentConfig = {
       id: 'test-agent',
@@ -1460,10 +1464,10 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-no-components',
+      agentId: 'test-agent-no-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       dataComponents: [],
@@ -1480,9 +1484,9 @@ describe('Agent Conditional Tool Availability', () => {
     expect(tools.get_reference_artifact).toBeUndefined();
   });
 
-  test('agent without artifact components in graph with components should have get_reference_artifact', async () => {
-    // Mock graphHasArtifactComponents to return true
-    graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
+  test('agent without artifact components in agent with components should have get_reference_artifact', async () => {
+    // Mock agentHasArtifactComponents to return true
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
     const config: AgentConfig = {
       id: 'test-agent',
@@ -1490,10 +1494,10 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-with-components',
+      agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       dataComponents: [],
@@ -1512,8 +1516,8 @@ describe('Agent Conditional Tool Availability', () => {
   });
 
   test('agent with artifact components should have get_reference_artifact tool', async () => {
-    // Mock graphHasArtifactComponents to return true
-    graphHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
+    // Mock agentHasArtifactComponents to return true
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
     const mockArtifactComponents = [
       {
@@ -1522,10 +1526,12 @@ describe('Agent Conditional Tool Availability', () => {
         tenantId: 'test-tenant',
         name: 'TestComponent',
         description: 'Test component',
-        summaryProps: { type: 'object', properties: { name: { type: 'string' } } },
-        fullProps: {
+        props: {
           type: 'object',
-          properties: { name: { type: 'string' }, details: { type: 'string' } },
+          properties: {
+            name: { type: 'string', inPreview: true },
+            details: { type: 'string', inPreview: false },
+          },
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1538,10 +1544,10 @@ describe('Agent Conditional Tool Availability', () => {
       name: 'Test Agent',
       description: 'Test agent',
       tenantId: 'test-tenant',
-      graphId: 'test-graph-with-components',
+      agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
-      agentRelations: [],
+      prompt: 'Test instructions',
+      subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       dataComponents: [],

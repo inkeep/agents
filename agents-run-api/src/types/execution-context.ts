@@ -7,18 +7,37 @@ export function createExecutionContext(params: {
   apiKey: string;
   tenantId: string;
   projectId: string;
-  graphId: string;
+  agentId: string;
   apiKeyId: string;
-  agentId?: string;
+  subAgentId?: string;
   baseUrl?: string;
 }): ExecutionContext {
   return {
     apiKey: params.apiKey,
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.graphId,
+    agentId: params.agentId,
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
-    agentId: params.agentId,
+    subAgentId: params.subAgentId,
   };
 }
+
+interface CommonSandboxConfig {
+  runtime: 'node22' | 'typescript';
+  timeout?: number;
+  vcpus?: number;
+}
+
+export interface NativeSandboxConfig extends CommonSandboxConfig {
+  provider: 'native';
+}
+
+export interface VercelSandboxConfig extends CommonSandboxConfig {
+  provider: 'vercel';
+  teamId: string;
+  projectId: string;
+  token: string;
+}
+
+export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig;

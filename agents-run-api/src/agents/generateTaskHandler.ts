@@ -1,16 +1,16 @@
 import {
-  type AgentApiSelect,
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
   getAgentById,
-  getAgentGraphById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
-  getRelatedAgentsForGraph,
+  getRelatedAgentsForAgent,
+  getSubAgentById,
   getToolsForAgent,
   type McpTool,
   type Part,
+  type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
@@ -18,6 +18,8 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { agentSessionManager } from '../services/AgentSession';
+import type { SandboxConfig } from '../types/execution-context';
 import { resolveModelConfig } from '../utils/model-resolver';
 import { Agent } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
@@ -30,15 +32,16 @@ const logger = getLogger('generateTaskHandler');
 export interface TaskHandlerConfig {
   tenantId: string;
   projectId: string;
-  graphId: string;
   agentId: string;
-  agentSchema: AgentApiSelect;
+  subAgentId: string;
+  agentSchema: SubAgentApiSelect;
   name: string;
   baseUrl: string;
   apiKey?: string;
   description?: string;
   contextConfigId?: string;
   conversationHistoryConfig?: AgentConversationHistoryConfig;
+  sandboxConfig?: SandboxConfig;
 }
 
 export const createTaskHandler = (
@@ -47,7 +50,6 @@ export const createTaskHandler = (
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
     try {
-      // Extract the user message from the task
       const userMessage = task.input.parts
         .filter((part) => part.text)
         .map((part) => part.text)
@@ -69,68 +71,63 @@ export const createTaskHandler = (
         dataComponents,
         artifactComponents,
       ] = await Promise.all([
-        getRelatedAgentsForGraph(dbClient)({
+        getRelatedAgentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.agentId,
           },
-          agentId: config.agentId,
+          subAgentId: config.subAgentId,
         }),
         getToolsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getDataComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
         getArtifactComponentsForAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
             agentId: config.agentId,
+            subAgentId: config.subAgentId,
           },
         }),
       ]);
 
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
-      // Enhance internal relation descriptions with their transfer/delegation info
-      // This allows agents to see the full capability graph for routing decisions
-      // We batch the operations to be more efficient than the original N+1 approach
       const enhancedInternalRelations = await Promise.all(
         internalRelations.map(async (relation) => {
           try {
-            const relatedAgent = await getAgentById(dbClient)({
+            const relatedAgent = await getSubAgentById(dbClient)({
               scopes: {
                 tenantId: config.tenantId,
                 projectId: config.projectId,
-                graphId: config.graphId,
+                agentId: config.agentId,
               },
-              agentId: relation.id,
+              subAgentId: relation.id,
             });
             if (relatedAgent) {
-              // Get this agent's relations for enhanced description
-              const relatedAgentRelations = await getRelatedAgentsForGraph(dbClient)({
+              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
                 scopes: {
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.agentId,
                 },
-                agentId: relation.id,
+                subAgentId: relation.id,
               });
 
-              // Use the optimized version that accepts pre-computed relations
               const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',
                 relatedAgentRelations.internalRelations,
@@ -139,17 +136,17 @@ export const createTaskHandler = (
               return { ...relation, description: enhancedDescription };
             }
           } catch (error) {
-            logger.warn({ agentId: relation.id, error }, 'Failed to enhance agent description');
+            logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
           }
           return relation;
         })
       );
 
-      // Check if this is an internal agent (has prompt)
-      const agentPrompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
+      // TODO: dbResultToMcpTool use here is debatable, since does not take into account "selected tools"
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(
@@ -159,29 +156,29 @@ export const createTaskHandler = (
 
       const agent = new Agent(
         {
-          id: config.agentId,
+          id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
-          graphId: config.graphId,
+          agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           name: config.name,
           description: config.description || '',
-          agentPrompt,
+          prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          agentRelations: enhancedInternalRelations.map((relation) => ({
+          subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
-            graphId: config.graphId,
+            agentId: config.agentId,
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
             description: relation.description,
-            agentPrompt: '',
+            prompt: '',
             delegateRelations: [],
-            agentRelations: [],
+            subAgentRelations: [],
             transferRelations: [],
           })),
           transferRelations: enhancedInternalRelations
@@ -192,16 +189,15 @@ export const createTaskHandler = (
               id: relation.id,
               tenantId: config.tenantId,
               projectId: config.projectId,
-              graphId: config.graphId,
+              agentId: config.agentId,
               name: relation.name,
               description: relation.description,
-              agentPrompt: '',
+              prompt: '',
               delegateRelations: [],
-              agentRelations: [],
+              subAgentRelations: [],
               transferRelations: [],
             })),
           delegateRelations: [
-            // Internal delegate relations
             ...enhancedInternalRelations
               .filter((relation) => relation.relationType === 'delegate')
               .map((relation) => ({
@@ -210,18 +206,17 @@ export const createTaskHandler = (
                   id: relation.id,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
-                  graphId: config.graphId,
+                  agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
                   description: relation.description,
-                  agentPrompt: '',
+                  prompt: '',
                   delegateRelations: [],
-                  agentRelations: [],
+                  subAgentRelations: [],
                   transferRelations: [],
                 },
               })),
-            // External delegate relations
             ...externalRelations.map((relation) => ({
               type: 'external' as const,
               config: {
@@ -239,15 +234,18 @@ export const createTaskHandler = (
           artifactComponents: artifactComponents,
           contextConfigId: config.contextConfigId || undefined,
           conversationHistoryConfig: config.conversationHistoryConfig,
+          sandboxConfig: config.sandboxConfig,
         },
         credentialStoreRegistry
       );
 
-      // More robust contextId resolution for delegation scenarios
+      const artifactStreamRequestId = task.context?.metadata?.streamRequestId;
+      if (artifactStreamRequestId && artifactComponents.length > 0) {
+        agentSessionManager.updateArtifactComponents(artifactStreamRequestId, artifactComponents);
+      }
+
       let contextId = task.context?.conversationId;
 
-      // If contextId is not set in task.context, try to extract it from the task.id
-      // Many tasks are created with IDs like "task_math-demo-123456-chatcmpl-789"
       if (!contextId || contextId === 'default' || contextId === '') {
         const taskIdMatch = task.id.match(/^task_([^-]+-[^-]+-\d+)-/);
         if (taskIdMatch) {
@@ -256,7 +254,7 @@ export const createTaskHandler = (
             {
               taskId: task.id,
               extractedContextId: contextId,
-              agentId: config.agentId,
+              subAgentId: config.subAgentId,
             },
             'Extracted contextId from task ID for delegation'
           );
@@ -265,23 +263,19 @@ export const createTaskHandler = (
         }
       }
 
-      // Extract streaming context from task metadata and get streamHelper from registry
       const streamRequestId =
         task.context?.metadata?.stream_request_id || task.context?.metadata?.streamRequestId;
 
-      // Check if this is a delegation - delegated agents should not stream to user
       const isDelegation = task.context?.metadata?.isDelegation === true;
       agent.setDelegationStatus(isDelegation);
       if (isDelegation) {
         logger.info(
-          { agentId: config.agentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id },
           'Delegated agent - streaming disabled'
         );
 
-        // Ensure ToolSession exists for delegated agents
-        // Use streamRequestId as sessionId to match the parent GraphSession
         if (streamRequestId && config.tenantId && config.projectId) {
-          toolSessionManager.ensureGraphSession(
+          toolSessionManager.ensureAgentSession(
             streamRequestId,
             config.tenantId,
             config.projectId,
@@ -302,7 +296,6 @@ export const createTaskHandler = (
         },
       });
 
-      // Process steps to extract tool calls and results from content arrays
       const stepContents =
         response.steps && Array.isArray(response.steps)
           ? response.steps.flatMap((step: any) => {
@@ -316,35 +309,42 @@ export const createTaskHandler = (
 
       if (allToolCalls.length > 0) {
         for (const toolCall of allToolCalls) {
-          // Check for transfer tool calls (we support multiple patterns)
           if (
             toolCall.toolName.includes('transfer') ||
             toolCall.toolName.includes('transferToRefundAgent')
           ) {
-            // Look for the tool result
             const toolResult = allToolResults.find(
               (result: any) => result.toolCallId === toolCall.toolCallId
             );
 
-            // Validate transfer result with proper type checking
+            logger.info(
+              {
+                toolCallName: toolCall.toolName,
+                toolCallId: toolCall.toolCallId,
+                hasToolResult: !!toolResult,
+                toolResultOutput: toolResult?.output,
+                toolResultKeys: toolResult?.output ? Object.keys(toolResult.output) : [],
+              },
+              '[DEBUG] Transfer tool result found'
+            );
+
             const isValidTransferResult = (
               output: unknown
             ): output is {
               type: 'transfer';
-              target: string;
+              targetSubAgentId: string;
+              fromSubAgentId?: string;
             } => {
               return (
                 typeof output === 'object' &&
                 output !== null &&
                 'type' in output &&
-                'target' in output &&
+                'targetSubAgentId' in output &&
                 (output as any).type === 'transfer' &&
-                typeof (output as any).target === 'string' &&
-                ((output as any).reason === undefined || typeof (output as any).reason === 'string')
+                typeof (output as any).targetSubAgentId === 'string'
               );
             };
 
-            //In the agent.generate response, response.text is not always populated. In that case, use allThoughts to get the last text part found in the steps array.
             const responseText =
               (response as any).text ||
               ((response as any).object ? JSON.stringify((response as any).object) : '');
@@ -356,11 +356,37 @@ export const createTaskHandler = (
             if (toolResult?.output && isValidTransferResult(toolResult.output)) {
               const transferResult = toolResult.output;
 
-              // Return transfer indication in A2A format
+              logger.info(
+                {
+                  validationPassed: true,
+                  transferResult,
+                  targetSubAgentId: transferResult.targetSubAgentId,
+                  fromSubAgentId: transferResult.fromSubAgentId,
+                },
+                '[DEBUG] Transfer validation passed, extracted data'
+              );
+
+              const artifactData = {
+                type: 'transfer',
+                targetSubAgentId: transferResult.targetSubAgentId,
+                fromSubAgentId: transferResult.fromSubAgentId,
+                task_id: task.id,
+                reason: transferReason,
+                original_message: userMessage,
+              };
+
+              logger.info(
+                {
+                  artifactData,
+                  artifactDataKeys: Object.keys(artifactData),
+                },
+                '[DEBUG] Artifact data being returned'
+              );
+
               return {
                 status: {
                   state: TaskState.Completed,
-                  message: `Transfer requested to ${transferResult.target}`,
+                  message: `Transfer requested to ${transferResult.targetSubAgentId}`,
                 },
                 artifacts: [
                   {
@@ -368,24 +394,27 @@ export const createTaskHandler = (
                     parts: [
                       {
                         kind: 'data',
-                        data: {
-                          type: 'transfer',
-                          target: transferResult.target,
-                          task_id: task.id,
-                          reason: transferReason,
-                          original_message: userMessage,
-                        },
+                        data: artifactData,
                       },
                     ],
                   },
                 ],
               };
+            } else {
+              logger.warn(
+                {
+                  hasToolResult: !!toolResult,
+                  hasOutput: !!toolResult?.output,
+                  validationPassed: false,
+                  output: toolResult?.output,
+                },
+                '[DEBUG] Transfer validation FAILED'
+              );
             }
           }
         }
       }
 
-      // Use formatted content parts if available, otherwise fall back to response.text
       const parts: Part[] = (response.formattedContent?.parts || []).map((part: any) => ({
         kind: part.kind as 'text' | 'data',
         ...(part.kind === 'text' && { text: part.text }),
@@ -435,57 +464,58 @@ export const deserializeTaskHandlerConfig = (configJson: string): TaskHandlerCon
 export const createTaskHandlerConfig = async (params: {
   tenantId: string;
   projectId: string;
-  graphId: string;
   agentId: string;
+  subAgentId: string;
   baseUrl: string;
   apiKey?: string;
+  sandboxConfig?: SandboxConfig;
 }): Promise<TaskHandlerConfig> => {
+  const subAgent = await getSubAgentById(dbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    subAgentId: params.subAgentId,
+  });
+
   const agent = await getAgentById(dbClient)({
     scopes: {
       tenantId: params.tenantId,
       projectId: params.projectId,
-      graphId: params.graphId,
-    },
-    agentId: params.agentId,
-  });
-
-  const agentGraph = await getAgentGraphById(dbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      graphId: params.graphId,
+      agentId: params.agentId,
     },
   });
 
-  if (!agent) {
-    throw new Error(`Agent not found: ${params.agentId}`);
+  if (!subAgent) {
+    throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
-  // Inherit graph models if agent doesn't have one
-  const effectiveModels = await resolveModelConfig(params.graphId, agent);
-  const effectiveConversationHistoryConfig = agent.conversationHistoryConfig || { mode: 'full' };
+  const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
 
   return {
     tenantId: params.tenantId,
     projectId: params.projectId,
-    graphId: params.graphId,
     agentId: params.agentId,
+    subAgentId: params.subAgentId,
     agentSchema: {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description,
-      prompt: agent.prompt,
+      id: subAgent.id,
+      name: subAgent.name,
+      description: subAgent.description,
+      prompt: subAgent.prompt,
       models: effectiveModels,
       conversationHistoryConfig: effectiveConversationHistoryConfig || null,
-      stopWhen: agent.stopWhen || null,
-      createdAt: agent.createdAt,
-      updatedAt: agent.updatedAt,
+      stopWhen: subAgent.stopWhen || null,
+      createdAt: subAgent.createdAt,
+      updatedAt: subAgent.updatedAt,
     },
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
-    name: agent.name,
-    description: agent.description,
+    name: subAgent.name,
+    description: subAgent.description,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
-    contextConfigId: agentGraph?.contextConfigId || undefined,
+    contextConfigId: agent?.contextConfigId || undefined,
+    sandboxConfig: params.sandboxConfig,
   };
 };

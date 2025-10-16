@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 
 /**
  * Placeholder replacement system for reducing LLM prompt size
@@ -48,51 +49,185 @@ function shouldReplaceString(value: string, placeholder: string): boolean {
   return value.length >= MIN_REPLACEMENT_LENGTH && placeholder.length < value.length;
 }
 
+function containsTemplateLiterals(value: string): boolean {
+  return /\{\{([^}]+)\}\}/.test(value);
+}
+
+function generateMultiPlaceholderString(
+  value: string,
+  jsonPath: string,
+  tracker: PlaceholderTracker
+): string {
+  const templateLiterals = value.match(/\{\{([^}]+)\}\}/g);
+  if (!templateLiterals) {
+    return value;
+  }
+
+  // Split the string by template literals
+  // This gives us the surrounding text parts
+  const parts = value.split(/\{\{[^}]+\}\}/);
+
+  // Build the placeholder version and track temporary mappings
+  let result = '';
+  let partIndex = 0;
+  const tempMappings: Array<{ placeholder: string; value: string }> = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+
+    // Only replace non-empty parts
+    if (part.length > 0) {
+      // Check if we already have a placeholder for this text
+      const existingPlaceholder = tracker.valueToPlaceholder.get(part);
+      if (existingPlaceholder) {
+        result += existingPlaceholder;
+      } else {
+        // Generate a new placeholder for this text part
+        const placeholder = generatePlaceholder(`${jsonPath}.part${partIndex}`);
+        tempMappings.push({ placeholder, value: part });
+        result += placeholder;
+      }
+      partIndex++;
+    }
+
+    // Add the template literal back (except after the last part)
+    if (i < templateLiterals.length) {
+      result += templateLiterals[i];
+    }
+  }
+
+  // Only use the placeholder version if it saves space overall
+  if (result.length < value.length) {
+    // Commit the temporary mappings to the tracker
+    for (const mapping of tempMappings) {
+      updateTracker(tracker, mapping.placeholder, mapping.value);
+    }
+    return result;
+  }
+
+  // Return original string if placeholders don't save space
+  return value;
+}
+
+function isJsonSchemaPath(path: string, context?: { fileType?: string }): boolean {
+  // FULL PROJECT PATHS (when processing complete project data - no context needed)
+  
+  // Context config schemas (headers and response schemas)
+  if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
+    return true;
+  }
+  
+  // General headers schema pattern (for fetchDefinition and contextConfig)
+  if (path.endsWith('headersSchema') && path.length > 'headersSchema'.length) {
+    return true;
+  }
+
+  // Convert artifact component and data component props from JSON Schema to Zod
+  // Only for full project paths like "dataComponents.someId.props"
+  if (path.includes('artifactComponents') && path.endsWith('props')) {
+    return true;
+  }
+  if (path.includes('dataComponents') && path.endsWith('props')) {
+    return true;
+  }
+
+  // Convert status component detailsSchema from JSON Schema to Zod
+  // Handle array notation like statusComponents[0].detailsSchema
+  if (path.includes('statusComponents') && path.endsWith('detailsSchema')) {
+    return true;
+  }
+
+  // Convert input/output schemas in tool definitions (functionTool inputSchema)
+  if (path.endsWith('inputSchema') || path.endsWith('outputSchema')) {
+    return true;
+  }
+
+  // SINGLE COMPONENT PATHS (when processing individual components with context)
+  if (context?.fileType) {
+    // Data and artifact component props (single component: path === 'props')
+    if (path === 'props' && (context.fileType === 'dataComponent' || context.fileType === 'artifactComponent')) {
+      return true;
+    }
+    
+    // Status component detailsSchema (single component: path === 'detailsSchema')
+    if (path === 'detailsSchema' && context.fileType === 'statusComponent') {
+      return true;
+    }
+    
+    // Context config schemas (single component: path === 'headersSchema' or ends with responseSchema)
+    if (context.fileType === 'contextConfig') {
+      if (path === 'headersSchema' || path.endsWith('responseSchema')) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function updateTracker(tracker: PlaceholderTracker, placeholder: string, value: any) {
+  tracker.placeholderToValue.set(placeholder, value);
+  tracker.valueToPlaceholder.set(value, placeholder);
+}
+
 /**
  * Recursively process an object to create placeholders for large string values
  */
-function processObject(obj: any, tracker: PlaceholderTracker, path: string = ''): any {
+function processObject(obj: any, tracker: PlaceholderTracker, path: string = '', context?: { fileType?: string }): any {
   if (typeof obj === 'string') {
-    // Check if we already have a placeholder for this exact value
-    const existingPlaceholder = tracker.valueToPlaceholder.get(obj);
-    if (existingPlaceholder) {
-      return existingPlaceholder;
-    }
-
-    // Generate a new placeholder
-    const placeholder = generatePlaceholder(path);
-
-    // Only use the placeholder if it saves space
-    if (shouldReplaceString(obj, placeholder)) {
-      // Check for collision (same placeholder, different value)
-      const existingValue = tracker.placeholderToValue.get(placeholder);
-      if (existingValue && existingValue !== obj) {
-        throw new Error(
-          `Placeholder collision detected: placeholder '${placeholder}' already exists with different value. ` +
-            `Existing value length: ${existingValue.length}, New value length: ${obj.length}`
-        );
+    if (containsTemplateLiterals(obj)) {
+      return generateMultiPlaceholderString(obj, path, tracker);
+    } else {
+      // Check if we already have a placeholder for this exact value
+      const existingPlaceholder = tracker.valueToPlaceholder.get(obj);
+      if (existingPlaceholder) {
+        return existingPlaceholder;
       }
 
-      // Store the mapping both ways for efficient lookup
-      tracker.placeholderToValue.set(placeholder, obj);
-      tracker.valueToPlaceholder.set(obj, placeholder);
+      // Generate a new placeholder
+      const placeholder = generatePlaceholder(path);
 
-      return placeholder;
+      // Only use the placeholder if it saves space
+      if (shouldReplaceString(obj, placeholder)) {
+        // Check for collision (same placeholder, different value)
+        const existingValue = tracker.placeholderToValue.get(placeholder);
+        if (existingValue && existingValue !== obj) {
+          throw new Error(
+            `Placeholder collision detected: placeholder '${placeholder}' already exists with different value. ` +
+              `Existing value length: ${existingValue.length}, New value length: ${obj.length}`
+          );
+        }
+
+        // Store the mapping both ways for efficient lookup
+        updateTracker(tracker, placeholder, obj);
+
+        return placeholder;
+      }
     }
 
     // Return original string if not worth replacing
     return obj;
   }
 
+  if (isJsonSchemaPath(path, context)) {
+    try {
+      const zodSchema = jsonSchemaToZod(obj);
+
+      return zodSchema;
+    } catch (error) {
+      console.error('Error converting JSON schema to Zod schema:', error);
+    }
+  }
+
   if (Array.isArray(obj)) {
-    return obj.map((item, index) => processObject(item, tracker, `${path}[${index}]`));
+    return obj.map((item, index) => processObject(item, tracker, `${path}[${index}]`, context));
   }
 
   if (obj && typeof obj === 'object') {
     const result: any = {};
     for (const [key, value] of Object.entries(obj)) {
       const currentPath = path ? `${path}.${key}` : key;
-      result[key] = processObject(value, tracker, currentPath);
+      result[key] = processObject(value, tracker, currentPath, context);
     }
     return result;
   }
@@ -105,16 +240,17 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '')
  * Create placeholders for large string values in the given data
  *
  * @param data - The data object to process
+ * @param context - Context about what type of data is being processed (optional)
  * @returns Object containing processed data and replacements map
  */
-export function createPlaceholders(data: any): PlaceholderResult {
+export function createPlaceholders(data: any, context?: { fileType?: string }): PlaceholderResult {
   const tracker: PlaceholderTracker = {
     placeholderToValue: new Map(),
     valueToPlaceholder: new Map(),
   };
 
   try {
-    const processedData = processObject(data, tracker);
+    const processedData = processObject(data, tracker, '', context);
 
     // Convert the tracker maps to a simple Record for the result
     const replacements: Record<string, string> = {};
@@ -155,9 +291,12 @@ export function restorePlaceholders(
   for (const placeholder of sortedPlaceholders) {
     let originalValue = replacements[placeholder];
 
-    // Escape backticks in the original value when restoring into template literals
-    // This prevents syntax errors when the restored content contains backticks
-    originalValue = originalValue.replace(/`/g, '\\`');
+    // Escape content for template literals (the LLM generates template literals for multi-line strings)
+    // Order matters: backslashes first, then special sequences
+    originalValue = originalValue
+      .replace(/\\/g, '\\\\') // Escape backslashes first
+      .replace(/`/g, '\\`') // Escape backticks
+      .replace(/\$\{/g, '\\${'); // Escape template literal interpolation
 
     // Use regex to find and replace all instances of the placeholder
     // Escape special regex characters in the placeholder

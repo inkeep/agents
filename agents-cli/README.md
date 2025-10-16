@@ -1,6 +1,6 @@
 # Inkeep CLI
 
-A command-line interface for managing and interacting with Inkeep Agent Framework graphs.
+A command-line interface for managing and interacting with Inkeep Agent Frameworks.
 
 ## Installation & Setup
 
@@ -9,6 +9,7 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
 - Node.js >= 20.x
 - pnpm package manager
 - Inkeep Agent Framework backend running (default: http://localhost:3002)
+- `@inkeep/agents-manage-ui` package installed (for visual agents orchestration)
 
 ### Quick Start
 
@@ -57,20 +58,29 @@ A command-line interface for managing and interacting with Inkeep Agent Framewor
    - The command is still `inkeep` even though the package name is `@inkeep/agents-cli`
    - If linking fails, try unlinking first: `npm unlink -g @inkeep/agents-cli`
 
-3. **Configure your project**
+3. **Install the dashboard package (for visual agents orchestration)**
 
-   ```bash
-   # Create an inkeep.config.ts file with your tenant ID
-   inkeep init
+```bash
+# Install the dashboard UI package for visual agents orchestration
+npm install @inkeep/agents-manage-ui
+# or
+pnpm add @inkeep/agents-manage-ui
+```
 
-   # Or manually create inkeep.config.ts:
-   # export default defineConfig({
-   #   tenantId: "your-tenant-id",
-   #   projectId: "your-project-id",
-   #   agentsManageApiUrl: "http://localhost:3002",
-   #   agentsRunApiUrl: "http://localhost:3003"
-   # });
-   ```
+4. **Configure your project**
+
+```bash
+# Create an inkeep.config.ts file with your tenant ID
+inkeep init
+
+# Or manually create inkeep.config.ts:
+# export default defineConfig({
+#   tenantId: "your-tenant-id",
+#   projectId: "your-project-id",
+#   agentsManageApiUrl: "http://localhost:3002",
+#   agentsRunApiUrl: "http://localhost:3003"
+# });
+```
 
 ## Configuration
 
@@ -247,14 +257,14 @@ inkeep list-graphs --project my-project-id --agents-manage-api-url http://api.ex
 inkeep list-graphs --project my-project-id --tenant-id my-tenant-id
 
 # Using config file
-inkeep list-graphs --project my-project-id --config ./my-config.ts
+inkeep list-agents --project my-project-id --config ./my-config.ts
 ```
 
 Output:
 
 ```
 ┌─────────────────────────┬────────────────────┬───────────────┬───────────┐
-│ Graph ID                │ Name               │ Default Agent │ Created   │
+│ Agent ID                │ Name               │ Default Agent │ Created   │
 ├─────────────────────────┼────────────────────┼───────────────┼───────────┤
 │ customer-support-graph  │ Customer Support   │ router        │ 1/15/2025 │
 │ qa-assistant           │ QA Assistant       │ qa-agent      │ 1/14/2025 │
@@ -285,72 +295,37 @@ inkeep push --project my-project-id --tenant-id my-tenant-id
 **Features:**
 
 - Automatically injects tenant ID and API URL from `inkeep.config.ts`
-- Validates exactly one AgentGraph is exported
+- Validates exactly one Agent is exported
 - Warns about dangling resources (unreferenced agents/tools)
 - Shows graph summary after successful push
 - Handles graph initialization automatically
 
-**Graph files:** Define your graphs in your project (e.g., `graphs/*.graph.ts`). The CLI pushes the project containing those graphs.
+**Agent files:** Define your agents in your project (e.g., `agents/*.ts`). The CLI pushes the project containing those agents.
 
 **Example graph configuration:**
 
 ```javascript
-// customer-support.graph.ts
-import { agent, agentGraph, tool } from "@inkeep/agents-manage-api/builder";
+// customer-support.agent.ts
+import { agent, subAgent, tool } from "@inkeep/agents-sdk";
 
-const assistantAgent = agent({
+const assistantSubAgent = subAgent({
   id: "assistant",
   name: "Assistant",
-  instructions: "Help users with their questions",
-  tools: {
-    search: searchTool,
-  },
+  prompt: "Help users with their questions",
+  canUse: () => [searchTool],
   // No tenantId needed - injected by CLI
 });
 
-// Must export exactly one graph
-export const graph = agentGraph({
+// Must export exactly one agent
+export const myAgent = agent({
   id: "my-assistant",
-  name: "My Assistant Graph",
-  defaultAgent: assistantAgent,
-  agents: {
-    assistant: assistantAgent,
-  },
+  name: "My Assistant",
+  defaultSubAgent: assistantSubAgent,
+  subAgents: () => [assistantSubAgent],
   // No tenantId or apiUrl needed - CLI injects from config
 });
-// No graph.init() call - CLI handles initialization
+// No agent.init() call - CLI handles initialization
 ```
-
-### `inkeep chat [graph-id]`
-
-Start an interactive chat session with a graph.
-
-```bash
-# Chat with specific graph
-inkeep chat my-graph-id
-
-# Interactive graph selection (with search)
-inkeep chat
-
-# With custom API URLs
-inkeep chat --agents-manage-api-url http://manage.example.com --agents-run-api-url http://run.example.com
-
-# With custom tenant ID
-inkeep chat --tenant-id my-tenant-id
-
-# Using config file
-inkeep chat --config ./my-config.ts
-```
-
-**Interactive Features:**
-
-- **Graph selection**: If no graph ID provided, shows searchable list
-- **Chat commands**:
-  - `help` - Show available commands
-  - `clear` - Clear screen (preserves context)
-  - `history` - Show conversation history
-  - `reset` - Reset conversation context
-  - `exit` - End chat session
 
 ### `inkeep mcp start <graph-file>` ⚠️ NOT IMPLEMENTED
 
@@ -360,17 +335,17 @@ inkeep chat --config ./my-config.ts
 Start MCP (Model Context Protocol) servers defined in a graph file.
 
 ```bash
-# Start MCP servers from a TypeScript graph file
-inkeep mcp start examples/agent-configurations/graph.graph.ts
+# Start MCP servers from a TypeScript agent file
+inkeep mcp start examples/agent-configurations/weather-agent.ts
 
 # Start from compiled JavaScript
-inkeep mcp start dist/examples/agent-configurations/graph.graph.js
+inkeep mcp start dist/examples/agent-configurations/weather-agent.js
 
 # Run in detached mode
-inkeep mcp start graph.graph.ts --detached
+inkeep mcp start my-agent.ts --detached
 
 # Show verbose output
-inkeep mcp start graph.graph.ts --verbose
+inkeep mcp start my-agent.ts --verbose
 ```
 
 **Features:**
@@ -451,14 +426,14 @@ inkeep init
 > **⚠️ WARNING: MCP commands shown below are not yet implemented.**
 > This section shows planned functionality that is not available in the current version.
 
-1. **Create a graph with MCP tools** (`my-graph.graph.ts`)
+1. **Create an agent with MCP tools** (`my-agent.ts`)
 
 ```typescript
 import {
   agent,
-  agentGraph,
+  subAgent,
   mcpServer,
-} from "@inkeep/agents-manage-api/builder";
+} from "@inkeep/agents-sdk";
 
 // Define MCP servers (tools)
 const randomNumberServer = mcpServer({
@@ -473,44 +448,27 @@ const weatherServer = mcpServer({
   serverUrl: "https://api.weather.example.com/mcp",
 });
 
-// Define agents
-const assistantAgent = agent({
+// Define sub-agents
+const assistantSubAgent = subAgent({
   id: "assistant",
   name: "Assistant",
-  instructions: "Help users with various tasks",
-  tools: {
-    random: randomNumberServer,
-    weather: weatherServer,
-  },
+  prompt: "Help users with various tasks",
+  canUse: () => [randomNumberServer, weatherServer],
 });
 
-// Export the graph
-export const graph = agentGraph({
+// Export the agent
+export const myAgent = agent({
   id: "my-assistant",
   name: "My Assistant",
-  defaultAgent: assistantAgent,
-  agents: { assistant: assistantAgent },
+  defaultSubAgent: assistantSubAgent,
+  subAgents: () => [assistantSubAgent],
 });
 
 // Export servers for MCP management
 export const servers = [randomNumberServer, weatherServer];
 ```
 
-2. **Start MCP servers and chat**
-
-```bash
-# Start MCP servers (works with TypeScript directly!)
-inkeep mcp start my-graph.graph.ts
-
-# In another terminal, start chatting
-inkeep chat my-assistant
-
-# Try commands like:
-# > "Generate a random number"
-# > "What's the weather like?"
-```
-
-3. **Monitor and manage servers**
+2. **Monitor and manage servers**
 
 ```bash
 # Check server status
@@ -534,7 +492,6 @@ INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-graphs
 # Using .env file
 echo "INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002" > .env
 echo "INKEEP_AGENTS_RUN_API_URL=http://localhost:3003" >> .env
-inkeep chat my-graph
 ```
 
 ### Staging
@@ -599,8 +556,6 @@ agents-cli/
 │   ├── api.ts                # API client for backend
 │   ├── commands/             # Command implementations
 │   │   ├── push.ts           # Push graph configurations
-│   │   ├── chat.ts           # Basic chat interface
-│   │   ├── chat-enhanced.ts  # Enhanced chat with autocomplete
 │   │   ├── tenant.ts         # Tenant management
 │   │   └── list-graphs.ts    # List graphs
 │   ├── types/                # TypeScript declarations
@@ -627,17 +582,6 @@ echo $INKEEP_AGENTS_RUN_API_URL
 
 # Try with explicit URL and project
 inkeep list-graphs --project my-project-id --agents-manage-api-url http://localhost:3002
-```
-
-**"Graph not found" when using chat**
-
-```bash
-# List available graphs first (requires project)
-inkeep list-graphs --project my-project-id
-
-# Use interactive selection
-inkeep chat
-# (Select from list)
 ```
 
 **Command not found: inkeep**

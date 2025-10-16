@@ -1,0 +1,191 @@
+---
+title: Function Tools
+description: Create custom JavaScript functions that your agents can execute directly in the Visual Builder
+icon: "LuCode"
+---
+
+Function tools allow you to create custom JavaScript functions that agents can execute in secure sandboxes. Unlike [MCP servers](/visual-builder/tools/mcp-servers) that connect to external services, function tools run your own code directly within the agent framework.
+
+## Overview
+
+Function tools are ideal for:
+
+- **Custom business logic** - Implement domain-specific calculations or workflows
+- **Data processing** - Transform, validate, or analyze data using JavaScript
+- **API integrations** - Connect to services that don't have MCP servers
+- **Utility functions** - Create reusable helper functions across your agents
+
+## Creating Function Tools
+
+Function tools are created within an Agent and can be used by multiple Sub Agents in that Agent.
+
+### In an Agent
+
+1. **Add a Function Tool Node**: In the Agent editor, drag a "Function Tool" node from the node palette onto the canvas
+
+2. **Configure the Function Tool**: Click on the function tool node to open the configuration panel in the right sidebar:
+
+| Field          | Description                                                  |
+| -------------- | ------------------------------------------------------------ |
+| `Name`         | A unique name for your function tool (e.g., "calculate_tax") |
+| `Description`  | What the function does and when to use it                    |
+| `Code`         | The JavaScript function code to execute                      |
+| `Input Schema` | JSON Schema defining the function parameters                 |
+| `Dependencies` | NPM packages required by your function                       |
+
+3. **Connect to Agents**: Drag from the function tool node to any agent nodes that should have access to this tool
+
+<img
+  src="/images/function-tool-node-editor.png"
+  alt="Function Tool Node Editor"
+  width="100%"
+  style={{
+    borderRadius: "10px",
+    border: "1px solid #e1e5e9",
+  }}
+/>
+
+### Function Code
+
+Write your JavaScript function in the Code editor. The function receives arguments based on your Input Schema and should return a result:
+
+```javascript
+// Example: BMI calculator
+function calculateBMI({ weight, height }) {
+  const bmi = weight / (height * height);
+  let category = "Normal";
+  if (bmi < 18.5) category = "Underweight";
+  else if (bmi >= 30) category = "Obese";
+
+  return { bmi: Math.round(bmi * 10) / 10, category };
+}
+
+return calculateBMI(args);
+```
+
+<Note>Code can be synchronous aor asynchronous, we accept any flavor.</Note>
+
+### Input Schema
+
+Define the parameters your function accepts using JSON Schema. This ensures proper validation and helps agents understand how to use your function:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "weight": {
+      "type": "number",
+      "description": "Weight in kilograms"
+    },
+    "height": {
+      "type": "number",
+      "description": "Height in meters"
+    }
+  },
+  "required": ["weight", "height"]
+}
+```
+
+The Visual Builder provides syntax highlighting and validation for your JSON schema.
+
+### Dependencies
+
+If you need external packages for your code to run, then specify the desired version in dependencies; otherwise we always use the latest version.
+
+```javascript
+// Dependencies auto-detected from impports
+const axios = require("axios"); // latest axios version
+const lodash = require("lodash"); // Uses latest lodash version
+```
+
+**Manual Override**: Specify dependencies in the Dependencies field to pin to specific versions:
+
+```json
+{
+  "axios": "1.6.0",
+  "lodash": "4.17.21"
+}
+```
+
+## Example: Weather API Integration
+
+Here's a complete example of a function tool that fetches weather data:
+
+**Name**: `get_current_weather`
+
+**Description**: `Get current weather information for any city using OpenWeatherMap API`
+
+**Code**:
+
+```javascript
+// Simple weather lookup example
+async function getWeather({ city }) {
+  const axios = require("axios");
+  const response = await axios.get(`https://api.weather.com/city/${city}`);
+
+  return {
+    city: response.data.city,
+    temperature: response.data.temp,
+    description: response.data.weather,
+  };
+}
+
+return getWeather(args);
+```
+
+**Input Schema**:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "city": {
+      "type": "string",
+      "description": "City name"
+    }
+  },
+  "required": ["city"]
+}
+```
+
+**Dependencies**:
+
+```json
+{
+  "axios": "^1.6.0"
+}
+```
+
+## Execution Environment
+
+Function tools run in secure, isolated sandboxes that provide a safe execution environment for your code.
+
+### Sandbox Execution
+
+Functions execute with the following characteristics:
+
+- **Isolated execution** - Each function runs in its own sandbox
+- **No file system access** - Cannot read or write outside the sandbox
+- **Network access** - Only through explicitly declared dependencies (like axios)
+- **Resource limits** - CPU, memory, and execution time constraints enforced
+- **Stateless execution** - No data persists between function calls
+
+### Runtime Options
+
+When deploying, you can configure:
+
+- **Runtime**: Node.js 22 or TypeScript
+- **Timeout**: Maximum execution time per function call
+- **Concurrency**: Number of simultaneous function executions
+
+See [Deploy to Vercel](/self-hosting/vercel#function-tools-with-vercel-sandbox) for deployment-specific configuration.
+
+### Best Practices
+
+- **Keep functions simple** - Each function should have a single, clear purpose
+- **Minimize dependencies** - Only include packages you actually need for better performance
+- **Handle errors** - Always catch and return meaningful error messages
+- **Test thoroughly** - Test your functions independently before deploying
+- **Clear descriptions** - Write descriptive names and descriptions to help agents use tools effectively
+
+Function tools provide powerful customization capabilities while maintaining security and performance through sandboxed execution.

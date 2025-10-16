@@ -1,4 +1,4 @@
-import { Streamdown } from 'streamdown';
+import dynamic from 'next/dynamic';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -10,9 +10,25 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
+
+const JsonEditorWithCopy = dynamic(
+  () =>
+    import('@/components/traces/editors/json-editor-with-copy').then(
+      (mod) => mod.JsonEditorWithCopy
+    ),
+  { ssr: false } // ensures it only loads on the client side
+);
+
+function formatJsonSafely(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
+}
 
 export function renderPanelContent({
   selected,
@@ -27,14 +43,7 @@ export function renderPanelContent({
     const e = selected.item;
     return (
       <Section>
-        <Info
-          label="Tool name"
-          value={
-            <Badge variant="code" className="">
-              {e.toolName}
-            </Badge>
-          }
-        />
+        <Info label="Tool name" value={<Badge variant="code">{e.toolName}</Badge>} />
         <LabeledBlock label="Error message">
           <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             {e.error}
@@ -45,14 +54,7 @@ export function renderPanelContent({
             {e.failureReason}
           </Bubble>
         </LabeledBlock>
-        <Info
-          label="Span ID"
-          value={
-            <Badge variant="code" className="">
-              {e.spanId}
-            </Badge>
-          }
-        />
+        <Info label="Span ID" value={<Badge variant="code">{e.spanId}</Badge>} />
         <Info label="Timestamp" value={formatDateTime(e.timestamp)} />
       </Section>
     );
@@ -72,7 +74,7 @@ export function renderPanelContent({
   const AdvancedBlock = span ? (
     <SpanAttributes span={span.data} />
   ) : (
-    <div className="text-center py-4 text-xs text-muted-foreground">Span not found</div>
+    <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
   );
 
   switch (selected.type) {
@@ -83,7 +85,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <Info label="Agent" value={a.agentName || '-'} />
+            <Info label="Sub agent" value={a.subAgentName || '-'} />
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
@@ -92,30 +94,18 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             {a.aiPromptMessages && (
-              <LabeledBlock label="Prompt messages">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiPromptMessages), null, 2);
-                    } catch {
-                      return a.aiPromptMessages;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiPromptMessages)}
+                title="Prompt messages"
+                uri="prompt-messages.json"
+              />
             )}
             {a.aiResponseToolCalls && (
-              <LabeledBlock label="Tool calls">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.aiResponseToolCalls), null, 2);
-                    } catch {
-                      return a.aiResponseToolCalls;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.aiResponseToolCalls)}
+                title="Tool calls"
+                uri="tool-calls.json"
+              />
             )}
             {/* Show error message if there's an error */}
             {a.hasError && a.otelStatusDescription && (
@@ -164,10 +154,10 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="Message content">
-              <Bubble className="">{a.messageContent || 'Message content not available'}</Bubble>
-            </LabeledBlock>
-            <Info label="Message length" value={`${a.messageContent?.length || 0} characters`} />
+            <Info
+              label="Message content"
+              value={a.messageContent || 'Message content not available'}
+            />
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -186,17 +176,9 @@ export function renderPanelContent({
                 {a.aiResponseContent || 'Response content not available'}
               </Bubble>
             </LabeledBlock>
-            <Info label="Agent" value={a.agentName || 'Unknown'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
-            <Info
-              label="Message id"
-              value={
-                <Badge variant="code" className="">
-                  {a.id}
-                </Badge>
-              }
-            />
           </Section>
           <Divider />
           {SignozButton}
@@ -219,13 +201,6 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentGraphId && (
-              <LabeledBlock label="Agent graph id">
-                <Badge variant="code" className="">
-                  {a.contextAgentGraphId}
-                </Badge>
-              </LabeledBlock>
-            )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
             <StatusBadge status={a.status} />
             {a.contextStatusDescription && (
@@ -237,7 +212,7 @@ export function renderPanelContent({
             )}
             {a.contextUrl && (
               <LabeledBlock label="Context URL">
-                <CodeBubble className=" break-all">{a.contextUrl}</CodeBubble>
+                <CodeBubble className="break-all">{a.contextUrl}</CodeBubble>
               </LabeledBlock>
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
@@ -252,52 +227,33 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
-                {a.delegationFromAgentId || a.agentName || 'Unknown Agent'}
-              </Badge>
-            </LabeledBlock>
-            <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
-                {a.delegationToAgentId ||
-                  a.toolName?.replace('delegate_to_', '') ||
-                  'Unknown Target'}
-              </Badge>
-            </LabeledBlock>
+            <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
+            <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
               </LabeledBlock>
             )}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -311,50 +267,37 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
-              <Badge variant="code" className="">
-                {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
-              </Badge>
+            <LabeledBlock label="From sub agent">
+              <Badge variant="code">{a.transferFromSubAgentId || 'Unknown sub agent'}</Badge>
             </LabeledBlock>
-            <LabeledBlock label="To agent">
-              <Badge variant="code" className="">
-                {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
-              </Badge>
+            <LabeledBlock label="To sub agent">
+              <Badge variant="code">{a.transferToSubAgentId || 'Unknown target'}</Badge>
             </LabeledBlock>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
               </LabeledBlock>
             )}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -370,11 +313,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -383,36 +322,29 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
-            <LabeledBlock label="Purpose">
-              <Bubble className="b">{a.toolPurpose || 'No purpose information available'}</Bubble>
-            </LabeledBlock>
-            <Info label="Agent" value={a.agentName || 'Unknown agent'} />
+            <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
               </LabeledBlock>
             )}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -428,11 +360,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Tool name"
-              value={
-                <Badge variant="code" className="">
-                  {a.toolName || 'Unknown Tool'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             {a.toolType && (
               <LabeledBlock label="Tool type">
@@ -442,31 +370,26 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
-            {a.toolCallArgs && (
-              <LabeledBlock label="Tool arguments">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallArgs), null, 2);
-                    } catch {
-                      return a.toolCallArgs;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
               </LabeledBlock>
             )}
+            {a.toolCallArgs && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallArgs)}
+                title="Tool arguments"
+                uri="tool-arguments.json"
+              />
+            )}
             {a.toolCallResult && (
-              <LabeledBlock label="Tool result">
-                <CodeBubble className="max-h-60 overflow-y-auto">
-                  <Streamdown>{`\`\`\`json\n${(() => {
-                    try {
-                      return JSON.stringify(JSON.parse(a.toolCallResult), null, 2);
-                    } catch {
-                      return a.toolCallResult;
-                    }
-                  })()}\n\`\`\``}</Streamdown>
-                </CodeBubble>
-              </LabeledBlock>
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.toolCallResult)}
+                title="Tool result"
+                uri="tool-result.json"
+              />
             )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -483,15 +406,71 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
             <Info
               label="Operation id"
-              value={
-                <Badge variant="code" className="">
-                  {a.aiStreamTextOperationId || 'Unknown'}
-                </Badge>
-              }
+              value={<Badge variant="code">{a.aiStreamTextOperationId || 'Unknown'}</Badge>}
             />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'ai_model_streamed_object':
+      return (
+        <>
+          <Section>
+            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
+            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
+            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            {a.aiStreamObjectContent && (
+              <LabeledBlock label="Structured object response">
+                <JsonEditorWithCopy
+                  value={formatJsonSafely(a.aiStreamObjectContent)}
+                  title="Object content"
+                  uri="stream-object-response.json"
+                />
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'artifact_processing':
+      return (
+        <>
+          <Section>
+            {a.artifactName && <Info label="Name" value={a.artifactName} />}
+            {a.artifactType && <Info label="Type" value={a.artifactType} />}
+            {a.artifactDescription && <Info label="Description" value={a.artifactDescription} />}
+            {a.artifactData && (
+              <JsonEditorWithCopy
+                value={formatJsonSafely(a.artifactData)}
+                title="Artifact data"
+                uri="artifact-data.json"
+              />
+            )}
+            <StatusBadge status={a.status} />
+            {a.artifactSubAgentId && (
+              <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
+            )}
+            {a.artifactId && (
+              <Info label="Artifact ID" value={<Badge variant="code">{a.artifactId}</Badge>} />
+            )}
+            {a.artifactToolCallId && (
+              <Info
+                label="Tool call ID"
+                value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
+              />
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

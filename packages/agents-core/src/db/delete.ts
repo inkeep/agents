@@ -41,13 +41,11 @@ export async function deleteDatabase() {
 
     console.log(`📍 Resolved path: ${resolvedPath}`);
 
-    // Check if the database file exists
     if (!fs.existsSync(resolvedPath)) {
       console.log('⚠️  Database file does not exist, nothing to delete');
       return;
     }
 
-    // Delete the database file
     fs.unlinkSync(resolvedPath);
     console.log('✅ Database file deleted successfully');
 

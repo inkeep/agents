@@ -6,14 +6,9 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: [
-            'quick-start/start-development',
-            'quick-start/traces',
-            'quick-start/credentials',
-          ],
+          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces', 'get-started/credentials'],
         },
         'concepts',
-        'troubleshooting',
       ],
     },
 
@@ -23,15 +18,28 @@ export default {
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
-        'typescript-sdk/tools-and-mcp-servers',
-        'typescript-sdk/create-mcp-servers',
-        'typescript-sdk/credentials',
-        'typescript-sdk/request-context',
+        {
+          group: 'Tools and MCPs',
+          icon: 'LuHammer',
+          pages: [
+            'typescript-sdk/tools/mcp-servers',
+            'typescript-sdk/tools/create-mcp-servers',
+            'typescript-sdk/tools/function-tools',
+            'typescript-sdk/tools/credentials',
+          ],
+        },
+        'typescript-sdk/headers',
         'typescript-sdk/context-fetchers',
         'authentication',
-        'typescript-sdk/data-components',
-        'typescript-sdk/artifact-components',
-        'typescript-sdk/status-updates',
+        {
+          group: 'Structured Outputs',
+          icon: 'LuLayoutTemplate',
+          pages: [
+            'typescript-sdk/structured-outputs/data-components',
+            'typescript-sdk/structured-outputs/artifact-components',
+            'typescript-sdk/structured-outputs/status-updates',
+          ],
+        },
         {
           group: 'Project Management',
           icon: 'LuFolderOpen',
@@ -43,6 +51,7 @@ export default {
             'typescript-sdk/cli-reference',
           ],
         },
+        'typescript-sdk/data-operations',
         {
           group: 'Observability',
           icon: 'LuChartColumn',
@@ -55,14 +64,28 @@ export default {
       group: 'Visual Builder',
       icon: 'LuPalette',
       pages: [
-        'visual-builder/graphs',
-        'visual-builder/mcp-servers',
-        'visual-builder/credentials',
+        'visual-builder/sub-agents',
+        {
+          group: 'Tools and MCPs',
+          icon: 'LuHammer',
+          pages: [
+            'visual-builder/tools/mcp-servers',
+            'visual-builder/tools/credentials',
+            'visual-builder/tools/function-tools',
+          ],
+        },
+        'visual-builder/headers',
         'visual-builder/traces',
         'visual-builder/project-management',
-        'visual-builder/data-components',
-        'visual-builder/artifact-components',
-        'visual-builder/status-components',
+        {
+          group: 'Structured Outputs',
+          icon: 'LuLayoutTemplate',
+          pages: [
+            'visual-builder/structured-outputs/data-components',
+            'visual-builder/structured-outputs/artifact-components',
+            'visual-builder/structured-outputs/status-components',
+          ],
+        },
       ],
     },
     {
@@ -71,19 +94,28 @@ export default {
       pages: [
         'talk-to-your-agents/overview',
         'talk-to-your-agents/mcp-server',
-        'talk-to-your-agents/api',
-        'talk-to-your-agents/vercel-ai-sdk',
-        'talk-to-your-agents/a2a',
+        'talk-to-your-agents/chat-api',
         {
-          group: 'React UI Components',
-          icon: 'LuLayers',
+          group: 'Chat Components',
+          icon: 'LuBlocks',
           pages: [
             'talk-to-your-agents/react/chat-button',
             'talk-to-your-agents/react/custom-trigger',
             'talk-to-your-agents/react/side-bar-chat',
             'talk-to-your-agents/react/embedded-chat',
+           
           ],
         },
+        {
+          group: 'Vercel AI SDK',
+          icon: 'LuPackage',
+          pages: [
+            'talk-to-your-agents/vercel-ai-sdk/use-chat',
+            'talk-to-your-agents/vercel-ai-sdk/ai-elements',
+          ],
+        },
+        'talk-to-your-agents/a2a',
+        'troubleshooting',
       ],
     },
     {
@@ -140,9 +172,25 @@ export default {
       icon: 'LuServer',
       pages: [
         'self-hosting/vercel',
-        'self-hosting/docker',
-        'self-hosting/add-sentry',
-        'self-hosting/add-datadog-apm',
+        {
+          group: 'Docker',
+          icon: 'brand/DockerIcon',
+          pages: [
+            'self-hosting/docker-local',
+            'self-hosting/gcp-compute-engine',
+            'self-hosting/gcp-cloud-run',
+            'self-hosting/aws-ec2',
+            'self-hosting/docker-build',
+          ],
+        },
+        {
+          group: 'Add Services',
+          icon: 'LuPackage',
+          pages: [
+            'self-hosting/add-other-services/sentry',
+            'self-hosting/add-other-services/datadog-apm',
+          ],
+        },
       ],
     },
     {

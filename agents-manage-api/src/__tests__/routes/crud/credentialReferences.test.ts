@@ -5,7 +5,7 @@ import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
 // Mock the app import with credential stores in context
-vi.mock('../../../index.js', async (importOriginal) => {
+vi.mock('../../../index', async (importOriginal) => {
   const { createManagementHono } = (await importOriginal()) as any;
 
   const mockCredentialStore = {
@@ -102,7 +102,6 @@ declare global {
 }
 
 // Now import the app after mocking
-import app from '../../../index';
 
 describe('Credential CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -730,6 +729,48 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Reset all mocks before each test
       vi.clearAllMocks();
       globalThis.callOrder = [];
+
+      // Initialize sharedMockStores if not available (can happen with test isolation)
+      if (!globalThis.sharedMockStores) {
+        globalThis.sharedMockStores = {
+          mockCredentialStore: {
+            id: 'mock-store',
+            type: 'mock',
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockNangoStore: {
+            id: 'nango-store',
+            type: CredentialStoreType.nango,
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockMemoryStore: {
+            id: 'memory-store',
+            type: CredentialStoreType.memory,
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockTrackingStore: {
+            id: 'tracking-store',
+            type: 'mock',
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockImplementation(async (key: string) => {
+              if (typeof globalThis.callOrder !== 'undefined') {
+                globalThis.callOrder.push(`external-store-delete:${key}`);
+              }
+            }),
+            has: vi.fn(),
+          },
+        };
+      }
 
       // Use the shared mock instances stored globally
       globalThis.mockCredentialStore = globalThis.sharedMockStores.mockCredentialStore;

@@ -1,3 +1,4 @@
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import inquirer from 'inquirer';
 
 export interface ModelConfigurationResult {
@@ -16,38 +17,37 @@ export interface ModelConfigurationResult {
 
 export const defaultGeminiModelConfigurations = {
   base: {
-    model: 'google/gemini-2.5-flash',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
   structuredOutput: {
-    model: 'google/gemini-2.5-flash-lite',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
   summarizer: {
-    model: 'google/gemini-2.5-flash-lite',
+    model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
 };
 
-
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: 'openai/gpt-4.1-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1,
   },
   structuredOutput: {
-    model: 'openai/gpt-4.1-mini-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1_MINI,
   },
   summarizer: {
-    model: 'openai/gpt-4.1-nano-2025-04-14',
+    model: OPENAI_MODELS.GPT_4_1_NANO,
   },
 };
 
 export const defaultAnthropicModelConfigurations = {
   base: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   structuredOutput: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
   summarizer: {
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
 };
 
@@ -78,24 +78,26 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
-    { name: 'Claude Opus 4.1', value: 'anthropic/claude-opus-4-1-20250805' },
-    { name: 'Claude Sonnet 4', value: 'anthropic/claude-sonnet-4-20250514' },
-    { name: 'Claude Haiku 3.5', value: 'anthropic/claude-3-5-haiku-20241022' },
+    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
+    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
+    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
+    { name: 'Claude Haiku 4.5', value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5 },
+    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
   ];
 
   const openaiModels = [
-    { name: 'GPT-4.1', value: 'openai/gpt-4.1-2025-04-14' },
-    { name: 'GPT-4.1 Mini', value: 'openai/gpt-4.1-mini-2025-04-14' },
-    { name: 'GPT-4.1 Nano', value: 'openai/gpt-4.1-nano-2025-04-14' },
-    { name: 'GPT-5', value: 'openai/gpt-5-2025-08-07' },
-    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini-2025-08-07' },
-    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano-2025-08-07' },
+    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
+    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
+    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
+    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5 },
+    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
+    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
   ];
 
   const googleModels = [
-    { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro' },
-    { name: 'Gemini 2.5 Flash', value: 'google/gemini-2.5-flash' },
-    { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite' },
+    { name: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
+    { name: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
+    { name: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },
   ];
 
   // Collect all available models based on selected providers
