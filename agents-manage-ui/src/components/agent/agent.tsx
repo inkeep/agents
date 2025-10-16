@@ -10,7 +10,7 @@ import {
   type Node,
   Panel,
   ReactFlow,
-  ReactFlowProps,
+  type ReactFlowProps,
   ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
@@ -838,7 +838,7 @@ function Flow({
       document.removeEventListener('ikp-data-operation', onDataOperation);
       document.removeEventListener('ikp-aborted', onCompletion);
     };
-  }, [setEdges, toolLookup]);
+  }, [setEdges, toolLookup, setNodes]);
 
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
