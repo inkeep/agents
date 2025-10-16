@@ -737,26 +737,18 @@ function Flow({
           break;
         }
         case 'delegation_returned': {
-          const { fromSubAgent, targetSubAgent } = data.details.data;
+          const { targetSubAgent } = data.details.data;
           setEdges((prevEdges) =>
-            prevEdges.map((edge) =>
-              edge.source === targetSubAgent && edge.target === fromSubAgent
-                ? {
-                    ...edge,
-                    data: { ...edge.data, isDelegating: false },
-                  }
-                : edge
-            )
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: { ...edge.data, isDelegating: false },
+            }))
           );
           setNodes((prevNodes) =>
-            prevNodes.map((node) =>
-              node.data.isExecuting
-                ? {
-                    ...node,
-                    data: { ...node.data, isExecuting: false, isDelegating: false },
-                  }
-                : node
-            )
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: false, isDelegating: node.id === targetSubAgent },
+            }))
           );
           break;
         }
@@ -794,6 +786,18 @@ function Flow({
           break;
         }
         case 'tool_result': {
+          const { toolName } = data.details.data;
+          setNodes((prevNodes) => {
+            return prevNodes.map((node) => {
+              const toolData = toolLookup[node.data.toolId];
+              return toolData?.availableTools.some((tool) => tool.name === toolName)
+                ? {
+                    ...node,
+                    data: { ...node.data, isExecuting: true },
+                  }
+                : node;
+            });
+          });
           break;
         }
         case 'completion': {
@@ -806,37 +810,33 @@ function Flow({
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isDelegating: false },
+              data: { ...node.data, isExecuting: false, isDelegating: false },
             }))
           );
           break;
         }
-
         case 'agent_generate': {
-          // Placeholder for future logic
-          break;
-        }
-
-        case 'tool_execution': {
           const { subAgentId } = data.details;
           setNodes((prevNodes) =>
-            prevNodes.map((node) =>
-              node.id === subAgentId
-                ? {
-                    ...node,
-                    data: { ...node.data, isExecuting: true },
-                  }
-                : node
-            )
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === subAgentId },
+            }))
           );
           break;
         }
       }
     };
 
+    const onCompletion: EventListenerOrEventListenerObject = (event) => {
+      console.log('onCompletion', event.detail);
+    };
+
+    document.addEventListener('ikp-completion', onCompletion);
     document.addEventListener('ikp-data-operation', onDataOperation);
     return () => {
       document.removeEventListener('ikp-data-operation', onDataOperation);
+      document.addEventListener('ikp-completion', onCompletion);
     };
   }, [setEdges]);
 
