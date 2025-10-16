@@ -1,5 +1,6 @@
 ---
 title: Deploy using Docker (Local Development)
+sidebarTitle: Local Development
 icon: "brand/DockerIcon"
 ---
 
@@ -20,7 +21,9 @@ Run this command to autogenerate a `.env` file:
 ```bash
 cp .env.example .env && \
   encryption_key=$(openssl rand -base64 32) && \
-  sed -i'' "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env && \
+  tmp_file=$(mktemp) && \
+  sed "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env > "$tmp_file" && \
+  mv "$tmp_file" .env && \
   echo "Docker environment file created with auto-generated encryption key"
 ```
 
@@ -35,7 +38,7 @@ This may take up to 5 minutes to start.
 ### Retrieve your SigNoz and Nango API Keys
 
 To get your SigNoz API key `SIGNOZ_API_KEY`:
-- Open SigNoz in a browser at `http//localhost:3080`
+- Open SigNoz in a browser at `http://localhost:3080`
 - Navigate to Settings → Account Settings → API Keys → New Key
 - Choose a role, Viewer is sufficient for observability
 - Set the expiration field to "No Expiry" to prevent the key from expiring
@@ -73,6 +76,10 @@ NANGO_SECRET_KEY=
 
 # SigNoz
 SIGNOZ_API_KEY=
+
+# Default username and password for Manage UI (http://localhost:3000)
+# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 ```
 
 Run with docker:
@@ -80,7 +87,7 @@ Run with docker:
 docker compose up -d
 ```
 
-Then open `http://localhost:3000` in a browser!
+Then open http://localhost:3000 in a browser!
 
 - Manage UI (http://localhost:3000)
 - Manage API Docs (http://localhost:3002/docs)

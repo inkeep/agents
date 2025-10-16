@@ -146,6 +146,7 @@ export const createTaskHandler = (
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
+      // TODO: dbResultToMcpTool use here is debatable, since does not take into account "selected tools"
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(

@@ -2,10 +2,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
+import { env } from '../env';
 import {
   calculateTokenSavings,
   createPlaceholders,
@@ -53,6 +55,77 @@ ${dtsContent}
 }
 
 /**
+ * Detect which LLM provider is available based on API keys in environment
+ * Priority: Anthropic → OpenAI → Google
+ * @returns The first available provider or throws an error if none are available
+ * @internal - Exported for testing
+ */
+export function detectAvailableProvider(): 'anthropic' | 'openai' | 'google' {
+  const anthropicKey = env.ANTHROPIC_API_KEY?.trim();
+  const openaiKey = env.OPENAI_API_KEY?.trim();
+  const googleKey = env.GOOGLE_API_KEY?.trim();
+
+  if (anthropicKey) {
+    return 'anthropic';
+  }
+  if (openaiKey) {
+    return 'openai';
+  }
+  if (googleKey) {
+    return 'google';
+  }
+
+  throw new Error('No LLM provider API key found. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY');
+}
+
+/**
+ * Get the default high-capability model for a given provider
+ * Selects models that are widely available and don't require team approval
+ * @internal - Exported for testing
+ */
+export function getDefaultModelForProvider(provider: 'anthropic' | 'openai' | 'google'): string {
+  switch (provider) {
+    case 'anthropic':
+      return ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
+    case 'openai':
+      return OPENAI_MODELS.GPT_4_1;
+    case 'google':
+      return GOOGLE_MODELS.GEMINI_2_5_PRO;
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+}
+
+/**
+ * Get provider-specific configuration with reasoning/thinking enabled
+ * @internal - Exported for testing
+ */
+export function getModelConfigWithReasoning(provider: 'anthropic' | 'openai' | 'google'): Record<string, any> {
+  switch (provider) {
+    case 'anthropic':
+      // Enable extended thinking for Anthropic models
+      return {
+        thinking: {
+          type: 'enabled',
+          budget: {},
+        },
+      };
+    case 'google':
+      // Enable thinking mode for Google models
+      return {
+        thinkingConfig: {
+          mode: 'thinking',
+        },
+      };
+    case 'openai':
+      // OpenAI GPT-4.1 doesn't have explicit reasoning mode
+      return {};
+    default:
+      return {};
+  }
+}
+
+/**
  * Create a language model instance from configuration
  * Similar to ModelFactory but simplified for CLI use
  * @internal - Exported for use in codegen modules
@@ -81,6 +154,10 @@ export function createModel(config: ModelSettings): any {
         return provider(modelName);
       }
       return openai(modelName);
+
+    case 'google':
+      // Google provider currently doesn't support custom provider options
+      return google(modelName);
 
     default:
       throw new Error(`Unsupported provider: ${provider}`);
@@ -304,6 +381,7 @@ export function cleanGeneratedCode(text: string): string {
  * @param promptTemplate - Template string with {{DATA}} placeholder for data insertion
  * @param options - Generation options (temperature, maxTokens, etc.)
  * @param debug - Whether to log debug information
+ * @param reasoningConfig - Provider-specific reasoning/thinking configuration
  * @returns Generated and processed text with placeholders restored
  */
 export async function generateTextWithPlaceholders(
@@ -316,7 +394,8 @@ export async function generateTextWithPlaceholders(
     abortSignal?: AbortSignal;
   },
   debug: boolean = false,
-  context?: { fileType?: string }
+  context?: { fileType?: string },
+  reasoningConfig?: Record<string, any>
 ): Promise<string> {
   // Create placeholders to reduce prompt size
   const { processedData, replacements } = context 
@@ -346,6 +425,7 @@ export async function generateTextWithPlaceholders(
     model,
     prompt,
     ...options,
+    ...reasoningConfig, // Merge in reasoning/thinking config if provided
   });
 
   // Restore placeholders in the generated code
@@ -383,7 +463,8 @@ function parseModelString(modelString: string): { provider: string; modelName: s
 export async function generateIndexFile(
   projectData: any,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -422,11 +503,19 @@ export const myProject = project({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, projectData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    projectData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -477,7 +566,8 @@ export async function generateAgentFile(
   modelSettings: ModelSettings,
   toolFilenames?: Map<string, string>,
   componentFilenames?: Map<string, string>,
-  debug: boolean = false
+  debug: boolean = false,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -702,9 +792,11 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       {
         temperature: 0.1,
         maxOutputTokens: 16000,
-        abortSignal: AbortSignal.timeout(240000), // 240 second timeout for complex agent
+        abortSignal: AbortSignal.timeout(300000), // 300 second timeout for complex agent (5 min, increased for reasoning)
       },
-      debug // Pass debug flag to show placeholder optimization info
+      debug, // Pass debug flag to show placeholder optimization info
+      undefined, // context
+      reasoningConfig // reasoning config
     );
 
     const duration = Date.now() - startTime;
@@ -748,7 +840,8 @@ export async function generateToolFile(
   toolData: any,
   toolId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -800,11 +893,19 @@ export const transportTool = mcpTool({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, toolData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    toolData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -816,7 +917,8 @@ export async function generateDataComponentFile(
   componentData: any,
   componentId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -878,11 +980,19 @@ export const userProfile = dataComponent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -894,7 +1004,8 @@ export async function generateArtifactComponentFile(
   componentData: any,
   componentId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -961,11 +1072,19 @@ export const orderSummary = artifactComponent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000), // 60 second timeout
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }
@@ -977,7 +1096,8 @@ export async function generateStatusComponentFile(
   componentData: any,
   componentId: string,
   outputPath: string,
-  modelSettings: ModelSettings
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const model = createModel(modelSettings);
 
@@ -1042,11 +1162,19 @@ export const simpleStatus = statusComponent({
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
 
-  const text = await generateTextWithPlaceholders(model, componentData, promptTemplate, {
-    temperature: 0.1,
-    maxOutputTokens: 4000,
-    abortSignal: AbortSignal.timeout(60000),
-  });
+  const text = await generateTextWithPlaceholders(
+    model,
+    componentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    undefined, // context
+    reasoningConfig // reasoning config
+  );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
 }

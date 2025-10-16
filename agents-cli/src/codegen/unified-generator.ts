@@ -43,7 +43,8 @@ export async function generateFilesFromPlan(
   projectData: FullProjectDefinition,
   dirs: DirectoryStructure,
   modelSettings: ModelSettings,
-  debug: boolean = false
+  debug: boolean = false,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -53,7 +54,7 @@ export async function generateFilesFromPlan(
 
   // Create generation tasks for each file
   const tasks = plan.files.map((fileInfo, index) =>
-    generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug).then(() => {
+    generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug, reasoningConfig).then(() => {
       if (debug) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(
@@ -83,7 +84,8 @@ async function generateFile(
   plan: GenerationPlan,
   dirs: DirectoryStructure,
   modelSettings: ModelSettings,
-  debug: boolean
+  debug: boolean,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const fileStartTime = Date.now();
   const model = createModel(modelSettings);
@@ -124,10 +126,11 @@ async function generateFile(
       {
         temperature: 0.1,
         maxOutputTokens: fileInfo.type === 'agent' ? 16000 : 4000,
-        abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 240000 : 60000),
+        abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 300000 : 90000), // Increased for reasoning (5 min for agents, 90s for others)
       },
       debug,
-      { fileType: fileInfo.type }
+      { fileType: fileInfo.type },
+      reasoningConfig // Pass reasoning config
     );
     const llmDuration = ((Date.now() - llmStartTime) / 1000).toFixed(1);
 

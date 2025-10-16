@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.22.11",
+  "version": "0.22.12",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -46,8 +46,8 @@
     "@hono/zod-openapi": "^1.0.2",
     "@libsql/client": "^0.15.7",
     "@modelcontextprotocol/sdk": "^1.17.2",
-    "@nangohq/node": "^0.66.0",
-    "@nangohq/types": "^0.66.0",
+    "@nangohq/node": "^0.69.3",
+    "@nangohq/types": "^0.69.3",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",

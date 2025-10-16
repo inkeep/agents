@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.22.11",
+  "version": "0.22.12",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,8 +24,8 @@
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
-    "@nangohq/node": "^0.66.0",
-    "@nangohq/types": "^0.66.0",
+    "@nangohq/node": "^0.69.3",
+    "@nangohq/types": "^0.69.3",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.9.7",
