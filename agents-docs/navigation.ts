@@ -172,9 +172,17 @@ export default {
       icon: 'LuServer',
       pages: [
         'self-hosting/vercel',
-        'self-hosting/gcp-compute-engine',
-        'self-hosting/gcp-cloud-run',
-        'self-hosting/docker-build',
+        {
+          group: 'Docker',
+          icon: 'brand/DockerIcon',
+          pages: [
+            'self-hosting/docker-local',
+            'self-hosting/gcp-compute-engine',
+            'self-hosting/gcp-cloud-run',
+            'self-hosting/aws-ec2',
+            'self-hosting/docker-build',
+          ],
+        },
         {
           group: 'Add Services',
           icon: 'LuPackage',

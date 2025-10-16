@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.22.12
+
+### Patch Changes
+
+- 79b1e87: fixed deadlinks
+
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+
 ## 0.22.9
 
 ## 0.22.8
