@@ -8,7 +8,7 @@ import { AgentOperationError } from './errors';
 export interface AgentInfo {
   id: string;
   name?: string;
-  defaultSubAgentId?: string;
+  defaultSubAgentId?: string | null;
   createdAt?: string;
 }
 

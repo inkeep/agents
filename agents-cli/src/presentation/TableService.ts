@@ -64,7 +64,7 @@ export class TableService {
     const table = new Table({
       head: columns.map((col) => chalk.cyan(col.header)),
       colAligns: columns.map((col) => col.align || 'left'),
-      colWidths: columns.map((col) => col.width),
+      colWidths: columns.map((col) => col.width ?? null),
       style: {
         head: [],
         border: [],

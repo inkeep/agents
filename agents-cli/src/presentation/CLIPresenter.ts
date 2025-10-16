@@ -22,7 +22,7 @@ export interface CredentialTracking {
 export interface AgentInfo {
   id: string;
   name?: string;
-  defaultSubAgentId?: string;
+  defaultSubAgentId?: string | null;
   createdAt?: string;
 }
 
