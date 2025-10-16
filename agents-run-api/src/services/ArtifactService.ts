@@ -174,9 +174,12 @@ export class ArtifactService {
       let summaryData: Record<string, any> = {};
       let fullData: Record<string, any> = {};
 
+      let previewSchema: any = null;
+      let fullSchema: any = null;
+      
       if (component?.props) {
-        const previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
-        const fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
+        previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
+        fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
 
         summaryData = this.extractPropsFromSchema(
           selectedData,
@@ -212,6 +215,17 @@ export class ArtifactService {
       const cleanedSummaryData = this.cleanEscapedContent(summaryData);
       const cleanedFullData = this.cleanEscapedContent(fullData);
 
+      // Validate extracted data against the actual schemas used for extraction
+      const schemaValidation = this.validateExtractedData(
+        request.artifactId,
+        request.type,
+        cleanedSummaryData,
+        cleanedFullData,
+        previewSchema,
+        fullSchema,
+        component?.props
+      );
+
       const artifactData: ArtifactSummaryData = {
         artifactId: request.artifactId,
         toolCallId: request.toolCallId,
@@ -221,7 +235,7 @@ export class ArtifactService {
         data: cleanedSummaryData,
       };
 
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId);
+      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId, schemaValidation);
 
       await this.cacheArtifact(
         request.artifactId,
@@ -363,13 +377,58 @@ export class ArtifactService {
     artifactId: string,
     toolCallId: string
   ): ArtifactSummaryData {
+    // Try multiple data sources with logging for fallback usage
+    let data = artifact.parts?.[0]?.data?.summary;
+    let dataSource = 'parts[0].data.summary';
+
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      // Fallback 1: Try parts[0].data directly
+      data = artifact.parts?.[0]?.data;
+      if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+        dataSource = 'parts[0].data (fallback)';
+        logger.debug(
+          { artifactId, toolCallId, dataSource },
+          'Using fallback data source for artifact summary'
+        );
+      } else {
+        // Fallback 2: Try artifact.data directly
+        data = artifact.data;
+        if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+          dataSource = 'artifact.data (fallback)';
+          logger.debug(
+            { artifactId, toolCallId, dataSource },
+            'Using fallback data source for artifact summary'
+          );
+        } else {
+          // Final fallback: empty object with warning
+          data = {};
+          dataSource = 'empty (no data found)';
+          logger.warn(
+            {
+              artifactId,
+              toolCallId,
+              artifactStructure: {
+                hasParts: !!artifact.parts,
+                partsLength: artifact.parts?.length,
+                hasPartsData: !!artifact.parts?.[0]?.data,
+                hasPartsSummary: !!artifact.parts?.[0]?.data?.summary,
+                hasArtifactData: !!artifact.data,
+                artifactKeys: Object.keys(artifact || {}),
+              },
+            },
+            'No valid data found for artifact summary - using empty object'
+          );
+        }
+      }
+    }
+
     return {
       artifactId,
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
-      data: artifact.parts?.[0]?.data?.summary || {},
+      data,
     };
   }
 
@@ -381,13 +440,142 @@ export class ArtifactService {
     artifactId: string,
     toolCallId: string
   ): ArtifactFullData {
+    // Try multiple data sources with logging for fallback usage
+    let data = artifact.parts?.[0]?.data?.full;
+    let dataSource = 'parts[0].data.full';
+
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      // Fallback 1: Try parts[0].data directly
+      data = artifact.parts?.[0]?.data;
+      if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+        dataSource = 'parts[0].data (fallback)';
+        logger.debug(
+          { artifactId, toolCallId, dataSource },
+          'Using fallback data source for artifact full data'
+        );
+      } else {
+        // Fallback 2: Try artifact.data directly
+        data = artifact.data;
+        if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+          dataSource = 'artifact.data (fallback)';
+          logger.debug(
+            { artifactId, toolCallId, dataSource },
+            'Using fallback data source for artifact full data'
+          );
+        } else {
+          // Final fallback: empty object with warning
+          data = {};
+          dataSource = 'empty (no data found)';
+          logger.warn(
+            {
+              artifactId,
+              toolCallId,
+              artifactStructure: {
+                hasParts: !!artifact.parts,
+                partsLength: artifact.parts?.length,
+                hasPartsData: !!artifact.parts?.[0]?.data,
+                hasPartsFull: !!artifact.parts?.[0]?.data?.full,
+                hasArtifactData: !!artifact.data,
+                artifactKeys: Object.keys(artifact || {}),
+              },
+            },
+            'No valid data found for artifact full data - using empty object'
+          );
+        }
+      }
+    }
+
     return {
       artifactId,
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
-      data: artifact.parts?.[0]?.data?.full || {},
+      data,
+    };
+  }
+
+  /**
+   * Validate extracted data against the schemas used for extraction
+   */
+  private validateExtractedData(
+    artifactId: string,
+    artifactType: string,
+    summaryData: Record<string, any>,
+    fullData: Record<string, any>,
+    previewSchema: any,
+    fullSchema: any,
+    originalProps?: any
+  ): {
+    summary: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+    };
+    full: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+    };
+    schemaFound: boolean;
+  } {
+    const validateAgainstSchema = (data: Record<string, any>, schema: any) => {
+      const actualFields = Object.keys(data || {});
+      const expectedFields = schema?.properties ? Object.keys(schema.properties) : [];
+      const missingFields = expectedFields.filter(field => !(field in (data || {})));
+      const extraFields = actualFields.filter(field => !expectedFields.includes(field));
+      
+      return {
+        hasExpectedFields: missingFields.length === 0,
+        missingFields,
+        extraFields,
+        expectedFields,
+        actualFields,
+      };
+    };
+
+    const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
+    const fullValidation = validateAgainstSchema(fullData, fullSchema);
+
+    // Log validation results
+    if (!summaryValidation.hasExpectedFields || summaryValidation.extraFields.length > 0) {
+      logger.warn(
+        {
+          artifactId,
+          artifactType,
+          dataType: 'summary',
+          expectedFields: summaryValidation.expectedFields,
+          actualFields: summaryValidation.actualFields,
+          missingFields: summaryValidation.missingFields,
+          extraFields: summaryValidation.extraFields,
+        },
+        'Summary data structure does not match preview schema'
+      );
+    }
+
+    if (!fullValidation.hasExpectedFields || fullValidation.extraFields.length > 0) {
+      logger.warn(
+        {
+          artifactId,
+          artifactType,
+          dataType: 'full',
+          expectedFields: fullValidation.expectedFields,
+          actualFields: fullValidation.actualFields,
+          missingFields: fullValidation.missingFields,
+          extraFields: fullValidation.extraFields,
+        },
+        'Full data structure does not match full schema'
+      );
+    }
+
+    return {
+      summary: summaryValidation,
+      full: fullValidation,
+      schemaFound: !!(originalProps),
     };
   }
 
@@ -398,7 +586,8 @@ export class ArtifactService {
     request: ArtifactCreateRequest,
     summaryData: Record<string, any>,
     fullData: Record<string, any>,
-    subAgentId?: string
+    subAgentId?: string,
+    schemaValidation?: any
   ): Promise<void> {
     const effectiveAgentId = subAgentId || this.context.subAgentId;
 
@@ -421,6 +610,11 @@ export class ArtifactService {
             detailsSelector: request.detailsSelector,
             sessionId: this.context.sessionId,
             artifactType: request.type,
+          },
+          schemaValidation: schemaValidation || {
+            summary: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [] },
+            full: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [] },
+            schemaFound: false,
           },
           tenantId: this.context.tenantId,
           projectId: this.context.projectId,
