@@ -530,12 +530,12 @@ export class ArtifactService {
     const validateAgainstSchema = (data: Record<string, any>, schema: any) => {
       const actualFields = Object.keys(data || {});
       const expectedFields = schema?.properties ? Object.keys(schema.properties) : [];
-      const missingFields = expectedFields.filter(field => !(field in (data || {})));
-      const extraFields = actualFields.filter(field => !expectedFields.includes(field));
+      const missingFields = expectedFields.filter((field: string) => !(field in (data || {})));
+      const extraFields = actualFields.filter((field: string) => !expectedFields.includes(field));
       
       // Check required fields specifically
       const requiredFields = schema?.required || [];
-      const missingRequired = requiredFields.filter(field => !(field in (data || {})));
+      const missingRequired = requiredFields.filter((field: string) => !(field in (data || {})));
       
       return {
         hasExpectedFields: missingFields.length === 0,
