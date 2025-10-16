@@ -268,7 +268,7 @@ export function ChatWidget({
               {
                 get: (_, componentName) => {
                   const matchingComponent = Object.values(dataComponentLookup).find(
-                    (component) => component.name === componentName
+                    (component) => component.name === componentName && !!component.preview?.code
                   );
 
                   if (!matchingComponent) {
