@@ -39,6 +39,8 @@ export interface AgentErrorSummary {
  */
 export function parseAgentValidationErrors(apiError: string): AgentErrorSummary {
   try {
+    // Replace [400] status code from error content
+    apiError = apiError.replace(/^\[\d\d\d]/, '');
     const errors = JSON.parse(apiError) as any[];
     const processedErrors: ProcessedAgentError[] = [];
 
@@ -63,7 +65,8 @@ export function parseAgentValidationErrors(apiError: string): AgentErrorSummary 
     }
 
     return categorizeErrors(processedErrors);
-  } catch {
+  } catch (error) {
+    console.error(error);
     // Fallback for unparseable errors
     return {
       totalErrors: 1,
@@ -114,12 +117,12 @@ function processValidationError(
     type = 'node';
     nodeType = 'functionTool';
     nodeId = fullPath[1];
-    field = error.path.slice(2).join('.') || (error as any).field || 'configuration';
+    field = error.path.join('.') || (error as any).field || 'configuration';
   } else if (fullPath[0] === 'subAgents' && fullPath[1]) {
     type = 'node';
     nodeType = 'subAgent';
     nodeId = fullPath[1];
-    field = error.path.join('.') || 'configuration';
+    field = error.path.slice(2).join('.') || 'configuration';
   } else if (fullPath[0] === 'edges' && fullPath[1]) {
     type = 'edge';
     edgeId = fullPath[1];
@@ -157,7 +160,7 @@ function createUserFriendlyMessage(
   } else if (type === 'edge') {
     entityType = 'Connection';
   } else {
-    entityType = 'Agent';
+    entityType = 'Sub Agent';
   }
   const fieldName = getFieldDisplayName(field);
 

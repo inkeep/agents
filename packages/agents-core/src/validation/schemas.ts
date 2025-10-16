@@ -741,11 +741,16 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canDelegateTo: z.array(z.string()).optional(),
 });
 
+const AgentsRecordSchema = z.record(
+  z.string(),
+  z.discriminatedUnion('type', [
+    FullAgentAgentInsertSchema,
+    ExternalAgentApiInsertSchema.extend({ type: z.literal('external') }),
+  ])
+);
+
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([FullAgentAgentInsertSchema, ExternalAgentApiInsertSchema])
-  ), // Lookup maps for UI to resolve canUse items
+  subAgents: AgentsRecordSchema, // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools

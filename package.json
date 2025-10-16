@@ -85,6 +85,7 @@
   },
   "pnpm": {
     "overrides": {
+      "esbuild": "0.25.9",
       "zod": "^4.1.11"
     },
     "patchedDependencies": {
