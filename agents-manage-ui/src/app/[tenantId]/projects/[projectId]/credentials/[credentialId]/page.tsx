@@ -1,8 +1,8 @@
-import { notFound } from 'next/navigation';
 import {
   EditCredentialForm,
   type EditCredentialFormData,
 } from '@/components/credentials/views/edit-credential-form';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
@@ -35,37 +35,45 @@ async function EditCredentialsPage({
 }) {
   const { tenantId, projectId, credentialId } = await params;
 
-  try {
-    // Fetch credential data on the server
-    const credential = await fetchCredential(tenantId, projectId, credentialId);
-    const initialFormData = await credentialToFormData(credential);
+  let credential: Credential;
+  let initialFormData: EditCredentialFormData;
 
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Credentials',
-            href: `/${tenantId}/projects/${projectId}/credentials`,
-          },
-          { label: 'Edit' },
-        ]}
-      >
-        <MainContent>
-          <div className="max-w-2xl mx-auto py-4">
-            <EditCredentialForm
-              tenantId={tenantId}
-              projectId={projectId}
-              credential={credential}
-              initialFormData={initialFormData}
-            />
-          </div>
-        </MainContent>
-      </BodyTemplate>
-    );
+  try {
+    credential = await fetchCredential(tenantId, projectId, credentialId);
+    initialFormData = await credentialToFormData(credential);
   } catch (error) {
-    console.error('Failed to fetch credential:', error);
-    notFound();
+    return (
+      <FullPageError
+        error={error as Error}
+        link={`/${tenantId}/projects/${projectId}/credentials`}
+        linkText="Back to credentials"
+        context="credential"
+      />
+    );
   }
+
+  return (
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'Credentials',
+          href: `/${tenantId}/projects/${projectId}/credentials`,
+        },
+        { label: 'Edit' },
+      ]}
+    >
+      <MainContent>
+        <div className="max-w-2xl mx-auto py-4">
+          <EditCredentialForm
+            tenantId={tenantId}
+            projectId={projectId}
+            credential={credential}
+            initialFormData={initialFormData}
+          />
+        </div>
+      </MainContent>
+    </BodyTemplate>
+  );
 }
 
 export default EditCredentialsPage;

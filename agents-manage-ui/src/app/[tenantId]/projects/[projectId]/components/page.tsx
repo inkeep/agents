@@ -1,13 +1,14 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { DataComponentsList } from '@/components/data-components/data-components-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
-import { type DataComponent, fetchDataComponents } from '@/lib/api/data-components';
+import { fetchDataComponents } from '@/lib/api/data-components';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,12 @@ interface DataComponentsPageProps {
 
 async function DataComponentsPage({ params }: DataComponentsPageProps) {
   const { tenantId, projectId } = await params;
-  let dataComponents: { data: DataComponent[] } = { data: [] };
+
+  let dataComponents: Awaited<ReturnType<typeof fetchDataComponents>>;
   try {
-    const response = await fetchDataComponents(tenantId, projectId);
-    dataComponents = response;
-  } catch (_error) {
-    throw new Error('Failed to fetch components');
+    dataComponents = await fetchDataComponents(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="components" />;
   }
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
