@@ -198,7 +198,7 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       // Extract status component from agent statusUpdates
       const statusType = fileInfo.entities[0]?.id;
       if (statusType && projectData.agents) {
-        // Search through agents and subAgents for this status component
+        // Search through agents for this status component (only agents have statusUpdates)
         for (const agentData of Object.values(projectData.agents)) {
           const agent = agentData as any;
           if (agent.statusUpdates?.statusComponents) {

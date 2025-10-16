@@ -688,6 +688,23 @@ function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: Vari
     }
     processedData.artifactComponents = newArtifactComponents;
   }
+
+  // Process status components within agents (only agents have statusUpdates, not subAgents)
+  if (processedData.agents) {
+    for (const [_agentId, agentData] of Object.entries(processedData.agents)) {
+      const agent = agentData as any;
+      if (agent.statusUpdates?.statusComponents) {
+        const updatedStatusComponents = agent.statusUpdates.statusComponents.map((statusComp: any) => {
+          if (statusComp.type) {
+            const newStatusCompId = nameGenerator.generateUniqueId(statusComp.type, 'statusComponent');
+            return { ...statusComp, type: newStatusCompId };
+          }
+          return statusComp;
+        });
+        agent.statusUpdates.statusComponents = updatedStatusComponents;
+      }
+    }
+  }
   
   return processedData;
 }
