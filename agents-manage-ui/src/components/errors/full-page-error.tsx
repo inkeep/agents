@@ -6,6 +6,15 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
 
+function hasStatusCode(obj: unknown): obj is { status: number } {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'status' in obj &&
+    typeof (obj as { status: unknown }).status === 'number'
+  );
+}
+
 interface FullPageErrorProps {
   error?: Error & { digest?: string };
   reset?: () => void;
@@ -34,13 +43,15 @@ export default function FullPageError({
   let statusCode = propStatusCode;
 
   if (!statusCode && error) {
-    if (error.cause && typeof error.cause === 'object' && 'status' in error.cause) {
-      statusCode = (error.cause as any).status;
-    } else if (error.message.match(/^\[(\d{3})\]/)) {
+    if (hasStatusCode(error.cause)) {
+      statusCode = error.cause.status;
+    } else {
       const match = error.message.match(/^\[(\d{3})\]/);
-      statusCode = match ? Number.parseInt(match[1], 10) : undefined;
-    } else if ('status' in error) {
-      statusCode = (error as any).status;
+      if (match) {
+        statusCode = Number.parseInt(match[1], 10);
+      } else if (hasStatusCode(error)) {
+        statusCode = error.status;
+      }
     }
   }
 

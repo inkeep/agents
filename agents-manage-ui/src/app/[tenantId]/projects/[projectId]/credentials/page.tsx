@@ -7,7 +7,6 @@ import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import type { Credential } from '@/lib/api/credentials';
 import { fetchCredentials } from '@/lib/api/credentials';
 
 export const dynamic = 'force-dynamic';
@@ -21,12 +20,7 @@ async function CredentialsPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
-  let credentials: Credential[] = [];
-  try {
-    credentials = await fetchCredentials(tenantId, projectId);
-  } catch (_error) {
-    throw new Error('Failed to fetch credentials');
-  }
+  const credentials = await fetchCredentials(tenantId, projectId);
 
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Credentials' }]}>

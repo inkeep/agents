@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import {
   EditCredentialForm,
   type EditCredentialFormData,
@@ -35,37 +34,32 @@ async function EditCredentialsPage({
 }) {
   const { tenantId, projectId, credentialId } = await params;
 
-  try {
-    // Fetch credential data on the server
-    const credential = await fetchCredential(tenantId, projectId, credentialId);
-    const initialFormData = await credentialToFormData(credential);
+  // Fetch credential data on the server
+  const credential = await fetchCredential(tenantId, projectId, credentialId);
+  const initialFormData = await credentialToFormData(credential);
 
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Credentials',
-            href: `/${tenantId}/projects/${projectId}/credentials`,
-          },
-          { label: 'Edit' },
-        ]}
-      >
-        <MainContent>
-          <div className="max-w-2xl mx-auto py-4">
-            <EditCredentialForm
-              tenantId={tenantId}
-              projectId={projectId}
-              credential={credential}
-              initialFormData={initialFormData}
-            />
-          </div>
-        </MainContent>
-      </BodyTemplate>
-    );
-  } catch (error) {
-    console.error('Failed to fetch credential:', error);
-    notFound();
-  }
+  return (
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'Credentials',
+          href: `/${tenantId}/projects/${projectId}/credentials`,
+        },
+        { label: 'Edit' },
+      ]}
+    >
+      <MainContent>
+        <div className="max-w-2xl mx-auto py-4">
+          <EditCredentialForm
+            tenantId={tenantId}
+            projectId={projectId}
+            credential={credential}
+            initialFormData={initialFormData}
+          />
+        </div>
+      </MainContent>
+    </BodyTemplate>
+  );
 }
 
 export default EditCredentialsPage;
