@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
-import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
+import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -86,31 +87,34 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         data.isExecuting && 'node-executing'
       )}
     >
-      <BaseNodeHeader className="mb-0 py-3">
-        <div className="flex items-center flex-wrap gap-1">
-          <div className="flex items-center gap-2 flex-shrink-0 mr-4">
-            <MCPToolImage
-              imageUrl={imageUrl}
-              name={name}
-              provider={provider || undefined}
-              size={24}
-              className="mt-[1px] flex-shrink-0"
-            />
-            <BaseNodeHeaderTitle className="flex-shrink-0">{name}</BaseNodeHeaderTitle>
-          </div>
-          <div className="flex items-center flex-wrap gap-1">
-            {toolBadges.map((label, index) => (
-              <Badge
-                key={index}
-                variant="code"
-                className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
-              >
-                {label}
-              </Badge>
-            ))}
-          </div>
+      <BaseNodeHeader className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0 mr-4">
+          <MCPToolImage
+            imageUrl={imageUrl}
+            name={name}
+            provider={provider || undefined}
+            size={24}
+            className="mt-[1px] flex-shrink-0"
+          />
+          <BaseNodeHeaderTitle className="flex-shrink-0">{name}</BaseNodeHeaderTitle>
         </div>
+        <Check
+          width="16"
+          stroke="var(--color-primary)"
+          className={data.isExecuting ? '' : 'invisible'}
+        />
       </BaseNodeHeader>
+      <BaseNodeContent>
+        {toolBadges.map((label, index) => (
+          <Badge
+            key={index}
+            variant="code"
+            className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
+          >
+            {label}
+          </Badge>
+        ))}
+      </BaseNodeContent>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
     </BaseNode>
   );
