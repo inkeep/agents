@@ -164,10 +164,12 @@ describe('Push Command - Project Validation', () => {
 
     await pushCommand({ project: '/test/project' });
 
-    // Verify error was shown
+    // Verify error was shown with new domain error format
     expect(mockError).toHaveBeenCalledWith(
-      'Error:',
-      'No project export found in index.ts. Expected an export with __type = "project"'
+      expect.stringContaining('Error: Invalid project at')
+    );
+    expect(mockError).toHaveBeenCalledWith(
+      expect.stringContaining('No project export found')
     );
     expect(mockExit).toHaveBeenCalledWith(1);
   });

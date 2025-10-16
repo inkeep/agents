@@ -1,0 +1,332 @@
+---
+title: CLI Architecture
+description: Understanding the layered architecture of the Inkeep CLI
+---
+
+# CLI Architecture
+
+The Inkeep CLI uses a **layered architecture** pattern to separate concerns and make the code maintainable, testable, and extensible.
+
+## Architecture Overview
+
+The CLI is organized into five distinct layers:
+
+```
+┌─────────────────────────────────────┐
+│       Commands Layer                │  Entry points for Commander.js
+│  (src/commands/*.ts)                │  ~20-30 lines each
+└─────────────────────────────────────┘
+            ↓
+┌─────────────────────────────────────┐
+│    Application Layer                │  Orchestration & flow control
+│  (src/application/*.ts)             │  Command handlers
+└─────────────────────────────────────┘
+     ↓                  ↓
+┌──────────────┐  ┌──────────────────┐
+│ Domain Layer │  │ Presentation     │  Business logic & UI
+│ (src/domain) │  │ (src/presentation│  Completely separate
+└──────────────┘  └──────────────────┘
+     ↓
+┌─────────────────────────────────────┐
+│    Infrastructure Layer             │  External integrations
+│  (src/utils/*.ts, src/api.ts)      │  File system, APIs, etc.
+└─────────────────────────────────────┘
+```
+
+## Layer Responsibilities
+
+### 1. Commands Layer (`/src/commands/`)
+
+**Purpose**: Thin wrappers for Commander.js that wire up dependencies
+
+**Characteristics**:
+- 20-30 lines of code per command
+- No business logic
+- Just dependency injection and handler invocation
+
+**Example**:
+```typescript
+// commands/push.ts
+export async function pushCommand(options: PushOptions): Promise<void> {
+  // Create dependencies
+  const presenter = new CLIPresenter(outputService, tableService);
+  const projectLoader = new ProjectLoader();
+  const projectPusher = new ProjectPusher();
+
+  // Create handler and execute
+  const handler = new PushCommandHandler(
+    outputService,
+    spinnerService,
+    presenter,
+    projectLoader,
+    projectPusher
+  );
+
+  await handler.execute(options);
+}
+```
+
+### 2. Application Layer (`/src/application/`)
+
+**Purpose**: Orchestrates domain services and presentation for command flows
+
+**Key Classes**:
+- `CommandHandler` - Base class with error handling
+- `PushCommandHandler` - Orchestrates project push flow
+- `ListAgentsCommandHandler` - Orchestrates agent listing
+
+**Responsibilities**:
+- Coordinate domain services
+- Handle command-specific error scenarios
+- Delegate to presentation layer for output
+- NO direct chalk/ora/console calls
+
+**Example**:
+```typescript
+// application/PushCommandHandler.ts
+class PushCommandHandler extends CommandHandler<PushOptions, void> {
+  async execute(options: PushOptions): Promise<void> {
+    const config = await this.loadConfig(options.config);
+
+    try {
+      const project = await this.projectLoader.load(options);
+      const result = await this.projectPusher.push(project, config);
+      this.presenter.displayPushSuccess(project, result);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+}
+```
+
+### 3. Domain Layer (`/src/domain/`)
+
+**Purpose**: Pure business logic with **zero** UI or infrastructure dependencies
+
+**Key Classes**:
+- `ProjectLoader` - Loads projects from index.ts files
+- `ProjectPusher` - Pushes projects to backend
+- `AgentLister` - Lists agents from API
+- Domain errors (`ProjectNotFoundError`, `InvalidProjectError`, etc.)
+
+**Benefits**:
+- Fully testable in isolation (no mocking UI libraries)
+- Reusable in other contexts (web UI, API, etc.)
+- Clear, focused responsibilities
+
+**Example**:
+```typescript
+// domain/ProjectLoader.ts
+export class ProjectLoader {
+  async load(options: ProjectLoadOptions): Promise<Project> {
+    const projectDir = this.resolveProjectDirectory(options);
+    const indexPath = join(projectDir, 'index.ts');
+
+    if (!existsSync(indexPath)) {
+      throw new ProjectNotFoundError(projectDir);
+    }
+
+    const module = await importWithTypeScriptSupport(indexPath);
+    return this.extractProject(module, indexPath);
+  }
+}
+```
+
+### 4. Presentation Layer (`/src/presentation/`)
+
+**Purpose**: All UI/output concerns isolated here
+
+**Key Classes**:
+- `OutputService` - Colored console output (abstracts chalk)
+- `SpinnerService` - Progress indicators (abstracts ora)
+- `TableService` - Formatted tables (abstracts cli-table3)
+- `CLIPresenter` - Formats command-specific results
+
+**Features**:
+- Output modes: `NORMAL`, `QUIET`, `JSON`
+- Null-object pattern for spinners in quiet mode
+- Consistent styling across all commands
+
+**Example**:
+```typescript
+// presentation/OutputService.ts
+export class OutputService {
+  success(message: string): void {
+    if (this.mode === OutputMode.QUIET) return;
+    console.log(chalk.green(message));
+  }
+
+  error(message: string): void {
+    if (this.mode === OutputMode.QUIET) return;
+    console.error(chalk.red(message));
+  }
+}
+```
+
+### 5. Infrastructure Layer (`/src/utils/`, `/src/api.ts`)
+
+**Purpose**: External service integrations
+
+**Components**:
+- API clients (`ManagementApiClient`)
+- File system operations
+- Environment loaders
+- TypeScript execution (`tsx-loader`)
+
+## Testing Strategy
+
+The layered architecture enables much better testing:
+
+### Domain Layer Tests
+**No UI mocking needed!**
+```typescript
+test('ProjectLoader throws error when index.ts missing', async () => {
+  const loader = new ProjectLoader();
+  await expect(loader.load('/invalid')).rejects.toThrow(ProjectNotFoundError);
+});
+```
+
+### Presentation Layer Tests
+```typescript
+test('OutputService respects quiet mode', () => {
+  const output = new OutputService(OutputMode.QUIET);
+  output.success('test');
+  expect(console.log).not.toHaveBeenCalled();
+});
+```
+
+### Before Refactoring
+Tests required heavy mocking:
+```typescript
+vi.mock('chalk', () => ({ default: { red: vi.fn() }}));
+vi.mock('ora', () => ({ default: vi.fn() }));
+vi.mock('console', () => ({ log: vi.fn(), error: vi.fn() }));
+```
+
+### After Refactoring
+Test pure business logic directly:
+```typescript
+// Just test the logic!
+const loader = new ProjectLoader();
+const result = await loader.load({ projectPath: '/test' });
+expect(result).toEqual(mockProject);
+```
+
+## Code Metrics
+
+### Before Refactoring
+- `push.ts`: **284 lines** (mixed concerns)
+- `list-agents.ts`: **79 lines** (mixed concerns)
+
+### After Refactoring
+- `push.ts`: **35 lines** (-88% reduction)
+- `list-agents.ts`: **31 lines** (-61% reduction)
+
+**Business logic** extracted to:
+- `ProjectLoader`: 90 lines (pure, testable)
+- `ProjectPusher`: 134 lines (pure, testable)
+- `AgentLister`: 49 lines (pure, testable)
+- `PushCommandHandler`: 180 lines (orchestration)
+- `ListAgentsCommandHandler`: 57 lines (orchestration)
+
+## Adding New Commands
+
+Follow this pattern for new commands:
+
+### 1. Create Domain Service (if needed)
+```typescript
+// domain/MyFeature.ts
+export class MyFeature {
+  async execute(options: MyOptions): Promise<MyResult> {
+    // Pure business logic, no UI
+    return result;
+  }
+}
+```
+
+### 2. Create Application Handler
+```typescript
+// application/MyCommandHandler.ts
+export class MyCommandHandler extends CommandHandler<MyOptions, void> {
+  constructor(
+    output: OutputService,
+    spinner: SpinnerService,
+    presenter: CLIPresenter,
+    private readonly myFeature: MyFeature
+  ) {
+    super(output, spinner, presenter);
+  }
+
+  async execute(options: MyOptions): Promise<void> {
+    const spinner = this.spinner.start('Processing...');
+
+    try {
+      const result = await this.myFeature.execute(options);
+      spinner.succeed('Done!');
+      this.presenter.displayMyResult(result);
+    } catch (error) {
+      spinner.fail('Failed');
+      this.handleError(error);
+    }
+  }
+}
+```
+
+### 3. Add Presentation Method
+```typescript
+// presentation/CLIPresenter.ts
+displayMyResult(result: MyResult): void {
+  this.output.section('📊 Results:');
+  this.output.keyValues({
+    'Status': result.status,
+    'Count': result.count.toString()
+  });
+}
+```
+
+### 4. Wire Up Command
+```typescript
+// commands/my-command.ts
+export async function myCommand(options: MyOptions): Promise<void> {
+  const presenter = new CLIPresenter(outputService, tableService);
+  const myFeature = new MyFeature();
+
+  const handler = new MyCommandHandler(
+    outputService,
+    spinnerService,
+    presenter,
+    myFeature
+  );
+
+  await handler.execute(options);
+}
+```
+
+## Benefits
+
+✅ **Separation of Concerns**: Each layer has a single responsibility
+✅ **Testability**: Domain logic testable without UI mocking
+✅ **Maintainability**: Changes isolated to specific layers
+✅ **Consistency**: Uniform error handling and styling
+✅ **Flexibility**: Easy to add JSON/quiet modes
+✅ **Reusability**: Domain logic reusable outside CLI
+
+## Migration Status
+
+Currently refactored:
+- ✅ `push` command
+- ✅ `list-agents` command
+
+To be refactored:
+- ⏳ `pull` command
+- ⏳ `init` command
+- ⏳ `config` command
+- ⏳ `add` command
+- ⏳ `dev` command
+- ⏳ `update` command
+
+## Further Reading
+
+- [Command Handler Base Class](/docs/typescript-sdk/cli-architecture#command-handler)
+- [Domain Error Handling](/docs/typescript-sdk/cli-architecture#errors)
+- [Testing Best Practices](/docs/typescript-sdk/testing)
