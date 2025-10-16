@@ -1,5 +1,6 @@
 ---
 title: Deploy to GCP Compute Engine
+sidebarTitle: GCP Compute Engine
 description: Deploy to GCP Compute Engine with Docker Compose
 icon: "brand/DockerIcon"
 ---
@@ -7,11 +8,11 @@ icon: "brand/DockerIcon"
 ## Create a VM Instance
 
 - Go to [Compute Engine](https://console.cloud.google.com/compute/instances) in your GCP project.
-- Create an instance, recommendation is at least `e2-standard-2` (2 vCPU, 1 core, 8 GB memory)
-- Increase the size of the boot disk to 30 GB
-- Allow http traffic
+- Create an instance; a recommended size is at least `e2-standard-2` (2 vCPU, 1 core, 8 GB memory).
+- Increase the size of the boot disk to 30 GB.
+- Allow HTTP traffic.
 - Allow ingress traffic from source IPv4 ranges `0.0.0.0/0` to TCP ports: `3000, 3002, 3003, 3050, 3051, 3080`. These are the ports exposed by the Inkeep services.
-- Retrieve an external IP address (if applicable, set up a Static IP or set up a Load Balancer).
+- Retrieve an external IP address (if applicable, set up a static IP or set up a load balancer).
 
 
 ## Install Docker Compose
@@ -48,7 +49,7 @@ newgrp docker
 
 ## Deploy SigNoz and Nango
 
-Clone this repo, which includes docker files with SigNoz and Nango:
+Clone this repo, which includes Docker files with SigNoz and Nango:
 ```bash
 git clone https://github.com/inkeep/agents-optional-local-dev inkeep-external-services
 cd inkeep-external-services
@@ -97,12 +98,12 @@ To get your SigNoz API key `SIGNOZ_API_KEY`:
 
 To get your Nango secret key `NANGO_SECRET_KEY`:
 - Open Nango in a browser at `http://<vm_external_ip>:3050`
-- Nango autocreates two environments Prod and Dev, select the one you will use
+- Nango auto-creates two environments, Prod and Dev. Select the one you will use.
 - Navigate to Environment Settings to find the secret key
 
 ## Deploy the Inkeep Agent Framework
 
-From the root directory, create a new project directory for the docker compose setup for Inkeep Agent Framework
+From the root directory, create a new project directory for the Docker Compose setup for the Inkeep Agent Framework
 ```bash
 mkdir inkeep && cd inkeep
 wget https://raw.githubusercontent.com/inkeep/agents/refs/heads/main/docker-compose.yml
@@ -146,7 +147,7 @@ INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
 INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 ```
 
-Run with docker:
+Run with Docker:
 ```bash
 docker compose up -d
 ```
