@@ -760,6 +760,42 @@ function Flow({
           );
           break;
         }
+        case 'tool_call': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolData = toolLookup[node.data.toolId];
+                const hasTool = toolData?.availableTools.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return hasDots
+                  ? {
+                      ...edge,
+                      data: { ...edge.data, isDelegating: true },
+                    }
+                  : edge;
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolData = toolLookup[node.data.toolId];
+              // console.log('node.data.toolId', node.data.toolId);
+
+              return node.data.id === subAgentId ||
+                toolData?.availableTools.some((tool) => tool.name === toolName)
+                ? {
+                    ...node,
+                    data: { ...node.data, isDelegating: true },
+                  }
+                : node;
+            });
+          });
+          break;
+        }
+        case 'tool_result': {
+          break;
+        }
         case 'completion': {
           setEdges((prevEdges) =>
             prevEdges.map((edge) => ({
@@ -811,7 +847,9 @@ function Flow({
         <SelectedMarker />
         <ReactFlow
           defaultEdgeOptions={{
-            type: 'default',
+            // Built-in 'default' edges ignore the `data` prop.
+            // Use a custom edge type instead to access `data` in rendering.
+            type: 'custom',
           }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
