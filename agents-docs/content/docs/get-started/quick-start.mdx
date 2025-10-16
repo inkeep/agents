@@ -48,6 +48,21 @@ Navigate to the Event Planner agent at http://localhost:3000, click **Try it**, 
 
 <img src="/gifs/event-planner.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
 
+### Step 4: Install Agents MCP (optional)
+
+To help with development, add the Inkeep docs MCP to your preferred IDE or MCP client. It has a few tools for "vibe coding" agents with the SDK.
+
+```json
+{
+  "mcpServers": {
+    "inkeep-agents": {
+      "url": "https://agents.inkeep.com/mcp",
+      "transport": "sse"
+    }
+  }
+}
+```
+
 ### Next steps
 
 Next, we recommend learning about `inkeep push` and `inkeep pull` so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`. See the [Push / Pull](/get-started/push-pull) guide for a quick example.
