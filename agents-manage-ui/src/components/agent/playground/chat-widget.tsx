@@ -135,7 +135,6 @@ export function ChatWidget({
   chatActivities,
   dataComponentLookup = {},
 }: ChatWidgetProps) {
-  console.log('dataComponentLookup', dataComponentLookup);
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
