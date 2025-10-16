@@ -1,41 +1,41 @@
-import { MCPTransportType } from '@inkeep/agents-core/client-exports'
-import { notFound } from 'next/navigation'
-import { BodyTemplate } from '@/components/layout/body-template'
-import { MainContent } from '@/components/layout/main-content'
-import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form'
-import type { MCPToolFormData } from '@/components/mcp-servers/form/validation'
-import { type Credential, fetchCredentials } from '@/lib/api/credentials'
-import { fetchMCPTool } from '@/lib/api/tools'
-import type { MCPTool } from '@/lib/types/tools'
+import { MCPTransportType } from '@inkeep/agents-core/client-exports';
+import { notFound } from 'next/navigation';
+import { BodyTemplate } from '@/components/layout/body-template';
+import { MainContent } from '@/components/layout/main-content';
+import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
+import type { MCPToolFormData } from '@/components/mcp-servers/form/validation';
+import { type Credential, fetchCredentials } from '@/lib/api/credentials';
+import { fetchMCPTool } from '@/lib/api/tools';
+import type { MCPTool } from '@/lib/types/tools';
 
 interface EditMCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>
+  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
 }
 
 async function EditMCPPage({ params }: EditMCPPageProps) {
-  const { mcpServerId, tenantId, projectId } = await params
+  const { mcpServerId, tenantId, projectId } = await params;
 
   // Fetch both in parallel with individual error handling
   const [mcpToolResult, credentialsResult] = await Promise.allSettled([
     fetchMCPTool(tenantId, projectId, mcpServerId),
     fetchCredentials(tenantId, projectId),
-  ])
+  ]);
 
   // Handle MCP tool result (required)
-  let mcpTool: MCPTool
+  let mcpTool: MCPTool;
   if (mcpToolResult.status === 'fulfilled') {
-    mcpTool = mcpToolResult.value
+    mcpTool = mcpToolResult.value;
   } else {
-    console.error('Failed to load MCP tool:', mcpToolResult.reason)
-    notFound()
+    console.error('Failed to load MCP tool:', mcpToolResult.reason);
+    throw new Error('Failed to load MCP tool');
   }
 
   // Handle credentials result (optional - fallback to empty array)
-  let credentials: Credential[] = []
+  let credentials: Credential[] = [];
   if (credentialsResult.status === 'fulfilled') {
-    credentials = credentialsResult.value
+    credentials = credentialsResult.value;
   } else {
-    console.error('Failed to load credentials:', credentialsResult.reason)
+    console.error('Failed to load credentials:', credentialsResult.reason);
     // Continue without credentials
   }
 
@@ -67,7 +67,7 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     },
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
-  }
+  };
 
   // MCPServerForm handles all the form logic
 
@@ -98,7 +98,7 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
         </div>
       </MainContent>
     </BodyTemplate>
-  )
+  );
 }
 
-export default EditMCPPage
+export default EditMCPPage;
