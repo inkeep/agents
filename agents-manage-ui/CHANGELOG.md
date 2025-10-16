@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.22.8
+
+### Patch Changes
+
+- 604fec9: clickhouse query
+  - @inkeep/agents-manage-api@0.22.8
+  - @inkeep/agents-run-api@0.22.8
+  - @inkeep/agents-core@0.22.8
+
 ## 0.22.7
 
 ### Patch Changes
