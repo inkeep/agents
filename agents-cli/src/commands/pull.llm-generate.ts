@@ -397,10 +397,12 @@ export async function generateTextWithPlaceholders(
   context?: { fileType?: string },
   reasoningConfig?: Record<string, any>
 ): Promise<string> {
+
   // Create placeholders to reduce prompt size
   const { processedData, replacements } = context 
     ? createPlaceholders(data, context)
     : createPlaceholders(data);
+
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -428,8 +430,10 @@ export async function generateTextWithPlaceholders(
     ...reasoningConfig, // Merge in reasoning/thinking config if provided
   });
 
+
   // Restore placeholders in the generated code
   const restoredText = restorePlaceholders(text, replacements);
+
 
   if (debug && Object.keys(replacements).length > 0) {
     console.log(`[DEBUG] Placeholders restored successfully`);

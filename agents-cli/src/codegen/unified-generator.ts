@@ -94,7 +94,8 @@ async function generateFile(
   const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
 
   // Extract relevant data for this file
-  const fileData = extractDataForFile(fileInfo, projectData);
+  let fileData = extractDataForFile(fileInfo, projectData);
+  
 
   // Find example code if available
   const exampleCode = findExampleCode(fileInfo, plan.patterns);
@@ -153,6 +154,7 @@ async function generateFile(
  * Extract data relevant to this file from full project data
  */
 function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefinition): any {
+  
   switch (fileInfo.type) {
     case 'index':
       // Index needs full project data
@@ -162,7 +164,9 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       // Extract agent data by ID
       const agentId = fileInfo.entities.find((e) => e.entityType === 'agent')?.id;
       if (agentId && projectData.agents) {
-        return projectData.agents[agentId];
+        const agentData = projectData.agents[agentId];
+        // Transform agent data to avoid ID collisions for LLM
+        return ensureUniqueSubAgentKeys(agentData);
       }
       return {};
     }
@@ -383,6 +387,35 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
 }
 
 /**
+ * Ensure subAgent keys are unique to avoid LLM confusion
+ * 
+ * When agent and subAgent have the same ID, the LLM sees duplicate keys and generates empty fields.
+ * This adds a simple suffix to make subAgent keys unique while preserving original IDs.
+ */
+function ensureUniqueSubAgentKeys(agentData: any): any {
+  if (!agentData?.subAgents) {
+    return agentData;
+  }
+
+  const transformedData = { ...agentData };
+  const transformedSubAgents: Record<string, any> = {};
+
+  for (const [subAgentKey, subAgentData] of Object.entries(agentData.subAgents)) {
+    let uniqueKey = subAgentKey;
+    
+    // If subAgent key matches agent ID, make it unique
+    if (subAgentKey === agentData.id) {
+      uniqueKey = `${subAgentKey}_sub`;
+    }
+    
+    transformedSubAgents[uniqueKey] = subAgentData;
+  }
+
+  transformedData.subAgents = transformedSubAgents;
+  return transformedData;
+}
+
+/**
  * Find example code from detected patterns
  */
 function findExampleCode(fileInfo: FileInfo, patterns: DetectedPatterns): string | undefined {
@@ -425,6 +458,12 @@ CRITICAL RULES:
 5. Follow detected patterns for code style
 6. Match existing formatting and conventions
 7. NEVER generate your own variable names - only use what's provided
+
+PLACEHOLDER HANDLING (CRITICAL):
+8. When you see placeholder values like "<{{path.to.field.abc123}}>" in the JSON data, copy them EXACTLY as-is into the generated TypeScript code
+9. DO NOT replace placeholders with empty strings or other values - use the exact placeholder text
+10. Placeholders will be automatically replaced with real values after code generation
+11. ESPECIALLY when IDs are duplicated in the data, always use the placeholder values from the JSON - never generate empty template literals
 `;
 
   switch (fileInfo.type) {
