@@ -63,15 +63,37 @@ Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a 
 Make some changes, like changing a prompt, and let's walk through `inkeep pull`. The `inkeep pull` command uses AI to sync your TypeScript files to the state of your Visual Builder.
 
 <Note>
-**Prerequisites:** Currently, we only support Anthropic. Support for other providers will be coming soon.
+**Prerequisites:** The `inkeep pull` command uses AI to generate TypeScript files from your project configuration. You must have an API key from one of the supported LLM providers:
 
-If you don't already have an ANTHROPIC_API_KEY, you can get one from the [Anthropic Console](https://console.anthropic.com/).
-
-Then add it to your `.env` file:
-```txt .env
-ANTHROPIC_API_KEY=your_api_key_here
+**Anthropic** (Claude Sonnet 4.5 with extended thinking):
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
 ```
+Get your API key from the [Anthropic Console](https://console.anthropic.com/).
 
+**OpenAI** (GPT-4.1):
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+Get your API key from [OpenAI Platform](https://platform.openai.com/).
+
+**Google** (Gemini models with thinking mode):
+```bash
+export GOOGLE_API_KEY=your_api_key_here
+```
+Get your API key from [Google AI Studio](https://ai.google.dev/).
+
+The pull command will automatically detect which provider to use based on which API key is available. If multiple keys are present, it prioritizes Anthropic → OpenAI → Google.
+
+Or add your preferred key to your `.env` file:
+```bash
+# Choose one:
+ANTHROPIC_API_KEY=your_api_key_here
+# or
+OPENAI_API_KEY=your_api_key_here
+# or
+GOOGLE_API_KEY=your_api_key_here
+```
 </Note>
 
 ### Step 1: Make an edit visually
