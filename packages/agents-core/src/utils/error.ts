@@ -8,6 +8,7 @@ export const ErrorCode = z.enum([
   'forbidden',
   'not_found',
   'conflict',
+  'payload_too_large',
   'internal_server_error',
   'unprocessable_entity',
 ]);
@@ -18,6 +19,7 @@ const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   forbidden: 403,
   not_found: 404,
   conflict: 409,
+  payload_too_large: 413,
   unprocessable_entity: 422,
   internal_server_error: 500,
 };
@@ -224,6 +226,8 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Not Found';
     case 'conflict':
       return 'Conflict';
+    case 'payload_too_large':
+      return 'Payload Too Large';
     case 'unprocessable_entity':
       return 'Unprocessable Entity';
     case 'internal_server_error':
@@ -291,6 +295,7 @@ export const commonCreateErrorResponses = {
   400: errorSchemaFactory('bad_request', 'Bad Request'),
   401: errorSchemaFactory('unauthorized', 'Unauthorized'),
   403: errorSchemaFactory('forbidden', 'Forbidden'),
+  413: errorSchemaFactory('payload_too_large', 'Request payload exceeds maximum allowed size'),
   422: errorSchemaFactory('unprocessable_entity', 'Unprocessable Entity'),
   500: errorSchemaFactory('internal_server_error', 'Internal Server Error'),
 } as const;
@@ -300,6 +305,7 @@ export const commonUpdateErrorResponses = {
   401: errorSchemaFactory('unauthorized', 'Unauthorized'),
   403: errorSchemaFactory('forbidden', 'Forbidden'),
   404: errorSchemaFactory('not_found', 'Not Found'),
+  413: errorSchemaFactory('payload_too_large', 'Request payload exceeds maximum allowed size'),
   422: errorSchemaFactory('unprocessable_entity', 'Unprocessable Entity'),
   500: errorSchemaFactory('internal_server_error', 'Internal Server Error'),
 } as const;
@@ -318,6 +324,7 @@ export const commonDeleteErrorResponses = {
   401: errorSchemaFactory('unauthorized', 'Unauthorized'),
   403: errorSchemaFactory('forbidden', 'Forbidden'),
   404: errorSchemaFactory('not_found', 'Not Found'),
+  413: errorSchemaFactory('payload_too_large', 'Request payload exceeds maximum allowed size'),
   422: errorSchemaFactory('unprocessable_entity', 'Unprocessable Entity'),
   500: errorSchemaFactory('internal_server_error', 'Internal Server Error'),
 } as const;
