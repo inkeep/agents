@@ -33,7 +33,7 @@ import {
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
-import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
+import { getExternalAgent, listExternalAgents } from './externalAgents';
 import { upsertFunction } from './functions';
 import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
 import {
@@ -398,36 +398,37 @@ export const createFullAgentServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      const externalAgentPromises = Object.entries(typed.subAgents)
-        .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
+      // External agents are project-scoped and managed at the project level.
+      // We validate that referenced external agents exist but don't create/update them here.
+      const externalAgentValidationPromises = Object.entries(typed.subAgents)
+        .filter(([_, agentData]) => isExternalAgent(agentData))
         .map(async ([subAgentId, agentData]) => {
           const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
-            logger.info({ subAgentId }, 'Processing external agent');
-            await upsertExternalAgent(db)({
-              data: {
-                id: subAgentId,
-                tenantId,
-                projectId,
-                name: externalAgent.name,
-                description: externalAgent.description || '',
-                baseUrl: externalAgent.baseUrl,
-                credentialReferenceId: externalAgent.credentialReferenceId || undefined,
-                headers: externalAgent.headers || undefined,
-              },
+            logger.debug({ subAgentId }, 'Validating external agent reference');
+            const existingAgent = await getExternalAgent(db)({
+              scopes: { tenantId, projectId },
+              externalAgentId: subAgentId,
             });
-            logger.info({ subAgentId }, 'External agent processed successfully');
+
+            if (!existingAgent) {
+              logger.warn(
+                { subAgentId, agentId: typed.id },
+                'External agent referenced by agent does not exist at project level - it should be defined in the project'
+              );
+            } else {
+              logger.debug({ subAgentId }, 'External agent reference validated');
+            }
           } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to create/update external agent');
-            throw error;
+            logger.error({ subAgentId, error }, 'Failed to validate external agent reference');
           }
         });
 
-      await Promise.all(externalAgentPromises);
+      await Promise.all(externalAgentValidationPromises);
       const externalAgentCount = Object.entries(typed.subAgents).filter(([_, agentData]) =>
         isExternalAgent(agentData)
       ).length;
-      logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
+      logger.info({ externalAgentCount }, 'All external agent references validated');
 
       if (contextConfigId) {
         try {
@@ -1021,45 +1022,42 @@ export const updateFullAgentServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      const externalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
-        .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
+      // External agents are project-scoped and managed at the project level.
+      // We validate that referenced external agents exist but don't create/update them here.
+      const externalAgentValidationPromises = Object.entries(typedAgentDefinition.subAgents)
+        .filter(([_, agentData]) => isExternalAgent(agentData))
         .map(async ([subAgentId, agentData]) => {
           const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
-            logger.info({ subAgentId }, 'Processing external agent');
-            await upsertExternalAgent(db)({
-              data: {
-                id: subAgentId,
-                tenantId,
-                projectId,
-                name: externalAgent.name,
-                description: externalAgent.description || '',
-                baseUrl: externalAgent.baseUrl,
-                credentialReferenceId: externalAgent.credentialReferenceId || undefined,
-                headers: externalAgent.headers || undefined,
-              },
+            logger.debug({ subAgentId }, 'Validating external agent reference');
+            const existingAgent = await getExternalAgent(db)({
+              scopes: { tenantId, projectId },
+              externalAgentId: subAgentId,
             });
-            logger.info({ subAgentId }, 'External agent processed successfully');
+
+            if (!existingAgent) {
+              logger.warn(
+                { subAgentId, agentId: finalAgentId },
+                'External agent referenced by agent does not exist at project level - it should be defined in the project'
+              );
+            } else {
+              logger.debug({ subAgentId }, 'External agent reference validated');
+            }
           } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to create/update external agent');
-            throw error;
+            logger.error({ subAgentId, error }, 'Failed to validate external agent reference');
           }
         });
 
-      await Promise.all(externalAgentPromises);
+      await Promise.all(externalAgentValidationPromises);
       const externalAgentCount = Object.entries(typedAgentDefinition.subAgents).filter(
         ([_, agentData]) => isExternalAgent(agentData)
       ).length;
-      logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
+      logger.info({ externalAgentCount }, 'All external agent references validated');
 
       const incomingAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
       const existingInternalAgents = await listSubAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
-      });
-
-      const existingExternalAgents = await listExternalAgents(db)({
-        scopes: { tenantId, projectId },
       });
 
       let deletedInternalCount = 0;
@@ -1081,33 +1079,15 @@ export const updateFullAgentServerSide =
         }
       }
 
-      let deletedExternalCount = 0;
-      for (const agent of existingExternalAgents) {
-        if (!incomingAgentIds.has(agent.id)) {
-          try {
-            await deleteExternalAgent(db)({
-              scopes: { tenantId, projectId },
-              externalAgentId: agent.id,
-            });
-            deletedExternalCount++;
-            logger.info({ subAgentId: agent.id }, 'Deleted orphaned external agent');
-          } catch (error) {
-            logger.error(
-              { subAgentId: agent.id, error },
-              'Failed to delete orphaned external agent'
-            );
-          }
-        }
-      }
+      // Note: External agents are project-scoped and managed at the project level,
+      // not at the agent level. They are not deleted here.
 
-      if (deletedInternalCount > 0 || deletedExternalCount > 0) {
+      if (deletedInternalCount > 0) {
         logger.info(
           {
             deletedInternalCount,
-            deletedExternalCount,
-            totalDeleted: deletedInternalCount + deletedExternalCount,
           },
-          'Deleted orphaned agents from agent'
+          'Deleted orphaned internal agents from agent'
         );
       }
 
