@@ -18,7 +18,7 @@ icon: "brand/DockerIcon"
 
 1. [SSH into the VM](https://cloud.google.com/compute/docs/connect/standard-ssh)
 
-2. [Set up Docker's apt repository](https://docs.docker.com/engine/install/debian/#install-using-the-repository):
+2. [Set up Docker's apt repository](https://docs.docker.com/engine/install/debian/#install-using-the-repository)
 ```bash
 # Add Docker's official GPG key:
 sudo apt-get update
@@ -35,9 +35,15 @@ echo \
 sudo apt-get update
 ```
 
-3. Install the Docker packages:
+3. Install the Docker packages
 ```bash
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+4. Grant permissions
+```
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
 ## Deploy SigNoz and Nango
@@ -63,8 +69,8 @@ Here's an overview of the important environment variables when deploying to prod
 NANGO_ENCRYPTION_KEY=<nango_encryption_key>
 
 # Replace these with your <vm_external_ip> in production!
-# NANGO_SERVER_URL=http://<vm_external_ip>:3050
-# NANGO_PUBLIC_CONNECT_URL=http://<vm_external_ip>:3051
+NANGO_SERVER_URL=http://<vm_external_ip>:3050
+NANGO_PUBLIC_CONNECT_URL=http://<vm_external_ip>:3051
 
 # Modify these in production environments!
 NANGO_DASHBOARD_USERNAME=admin@example.com
@@ -77,12 +83,7 @@ SIGNOZ_ADMIN_PASSWORD=adminADMIN!@12
 
 Build and deploy SigNoz, Nango, OTEL Collector, and Jaeger:
 ```bash
-docker compose \
-  --profile nango \
-  --profile signoz \
-  --profile otel-collector \
-  --profile jaeger \
-  up -d
+docker compose up -d
 ```
 This may take up to 5 minutes to start.
 
@@ -143,7 +144,7 @@ PUBLIC_SIGNOZ_URL=http://<vm_external_ip>:3080
 
 Run with docker:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Then open `http://<vm_external_ip>:3080` in a browser!
