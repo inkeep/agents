@@ -69,10 +69,11 @@ export async function analyzeExistingPatterns(
     namingConventions,
     codeStyle,
     examples: {
-      sampleAgentFile: codeExamples.agentFiles[0]?.content,
-      sampleToolFile: codeExamples.toolFiles[0]?.content,
-      sampleImports: codeExamples.imports,
-      mappings: codeExamples.mappings,
+      // Sample files removed to prevent misleading examples
+      // sampleAgentFile: codeExamples.agentFiles[0]?.content,
+      // sampleToolFile: codeExamples.toolFiles[0]?.content,
+      // sampleImports: codeExamples.imports,  // Disabled - imports cause confusion with kebab-case vs underscore paths
+      mappings: [], // Disabled sample mappings to prevent bad examples from contaminating generation
     },
   };
 }

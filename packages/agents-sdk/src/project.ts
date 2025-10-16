@@ -652,6 +652,28 @@ export class Project implements ProjectInterface {
                   }
                 }
 
+                // Extract inline credential from tool if present
+                if ('credential' in mcpTool.config && mcpTool.config.credential) {
+                  const credential = mcpTool.config.credential;
+                  if (credential && credential.id && credential.__type !== 'credential-ref') {
+                    // Add credential to project-level credentials if not already present
+                    if (!credentialReferencesObject[credential.id]) {
+                      credentialReferencesObject[credential.id] = {
+                        id: credential.id,
+                        type: credential.type,
+                        credentialStoreId: credential.credentialStoreId,
+                        retrievalParams: credential.retrievalParams,
+                      };
+                      credentialUsageMap[credential.id] = [];
+                    }
+                    // Track that this tool uses this credential
+                    credentialUsageMap[credential.id].push({
+                      type: 'tool',
+                      id: toolId,
+                    });
+                  }
+                }
+
                 toolsObject[toolId] = toolData;
               }
             }

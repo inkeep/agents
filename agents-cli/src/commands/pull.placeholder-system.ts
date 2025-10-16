@@ -109,12 +109,21 @@ function generateMultiPlaceholderString(
   return value;
 }
 
-function isJsonSchemaPath(path: string): boolean {
+function isJsonSchemaPath(path: string, context?: { fileType?: string }): boolean {
+  // FULL PROJECT PATHS (when processing complete project data - no context needed)
+  
+  // Context config schemas (headers and response schemas)
   if (path.endsWith('contextConfig.headersSchema') || path.endsWith('responseSchema')) {
+    return true;
+  }
+  
+  // General headers schema pattern (for fetchDefinition and contextConfig)
+  if (path.endsWith('headersSchema') && path.length > 'headersSchema'.length) {
     return true;
   }
 
   // Convert artifact component and data component props from JSON Schema to Zod
+  // Only for full project paths like "dataComponents.someId.props"
   if (path.includes('artifactComponents') && path.endsWith('props')) {
     return true;
   }
@@ -123,8 +132,34 @@ function isJsonSchemaPath(path: string): boolean {
   }
 
   // Convert status component detailsSchema from JSON Schema to Zod
+  // Handle array notation like statusComponents[0].detailsSchema
   if (path.includes('statusComponents') && path.endsWith('detailsSchema')) {
     return true;
+  }
+
+  // Convert input/output schemas in tool definitions (functionTool inputSchema)
+  if (path.endsWith('inputSchema') || path.endsWith('outputSchema')) {
+    return true;
+  }
+
+  // SINGLE COMPONENT PATHS (when processing individual components with context)
+  if (context?.fileType) {
+    // Data and artifact component props (single component: path === 'props')
+    if (path === 'props' && (context.fileType === 'dataComponent' || context.fileType === 'artifactComponent')) {
+      return true;
+    }
+    
+    // Status component detailsSchema (single component: path === 'detailsSchema')
+    if (path === 'detailsSchema' && context.fileType === 'statusComponent') {
+      return true;
+    }
+    
+    // Context config schemas (single component: path === 'headersSchema' or ends with responseSchema)
+    if (context.fileType === 'contextConfig') {
+      if (path === 'headersSchema' || path.endsWith('responseSchema')) {
+        return true;
+      }
+    }
   }
 
   return false;
@@ -138,7 +173,7 @@ function updateTracker(tracker: PlaceholderTracker, placeholder: string, value: 
 /**
  * Recursively process an object to create placeholders for large string values
  */
-function processObject(obj: any, tracker: PlaceholderTracker, path: string = ''): any {
+function processObject(obj: any, tracker: PlaceholderTracker, path: string = '', context?: { fileType?: string }): any {
   if (typeof obj === 'string') {
     if (containsTemplateLiterals(obj)) {
       return generateMultiPlaceholderString(obj, path, tracker);
@@ -174,7 +209,7 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '')
     return obj;
   }
 
-  if (isJsonSchemaPath(path)) {
+  if (isJsonSchemaPath(path, context)) {
     try {
       const zodSchema = jsonSchemaToZod(obj);
 
@@ -185,14 +220,14 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '')
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item, index) => processObject(item, tracker, `${path}[${index}]`));
+    return obj.map((item, index) => processObject(item, tracker, `${path}[${index}]`, context));
   }
 
   if (obj && typeof obj === 'object') {
     const result: any = {};
     for (const [key, value] of Object.entries(obj)) {
       const currentPath = path ? `${path}.${key}` : key;
-      result[key] = processObject(value, tracker, currentPath);
+      result[key] = processObject(value, tracker, currentPath, context);
     }
     return result;
   }
@@ -205,16 +240,17 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '')
  * Create placeholders for large string values in the given data
  *
  * @param data - The data object to process
+ * @param context - Context about what type of data is being processed (optional)
  * @returns Object containing processed data and replacements map
  */
-export function createPlaceholders(data: any): PlaceholderResult {
+export function createPlaceholders(data: any, context?: { fileType?: string }): PlaceholderResult {
   const tracker: PlaceholderTracker = {
     placeholderToValue: new Map(),
     valueToPlaceholder: new Map(),
   };
 
   try {
-    const processedData = processObject(data, tracker);
+    const processedData = processObject(data, tracker, '', context);
 
     // Convert the tracker maps to a simple Record for the result
     const replacements: Record<string, string> = {};

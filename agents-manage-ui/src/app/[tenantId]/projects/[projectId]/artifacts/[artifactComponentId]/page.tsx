@@ -1,4 +1,5 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
+import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
@@ -15,7 +16,21 @@ interface ArtifactComponentPageProps {
 
 export default async function ArtifactComponentPage({ params }: ArtifactComponentPageProps) {
   const { artifactComponentId, tenantId, projectId } = await params;
-  const artifactComponent = await fetchArtifactComponent(tenantId, projectId, artifactComponentId);
+
+  let artifactComponent: Awaited<ReturnType<typeof fetchArtifactComponent>>;
+  try {
+    artifactComponent = await fetchArtifactComponent(tenantId, projectId, artifactComponentId);
+  } catch (error) {
+    return (
+      <FullPageError
+        error={error as Error}
+        link={`/${tenantId}/projects/${projectId}/artifacts`}
+        linkText="Back to artifacts"
+        context="artifact"
+      />
+    );
+  }
+
   const { name, description, props } = artifactComponent;
   return (
     <BodyTemplate
