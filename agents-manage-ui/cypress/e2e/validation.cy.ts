@@ -5,7 +5,7 @@ describe('Validation', () => {
     cy.visit('/');
   });
 
-  it('for agent validate only prompt as required field', () => {
+  it('for sub agent validate only `prompt` as required field', () => {
     // Click create graph button
     cy.contains('Create agent').click();
 
