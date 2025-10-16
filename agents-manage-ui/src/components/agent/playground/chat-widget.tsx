@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import type { DataComponent } from '@/lib/api/data-components';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
@@ -17,6 +18,7 @@ interface ChatWidgetProps {
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
+  dataComponentLookup?: Record<string, DataComponent>;
 }
 
 const styleOverrides = `
@@ -130,6 +132,7 @@ export function ChatWidget({
   stopPolling,
   customHeaders = {},
   chatActivities,
+  dataComponentLookup = {},
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
@@ -258,7 +261,7 @@ export function ChatWidget({
               ...customHeaders,
             },
             // components: {
-            //   IkpMessage,
+            //   IkpMessage: CustomIkpMessage,
             // },
             introMessage: 'Hi! How can I help?',
           }}
