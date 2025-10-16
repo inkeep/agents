@@ -17,7 +17,7 @@ services:
       - SIGNOZ_URL=${SIGNOZ_URL:-http://host.docker.internal:3080}
       - SIGNOZ_API_KEY
     ports:
-      - "3000"
+      - "3000:3000"
     depends_on:
       inkeep-agents-migrate:
         condition: service_completed_successfully
@@ -79,23 +79,5 @@ services:
     volumes:
       - inkeep-agents-db:/inkeep-agents/db
     restart: "no"
-  inkeep-agents-manage-ui-oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
-    ports:
-      - "3000:4180"
-    environment:
-      # Run in htpasswd mode
-      - OAUTH2_PROXY_PROVIDER=htpasswd
-      # Set static users (user:password pairs)
-      - OAUTH2_PROXY_HTPASSWD_USERS=${INKEEP_MANAGE_UI_HTPASSWD_USERS}
-      # Set upstream service (your UI)
-      - OAUTH2_PROXY_UPSTREAMS=http://inkeep-agents-manage-ui:3000
-      # Session cookie secret (random 16-byte hex string)
-      - OAUTH2_PROXY_COOKIE_SECRET=${INKEEP_MANAGE_UI_COOKIE_SECRET}
-      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
-      - OAUTH2_PROXY_EMAIL_DOMAINS=*
-      - OAUTH2_PROXY_COOKIE_SECURE=${INKEEP_MANAGE_UI_COOKIE_SECURE:-false} # set true with https
-    depends_on:
-      - inkeep-agents-manage-ui
 volumes:
   inkeep-agents-db:
