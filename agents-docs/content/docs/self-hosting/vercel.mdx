@@ -137,8 +137,8 @@ NANGO_SECRET_KEY=
 | `ENVIRONMENT`                                | `production`                                                                                                                                                                                   |
 | `PUBLIC_INKEEP_AGENTS_RUN_API_URL`           | Your Vercel deployment URL for Run API                                                                                                                                                         |
 | `PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Your generated Run API bypass secret from Step 6                                                                                                                                               |
-| `PUBLIC_INKEEP_AGENTS_MANAGE_API_URL`        | Your Vercel deployment URL for Manage API (skip if same as `INKEEP_AGENTS_MANAGE_API_URL`)                                                                                                                                                   |
-| `INKEEP_AGENTS_MANAGE_API_URL`               | Your Vercel deployment URL for Manage API                                                                                                                                                    |
+| `PUBLIC_INKEEP_AGENTS_MANAGE_API_URL`        | Your Vercel deployment URL for Manage API (skip if same as `INKEEP_AGENTS_MANAGE_API_URL`)                                                                                                     |
+| `INKEEP_AGENTS_MANAGE_API_URL`               | Your Vercel deployment URL for Manage API                                                                                                                                                      |
 | `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET`     | Your generated Manage API bypass secret from Step 5                                                                                                                                            |
 | `PUBLIC_SIGNOZ_URL`                          | Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your SigNoz URL. Note: Local SigNoz setup won't work with Vercel deployments.     |
 | `SIGNOZ_API_KEY`                             | Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your SigNoz API key. Note: Local SigNoz setup won't work with Vercel deployments. |
@@ -197,7 +197,7 @@ inkeep pull --config inkeep-cloud.config.ts
 
 ## Function Tools with Vercel Sandbox
 
-When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) MicroVMs instead of your Agent's runtime service. This is **required** for serverless platforms since child process spawning is restricted. 
+When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) MicroVMs instead of your Agent's runtime service. This is **required** for serverless platforms since child process spawning is restricted.
 
 ### Why Use Vercel Sandbox?
 
@@ -226,34 +226,40 @@ In the `apps/run-api/src` folder, create a `sandbox.ts` file:
 const isProduction = process.env.ENVIRONMENT === "production";
 
 export const sandboxConfig = isProduction
-    ? {
-        provider: "vercel",
-        runtime: "node22", // or 'typescript'
-        timeout: 60000, // 60 second timeout
-        vcpus: 4, // Allocate 4 vCPUs
-        teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
-        projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
-        token: process.env.SANDBOX_VERCEL_TOKEN!,
-      }
-    : {
-        provider: "native",
-        runtime: "node22",
-        timeout: 30000,
-        vcpus: 2,
-      }
+  ? {
+      provider: "vercel",
+      runtime: "node22", // or 'typescript'
+      timeout: 60000, // 60 second timeout
+      vcpus: 4, // Allocate 4 vCPUs
+      teamId: process.env.SANDBOX_VERCEL_TEAM_ID!,
+      projectId: process.env.SANDBOX_VERCEL_PROJECT_ID!,
+      token: process.env.SANDBOX_VERCEL_TOKEN!,
+    }
+  : {
+      provider: "native",
+      runtime: "node22",
+      timeout: 30000,
+      vcpus: 2,
+    };
 ```
 
 Import it into your `index.ts` file:
+
 ```typescript index.ts
-import { sandboxConfig } from "./sandbox.ts"
+import { sandboxConfig } from "./sandbox.ts";
 // ...
 const app: Hono = createExecutionApp({
   // ...
-	sandboxConfig, // NEW
+  sandboxConfig, // NEW
 });
-
 ```
 
+<Note>
+  **Environment Variables**: Function tools can access environment variables
+  from the host. The framework automatically detects `process.env` references in
+  your code and injects the corresponding values into the sandbox via a `.env`
+  file.
+</Note>
 
 #### Step 3: Add Environment Variables to Run API
 
@@ -296,6 +302,7 @@ SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
       <li>Optimize function code to execute faster</li>
       <li>Consider caching results when possible</li>
     </ul>
+
   </Accordion>
   
   <Accordion title="Best Practices">
@@ -321,4 +328,3 @@ SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
     </ul>
   </Accordion>
 </Accordions>
-
