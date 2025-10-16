@@ -1,0 +1,101 @@
+services:
+  inkeep-agents-manage-ui:
+    image: inkeep/agents-manage-ui:latest
+    environment:
+      - ENVIRONMENT
+      - LOG_LEVEL
+      - PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:-http://localhost:3002}
+      - INKEEP_AGENTS_MANAGE_API_URL=${INKEEP_AGENTS_MANAGE_API_URL:-http://host.docker.internal:3002}
+      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
+      - PUBLIC_INKEEP_AGENTS_RUN_API_URL=${PUBLIC_INKEEP_AGENTS_RUN_API_URL:-http://localhost:3003}
+      - PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET
+      - PUBLIC_NANGO_CONNECT_BASE_URL=${PUBLIC_NANGO_CONNECT_BASE_URL:-http://localhost:3051}
+      - PUBLIC_NANGO_SERVER_URL=${PUBLIC_NANGO_SERVER_URL:-http://localhost:3051}
+      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
+      - NANGO_SECRET_KEY
+      - PUBLIC_SIGNOZ_URL=${PUBLIC_SIGNOZ_URL:-http://localhost:3080}
+      - SIGNOZ_URL=${SIGNOZ_URL:-http://host.docker.internal:3080}
+      - SIGNOZ_API_KEY
+    ports:
+      - "3000"
+    depends_on:
+      inkeep-agents-migrate:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  inkeep-agents-manage-api:
+    image: inkeep/agents-manage-api:latest
+    environment:
+      - ENVIRONMENT
+      - LOG_LEVEL
+      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
+      - TURSO_DATABASE_URL
+      - TURSO_AUTH_TOKEN
+      - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
+      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
+      - NANGO_SECRET_KEY
+    volumes:
+      - inkeep-agents-db:/inkeep-agents/db
+    ports:
+      - "3002:3002"
+    depends_on:
+      inkeep-agents-migrate:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  inkeep-agents-run-api:
+    image: inkeep/agents-run-api:latest
+    environment:
+      - ENVIRONMENT
+      - LOG_LEVEL
+      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
+      - TURSO_DATABASE_URL
+      - TURSO_AUTH_TOKEN
+      - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - GOOGLE_GENERATIVE_AI_API_KEY
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://host.docker.internal:14318/v1/traces}
+      - OTEL_EXPORTER_OTLP_TRACES_HEADERS
+      - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
+      - NANGO_SECRET_KEY
+    volumes:
+      - inkeep-agents-db:/inkeep-agents/db
+    ports:
+      - "3003:3003"
+    depends_on:
+      inkeep-agents-migrate:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  inkeep-agents-migrate:
+    image: inkeep/agents-migrate:latest
+    environment:
+      - ENVIRONMENT
+      - LOG_LEVEL
+      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
+      - TURSO_DATABASE_URL
+      - TURSO_AUTH_TOKEN
+    volumes:
+      - inkeep-agents-db:/inkeep-agents/db
+    restart: "no"
+  inkeep-agents-manage-ui-oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.12.0
+    ports:
+      - "3000:4180"
+    environment:
+      # Run in htpasswd mode
+      - OAUTH2_PROXY_PROVIDER=htpasswd
+      # Set static users (user:password pairs)
+      - OAUTH2_PROXY_HTPASSWD_USERS=${INKEEP_MANAGE_UI_HTPASSWD_USERS}
+      # Set upstream service (your UI)
+      - OAUTH2_PROXY_UPSTREAMS=http://inkeep-agents-manage-ui:3000
+      # Session cookie secret (random 16-byte hex string)
+      - OAUTH2_PROXY_COOKIE_SECRET=${INKEEP_MANAGE_UI_COOKIE_SECRET}
+      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      - OAUTH2_PROXY_COOKIE_SECURE=${INKEEP_MANAGE_UI_COOKIE_SECURE:-false} # set true with https
+    depends_on:
+      - inkeep-agents-manage-ui
+volumes:
+  inkeep-agents-db:
