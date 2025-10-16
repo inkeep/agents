@@ -7,7 +7,7 @@ describe('Validation', () => {
 
   it('for agent validate only prompt as required field', () => {
     // Click create graph button
-    cy.contains('Create graph').click();
+    cy.contains('Create agent').click();
 
     // Wait for app to initialize
     cy.contains('Save').should('exist');
@@ -17,7 +17,7 @@ describe('Validation', () => {
 
     // Check for validation errors
     cy.contains('Validation Errors (1)').should('exist');
-    cy.contains('Agent Errors (1)').click();
-    cy.contains('Agent is missing required field: Prompt').should('exist');
+    cy.contains('Sub Agent Errors (1)').click();
+    cy.contains('Sub Agent is missing required field: Prompt').should('exist');
   });
 });
