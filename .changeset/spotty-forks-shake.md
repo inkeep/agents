@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": minor
 ---
 
-Animate Agen graph based on `ikp-data-operation` event types
+Animate Agent graph based on `ikp-data-operation` event types
