@@ -254,13 +254,6 @@ const app: Hono = createExecutionApp({
 });
 ```
 
-<Note>
-  **Environment Variables**: Function tools can access environment variables
-  from the host. The framework automatically detects `process.env` references in
-  your code and injects the corresponding values into the sandbox via a `.env`
-  file.
-</Note>
-
 #### Step 3: Add Environment Variables to Run API
 
 Add these [environment variables in your Vercel project](https://vercel.com/docs/environment-variables/managing-environment-variables#declare-an-environment-variable) to your **Run API** app:
