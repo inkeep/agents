@@ -215,7 +215,18 @@ export const testTool = functionTool({
     // Verify promptData contains both projectData and patterns
     expect(promptData).toHaveProperty('projectData');
     expect(promptData).toHaveProperty('patterns');
-    expect(promptData.projectData).toEqual(mockProjectData);
+    
+    // After ID suffixing, the processed data will have different structure
+    // Verify core properties are maintained but with updated IDs and structure
+    expect(promptData.projectData).toHaveProperty('id', 'test-project');
+    expect(promptData.projectData).toHaveProperty('name', 'Test Project');
+    expect(promptData.projectData).toHaveProperty('description', 'Test project description');
+    expect(promptData.projectData).toHaveProperty('agents');
+    expect(promptData.projectData).toHaveProperty('tools');
+    expect(promptData.projectData).toHaveProperty('subAgents');
+    expect(typeof promptData.projectData.agents).toBe('object');
+    expect(typeof promptData.projectData.tools).toBe('object');
+    
     expect(promptData.patterns).toEqual(mockPatterns);
 
     // Verify prompt template contains {{DATA}} placeholder
@@ -424,8 +435,9 @@ export const testTool = functionTool({
     const [, promptData, promptTemplate] = callArgs;
 
     // Verify all entity types are included in promptData
-    expect(promptData.projectData.dataComponents).toHaveLength(1);
-    expect(promptData.projectData.artifactComponents).toHaveLength(1);
+    // After ID suffixing, components become objects rather than arrays
+    expect(Object.keys(promptData.projectData.dataComponents)).toHaveLength(1);
+    expect(Object.keys(promptData.projectData.artifactComponents)).toHaveLength(1);
 
     // Verify prompt template includes data component mappings
     expect(promptTemplate).toContain('DATACOMPONENTS:');

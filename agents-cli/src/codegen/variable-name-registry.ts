@@ -178,6 +178,7 @@ export class VariableNameGenerator {
           resolvedNames: {
             [existingEntity.type]: baseName,
           } as Record<EntityType, string>,
+          resolvedIds: {} as Record<EntityType, string>,
         });
       }
     }

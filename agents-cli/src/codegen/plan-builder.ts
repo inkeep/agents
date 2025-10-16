@@ -86,25 +86,31 @@ export async function generatePlan(
     }
   }
 
-  // Step 3: Apply ID suffixes to resolve conflicts at the data level
-  const processedProjectData = applyIdSuffixes(projectData, nameGenerator);
+  // Step 3: Collect all entities to detect ID conflicts
+  const allEntities = collectAllEntities(projectData);
+  
+  // Step 3.5: Apply ID suffixes to resolve conflicts at the data level
+  // Note: This ensures data integrity by preventing ID collisions that cause data loss
+  const processedProjectData = applyIdSuffixes(projectData, new VariableNameGenerator(patterns.namingConventions));
   
   // Step 4: Generate variable names for all entities from processed project data
-  const allEntities = collectAllEntities(processedProjectData);
-  for (const entity of allEntities) {
+  const finalEntities = processedProjectData !== projectData 
+    ? collectAllEntities(processedProjectData) 
+    : allEntities;
+  for (const entity of finalEntities) {
     nameGenerator.generateVariableName(entity.id, entity.type, entity.data);
   }
 
   // Step 3.5: Pre-compute filenames for guaranteed consistency
   const fileNameMappings = new Map<string, string>();
-  for (const entity of allEntities) {
+  for (const entity of finalEntities) {
     const fileName = nameGenerator.generateFileName(entity.id, entity.type, entity.data);
     fileNameMappings.set(entity.id, fileName);
   }
 
   // Step 4: Use LLM to generate file structure plan with placeholder optimization
   const model = createModel(modelSettings);
-  const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), allEntities, fileNameMappings, targetEnvironment);
+  const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), finalEntities, fileNameMappings, targetEnvironment);
 
   // Combine processedProjectData and patterns for placeholder processing
   const promptData = {
@@ -601,6 +607,20 @@ function generateDefaultPlan(registry: VariableNameRegistry): FileInfo[] {
 }
 
 /**
+ * Check if there are ID conflicts between different entity types
+ */
+function hasIdConflicts(entities: Array<{ id: string; type: EntityType }>): boolean {
+  const seenIds = new Set<string>();
+  for (const entity of entities) {
+    if (seenIds.has(entity.id)) {
+      return true; // Found a conflict
+    }
+    seenIds.add(entity.id);
+  }
+  return false; // No conflicts
+}
+
+/**
  * Apply ID suffixes to resolve conflicts at the data level
  * This prevents data loss during collision resolution
  */
@@ -613,14 +633,14 @@ function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: Vari
     const newAgents: Record<string, any> = {};
     for (const [agentId, agentData] of Object.entries(processedData.agents)) {
       const newAgentId = nameGenerator.generateUniqueId(agentId, 'agent');
-      const updatedAgentData = { ...agentData, id: newAgentId };
+      const updatedAgentData = { ...(agentData as any), id: newAgentId };
       
       // Process subAgents within this agent
       if (updatedAgentData.subAgents) {
         const newSubAgents: Record<string, any> = {};
         for (const [subAgentId, subAgentData] of Object.entries(updatedAgentData.subAgents)) {
           const newSubAgentId = nameGenerator.generateUniqueId(subAgentId, 'subAgent');
-          const updatedSubAgentData = { ...subAgentData, id: newSubAgentId };
+          const updatedSubAgentData = { ...(subAgentData as any), id: newSubAgentId };
           newSubAgents[newSubAgentId] = updatedSubAgentData;
           
           // Update defaultSubAgentId reference if it matches this subAgent
@@ -641,7 +661,7 @@ function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: Vari
     const newTools: Record<string, any> = {};
     for (const [toolId, toolData] of Object.entries(processedData.tools)) {
       const newToolId = nameGenerator.generateUniqueId(toolId, 'tool');
-      const updatedToolData = { ...toolData, id: newToolId };
+      const updatedToolData = { ...(toolData as any), id: newToolId };
       newTools[newToolId] = updatedToolData;
     }
     processedData.tools = newTools;
@@ -652,7 +672,7 @@ function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: Vari
     const newDataComponents: Record<string, any> = {};
     for (const [compId, compData] of Object.entries(processedData.dataComponents)) {
       const newCompId = nameGenerator.generateUniqueId(compId, 'dataComponent');
-      const updatedCompData = { ...compData, id: newCompId };
+      const updatedCompData = { ...(compData as any), id: newCompId };
       newDataComponents[newCompId] = updatedCompData;
     }
     processedData.dataComponents = newDataComponents;
@@ -663,7 +683,7 @@ function applyIdSuffixes(projectData: FullProjectDefinition, nameGenerator: Vari
     const newArtifactComponents: Record<string, any> = {};
     for (const [compId, compData] of Object.entries(processedData.artifactComponents)) {
       const newCompId = nameGenerator.generateUniqueId(compId, 'artifactComponent');
-      const updatedCompData = { ...compData, id: newCompId };
+      const updatedCompData = { ...(compData as any), id: newCompId };
       newArtifactComponents[newCompId] = updatedCompData;
     }
     processedData.artifactComponents = newArtifactComponents;
