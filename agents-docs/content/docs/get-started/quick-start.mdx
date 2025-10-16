@@ -52,12 +52,24 @@ Navigate to the Event Planner agent at http://localhost:3000, click **Try it**, 
 
 To help with development, add the Inkeep docs MCP to your preferred IDE or MCP client. It has a few tools for "vibe coding" agents with the SDK.
 
+**Quick Install:**
+
+<div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+  <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=inkeep-agents&config=eyJ1cmwiOiJodHRwczovL2FnZW50cy5pbmtlZXAuY29tL21jcCJ9">
+    <img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add to Cursor" style={{ height: '40px' }} />
+  </a>
+  <a href="vscode:mcp/install?%7B%22name%22%3A%22inkeep-agents%22%2C%22type%22%3A%22sse%22%2C%22url%22%3A%22https%3A%2F%2Fagents.inkeep.com%2Fmcp%22%7D">
+    <img src="https://img.shields.io/badge/VS_Code-Install_Inkeep_Agents-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff" alt="Install in VS Code" />
+  </a>
+</div>
+
+**Or configure manually** in your `mcp.json`:
+
 ```json
 {
   "mcpServers": {
     "inkeep-agents": {
-      "url": "https://agents.inkeep.com/mcp",
-      "transport": "sse"
+      "url": "https://agents.inkeep.com/mcp"
     }
   }
 }
