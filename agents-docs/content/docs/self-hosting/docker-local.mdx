@@ -21,7 +21,9 @@ Run this command to autogenerate a `.env` file:
 ```bash
 cp .env.example .env && \
   encryption_key=$(openssl rand -base64 32) && \
-  sed -i'' "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env && \
+  tmp_file=$(mktemp) && \
+  sed "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env > "$tmp_file" && \
+  mv "$tmp_file" .env && \
   echo "Docker environment file created with auto-generated encryption key"
 ```
 
