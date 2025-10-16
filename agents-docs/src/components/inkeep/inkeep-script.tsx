@@ -84,8 +84,8 @@ export function InkeepScript() {
         dark: '/logos/icon-light-blue.svg',
       },
       exampleQuestions: [
-        'What sources are supported?',
-        'Can I add Inkeep as a Slack bot?',
+        'How to get started with the quick start?',
+        'How to install the Inkeep CLI?',
         "Who's in the Inkeep team?",
       ],
       getHelpOptions: [
