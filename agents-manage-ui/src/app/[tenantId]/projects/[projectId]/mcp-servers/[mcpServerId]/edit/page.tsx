@@ -1,5 +1,4 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
-import { notFound } from 'next/navigation';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
