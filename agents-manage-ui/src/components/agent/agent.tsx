@@ -801,18 +801,7 @@ function Flow({
           break;
         }
         case 'completion': {
-          setEdges((prevEdges) =>
-            prevEdges.map((edge) => ({
-              ...edge,
-              data: { ...edge.data, isDelegating: false },
-            }))
-          );
-          setNodes((prevNodes) =>
-            prevNodes.map((node) => ({
-              ...node,
-              data: { ...node.data, isExecuting: false, isDelegating: false },
-            }))
-          );
+          onCompletion();
           break;
         }
         case 'agent_generate': {
@@ -828,15 +817,26 @@ function Flow({
       }
     };
 
-    const onCompletion: EventListenerOrEventListenerObject = (event) => {
-      console.log('onCompletion', event.detail);
+    const onCompletion = () => {
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => ({
+          ...edge,
+          data: { ...edge.data, isDelegating: false },
+        }))
+      );
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isExecuting: false, isDelegating: false },
+        }))
+      );
     };
 
-    document.addEventListener('ikp-completion', onCompletion);
     document.addEventListener('ikp-data-operation', onDataOperation);
+    document.addEventListener('ikp-aborted', onCompletion);
     return () => {
       document.removeEventListener('ikp-data-operation', onDataOperation);
-      document.removeEventListener('ikp-completion', onCompletion);
+      document.removeEventListener('ikp-aborted', onCompletion);
     };
   }, [setEdges]);
 

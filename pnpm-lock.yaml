@@ -424,8 +424,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/agents-ui':
-        specifier: ^0.14.16
-        version: 0.14.16(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^0.14.17
+        version: 0.14.17(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
@@ -2169,8 +2169,8 @@ packages:
   '@inkeep/agents-ui@0.14.14':
     resolution: {integrity: sha512-ST9e62GOTUHru5iPMRJrM9IK+HquUEtolTezLMtqn48mBAxK+nia45qmwGtG4SOMHU/K7Gq43qzV3at2jS69Rw==}
 
-  '@inkeep/agents-ui@0.14.16':
-    resolution: {integrity: sha512-N1xHO+VEUu/2W2EWDAGf+r2JJ2sZZdnhQJV6zEFoYoIv7/KOYdsn/l6Hxp1wuY7ZLZiJkoI0N9fO7U+X4lU/CQ==}
+  '@inkeep/agents-ui@0.14.17':
+    resolution: {integrity: sha512-CDp7tHVhll7cRJJCASc9A/VZTV/iPwak5DWZmXfb4myAmMSeWXgDeRans0wXon/elgjKrPvgZZJy4Na0nz079w==}
 
   '@inkeep/cxkit-color-mode@0.5.99':
     resolution: {integrity: sha512-e5r4/zsyfkL0L6eCwDpYH7s1i5elfXB44Cg5pFocwoIYwlfo7Y0wfd+8+JsQKtymvYA8/a9GcC0YzVwtv/bUng==}
@@ -11261,7 +11261,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.14.16(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@inkeep/agents-ui@0.14.17(@types/react-dom@19.2.1(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
       '@ai-sdk/react': 2.0.5(react@19.1.1)(zod@4.1.12)
