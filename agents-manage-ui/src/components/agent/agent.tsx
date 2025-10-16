@@ -10,7 +10,6 @@ import {
   type Node,
   Panel,
   ReactFlow,
-  type ReactFlowProps,
   ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
@@ -461,17 +460,6 @@ function Flow({
     [setQueryState, isOpen]
   );
 
-  const onEdgeDoubleClick: NonNullable<ReactFlowProps['onEdgeDoubleClick']> = useCallback(
-    (_event, edge) => {
-      const newType =
-        edge.type === EdgeType.AnimatedCircles ? EdgeType.Default : EdgeType.AnimatedCircles;
-      setEdges((prevEdges) =>
-        prevEdges.map((e) => (e.id === edge.id ? { ...e, type: newType } : e))
-      );
-    },
-    [setEdges]
-  );
-
   useOnSelectionChange({
     onChange: onSelectionChange,
   });
@@ -868,7 +856,6 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
-          onEdgeDoubleClick={onEdgeDoubleClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
