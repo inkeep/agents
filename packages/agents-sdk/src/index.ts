@@ -30,7 +30,7 @@ export {
   ExternalAgent,
   externalAgent,
   externalAgents,
-} from './externalAgent';
+} from './external-agent';
 export { FunctionTool } from './function-tool';
 export { Project } from './project';
 export {

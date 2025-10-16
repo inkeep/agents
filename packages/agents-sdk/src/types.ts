@@ -30,7 +30,7 @@ export interface DataComponentWithZodProps {
 import type { ArtifactComponentInterface } from './artifact-component';
 import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
 import type { DataComponentInterface } from './data-component';
-import type { ExternalAgentConfig } from './externalAgent';
+import type { ExternalAgentConfig } from './external-agent';
 import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
 
@@ -304,7 +304,7 @@ export interface ExternalAgentInterface {
   getName(): string;
   getDescription(): string;
   getBaseUrl(): string;
-  setContext?(tenantId: string, baseURL?: string): void;
+  setContext?(tenantId: string, projectId: string): void;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
 }

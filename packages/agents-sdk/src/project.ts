@@ -12,6 +12,7 @@ const logger = getLogger('project');
 import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
+import type { ExternalAgent } from './external-agent';
 import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
@@ -32,6 +33,7 @@ export interface ProjectConfig {
   stopWhen?: StopWhen;
   agents?: () => Agent[];
   tools?: () => Tool[];
+  externalAgents?: () => ExternalAgent[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
   credentialReferences?: () => CredentialReferenceApiInsert[];
@@ -107,6 +109,8 @@ export class Project implements ProjectInterface {
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
   private projectArtifactComponents: ArtifactComponent[] = [];
+  private projectExternalAgents: ExternalAgent[] = [];
+  private externalAgentMap: Map<string, ExternalAgent> = new Map();
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -147,6 +151,14 @@ export class Project implements ProjectInterface {
     // Initialize project-level credentialReferences if provided
     if (config.credentialReferences) {
       this.credentialReferences = config.credentialReferences();
+    }
+
+    // Initialize project-level externalAgents if provided
+    if (config.externalAgents) {
+      this.projectExternalAgents = config.externalAgents();
+      this.externalAgentMap = new Map(
+        this.projectExternalAgents.map((externalAgent) => [externalAgent.getId(), externalAgent])
+      );
     }
 
     logger.info(
@@ -367,6 +379,50 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Get all external agents in the project
+   */
+  getExternalAgents(): ExternalAgent[] {
+    return this.projectExternalAgents;
+  }
+
+  /**
+   * Get an external agent by ID
+   */
+  getExternalAgent(id: string): ExternalAgent | undefined {
+    return this.externalAgentMap.get(id);
+  }
+
+  /**
+   * Add an external agent to the project
+   */
+  addExternalAgent(externalAgent: ExternalAgent): void {
+    this.projectExternalAgents.push(externalAgent);
+    this.externalAgentMap.set(externalAgent.getId(), externalAgent);
+  }
+
+  /**
+   * Remove an external agent from the project
+   */
+  removeExternalAgent(id: string): boolean {
+    const externalAgentToRemove = this.externalAgentMap.get(id);
+    if (externalAgentToRemove) {
+      this.externalAgentMap.delete(id);
+      this.projectExternalAgents = this.projectExternalAgents.filter(
+        (externalAgent) => externalAgent.getId() !== id
+      );
+      logger.info(
+        {
+          projectId: this.projectId,
+          externalAgentId: id,
+        },
+        'External agent removed from project'
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Get an agent by ID
    */
   getAgent(id: string): Agent | undefined {
@@ -481,6 +537,7 @@ export class Project implements ProjectInterface {
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
+    const externalAgentsObject: Record<string, any> = {};
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -581,10 +638,20 @@ export class Project implements ProjectInterface {
         }
       }
 
-      // Collect tools from all agents in this agent
+      // Collect project-level resources from all sub-agents in this agent
       for (const subAgent of agent.getSubAgents()) {
+        // Collect external agents from the subAgents list
         if (subAgent.type === 'external') {
-          continue; // Skip external agents
+          const externalAgent = subAgent as ExternalAgent;
+          externalAgentsObject[externalAgent.getId()] = {
+            id: externalAgent.getId(),
+            name: externalAgent.getName(),
+            description: externalAgent.getDescription(),
+            baseUrl: externalAgent.getBaseUrl(),
+            credentialReferenceId: externalAgent.getCredentialReferenceId(),
+            headers: externalAgent.getHeaders(),
+          };
+          continue; // Skip remaining collection logic for external agents
         }
 
         const agentTools = subAgent.getTools();
@@ -864,6 +931,8 @@ export class Project implements ProjectInterface {
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
       artifactComponents:
         Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
+      externalAgents:
+        Object.keys(externalAgentsObject).length > 0 ? externalAgentsObject : undefined,
       credentialReferences:
         Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
       createdAt: new Date().toISOString(),

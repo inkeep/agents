@@ -409,7 +409,6 @@ export const createFullAgentServerSide =
                 id: subAgentId,
                 tenantId,
                 projectId,
-                agentId: finalAgentId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -1033,7 +1032,6 @@ export const updateFullAgentServerSide =
                 id: subAgentId,
                 tenantId,
                 projectId,
-                agentId: finalAgentId,
                 name: externalAgent.name,
                 description: externalAgent.description || '',
                 baseUrl: externalAgent.baseUrl,
@@ -1061,7 +1059,7 @@ export const updateFullAgentServerSide =
       });
 
       const existingExternalAgents = await listExternalAgents(db)({
-        scopes: { tenantId, projectId, agentId: finalAgentId },
+        scopes: { tenantId, projectId },
       });
 
       let deletedInternalCount = 0;
@@ -1088,8 +1086,8 @@ export const updateFullAgentServerSide =
         if (!incomingAgentIds.has(agent.id)) {
           try {
             await deleteExternalAgent(db)({
-              scopes: { tenantId, projectId, agentId: finalAgentId },
-              subAgentId: agent.id,
+              scopes: { tenantId, projectId },
+              externalAgentId: agent.id,
             });
             deletedExternalCount++;
             logger.info({ subAgentId: agent.id }, 'Deleted orphaned external agent');
@@ -1128,7 +1126,6 @@ export const updateFullAgentServerSide =
       });
 
       logger.info({ agentId: typedAgentDefinition.id }, 'Agent metadata updated');
-
 
       const incomingRelationshipIds = new Set<string>();
       for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {

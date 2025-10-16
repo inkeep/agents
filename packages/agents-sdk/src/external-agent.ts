@@ -19,13 +19,15 @@ export class ExternalAgent implements ExternalAgentInterface {
   public readonly type = 'external' as const;
   private initialized = false;
   private tenantId: string;
+  private projectId: string;
   private baseURL: string;
 
   constructor(config: ExternalAgentConfig) {
     this.config = { ...config, type: 'external' };
     // tenantId will be set by setContext method from external source
     this.tenantId = 'default';
-    this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
+    this.projectId = 'default';
+    this.baseURL = this.config.baseUrl;
 
     logger.debug(
       {
@@ -68,11 +70,9 @@ export class ExternalAgent implements ExternalAgentInterface {
   }
 
   // Set context (tenantId and baseURL) from external source (agent, CLI, etc)
-  setContext(tenantId: string, baseURL?: string): void {
+  setContext(tenantId: string, projectId: string): void {
     this.tenantId = tenantId;
-    if (baseURL) {
-      this.baseURL = baseURL;
-    }
+    this.projectId = projectId;
   }
 
   // Compute ID from name using a simple slug transformation
@@ -93,7 +93,7 @@ export class ExternalAgent implements ExternalAgentInterface {
 
     // First try to update (in case external agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/external-agents/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -123,7 +123,7 @@ export class ExternalAgent implements ExternalAgentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/external-agents`,
+        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents`,
         {
           method: 'POST',
           headers: {

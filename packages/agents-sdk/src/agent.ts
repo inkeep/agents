@@ -7,10 +7,7 @@ import {
   getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
-import {
-  convertZodToJsonSchema,
-  isZodSchema,
-} from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import type {
@@ -151,7 +148,7 @@ export class Agent implements AgentInterface {
         // External agent
         const externalAgent = agent as ExternalAgentInterface;
         if (externalAgent.setContext) {
-          externalAgent.setContext(tenantId, apiUrl);
+          externalAgent.setContext(tenantId, projectId);
         }
       }
     }

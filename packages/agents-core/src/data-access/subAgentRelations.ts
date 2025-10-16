@@ -241,8 +241,7 @@ export const getRelatedAgentsForAgent =
         and(
           eq(subAgentRelations.externalSubAgentId, externalAgents.id),
           eq(subAgentRelations.tenantId, externalAgents.tenantId),
-          eq(subAgentRelations.projectId, externalAgents.projectId),
-          eq(subAgentRelations.agentId, externalAgents.agentId)
+          eq(subAgentRelations.projectId, externalAgents.projectId)
         )
       )
       .where(
@@ -807,7 +806,6 @@ export const validateExternalAgent =
         and(
           eq(externalAgents.tenantId, params.scopes.tenantId),
           eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.agentId, params.scopes.agentId),
           eq(externalAgents.id, params.scopes.subAgentId)
         )
       )

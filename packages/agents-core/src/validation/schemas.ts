@@ -447,11 +447,11 @@ export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).exte
 export const ExternalAgentUpdateSchema = ExternalAgentInsertSchema.partial();
 
 export const ExternalAgentApiSelectSchema =
-  createAgentScopedApiSchema(ExternalAgentSelectSchema).openapi('ExternalAgent');
+  createApiSchema(ExternalAgentSelectSchema).openapi('ExternalAgent');
 export const ExternalAgentApiInsertSchema =
-  createAgentScopedApiInsertSchema(ExternalAgentInsertSchema).openapi('ExternalAgentCreate');
+  createApiInsertSchema(ExternalAgentInsertSchema).openapi('ExternalAgentCreate');
 export const ExternalAgentApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(ExternalAgentUpdateSchema).openapi('ExternalAgentUpdate');
+  createApiUpdateSchema(ExternalAgentUpdateSchema).openapi('ExternalAgentUpdate');
 
 export const AllAgentSchema = z.discriminatedUnion('type', [
   SubAgentApiSelectSchema.extend({ type: z.literal('internal') }),
@@ -829,6 +829,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),
   statusUpdates: z.optional(StatusUpdateSchema),
   credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
   createdAt: z.string().optional(),

@@ -191,13 +191,18 @@ export const subAgentRelations = sqliteTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'sub_agent_relations_agent_fk',
     }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.externalSubAgentId],
+      foreignColumns: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
+      name: 'sub_agent_relations_external_agent_fk',
+    }).onDelete('cascade'),
   ]
 );
 
 export const externalAgents = sqliteTable(
   'external_agents',
   {
-    ...agentScoped,
+    ...projectScoped,
     ...uiProperties,
     baseUrl: text('base_url').notNull(),
     credentialReferenceId: text('credential_reference_id'),
@@ -205,11 +210,11 @@ export const externalAgents = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'external_agents_agent_fk',
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'external_agents_project_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
@@ -820,13 +825,13 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     relationName: 'receivedMessages',
   }),
   fromExternalAgent: one(externalAgents, {
-    fields: [messages.fromExternalAgentId],
-    references: [externalAgents.id],
+    fields: [messages.tenantId, messages.projectId, messages.fromExternalAgentId],
+    references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
     relationName: 'receivedExternalMessages',
   }),
   toExternalAgent: one(externalAgents, {
-    fields: [messages.toExternalAgentId],
-    references: [externalAgents.id],
+    fields: [messages.tenantId, messages.projectId, messages.toExternalAgentId],
+    references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
     relationName: 'sentExternalMessages',
   }),
   task: one(tasks, {
@@ -919,8 +924,8 @@ export const subAgentRelationsRelations = relations(subAgentRelations, ({ one })
     relationName: 'targetRelations',
   }),
   externalAgent: one(externalAgents, {
-    fields: [subAgentRelations.externalSubAgentId],
-    references: [externalAgents.id],
+    fields: [subAgentRelations.tenantId, subAgentRelations.projectId, subAgentRelations.externalSubAgentId],
+    references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
   }),
 }));
 

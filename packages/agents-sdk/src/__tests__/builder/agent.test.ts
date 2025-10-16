@@ -1,7 +1,7 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
-import { ExternalAgent } from '../../externalAgent';
+import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { AgentConfig, GenerateOptions, MessageInput } from '../../types';

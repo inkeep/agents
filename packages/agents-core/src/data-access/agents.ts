@@ -3,7 +3,6 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { DatabaseClient } from '../db/client';
 import { generateId } from '../utils/conversations';
 import {
-  subAgentFunctionToolRelations,
   agents,
   artifactComponents,
   dataComponents,
@@ -11,6 +10,7 @@ import {
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
+  subAgentFunctionToolRelations,
   subAgents,
   subAgentToolRelations,
   tools,
@@ -440,10 +440,10 @@ export const getFullAgentDefinition =
     );
 
     const externalAgents = await Promise.all(
-      Array.from(externalSubAgentIds).map(async (subAgentId) => {
+      Array.from(externalSubAgentIds).map(async (externalAgentId) => {
         const subAgent = await getExternalAgent(db)({
-          scopes: { tenantId, projectId, agentId },
-          subAgentId,
+          scopes: { tenantId, projectId },
+          externalAgentId,
         });
         if (!subAgent) return null;
 

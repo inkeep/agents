@@ -6,17 +6,16 @@ import {
   deleteExternalAgent,
   ErrorResponseSchema,
   ExternalAgentApiInsertSchema,
-  ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
   ExternalAgentListResponse,
   ExternalAgentResponse,
+  generateId,
   getExternalAgent,
   listExternalAgentsPaginated,
   PaginationQueryParamsSchema,
-  TenantProjectAgentIdParamsSchema,
-  TenantProjectAgentParamsSchema,
+  TenantProjectIdParamsSchema,
+  TenantProjectParamsSchema,
   updateExternalAgent,
-  generateId,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
@@ -30,7 +29,7 @@ app.openapi(
     operationId: 'list-external-agents',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentParamsSchema,
+      params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -46,11 +45,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const { tenantId, projectId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     const result = await listExternalAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId, agentId },
+      scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
     // Add type field to all external agents in the response
@@ -74,7 +73,7 @@ app.openapi(
     operationId: 'get-external-agent-by-id',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -89,10 +88,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const externalAgent = await getExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
     });
 
     if (!externalAgent) {
@@ -120,7 +119,7 @@ app.openapi(
     operationId: 'create-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentParamsSchema,
+      params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -142,7 +141,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const externalAgentData = {
@@ -177,7 +176,7 @@ app.openapi(
     operationId: 'update-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -199,12 +198,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const updatedExternalAgent = await updateExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
       data: body,
     });
 
@@ -233,7 +232,7 @@ app.openapi(
     operationId: 'delete-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
@@ -250,11 +249,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
     const deleted = await deleteExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
     });
 
     if (!deleted) {
