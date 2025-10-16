@@ -39,9 +39,6 @@ npx inkeep push
 
 # List all graphs
 npx inkeep list-graphs
-
-# Start a chat session
-npx inkeep chat
 ```
 
 ## Example Categories
@@ -126,11 +123,6 @@ examples/
 
    ```bash
    npx inkeep push
-   ```
-
-3. **Test with chat**:
-   ```bash
-   npx inkeep chat my-graph
    ```
 
 ## Tips

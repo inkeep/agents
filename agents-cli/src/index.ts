@@ -109,22 +109,6 @@ program
   });
 
 program
-  .command('chat [agent-id]')
-  .description(
-    'Start an interactive chat session with an agent (interactive selection if no ID provided)'
-  )
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--agents-manage-api-url <url>', 'Agents manage API URL')
-  .option('--agents-run-api-url <url>', 'Agents run API URL')
-  .option('--config <path>', 'Path to configuration file')
-  .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (agentId, options) => {
-    const { chatCommandEnhanced } = await import('./commands/chat-enhanced.js');
-    const config = options.config || options.configFilePath;
-    await chatCommandEnhanced(agentId, { ...options, config });
-  });
-
-program
   .command('list-agent')
   .description('List all available agents for a specific project')
   .requiredOption('--project <project-id>', 'Project ID to list agent for')

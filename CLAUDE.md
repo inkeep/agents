@@ -41,7 +41,6 @@ pnpm db:check        # Check database schema
 # Running examples (from the examples directory)
 # Note: Use the globally installed inkeep CLI, not npx
 inkeep push
-inkeep chat
 
 # Documentation development (from agents-docs directory)
 pnpm dev              # Start documentation site (port 3000)
