@@ -174,6 +174,7 @@ export default {
         'self-hosting/vercel',
         'self-hosting/gcp-compute-engine',
         'self-hosting/gcp-cloud-run',
+        'self-hosting/aws-ec2',
         'self-hosting/docker-local',
         'self-hosting/docker-build',
         {
