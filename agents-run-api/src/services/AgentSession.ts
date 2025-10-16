@@ -120,6 +120,8 @@ export interface ArtifactSavedData {
       extraFields: string[];
       expectedFields: string[];
       actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
     };
     full: {
       hasExpectedFields: boolean;
@@ -127,6 +129,8 @@ export interface ArtifactSavedData {
       extraFields: string[];
       expectedFields: string[];
       actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
     };
     schemaFound: boolean;
   };
@@ -1250,6 +1254,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'schema_validation.summary.actual_fields': JSON.stringify(artifactData.schemaValidation?.summary?.actualFields || []),
           'schema_validation.summary.missing_fields': JSON.stringify(artifactData.schemaValidation?.summary?.missingFields || []),
           'schema_validation.summary.extra_fields': JSON.stringify(artifactData.schemaValidation?.summary?.extraFields || []),
+          'schema_validation.summary.has_required_fields': artifactData.schemaValidation?.summary?.hasRequiredFields || true,
+          'schema_validation.summary.missing_required_count': artifactData.schemaValidation?.summary?.missingRequired?.length || 0,
+          'schema_validation.summary.missing_required': JSON.stringify(artifactData.schemaValidation?.summary?.missingRequired || []),
           'schema_validation.full.has_expected_fields': artifactData.schemaValidation?.full?.hasExpectedFields || true,
           'schema_validation.full.missing_fields_count': artifactData.schemaValidation?.full?.missingFields?.length || 0,
           'schema_validation.full.extra_fields_count': artifactData.schemaValidation?.full?.extraFields?.length || 0,
@@ -1257,6 +1264,9 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'schema_validation.full.actual_fields': JSON.stringify(artifactData.schemaValidation?.full?.actualFields || []),
           'schema_validation.full.missing_fields': JSON.stringify(artifactData.schemaValidation?.full?.missingFields || []),
           'schema_validation.full.extra_fields': JSON.stringify(artifactData.schemaValidation?.full?.extraFields || []),
+          'schema_validation.full.has_required_fields': artifactData.schemaValidation?.full?.hasRequiredFields || true,
+          'schema_validation.full.missing_required_count': artifactData.schemaValidation?.full?.missingRequired?.length || 0,
+          'schema_validation.full.missing_required': JSON.stringify(artifactData.schemaValidation?.full?.missingRequired || []),
         },
       },
       async (span) => {

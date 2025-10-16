@@ -513,6 +513,8 @@ export class ArtifactService {
       extraFields: string[];
       expectedFields: string[];
       actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
     };
     full: {
       hasExpectedFields: boolean;
@@ -520,6 +522,8 @@ export class ArtifactService {
       extraFields: string[];
       expectedFields: string[];
       actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
     };
     schemaFound: boolean;
   } {
@@ -529,17 +533,47 @@ export class ArtifactService {
       const missingFields = expectedFields.filter(field => !(field in (data || {})));
       const extraFields = actualFields.filter(field => !expectedFields.includes(field));
       
+      // Check required fields specifically
+      const requiredFields = schema?.required || [];
+      const missingRequired = requiredFields.filter(field => !(field in (data || {})));
+      
       return {
         hasExpectedFields: missingFields.length === 0,
         missingFields,
         extraFields,
         expectedFields,
         actualFields,
+        hasRequiredFields: missingRequired.length === 0,
+        missingRequired,
       };
     };
 
     const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
     const fullValidation = validateAgainstSchema(fullData, fullSchema);
+
+    // Block artifact creation if required fields are missing from summary data
+    if (!summaryValidation.hasRequiredFields) {
+      const error = new Error(
+        `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
+        `for '${artifactType}' schema. ` +
+        `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
+        `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
+        `Consider using a different artifact component type that matches your data structure.`
+      );
+      
+      logger.error(
+        {
+          artifactId,
+          artifactType,
+          requiredFields: summaryValidation.missingRequired,
+          actualFields: summaryValidation.actualFields,
+          schemaExpected: previewSchema?.properties ? Object.keys(previewSchema.properties) : [],
+        },
+        'Blocking artifact save due to missing required fields'
+      );
+      
+      throw error;
+    }
 
     // Log validation results
     if (!summaryValidation.hasExpectedFields || summaryValidation.extraFields.length > 0) {
@@ -612,8 +646,8 @@ export class ArtifactService {
             artifactType: request.type,
           },
           schemaValidation: schemaValidation || {
-            summary: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [] },
-            full: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [] },
+            summary: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [], hasRequiredFields: true, missingRequired: [] },
+            full: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [], hasRequiredFields: true, missingRequired: [] },
             schemaFound: false,
           },
           tenantId: this.context.tenantId,
