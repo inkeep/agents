@@ -281,38 +281,6 @@ The `inkeep pull` command currently uses a fixed model for LLM generation: `anth
 - Check the generated file manually for obvious issues
 - Try pulling as JSON first to verify the source data: `inkeep pull --json`
 
-### `inkeep chat`
-
-Start an interactive chat session with an agent.
-
-```bash
-inkeep chat [agent-id]
-```
-
-**Options:**
-
-- `--tenant-id <tenant-id>` - Tenant ID
-- `--agents-manage-api-url <url>` - Agents manage API URL
-- `--agents-run-api-url <url>` - Agents run API URL
-- `--config <path>` - Path to configuration file
-- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
-
-**Examples:**
-
-```bash
-# Interactive agent selection
-inkeep chat
-
-# Chat with specific agent
-inkeep chat my-agent-id
-
-# Use a specific config file
-inkeep chat --config ./inkeep.config.ts
-
-# Override tenant and API URLs
-inkeep chat --tenant-id my-tenant --agents-manage-api-url https://api.example.com
-```
-
 ### `inkeep list-agents`
 
 List all available agents for a specific project.
