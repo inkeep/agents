@@ -836,7 +836,7 @@ function Flow({
     document.addEventListener('ikp-data-operation', onDataOperation);
     return () => {
       document.removeEventListener('ikp-data-operation', onDataOperation);
-      document.addEventListener('ikp-completion', onCompletion);
+      document.removeEventListener('ikp-completion', onCompletion);
     };
   }, [setEdges]);
 
