@@ -157,7 +157,7 @@ function createUserFriendlyMessage(
   } else if (type === 'edge') {
     entityType = 'Connection';
   } else {
-    entityType = 'Agent';
+    entityType = 'Sub Agent';
   }
   const fieldName = getFieldDisplayName(field);
 

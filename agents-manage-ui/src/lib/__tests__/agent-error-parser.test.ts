@@ -34,11 +34,19 @@ describe('FullGraphDefinitionSchema', () => {
     } catch (error) {
       const apiError = error!.toString();
       const result = parseAgentValidationErrors(apiError);
-      // expect(result.allErrors[0].field).toBe('prompt');
-      // expect(result.allErrors[0].message).toBe('Agent is missing required field: Prompt');
-      // expect(result.allErrors[1].field).toBe('baseUrl');
-      // expect(result.allErrors[1].message).toBe('Agent is missing required field: Host URL');
-      // expect(result.totalErrors).toBe(4);
+      expect(result.allErrors[0].field).toBe('description');
+      expect(result.allErrors[0].message).toBe('Sub Agent is missing required field: Description');
+      expect(result.allErrors[1].field).toBe('prompt');
+      expect(result.allErrors[1].message).toBe('Sub Agent is missing required field: Prompt');
+      expect(result.allErrors[2].field).toBe('type');
+      expect(result.allErrors[2].message).toBe(
+        'Sub Agent Type: Invalid input: expected "internal"'
+      );
+      expect(result.allErrors[3].field).toBe('canUse');
+      expect(result.allErrors[3].message).toBe(
+        'Sub Agent Can Use has invalid type. Expected array'
+      );
+      expect(result.totalErrors).toBe(4);
       expect(result).toMatchInlineSnapshot(`
         {
           "agentErrors": [
@@ -49,7 +57,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "description",
                 "description",
               ],
-              "message": "Agent is missing required field: Description",
+              "message": "Sub Agent is missing required field: Description",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -69,7 +77,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "prompt",
                 "prompt",
               ],
-              "message": "Agent is missing required field: Prompt",
+              "message": "Sub Agent is missing required field: Prompt",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -89,7 +97,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "type",
                 "type",
               ],
-              "message": "Agent Type: Invalid input: expected "internal"",
+              "message": "Sub Agent Type: Invalid input: expected "internal"",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -111,7 +119,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "canUse",
                 "canUse",
               ],
-              "message": "Agent Can Use has invalid type. Expected array",
+              "message": "Sub Agent Can Use has invalid type. Expected array",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -133,7 +141,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "description",
                 "description",
               ],
-              "message": "Agent is missing required field: Description",
+              "message": "Sub Agent is missing required field: Description",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -153,7 +161,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "prompt",
                 "prompt",
               ],
-              "message": "Agent is missing required field: Prompt",
+              "message": "Sub Agent is missing required field: Prompt",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -173,7 +181,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "type",
                 "type",
               ],
-              "message": "Agent Type: Invalid input: expected "internal"",
+              "message": "Sub Agent Type: Invalid input: expected "internal"",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
@@ -195,7 +203,7 @@ describe('FullGraphDefinitionSchema', () => {
                 "canUse",
                 "canUse",
               ],
-              "message": "Agent Can Use has invalid type. Expected array",
+              "message": "Sub Agent Can Use has invalid type. Expected array",
               "nodeId": undefined,
               "nodeType": undefined,
               "originalError": {
