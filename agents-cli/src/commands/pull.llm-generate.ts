@@ -8,6 +8,7 @@ import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import { env } from '../env';
+import { isLangfuseConfigured } from '../instrumentation';
 import {
   calculateTokenSavings,
   createPlaceholders,
@@ -420,12 +421,23 @@ export async function generateTextWithPlaceholders(
     console.log(`[DEBUG] Final prompt size: ${prompt.length} characters`);
   }
 
-  // Generate text using the LLM
+  // Generate text using the LLM with optional telemetry
   const { text } = await generateText({
     model,
     prompt,
     ...options,
     ...reasoningConfig, // Merge in reasoning/thinking config if provided
+    // Enable Langfuse telemetry if configured
+    ...(isLangfuseConfigured() && {
+      experimental_telemetry: {
+        isEnabled: true,
+        metadata: {
+          fileType: context?.fileType || 'unknown',
+          placeholderCount: Object.keys(replacements).length,
+          promptSize: prompt.length,
+        },
+      },
+    }),
   });
 
   // Restore placeholders in the generated code
@@ -513,7 +525,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'index' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -795,7 +807,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
         abortSignal: AbortSignal.timeout(300000), // 300 second timeout for complex agent (5 min, increased for reasoning)
       },
       debug, // Pass debug flag to show placeholder optimization info
-      undefined, // context
+      { fileType: 'agent' }, // context - for Langfuse metadata
       reasoningConfig // reasoning config
     );
 
@@ -903,7 +915,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'tool' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -990,7 +1002,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'data_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -1082,7 +1094,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'artifact_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -1172,7 +1184,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'status_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
