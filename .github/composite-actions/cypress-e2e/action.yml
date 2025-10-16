@@ -28,6 +28,10 @@ runs:
     - run: pnpm setup-dev
       shell: bash
 
+    - name: Run Services
+      run: pnpm dev --filter='!@inkeep/agents-docs' --filter='!@inkeep/agents-manage-api' --filter='!@inkeep/agents-manage-ui'
+      shell: bash
+
     # Start the backend API server
     - name: Start Backend API Server
       shell: bash
