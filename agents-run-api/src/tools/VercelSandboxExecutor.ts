@@ -214,6 +214,56 @@ export class VercelSandboxExecutor {
   }
 
   /**
+   * Extract environment variable names from code
+   * Matches patterns like process.env.VAR_NAME or process.env['VAR_NAME']
+   */
+  private extractEnvVars(code: string): Set<string> {
+    const envVars = new Set<string>();
+
+    // Match process.env.VARIABLE_NAME
+    const dotNotationRegex = /process\.env\.([A-Z_][A-Z0-9_]*)/g;
+    let match = dotNotationRegex.exec(code);
+    while (match !== null) {
+      envVars.add(match[1]);
+      match = dotNotationRegex.exec(code);
+    }
+
+    // Match process.env['VARIABLE_NAME'] or process.env["VARIABLE_NAME"]
+    const bracketNotationRegex = /process\.env\[['"]([A-Z_][A-Z0-9_]*)['"]\]/g;
+    match = bracketNotationRegex.exec(code);
+    while (match !== null) {
+      envVars.add(match[1]);
+      match = bracketNotationRegex.exec(code);
+    }
+
+    return envVars;
+  }
+
+  /**
+   * Create .env file content from environment variables
+   */
+  private createEnvFileContent(envVarNames: Set<string>): string {
+    const envLines: string[] = [];
+
+    for (const varName of envVarNames) {
+      const value = process.env[varName];
+      if (value !== undefined) {
+        // Escape quotes and newlines in values
+        const escapedValue = value.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        envLines.push(`${varName}="${escapedValue}"`);
+        logger.debug({ varName }, 'Adding environment variable to sandbox');
+      } else {
+        logger.warn(
+          { varName },
+          'Environment variable referenced in code but not found in host environment'
+        );
+      }
+    }
+
+    return envLines.join('\n');
+  }
+
+  /**
    * Execute a function tool in Vercel Sandbox with pooling
    */
   public async executeFunctionTool(
@@ -341,14 +391,39 @@ export class VercelSandboxExecutor {
         // Create the execution wrapper
         const executionCode = createExecutionWrapper(toolConfig.executeCode, args);
 
-        // Write the code to a file using writeFiles
+        // Detect and prepare environment variables
+        const envVars = this.extractEnvVars(toolConfig.executeCode);
+        const filesToWrite: Array<{ path: string; content: Buffer }> = [];
+
+        // Write the code file
         const filename = this.config.runtime === 'typescript' ? 'execute.ts' : 'execute.js';
-        await sandbox.writeFiles([
-          {
-            path: filename,
-            content: Buffer.from(executionCode, 'utf-8'),
-          },
-        ]);
+        filesToWrite.push({
+          path: filename,
+          content: Buffer.from(executionCode, 'utf-8'),
+        });
+
+        // Write .env file if environment variables are detected
+        if (envVars.size > 0) {
+          const envFileContent = this.createEnvFileContent(envVars);
+          if (envFileContent) {
+            filesToWrite.push({
+              path: '.env',
+              content: Buffer.from(envFileContent, 'utf-8'),
+            });
+
+            logger.info(
+              {
+                functionId,
+                envVarCount: envVars.size,
+                envVars: Array.from(envVars),
+              },
+              'Injecting environment variables into sandbox'
+            );
+          }
+        }
+
+        // Write all files to sandbox
+        await sandbox.writeFiles(filesToWrite);
 
         logger.info(
           {
@@ -358,12 +433,25 @@ export class VercelSandboxExecutor {
           `Execution code written to file for runtime ${this.config.runtime}`
         );
 
-        // Execute the code
-        const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
-        const executeCmd = await sandbox.runCommand({
-          cmd: runtime,
-          args: [filename],
-        });
+        // Execute the code with dotenv if env vars exist
+        const executeCmd = await (async () => {
+          if (envVars.size > 0) {
+            // Use dotenv-cli to load .env file automatically
+            return sandbox.runCommand({
+              cmd: 'npx',
+              args:
+                this.config.runtime === 'typescript'
+                  ? ['--yes', 'dotenv-cli', '--', 'npx', 'tsx', filename]
+                  : ['--yes', 'dotenv-cli', '--', 'node', filename],
+            });
+          }
+          // Execute normally without dotenv
+          const runtime = this.config.runtime === 'typescript' ? 'tsx' : 'node';
+          return sandbox.runCommand({
+            cmd: runtime,
+            args: [filename],
+          });
+        })();
 
         // Collect logs
         const executeStdout = await executeCmd.stdout();
