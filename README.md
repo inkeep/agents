@@ -20,7 +20,12 @@ To get started, see the [docs](https://docs.inkeep.com).
 
 A no-code drag-and-drop canvas designed to allow any team to create and manage teams of Agents visually.
 
-![No-Code Agent Builder demo](https://docs.inkeep.com/gifs/drag-n-drop.gif)
+<img
+  src="agents-docs/public/gifs/drag-n-drop.gif"
+  alt="Visual Builder Demo"
+  width="100%"
+  style="border-radius: 10px"
+/>
 
 ### TypeScript Agents SDK
 
