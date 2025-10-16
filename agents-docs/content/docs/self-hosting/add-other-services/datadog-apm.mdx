@@ -10,7 +10,7 @@ keywords: Datadog, monitoring, distributed tracing
 
 Learn how to add Datadog APM to your Inkeep Agent Framework services.
 
-## Step 1: install Datadog APM
+## Step 1: Install Datadog APM
 
 From the root of your workspace, run the following command:
 
@@ -18,7 +18,7 @@ From the root of your workspace, run the following command:
 pnpm install dd-trace
 ```
 
-## Step 2: Setup tracer.ts
+## Step 2: Set up tracer.ts
  
 In `apps/run-api` and `apps/manage-api` create a new file called `tracer.ts` and add the following code:
 
@@ -34,6 +34,6 @@ In `apps/run-api/src/index.ts` and `apps/manage-api/src/index.ts` add the follow
 import "./tracer";
 ```
 
-## Addition Resources
+## Additional Resources
 
-For more information on how to configure your APM you can consult the officiall Datadog Node.js [documentation](https://app.datadoghq.com/apm/service-setup?architecture=host-based&framework=typescript&language=node&product=apm).
+For more information on how to configure APM, you can consult the official Datadog Node.js [documentation](https://app.datadoghq.com/apm/service-setup?architecture=host-based&framework=typescript&language=node&product=apm).
