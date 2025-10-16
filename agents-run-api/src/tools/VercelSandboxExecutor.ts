@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Sandbox } from '@vercel/sandbox';
 import { getLogger } from '../logger';
 import type { VercelSandboxConfig } from '../types/execution-context';
@@ -14,13 +15,25 @@ export interface ExecutionResult {
   executionTime?: number;
 }
 
+interface CachedSandbox {
+  sandbox: Sandbox;
+  createdAt: number;
+  useCount: number;
+  dependencies: Record<string, string>;
+}
+
 /**
- * Vercel Sandbox Executor
+ * Vercel Sandbox Executor with pooling/reuse
  * Executes function tools in isolated Vercel Sandbox MicroVMs
+ * Caches and reuses sandboxes based on dependencies to improve performance
  */
 export class VercelSandboxExecutor {
   private static instance: VercelSandboxExecutor;
   private config: VercelSandboxConfig;
+  private sandboxPool: Map<string, CachedSandbox> = new Map();
+  private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly MAX_USE_COUNT = 50;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   private constructor(config: VercelSandboxConfig) {
     this.config = config;
@@ -32,8 +45,9 @@ export class VercelSandboxExecutor {
         timeout: config.timeout,
         vcpus: config.vcpus,
       },
-      'VercelSandboxExecutor initialized'
+      'VercelSandboxExecutor initialized with pooling'
     );
+    this.startPoolCleanup();
   }
 
   /**
@@ -47,7 +61,160 @@ export class VercelSandboxExecutor {
   }
 
   /**
-   * Execute a function tool in Vercel Sandbox
+   * Generate a hash for dependencies to use as cache key
+   */
+  private generateDependencyHash(dependencies: Record<string, string>): string {
+    const sorted = Object.keys(dependencies)
+      .sort()
+      .map((key) => `${key}@${dependencies[key]}`)
+      .join(',');
+    return crypto.createHash('md5').update(sorted).digest('hex').substring(0, 8);
+  }
+
+  /**
+   * Get a cached sandbox if available and still valid
+   */
+  private getCachedSandbox(dependencyHash: string): Sandbox | null {
+    const cached = this.sandboxPool.get(dependencyHash);
+    if (!cached) return null;
+
+    const now = Date.now();
+    const age = now - cached.createdAt;
+
+    // Check if sandbox is still valid
+    if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
+      logger.debug(
+        {
+          dependencyHash,
+          age,
+          useCount: cached.useCount,
+          ttl: this.POOL_TTL,
+          maxUseCount: this.MAX_USE_COUNT,
+        },
+        'Sandbox expired, will create new one'
+      );
+      this.removeSandbox(dependencyHash);
+      return null;
+    }
+
+    logger.debug(
+      {
+        dependencyHash,
+        useCount: cached.useCount,
+        age,
+      },
+      'Reusing cached sandbox'
+    );
+
+    return cached.sandbox;
+  }
+
+  /**
+   * Add sandbox to pool
+   */
+  private addToPool(
+    dependencyHash: string,
+    sandbox: Sandbox,
+    dependencies: Record<string, string>
+  ): void {
+    this.sandboxPool.set(dependencyHash, {
+      sandbox,
+      createdAt: Date.now(),
+      useCount: 0,
+      dependencies,
+    });
+
+    logger.debug(
+      {
+        dependencyHash,
+        poolSize: this.sandboxPool.size,
+      },
+      'Sandbox added to pool'
+    );
+  }
+
+  /**
+   * Increment use count for a sandbox
+   */
+  private incrementUseCount(dependencyHash: string): void {
+    const cached = this.sandboxPool.get(dependencyHash);
+    if (cached) {
+      cached.useCount++;
+    }
+  }
+
+  /**
+   * Remove and clean up a sandbox
+   */
+  private async removeSandbox(dependencyHash: string): Promise<void> {
+    const cached = this.sandboxPool.get(dependencyHash);
+    if (cached) {
+      try {
+        await cached.sandbox.stop();
+        logger.debug({ dependencyHash }, 'Sandbox stopped');
+      } catch (error) {
+        logger.warn({ error, dependencyHash }, 'Error stopping sandbox');
+      }
+      this.sandboxPool.delete(dependencyHash);
+    }
+  }
+
+  /**
+   * Start periodic cleanup of expired sandboxes
+   */
+  private startPoolCleanup(): void {
+    this.cleanupInterval = setInterval(
+      () => {
+        const now = Date.now();
+        const toRemove: string[] = [];
+
+        for (const [hash, cached] of this.sandboxPool.entries()) {
+          const age = now - cached.createdAt;
+          if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
+            toRemove.push(hash);
+          }
+        }
+
+        if (toRemove.length > 0) {
+          logger.info(
+            {
+              count: toRemove.length,
+              poolSize: this.sandboxPool.size,
+            },
+            'Cleaning up expired sandboxes'
+          );
+
+          for (const hash of toRemove) {
+            this.removeSandbox(hash);
+          }
+        }
+      },
+      60 * 1000 // Run every minute
+    );
+  }
+
+  /**
+   * Cleanup all sandboxes and stop cleanup interval
+   */
+  public async cleanup(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+
+    logger.info(
+      {
+        poolSize: this.sandboxPool.size,
+      },
+      'Cleaning up all sandboxes'
+    );
+
+    const promises = Array.from(this.sandboxPool.keys()).map((hash) => this.removeSandbox(hash));
+    await Promise.all(promises);
+  }
+
+  /**
+   * Execute a function tool in Vercel Sandbox with pooling
    */
   public async executeFunctionTool(
     functionId: string,
@@ -56,46 +223,77 @@ export class VercelSandboxExecutor {
   ): Promise<ExecutionResult> {
     const startTime = Date.now();
     const logs: string[] = [];
+    const dependencies = toolConfig.dependencies || {};
+    const dependencyHash = this.generateDependencyHash(dependencies);
 
     try {
       logger.info(
         {
           functionId,
           functionName: toolConfig.name,
+          dependencyHash,
+          poolSize: this.sandboxPool.size,
         },
         'Executing function in Vercel Sandbox'
       );
 
-      // Create sandbox instance
-      const sandbox = await Sandbox.create({
-        token: this.config.token,
-        teamId: this.config.teamId,
-        projectId: this.config.projectId,
-        timeout: this.config.timeout,
-        resources: {
-          vcpus: this.config.vcpus || 1,
-        },
-        runtime: this.config.runtime,
-      });
+      // Try to get cached sandbox
+      let sandbox = this.getCachedSandbox(dependencyHash);
+      let isNewSandbox = false;
 
-      logger.info(
-        {
-          functionId,
-          sandboxId: sandbox.sandboxId,
-        },
-        `Sandbox created for function ${functionId}`
-      );
+      // Create new sandbox if not cached
+      if (!sandbox) {
+        isNewSandbox = true;
+        sandbox = await Sandbox.create({
+          token: this.config.token,
+          teamId: this.config.teamId,
+          projectId: this.config.projectId,
+          timeout: this.config.timeout,
+          resources: {
+            vcpus: this.config.vcpus || 1,
+          },
+          runtime: this.config.runtime,
+        });
+
+        logger.info(
+          {
+            functionId,
+            sandboxId: sandbox.sandboxId,
+            dependencyHash,
+          },
+          `New sandbox created for function ${functionId}`
+        );
+
+        // Add to pool for reuse
+        this.addToPool(dependencyHash, sandbox, dependencies);
+      } else {
+        logger.info(
+          {
+            functionId,
+            sandboxId: sandbox.sandboxId,
+            dependencyHash,
+          },
+          `Reusing cached sandbox for function ${functionId}`
+        );
+      }
+
+      // Increment use count
+      this.incrementUseCount(dependencyHash);
 
       try {
-        // Install dependencies if provided
-        if (toolConfig.dependencies && Object.keys(toolConfig.dependencies).length > 0) {
+        // Install dependencies only for new sandboxes
+        if (
+          isNewSandbox &&
+          toolConfig.dependencies &&
+          Object.keys(toolConfig.dependencies).length > 0
+        ) {
           logger.debug(
             {
               functionId,
               functionName: toolConfig.name,
               dependencies: toolConfig.dependencies,
             },
-            'Installing dependencies'
+            'Installing dependencies in new sandbox'
           );
 
           const packageJson = {
@@ -130,6 +328,14 @@ export class VercelSandboxExecutor {
           if (installCmd.exitCode !== 0) {
             throw new Error(`Failed to install dependencies: ${installStderr}`);
           }
+
+          logger.info(
+            {
+              functionId,
+              dependencyHash,
+            },
+            'Dependencies installed successfully'
+          );
         }
 
         // Create the execution wrapper
@@ -208,9 +414,10 @@ export class VercelSandboxExecutor {
           logs,
           executionTime,
         };
-      } finally {
-        // Clean up the sandbox
-        await sandbox.stop();
+      } catch (innerError) {
+        // On error, remove from pool so it doesn't get reused
+        await this.removeSandbox(dependencyHash);
+        throw innerError;
       }
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -232,12 +439,5 @@ export class VercelSandboxExecutor {
         executionTime,
       };
     }
-  }
-
-  /**
-   * Clean up resources
-   */
-  public async cleanup(): Promise<void> {
-    logger.info({}, 'VercelSandboxExecutor cleanup completed');
   }
 }
