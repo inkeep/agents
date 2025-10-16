@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in a single platform.
+With Inkeep, you can build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in code or no-code with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in a single platform. To get started, see the [docs](https://docs.inkeep.com).
 
 ## Two ways to build
 
@@ -50,8 +50,6 @@ Agents can also be used for **AI workflow automation** like:
 - Creating and updating knowledge bases, documentation, and blogs
 - Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
 
-To get started, see the [docs](https://docs.inkeep.com).
-
 ## Platform Overview
 
 **Inkeep Open Source** includes:
@@ -82,7 +80,7 @@ Underneath the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/d
 
 The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a [fair-code](https://faircode.io/), source-available license that allows broad usage while protecting against certain competitive uses.
 
-Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via open protocols, and easily deploy and self-host Agents in your own infra. 
+Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via standard protocols, and easily deploy and self-host Agents in your own infra. 
 
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
