@@ -27,6 +27,7 @@ export async function cloneTemplate(
       await replaceContentInFiles(targetPath, replacements);
     }
   } catch (_error) {
+    console.log(`❌ Error cloning template: ${_error}`);
     process.exit(1);
   }
 }
@@ -312,10 +313,12 @@ function injectPropertyIntoObject(content: string, propertyPath: string, replace
   return content;
 }
 
-export async function getAvailableTemplates(): Promise<string[]> {
-  // Fetch the list of templates from your repo
+export async function getAvailableTemplates(
+  templatePath: string = 'template-projects'
+): Promise<string[]> {
+  // Fetch the list of templates from the repo
   const response = await fetch(
-    'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
+    `https://api.github.com/repos/inkeep/agents-cookbook/contents/${templatePath}`
   );
   const contents = await response.json();
 

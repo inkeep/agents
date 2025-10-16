@@ -6,7 +6,12 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces', 'get-started/credentials'],
+          pages: [
+            'get-started/quick-start',
+            'get-started/push-pull',
+            'get-started/traces',
+            'get-started/credentials',
+          ],
         },
         'concepts',
       ],
@@ -48,7 +53,6 @@ export default {
             'typescript-sdk/configuration',
             'typescript-sdk/environments',
             'typescript-sdk/push-pull-workflows',
-            'typescript-sdk/cli-reference',
           ],
         },
         'typescript-sdk/data-operations',
@@ -58,6 +62,7 @@ export default {
           pages: ['typescript-sdk/signoz-usage', 'typescript-sdk/langfuse-usage'],
         },
         'typescript-sdk/external-agents',
+        'typescript-sdk/cli-reference',
       ],
     },
     {
@@ -103,7 +108,6 @@ export default {
             'talk-to-your-agents/react/custom-trigger',
             'talk-to-your-agents/react/side-bar-chat',
             'talk-to-your-agents/react/embedded-chat',
-           
           ],
         },
         {
