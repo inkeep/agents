@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-cli',
     globals: true,
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
@@ -25,27 +26,5 @@ export default defineConfig({
     maxConcurrency: 1,
     // Disable file parallelism to avoid timeouts
     fileParallelism: false,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json', 'lcov', 'json-summary'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.d.ts',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        'vitest.config.ts',
-        'coverage/',
-      ],
-      // Good coverage - maintaining high standards
-      thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
-      },
-    },
   },
 });
