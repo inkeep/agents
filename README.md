@@ -46,7 +46,7 @@ Inkeep Agents can operate as real-time **AI Chat Assistants**, for example:
 - a customer experience agent for customer support, technical docs, or in-app product copilot
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
 
-Agents can also be used for **AI workflow automation** like:
+Agents can also be used for **AI Workflow Automation** like:
 - Creating and updating knowledge bases, documentation, and blogs
 - Updating CRMs, triaging helpdesk tickets, and streamlining repetitive tasks
 
