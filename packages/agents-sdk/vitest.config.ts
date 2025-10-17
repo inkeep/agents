@@ -1,18 +1,14 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-sdk',
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
     env: {
       ENVIRONMENT: 'test',
       DB_FILE_NAME: ':memory:',
-    },
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'dist/', 'src/**/*.test.ts'],
     },
     testTimeout: 60000,
     poolOptions: {
