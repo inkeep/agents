@@ -8,7 +8,10 @@ import { CodeEditor } from '@/components/form/code-editor';
 import { JsonEditor } from '@/components/form/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
 
@@ -35,8 +38,10 @@ export function ComponentPreviewGenerator({
   const [streamingCode, setStreamingCode] = useState<string>('');
   const [isComplete, setIsComplete] = useState(!!existingPreview);
   const [isSaved, setIsSaved] = useState(!!existingPreview);
+  const [regenerateInstructions, setRegenerateInstructions] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const generatePreview = async () => {
+  const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
     setPreview(null);
     setStreamingCode('');
@@ -49,7 +54,12 @@ export function ComponentPreviewGenerator({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tenantId, projectId }),
+        body: JSON.stringify({
+          tenantId,
+          projectId,
+          instructions: instructions || undefined,
+          existingCode: instructions ? preview?.code : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -163,7 +173,7 @@ export function ComponentPreviewGenerator({
         </div>
         <div className="flex gap-2">
           {!hasPreview && (
-            <Button onClick={generatePreview} disabled={isGenerating} className="gap-2">
+            <Button onClick={() => generatePreview()} disabled={isGenerating} className="gap-2">
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,24 +189,64 @@ export function ComponentPreviewGenerator({
           )}
           {hasPreview && (
             <>
-              <Button
-                variant="outline"
-                onClick={generatePreview}
-                disabled={isDeleting || isGenerating}
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    Regenerate
-                  </>
-                )}
-              </Button>
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" disabled={isDeleting || isGenerating} className="gap-2">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Regenerate
+                      </>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Modify Component</h4>
+                      <Label htmlFor="instructions" className="text-xs text-muted-foreground">
+                        Describe what you'd like to change (optional)
+                      </Label>
+                      <Textarea
+                        id="instructions"
+                        placeholder="e.g. Make it more compact, add a border, use different icons..."
+                        value={regenerateInstructions}
+                        onChange={(e) => setRegenerateInstructions(e.target.value)}
+                        className="mt-2 min-h-[100px]"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          setIsPopoverOpen(false);
+                          await generatePreview(regenerateInstructions || undefined);
+                          setRegenerateInstructions('');
+                        }}
+                        disabled={isGenerating}
+                        className="flex-1"
+                      >
+                        {regenerateInstructions ? 'Apply Changes' : 'Regenerate'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsPopoverOpen(false);
+                          setRegenerateInstructions('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               {isSaved && (
                 <Button
                   variant="destructive"
@@ -255,10 +305,15 @@ export function ComponentPreviewGenerator({
                 onPreviewChanged?.(updatedPreview);
               }}
               language="jsx"
+              className="max-h-[500px]"
             />
           </TabsContent>
           <TabsContent value="data">
-            <JsonEditor value={stringifiedData} onChange={handleDataChange} />
+            <JsonEditor
+              value={stringifiedData}
+              onChange={handleDataChange}
+              className="max-h-[500px]"
+            />
           </TabsContent>
         </Tabs>
       )}

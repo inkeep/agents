@@ -9,7 +9,8 @@ interface RouteContext {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { dataComponentId } = await context.params;
-    const { tenantId, projectId } = await request.json();
+    const body = await request.json();
+    const { tenantId, projectId, instructions, existingCode } = body;
 
     if (!tenantId || !projectId) {
       return new Response('Missing tenantId or projectId', { status: 400 });
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        instructions: instructions || undefined,
+        existingCode: existingCode || undefined,
+      }),
     });
 
     if (!response.ok) {
