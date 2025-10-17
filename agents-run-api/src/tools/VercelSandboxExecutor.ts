@@ -33,7 +33,7 @@ export class VercelSandboxExecutor {
   private sandboxPool: Map<string, CachedSandbox> = new Map();
   private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly MAX_USE_COUNT = 50;
-  private cleanupInterval: NodeJS.Timeout | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor(config: VercelSandboxConfig) {
     this.config = config;
