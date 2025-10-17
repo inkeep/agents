@@ -1,3 +1,4 @@
+import * as p from '@clack/prompts';
 import { existsSync } from 'node:fs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
@@ -30,23 +31,10 @@ vi.mock('../../api.js', () => ({
     create: vi.fn().mockResolvedValue({}),
   },
 }));
+vi.mock('@clack/prompts');
 
-// Store the actual ora mock instance
-let oraInstance: any;
-
-vi.mock('ora', () => ({
-  default: vi.fn(() => {
-    oraInstance = {
-      start: vi.fn().mockReturnThis(),
-      succeed: vi.fn().mockReturnThis(),
-      fail: vi.fn().mockReturnThis(),
-      warn: vi.fn().mockReturnThis(),
-      stop: vi.fn().mockReturnThis(),
-      text: '',
-    };
-    return oraInstance;
-  }),
-}));
+// Store the actual spinner mock instance
+let spinnerInstance: any;
 
 // Mock tsx-loader module
 vi.mock('../../utils/tsx-loader.js', () => ({
@@ -60,8 +48,15 @@ describe('Push Command - TypeScript Loading', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Reset ora instance
-    oraInstance = null;
+    // Reset spinner instance
+    spinnerInstance = {
+      start: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
+      message: vi.fn().mockReturnThis(),
+    };
+    vi.mocked(p.spinner).mockReturnValue(spinnerInstance);
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.cancel).mockImplementation(() => {});
 
     // Reset validateConfiguration mock
     const { validateConfiguration } = await import('../../utils/config.js');
@@ -127,9 +122,9 @@ describe('Push Command - TypeScript Loading', () => {
     );
 
     // Verify spinner was created and used correctly
-    expect(oraInstance).toBeDefined();
-    expect(oraInstance.start).toHaveBeenCalled();
-    expect(oraInstance.succeed).toHaveBeenCalled();
+    expect(spinnerInstance).toBeDefined();
+    expect(spinnerInstance.start).toHaveBeenCalled();
+    expect(spinnerInstance.stop).toHaveBeenCalled();
   });
 
   it.skip('should handle TypeScript import errors gracefully', async () => {
@@ -139,7 +134,7 @@ describe('Push Command - TypeScript Loading', () => {
     await pushCommand({});
 
     // Verify error handling - it should fail because no project export found
-    expect(oraInstance.fail).toHaveBeenCalled();
+    expect(spinnerInstance.stop).toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
       'Error:',
       'No project export found in index.ts. Expected an export with __type = "project"'
@@ -184,7 +179,7 @@ describe('Push Command - TypeScript Loading', () => {
     );
 
     // Verify success
-    expect(oraInstance.succeed).toHaveBeenCalled();
+    expect(spinnerInstance.stop).toHaveBeenCalled();
     expect(mockExit).toHaveBeenCalledWith(0);
   });
 });

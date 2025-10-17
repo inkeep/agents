@@ -1,5 +1,5 @@
+import * as p from '@clack/prompts';
 import fs from 'fs-extra';
-import ora from 'ora';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type AddOptions,
@@ -12,7 +12,7 @@ import { cloneTemplate, getAvailableTemplates } from '../../utils/templates';
 
 // Mock external dependencies
 vi.mock('fs-extra');
-vi.mock('ora');
+vi.mock('@clack/prompts');
 vi.mock('../../utils/templates');
 
 describe('Add Command', () => {
@@ -34,10 +34,12 @@ describe('Add Command', () => {
     // Setup mocks
     mockSpinner = {
       start: vi.fn().mockReturnThis(),
-      succeed: vi.fn().mockReturnThis(),
       stop: vi.fn().mockReturnThis(),
+      message: vi.fn().mockReturnThis(),
     };
-    vi.mocked(ora).mockImplementation((_message) => mockSpinner);
+    vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.cancel).mockImplementation(() => {});
 
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -154,7 +156,7 @@ describe('Add Command', () => {
           },
         ]
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+      expect(mockSpinner.stop).toHaveBeenCalledWith(
         `Template "weather" added to ${expectedPath}`
       );
     });
@@ -183,7 +185,7 @@ describe('Add Command', () => {
           },
         ]
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+      expect(mockSpinner.stop).toHaveBeenCalledWith(
         'Template "weather" added to ./projects/weather'
       );
     });
@@ -276,7 +278,7 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(ora).toHaveBeenCalledWith('Adding template...');
+      expect(p.spinner).toHaveBeenCalled();
       expect(mockSpinner.start).toHaveBeenCalled();
       const expectedPath = `${process.cwd()}/weather`;
       expect(cloneTemplate).toHaveBeenCalledWith(
@@ -291,7 +293,7 @@ describe('Add Command', () => {
           },
         ]
       );
-      expect(mockSpinner.succeed).toHaveBeenCalledWith(
+      expect(mockSpinner.stop).toHaveBeenCalledWith(
         `Template "weather" added to ${expectedPath}`
       );
     });
@@ -306,7 +308,7 @@ describe('Add Command', () => {
 
       await expect(addCommand(options)).rejects.toThrow('Git clone failed');
 
-      expect(ora).toHaveBeenCalledWith('Adding template...');
+      expect(p.spinner).toHaveBeenCalled();
       expect(mockSpinner.start).toHaveBeenCalled();
       expect(cloneTemplate).toHaveBeenCalled();
     });
@@ -374,9 +376,9 @@ describe('Add Command', () => {
       await expect(addCommand(options)).rejects.toThrow('Network timeout');
 
       // Should have started the process but failed during cloning
-      expect(ora).toHaveBeenCalledWith('Adding template...');
+      expect(p.spinner).toHaveBeenCalled();
       expect(mockSpinner.start).toHaveBeenCalled();
-      expect(mockSpinner.succeed).not.toHaveBeenCalled();
+      expect(mockSpinner.stop).not.toHaveBeenCalled();
     });
   });
 

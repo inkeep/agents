@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import ora from 'ora';
+import * as p from '@clack/prompts';
 
 const require = createRequire(import.meta.url);
 
@@ -41,19 +41,20 @@ function resolveWebRuntime(isRoot = false) {
 
 function startWebApp({ port, host }: Pick<DevOptions, 'port' | 'host'>) {
   console.log('');
-  const spinner = ora('Starting dashboard server...').start();
+  const s = p.spinner();
+  s.start('Starting dashboard server...');
 
   try {
     const rt = resolveWebRuntime();
     const entry = join(rt, 'server.js');
     // Check if the standalone build exists
     if (!existsSync(entry)) {
-      spinner.fail('Dashboard server not found');
+      s.stop('Dashboard server not found');
       console.error(chalk.red('The dashboard server has not been built yet.'));
       process.exit(1);
     }
 
-    spinner.succeed('Starting dashboard server...');
+    s.stop('Starting dashboard server...');
     console.log('');
 
     const child = fork(entry, [], {
@@ -87,7 +88,7 @@ function startWebApp({ port, host }: Pick<DevOptions, 'port' | 'host'>) {
 
     return child;
   } catch (error) {
-    spinner.fail('Failed to start dashboard server');
+    s.stop('Failed to start dashboard server');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
@@ -95,7 +96,8 @@ function startWebApp({ port, host }: Pick<DevOptions, 'port' | 'host'>) {
 
 async function buildNextApp({ outputDir }: { outputDir: string }) {
   console.log('');
-  const spinner = ora('Building Standalone build...').start();
+  const s = p.spinner();
+  s.start('Building Standalone build...');
 
   try {
     const pkg = require.resolve('@inkeep/agents-manage-ui/package.json');
@@ -104,7 +106,7 @@ async function buildNextApp({ outputDir }: { outputDir: string }) {
 
     // Check if the standalone build exists
     if (!existsSync(standalonePath)) {
-      spinner.fail('Standalone build not found');
+      s.stop('Standalone build not found');
       console.error(chalk.red('The standalone build has not been created yet.'));
       console.error(chalk.yellow('Please build the dashboard first:'));
       console.error(chalk.gray('  cd node_modules/@inkeep/agents-manage-ui'));
@@ -152,7 +154,7 @@ Make sure to set these in your Vercel project settings:
 
     await fs.writeFile(join(outputDir, 'README.md'), instructions);
 
-    spinner.succeed(`Build created at ${outputDir}/`);
+    s.stop(`Build created at ${outputDir}/`);
 
     console.log('');
     console.log(chalk.green('✅ Build completed successfully!'));
@@ -168,7 +170,7 @@ Make sure to set these in your Vercel project settings:
     console.log(chalk.yellow('📖 See README.md for deployment instructions'));
     console.log('');
   } catch (error) {
-    spinner.fail('Failed to build dashboard');
+    s.stop('Failed to build dashboard');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
@@ -176,7 +178,8 @@ Make sure to set these in your Vercel project settings:
 
 async function exportNextApp({ outputDir }: { outputDir: string }) {
   console.log('');
-  const spinner = ora('Exporting Next.js project...').start();
+  const s = p.spinner();
+  s.start('Exporting Next.js project...');
 
   try {
     const pkg = require.resolve('@inkeep/agents-manage-ui/package.json');
@@ -184,7 +187,7 @@ async function exportNextApp({ outputDir }: { outputDir: string }) {
 
     // Check if the source project exists
     if (!existsSync(root)) {
-      spinner.fail('Source project not found');
+      s.stop('Source project not found');
       console.error(chalk.red('The @inkeep/agents-manage-ui package was not found.'));
       console.error(chalk.yellow('Please install it first:'));
       console.error(chalk.gray('  npm install @inkeep/agents-manage-ui'));
@@ -267,7 +270,7 @@ This project can be deployed to any platform that supports Next.js:
 
     await fs.writeFile(join(outputDir, 'README.md'), readme);
 
-    spinner.succeed(`Project exported to ${outputDir}/`);
+    s.stop(`Project exported to ${outputDir}/`);
 
     console.log('');
     console.log(chalk.green('✅ Export completed successfully!'));
@@ -280,7 +283,7 @@ This project can be deployed to any platform that supports Next.js:
     console.log(chalk.yellow('📖 See README.md for more instructions'));
     console.log('');
   } catch (error) {
-    spinner.fail('Failed to export project');
+    s.stop('Failed to export project');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
