@@ -2,9 +2,9 @@
 
 Build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Edit Agents in code or no-code with **full 2-way sync**, so technical and non-technical teams can build Agents in a single platform. 
 
-<div align="center">
+<div align="left">
 
-[Docs](https://docs.inkeep.com) • [Quickstart](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
+[Docs](https://docs.inkeep.com) • [Quick start](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
 
 </div>
 
