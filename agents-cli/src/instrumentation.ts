@@ -19,11 +19,7 @@ const langfusePublicKey = process.env.LANGFUSE_PUBLIC_KEY;
  * Check if Langfuse is properly configured
  */
 export function isLangfuseConfigured(): boolean {
-  const value = !!(langfuseEnabled && langfuseSecretKey && langfusePublicKey);
-  // if (process.env.DEBUG) {
-    console.log('[Langfuse] isLangfuseConfigured:', value, langfuseEnabled, langfuseSecretKey, langfusePublicKey);
-  // }
-  return value;
+  return !!(langfuseEnabled && langfuseSecretKey && langfusePublicKey);
 }
 
 /**
