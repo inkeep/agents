@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.23.2
+
+### Patch Changes
+
+- a3bea34: batch generate llm pull
+
 ## 0.23.1
 
 ## 0.23.0
