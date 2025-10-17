@@ -24,10 +24,10 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Check schema**: `pnpm db:check`
 
 ### Making a changelog entry
-`pnpm changeset <major|minor|patch> "<changelog message>"`
+`pnpm changeset:quick <major|minor|patch> "<changelog message>"`
 Example:
 ```bash
-pnpm changeset minor "Add new feature"
+pnpm changeset:quick minor "Add new feature"
 ```
 This will create a changeset file in the `.changeset` directory that is used by a GH Action to update packages versions.
 
