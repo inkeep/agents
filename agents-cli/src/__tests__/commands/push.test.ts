@@ -1,3 +1,4 @@
+import * as p from '@clack/prompts';
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
@@ -14,7 +15,7 @@ vi.mock('node:fs', async () => {
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('inquirer');
+vi.mock('@clack/prompts');
 vi.mock('chalk', () => ({
   default: {
     red: vi.fn((text) => text),
@@ -23,16 +24,6 @@ vi.mock('chalk', () => ({
     cyan: vi.fn((text) => text),
     gray: vi.fn((text) => text),
   },
-}));
-vi.mock('ora', () => ({
-  default: vi.fn(() => ({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-    warn: vi.fn().mockReturnThis(),
-    stop: vi.fn().mockReturnThis(),
-    text: '',
-  })),
 }));
 
 vi.mock('../../utils/tsx-loader.js', () => ({
@@ -64,6 +55,16 @@ describe('Push Command - Project Validation', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Setup default mocks for @clack/prompts
+    const mockSpinner = {
+      start: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
+      message: vi.fn().mockReturnThis(),
+    };
+    vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.cancel).mockImplementation(() => {});
 
     // Reset validateConfiguration mock
     const { validateConfiguration } = await import('../../utils/config.js');
@@ -295,6 +296,16 @@ describe('Push Command - Output Messages', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Setup default mocks for @clack/prompts
+    const mockSpinner = {
+      start: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
+      message: vi.fn().mockReturnThis(),
+    };
+    vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.cancel).mockImplementation(() => {});
 
     // Reset validateConfiguration mock to return valid config
     const { validateConfiguration } = await import('../../utils/config.js');
