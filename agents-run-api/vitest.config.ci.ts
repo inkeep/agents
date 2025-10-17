@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import { generateVitestCoverageConfig } from '../coverage.config';
 
+/**
+ * CI-specific configuration for agents-run-api package
+ * Optimized for CI environments with sequential execution to avoid mock isolation issues
+ */
 export default defineConfig({
   test: {
     setupFiles: ['./src/__tests__/setup.ts'],
@@ -20,16 +25,7 @@ export default defineConfig({
       DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-key-for-tests',
     },
-    coverage: {
-      reporter: ['text', 'html', 'json'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.test.ts',
-        '**/*.test.js',
-        'src/__tests__/',
-        'coverage/',
-      ],
-    },
+    // Use sophisticated coverage system (agents-run-api uses baseline thresholds)
+    coverage: generateVitestCoverageConfig('execution-api'),
   },
 });

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { generateVitestCoverageConfig } from './coverage.config';
 
 export default defineConfig({
   test: {
@@ -12,28 +13,9 @@ export default defineConfig({
       './packages/agents-sdk',
     ],
 
-    // Root-level coverage configuration (required by Vitest)
-    // Individual projects cannot override coverage settings
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json', 'lcov', 'json-summary'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '.next/',
-        '**/*.d.ts',
-        '**/*.test.ts',
-        '**/*.test.tsx',
-        '**/*.spec.ts',
-        '**/*.spec.tsx',
-        '**/vitest.config.ts',
-        'coverage/',
-        '**/setup.ts',
-        '**/setup-files/**',
-        'next.config.js',
-        'tailwind.config.js',
-        'postcss.config.js',
-      ],
-    },
+    // Root-level coverage configuration using the sophisticated coverage system
+    // Individual projects cannot override coverage settings in workspace mode
+    // The 'monorepo' package name uses minimum thresholds across all packages
+    coverage: generateVitestCoverageConfig('monorepo'),
   },
 });
