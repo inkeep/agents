@@ -18,6 +18,7 @@ import {
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
 import { stream } from 'hono/streaming';
+import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 
@@ -272,6 +273,16 @@ app.openapi(
     tags: ['Data Component'],
     request: {
       params: TenantProjectIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              instructions: z.string().optional(),
+              existingCode: z.string().optional(),
+            }),
+          },
+        },
+      },
     },
     responses: {
       200: {
@@ -287,6 +298,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
+    const body = c.req.valid('json');
 
     const runApiUrl = env.AGENTS_RUN_API_URL;
     const url = `${runApiUrl}/v1/${tenantId}/projects/${projectId}/data-components/${id}/generate-preview`;
@@ -297,6 +309,7 @@ app.openapi(
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
