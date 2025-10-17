@@ -67,7 +67,7 @@ Agents can also be used for **AI Workflow Automation** like:
 - Observability via a Traces UI & OpenTelemetry
 - Easy deployment using Vercel or Docker
 
-For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide. For cloud hosting, [sign up](https://inkeep.com/cloud-waitlist) to get notified when available.
+For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide. For managed cloud hosting, [sign up](https://inkeep.com/cloud-waitlist) to get notified when available.
 
 ## Architecture
 
