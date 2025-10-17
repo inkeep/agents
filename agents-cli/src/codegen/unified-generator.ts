@@ -10,6 +10,8 @@ import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
   cleanGeneratedCode,
   createModel,
+  generateAllFilesInBatch,
+  generateEnvironmentFileTemplate,
   generateTextWithPlaceholders,
   getTypeDefinitions,
   IMPORT_INSTRUCTIONS,
@@ -36,7 +38,7 @@ export interface DirectoryStructure {
 }
 
 /**
- * Generate all files from plan with controlled concurrency
+ * Generate all files from plan using batch generation for token efficiency
  */
 export async function generateFilesFromPlan(
   plan: GenerationPlan,
@@ -49,28 +51,105 @@ export async function generateFilesFromPlan(
   const startTime = Date.now();
 
   if (debug) {
-    console.log(`[DEBUG] Starting parallel generation of ${plan.files.length} files...`);
+    console.log(`[DEBUG] Starting batch generation of ${plan.files.length} files...`);
   }
 
-  // Create generation tasks for each file
-  const tasks = plan.files.map((fileInfo, index) =>
-    generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug, reasoningConfig).then(() => {
-      if (debug) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(
-          `[DEBUG] ✓ Completed ${index + 1}/${plan.files.length}: ${fileInfo.path} (${elapsed}s elapsed)`
-        );
-      }
-    })
-  );
+  // Separate environment files from regular files
+  // Environment files need special handling and are generated separately
+  const environmentFiles = plan.files.filter(f => f.type === 'environment');
+  const regularFiles = plan.files.filter(f => f.type !== 'environment');
 
-  // Execute all in parallel
-  await Promise.all(tasks);
+  if (debug && regularFiles.length > 0) {
+    console.log(`[DEBUG] Batching ${regularFiles.length} regular files into single LLM request...`);
+  }
+
+  // Build file specs for batch generation
+  const fileSpecs = regularFiles.map(fileInfo => {
+    const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
+    const fileData = extractDataForFile(fileInfo, projectData);
+
+    // Determine file type for batch generation
+    let batchType: 'index' | 'agent' | 'tool' | 'data_component' | 'artifact_component' | 'status_component';
+    switch (fileInfo.type) {
+      case 'index':
+        batchType = 'index';
+        break;
+      case 'agent':
+        batchType = 'agent';
+        break;
+      case 'tool':
+        batchType = 'tool';
+        break;
+      case 'dataComponent':
+        batchType = 'data_component';
+        break;
+      case 'artifactComponent':
+        batchType = 'artifact_component';
+        break;
+      case 'statusComponent':
+        batchType = 'status_component';
+        break;
+      default:
+        throw new Error(`Unknown file type for batch generation: ${fileInfo.type}`);
+    }
+
+    // Get entity ID for this file
+    const entityId = fileInfo.entities[0]?.id || fileInfo.path;
+
+    return {
+      type: batchType,
+      id: entityId,
+      data: fileData,
+      outputPath,
+      toolFilenames: undefined, // TODO: Extract from plan if needed
+      componentFilenames: undefined, // TODO: Extract from plan if needed
+    };
+  });
+
+  // Generate all regular files in a single batch
+  if (fileSpecs.length > 0) {
+    await generateAllFilesInBatch(fileSpecs, modelSettings, debug, reasoningConfig);
+  }
+
+  // Generate environment files using templates (no LLM needed)
+  if (debug && environmentFiles.length > 0) {
+    console.log(`[DEBUG] Generating ${environmentFiles.length} environment files using templates (no LLM)...`);
+  }
+
+  for (const envFile of environmentFiles) {
+    const envStartTime = Date.now();
+    const outputPath = `${dirs.projectRoot}/${envFile.path}`;
+    const fileData = extractDataForFile(envFile, projectData);
+
+    // Determine environment name from file path
+    const fileName = envFile.path.split('/').pop() || '';
+
+    if (fileName === 'index.ts') {
+      // index.ts will be generated automatically when individual env files are created
+      // Skip it here to avoid duplication
+      continue;
+    }
+
+    // Extract environment name (e.g., 'development' from 'development.env.ts')
+    const envName = fileName.replace('.env.ts', '');
+
+    if (debug) {
+      console.log(`[DEBUG] ▶ Generating ${envFile.path} using template...`);
+    }
+
+    // Use template-based generation (no LLM call)
+    generateEnvironmentFileTemplate(dirs.environmentsDir, envName, fileData);
+
+    const envDuration = ((Date.now() - envStartTime) / 1000).toFixed(1);
+    if (debug) {
+      console.log(`[DEBUG] ✓ Completed ${envFile.path} (template, ${envDuration}s)`);
+    }
+  }
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
   if (debug) {
     console.log(
-      `[DEBUG] All files generated in ${totalTime}s (${plan.files.length} files in parallel)`
+      `[DEBUG] All files generated in ${totalTime}s (${regularFiles.length} in batch, ${environmentFiles.length} via templates)`
     );
   }
 }
