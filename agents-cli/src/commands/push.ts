@@ -261,6 +261,13 @@ export async function pushCommand(options: PushOptions) {
       }
     }
 
+    // Display project URL if available
+    if (config.manageUiUrl) {
+      const projectUrl = `${config.manageUiUrl}/projects/${projectId}`;
+      console.log(chalk.cyan('\n🔗 Project URL:'));
+      console.log(chalk.blue.underline(`  ${projectUrl}`));
+    }
+
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
     console.log(chalk.gray(`  • Test your project: inkeep chat`));
