@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.23.2
+
+### Patch Changes
+
+- a3bea34: batch generate llm pull
+- Updated dependencies [a3bea34]
+  - @inkeep/agents-core@0.23.2
+
 ## 0.23.1
 
 ### Patch Changes
