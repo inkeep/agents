@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.23.3
+
+### Patch Changes
+
+- 2fad1cf: Fixed id collisions to just have variable names matter
+- Updated dependencies [2fad1cf]
+  - @inkeep/agents-core@0.23.3
+
 ## 0.23.2
 
 ### Patch Changes
