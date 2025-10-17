@@ -1,6 +1,5 @@
 import chalk from 'chalk';
-import ora from 'ora';
-import prompts from 'prompts';
+import * as p from '@clack/prompts';
 import { detectPackageManager, executeUpdate, type PackageManager } from '../utils/package-manager';
 import { checkForUpdate, getChangelogUrl } from '../utils/version-check';
 
@@ -13,12 +12,13 @@ export interface UpdateOptions {
  * Update command - updates the CLI to the latest version
  */
 export async function updateCommand(options: UpdateOptions = {}) {
-  const spinner = ora('Checking for updates...').start();
+  const s = p.spinner();
+  s.start('Checking for updates...');
 
   try {
     // Check for updates
     const versionInfo = await checkForUpdate();
-    spinner.stop();
+    s.stop();
 
     // Display current version info
     console.log(chalk.cyan('\n📦 Version Information:'));
@@ -52,32 +52,30 @@ export async function updateCommand(options: UpdateOptions = {}) {
     console.log(chalk.gray(`  • ${getChangelogUrl()}`));
 
     // Detect package manager
-    spinner.start('Detecting package manager...');
+    s.start('Detecting package manager...');
     const detectedManager = await detectPackageManager();
-    spinner.stop();
+    s.stop();
 
     let packageManager: PackageManager;
 
     if (!detectedManager) {
       console.log(chalk.yellow('\n⚠️  Could not auto-detect package manager'));
-      const response = await prompts({
-        type: 'select',
-        name: 'manager',
+      const manager = await p.select({
         message: 'Which package manager did you use to install the CLI?',
-        choices: [
-          { title: 'npm', value: 'npm' },
-          { title: 'pnpm', value: 'pnpm' },
-          { title: 'bun', value: 'bun' },
-          { title: 'yarn', value: 'yarn' },
+        options: [
+          { label: 'npm', value: 'npm' },
+          { label: 'pnpm', value: 'pnpm' },
+          { label: 'bun', value: 'bun' },
+          { label: 'yarn', value: 'yarn' },
         ],
-      });
+      }) as PackageManager;
 
-      if (!response.manager) {
-        console.log(chalk.red('\n❌ Update cancelled'));
+      if (p.isCancel(manager)) {
+        p.cancel('Update cancelled');
         process.exit(1);
       }
 
-      packageManager = response.manager;
+      packageManager = manager;
     } else {
       packageManager = detectedManager;
       console.log(chalk.gray(`\n🔍 Detected package manager: ${chalk.cyan(packageManager)}`));
@@ -85,29 +83,27 @@ export async function updateCommand(options: UpdateOptions = {}) {
 
     // Confirm update unless --force flag is used
     if (!options.force) {
-      const response = await prompts({
-        type: 'confirm',
-        name: 'confirm',
+      const confirm = await p.confirm({
         message: `Update @inkeep/agents-cli from ${versionInfo.current} to ${versionInfo.latest}?`,
-        initial: true,
+        initialValue: true,
       });
 
-      if (!response.confirm) {
-        console.log(chalk.red('\n❌ Update cancelled'));
+      if (p.isCancel(confirm) || !confirm) {
+        p.cancel('Update cancelled');
         process.exit(1);
       }
     }
 
     // Execute update
-    spinner.start(`Updating @inkeep/agents-cli to ${versionInfo.latest}...`);
+    s.start(`Updating @inkeep/agents-cli to ${versionInfo.latest}...`);
     await executeUpdate(packageManager);
-    spinner.succeed(`Updated to version ${versionInfo.latest}`);
+    s.stop(`Updated to version ${versionInfo.latest}`);
 
     console.log(chalk.green('\n✨ Update completed successfully!'));
     console.log(chalk.gray(`  • New version: ${versionInfo.latest}`));
     console.log(chalk.gray(`  • Package manager: ${packageManager}`));
   } catch (error) {
-    spinner.fail('Update failed');
+    s.stop('Update failed');
     console.error(chalk.red('\n❌ Error:'), (error as Error).message);
 
     if (
