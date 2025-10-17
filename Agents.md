@@ -196,6 +196,64 @@ LOG_LEVEL=debug|info|warn|error
    
    **Note**: The user may override this workflow if they prefer to work directly on main or have different branch strategies.
 
+### 📁 Git Worktrees for Parallel Feature Development
+
+Git worktrees allow you to work on multiple features simultaneously without switching branches in your main working directory. This is especially useful when you need to quickly switch context between different Linear tickets or have multiple features in progress.
+
+#### Creating a Worktree
+
+To spin off a new scope of work in a separate directory using git worktrees:
+
+```bash
+git worktree add ../pull-instrument -b feat/pull-instrument
+```
+
+**Important Conventions:**
+- The directory name and branch name should match (e.g., `pull-instrument` matches `feat/pull-instrument`)
+- Branch names should reference a Linear ticket when applicable (e.g., `feat/ENG-123-feature-name`)
+- Worktree directories are temporary and should be removed after the work is complete
+
+#### Working with Worktrees
+
+```bash
+# Create a new worktree for a feature
+git worktree add ../my-feature -b feat/ENG-123-my-feature
+
+# Navigate to the worktree directory
+cd ../my-feature
+
+# Work on your feature normally
+# ... make changes, commit, push, create PR ...
+
+# List all worktrees
+git worktree list
+
+# Remove a worktree after PR is merged (run from main repo)
+git worktree remove ../my-feature
+
+# Remove the remote branch after cleanup
+git branch -d feat/ENG-123-my-feature
+git push origin --delete feat/ENG-123-my-feature
+
+# Prune stale worktree references
+git worktree prune
+```
+
+#### When to Use Worktrees
+
+✅ **Use worktrees when:**
+- Working on multiple features simultaneously
+- Need to quickly test/review another branch without stashing current work
+- Running long-running processes (tests, builds) while working on something else
+- Comparing implementations across different branches side-by-side
+
+❌ **Use regular branches when:**
+- Working on a single feature at a time
+- Making quick hotfixes or small changes
+- The overhead of managing multiple directories isn't worth it
+
+**Reference**: [git-worktree documentation](https://git-scm.com/docs/git-worktree)
+
 ### When Working with Agents
 1. **Always call `graph.init()`** after creating agent relationships to persist to database
 2. **Use builder patterns** (`agent()`, `subAgent()`, `tool()`) instead of direct database manipulation
