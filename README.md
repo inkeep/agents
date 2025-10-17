@@ -4,7 +4,7 @@ Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents 
 
 <div align="left">
 
-[Docs](https://docs.inkeep.com) • [Quick Start]([https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
+[Docs](https://docs.inkeep.com) • [Quick Start](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
 
 </div>
 
