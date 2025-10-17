@@ -9,6 +9,7 @@ import { JsonEditor } from '@/components/form/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
 
@@ -36,6 +37,8 @@ export function ComponentPreviewGenerator({
   const [isComplete, setIsComplete] = useState(!!existingPreview);
   const [isSaved, setIsSaved] = useState(!!existingPreview);
 
+  const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
+
   const generatePreview = async () => {
     setIsGenerating(true);
     setPreview(null);
@@ -46,7 +49,7 @@ export function ComponentPreviewGenerator({
     try {
       const baseUrl =
         typeof window !== 'undefined'
-          ? process.env.NEXT_PUBLIC_AGENTS_MANAGE_API_URL || 'http://localhost:3002'
+          ? PUBLIC_INKEEP_AGENTS_MANAGE_API_URL
           : 'http://localhost:3002';
       const url = `${baseUrl}/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
 
