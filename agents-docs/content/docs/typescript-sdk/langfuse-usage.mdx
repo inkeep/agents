@@ -54,13 +54,12 @@ export const defaultSDK = new NodeSDK({
 
 defaultSDK.start();
 ```
-<Note>
-Make sure to install the required dependencies in your run API directory:
-```bash
-cd apps/run-api
-pnpm add @opentelemetry/sdk-node @langfuse/otel
-```
-</Note>
+
+> **Note:** Make sure to install the required dependencies in your run API directory:
+> ```bash
+> cd apps/run-api
+> pnpm add @opentelemetry/sdk-node @langfuse/otel
+> ```
 
 #### What This Configuration Does
 
@@ -189,8 +188,8 @@ Once you've selected a managed evaluator, you can **edit it to target your datas
 1. **Select the "Helpfulness" evaluator** from the managed list
 2. Under **Target** select dataset runs
 3. **Configure variable mapping**
-   - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
-   - **{`{{generation}}`}** → **Object**: Trace, **Object Variable**: Output
+   - **\{\{input\}\}** → **Object**: Trace, **Object Variable**: Input
+   - **\{\{generation\}\}** → **Object**: Trace, **Object Variable**: Output
 
 <img
   src="/images/langfuse-helpfulness-setup.png"
@@ -230,8 +229,8 @@ If the user’s question is not weather-related and the tool is get_weather_fore
 If the user’s question is weather-related, return 1.0 only if the tool used is get_weather_forecast; otherwise return 0.0.
 
 Input:
-User Question: {`{{input}}`}
-Tool Used: {`{{tool_used}}`}
+User Question: {{input}}
+Tool Used: {{tool_used}}
 ```
 <img
   src="/images/custom-eval.png"
@@ -240,8 +239,8 @@ Tool Used: {`{{tool_used}}`}
 />
 
 2. **Configure variable mapping**:
-   - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
-   - **{`{{tool_used}}`}** → **Object**: Span, **Object Name**: weather-forecaster.ai.toolCall, **Object Variable**: Metadata, **JsonPath**: $.attributes["ai.toolCall.name"]
+   - **\{\{input\}\}** → **Object**: Trace, **Object Variable**: Input
+   - **\{\{tool_used\}\}** → **Object**: Span, **Object Name**: weather-forecaster.ai.toolCall, **Object Variable**: Metadata, **JsonPath**: $.attributes["ai.toolCall.name"]
 
 <img
   src="/images/custom-variable-mapping.png"
