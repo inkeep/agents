@@ -6,6 +6,7 @@
  */
 
 export type EntityType =
+  | 'project'
   | 'agent'
   | 'subAgent'
   | 'tool'
@@ -17,6 +18,7 @@ export type EntityType =
 
 export interface VariableNameRegistry {
   // Map from ID to variable name for each entity type
+  projects: Map<string, string>;
   agents: Map<string, string>;
   subAgents: Map<string, string>;
   tools: Map<string, string>;
@@ -32,8 +34,9 @@ export interface VariableNameRegistry {
 
 export interface NamingConventions {
   // Suffixes to add when conflicts are detected
-  subAgentSuffix: string;
+  projectSuffix: string;
   agentSuffix: string;
+  subAgentSuffix: string;
   toolSuffix: string | null;
   dataComponentSuffix: string | null;
   artifactComponentSuffix: string | null;
@@ -52,8 +55,9 @@ export interface ConflictInfo {
  * Default naming conventions (recommended pattern)
  */
 export const DEFAULT_NAMING_CONVENTIONS: NamingConventions = {
-  subAgentSuffix: 'SubAgent',
+  projectSuffix: 'Project',
   agentSuffix: 'Agent',
+  subAgentSuffix: 'SubAgent',
   toolSuffix: null, // Usually no suffix needed
   dataComponentSuffix: null,
   artifactComponentSuffix: null,
@@ -74,6 +78,7 @@ export class VariableNameGenerator {
 
   constructor(conventions: NamingConventions = DEFAULT_NAMING_CONVENTIONS) {
     this.registry = {
+      projects: new Map(),
       agents: new Map(),
       subAgents: new Map(),
       tools: new Map(),
@@ -268,6 +273,8 @@ export class VariableNameGenerator {
    */
   private getSuffixForType(entityType: EntityType): string {
     switch (entityType) {
+      case 'project':
+        return this.conventions.projectSuffix;
       case 'agent':
         return this.conventions.agentSuffix;
       case 'subAgent':
@@ -294,6 +301,8 @@ export class VariableNameGenerator {
    */
   private getRegistryMap(entityType: EntityType): Map<string, string> {
     switch (entityType) {
+      case 'project':
+        return this.registry.projects;
       case 'agent':
         return this.registry.agents;
       case 'subAgent':
@@ -321,6 +330,9 @@ export class VariableNameGenerator {
  */
 export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType; data?: any }> {
   const entities: Array<{ id: string; type: EntityType; data?: any }> = [];
+
+  // Collect project itself
+  entities.push({ id: projectData.id, type: 'project', data: projectData });
 
   // Collect agents and their subAgents
   if (projectData.agents) {
