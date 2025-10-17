@@ -2,12 +2,6 @@
 
 Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
 
-<div align="left">
-
-[Docs](https://docs.inkeep.com) • [Quick Start](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
-
-</div>
-
 ## Two ways to build
 
 ### No-Code Visual Builder
@@ -45,6 +39,12 @@ A code-first framework so engineering teams can build with the tools they expect
    ```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: technical and non-technical teams can edit and manage Agents in either format and collaborate with others at any time.
+
+<div align="left">
+
+[Docs](https://docs.inkeep.com) • [Quick Start](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
+
+</div>
 
 ## Use Cases
 
