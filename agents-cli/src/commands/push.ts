@@ -263,8 +263,7 @@ export async function pushCommand(options: PushOptions) {
 
     // Provide next steps
     console.log(chalk.green('\n✨ Next steps:'));
-    console.log(chalk.gray(`  • Test your project: inkeep chat`));
-    console.log(chalk.gray(`  • View all agent: inkeep list-agent`));
+    console.log(chalk.gray(`  • View all agents: inkeep list-agent`));
 
     // Force exit to avoid hanging due to OpenTelemetry or other background tasks
     process.exit(0);
