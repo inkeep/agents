@@ -12,7 +12,7 @@ export enum A2AEdgeType {
 export enum EdgeType {
   A2A = 'a2a',
   A2AExternal = 'a2a-external',
-  Default = 'default',
+  Default = 'custom',
   SelfLoop = 'self-loop',
 }
 
@@ -23,6 +23,10 @@ export type A2AEdgeData = {
     delegateTargetToSource: boolean;
     delegateSourceToTarget: boolean;
   };
+  /**
+   * Indicates whether this node delegates its task to another node.
+   */
+  isDelegating?: boolean;
 };
 
 export const edgeTypes = {

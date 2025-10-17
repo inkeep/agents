@@ -693,6 +693,143 @@ function Flow({
     toolLookup,
   ]);
 
+  useEffect(() => {
+    const onDataOperation: EventListenerOrEventListenerObject = (event) => {
+      // @ts-expect-error -- improve types
+      const { conversationId, timestamp, ...data } = event.detail;
+      console.log('Data operation:', data);
+
+      switch (data.type) {
+        case 'delegation_sent': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) =>
+              edge.source === fromSubAgent && edge.target === targetSubAgent
+                ? {
+                    ...edge,
+                    data: { ...edge.data, isDelegating: true },
+                  }
+                : edge
+            )
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) =>
+              node.id === fromSubAgent || node.id === targetSubAgent
+                ? {
+                    ...node,
+                    data: { ...node.data, isDelegating: true },
+                  }
+                : node
+            )
+          );
+          break;
+        }
+        case 'delegation_returned': {
+          const { targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: { ...edge.data, isDelegating: false },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: false, isDelegating: node.id === targetSubAgent },
+            }))
+          );
+          break;
+        }
+        case 'tool_call': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return hasDots
+                  ? {
+                      ...edge,
+                      data: { ...edge.data, isDelegating: true },
+                    }
+                  : edge;
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+
+              return node.data.id === subAgentId ||
+                toolData?.availableTools?.some((tool) => tool.name === toolName)
+                ? {
+                    ...node,
+                    data: { ...node.data, isDelegating: true },
+                  }
+                : node;
+            });
+          });
+          break;
+        }
+        case 'tool_result': {
+          const { toolName } = data.details.data;
+          setNodes((prevNodes) => {
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+              return toolData?.availableTools?.some((tool) => tool.name === toolName)
+                ? {
+                    ...node,
+                    data: { ...node.data, isExecuting: true },
+                  }
+                : node;
+            });
+          });
+          break;
+        }
+        case 'completion': {
+          onCompletion();
+          break;
+        }
+        case 'agent_generate': {
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === subAgentId },
+            }))
+          );
+          break;
+        }
+      }
+    };
+
+    const onCompletion = () => {
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => ({
+          ...edge,
+          data: { ...edge.data, isDelegating: false },
+        }))
+      );
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isExecuting: false, isDelegating: false },
+        }))
+      );
+    };
+
+    document.addEventListener('ikp-data-operation', onDataOperation);
+    document.addEventListener('ikp-aborted', onCompletion);
+    return () => {
+      document.removeEventListener('ikp-data-operation', onDataOperation);
+      document.removeEventListener('ikp-aborted', onCompletion);
+    };
+  }, [setEdges, toolLookup, setNodes]);
+
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
@@ -700,7 +837,9 @@ function Flow({
         <SelectedMarker />
         <ReactFlow
           defaultEdgeOptions={{
-            type: 'default',
+            // Built-in 'default' edges ignore the `data` prop.
+            // Use a custom edge type instead to access `data` in rendering.
+            type: 'custom',
           }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}

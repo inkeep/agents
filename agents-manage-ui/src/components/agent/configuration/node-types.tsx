@@ -22,6 +22,8 @@ export interface MCPNodeData extends Record<string, unknown> {
   name?: string;
   imageUrl?: string;
   provider?: string;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
 }
 
 // Re-export the shared type for consistency
@@ -36,6 +38,9 @@ export interface AgentNodeData extends Record<string, unknown> {
   artifactComponents?: string[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
+  isDefault?: boolean;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
 }
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
@@ -57,6 +62,8 @@ export interface FunctionToolNodeData extends Record<string, unknown> {
   code?: string;
   inputSchema?: Record<string, unknown>;
   dependencies?: Record<string, unknown>;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
 }
 
 export enum NodeType {
