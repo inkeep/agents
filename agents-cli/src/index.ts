@@ -1,4 +1,5 @@
-import './env'; // Load environment files first
+import './env'; // Load environment files first (needed by instrumentation)
+import './instrumentation'; // Initialize Langfuse tracing second
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

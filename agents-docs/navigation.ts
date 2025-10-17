@@ -55,7 +55,7 @@ export default {
         {
           group: 'Observability',
           icon: 'LuChartColumn',
-          pages: ['typescript-sdk/signoz-usage', 'typescript-sdk/langfuse-usage'],
+          pages: ['typescript-sdk/signoz-usage', 'typescript-sdk/langfuse-usage', 'typescript-sdk/cli-observability'],
         },
         'typescript-sdk/external-agents',
       ],
