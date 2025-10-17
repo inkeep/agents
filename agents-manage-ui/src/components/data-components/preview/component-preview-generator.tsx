@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/form/code-editor';
@@ -44,17 +44,12 @@ export function ComponentPreviewGenerator({
     setIsSaved(false);
 
     try {
-      const baseUrl =
-        typeof window !== 'undefined'
-          ? process.env.NEXT_PUBLIC_AGENTS_MANAGE_API_URL || 'http://localhost:3002'
-          : 'http://localhost:3002';
-      const url = `${baseUrl}/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
-
-      const response = await fetch(url, {
+      const response = await fetch(`/api/data-components/${dataComponentId}/generate-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ tenantId, projectId }),
       });
 
       if (!response.ok) {
@@ -99,12 +94,12 @@ export function ComponentPreviewGenerator({
         setPreview(lastValidObject);
         setIsComplete(true);
         onPreviewChanged?.(lastValidObject);
-        toast.success('Component preview generated!');
+        toast.success('Preview generated successfully');
       } else {
         throw new Error('No valid preview generated');
       }
     } catch (error) {
-      console.error('Error generating preview:', error);
+      console.error('Failed to generate preview:', error);
       toast.error('Failed to generate preview');
       setIsComplete(true);
     } finally {
@@ -132,6 +127,30 @@ export function ComponentPreviewGenerator({
   };
 
   const hasPreview = preview !== null && (preview.code?.trim().length ?? 0) > 0;
+
+  // Memoize to prevent infinite re-renders
+  const stringifiedData = useMemo(
+    () => (preview?.data ? JSON.stringify(preview.data, null, 2) : '{}'),
+    [preview?.data]
+  );
+
+  const previewCode = useMemo(() => preview?.code || '', [preview?.code]);
+  const previewData = useMemo(() => preview?.data || {}, [preview?.data]);
+
+  const handleDataChange = useCallback(
+    (newData: string) => {
+      if (!preview) return;
+      try {
+        const parsedData = JSON.parse(newData);
+        const updatedPreview = { ...preview, data: parsedData };
+        setPreview(updatedPreview);
+        onPreviewChanged?.(updatedPreview);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    },
+    [preview, onPreviewChanged]
+  );
 
   return (
     <div className="space-y-4">
@@ -202,7 +221,16 @@ export function ComponentPreviewGenerator({
         <Streamdown
           isAnimating
           className="[&_[data-code-block-header=true]]:hidden [&_pre]:bg-muted/40!"
-        >{`\`\`\`jsx\n${streamingCode}`}</Streamdown>
+        >{`\`\`\`jsx\n${streamingCode}\`\`\``}</Streamdown>
+      )}
+
+      {isGenerating && !streamingCode && (
+        <Card className="p-6">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Generating component preview...</p>
+          </div>
+        </Card>
       )}
 
       {hasPreview && !isGenerating && isComplete && preview && (
@@ -214,13 +242,14 @@ export function ComponentPreviewGenerator({
           </TabsList>
           <TabsContent value="preview">
             <Card className="p-6">
-              <DynamicComponentRenderer code={preview.code} props={preview.data} />
+              <DynamicComponentRenderer code={previewCode} props={previewData} />
             </Card>
           </TabsContent>
           <TabsContent value="code">
             <CodeEditor
-              value={preview.code}
+              value={previewCode}
               onChange={(newCode) => {
+                if (!preview) return;
                 const updatedPreview = { ...preview, code: newCode };
                 setPreview(updatedPreview);
                 onPreviewChanged?.(updatedPreview);
@@ -229,19 +258,7 @@ export function ComponentPreviewGenerator({
             />
           </TabsContent>
           <TabsContent value="data">
-            <JsonEditor
-              value={JSON.stringify(preview.data, null, 2)}
-              onChange={(newData) => {
-                try {
-                  const parsedData = JSON.parse(newData);
-                  const updatedPreview = { ...preview, data: parsedData };
-                  setPreview(updatedPreview);
-                  onPreviewChanged?.(updatedPreview);
-                } catch {
-                  // Invalid JSON, ignore
-                }
-              }}
-            />
+            <JsonEditor value={stringifiedData} onChange={handleDataChange} />
           </TabsContent>
         </Tabs>
       )}
