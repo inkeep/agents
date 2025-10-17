@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-Build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Edit Agents in code or no-code with **full 2-way sync**, so technical and non-technical teams can build Agents in a single platform. 
+Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
 
 <div align="left">
 
@@ -12,7 +12,7 @@ Build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**
 
 ### No-Code Visual Builder
 
-A no-code canvas designed to allow any team to create and manage teams of Agents with a drag-and-drop UI.
+A no-code canvas so any team can create and own the Agents they care about. 
 
 <img
   src="agents-docs/public/gifs/drag-n-drop.gif"
@@ -23,7 +23,7 @@ A no-code canvas designed to allow any team to create and manage teams of Agents
 
 ### TypeScript Agents SDK
 
-A code-first approach for building and managing multi-agent systems. Engineering teams can build with the tools and developer experience they expect.
+A code-first framework so engineering teams can build with the tools they expect.
 
    ```typescript
    import { agent, subAgent } from "@inkeep/agents-sdk";
@@ -67,7 +67,7 @@ Agents can also be used for **AI Workflow Automation** like:
 - Observability via a Traces UI & OpenTelemetry
 - Easy deployment using Vercel or Docker
 
-For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide. For Cloud hosting, [sign up](https://inkeep.com/cloud-waitlist) to get notified when available.
+For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide. For cloud hosting, [sign up](https://inkeep.com/cloud-waitlist) to get notified when available.
 
 ## Architecture
 
@@ -86,7 +86,7 @@ Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/i
 
 The Inkeep Agent Framework is licensed under the **Elastic License 2.0** ([ELv2](https://www.elastic.co/licensing/elastic-license)) subject to **Inkeep's Supplemental Terms** ([SUPPLEMENTAL_TERMS.md](https://github.com/inkeep/agents/blob/main/SUPPLEMENTAL_TERMS.md)). This is a [fair-code](https://faircode.io/), source-available license that allows broad usage while protecting against certain competitive uses.
 
-Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via standard protocols, and easily deploy and self-host Agents in your own infra. 
+Inkeep is designed to be extensible and open: use the LLM provider of your choice, use Agents via standard protocols, and easily deploy and self-host Agents in your own infra. 
 
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
