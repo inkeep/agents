@@ -768,6 +768,7 @@ function Flow({
                 ...node,
                 data: {
                   ...node.data,
+                  isExecuting: false,
                   isDelegating:
                     node.data.id === subAgentId ||
                     toolData?.availableTools?.some((tool) => tool.name === toolName),
@@ -827,7 +828,7 @@ function Flow({
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: node.id === subAgentId },
+              data: { ...node.data, isExecuting: node.id === subAgentId, isDelegating: false },
             }))
           );
           break;
