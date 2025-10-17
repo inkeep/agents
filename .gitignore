@@ -68,3 +68,6 @@ dist
 .playwright-mcp
 .vercel
 .idea/
+
+# Coordinator intermediate files
+.claude-coordinator-prompt.md
