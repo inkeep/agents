@@ -1201,7 +1201,6 @@ export async function GET(
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, '') || undefined,
       });
     }
 

@@ -167,7 +167,7 @@ export function renderPanelContent({
                 a.subAgentId ? (
                   <Badge variant="code">{a.subAgentId}</Badge>
                 ) : (
-                  a.subAgentName || 'Unknown'
+                  'Unknown'
                 )
               }
             />
@@ -466,7 +466,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
             {a.aiTelemetryFunctionId && (
               <Info
-                label="Function ID"
+                label="Sub agent"
                 value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
               />
             )}
