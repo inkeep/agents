@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.23.4
+
+### Patch Changes
+
+- dba9591: Migrate CLI to @clack/prompts for improved interactive experience
+- Updated dependencies [dba9591]
+  - @inkeep/agents-core@0.23.4
+
 ## 0.23.3
 
 ### Patch Changes
