@@ -23,7 +23,7 @@ export function AgentToAgentEdge({
     delegateTargetToSource: false,
     delegateSourceToTarget: false,
   };
-  const isDelegating = data?.isDelegating;
+  const delegating = data?.delegating;
 
   const hasDelegate = relationships.delegateTargetToSource || relationships.delegateSourceToTarget;
   const hasTransfer = relationships.transferTargetToSource || relationships.transferSourceToTarget;
@@ -89,12 +89,12 @@ export function AgentToAgentEdge({
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
   const className =
-    selected || isDelegating ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
+    selected || delegating ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
 
   return (
     <>
-      {/* Animated circle */}
-      {isDelegating && <AnimatedCircle edgePath={edgePath} />}
+      {/* Animated circles based on delegating direction */}
+      {delegating && <AnimatedCircle edgePath={edgePath} inverted={delegating === 'inverted'} />}
 
       {/* Render transfer path (solid line) */}
       {hasTransfer && (

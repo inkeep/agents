@@ -26,7 +26,7 @@ export type A2AEdgeData = {
   /**
    * Indicates whether this node delegates its task to another node.
    */
-  isDelegating?: boolean;
+  delegating: boolean | 'inverted';
 };
 
 export const edgeTypes = {
