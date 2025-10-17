@@ -1,5 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { ArrowRight, ArrowRightLeft } from 'lucide-react';
+import { AnimatedCircle } from '@/components/agent/edges/default-edge';
 import type { A2AEdgeData } from '../configuration/edge-types';
 
 interface AgentToAgentEdgeProps extends EdgeProps {
@@ -93,11 +94,7 @@ export function AgentToAgentEdge({
   return (
     <>
       {/* Animated circle */}
-      {isDelegating && (
-        <circle fill="var(--primary)" r="6">
-          <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
-        </circle>
-      )}
+      {isDelegating && <AnimatedCircle edgePath={edgePath} />}
 
       {/* Render transfer path (solid line) */}
       {hasTransfer && (

@@ -1,7 +1,23 @@
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
+import { type FC, useRef, useEffect } from 'react';
 
 type DefaultEdgeProps = EdgeProps & {
   data?: { isDelegating: boolean };
+};
+
+export const AnimatedCircle: FC<{ edgePath: string }> = ({ edgePath }) => {
+  const ref = useRef<SVGAnimateElement>(null);
+
+  // Without this useEffect animation won't start on dynamically rendering this component
+  useEffect(() => {
+    ref.current?.beginElement();
+  }, []);
+
+  return (
+    <circle fill="var(--primary)" r="6">
+      <animateMotion ref={ref} dur="2s" path={edgePath} />
+    </circle>
+  );
 };
 
 export function DefaultEdge({
@@ -33,11 +49,7 @@ export function DefaultEdge({
 
   return (
     <>
-      {data?.isDelegating && (
-        <circle fill="var(--primary)" r="6">
-          <animateMotion dur="2s" path={edgePath} repeatCount="indefinite" />
-        </circle>
-      )}
+      {data?.isDelegating && <AnimatedCircle edgePath={edgePath} />}
       <BaseEdge
         id={id}
         path={edgePath}
