@@ -1,4 +1,4 @@
-Here's a list of popular service-maintained MCP Servers that support "1-click" install with OAuth 2.1/PKCE authentication.
+Here's an example list of popular service-maintained MCP Servers that support **1-click** install via the OAuth 2.1/PKCE authentication flow.
 
 | Name                                                                                                             | URL                              |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -12,3 +12,10 @@ Here's a list of popular service-maintained MCP Servers that support "1-click" i
 | [Prisma](https://www.prisma.io/docs/postgres/integrations/mcp-server#remote-mcp-server)                          | https://mcp.prisma.io/mcp        |
 | [Sentry](https://docs.sentry.io/product/sentry-mcp/)                                                             | https://mcp.sentry.dev/mcp       |
 | [Vercel](https://vercel.com/docs/mcp/vercel-mcp)                                                                 | https://mcp.vercel.com           |
+
+To add them to your project:
+1. navigate to **MCP Servers** in the Inkeep Visual Builder. 
+2. Click on **New MCP Server**
+3. Choose from the preset list under **Popular Services** or register any under **Custom Server**
+
+When register the server, an authentication pop-up will appear and allow you to sign in. Your credentials will automatically be saved to your [Nango Store](/typescript-sdk/tools/credentials#nango-store) or [Keychain](/typescript-sdk/tools/credentials#keychain-store) credential store.
