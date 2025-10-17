@@ -21,6 +21,36 @@ icon: "TbInputSpark"
 
 To visually add the artifact component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-artifact-components) page for details.
 
+## Schema Requirements
+
+<Callout type="warning">
+**Critical**: Your artifact schema must match your tool's output structure. The system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+</Callout>
+
+```json
+// ❌ WRONG: Tool returns text, schema expects structured data
+// Tool output: { "result": { "content": [{ "text": "Weather: Sunny, 75°F" }] } }
+{
+  "type": "object", 
+  "properties": {
+    "temperature": { "type": "number" }, // ❌ Cannot extract number from text
+    "condition": { "type": "string" }     // ❌ Cannot extract condition from text
+  }
+}
+
+// ✅ CORRECT: Tool returns structured data matching schema
+// Tool output: { "result": { "temperature": 75, "condition": "Sunny" } }
+{
+  "type": "object",
+  "properties": {
+    "temperature": { "type": "number" },
+    "condition": { "type": "string" }
+  }
+}
+```
+
+Use OpenTelemetry traces to debug schema validation issues.
+
 ### Preview Fields
 
 Set `inPreview: true` on properties for immediate availability. These fields are:

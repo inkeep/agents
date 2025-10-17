@@ -45,6 +45,30 @@ export const citation = artifactComponent({
 JSON Schema is also supported. Set `inPreview: true` on properties instead of using `preview()`.
 </Callout>
 
+## Schema Requirements
+
+<Callout type="warning">
+**Critical**: Artifact schemas must match your tool's output structure. The system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+</Callout>
+
+```typescript
+// ❌ WRONG: Tool returns text, schema expects structured data
+// Tool output: { result: { content: [{ text: "Weather: Sunny, 75°F" }] } }
+props: z.object({
+  temperature: z.number(), // ❌ Cannot extract number from text
+  condition: z.string()    // ❌ Cannot extract condition from text  
+})
+
+// ✅ CORRECT: Tool returns structured data matching schema  
+// Tool output: { result: { temperature: 75, condition: "Sunny" } }
+props: z.object({
+  temperature: z.number(),
+  condition: z.string()
+})
+```
+
+Use OpenTelemetry traces to debug schema validation issues.
+
 ## Preview Fields
 
 Use `preview()` to mark fields for immediate availability. The `preview()` helper automatically sets `inPreview: true` in the generated schema.
