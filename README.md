@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-Build and ship AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Edit Agents in code or no-code with **full 2-way sync**, so technical and non-technical teams can build Agents in a single platform. 
+Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
 
 <div align="left">
 
