@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cb4819a5-0f2e-44f8-bfba-1e6d0b9d2257",
+  "id": "2ada3416-9fba-48cc-a8cf-68d9cfc1d06e",
   "prevId": "af6fa18d-8ceb-4249-becb-d862ddc18494",
   "tables": {
     "agent": {
@@ -970,13 +970,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "headers": {
-          "name": "headers",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -1914,6 +1907,128 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "sub_agent_external_agent_relations": {
+      "name": "sub_agent_external_agent_relations",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "external_agent_id": {
+          "name": "external_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "headers": {
+          "name": "headers",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_external_agent_relations_sub_agent_fk": {
+          "name": "sub_agent_external_agent_relations_sub_agent_fk",
+          "tableFrom": "sub_agent_external_agent_relations",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_external_agent_relations_external_agent_fk": {
+          "name": "sub_agent_external_agent_relations_external_agent_fk",
+          "tableFrom": "sub_agent_external_agent_relations",
+          "tableTo": "external_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "external_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk": {
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "name": "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "sub_agent_function_tool_relations": {
       "name": "sub_agent_function_tool_relations",
       "columns": {
@@ -2076,13 +2191,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "external_sub_agent_id": {
-          "name": "external_sub_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "relation_type": {
           "name": "relation_type",
           "type": "text",
@@ -2117,23 +2225,6 @@
             "tenant_id",
             "project_id",
             "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "sub_agent_relations_external_agent_fk": {
-          "name": "sub_agent_relations_external_agent_fk",
-          "tableFrom": "sub_agent_relations",
-          "tableTo": "external_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "external_sub_agent_id"
           ],
           "columnsTo": [
             "tenant_id",

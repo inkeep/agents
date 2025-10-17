@@ -153,7 +153,6 @@ app.openapi(
       description: body.description,
       baseUrl: body.baseUrl,
       credentialReferenceId: body.credentialReferenceId || undefined,
-      headers: body.headers || undefined,
     };
 
     const externalAgent = await createExternalAgent(dbClient)(externalAgentData);

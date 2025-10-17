@@ -1,5 +1,6 @@
 import type {
   CredentialReferenceApiInsert,
+  ExternalAgentApiInsert,
   FullProjectDefinition,
   ProjectModels,
   StopWhen,
@@ -537,7 +538,7 @@ export class Project implements ProjectInterface {
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
-    const externalAgentsObject: Record<string, any> = {};
+    const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -547,6 +548,7 @@ export class Project implements ProjectInterface {
     // Convert all agent to FullAgentDefinition format and collect components
     for (const agent of this.agents) {
       // Get the agent's full definition
+      logger.info({ agentId: agent.getId() }, 'Agent id');
       const agentDefinition = await agent.toFullAgentDefinition();
       agentsObject[agent.getId()] = agentDefinition;
 
@@ -640,20 +642,6 @@ export class Project implements ProjectInterface {
 
       // Collect project-level resources from all sub-agents in this agent
       for (const subAgent of agent.getSubAgents()) {
-        // Collect external agents from the subAgents list
-        if (subAgent.type === 'external') {
-          const externalAgent = subAgent as ExternalAgent;
-          externalAgentsObject[externalAgent.getId()] = {
-            id: externalAgent.getId(),
-            name: externalAgent.getName(),
-            description: externalAgent.getDescription(),
-            baseUrl: externalAgent.getBaseUrl(),
-            credentialReferenceId: externalAgent.getCredentialReferenceId(),
-            headers: externalAgent.getHeaders(),
-          };
-          continue; // Skip remaining collection logic for external agents
-        }
-
         const agentTools = subAgent.getTools();
         for (const [, toolInstance] of Object.entries(agentTools)) {
           // toolInstance is now properly typed as AgentTool from getTools()
@@ -825,9 +813,45 @@ export class Project implements ProjectInterface {
             }
           }
         }
+
+        // Collect external agents from this agent
+        const subAgentExternalAgents = subAgent.getExternalAgentDelegates();
+        logger.info({ subAgentExternalAgents }, 'Sub agent external agents');
+        if (subAgentExternalAgents) {
+          for (const externalAgentDelegate of subAgentExternalAgents) {
+            const externalAgent = externalAgentDelegate.externalAgent;
+            const credential = externalAgent.getCredentialReference();
+            if (credential) {
+              // Add credential to project-level credentials
+              if (!credentialReferencesObject[credential.id]) {
+                credentialReferencesObject[credential.id] = {
+                  id: credential.id,
+                  type: credential.type,
+                  credentialStoreId: credential.credentialStoreId,
+                  retrievalParams: credential.retrievalParams,
+                };
+                credentialUsageMap[credential.id] = [];
+              }
+              // Track that this external agent uses this credential
+              logger.info({ credentialId: credential.id }, 'Credential id in external agent');
+              credentialUsageMap[credential.id].push({
+                type: 'externalAgent',
+                id: externalAgent.getId(),
+              });
+            }
+            logger.info({ externalAgentId: externalAgent.getId() }, 'External agent id');
+            externalAgentsObject[externalAgent.getId()] = {
+              id: externalAgent.getId(),
+              name: externalAgent.getName(),
+              description: externalAgent.getDescription(),
+              baseUrl: externalAgent.getBaseUrl(),
+              credentialReferenceId: externalAgent.getCredentialReferenceId(),
+            };
+          }
+        }
       }
     }
-
+    logger.info({ externalAgentsObject }, 'External agents object');
     // Add project-level tools, dataComponents, and artifactComponents
     for (const tool of this.projectTools) {
       const toolId = tool.getId();

@@ -1,20 +1,10 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
-import type {
-  ExternalSubAgentApiInsert,
-  FullAgentDefinition,
-  InternalSubAgentDefinition,
-  SubAgentDefinition,
-} from '../types/entities';
+import type { FullAgentDefinition } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
-import {
-  isExternalAgent,
-  isInternalAgent,
-  validateAgentStructure,
-  validateAndTypeAgentData,
-} from '../validation/agentFull';
+import { generateId } from '../utils/conversations';
+import { validateAgentStructure, validateAndTypeAgentData } from '../validation/agentFull';
 import {
   deleteAgent,
   getAgentById,
@@ -33,9 +23,13 @@ import {
   deleteAgentDataComponentRelationByAgent,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
-import { getExternalAgent, listExternalAgents } from './externalAgents';
 import { upsertFunction } from './functions';
 import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
+import {
+  deleteSubAgentExternalAgentRelation,
+  getSubAgentExternalAgentRelationsByAgent,
+  upsertSubAgentExternalAgentRelation,
+} from './subAgentExternalAgentRelations';
 import {
   createSubAgentRelation,
   deleteAgentRelationsByAgent,
@@ -124,7 +118,7 @@ async function applyExecutionLimitsInheritance(
       );
 
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
-        if (isInternalAgent(subAgentData as SubAgentDefinition)) {
+        if (subAgentData.canTransferTo && Array.isArray(subAgentData.canTransferTo)) {
           const agent = agentData as any;
 
           if (!agent.stopWhen) {
@@ -365,95 +359,44 @@ export const createFullAgentServerSide =
         );
       }
 
-      const internalAgentPromises = Object.entries(typed.subAgents)
-        .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
-        .map(async ([subAgentId, agentData]) => {
-          const internalAgent = agentData as InternalSubAgentDefinition;
+      const subAgentPromises = Object.entries(typed.subAgents).map(
+        async ([subAgentId, agentData]) => {
+          const subAgent = agentData;
           try {
-            logger.info({ subAgentId }, 'Processing internal agent');
+            logger.info({ subAgentId }, 'Processing sub-agent');
             await upsertSubAgent(db)({
               data: {
                 id: subAgentId,
                 tenantId,
                 projectId,
                 agentId: finalAgentId,
-                name: internalAgent.name || '',
-                description: internalAgent.description || '',
-                prompt: internalAgent.prompt || '',
-                conversationHistoryConfig: internalAgent.conversationHistoryConfig,
-                models: internalAgent.models,
-                stopWhen: internalAgent.stopWhen,
+                name: subAgent.name || '',
+                description: subAgent.description || '',
+                prompt: subAgent.prompt || '',
+                conversationHistoryConfig: subAgent.conversationHistoryConfig,
+                models: subAgent.models,
+                stopWhen: subAgent.stopWhen,
               },
             });
-            logger.info({ subAgentId }, 'Internal agent processed successfully');
+            logger.info({ subAgentId }, 'Sub-agent processed successfully');
           } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to create/update internal agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update sub-agent');
             throw error;
           }
-        });
+        }
+      );
 
-      await Promise.all(internalAgentPromises);
-      const internalAgentCount = Object.entries(typed.subAgents).filter(([_, agentData]) =>
-        isInternalAgent(agentData)
-      ).length;
-      logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
+      await Promise.all(subAgentPromises);
+      const subAgentCount = Object.entries(typed.subAgents).length;
+      logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
       // External agents are project-scoped and managed at the project level.
-      // We validate that referenced external agents exist but don't create/update them here.
-      const externalAgentValidationPromises = Object.entries(typed.subAgents)
-        .filter(([_, agentData]) => isExternalAgent(agentData))
-        .map(async ([subAgentId, agentData]) => {
-          const externalAgent = agentData as ExternalSubAgentApiInsert;
-          try {
-            logger.debug({ subAgentId }, 'Validating external agent reference');
-            const existingAgent = await getExternalAgent(db)({
-              scopes: { tenantId, projectId },
-              externalAgentId: subAgentId,
-            });
-
-            if (!existingAgent) {
-              logger.warn(
-                { subAgentId, agentId: typed.id },
-                'External agent referenced by agent does not exist at project level - it should be defined in the project'
-              );
-            } else {
-              logger.debug({ subAgentId }, 'External agent reference validated');
-            }
-          } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to validate external agent reference');
-          }
-        });
-
-      await Promise.all(externalAgentValidationPromises);
-      const externalAgentCount = Object.entries(typed.subAgents).filter(([_, agentData]) =>
-        isExternalAgent(agentData)
-      ).length;
-      logger.info({ externalAgentCount }, 'All external agent references validated');
-
-      if (contextConfigId) {
-        try {
-          logger.info(
-            { agentId: finalAgentId, contextConfigId },
-            'Updating agent with context config'
-          );
-          await updateAgent(db)({
-            scopes: { tenantId, projectId, agentId: finalAgentId },
-            data: { contextConfigId },
-          });
-          logger.info({ agentId: finalAgentId }, 'Agent updated with context config');
-        } catch (error) {
-          logger.error(
-            { agentId: finalAgentId, error },
-            'Failed to update agent with context config'
-          );
-          throw error;
-        }
-      }
+      logger.info({}, 'External agents are project-scoped and managed at the project level.');
 
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             agentToolPromises.push(
               (async () => {
@@ -520,7 +463,7 @@ export const createFullAgentServerSide =
       const agentDataComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.dataComponents) {
+        if (agentData.dataComponents) {
           for (const dataComponentId of agentData.dataComponents) {
             agentDataComponentPromises.push(
               (async () => {
@@ -555,7 +498,7 @@ export const createFullAgentServerSide =
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.artifactComponents) {
+        if (agentData.artifactComponents) {
           for (const artifactComponentId of agentData.artifactComponents) {
             agentArtifactComponentPromises.push(
               (async () => {
@@ -588,9 +531,11 @@ export const createFullAgentServerSide =
       logger.info({}, 'All agent-artifact component relations created');
 
       const subAgentRelationPromises: Promise<void>[] = [];
+      const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.canTransferTo) {
+        // Process canTransferTo - always internal targets (strings only)
+        if (agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
             subAgentRelationPromises.push(
               (async () => {
@@ -621,50 +566,100 @@ export const createFullAgentServerSide =
               })()
             );
           }
-        }
-
-        if (isInternalAgent(agentData) && agentData.canDelegateTo) {
-          for (const targetSubAgentId of agentData.canDelegateTo) {
-            const targetAgentData = typed.subAgents[targetSubAgentId];
-            const isTargetExternal = isExternalAgent(targetAgentData);
-
-            subAgentRelationPromises.push(
-              (async () => {
-                try {
-                  logger.info(
-                    { subAgentId, targetSubAgentId, type: 'delegate' },
-                    'Processing agent delegation relation'
-                  );
-                  await upsertSubAgentRelation(db)({
-                    id: generateId(),
-                    tenantId,
-                    projectId,
-                    agentId: finalAgentId,
-                    sourceSubAgentId: subAgentId,
-                    targetSubAgentId: isTargetExternal ? undefined : targetSubAgentId,
-                    externalSubAgentId: isTargetExternal ? targetSubAgentId : undefined,
-                    relationType: 'delegate',
-                  });
-                  logger.info(
-                    { subAgentId, targetSubAgentId, type: 'delegate' },
-                    'Agent delegation relation processed successfully'
-                  );
-                } catch (error) {
-                  logger.error(
-                    { subAgentId, targetSubAgentId, type: 'delegate', error },
-                    'Failed to create delegation relation'
-                  );
-                }
-              })()
-            );
+          // Process canDelegateTo - can be sub-agent (string) or external agent (object)
+          if (agentData.canDelegateTo) {
+            for (const targetItem of agentData.canDelegateTo) {
+              if (typeof targetItem === 'string') {
+                // Sub-agent delegation
+                subAgentRelationPromises.push(
+                  (async () => {
+                    try {
+                      logger.info(
+                        { subAgentId, targetSubAgentId: targetItem, type: 'delegate' },
+                        'Processing sub-agent delegation relation'
+                      );
+                      await upsertSubAgentRelation(db)({
+                        id: generateId(),
+                        tenantId,
+                        projectId,
+                        agentId: finalAgentId,
+                        sourceSubAgentId: subAgentId,
+                        targetSubAgentId: targetItem,
+                        relationType: 'delegate',
+                      });
+                      logger.info(
+                        { subAgentId, targetSubAgentId: targetItem, type: 'delegate' },
+                        'Sub-agent delegation relation processed successfully'
+                      );
+                    } catch (error) {
+                      logger.error(
+                        { subAgentId, targetSubAgentId: targetItem, type: 'delegate', error },
+                        'Failed to create sub-agent delegation relation'
+                      );
+                    }
+                  })()
+                );
+              } else {
+                // External agent delegation
+                subAgentExternalAgentRelationPromises.push(
+                  (async () => {
+                    try {
+                      logger.info(
+                        {
+                          subAgentId,
+                          externalAgentId: targetItem.externalAgentId,
+                          type: 'delegate',
+                        },
+                        'Processing external agent delegation relation'
+                      );
+                      await upsertSubAgentExternalAgentRelation(db)({
+                        scopes: {
+                          tenantId,
+                          projectId,
+                          agentId: finalAgentId,
+                          subAgentId,
+                        },
+                        data: {
+                          externalAgentId: targetItem.externalAgentId,
+                          headers: targetItem.headers || null,
+                        },
+                      });
+                      logger.info(
+                        {
+                          subAgentId,
+                          externalAgentId: targetItem.externalAgentId,
+                          type: 'delegate',
+                        },
+                        'External agent delegation relation processed successfully'
+                      );
+                    } catch (error) {
+                      logger.error(
+                        {
+                          subAgentId,
+                          externalAgentId: targetItem.externalAgentId,
+                          type: 'delegate',
+                          error,
+                        },
+                        'Failed to create external delegation relation'
+                      );
+                    }
+                  })()
+                );
+              }
+            }
           }
         }
       }
 
       await Promise.all(subAgentRelationPromises);
+      await Promise.all(subAgentExternalAgentRelationPromises);
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
+      );
+      logger.info(
+        { subAgentExternalAgentRelationCount: subAgentExternalAgentRelationPromises.length },
+        'All sub-agent external agent relations created'
       );
 
       const createdAgent = await getFullAgentDefinition(db)({
@@ -937,10 +932,9 @@ export const updateFullAgentServerSide =
         );
       }
 
-      const internalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
-        .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
-        .map(async ([subAgentId, agentData]) => {
-          const internalAgent = agentData as InternalSubAgentDefinition;
+      const subAgentPromises = Object.entries(typedAgentDefinition.subAgents).map(
+        async ([subAgentId, agentData]) => {
+          const subAgent = agentData;
 
           let existingSubAgent = null;
           try {
@@ -956,8 +950,7 @@ export const updateFullAgentServerSide =
             });
           } catch (_error) {}
 
-          let finalModelSettings =
-            internalAgent.models === undefined ? undefined : internalAgent.models;
+          let finalModelSettings = subAgent.models === undefined ? undefined : subAgent.models;
 
           if (existingSubAgent?.models && typedAgentDefinition.models) {
             const subAgentModels = existingSubAgent.models as any;
@@ -994,87 +987,54 @@ export const updateFullAgentServerSide =
           }
 
           try {
-            logger.info({ subAgentId }, 'Processing internal agent');
+            logger.info({ subAgentId }, 'Processing sub-agent');
             await upsertSubAgent(db)({
               data: {
                 id: subAgentId,
                 tenantId,
                 projectId,
                 agentId: finalAgentId,
-                name: internalAgent.name || '',
-                description: internalAgent.description || '',
-                prompt: internalAgent.prompt || '',
-                conversationHistoryConfig: internalAgent.conversationHistoryConfig,
+                name: subAgent.name || '',
+                description: subAgent.description || '',
+                prompt: subAgent.prompt || '',
+                conversationHistoryConfig: subAgent.conversationHistoryConfig,
                 models: finalModelSettings,
-                stopWhen: internalAgent.stopWhen,
+                stopWhen: subAgent.stopWhen,
               },
             });
-            logger.info({ subAgentId }, 'Internal agent processed successfully');
+            logger.info({ subAgentId }, 'Sub-agent processed successfully');
           } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to create/update internal agent');
+            logger.error({ subAgentId, error }, 'Failed to create/update sub-agent');
             throw error;
           }
-        });
+        }
+      );
 
-      await Promise.all(internalAgentPromises);
-      const internalAgentCount = Object.entries(typedAgentDefinition.subAgents).filter(
-        ([_, agentData]) => isInternalAgent(agentData)
-      ).length;
-      logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
+      await Promise.all(subAgentPromises);
+      const subAgentCount = Object.entries(typedAgentDefinition.subAgents).length;
+      logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
       // External agents are project-scoped and managed at the project level.
-      // We validate that referenced external agents exist but don't create/update them here.
-      const externalAgentValidationPromises = Object.entries(typedAgentDefinition.subAgents)
-        .filter(([_, agentData]) => isExternalAgent(agentData))
-        .map(async ([subAgentId, agentData]) => {
-          const externalAgent = agentData as ExternalSubAgentApiInsert;
-          try {
-            logger.debug({ subAgentId }, 'Validating external agent reference');
-            const existingAgent = await getExternalAgent(db)({
-              scopes: { tenantId, projectId },
-              externalAgentId: subAgentId,
-            });
+      logger.info({}, 'External agents are project-scoped and managed at the project level.');
 
-            if (!existingAgent) {
-              logger.warn(
-                { subAgentId, agentId: finalAgentId },
-                'External agent referenced by agent does not exist at project level - it should be defined in the project'
-              );
-            } else {
-              logger.debug({ subAgentId }, 'External agent reference validated');
-            }
-          } catch (error) {
-            logger.error({ subAgentId, error }, 'Failed to validate external agent reference');
-          }
-        });
+      const incomingSubAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
-      await Promise.all(externalAgentValidationPromises);
-      const externalAgentCount = Object.entries(typedAgentDefinition.subAgents).filter(
-        ([_, agentData]) => isExternalAgent(agentData)
-      ).length;
-      logger.info({ externalAgentCount }, 'All external agent references validated');
-
-      const incomingAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
-
-      const existingInternalAgents = await listSubAgents(db)({
+      const existingSubAgents = await listSubAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      let deletedInternalCount = 0;
-      for (const agent of existingInternalAgents) {
-        if (!incomingAgentIds.has(agent.id)) {
+      let deletedSubAgentCount = 0;
+      for (const subAgent of existingSubAgents) {
+        if (!incomingSubAgentIds.has(subAgent.id)) {
           try {
             await deleteSubAgent(db)({
               scopes: { tenantId, projectId, agentId: finalAgentId },
-              subAgentId: agent.id,
+              subAgentId: subAgent.id,
             });
-            deletedInternalCount++;
-            logger.info({ subAgentId: agent.id }, 'Deleted orphaned internal agent');
+            deletedSubAgentCount++;
+            logger.info({ subAgentId: subAgent.id }, 'Deleted orphaned sub-agent');
           } catch (error) {
-            logger.error(
-              { subAgentId: agent.id, error },
-              'Failed to delete orphaned internal agent'
-            );
+            logger.error({ subAgentId: subAgent.id, error }, 'Failed to delete orphaned sub-agent');
           }
         }
       }
@@ -1082,12 +1042,68 @@ export const updateFullAgentServerSide =
       // Note: External agents are project-scoped and managed at the project level,
       // not at the agent level. They are not deleted here.
 
-      if (deletedInternalCount > 0) {
+      if (deletedSubAgentCount > 0) {
         logger.info(
           {
-            deletedInternalCount,
+            deletedSubAgentCount,
           },
-          'Deleted orphaned internal agents from agent'
+          'Deleted orphaned sub-agents from agent'
+        );
+      }
+
+      // Delete orphaned subAgentExternalAgentRelations
+      // Collect all incoming external agent relationships
+      const incomingExternalAgentRelationIds = new Set<string>();
+      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+        if (agentData.canDelegateTo && Array.isArray(agentData.canDelegateTo)) {
+          for (const delegateItem of agentData.canDelegateTo) {
+            if (typeof delegateItem === 'object' && delegateItem.subAgentExternalAgentRelationId) {
+              incomingExternalAgentRelationIds.add(delegateItem.subAgentExternalAgentRelationId);
+            }
+          }
+        }
+      }
+
+      // Get all existing external agent relations for this agent
+      const existingExternalAgentRelations = await getSubAgentExternalAgentRelationsByAgent(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+      });
+
+      let deletedExternalAgentRelationCount = 0;
+      for (const relation of existingExternalAgentRelations) {
+        if (!incomingExternalAgentRelationIds.has(relation.id)) {
+          try {
+            await deleteSubAgentExternalAgentRelation(db)({
+              scopes: {
+                tenantId,
+                projectId,
+                agentId: finalAgentId,
+                subAgentId: relation.subAgentId,
+              },
+              relationId: relation.id,
+            });
+            deletedExternalAgentRelationCount++;
+            logger.info(
+              {
+                relationId: relation.id,
+                subAgentId: relation.subAgentId,
+                externalAgentId: relation.externalAgentId,
+              },
+              'Deleted orphaned external agent relation'
+            );
+          } catch (error) {
+            logger.error(
+              { relationId: relation.id, error },
+              'Failed to delete orphaned external agent relation'
+            );
+          }
+        }
+      }
+
+      if (deletedExternalAgentRelationCount > 0) {
+        logger.info(
+          { deletedExternalAgentRelationCount },
+          'Deleted orphaned external agent relations from agent'
         );
       }
 
@@ -1109,7 +1125,7 @@ export const updateFullAgentServerSide =
 
       const incomingRelationshipIds = new Set<string>();
       for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
             if (canUseItem.agentToolRelationId) {
               incomingRelationshipIds.add(canUseItem.agentToolRelationId);
@@ -1157,12 +1173,12 @@ export const updateFullAgentServerSide =
         }
       }
 
-      const agentToolPromises: Promise<void>[] = [];
+      const subAgentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
+        if (agentData.canUse && Array.isArray(agentData.canUse)) {
           for (const canUseItem of agentData.canUse) {
-            agentToolPromises.push(
+            subAgentToolPromises.push(
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
@@ -1172,7 +1188,10 @@ export const updateFullAgentServerSide =
                     toolId in typedAgentDefinition.functionTools;
 
                   if (isFunctionTool) {
-                    logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
+                    logger.info(
+                      { subAgentId, toolId },
+                      'Processing sub-agent-function tool relation'
+                    );
                     await upsertSubAgentFunctionToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
@@ -1181,10 +1200,10 @@ export const updateFullAgentServerSide =
                     });
                     logger.info(
                       { subAgentId, toolId, relationId: agentToolRelationId },
-                      'Agent-function tool relation upserted'
+                      'Sub-agent-function tool relation upserted'
                     );
                   } else {
-                    logger.info({ subAgentId, toolId }, 'Processing agent-MCP tool relation');
+                    logger.info({ subAgentId, toolId }, 'Processing sub-agent-MCP tool relation');
                     await upsertSubAgentToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
@@ -1195,7 +1214,7 @@ export const updateFullAgentServerSide =
                     });
                     logger.info(
                       { subAgentId, toolId, relationId: agentToolRelationId },
-                      'Agent-MCP tool relation upserted'
+                      'Sub-agent-MCP tool relation upserted'
                     );
                   }
                 } catch (error) {
@@ -1215,10 +1234,10 @@ export const updateFullAgentServerSide =
         }
       }
 
-      await Promise.all(agentToolPromises);
+      await Promise.all(subAgentToolPromises);
       logger.info(
-        { agentToolPromisesCount: agentToolPromises.length },
-        'All agent-tool relations updated'
+        { subAgentToolPromisesCount: subAgentToolPromises.length },
+        'All sub-agent-tool relations updated'
       );
 
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
@@ -1230,7 +1249,7 @@ export const updateFullAgentServerSide =
       const agentDataComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.dataComponents) {
+        if (agentData.dataComponents) {
           for (const dataComponentId of agentData.dataComponents) {
             agentDataComponentPromises.push(
               (async () => {
@@ -1242,12 +1261,12 @@ export const updateFullAgentServerSide =
 
                   logger.info(
                     { subAgentId, dataComponentId },
-                    'Agent-dataComponent relation created'
+                    'Sub-agent-dataComponent relation created'
                   );
                 } catch (error) {
                   logger.error(
                     { subAgentId, dataComponentId, error },
-                    'Failed to create agent-dataComponent relation'
+                    'Failed to create sub-agent-dataComponent relation'
                   );
                 }
               })()
@@ -1259,7 +1278,7 @@ export const updateFullAgentServerSide =
       await Promise.all(agentDataComponentPromises);
       logger.info(
         { agentDataComponentPromisesCount: agentDataComponentPromises.length },
-        'All agent-dataComponent relations updated'
+        'All sub-agent-dataComponent relations updated'
       );
 
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
@@ -1272,7 +1291,7 @@ export const updateFullAgentServerSide =
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.artifactComponents) {
+        if (agentData.artifactComponents) {
           for (const artifactComponentId of agentData.artifactComponents) {
             agentArtifactComponentPromises.push(
               (async () => {
@@ -1284,12 +1303,12 @@ export const updateFullAgentServerSide =
 
                   logger.info(
                     { subAgentId, artifactComponentId },
-                    'Agent-artifactComponent relation created'
+                    'Sub-agent-artifactComponent relation created'
                   );
                 } catch (error) {
                   logger.error(
                     { subAgentId, artifactComponentId, error },
-                    'Failed to create agent-artifactComponent relation'
+                    'Failed to create sub-agent-artifactComponent relation'
                   );
                 }
               })()
@@ -1301,46 +1320,37 @@ export const updateFullAgentServerSide =
       await Promise.all(agentArtifactComponentPromises);
       logger.info(
         { agentArtifactComponentPromisesCount: agentArtifactComponentPromises.length },
-        'All agent-artifactComponent relations updated'
+        'All sub-agent-artifactComponent relations updated'
       );
 
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
       // Then create new relationships
-      const agentRelationPromises: Promise<void>[] = [];
+      const subAgentRelationPromises: Promise<void>[] = [];
+      const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        if (isInternalAgent(agentData) && agentData.canTransferTo) {
+        // Process canTransferTo - always internal targets (strings only)
+        if (agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
-            agentRelationPromises.push(
+            subAgentRelationPromises.push(
               (async () => {
                 try {
-                  const targetAgentData = typedAgentDefinition.subAgents[targetSubAgentId];
-                  const isTargetExternal = isExternalAgent(targetAgentData);
-                  const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
-
-                  const relationData = {
-                    id: generateId(),
-                    agentId: typedAgentDefinition.id || '',
-                    sourceSubAgentId: subAgentId,
-                    relationType: 'transfer',
-                    [targetField]: targetSubAgentId,
-                  };
-
                   await createSubAgentRelation(db)({
                     tenantId,
                     projectId,
-                    ...relationData,
+                    id: generateId(),
+                    agentId: typedAgentDefinition.id || '',
+                    sourceSubAgentId: subAgentId,
+                    targetSubAgentId: targetSubAgentId,
+                    relationType: 'transfer',
                   });
 
-                  logger.info(
-                    { subAgentId: subAgentId, targetSubAgentId, isTargetExternal },
-                    'Transfer relation created'
-                  );
+                  logger.info({ subAgentId, targetSubAgentId }, 'Transfer relation created');
                 } catch (error) {
                   logger.error(
-                    { subAgentId: subAgentId, targetSubAgentId, error },
+                    { subAgentId, targetSubAgentId, error },
                     'Failed to create transfer relation'
                   );
                 }
@@ -1349,48 +1359,83 @@ export const updateFullAgentServerSide =
           }
         }
 
-        if (isInternalAgent(agentData) && agentData.canDelegateTo) {
-          for (const targetSubAgentId of agentData.canDelegateTo) {
-            // External agents can't delegate to other agents
+        // Process canDelegateTo - can be internal (string) or external (object)
+        if (agentData.canDelegateTo) {
+          for (const targetItem of agentData.canDelegateTo) {
+            if (typeof targetItem === 'string') {
+              // Internal subAgent delegation
+              subAgentRelationPromises.push(
+                (async () => {
+                  try {
+                    await createSubAgentRelation(db)({
+                      tenantId,
+                      projectId,
+                      id: generateId(),
+                      agentId: typedAgentDefinition.id || '',
+                      sourceSubAgentId: subAgentId,
+                      targetSubAgentId: targetItem,
+                      relationType: 'delegate',
+                    });
 
-            const targetAgentData = typedAgentDefinition.subAgents[targetSubAgentId];
-            const isTargetExternal = isExternalAgent(targetAgentData);
-            const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
+                    logger.info(
+                      { subAgentId, targetSubAgentId: targetItem },
+                      'Sub-agent delegation relation created'
+                    );
+                  } catch (error) {
+                    logger.error(
+                      { subAgentId, targetSubAgentId: targetItem, error },
+                      'Failed to create sub-agent delegation relation'
+                    );
+                  }
+                })()
+              );
+            } else {
+              // External agent delegation
+              subAgentExternalAgentRelationPromises.push(
+                (async () => {
+                  try {
+                    await upsertSubAgentExternalAgentRelation(db)({
+                      scopes: {
+                        tenantId,
+                        projectId,
+                        agentId: typedAgentDefinition.id || '',
+                        subAgentId,
+                      },
+                      data: {
+                        externalAgentId: targetItem.externalAgentId,
+                        headers: targetItem.headers || null,
+                      },
+                    });
 
-            agentRelationPromises.push(
-              (async () => {
-                try {
-                  const relationData = {
-                    id: generateId(),
-                    agentId: typedAgentDefinition.id || '',
-                    sourceSubAgentId: subAgentId,
-                    relationType: 'delegate',
-                    [targetField]: targetSubAgentId,
-                  };
-
-                  await createSubAgentRelation(db)({
-                    tenantId,
-                    projectId,
-                    ...relationData,
-                  });
-
-                  logger.info({ subAgentId, targetSubAgentId }, 'Delegation relation created');
-                } catch (error) {
-                  logger.error(
-                    { subAgentId, targetSubAgentId, error },
-                    'Failed to create delegation relation'
-                  );
-                }
-              })()
-            );
+                    logger.info(
+                      { subAgentId, externalAgentId: targetItem.externalAgentId },
+                      'External delegation relation created'
+                    );
+                  } catch (error) {
+                    logger.error(
+                      { subAgentId, externalAgentId: targetItem.externalAgentId, error },
+                      'Failed to create external delegation relation'
+                    );
+                  }
+                })()
+              );
+            }
           }
         }
       }
 
-      await Promise.all(agentRelationPromises);
+      await Promise.all(subAgentRelationPromises);
       logger.info(
-        { agentRelationPromisesCount: agentRelationPromises.length },
-        'All agent relations updated'
+        { subAgentRelationPromisesCount: subAgentRelationPromises.length },
+        'All sub-agent relations updated'
+      );
+
+      await Promise.all(subAgentExternalAgentRelationPromises);
+      logger.info(
+        {
+          subAgentExternalAgentRelationPromisesCount: subAgentExternalAgentRelationPromises.length,
+        },
+        'All sub-agent external agent relations updated'
       );
 
       // Retrieve and return the updated agent

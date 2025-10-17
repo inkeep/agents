@@ -34,7 +34,6 @@ describe('External Agents Data Access', () => {
         description: 'A test external agent',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: 'cred-123',
-        headers: { 'X-API-Key': 'test-key' },
       };
 
       const expectedAgent = {
@@ -69,7 +68,6 @@ describe('External Agents Data Access', () => {
         description: 'Agent with minimal data',
         baseUrl: 'https://minimal.api.com',
         credentialReferenceId: undefined,
-        headers: undefined,
       };
 
       const expectedAgent = {
@@ -92,7 +90,6 @@ describe('External Agents Data Access', () => {
       const result = await createExternalAgent(mockDb)(agentData);
 
       expect(result.credentialReferenceId).toBeUndefined();
-      expect(result.headers).toBeUndefined();
     });
   });
 
@@ -106,7 +103,6 @@ describe('External Agents Data Access', () => {
         description: 'A test external agent',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: 'cred-123',
-        headers: { 'X-API-Key': 'test-key' },
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -162,7 +158,6 @@ describe('External Agents Data Access', () => {
         description: 'Agent found by URL',
         baseUrl: 'https://unique.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -219,7 +214,6 @@ describe('External Agents Data Access', () => {
           description: 'First agent',
           baseUrl: 'https://api-a.com',
           credentialReferenceId: null,
-          headers: null,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -231,7 +225,6 @@ describe('External Agents Data Access', () => {
           description: 'Second agent',
           baseUrl: 'https://api-b.com',
           credentialReferenceId: 'cred-456',
-          headers: { Authorization: 'Bearer token' },
           createdAt: '2024-01-02T00:00:00Z',
           updatedAt: '2024-01-02T00:00:00Z',
         },
@@ -287,7 +280,6 @@ describe('External Agents Data Access', () => {
           description: 'First agent',
           baseUrl: 'https://api-1.com',
           credentialReferenceId: null,
-          headers: null,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -444,7 +436,6 @@ describe('External Agents Data Access', () => {
         description: 'Updated description',
         baseUrl: 'https://updated.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T12:00:00Z',
       };
@@ -475,7 +466,6 @@ describe('External Agents Data Access', () => {
     it('should handle clearing optional fields', async () => {
       const updateData = {
         credentialReferenceId: null,
-        headers: null,
       };
 
       const expectedAgent = {
@@ -486,7 +476,6 @@ describe('External Agents Data Access', () => {
         description: 'Agent description',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T12:00:00Z',
       };
@@ -511,7 +500,6 @@ describe('External Agents Data Access', () => {
       });
 
       expect(result?.credentialReferenceId).toBeNull();
-      expect(result?.headers).toBeNull();
     });
 
     it('should throw error when no fields to update', async () => {
@@ -635,7 +623,6 @@ describe('External Agents Data Access', () => {
         description: 'Agent that exists',
         baseUrl: 'https://existing.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -690,7 +677,6 @@ describe('External Agents Data Access', () => {
         description: 'Agent with unique URL',
         baseUrl: 'https://unique.url.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };

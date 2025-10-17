@@ -21,6 +21,7 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
+import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
 import { listTools } from './tools';
@@ -298,11 +299,13 @@ export const getFullAgentDefinition =
       ),
     });
 
+    const externalAgentRelations = await getSubAgentExternalAgentRelationsByAgent(db)({
+      scopes: { tenantId, projectId, agentId },
+    });
+
     const externalSubAgentIds = new Set<string>();
-    for (const relation of agentRelations) {
-      if (relation.externalSubAgentId) {
-        externalSubAgentIds.add(relation.externalSubAgentId);
-      }
+    for (const relation of externalAgentRelations) {
+      externalSubAgentIds.add(relation.externalAgentId);
     }
 
     const processedSubAgents = await Promise.all(
@@ -318,10 +321,28 @@ export const getFullAgentDefinition =
           .map((rel) => rel.targetSubAgentId)
           .filter((id): id is string => id !== null);
 
-        const canDelegateTo = subAgentRelationsList
+        const canDelegateToInternal = subAgentRelationsList
           .filter((rel) => rel.relationType === 'delegate' || rel.relationType === 'delegate_to')
-          .map((rel) => rel.targetSubAgentId || rel.externalSubAgentId)
+          .map((rel) => rel.targetSubAgentId)
           .filter((id): id is string => id !== null);
+
+        const canDelegateToExternal = externalAgentRelations
+          .filter((rel) => rel.subAgentId === agent.id)
+          .map((rel) => ({
+            externalAgentId: rel.externalAgentId,
+            subAgentExternalAgentRelationId: rel.id,
+            headers: rel.headers as Record<string, string> | null | undefined,
+          }));
+
+        const canDelegateTo: (
+          | string
+          | {
+              externalAgentId: string;
+              subAgentExternalAgentRelationId?: string;
+              headers?: Record<string, string> | null;
+            }
+        )[] = [...canDelegateToInternal, ...canDelegateToExternal];
+
         const subAgentTools = await db
           .select({
             id: tools.id,
@@ -454,26 +475,32 @@ export const getFullAgentDefinition =
       })
     );
 
-    const validSubAgents = [...processedSubAgents, ...externalAgents].filter(
+    const validSubAgents = processedSubAgents.filter(
+      (agent): agent is NonNullable<typeof agent> => agent !== null
+    );
+
+    const validExternalAgents = externalAgents.filter(
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
     const agentsObject: Record<string, unknown> = {};
+    const externalAgentsObject: Record<string, unknown> = {};
 
+    // Add internal agents to agentsObject
     for (const subAgent of validSubAgents) {
-      if ('baseUrl' in subAgent && subAgent.baseUrl) {
-        agentsObject[subAgent.id] = {
-          id: subAgent.id,
-          name: subAgent.name,
-          description: subAgent.description,
-          baseUrl: subAgent.baseUrl,
-          credentialReferenceId: subAgent.credentialReferenceId,
-          headers: subAgent.headers,
-          type: 'external',
-        };
-      } else {
-        agentsObject[subAgent.id] = subAgent;
-      }
+      agentsObject[subAgent.id] = subAgent;
+    }
+
+    // Add external agents to externalAgentsObject
+    for (const externalAgent of validExternalAgents) {
+      externalAgentsObject[externalAgent.id] = {
+        id: externalAgent.id,
+        name: externalAgent.name,
+        description: externalAgent.description,
+        baseUrl: externalAgent.baseUrl,
+        credentialReferenceId: externalAgent.credentialReferenceId,
+        type: 'external',
+      };
     }
 
     let contextConfig = null;
@@ -545,6 +572,11 @@ export const getFullAgentDefinition =
           ? new Date(agent.updatedAt).toISOString()
           : new Date().toISOString(),
     };
+
+    // Add external agents if any exist
+    if (Object.keys(externalAgentsObject).length > 0) {
+      result.externalAgents = externalAgentsObject;
+    }
 
     if (agent.models) {
       result.models = agent.models;

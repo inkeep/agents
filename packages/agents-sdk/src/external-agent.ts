@@ -1,6 +1,6 @@
 import type { CredentialReferenceSelect } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
-import type { ExternalAgentInterface } from './types';
+import type { ExternalAgentInterface, subAgentExternalAgentInterface } from './types';
 
 const logger = getLogger('external-agent-builder');
 
@@ -11,7 +11,6 @@ export type ExternalAgentConfig = {
   description: string;
   baseUrl: string;
   credentialReference?: CredentialReferenceSelect;
-  headers?: Record<string, string>;
 };
 
 export class ExternalAgent implements ExternalAgentInterface {
@@ -80,6 +79,13 @@ export class ExternalAgent implements ExternalAgentInterface {
     return this.config.id;
   }
 
+  with(options: { headers?: Record<string, string> }): subAgentExternalAgentInterface {
+    return {
+      externalAgent: this,
+      headers: options.headers,
+    };
+  }
+
   // Private method to upsert external agent (create or update)
   private async upsertExternalAgent(): Promise<void> {
     const externalAgentData = {
@@ -88,7 +94,6 @@ export class ExternalAgent implements ExternalAgentInterface {
       description: this.config.description,
       baseUrl: this.config.baseUrl,
       credentialReferenceId: this.config.credentialReference?.id || undefined,
-      headers: this.config.headers || undefined,
     };
 
     // First try to update (in case external agent exists)
@@ -192,8 +197,8 @@ export class ExternalAgent implements ExternalAgentInterface {
     return this.config.credentialReference?.id || undefined;
   }
 
-  getHeaders(): Record<string, string> | undefined {
-    return this.config.headers;
+  getCredentialReference(): CredentialReferenceSelect | undefined {
+    return this.config.credentialReference || undefined;
   }
 }
 

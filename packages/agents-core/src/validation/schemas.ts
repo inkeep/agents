@@ -17,6 +17,7 @@ import {
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
+  subAgentExternalAgentRelations,
   subAgentRelations,
   subAgents,
   subAgentToolRelations,
@@ -691,6 +692,34 @@ export const SubAgentToolRelationApiUpdateSchema = createAgentScopedApiUpdateSch
   SubAgentToolRelationUpdateSchema
 ).openapi('SubAgentToolRelationUpdate');
 
+// Sub-Agent External Agent Relation Schemas
+export const SubAgentExternalAgentRelationSelectSchema = createSelectSchema(
+  subAgentExternalAgentRelations
+);
+export const SubAgentExternalAgentRelationInsertSchema = createInsertSchema(
+  subAgentExternalAgentRelations
+).extend({
+  id: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  externalAgentId: resourceIdSchema,
+  headers: z.record(z.string(), z.string()).nullish(),
+});
+
+export const SubAgentExternalAgentRelationUpdateSchema =
+  SubAgentExternalAgentRelationInsertSchema.partial();
+
+export const SubAgentExternalAgentRelationApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentExternalAgentRelationSelectSchema
+).openapi('SubAgentExternalAgentRelation');
+export const SubAgentExternalAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
+  SubAgentExternalAgentRelationInsertSchema
+)
+  .omit({ id: true, subAgentId: true })
+  .openapi('SubAgentExternalAgentRelationCreate');
+export const SubAgentExternalAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  SubAgentExternalAgentRelationUpdateSchema
+).openapi('SubAgentExternalAgentRelationUpdate');
+
 export const LedgerArtifactSelectSchema = createSelectSchema(ledgerArtifacts);
 export const LedgerArtifactInsertSchema = createInsertSchema(ledgerArtifacts);
 export const LedgerArtifactUpdateSchema = LedgerArtifactInsertSchema.partial();
@@ -732,21 +761,32 @@ export const CanUseItemSchema = z
   })
   .openapi('CanUseItem');
 
+export const canDelegateToExternalAgentSchema = z.object({
+  externalAgentId: z.string(),
+  subAgentExternalAgentRelationId: z.string().optional(),
+  headers: z.record(z.string(), z.string()).nullish(),
+});
+
 export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
-  canDelegateTo: z.array(z.string()).optional(),
+  canDelegateTo: z
+    .array(
+      z.union([
+        z.string(), // Internal subAgent ID
+        canDelegateToExternalAgentSchema, // External agent with headers
+      ])
+    )
+    .optional(),
 });
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([FullAgentAgentInsertSchema, ExternalAgentApiInsertSchema])
-  ), // Lookup maps for UI to resolve canUse items
+  subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
+  externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),

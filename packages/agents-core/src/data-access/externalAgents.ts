@@ -147,13 +147,6 @@ export const updateExternalAgent =
       throw new Error('No fields to update');
     }
 
-    // Handle optional field clearing
-    if (
-      updateData.headers !== undefined &&
-      (updateData.headers === null || Object.keys(updateData.headers || {}).length === 0)
-    ) {
-      updateData.headers = null;
-    }
     if (updateData.credentialReferenceId === undefined) {
       updateData.credentialReferenceId = null;
     }
@@ -198,7 +191,6 @@ export const upsertExternalAgent =
           description: params.data.description,
           baseUrl: params.data.baseUrl,
           credentialReferenceId: params.data.credentialReferenceId,
-          headers: params.data.headers,
         },
       });
       if (!updated) {
