@@ -15,7 +15,7 @@ export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
 
   // Without this useEffect, the animation won't start when this component is rendered dynamically.
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need restart animation when invert is changed
-    useEffect(() => {
+  useEffect(() => {
     ref.current?.beginElement();
   }, [inverted]);
 

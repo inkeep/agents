@@ -700,27 +700,30 @@ function Flow({
       console.log('Data operation:', data);
 
       switch (data.type) {
-        case 'delegation_sent': {
+        case 'agent_initializing': {
+          // TODO
+          break;
+        }
+        case 'delegation_sent':
+        case 'transfer': {
           const { fromSubAgent, targetSubAgent } = data.details.data;
           setEdges((prevEdges) =>
-            prevEdges.map((edge) =>
-              edge.source === fromSubAgent && edge.target === targetSubAgent
-                ? {
-                    ...edge,
-                    data: { ...edge.data, isDelegating: true },
-                  }
-                : edge
-            )
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: {
+                ...edge.data,
+                delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+              },
+            }))
           );
           setNodes((prevNodes) =>
-            prevNodes.map((node) =>
-              node.id === fromSubAgent || node.id === targetSubAgent
-                ? {
-                    ...node,
-                    data: { ...node.data, isDelegating: true },
-                  }
-                : node
-            )
+            prevNodes.map((node) => ({
+              ...node,
+              data: {
+                ...node.data,
+                isDelegating: node.id === fromSubAgent || node.id === targetSubAgent,
+              },
+            }))
           );
           break;
         }
@@ -729,13 +732,13 @@ function Flow({
           setEdges((prevEdges) =>
             prevEdges.map((edge) => ({
               ...edge,
-              data: { ...edge.data, isDelegating: false },
+              data: { ...edge.data, delegating: false },
             }))
           );
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: false, isDelegating: node.id === targetSubAgent },
+              data: { ...node.data, isExecuting: node.id === targetSubAgent, isDelegating: false },
             }))
           );
           break;
@@ -751,41 +754,60 @@ function Flow({
                 const toolData = toolLookup[toolId];
                 const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
                 const hasDots = edge.source === subAgentId && hasTool;
-                return hasDots
-                  ? {
-                      ...edge,
-                      data: { ...edge.data, isDelegating: true },
-                    }
-                  : edge;
+                return {
+                  ...edge,
+                  data: { ...edge.data, delegating: hasDots },
+                };
               })
             );
             return prevNodes.map((node) => {
               const toolId = node.data.toolId as string;
               const toolData = toolLookup[toolId];
 
-              return node.data.id === subAgentId ||
-                toolData?.availableTools?.some((tool) => tool.name === toolName)
-                ? {
-                    ...node,
-                    data: { ...node.data, isDelegating: true },
-                  }
-                : node;
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isDelegating:
+                    node.data.id === subAgentId ||
+                    toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
             });
           });
           break;
         }
         case 'tool_result': {
           const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
           setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+
+                return {
+                  ...edge,
+                  data: {
+                    ...edge.data,
+                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                  },
+                };
+              })
+            );
             return prevNodes.map((node) => {
               const toolId = node.data.toolId as string;
               const toolData = toolLookup[toolId];
-              return toolData?.availableTools?.some((tool) => tool.name === toolName)
-                ? {
-                    ...node,
-                    data: { ...node.data, isExecuting: true },
-                  }
-                : node;
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isDelegating: node.id === subAgentId,
+                  isExecuting: toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
             });
           });
           break;
@@ -796,6 +818,12 @@ function Flow({
         }
         case 'agent_generate': {
           const { subAgentId } = data.details;
+          setEdges((prevEdges) =>
+            prevEdges.map((node) => ({
+              ...node,
+              data: { ...node.data, delegating: false },
+            }))
+          );
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
@@ -811,7 +839,7 @@ function Flow({
       setEdges((prevEdges) =>
         prevEdges.map((edge) => ({
           ...edge,
-          data: { ...edge.data, isDelegating: false },
+          data: { ...edge.data, delegating: false },
         }))
       );
       setNodes((prevNodes) =>
