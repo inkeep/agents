@@ -8,7 +8,6 @@ import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -88,21 +87,14 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       )}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-shrink-0 mr-4">
           <MCPToolImage
             imageUrl={imageUrl}
             name={name}
             provider={provider || undefined}
             size={24}
-            className="mt-[1px] flex-shrink-0"
+            className="flex-shrink-0"
           />
-          <BaseNodeHeaderTitle className="flex-shrink-0">{name}</BaseNodeHeaderTitle>
-        </div>
-        <Check
-          width="16"
-          stroke="var(--color-primary)"
-          className={data.isExecuting ? '' : 'invisible'}
-        />
+          <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent>
         {toolBadges.map((label, index) => (
