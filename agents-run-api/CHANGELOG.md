@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.23.5
+
+### Patch Changes
+
+- 42d2dac: ui trace improvements
+- Updated dependencies [42d2dac]
+  - @inkeep/agents-core@0.23.5
+
 ## 0.23.4
 
 ### Patch Changes
