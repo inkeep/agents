@@ -86,6 +86,8 @@ services:
       - INKEEP_AGENTS_MANAGE_UI_PASSWORD=${INKEEP_AGENTS_MANAGE_UI_PASSWORD:-adminADMIN!@12}
     ports:
       - "3000:80"
+    depends_on:
+      - inkeep-agents-manage-ui
     command: >
       /bin/sh -c "
         apk add --no-cache apache2-utils &&
