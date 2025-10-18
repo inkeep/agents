@@ -182,6 +182,13 @@ export function TimelineItem({
             </div>
           )}
 
+          {/* subagent badge for AI assistant message */}
+          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentName && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.subAgentName}</Badge>
+            </div>
+          )}
+
           {/* streamed text bubble */}
           {activity.type === 'ai_model_streamed_text' && activity.aiStreamTextContent && (
             <div className="space-y-2">
@@ -207,6 +214,15 @@ export function TimelineItem({
               {!isAiMessageCollapsed && (
                 <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
               )}
+            </div>
+          )}
+
+          {/* ai.telemetry.functionId badge for streamed text */}
+          {activity.type === 'ai_model_streamed_text' && activity.aiTelemetryFunctionId && (
+            <div className="mb-1">
+              <Badge variant="code" className="text-xs">
+                {activity.aiTelemetryFunctionId}
+              </Badge>
             </div>
           )}
 
@@ -241,6 +257,15 @@ export function TimelineItem({
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ai.telemetry.functionId badge for streamed object */}
+          {activity.type === 'ai_model_streamed_object' && activity.aiTelemetryFunctionId && (
+            <div className="mb-1">
+              <Badge variant="code" className="text-xs">
+                {activity.aiTelemetryFunctionId}
+              </Badge>
             </div>
           )}
 
@@ -332,6 +357,13 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
             <div className="mb-1">
               <Badge variant="code">{activity.subAgentName}</Badge>
+            </div>
+          )}
+
+          {/* agent ID for agent generation */}
+          {activity.type === ACTIVITY_TYPES.AGENT_GENERATION && activity.subAgentId && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 
