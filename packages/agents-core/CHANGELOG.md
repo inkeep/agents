@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.23.5
+
+### Patch Changes
+
+- 42d2dac: ui trace improvements
+
 ## 0.23.4
 
 ### Patch Changes
