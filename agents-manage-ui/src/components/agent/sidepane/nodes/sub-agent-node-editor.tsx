@@ -18,7 +18,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
-import { ExpandableTextArea } from './expandable-text-area';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
 
@@ -132,13 +132,12 @@ export function SubAgentNodeEditor({
       />
 
       <div className="space-y-2">
-        <ExpandableTextArea
+        <ExpandablePromptEditor
           id="prompt"
-          value={selectedNode.data.prompt || ''}
+          value={selectedNode.data.prompt}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."
-          data-invalid={errorHelpers?.hasFieldError('prompt') ? '' : undefined}
-          className="w-full max-h-96 data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
+          aria-invalid={errorHelpers?.hasFieldError('prompt')}
           label="Prompt"
           isRequired
         />
