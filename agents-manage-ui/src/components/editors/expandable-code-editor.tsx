@@ -1,32 +1,32 @@
 'use client';
 
 import type { ComponentPropsWithoutRef, FC } from 'react';
-import { JsonEditor } from '@/components/editors/json-editor';
+import { CodeEditor } from '@/components/editors/code-editor';
 import { cn } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
 
-type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
+type CodeEditorProps = ComponentPropsWithoutRef<typeof CodeEditor>;
 
-interface ExpandableJsonEditorProps {
+interface ExpandableCodeEditorProps {
   name: string;
-  value: NonNullable<JsonEditorProps['value']>;
-  onChange: NonNullable<JsonEditorProps['onChange']>;
-  className?: JsonEditorProps['className'];
+  value: NonNullable<CodeEditorProps['value']>;
+  onChange: NonNullable<CodeEditorProps['onChange']>;
+  className?: CodeEditorProps['className'];
   label?: string;
   error?: string;
-  placeholder?: JsonEditorProps['placeholder'];
+  placeholder?: CodeEditorProps['placeholder'];
 }
 
-const ExpandedJsonEditor: FC<JsonEditorProps & { error?: string }> = ({ error, id, ...props }) => {
+const ExpandedCodeEditor: FC<CodeEditorProps & { error?: string }> = ({ error, id, ...props }) => {
   return (
     <>
-      <JsonEditor {...props} id={`${id}-expanded`} />
+      <CodeEditor {...props} id={`${id}-expanded`} />
       {error && <p className="text-sm text-destructive mt-2">{error}</p>}
     </>
   );
 };
 
-export function ExpandableJsonEditor({
+export function ExpandableCodeEditor({
   name,
   value,
   onChange,
@@ -34,7 +34,7 @@ export function ExpandableJsonEditor({
   label = 'JSON',
   placeholder = 'Enter valid JSON...',
   error: externalError,
-}: ExpandableJsonEditorProps) {
+}: ExpandableCodeEditorProps) {
   const error = externalError;
 
   const commonProps = {
@@ -52,7 +52,7 @@ export function ExpandableJsonEditor({
       className={className}
       compactView={
         <>
-          <JsonEditor
+          <CodeEditor
             {...commonProps}
             editorOptions={{
               fontSize: 14,
@@ -67,7 +67,7 @@ export function ExpandableJsonEditor({
         </>
       }
       expandedView={
-        <ExpandedJsonEditor {...commonProps} autoFocus hasDynamicHeight={false} error={error} />
+        <ExpandedCodeEditor {...commonProps} autoFocus hasDynamicHeight={false} error={error} />
       }
     />
   );
