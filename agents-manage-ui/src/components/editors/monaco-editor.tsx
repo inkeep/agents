@@ -211,7 +211,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       {...props}
     >
       {children}
-      {!monaco && <Skeleton className="h-4 mx-[26px] my-3" />}
+      {!monaco && <Skeleton className="h-4 w-3/4 mx-[26px] my-3" />}
     </div>
   );
 };
