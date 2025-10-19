@@ -5,6 +5,7 @@ import {
   createApiError,
   createMessage,
   createOrGetConversation,
+  errorSchemaFactory,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
   getConversationId,
@@ -134,6 +135,7 @@ const chatCompletionsRoute = createRoute({
         },
       },
     },
+    413: errorSchemaFactory('payload_too_large', 'Request payload exceeds maximum allowed size'),
     500: {
       description: 'Internal server error',
       content: {

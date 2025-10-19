@@ -1,0 +1,167 @@
+---
+title: Request Limits
+description: Understanding API request size limitations and error handling
+---
+
+## Overview
+
+Both the Run API and Manage API enforce request size limits to protect the system from excessively large payloads. These limits are enforced at the API level, independent of model-specific constraints.
+
+## Default Limit
+
+The default maximum request size is **1GB** (1,073,741,824 bytes) for both APIs.
+
+This limit is intentionally set high to accommodate:
+- Large conversation histories
+- Multiple file uploads
+- Extensive context data
+- Complex agent configurations
+
+## How It Works
+
+Request size validation occurs via `Content-Length` header inspection:
+
+1. **Early Validation**: The middleware checks the `Content-Length` header before parsing the request body
+2. **Method-Specific**: Only validates requests with bodies (POST, PUT, PATCH, DELETE)
+3. **Skipped for Safe Methods**: GET, HEAD, and OPTIONS requests bypass validation
+4. **Missing Header**: Requests without `Content-Length` are allowed to proceed (body parsing will handle validation)
+
+## Error Response
+
+When a request exceeds the size limit, the API returns a `413 Payload Too Large` response in Problem+JSON format:
+
+```json
+{
+  "title": "Payload Too Large",
+  "status": 413,
+  "detail": "Request payload size (1073741825 bytes) exceeds maximum allowed size of 1073741824 bytes",
+  "code": "payload_too_large",
+  "error": {
+    "code": "payload_too_large",
+    "message": "Request payload exceeds maximum allowed size"
+  }
+}
+```
+
+### Response Headers
+
+```http
+HTTP/1.1 413 Payload Too Large
+Content-Type: application/problem+json
+X-Content-Type-Options: nosniff
+```
+
+## Configuration
+
+If you're self-hosting, you can configure the maximum request size through the `ServerConfig`:
+
+```typescript
+import { createExecutionHono } from '@inkeep/agents-run-api';
+import { createManagementHono } from '@inkeep/agents-manage-api';
+
+const serverConfig = {
+  serverOptions: {
+    maxRequestSizeBytes: 536870912, // 512MB custom limit
+  },
+};
+
+// Apply to Run API
+const runApp = createExecutionHono(serverConfig, credentialStores);
+
+// Apply to Manage API
+const manageApp = createManagementHono(serverConfig, credentialStores);
+```
+
+### Common Size Values
+
+```typescript
+// Size references for common limits
+const sizes = {
+  '1KB': 1024,
+  '1MB': 1048576,
+  '100MB': 104857600,
+  '512MB': 536870912,
+  '1GB': 1073741824,        // Default
+  '2GB': 2147483648,
+};
+```
+
+## Best Practices
+
+### Client-Side
+
+1. **Check Size Before Sending**: Validate payload size on the client before making requests
+2. **Stream Large Data**: For very large data transfers, consider streaming or chunking
+3. **Handle 413 Errors**: Implement retry logic with smaller payloads when receiving 413 responses
+4. **Set Content-Length**: Always include accurate `Content-Length` headers
+
+### Example: Client-Side Validation
+
+```typescript
+function validatePayloadSize(payload: unknown, maxSize = 1073741824): boolean {
+  const payloadString = JSON.stringify(payload);
+  const payloadSize = new TextEncoder().encode(payloadString).length;
+
+  if (payloadSize > maxSize) {
+    console.error(`Payload size (${payloadSize} bytes) exceeds limit (${maxSize} bytes)`);
+    return false;
+  }
+
+  return true;
+}
+
+// Usage
+const requestBody = { messages: [...] };
+if (validatePayloadSize(requestBody)) {
+  await fetch('/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': String(JSON.stringify(requestBody).length),
+    },
+    body: JSON.stringify(requestBody),
+  });
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Error: 413 Payload Too Large**
+- **Cause**: Request body exceeds the configured size limit
+- **Solution**: Reduce payload size, chunk data, or increase server limit (if self-hosting)
+
+**Request Rejected Despite Small Payload**
+- **Cause**: Incorrect `Content-Length` header
+- **Solution**: Ensure `Content-Length` accurately reflects the actual payload size
+
+**GET Request Receives 413**
+- **Cause**: `Content-Length` header on GET request (should not have body)
+- **Solution**: Remove `Content-Length` header from GET requests
+
+### Monitoring
+
+When monitoring your APIs, track 413 responses to identify:
+- Clients sending oversized payloads
+- Potential misuse or misconfiguration
+- Need to adjust size limits
+
+```typescript
+// Example: Log 413 responses
+app.onError(async (err, c) => {
+  if (err instanceof HTTPException && err.status === 413) {
+    logger.warn({
+      path: c.req.path,
+      contentLength: c.req.header('content-length'),
+      userAgent: c.req.header('user-agent'),
+    }, 'Request size limit exceeded');
+  }
+});
+```
+
+## Related
+
+- [Chat API](/docs/talk-to-your-agents/chat-api) - Learn about chat completion requests
+- [A2A Protocol](/docs/talk-to-your-agents/a2a) - Agent-to-Agent communication
+- [Self-Hosting](/docs/self-hosting/docker) - Configure limits in your deployment

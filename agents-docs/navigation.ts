@@ -138,6 +138,7 @@ export default {
             'api-reference/authentication/manage-api',
           ],
         },
+        'api-reference/request-limits',
         'api-reference',
       ],
     },
