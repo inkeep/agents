@@ -1,9 +1,4 @@
-/**
- * Re‑export Monaco Editor exports.
- * Importing directly from 'monaco-editor' causes a “window is not defined” error during SSR.
- */
-import { Range } from 'monaco-editor/esm/vs/editor/common/core/range.js';
-import type { editor, IDisposable } from 'monaco-editor';
+import type * as Monaco from 'monaco-editor';
 
 // Function to check if a token should show a copy icon
 function shouldShowCopyIcon(tokenType: string): boolean {
@@ -17,22 +12,22 @@ function shouldShowCopyIcon(tokenType: string): boolean {
 }
 
 export function addDecorations({
-  monacoEditor,
+  monaco,
   editorInstance,
   content,
   addedContent = ' #',
 }: {
-  monacoEditor: typeof editor;
-  editorInstance: editor.IStandaloneCodeEditor;
+  monaco: typeof Monaco;
+  editorInstance: Monaco.editor.IStandaloneCodeEditor;
   content: string;
   addedContent?: string;
 }): {
-  decorations: editor.IModelDeltaDecoration[];
-  decorationCollection: editor.IEditorDecorationsCollection;
+  decorations: Monaco.editor.IModelDeltaDecoration[];
+  decorationCollection: Monaco.editor.IEditorDecorationsCollection;
 } {
   // Add decorations for copy icons after primitive values
-  const decorations: editor.IModelDeltaDecoration[] = [];
-  const tokens = monacoEditor.tokenize(content, 'json');
+  const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
+  const tokens = monaco.editor.tokenize(content, 'json');
 
   // Find tokens that should have copy icons and add decorations
   const lines = content.split('\n');
@@ -49,7 +44,7 @@ export function addDecorations({
       const nextToken = lineTokens[tokenIndex + 1];
       const tokenEndOffset = nextToken ? nextToken.offset + 1 : lineContent.length;
 
-      const range = new Range(
+      const range = new monaco.Range(
         //
         lineNumber,
         tokenEndOffset,
@@ -76,7 +71,7 @@ export function addDecorations({
 /**
  * Cleanup various monaco-editor disposables functions
  */
-export function cleanupDisposables(disposables: IDisposable[]) {
+export function cleanupDisposables(disposables: Monaco.IDisposable[]) {
   return () => {
     for (const disposable of disposables) {
       disposable.dispose(); // remove the listener

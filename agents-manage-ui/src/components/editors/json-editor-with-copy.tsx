@@ -5,6 +5,8 @@ import type * as monaco from 'monaco-editor';
 import { JsonEditor } from './json-editor';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import './json-editor-with-copy.css';
 
 const handleCopyFieldValue =
@@ -43,7 +45,7 @@ type JsonEditorWithCopyProps = Pick<ComponentProps<typeof JsonEditor>, 'uri' | '
 
 export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, value }) => {
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>();
-
+  const monaco = useMonacoStore((state) => state.monaco);
   const handleCopyCode = useCallback(async () => {
     const code = editor?.getValue() ?? '';
     try {
@@ -73,13 +75,10 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
     toast.success('File downloaded successfully');
   }, [editor]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
-  useEffect(() => {
-    if (!editor) {
-      return;
-    }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
+    useEffect(() => {
     const model = editor?.getModel();
-    if (!model) {
+    if (!monaco || !editor || !model) {
       return;
     }
 
@@ -88,9 +87,11 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
       if (model.isDisposed()) {
         return;
       }
-      // Dynamically import utilities that depend on `monaco-editor` (which accesses `window`)
-      import('@/lib/monaco-editor/monaco-utils').then(({ addDecorations }) => {
-        addDecorations(editor, value || '', ' ');
+      addDecorations({
+        monaco,
+        editorInstance: editor,
+        content: value || '',
+        addedContent: ' ',
       });
     }, 1000);
 
@@ -101,7 +102,7 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
       clearTimeout(timerId);
       onMouseDown.dispose();
     };
-  }, [editor]);
+  }, [editor, monaco]);
 
   const handleOnMount = useCallback<NonNullable<ComponentProps<typeof JsonEditor>['onMount']>>(
     (editor) => {
