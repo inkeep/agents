@@ -49,7 +49,7 @@ const PromptEditorWithAddVariables: FC<
           {tooltip}
         </LegacyPromptEditor>
       </div>
-      <PromptEditor>{tooltip}</PromptEditor>
+      <PromptEditor />
     </>
   );
 };
