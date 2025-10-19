@@ -62,7 +62,7 @@ export function ExpandableField({
             <Label htmlFor={`${name}-expanded`}>{label}</Label>
             {actions}
           </div>
-          <div className="flex-1 min-h-0">{expandedView}</div>
+          {expandedView}
         </div>
       </DialogContent>
     </Dialog>

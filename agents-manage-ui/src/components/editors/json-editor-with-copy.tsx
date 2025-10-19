@@ -120,9 +120,7 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
       <JsonEditor
         uri={uri}
         value={value}
-        editorOptions={{
-          readOnly: true,
-        }}
+        readOnly
         className="inkeep-readonly-monaco-editor"
         onMount={handleOnMount}
       >

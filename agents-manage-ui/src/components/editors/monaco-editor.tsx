@@ -23,26 +23,33 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
    * @see https://github.com/microsoft/monaco-editor?tab=readme-ov-file#uris
    */
   uri: string;
+  readOnly?: boolean;
   disabled?: boolean;
   onChange?: (value: string) => void;
   ref?: Ref<MonacoEditorRef>;
+  placeholder?: string;
   /**
    * Stretches the editor height to fit its content.
    * @default true
    */
   hasDynamicHeight?: boolean;
   onMount?: (editor: Monaco.editor.IStandaloneCodeEditor) => void;
-  editorOptions?: Monaco.editor.IStandaloneEditorConstructionOptions;
+  editorOptions?: Omit<
+    Monaco.editor.IStandaloneEditorConstructionOptions,
+    'readOnly' | 'placeholder'
+  >;
 }
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
   ref,
   value = '',
   uri: $uri,
+  readOnly,
   children,
   className,
   disabled,
   onChange,
+  placeholder,
   autoFocus,
   editorOptions = {},
   hasDynamicHeight = true,
@@ -63,9 +70,9 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     editorRef.current?.updateOptions({
-      readOnly: editorOptions.readOnly || disabled,
+      readOnly: readOnly || disabled,
     });
-  }, [editorOptions.readOnly, disabled]);
+  }, [readOnly, disabled]);
 
   // Sync model value when `value` prop changes
   useEffect(() => {
@@ -123,6 +130,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       },
       stickyScroll: { enabled: false }, // Disable sticky scroll widget
       tabSize: 2,
+      readOnly,
+      placeholder,
       // scrollbar: {
       //   verticalScrollbarSize: 10,
       // },

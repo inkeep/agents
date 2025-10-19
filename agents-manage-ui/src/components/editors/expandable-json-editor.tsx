@@ -70,9 +70,7 @@ const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
         autoFocus
         value={value}
         onChange={onChange}
-        editorOptions={{
-          placeholder,
-        }}
+        placeholder={placeholder}
         aria-invalid={!!error}
         hasDynamicHeight={false}
       />
@@ -125,8 +123,8 @@ export function ExpandableJsonEditor({
             id={name}
             value={value}
             onChange={onChange}
+            placeholder={placeholder}
             editorOptions={{
-              placeholder,
               fontSize: 14,
               padding: {
                 top: 12,

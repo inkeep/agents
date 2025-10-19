@@ -10,11 +10,7 @@ import { PromptEditor } from '@/components/editors/prompt-editor';
 // Extract inner type from RefObject<T>
 type RefValue<T> = T extends RefObject<infer R> ? R : never;
 
-const PromptEditorWithAddVariables: FC<
-  ComponentProps<typeof LegacyPromptEditor> & {
-    tooltipClassName: string;
-  }
-> = ({ tooltipClassName, ...props }) => {
+const PromptEditorWithAddVariables: FC<ComponentProps<typeof LegacyPromptEditor>> = (props) => {
   const codemirrorRef = useRef<RefValue<typeof props.ref>>(null);
   const variablesText = 'Add variables';
   const tooltip = (
@@ -24,10 +20,7 @@ const PromptEditorWithAddVariables: FC<
           <Button
             variant="ghost"
             size="icon"
-            className={cn(
-              'absolute bottom-[9px] h-6 w-6 hover:text-foreground transition-all backdrop-blur-sm bg-white/90 hover:bg-white/95 dark:bg-card dark:hover:bg-accent border border-border shadow-md dark:shadow-lg z-1',
-              tooltipClassName
-            )}
+            className="absolute bottom-[9px] h-6 w-6 hover:text-foreground transition-all backdrop-blur-sm bg-white/90 hover:bg-white/95 dark:bg-card dark:hover:bg-accent border border-border shadow-md dark:shadow-lg z-1"
             type="button"
             onClick={() => {
               codemirrorRef.current?.insertTemplateVariable();
@@ -43,38 +36,31 @@ const PromptEditorWithAddVariables: FC<
   );
 
   return (
-    <>
-      <div className="h-full relative">
-        <LegacyPromptEditor ref={codemirrorRef} {...props}>
-          {tooltip}
-        </LegacyPromptEditor>
-      </div>
-      <PromptEditor />
-    </>
+    <div className="h-full relative">
+      <LegacyPromptEditor ref={codemirrorRef} {...props}>
+        {tooltip}
+      </LegacyPromptEditor>
+    </div>
   );
 };
 
 export function ExpandablePromptEditor({
   label,
   isRequired = false,
+  className,
   ...props
 }: {
   label: string;
   isRequired?: boolean;
-} & React.ComponentProps<typeof LegacyPromptEditor>) {
+} & React.ComponentProps<typeof PromptEditor>) {
   return (
     <ExpandableField
       name={props.id || 'expandable-textarea'}
       label={label}
       isRequired={isRequired}
-      compactView={<PromptEditorWithAddVariables {...props} tooltipClassName="right-10" />}
+      compactView={<PromptEditor className={cn('max-h-96', className)} {...props} />}
       expandedView={
-        <PromptEditorWithAddVariables
-          {...props}
-          autoFocus
-          className="[&>.cm-editor]:h-full"
-          tooltipClassName="right-2.5"
-        />
+        <PromptEditor autoFocus {...props} hasDynamicHeight={false} className={className} />
       }
     />
   );
