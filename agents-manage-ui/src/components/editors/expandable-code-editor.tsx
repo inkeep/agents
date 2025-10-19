@@ -12,7 +12,8 @@ interface ExpandableCodeEditorProps {
   value: NonNullable<CodeEditorProps['value']>;
   onChange: NonNullable<CodeEditorProps['onChange']>;
   className?: CodeEditorProps['className'];
-  label?: string;
+  label: string;
+  isRequired?: boolean;
   error?: string;
   placeholder?: CodeEditorProps['placeholder'];
 }
@@ -31,12 +32,11 @@ export function ExpandableCodeEditor({
   value,
   onChange,
   className,
-  label = 'JSON',
-  placeholder = 'Enter valid JSON...',
-  error: externalError,
+  label,
+  placeholder,
+  error,
+  isRequired,
 }: ExpandableCodeEditorProps) {
-  const error = externalError;
-
   const commonProps = {
     id: name,
     value,
@@ -50,6 +50,7 @@ export function ExpandableCodeEditor({
       name={name}
       label={label}
       className={className}
+      isRequired={isRequired}
       compactView={
         <>
           <CodeEditor

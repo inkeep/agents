@@ -1,9 +1,9 @@
 import type { Node } from '@xyflow/react';
 import { useCallback, useEffect, useState } from 'react';
-import { StandaloneJsonEditor } from '@/components/form/standalone-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
-import { ExpandableTextArea } from './expandable-text-area';
+import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { InputField, TextareaField } from './form-fields';
 
 interface FunctionToolNodeEditorProps {
@@ -119,7 +119,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         error={getFieldError('name')}
         isRequired
       />
-
       <TextareaField
         ref={(el) => setFieldRef('description', el)}
         id="function-tool-description"
@@ -132,23 +131,20 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         isRequired
         maxHeight="max-h-32"
       />
-
-      <ExpandableTextArea
-        id="function-tool-code"
+      <ExpandableCodeEditor
+        name="code"
         label="Code"
         value={code}
         onChange={handleCodeChange}
         placeholder="Enter function code here..."
-        data-invalid={getFieldError('code') ? '' : undefined}
+        error={getFieldError('code')}
         isRequired
-        className="font-mono text-sm data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
       />
       <p className="text-sm text-muted-foreground">
         JavaScript function code to be executed by the tool. The function will receive arguments
         based on the input schema and should return a result.
       </p>
       {getFieldError('code') && <p className="text-sm text-red-600">{getFieldError('code')}</p>}
-
       <div className="space-y-2">
         <div className="text-sm font-medium">
           Input Schema <span className="text-red-500">*</span>
@@ -179,7 +175,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           <p className="text-sm text-red-600">{getFieldError('inputSchema')}</p>
         )}
       </div>
-
       <div className="space-y-2">
         <div className="text-sm font-medium">Dependencies</div>
         <p className="text-sm text-muted-foreground">
