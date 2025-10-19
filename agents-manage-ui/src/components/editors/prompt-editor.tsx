@@ -42,6 +42,9 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
   uri?: `${string}.plaintext`;
 }
 
+// Global flag to ensure provider is registered only once
+let isProviderRegistered = false;
+
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const id = useId();
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
@@ -63,16 +66,13 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   }, [contextConfig]);
 
   useEffect(() => {
-    if (!monaco || !editor) {
+    const model = editor?.getModel();
+    if (!monaco || !editor || !model) {
       return;
     }
-    const model = editor.getModel();
 
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
-      if (!model) {
-        return;
-      }
       const validVariables = new Set(suggestionsRef.current);
       const regex = /\{\{([^}]+)}}/g;
       const markers: Monaco.editor.IMarkerData[] = [];
@@ -110,78 +110,84 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
       monaco.editor.setModelMarkers(model, 'template-variables', markers);
     };
 
-    const disposables: (IDisposable | undefined)[] = [
-      // Register completion provider for template variables
-      monaco.languages.registerCompletionItemProvider('plaintext', {
-        triggerCharacters: ['{'],
-        provideCompletionItems(model, position) {
-          const textUntilPosition = model.getValueInRange({
-            startLineNumber: 1,
-            startColumn: 1,
-            endLineNumber: position.lineNumber,
-            endColumn: position.column,
-          });
+    const disposables: IDisposable[] = [];
 
-          console.log('Completion triggered:', { textUntilPosition, position });
+    // Register completion provider only once globally
+    if (!isProviderRegistered) {
+      isProviderRegistered = true;
+      disposables.push(
+        monaco.languages.registerCompletionItemProvider('plaintext', {
+          triggerCharacters: ['{'],
+          provideCompletionItems(model, position) {
+            const textUntilPosition = model.getValueInRange({
+              startLineNumber: 1,
+              startColumn: 1,
+              endLineNumber: position.lineNumber,
+              endColumn: position.column,
+            });
 
-          // Check if we're inside a template variable (after {)
-          const match = textUntilPosition.match(/\{([^}]*)$/);
-          if (!match) {
-            console.log('No template variable match found');
-            return { suggestions: [] };
-          }
+            console.log('Completion triggered:', { textUntilPosition, position });
 
-          console.log('Template variable match:', match);
+            // Check if we're inside a template variable (after {)
+            const match = textUntilPosition.match(/\{([^}]*)$/);
+            if (!match) {
+              console.log('No template variable match found');
+              return { suggestions: [] };
+            }
 
-          const query = match[1].toLowerCase();
-          const filteredSuggestions = suggestionsRef.current.filter((suggestion) =>
-            suggestion.toLowerCase().includes(query)
-          );
+            console.log('Template variable match:', match);
 
-          const word = model.getWordUntilPosition(position);
-          const range = new monaco.Range(
-            position.lineNumber,
-            word.startColumn,
-            position.lineNumber,
-            word.endColumn
-          );
+            const query = match[1].toLowerCase();
+            const filteredSuggestions = suggestionsRef.current.filter((suggestion) =>
+              suggestion.toLowerCase().includes(query)
+            );
 
-          const completionItems: Omit<
-            Monaco.languages.CompletionItem,
-            'kind' | 'range' | 'insertText'
-          >[] = [
-            // Add context suggestions
-            ...filteredSuggestions.map((label) => ({
-              label,
-              detail: 'Context variable',
-              sortText: '0',
-            })),
-            // Add reserved keys
-            ...Array.from(RESERVED_KEYS).map((label) => ({
-              label,
-              detail: 'Reserved variable',
-              sortText: '1',
-            })),
-            // Add environment variables
-            {
-              label: '$env.',
-              detail: 'Environment variable',
-              sortText: '2',
-            },
-          ];
-          return {
-            suggestions: completionItems.map((item) => ({
-              kind: monaco.languages.CompletionItemKind.Module,
-              range,
-              insertText: `{${item.label}}}`,
-              ...item,
-            })),
-          };
-        },
-      }),
-      // Add model change listener to trigger validation
-      model?.onDidChangeContent(validateTemplateVariables),
-    ];
+            const word = model.getWordUntilPosition(position);
+            const range = new monaco.Range(
+              position.lineNumber,
+              word.startColumn,
+              position.lineNumber,
+              word.endColumn
+            );
+
+            const completionItems: Omit<
+              Monaco.languages.CompletionItem,
+              'kind' | 'range' | 'insertText'
+            >[] = [
+              // Add context suggestions
+              ...filteredSuggestions.map((label) => ({
+                label,
+                detail: 'Context variable',
+                sortText: '0',
+              })),
+              // Add reserved keys
+              ...Array.from(RESERVED_KEYS).map((label) => ({
+                label,
+                detail: 'Reserved variable',
+                sortText: '1',
+              })),
+              // Add environment variables
+              {
+                label: '$env.',
+                detail: 'Environment variable',
+                sortText: '2',
+              },
+            ];
+            return {
+              suggestions: completionItems.map((item) => ({
+                kind: monaco.languages.CompletionItemKind.Module,
+                range,
+                insertText: `{${item.label}}}`,
+                ...item,
+              })),
+            };
+          },
+        })
+      );
+    }
+
+    // Add model change listener to trigger validation for this specific editor
+    disposables.push(model.onDidChangeContent(validateTemplateVariables));
     // Initial validation
     validateTemplateVariables();
 
@@ -192,8 +198,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
 
     return () => {
       for (const disposable of disposables) {
-        disposable?.dispose();
+        disposable.dispose();
       }
+      // Note: We don't dispose the global completion provider here
+      // as it's shared across all PromptEditor instances
     };
   }, [editor, monaco]);
 
