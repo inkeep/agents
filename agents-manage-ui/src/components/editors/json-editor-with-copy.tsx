@@ -75,8 +75,8 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
     toast.success('File downloaded successfully');
   }, [editor]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
-    useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
+  useEffect(() => {
     const model = editor?.getModel();
     if (!monaco || !editor || !model) {
       return;
