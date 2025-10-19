@@ -94,6 +94,21 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
     []
   );
 
+  const handleAddVariable = useCallback(() => {
+    if (!editor || !monaco) {
+      return;
+    }
+    const selection = editor.getSelection();
+    const pos = selection ? selection.getStartPosition() : editor.getPosition();
+    if (!pos) return;
+
+    const range = new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
+    editor.executeEdits('insert-template-variable', [{ range, text: '{' }]);
+    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
+    editor.focus();
+    editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
+  }, [editor, monaco]);
+
   return (
     <MonacoEditor
       uri={uri}
@@ -114,9 +129,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
         variant="outline"
         className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
         type="button"
-        onClick={() => {
-          // codemirrorRef.current?.insertTemplateVariable();
-        }}
+        disabled={!(editor && monaco)}
+        onClick={handleAddVariable}
       >
         <Braces className="size-2.5" />
         {variablesText}
