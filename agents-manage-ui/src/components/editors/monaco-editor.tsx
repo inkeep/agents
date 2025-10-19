@@ -49,7 +49,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   className,
   disabled,
   onChange,
-  placeholder,
+  placeholder = '',
   autoFocus,
   editorOptions = {},
   hasDynamicHeight = true,
@@ -182,7 +182,14 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           return;
         }
         // Update height based on content
-        const contentHeight = editorInstance.getContentHeight();
+        let contentHeight = editorInstance.getContentHeight();
+
+        if (!model.getValue()) {
+          const lines = placeholder.split('\n');
+          if (lines.length > 1) {
+            contentHeight = lines.length * 20;
+          }
+        }
         if (container) {
           container.style.height = `${contentHeight}px`;
         }
