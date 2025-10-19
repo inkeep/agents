@@ -100,7 +100,6 @@ export function ExternalAgentNodeEditor({
         value={selectedNode.data.headers}
         onChange={(value) => updateField('headers', value)}
         placeholder="{}"
-        className=""
       />
       <CredentialSelector
         label="Credential"

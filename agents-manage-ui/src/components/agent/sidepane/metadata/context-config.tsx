@@ -32,7 +32,6 @@ export function ContextConfigForm({
           value={contextVariables}
           onChange={(value) => updateContextConfig('contextVariables', value)}
           placeholder="{}"
-          className=""
         />
         <ExpandableJsonEditor
           name="headersSchema"
@@ -40,7 +39,6 @@ export function ContextConfigForm({
           value={headersSchema}
           onChange={(value) => updateContextConfig('headersSchema', value)}
           placeholder="{}"
-          className=""
         />
       </div>
     </div>

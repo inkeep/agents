@@ -300,7 +300,6 @@ export function MCPServerNodeEditor({
           value={headersInputValue}
           onChange={handleHeadersChange}
           placeholder='{"X-Your-Header": "your-value", "Content-Type": "application/json"}'
-          className=""
         />
       </div>
 
