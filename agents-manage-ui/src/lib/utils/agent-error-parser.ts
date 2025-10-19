@@ -39,7 +39,7 @@ export interface AgentErrorSummary {
  */
 export function parseAgentValidationErrors(apiError: string): AgentErrorSummary {
   try {
-    const errors = JSON.parse(apiError) as any[];
+    const errors = JSON.parse(apiError.replace(/^\[\d\d\d] /, '')) as any[];
     const processedErrors: ProcessedAgentError[] = [];
 
     for (const error of errors) {

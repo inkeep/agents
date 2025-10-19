@@ -184,12 +184,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         // Update height based on content
         let contentHeight = editorInstance.getContentHeight();
 
-        if (!model.getValue()) {
-          const lines = placeholder.split('\n');
-          if (lines.length > 1) {
-            contentHeight = lines.length * 20;
-          }
-        }
+        // if (!model.getValue()) {
+        //   const lines = placeholder.split('\n');
+        //   if (lines.length > 1) {
+        //     contentHeight = lines.length * 20;
+        //   }
+        // }
         if (container) {
           container.style.height = `${contentHeight}px`;
         }

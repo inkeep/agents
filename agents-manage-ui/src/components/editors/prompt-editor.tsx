@@ -111,7 +111,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
     >
       <Button
         size="sm"
-        variant="unstyled"
+        variant="outline"
         className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
         type="button"
         onClick={() => {

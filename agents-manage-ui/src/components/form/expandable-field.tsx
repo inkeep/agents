@@ -44,10 +44,10 @@ export function ExpandableField({
           {compactView}
           <DialogTrigger asChild>
             <Button
-              variant="unstyled"
+              variant="outline"
               size="sm"
               type="button"
-              className="absolute bottom-1 start-4 text-xs rounded-sm h-6"
+              className="absolute bottom-1 start-6 text-xs rounded-sm h-6"
             >
               <Maximize className="size-2.5" />
               Expand
