@@ -14,9 +14,7 @@ import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
 import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { Braces } from 'lucide-react';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
@@ -26,7 +24,7 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
 // Reserved keys that are always valid
 const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
+export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
 
@@ -86,11 +84,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
     // Initial validation
     validateTemplateVariables();
 
-    editor.updateOptions({
-      autoClosingBrackets: 'never',
-      renderLineHighlight: 'none', // disable active line highlight
-    });
-
     return cleanupDisposables(disposables);
   }, [editor, monaco]);
 
@@ -102,27 +95,32 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   );
 
   return (
-    <MonacoEditor uri={uri} onMount={handleOnMount} {...props}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'absolute bottom-[9px] h-6 w-6 hover:text-foreground transition-all backdrop-blur-sm bg-white/90 hover:bg-white/95 dark:bg-card dark:hover:bg-accent border border-border shadow-md dark:shadow-lg z-1'
-              // tooltipClassName
-            )}
-            type="button"
-            onClick={() => {
-              // codemirrorRef.current?.insertTemplateVariable();
-            }}
-          >
-            <Braces className="h-4 w-4 text-muted-foreground" />
-            <span className="sr-only">{variablesText}</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{variablesText}</TooltipContent>
-      </Tooltip>
+    <MonacoEditor
+      uri={uri}
+      onMount={handleOnMount}
+      editorOptions={{
+        padding: {
+          top: 12,
+          bottom: 36,
+        },
+        autoClosingBrackets: 'never',
+        renderLineHighlight: 'none', // disable active line highlight
+        ...editorOptions,
+      }}
+      {...props}
+    >
+      <Button
+        size="sm"
+        variant="unstyled"
+        className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
+        type="button"
+        onClick={() => {
+          // codemirrorRef.current?.insertTemplateVariable();
+        }}
+      >
+        <Braces className="size-2.5" />
+        {variablesText}
+      </Button>
     </MonacoEditor>
   );
 };

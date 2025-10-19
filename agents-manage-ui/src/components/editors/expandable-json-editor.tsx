@@ -70,7 +70,9 @@ const ExpandedJsonEditor: FC<ExpandedJsonEditorProps> = ({
         autoFocus
         value={value}
         onChange={onChange}
-        placeholder={placeholder}
+        editorOptions={{
+          placeholder,
+        }}
         aria-invalid={!!error}
         hasDynamicHeight={false}
       />
@@ -123,9 +125,15 @@ export function ExpandableJsonEditor({
             id={name}
             value={value}
             onChange={onChange}
-            placeholder={placeholder}
+            editorOptions={{
+              placeholder,
+              fontSize: 14,
+              padding: {
+                top: 12,
+                bottom: 36,
+              },
+            }}
             className={cn(error && 'max-h-96 mb-6')}
-            fontSize={14}
           />
           {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
         </>

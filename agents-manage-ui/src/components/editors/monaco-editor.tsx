@@ -3,7 +3,7 @@
 import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle } from 'react';
 import { useTheme } from 'next-themes';
-import type { IDisposable, editor } from 'monaco-editor';
+import type * as Monaco from 'monaco-editor';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
@@ -12,10 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorRef {
-  editor: editor.IStandaloneCodeEditor | null;
+  editor: Monaco.editor.IStandaloneCodeEditor | null;
 }
-
-type Monaco = typeof import('monaco-editor');
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -25,39 +23,34 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
    * @see https://github.com/microsoft/monaco-editor?tab=readme-ov-file#uris
    */
   uri: string;
-  readOnly?: boolean;
   disabled?: boolean;
   onChange?: (value: string) => void;
   ref?: Ref<MonacoEditorRef>;
-  placeholder?: string;
-  /** @default 12 */
-  fontSize?: number;
   /**
    * Stretches the editor height to fit its content.
    * @default true
    */
   hasDynamicHeight?: boolean;
-  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
+  onMount?: (editor: Monaco.editor.IStandaloneCodeEditor) => void;
+  editorOptions?: Monaco.editor.IStandaloneEditorConstructionOptions;
 }
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
   ref,
   value = '',
   uri: $uri,
-  readOnly,
   children,
   className,
   disabled,
   onChange,
-  placeholder,
   autoFocus,
-  fontSize = 12,
+  editorOptions = {},
   hasDynamicHeight = true,
   onMount,
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const { resolvedTheme } = useTheme();
   const monaco = useMonacoStore((state) => state.monaco);
@@ -70,9 +63,9 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     editorRef.current?.updateOptions({
-      readOnly: readOnly || disabled,
+      readOnly: editorOptions.readOnly || disabled,
     });
-  }, [readOnly, disabled]);
+  }, [editorOptions.readOnly, disabled]);
 
   // Sync model value when `value` prop changes
   useEffect(() => {
@@ -109,9 +102,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       theme: monacoTheme,
       model,
-      readOnly,
-      placeholder,
-      fontSize,
       language,
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
@@ -136,11 +126,13 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       // scrollbar: {
       //   verticalScrollbarSize: 10,
       // },
+      ...editorOptions,
+      fontSize: editorOptions.fontSize ?? 12,
     });
     editorRef.current = editorInstance;
 
     // Set up disposables for cleanup
-    const disposables: IDisposable[] = [
+    const disposables: Monaco.IDisposable[] = [
       model,
       // Handle content changes
       model.onDidChangeContent(() => {
@@ -190,7 +182,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
 
-    onMount?.(editorInstance, monaco);
+    onMount?.(editorInstance);
 
     return cleanupDisposables(disposables);
   }, [monaco]);
@@ -206,12 +198,18 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
-        className
+        className,
+        !monaco && 'px-6.5 py-3'
       )}
       {...props}
     >
+      {!monaco && (
+        <>
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-3/5 mt-3 mb-6" />
+        </>
+      )}
       {children}
-      {!monaco && <Skeleton className="h-4 w-3/4 mx-[26px] my-3" />}
     </div>
   );
 };
