@@ -97,9 +97,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
           if (!isValid) {
             markers.push({
               startLineNumber: lineNumber,
-              startColumn: match.index + 1,
+              startColumn: match.index + 3,
               endLineNumber: lineNumber,
-              endColumn: match.index + match[0].length + 1,
+              endColumn: match.index + match[0].length - 1,
               message: `Unknown variable: ${variableName}`,
               severity: monaco.MarkerSeverity.Error,
             });
