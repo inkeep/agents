@@ -19,6 +19,7 @@ export interface FileStructurePatterns {
   hasDataComponentsDirectory: boolean;
   hasArtifactComponentsDirectory: boolean;
   hasEnvironmentsDirectory: boolean;
+  hasExternalAgentsDirectory: boolean;
 }
 
 export interface CodeStylePatterns {
@@ -87,6 +88,7 @@ function analyzeFileStructure(projectDir: string): FileStructurePatterns {
   const hasDataComponentsDirectory = existsSync(join(projectDir, 'data-components'));
   const hasArtifactComponentsDirectory = existsSync(join(projectDir, 'artifact-components'));
   const hasEnvironmentsDirectory = existsSync(join(projectDir, 'environments'));
+  const hasExternalAgentsDirectory = existsSync(join(projectDir, 'external-agents'));
 
   // Determine tools location
   let toolsLocation: FileStructurePatterns['toolsLocation'] = 'unknown';
@@ -125,6 +127,7 @@ function analyzeFileStructure(projectDir: string): FileStructurePatterns {
     hasDataComponentsDirectory,
     hasArtifactComponentsDirectory,
     hasEnvironmentsDirectory,
+    hasExternalAgentsDirectory,
   };
 }
 
@@ -259,6 +262,7 @@ function extractVariableMappings(code: string, filePath: string): ExampleMapping
     'tool',
     'dataComponent',
     'artifactComponent',
+    'externalAgent',
   ];
 
   patterns.forEach((pattern, index) => {
