@@ -6,7 +6,7 @@ import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
-  monaco: typeof Monaco;
+  monaco: typeof Monaco | null;
   variableSuggestions: string[];
 }
 
@@ -21,7 +21,7 @@ type MonacoState = MonacoStateData & {
 };
 
 const initialMonacoState: MonacoStateData = {
-  monaco: null!,
+  monaco: null,
   variableSuggestions: [],
 };
 
@@ -33,10 +33,13 @@ export const monacoStore = create<MonacoState>()(
     ...initialMonacoState,
     // Separate "namespace" for actions
     actions: {
+      setVariableSuggestions(variableSuggestions) {
+        set({ variableSuggestions });
+      },
       setMonacoTheme(isDark) {
-        const { editor } = get().monaco;
+        const monaco = get().monaco;
         const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-        editor.setTheme(monacoTheme);
+        monaco?.editor.setTheme(monacoTheme);
       },
       async setMonaco() {
         const monaco = await import('monaco-editor');

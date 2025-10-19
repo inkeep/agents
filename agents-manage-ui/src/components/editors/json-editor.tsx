@@ -1,15 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { type ComponentProps, type FC, useId, useMemo } from 'react';
-
-/**
- * Purpose: Prevent Monaco from being loaded on the server since it access to `window` object
- **/
-export const MonacoEditor = dynamic(
-  () => import('./monaco-editor').then((mod) => mod.MonacoEditor),
-  { ssr: false } // ensures it only loads on the client side
-);
+import { MonacoEditor } from './monaco-editor';
 
 interface JsonEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.json`;

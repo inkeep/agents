@@ -8,6 +8,7 @@ import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { Skeleton } from '@/components/ui/skeleton';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorRef {
@@ -42,7 +43,7 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
 export const MonacoEditor: FC<MonacoEditorProps> = ({
   ref,
   value = '',
-  uri,
+  uri: $uri,
   readOnly,
   children,
   className,
@@ -89,69 +90,52 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) {
+    if (!container || !monaco) {
       return;
     }
-    function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
-      const uri = monaco.Uri.file($uri);
-      const model = monaco.editor.getModel(uri);
-      const language = uri.path.split('.').at(-1);
-      if (!language) {
-        throw new Error(`Could not determine file language from path: "${uri.path}"`);
-      }
-      return model ?? monaco.editor.createModel(value, language, uri);
+    const { Uri, editor } = monaco;
+    const uri = Uri.file($uri);
+    const language = uri.path.split('.').at(-1);
+    if (!language) {
+      throw new Error(`Could not determine file language from path: "${uri.path}"`);
     }
-
-    function createEditor(
-      domElement: HTMLDivElement,
-      options: editor.IStandaloneEditorConstructionOptions
-    ): editor.IStandaloneCodeEditor {
-      const { model } = options;
-      if (!model) {
-        throw new Error('options.model is required');
-      }
-      const language = model.uri.path.split('.').at(-1);
-      if (!language) {
-        throw new Error(`Could not determine file language from path: "${model.uri.path}"`);
-      }
-      return monaco.editor.create(domElement, {
-        language,
-        automaticLayout: true,
-        minimap: { enabled: false }, // disable the minimap
-        overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
-        scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
-        lineNumbers: 'off',
-        wordWrap: 'on', // Toggle word wrap on resizing editors
-        contextmenu: false, // Disable the right-click context menu
-        fontSize: 12,
-        fixedOverflowWidgets: true, // since container has overflow-hidden
-        padding: {
-          top: 12,
-          bottom: 12,
-        },
-        scrollbar: {
-          vertical: 'hidden', // Hide vertical scrollbar
-          horizontal: 'hidden', // Hide horizontal scrollbar
-          useShadows: false, // Disable shadow effects
-          alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
-        },
-        stickyScroll: { enabled: false }, // Disable sticky scroll widget
-        tabSize: 2,
-        // scrollbar: {
-        //   verticalScrollbarSize: 10,
-        // },
-        ...options,
-      });
+    function getOrCreateModel() {
+      const model = editor.getModel(uri);
+      return model ?? editor.createModel(value, language, uri);
     }
-    const model = getOrCreateModel({ uri, value });
+    const model = getOrCreateModel();
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
 
-    const editorInstance = createEditor(container, {
+    const editorInstance = editor.create(container, {
       theme: monacoTheme,
       model,
       readOnly,
       placeholder,
       fontSize,
+      language,
+      automaticLayout: true,
+      minimap: { enabled: false }, // disable the minimap
+      overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
+      scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
+      lineNumbers: 'off',
+      wordWrap: 'on', // Toggle word wrap on resizing editors
+      contextmenu: false, // Disable the right-click context menu
+      fixedOverflowWidgets: true, // since container has overflow-hidden
+      padding: {
+        top: 12,
+        bottom: 12,
+      },
+      scrollbar: {
+        vertical: 'hidden', // Hide vertical scrollbar
+        horizontal: 'hidden', // Hide horizontal scrollbar
+        useShadows: false, // Disable shadow effects
+        alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+      },
+      stickyScroll: { enabled: false }, // Disable sticky scroll widget
+      tabSize: 2,
+      // scrollbar: {
+      //   verticalScrollbarSize: 10,
+      // },
     });
     editorRef.current = editorInstance;
 
@@ -209,7 +193,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     onMount?.(editorInstance, monaco);
 
     return cleanupDisposables(disposables);
-  }, []);
+  }, [monaco]);
 
   return (
     <div
@@ -227,6 +211,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       {...props}
     >
       {children}
+      {!monaco && <Skeleton className="h-4 mx-[26px] my-3" />}
     </div>
   );
 };
