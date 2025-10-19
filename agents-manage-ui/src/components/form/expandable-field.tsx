@@ -32,7 +32,7 @@ export function ExpandableField({
 }: ExpandableFieldProps) {
   return (
     <Dialog>
-      <div className="space-y-2 relative">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="gap-1" htmlFor={name}>
             {label}
@@ -40,18 +40,20 @@ export function ExpandableField({
           </Label>
           {actions && <div className="flex gap-2">{actions}</div>}
         </div>
-        {compactView}
-        <DialogTrigger asChild>
-          <Button
-            variant="unstyled"
-            size="sm"
-            type="button"
-            className="absolute bottom-1 start-4 text-xs rounded-sm h-6"
-          >
-            <Maximize className="size-2.5" />
-            Expand
-          </Button>
-        </DialogTrigger>
+        <div className="relative">
+          {compactView}
+          <DialogTrigger asChild>
+            <Button
+              variant="unstyled"
+              size="sm"
+              type="button"
+              className="absolute bottom-1 start-4 text-xs rounded-sm h-6"
+            >
+              <Maximize className="size-2.5" />
+              Expand
+            </Button>
+          </DialogTrigger>
+        </div>
       </div>
 
       <DialogContent className="!max-w-none h-screen w-screen max-h-screen p-0 gap-0 border-0 rounded-none">
