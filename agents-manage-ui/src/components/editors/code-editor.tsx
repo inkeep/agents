@@ -9,7 +9,7 @@ interface CodeEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri
 
 export const CodeEditor: FC<CodeEditorProps> = ({ uri, ...props }) => {
   const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.js` as `${string}.${string}`, [id]);
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.javascript` as `${string}.${string}`, [id]);
 
   return <MonacoEditor uri={uri} {...props} />;
 };
