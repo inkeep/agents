@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import {
   type ComponentProps,
   type FC,
@@ -9,62 +8,29 @@ import {
   useMemo,
   useState,
   useEffect,
-  useRef,
 } from 'react';
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
-import { getContextSuggestions } from '@/lib/context-suggestions';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-
-/**
- * Purpose: Prevent Monaco from being loaded on the server since it access to `window` object.
- **/
-export const MonacoEditor = dynamic(
-  () => import('./monaco-editor').then((mod) => mod.MonacoEditor),
-  { ssr: false } // ensures it only loads on the client side
-);
-
-// Reserved keys that are always valid
-const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
-
-function tryJsonParse(json = ''): object {
-  if (!json.trim()) {
-    return {};
-  }
-  try {
-    return JSON.parse(json);
-  } catch {
-    return {};
-  }
-}
+import { MonacoEditor } from './monaco-editor';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.plaintext`;
 }
 
-// Global flag to ensure provider is registered only once
-let isProviderRegistered = false;
+// Reserved keys that are always valid
+const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   const id = useId();
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
-  const [monaco, setMonaco] = useState<typeof Monaco>();
-  const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
-  const suggestionsRef = useRef<string[]>([]);
-
-  // Generate suggestions from context config
-  useEffect(() => {
-    const contextVariables = tryJsonParse(contextConfig.contextVariables);
-    const headersSchema = tryJsonParse(contextConfig.headersSchema);
-    suggestionsRef.current = getContextSuggestions({
-      headersSchema,
-      // @ts-expect-error -- todo: improve type
-      contextVariables,
-    });
-  }, [contextConfig]);
-
+  const { monaco, variableSuggestions } = useMonacoStore((state) => ({
+    monaco: state.monaco,
+    variableSuggestions: state.variableSuggestions,
+  }));
   useEffect(() => {
     const model = editor?.getModel();
     if (!monaco || !editor || !model) {
@@ -112,80 +78,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
 
     const disposables: IDisposable[] = [];
 
-    // Register completion provider only once globally
-    if (!isProviderRegistered) {
-      isProviderRegistered = true;
-      disposables.push(
-        monaco.languages.registerCompletionItemProvider('plaintext', {
-          triggerCharacters: ['{'],
-          provideCompletionItems(model, position) {
-            const textUntilPosition = model.getValueInRange({
-              startLineNumber: 1,
-              startColumn: 1,
-              endLineNumber: position.lineNumber,
-              endColumn: position.column,
-            });
-
-            console.log('Completion triggered:', { textUntilPosition, position });
-
-            // Check if we're inside a template variable (after {)
-            const match = textUntilPosition.match(/\{([^}]*)$/);
-            if (!match) {
-              console.log('No template variable match found');
-              return { suggestions: [] };
-            }
-
-            console.log('Template variable match:', match);
-
-            const query = match[1].toLowerCase();
-            const filteredSuggestions = suggestionsRef.current.filter((suggestion) =>
-              suggestion.toLowerCase().includes(query)
-            );
-
-            const word = model.getWordUntilPosition(position);
-            const range = new monaco.Range(
-              position.lineNumber,
-              word.startColumn,
-              position.lineNumber,
-              word.endColumn
-            );
-
-            const completionItems: Omit<
-              Monaco.languages.CompletionItem,
-              'kind' | 'range' | 'insertText'
-            >[] = [
-              // Add context suggestions
-              ...filteredSuggestions.map((label) => ({
-                label,
-                detail: 'Context variable',
-                sortText: '0',
-              })),
-              // Add reserved keys
-              ...Array.from(RESERVED_KEYS).map((label) => ({
-                label,
-                detail: 'Reserved variable',
-                sortText: '1',
-              })),
-              // Add environment variables
-              {
-                label: '$env.',
-                detail: 'Environment variable',
-                sortText: '2',
-              },
-            ];
-            return {
-              suggestions: completionItems.map((item) => ({
-                kind: monaco.languages.CompletionItemKind.Module,
-                range,
-                insertText: `{${item.label}}}`,
-                ...item,
-              })),
-            };
-          },
-        })
-      );
-    }
-
     // Add model change listener to trigger validation for this specific editor
     disposables.push(model.onDidChangeContent(validateTemplateVariables));
     // Initial validation
@@ -196,19 +88,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
       renderLineHighlight: 'none', // disable active line highlight
     });
 
-    return () => {
-      for (const disposable of disposables) {
-        disposable.dispose();
-      }
-      // Note: We don't dispose the global completion provider here
-      // as it's shared across all PromptEditor instances
-    };
+    return cleanupDisposables(disposables);
   }, [editor, monaco]);
 
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance, monaco) => {
+    (editorInstance) => {
       setEditor(editorInstance);
-      setMonaco(monaco);
     },
     []
   );

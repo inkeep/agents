@@ -3,7 +3,6 @@
  * Importing directly from 'monaco-editor' causes a “window is not defined” error during SSR.
  */
 import { Range } from 'monaco-editor/esm/vs/editor/common/core/range.js';
-import { URI as Uri } from 'monaco-editor/esm/vs/base/common/uri.js';
 import type { editor, IDisposable } from 'monaco-editor';
 
 // Function to check if a token should show a copy icon
@@ -84,5 +83,3 @@ export function cleanupDisposables(disposables: IDisposable[]) {
     }
   };
 }
-
-export { Uri, Range };

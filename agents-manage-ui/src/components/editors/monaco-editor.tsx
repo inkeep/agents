@@ -3,22 +3,18 @@
 import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef, useImperativeHandle } from 'react';
 import { useTheme } from 'next-themes';
-import * as monaco from 'monaco-editor';
 import type { IDisposable, editor } from 'monaco-editor';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
-import {
-  cleanupDisposables,
-  createEditor,
-  getOrCreateModel,
-} from '@/lib/monaco-editor/monaco-utils';
+import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorRef {
   editor: editor.IStandaloneCodeEditor | null;
 }
 
-type Monaco = typeof monaco;
+type Monaco = typeof import('monaco-editor');
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -63,6 +59,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const { resolvedTheme } = useTheme();
+  const monaco = useMonacoStore((state) => state.monaco);
 
   // Expose editor instance through ref
   useImperativeHandle(ref, () => ({
@@ -94,6 +91,57 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const container = containerRef.current;
     if (!container) {
       return;
+    }
+    function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
+      const uri = monaco.Uri.file($uri);
+      const model = monaco.editor.getModel(uri);
+      const language = uri.path.split('.').at(-1);
+      if (!language) {
+        throw new Error(`Could not determine file language from path: "${uri.path}"`);
+      }
+      return model ?? monaco.editor.createModel(value, language, uri);
+    }
+
+    function createEditor(
+      domElement: HTMLDivElement,
+      options: editor.IStandaloneEditorConstructionOptions
+    ): editor.IStandaloneCodeEditor {
+      const { model } = options;
+      if (!model) {
+        throw new Error('options.model is required');
+      }
+      const language = model.uri.path.split('.').at(-1);
+      if (!language) {
+        throw new Error(`Could not determine file language from path: "${model.uri.path}"`);
+      }
+      return monaco.editor.create(domElement, {
+        language,
+        automaticLayout: true,
+        minimap: { enabled: false }, // disable the minimap
+        overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
+        scrollBeyondLastLine: false, // cleans up unnecessary "padding-bottom" on each editor
+        lineNumbers: 'off',
+        wordWrap: 'on', // Toggle word wrap on resizing editors
+        contextmenu: false, // Disable the right-click context menu
+        fontSize: 12,
+        fixedOverflowWidgets: true, // since container has overflow-hidden
+        padding: {
+          top: 12,
+          bottom: 12,
+        },
+        scrollbar: {
+          vertical: 'hidden', // Hide vertical scrollbar
+          horizontal: 'hidden', // Hide horizontal scrollbar
+          useShadows: false, // Disable shadow effects
+          alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
+        },
+        stickyScroll: { enabled: false }, // Disable sticky scroll widget
+        tabSize: 2,
+        // scrollbar: {
+        //   verticalScrollbarSize: 10,
+        // },
+        ...options,
+      });
     }
     const model = getOrCreateModel({ uri, value });
     const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
