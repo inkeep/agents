@@ -12,7 +12,7 @@ import {
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
@@ -27,10 +27,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
   uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
-  const { monaco, variableSuggestions } = useMonacoStore((state) => ({
-    monaco: state.monaco,
-    variableSuggestions: state.variableSuggestions,
-  }));
+  const monaco = useMonacoStore((state) => state.monaco);
   useEffect(() => {
     const model = editor?.getModel();
     if (!monaco || !editor || !model) {
@@ -39,7 +36,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, ...props }) => {
 
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
-      const validVariables = new Set(suggestionsRef.current);
+      const validVariables = new Set(monacoStore.getState().variableSuggestions);
       const regex = /\{\{([^}]+)}}/g;
       const markers: Monaco.editor.IMarkerData[] = [];
 

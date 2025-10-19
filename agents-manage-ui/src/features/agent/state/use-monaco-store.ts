@@ -11,9 +11,8 @@ interface MonacoStateData {
 }
 
 interface MonacoActions {
-  initialize: () => Monaco.IDisposable[];
   setMonacoTheme: (isDark: boolean) => void;
-  setMonaco: (monaco: typeof Monaco) => void;
+  setMonaco: () => Promise<Monaco.IDisposable[]>;
   setVariableSuggestions: (variableSuggestions: string[]) => void;
 }
 
@@ -39,8 +38,10 @@ export const monacoStore = create<MonacoState>()(
         const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
         editor.setTheme(monacoTheme);
       },
-      initialize() {
-        const { editor, languages, Range } = get().monaco;
+      async setMonaco() {
+        const monaco = await import('monaco-editor');
+        set({ monaco });
+        const { editor, languages, Range } = monaco;
 
         editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
         editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
