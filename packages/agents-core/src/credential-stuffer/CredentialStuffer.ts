@@ -39,6 +39,7 @@ export interface CredentialData {
   headers: Record<string, string>;
   /** Additional metadata for the credentials */
   metadata?: Record<string, any>;
+  expiresAt?: Date;
 }
 
 /**
@@ -91,7 +92,6 @@ export class CredentialStuffer {
     storeReference: CredentialStoreReference,
     mcpType?: MCPToolConfig['mcpType']
   ): Promise<CredentialData | null> {
-    // Get the credential store from registry
     const credentialStore = this.credentialStoreRegistry.get(storeReference.credentialStoreId);
     if (!credentialStore) {
       this.logger.warn(
@@ -128,7 +128,6 @@ export class CredentialStuffer {
         if (mcpType === MCPServerType.nango) {
           return {
             headers: {
-              // For Nango MCP, authenticate with the Nango secret key
               Authorization: `Bearer ${nangoCredentialData.secretKey}`,
               'provider-config-key': nangoCredentialData.providerConfigKey,
               'connection-id': nangoCredentialData.connectionId,
@@ -170,7 +169,6 @@ export class CredentialStuffer {
           };
         }
       } catch {
-        // Not JSON or invalid JSON - fall through to treat as simple token
       }
     }
 
@@ -211,13 +209,11 @@ export class CredentialStuffer {
       return null;
     }
 
-    // Resolve the context
     const context = await this.contextResolver.resolveHeaders(
       conversationId,
       contextConfigId
     );
 
-    // Render any template variables in dynamic header values
     const resolvedHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(headers)) {
       resolvedHeaders[key] = TemplateEngine.render(
@@ -243,23 +239,19 @@ export class CredentialStuffer {
     headers,
   }: CredentialResolverInput): Promise<Record<string, string>> {
     let credentialsFromHeaders: CredentialData | null = null;
-    // Resolve headers from context if we have metadata to fetch context and headers to resolve
     if (context.contextConfigId && context.conversationId && headers) {
       credentialsFromHeaders = await this.getCredentialsFromHeaders(context, headers);
     }
 
-    // Resolve headers from credential store if we have a store reference
     let credentialStoreHeaders: CredentialData | null = null;
     if (storeReference) {
       credentialStoreHeaders = await this.getCredentials(context, storeReference, mcpType);
     }
 
-    // If we have no credential store headers, return the headers from the context
     if (!credentialStoreHeaders) {
       return credentialsFromHeaders ? credentialsFromHeaders.headers : {};
     }
 
-    // Combine results from both sources
     const combinedHeaders = {
       ...credentialStoreHeaders.headers,
       ...credentialStoreHeaders.metadata,
@@ -278,7 +270,6 @@ export class CredentialStuffer {
     storeReference?: CredentialStoreReference,
     selectedTools?: string[]
   ): Promise<McpServerConfig> {
-    // Get credential headers if available
     let credentialHeaders: Record<string, string> = {};
     if (storeReference || tool.headers) {
       credentialHeaders = await this.getCredentialHeaders({
@@ -289,7 +280,6 @@ export class CredentialStuffer {
       });
     }
 
-    // Build base configuration
     const baseConfig = {
       type: tool.transport?.type || MCPTransportType.streamableHttp,
       url: tool.serverUrl,
@@ -297,7 +287,6 @@ export class CredentialStuffer {
       selectedTools,
     };
 
-    // Add configuration based on transport type
     if (
       baseConfig.type === MCPTransportType.streamableHttp ||
       baseConfig.type === MCPTransportType.sse

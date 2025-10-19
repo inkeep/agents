@@ -49,10 +49,12 @@ Create a `.env.local` file with the following configuration:
 # Inkeep Configuration
 TENANT_ID="default"
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002" # URL where agents-manage-api is running
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 # URL where agents-manage-api is running
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003" # URL where agents-run-api is running
 
 # SigNoz Configuration (for Traces feature)
 SIGNOZ_URL=http://localhost:3080
+PUBLIC_SIGNOZ_URL=http://localhost:3080
 SIGNOZ_API_KEY=your-signoz-api-key-here
 ```
 

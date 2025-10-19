@@ -359,7 +359,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for integration testing',
-      agentPrompt: `You are a helpful test agent that can search databases and assist users.`,
+      prompt: `You are a helpful test agent that can search databases and assist users.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -367,13 +367,13 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       dataComponents: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
         summarizer: {
-          model: 'openai/gpt-4.1-nano-2025-04-14',
+          model: 'openai/gpt-4.1-nano',
         },
       },
     };
@@ -393,7 +393,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(result).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [
         {
           name: 'search_database',
@@ -436,7 +436,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -459,7 +459,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -493,7 +493,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
-      agentPrompt: undefined,
+      prompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
       dataComponents: [],
       artifacts: [],
@@ -647,7 +647,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for conversation history testing',
-      agentPrompt: `You are a helpful test agent.`,
+      prompt: `You are a helpful test agent.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -852,7 +852,7 @@ describe('Agent Credential Integration', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent with credentials',
-      agentPrompt: `You are a test agent with MCP tools.`,
+      prompt: `You are a test agent with MCP tools.`,
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1083,7 +1083,7 @@ describe('Agent Credential Integration', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Context Agent',
       description: 'Agent for testing context',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1136,6 +1136,10 @@ describe('Two-Pass Generation System', () => {
       props: { type: 'object', properties: { message: { type: 'string' } } },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      preview: {
+        code: 'console.log("Hello, World!");',
+        data: { message: 'Hello, World!' },
+      },
     };
 
     mockAgentConfig = {
@@ -1146,7 +1150,7 @@ describe('Two-Pass Generation System', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1231,13 +1235,13 @@ describe('Agent Model Settings', () => {
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent for model settingsuration',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
         },
       },
     };
@@ -1250,7 +1254,7 @@ describe('Agent Model Settings', () => {
     // Get the mocked ModelFactory
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1291,7 +1295,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-sonnet-4-5',
           providerOptions: {
             anthropic: {
               temperature: 0.8,
@@ -1308,7 +1312,7 @@ describe('Agent Model Settings', () => {
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4-5',
         providerOptions: {
           anthropic: {
             temperature: 0.8,
@@ -1339,7 +1343,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'anthropic/claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
           providerOptions: {
             anthropic: {
               temperature: 0.5,
@@ -1347,7 +1351,7 @@ describe('Agent Model Settings', () => {
           },
         },
         structuredOutput: {
-          model: 'openai/gpt-4.1-mini-2025-04-14',
+          model: 'openai/gpt-4.1-mini',
         },
       },
       dataComponents: [
@@ -1367,7 +1371,7 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation with custom model, once for structured output with OpenAI model
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: {
         anthropic: {
           temperature: 0.5,
@@ -1375,7 +1379,7 @@ describe('Agent Model Settings', () => {
       },
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'openai/gpt-4.1-mini-2025-04-14',
+      model: 'openai/gpt-4.1-mini',
     });
   });
 
@@ -1399,11 +1403,11 @@ describe('Agent Model Settings', () => {
     // Called twice: once for text generation, once for structured output (both use base model)
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(2, {
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
     });
   });
@@ -1433,7 +1437,7 @@ describe('Agent Model Settings', () => {
       ...mockAgentConfig,
       models: {
         base: {
-          model: 'claude-3-5-haiku-20241022',
+          model: 'anthropic/claude-3-5-haiku-latest',
         },
       },
     };
@@ -1443,7 +1447,7 @@ describe('Agent Model Settings', () => {
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: undefined,
     });
   });
@@ -1462,7 +1466,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-no-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1492,7 +1496,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],
@@ -1542,7 +1546,7 @@ describe('Agent Conditional Tool Availability', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
       baseUrl: 'http://localhost:3000',
-      agentPrompt: 'Test instructions',
+      prompt: 'Test instructions',
       subAgentRelations: [],
       transferRelations: [],
       delegateRelations: [],

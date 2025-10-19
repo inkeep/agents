@@ -24,7 +24,6 @@ export function MCPToolImage({
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // If no imageUrl or image failed to load, show fallback
   if (!imageUrl || imageError) {
     if (provider) {
       return <ProviderIcon provider={provider} size={size} className={className} />;

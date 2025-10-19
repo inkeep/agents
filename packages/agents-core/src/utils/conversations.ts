@@ -1,6 +1,5 @@
 import { customAlphabet } from 'nanoid';
 
-// Create a custom nanoid generator with only lowercase letters and numbers
 // This ensures IDs are always lowercase and never start with a hyphen
 export const generateId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 21);
 

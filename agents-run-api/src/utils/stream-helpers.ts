@@ -2,7 +2,6 @@ import type { SummaryEvent } from '@inkeep/agents-core';
 import { parsePartialJson } from 'ai';
 import type { ErrorEvent, OperationEvent } from './agent-operations';
 
-// Common interface for all stream helpers
 export interface StreamHelper {
   writeRole(role?: string): Promise<void>;
   writeContent(content: string): Promise<void>;
@@ -11,12 +10,10 @@ export interface StreamHelper {
   writeError(error: string | ErrorEvent): Promise<void>;
   complete(): Promise<void>;
   writeData(type: string, data: any): Promise<void>;
-  // Operation streaming (operations are defined in agent-operations.ts)
   writeOperation(operation: OperationEvent): Promise<void>;
   writeSummary(summary: SummaryEvent): Promise<void>;
 }
 
-// Define the stream type based on Hono's streamSSE callback parameter
 export interface HonoSSEStream {
   writeSSE(message: { data: string; event?: string; id?: string }): Promise<void>;
   sleep(ms: number): Promise<unknown>;
@@ -38,7 +35,6 @@ export interface ChatCompletionChunk {
 }
 
 export class SSEStreamHelper implements StreamHelper {
-  // Stream queuing for proper event ordering
   private isTextStreaming: boolean = false;
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
 
@@ -98,7 +94,6 @@ export class SSEStreamHelper implements StreamHelper {
   async streamText(text: string, delayMs = 100): Promise<void> {
     const words = text.split(' ');
 
-    // Mark that text streaming is starting
     this.isTextStreaming = true;
 
     try {
@@ -109,10 +104,8 @@ export class SSEStreamHelper implements StreamHelper {
         await this.writeContent(content);
       }
     } finally {
-      // Mark that text streaming has finished
       this.isTextStreaming = false;
 
-      // Flush any queued operations now that text sequence is complete
       await this.flushQueuedOperations();
     }
   }
@@ -169,7 +162,6 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeSummary(summary: SummaryEvent): Promise<void> {
-    // Queue operation if text is currently streaming
     if (this.isTextStreaming) {
       this.queuedEvents.push({
         type: 'data-summary',
@@ -178,13 +170,11 @@ export class SSEStreamHelper implements StreamHelper {
       return;
     }
 
-    // If not streaming, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
     await this.writeData('data-summary', summary);
   }
 
   async writeOperation(operation: OperationEvent): Promise<void> {
-    // Queue operation if text is currently streaming
     if (this.isTextStreaming) {
       this.queuedEvents.push({
         type: 'data-operation',
@@ -193,7 +183,6 @@ export class SSEStreamHelper implements StreamHelper {
       return;
     }
 
-    // If not streaming, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
 
     await this.writeData('data-operation', operation);
@@ -228,7 +217,6 @@ export class SSEStreamHelper implements StreamHelper {
    * Complete the stream with finish reason and done message
    */
   async complete(finishReason = 'stop'): Promise<void> {
-    // Flush any remaining queued operations before completing
     await this.flushQueuedOperations();
 
     await this.writeCompletion(finishReason);
@@ -247,7 +235,6 @@ export function createSSEStreamHelper(
   return new SSEStreamHelper(stream, requestId, timestamp);
 }
 
-// Define Vercel writer interface based on actual AI SDK V5 writer
 export interface VercelUIWriter {
   write(chunk: any): void;
   merge(stream: any): void;
@@ -261,24 +248,19 @@ export class VercelDataStreamHelper implements StreamHelper {
   private completedItems = new Set<number>(); // Track completed items
   private sessionId?: string;
 
-  // Memory management - focused on connection completion cleanup
   private static readonly MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit (more generous during request)
   private isCompleted = false;
 
-  // Stream queuing for proper event ordering
   private isTextStreaming: boolean = false;
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
 
-  // Timing tracking for text sequences (text-end to text-start gap)
   private lastTextEndTimestamp: number = 0;
   private readonly TEXT_GAP_THRESHOLD = 2000; // milliseconds - if gap between text sequences is less than this, queue operations
 
-  // Connection management and forced cleanup
   private connectionDropTimer?: ReturnType<typeof setTimeout>;
   private readonly MAX_LIFETIME_MS = 600_000; // 10 minutes max lifetime
 
   constructor(private writer: VercelUIWriter) {
-    // Set maximum lifetime timer to prevent memory leaks from abandoned connections
     this.connectionDropTimer = setTimeout(() => {
       this.forceCleanup('Connection lifetime exceeded');
     }, this.MAX_LIFETIME_MS);
@@ -288,10 +270,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     this.sessionId = sessionId;
   }
 
-  // This mirrors SSEStreamHelper API but outputs using Vercel AI SDK writer
-  async writeRole(_ = 'assistant'): Promise<void> {
-    // noop
-  }
+  async writeRole(_ = 'assistant'): Promise<void> {}
 
   async writeContent(content: string): Promise<void> {
     if (this.isCompleted) {
@@ -301,23 +280,17 @@ export class VercelDataStreamHelper implements StreamHelper {
 
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Only prevent catastrophic buffer growth during request
     if (this.jsonBuffer.length + content.length > VercelDataStreamHelper.MAX_BUFFER_SIZE) {
-      // JSON-aware truncation to prevent corruption
       const newBuffer = this.truncateJsonBufferSafely(this.jsonBuffer);
 
-      // If we couldn't find a safe truncation point, clear the buffer entirely
-      // This is safer than keeping potentially corrupted JSON
       if (newBuffer.length === this.jsonBuffer.length) {
         console.warn(
           'VercelDataStreamHelper: Could not find safe JSON truncation point, clearing buffer'
         );
         this.jsonBuffer = '';
-        // Clear tracking as we're starting fresh
         this.sentItems.clear();
       } else {
         this.jsonBuffer = newBuffer;
-        // Update tracking indices based on the new buffer content
         this.reindexSentItems();
       }
     }
@@ -331,12 +304,9 @@ export class VercelDataStreamHelper implements StreamHelper {
     for (let i = 0; i < value.length; i++) {
       const { type, ...data } = value[i] as { type?: string; [key: string]: any };
 
-      // TODO: Check for kind data and JSON.stringify
-      // Create a content hash to check if this item has changed
       const currentContent = JSON.stringify(data);
       const lastSentContent = this.sentItems.get(i);
 
-      // Only send if content has changed or is new
       if (currentContent !== lastSentContent) {
         const chunk = {
           type: 'data-component',
@@ -356,31 +326,20 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
-    // For plain text, write directly to the stream as text chunks
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    // ------------------------------
-    // New Vercel data-stream v2 format
-    // ------------------------------
-    // Emit "text-start" once at the beginning, followed by a single "text-delta"
-    // for the entire text chunk, and finish with "text-end".
-    // Don't artificially split by words - let the agent determine chunk boundaries.
 
     const id = this.textId;
 
-    // Check gap from last text-end to this text-start
     const startTime = Date.now();
     const gapFromLastSequence =
       this.lastTextEndTimestamp > 0
         ? startTime - this.lastTextEndTimestamp
         : Number.MAX_SAFE_INTEGER;
 
-    // If gap is large enough, flush any queued operations before starting new text
     if (gapFromLastSequence >= this.TEXT_GAP_THRESHOLD) {
       await this.flushQueuedOperations();
     }
 
-    // Mark that text streaming is starting
     this.isTextStreaming = true;
 
     try {
@@ -389,31 +348,24 @@ export class VercelDataStreamHelper implements StreamHelper {
         id,
       });
 
-      // Optional delay before sending the text chunk
       if (delayMs > 0) {
         await new Promise((r) => setTimeout(r, delayMs));
       }
 
-      // Send the entire text as a single delta
       this.writer.write({
         type: 'text-delta',
         id,
         delta: text,
       });
 
-      // End
       this.writer.write({
         type: 'text-end',
         id,
       });
 
-      // Track when this text sequence ended
       this.lastTextEndTimestamp = Date.now();
     } finally {
-      // Mark that text streaming has finished
       this.isTextStreaming = false;
-
-      // DO NOT flush operations here - wait for gap threshold
     }
   }
 
@@ -423,16 +375,12 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
-    // For data-artifact, check if we should delay it based on text timing
     if (type === 'data-artifact') {
       const now = Date.now();
       const gapFromLastTextEnd =
         this.lastTextEndTimestamp > 0 ? now - this.lastTextEndTimestamp : Number.MAX_SAFE_INTEGER;
 
-      // If we're within the gap threshold from last text-end, it means more text might be coming
-      // In this case, write the artifact but don't reset timing - let operations stay queued
       if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
-        // Artifact arrives during or shortly after text - maintain timing continuity
         this.writer.write({
           type: `${type}`,
           data,
@@ -453,7 +401,6 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
-    // Handle both string and ErrorEvent formats
     if (typeof error === 'string') {
       this.writer.write({
         type: 'error',
@@ -594,7 +541,7 @@ export class VercelDataStreamHelper implements StreamHelper {
           timestamp: Date.now(),
         });
       }
-    } catch (e) {
+    } catch (_e) {
       // Writer may be unavailable, ignore errors
     }
   }
@@ -637,7 +584,6 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
-    // If not streaming, flush any queued operations first, then send this one
     await this.flushQueuedOperations();
 
     await this.writer.write({
@@ -711,7 +657,6 @@ export class VercelDataStreamHelper implements StreamHelper {
   async complete(): Promise<void> {
     if (this.isCompleted) return;
 
-    // Flush any remaining queued operations before completing
     await this.flushQueuedOperations();
 
     // Mark as completed to prevent further writes

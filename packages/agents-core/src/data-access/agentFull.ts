@@ -3,17 +3,17 @@ import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type {
-  SubAgentDefinition,
   ExternalSubAgentApiInsert,
   FullAgentDefinition,
   InternalSubAgentDefinition,
+  SubAgentDefinition,
 } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import {
   isExternalAgent,
   isInternalAgent,
-  validateAndTypeAgentData,
   validateAgentStructure,
+  validateAndTypeAgentData,
 } from '../validation/agentFull';
 import {
   deleteAgent,
@@ -40,25 +40,23 @@ import {
   createSubAgentRelation,
   deleteAgentRelationsByAgent,
   deleteAgentToolRelationByAgent,
-  upsertAgentRelation,
+  upsertSubAgentRelation,
 } from './subAgentRelations';
 import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
 import { upsertSubAgentToolRelation } from './tools';
 
-// Logger interface for dependency injection
 export interface AgentLogger {
   info(obj: Record<string, any>, msg?: string): void;
   error(obj: Record<string, any>, msg?: string): void;
 }
 
-// Default no-op logger
 const defaultLogger: AgentLogger = {
   info: () => {},
   error: () => {},
 };
 
 /**
- * Apply execution limits inheritance from project to agent and agents
+ * Apply execution limits inheritance from project to Agents and Sub Agents
  */
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,
@@ -69,7 +67,6 @@ async function applyExecutionLimitsInheritance(
   const { tenantId, projectId } = scopes;
 
   try {
-    // Get project stopWhen configuration
     const project = await db.query.projects.findFirst({
       where: and(eq(projects.tenantId, tenantId), eq(projects.id, projectId)),
     });
@@ -88,12 +85,10 @@ async function applyExecutionLimitsInheritance(
       'Found project stopWhen configuration'
     );
 
-    // Initialize agent stopWhen if not exists
     if (!agentData.stopWhen) {
       agentData.stopWhen = {};
     }
 
-    // Inherit transferCountIs from project if agent doesn't have it explicitly set
     if (
       agentData.stopWhen.transferCountIs === undefined &&
       projectStopWhen?.transferCountIs !== undefined
@@ -108,7 +103,6 @@ async function applyExecutionLimitsInheritance(
       );
     }
 
-    // Set default transferCountIs if still not set
     if (agentData.stopWhen.transferCountIs === undefined) {
       agentData.stopWhen.transferCountIs = 10;
       logger.info(
@@ -120,7 +114,6 @@ async function applyExecutionLimitsInheritance(
       );
     }
 
-    // Propagate stepCountIs from project to agents
     if (projectStopWhen?.stepCountIs !== undefined) {
       logger.info(
         {
@@ -131,16 +124,13 @@ async function applyExecutionLimitsInheritance(
       );
 
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
-        // Only apply to internal agents (have prompt)
         if (isInternalAgent(subAgentData as SubAgentDefinition)) {
           const agent = agentData as any;
 
-          // Initialize agent stopWhen if it doesn't exist
           if (!agent.stopWhen) {
             agent.stopWhen = {};
           }
 
-          // Set stepCountIs in stopWhen if not explicitly set
           if (agent.stopWhen.stepCountIs === undefined) {
             agent.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
             logger.info(
@@ -162,7 +152,6 @@ async function applyExecutionLimitsInheritance(
       },
       'Failed to apply execution limits inheritance'
     );
-    // Don't throw - inheritance failure shouldn't block agent creation
   }
 }
 
@@ -180,23 +169,18 @@ export const createFullAgentServerSide =
 
     const typed = validateAndTypeAgentData(agentData);
 
-    // Validate the agent structure
     validateAgentStructure(typed);
 
-    // Apply inheritance logic for execution limits
     await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
 
     try {
-      // Note: CredentialReferences are now project-scoped and should be created separately
       logger.info(
         {},
         'CredentialReferences are project-scoped - skipping credential reference creation in agent'
       );
 
-      // Note: MCP Tools are now project-scoped and should be created separately
       logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent');
 
-      // Step 3: Create the agent metadata FIRST (before agents, as they need agentId)
       let finalAgentId: string;
       try {
         const agentId = typed.id || nanoid();
@@ -226,7 +210,6 @@ export const createFullAgentServerSide =
         throw error;
       }
 
-      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typed.contextConfig) {
         try {
@@ -250,7 +233,6 @@ export const createFullAgentServerSide =
         }
       }
 
-      // Update the agent with the contextConfigId if we created one
       if (contextConfigId) {
         try {
           logger.info(
@@ -285,19 +267,16 @@ export const createFullAgentServerSide =
         }
       }
 
-      // Note: DataComponents are now project-scoped and should be created separately
       logger.info(
         {},
         'DataComponents are project-scoped - skipping dataComponent creation in agent'
       );
 
-      // Note: ArtifactComponents are now project-scoped and should be created separately
       logger.info(
         {},
         'ArtifactComponents are project-scoped - skipping artifactComponent creation in agent'
       );
 
-      // Step 6: Create functions (project-scoped) - must be created before function tools
       if (typed.functions && Object.keys(typed.functions).length > 0) {
         logger.info(
           {
@@ -339,7 +318,6 @@ export const createFullAgentServerSide =
         );
       }
 
-      // Step 7: Create function tools (agent-scoped)
       if (typed.functionTools && Object.keys(typed.functionTools).length > 0) {
         logger.info(
           {
@@ -387,11 +365,9 @@ export const createFullAgentServerSide =
         );
       }
 
-      // Step 7: Create/update internal agents (now with agentId)
       const internalAgentPromises = Object.entries(typed.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([subAgentId, agentData]) => {
-          // Type assertion since we've filtered for internal agents
           const internalAgent = agentData as InternalSubAgentDefinition;
           try {
             logger.info({ subAgentId }, 'Processing internal agent');
@@ -422,11 +398,9 @@ export const createFullAgentServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 8: Create/update external agents (now with agentId)
       const externalAgentPromises = Object.entries(typed.subAgents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([subAgentId, agentData]) => {
-          // Type assertion since we've filtered for external agents
           const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
             logger.info({ subAgentId }, 'Processing external agent');
@@ -456,7 +430,6 @@ export const createFullAgentServerSide =
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
-      // Step 9: Update the agent with contextConfigId if it was created
       if (contextConfigId) {
         try {
           logger.info(
@@ -477,7 +450,6 @@ export const createFullAgentServerSide =
         }
       }
 
-      // Step 10: Create agent-tool relationships (both MCP tools and function tools)
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
@@ -487,7 +459,6 @@ export const createFullAgentServerSide =
               (async () => {
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
-                  // Check if this is a function tool or MCP tool
                   const isFunctionTool = typed.functionTools && toolId in typed.functionTools;
 
                   logger.info(
@@ -502,7 +473,6 @@ export const createFullAgentServerSide =
                   );
 
                   if (isFunctionTool) {
-                    // Create agent-function tool relation
                     logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
                     await upsertSubAgentFunctionToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
@@ -515,7 +485,6 @@ export const createFullAgentServerSide =
                       'Agent-function tool relation processed successfully'
                     );
                   } else {
-                    // Create agent-MCP tool relation
                     logger.info({ subAgentId, toolId }, 'Processing agent-MCP tool relation');
                     await upsertSubAgentToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
@@ -535,7 +504,6 @@ export const createFullAgentServerSide =
                     { subAgentId, toolId: canUseItem.toolId, error },
                     'Failed to create agent-tool relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -549,7 +517,6 @@ export const createFullAgentServerSide =
         'All agent-tool relations created'
       );
 
-      // Step 10: Create agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
@@ -575,7 +542,6 @@ export const createFullAgentServerSide =
                     { subAgentId, dataComponentId, error },
                     'Failed to create agent-data component relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -586,7 +552,6 @@ export const createFullAgentServerSide =
       await Promise.all(agentDataComponentPromises);
       logger.info({}, 'All agent-data component relations created');
 
-      // Step 11: Create agent-artifactComponent relationships
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
@@ -612,7 +577,6 @@ export const createFullAgentServerSide =
                     { subAgentId, artifactComponentId, error },
                     'Failed to create agent-artifact component relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -623,21 +587,19 @@ export const createFullAgentServerSide =
       await Promise.all(agentArtifactComponentPromises);
       logger.info({}, 'All agent-artifact component relations created');
 
-      // Step 12: Create agent relationships (transfer/delegation)
-      const agentRelationPromises: Promise<void>[] = [];
+      const subAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
-        // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
-            agentRelationPromises.push(
+            subAgentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
                     { subAgentId, targetSubAgentId, type: 'transfer' },
                     'Processing agent transfer relation'
                   );
-                  await upsertAgentRelation(db)({
+                  await upsertSubAgentRelation(db)({
                     id: nanoid(),
                     tenantId,
                     projectId,
@@ -661,20 +623,19 @@ export const createFullAgentServerSide =
           }
         }
 
-        // Create delegation relations
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
           for (const targetSubAgentId of agentData.canDelegateTo) {
             const targetAgentData = typed.subAgents[targetSubAgentId];
             const isTargetExternal = isExternalAgent(targetAgentData);
 
-            agentRelationPromises.push(
+            subAgentRelationPromises.push(
               (async () => {
                 try {
                   logger.info(
                     { subAgentId, targetSubAgentId, type: 'delegate' },
                     'Processing agent delegation relation'
                   );
-                  await upsertAgentRelation(db)({
+                  await upsertSubAgentRelation(db)({
                     id: nanoid(),
                     tenantId,
                     projectId,
@@ -700,13 +661,12 @@ export const createFullAgentServerSide =
         }
       }
 
-      await Promise.all(agentRelationPromises);
+      await Promise.all(subAgentRelationPromises);
       logger.info(
-        { agentRelationCount: agentRelationPromises.length },
-        'All agent relations created'
+        { subAgentRelationCount: subAgentRelationPromises.length },
+        'All sub-agent relations created'
       );
 
-      // Retrieve and return the created agent
       const createdAgent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
@@ -752,10 +712,8 @@ export const updateFullAgentServerSide =
       'Updating full agent in database'
     );
 
-    // Validate the agent structure
     validateAgentStructure(typedAgentDefinition);
 
-    // Apply inheritance logic for execution limits
     await applyExecutionLimitsInheritance(
       db,
       logger,
@@ -764,13 +722,11 @@ export const updateFullAgentServerSide =
     );
 
     try {
-      // Verify agent exists and get existing models for cascade logic
       const existingAgent = await getAgentById(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
 
       if (!existingAgent) {
-        // If agent doesn't exist, create it (upsert behavior)
         logger.info(
           { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
@@ -778,20 +734,15 @@ export const updateFullAgentServerSide =
         return createFullAgentServerSide(db, logger)(scopes, agentData);
       }
 
-      // Store existing agent models for cascade comparison
       const existingAgentModels = existingAgent.models;
 
-      // Note: CredentialReferences are now project-scoped and should be created separately
       logger.info(
         {},
         'CredentialReferences are project-scoped - skipping credential reference update in agent'
       );
 
-      // Step 2: Create/update tools (agents depend on them)
-      // Note: MCP Tools are now project-scoped and should be created separately
       logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent update');
 
-      // Step 3: Get or create the agent metadata FIRST (before agents, as they need agentId)
       let finalAgentId: string;
       try {
         const agentId = typedAgentDefinition.id || nanoid();
@@ -824,7 +775,6 @@ export const updateFullAgentServerSide =
         throw error;
       }
 
-      // Step 4: create/update context config
       let contextConfigId: string | undefined;
       if (typedAgentDefinition.contextConfig) {
         logger.info(
@@ -853,7 +803,6 @@ export const updateFullAgentServerSide =
         }
       }
 
-      // Update the agent with the contextConfigId if we created one
       if (contextConfigId) {
         try {
           logger.info(
@@ -888,16 +837,12 @@ export const updateFullAgentServerSide =
         }
       }
 
-      // Step 5: Create/update dataComponents (agents depend on them)
-      // Note: DataComponents are now project-scoped and should be created separately
       logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in agent');
-      // Note: ArtifactComponents are now project-scoped and should be created separately
       logger.info(
         {},
         'ArtifactComponents are project-scoped - skipping artifactComponent update in agent'
       );
 
-      // Step 6: Create/update functions (project-scoped) - must be updated before function tools
       if (
         typedAgentDefinition.functions &&
         Object.keys(typedAgentDefinition.functions).length > 0
@@ -942,7 +887,6 @@ export const updateFullAgentServerSide =
         );
       }
 
-      // Step 7: Create/update function tools (agent-scoped)
       if (
         typedAgentDefinition.functionTools &&
         Object.keys(typedAgentDefinition.functionTools).length > 0
@@ -993,13 +937,11 @@ export const updateFullAgentServerSide =
         );
       }
 
-      // Step 7: Create/update internal agents (now with agentId) with model cascade logic
       const internalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
         .filter(([_, agentData]) => isInternalAgent(agentData)) // Internal agents have prompt
         .map(async ([subAgentId, agentData]) => {
           const internalAgent = agentData as InternalSubAgentDefinition;
 
-          // Get the existing agent to check for inheritance
           let existingSubAgent = null;
           try {
             existingSubAgent = await db.query.subAgents.findFirst({
@@ -1012,38 +954,28 @@ export const updateFullAgentServerSide =
                 models: true,
               },
             });
-          } catch (_error) {
-            // Agent might not exist yet, that's ok
-          }
+          } catch (_error) {}
 
-          // Determine final model settings with cascade logic
           let finalModelSettings =
             internalAgent.models === undefined ? undefined : internalAgent.models;
 
-          // If agent models changed, cascade to agents that were inheriting
           if (existingSubAgent?.models && typedAgentDefinition.models) {
             const subAgentModels = existingSubAgent.models as any;
             const agentModels = typedAgentDefinition.models;
 
-            // Check each model type for inheritance and cascade if needed
             const modelTypes = ['base', 'structuredOutput', 'summarizer'] as const;
             const cascadedModels: any = { ...finalModelSettings };
 
             for (const modelType of modelTypes) {
-              // If the subAgent's current model matches the old parent agent model (was inheriting)
-              // and the parent agent model OR providerOptions have changed, cascade the change
               if (
                 subAgentModels[modelType]?.model &&
                 existingAgentModels?.[modelType]?.model &&
                 subAgentModels[modelType].model === existingAgentModels[modelType].model &&
                 agentModels[modelType] &&
-                // Model name changed
                 (agentModels[modelType].model !== existingAgentModels[modelType]?.model ||
-                  // OR providerOptions changed
                   JSON.stringify(agentModels[modelType].providerOptions) !==
                     JSON.stringify(existingAgentModels[modelType]?.providerOptions))
               ) {
-                // SubAgent was inheriting from parent agent, cascade the new value (including providerOptions)
                 cascadedModels[modelType] = agentModels[modelType];
                 logger.info(
                   {
@@ -1090,11 +1022,9 @@ export const updateFullAgentServerSide =
       ).length;
       logger.info({ internalAgentCount }, 'All internal agents created/updated successfully');
 
-      // Step 8: Create/update external agents (now with agentId)
       const externalAgentPromises = Object.entries(typedAgentDefinition.subAgents)
         .filter(([_, agentData]) => isExternalAgent(agentData)) // External agents have baseUrl
         .map(async ([subAgentId, agentData]) => {
-          // Type assertion since we've filtered for external agents
           const externalAgent = agentData as ExternalSubAgentApiInsert;
           try {
             logger.info({ subAgentId }, 'Processing external agent');
@@ -1124,20 +1054,16 @@ export const updateFullAgentServerSide =
       ).length;
       logger.info({ externalAgentCount }, 'All external agents created/updated successfully');
 
-      // Step 8a: Delete agents that are no longer in the agent definition
       const incomingAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
-      // Get existing internal agents for this agent
       const existingInternalAgents = await listSubAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      // Get existing external agents for this agent
       const existingExternalAgents = await listExternalAgents(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
 
-      // Delete internal agents not in incoming set
       let deletedInternalCount = 0;
       for (const agent of existingInternalAgents) {
         if (!incomingAgentIds.has(agent.id)) {
@@ -1153,12 +1079,10 @@ export const updateFullAgentServerSide =
               { subAgentId: agent.id, error },
               'Failed to delete orphaned internal agent'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
 
-      // Delete external agents not in incoming set
       let deletedExternalCount = 0;
       for (const agent of existingExternalAgents) {
         if (!incomingAgentIds.has(agent.id)) {
@@ -1174,7 +1098,6 @@ export const updateFullAgentServerSide =
               { subAgentId: agent.id, error },
               'Failed to delete orphaned external agent'
             );
-            // Don't throw - continue with other deletions
           }
         }
       }
@@ -1190,7 +1113,6 @@ export const updateFullAgentServerSide =
         );
       }
 
-      // Step 8: Update the agent metadata
       await updateAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
         data: {
@@ -1207,9 +1129,7 @@ export const updateFullAgentServerSide =
 
       logger.info({ agentId: typedAgentDefinition.id }, 'Agent metadata updated');
 
-      // Step 9: Update agent-tool relationships (selective delete and upsert)
 
-      // First, collect all incoming relationshipIds
       const incomingRelationshipIds = new Set<string>();
       for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (isInternalAgent(agentData) && agentData.canUse && Array.isArray(agentData.canUse)) {
@@ -1221,14 +1141,11 @@ export const updateFullAgentServerSide =
         }
       }
 
-      // Delete relationships that are not in the incoming set (for agents in this agent)
-      // Use atomic deletion to avoid race conditions
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         try {
           let deletedCount = 0;
 
           if (incomingRelationshipIds.size === 0) {
-            // Delete all relationships for this agent if no incoming IDs
             const result = await db
               .delete(subAgentToolRelations)
               .where(
@@ -1241,7 +1158,6 @@ export const updateFullAgentServerSide =
               );
             deletedCount = result.rowsAffected || 0;
           } else {
-            // Delete relationships not in the incoming set
             const result = await db
               .delete(subAgentToolRelations)
               .where(
@@ -1261,11 +1177,9 @@ export const updateFullAgentServerSide =
           }
         } catch (error) {
           logger.error({ subAgentId, error }, 'Failed to delete orphaned agent-tool relations');
-          // Don't throw - allow partial success for relations
         }
       }
 
-      // Then upsert the incoming relationships
       const agentToolPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
@@ -1276,13 +1190,11 @@ export const updateFullAgentServerSide =
                 try {
                   const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
 
-                  // Check if this is a function tool or MCP tool
                   const isFunctionTool =
                     typedAgentDefinition.functionTools &&
                     toolId in typedAgentDefinition.functionTools;
 
                   if (isFunctionTool) {
-                    // Create agent-function tool relation
                     logger.info({ subAgentId, toolId }, 'Processing agent-function tool relation');
                     await upsertSubAgentFunctionToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
@@ -1295,7 +1207,6 @@ export const updateFullAgentServerSide =
                       'Agent-function tool relation upserted'
                     );
                   } else {
-                    // Create agent-MCP tool relation
                     logger.info({ subAgentId, toolId }, 'Processing agent-MCP tool relation');
                     await upsertSubAgentToolRelation(db)({
                       scopes: { tenantId, projectId, agentId: finalAgentId },
@@ -1320,7 +1231,6 @@ export const updateFullAgentServerSide =
                     },
                     'Failed to upsert agent-tool relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -1334,15 +1244,12 @@ export const updateFullAgentServerSide =
         'All agent-tool relations updated'
       );
 
-      // Step 10: Clear and recreate agent-dataComponent relationships
-      // First, delete existing relationships for all agents in this agent
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentDataComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
         });
       }
 
-      // Then create new agent-dataComponent relationships
       const agentDataComponentPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
@@ -1365,7 +1272,6 @@ export const updateFullAgentServerSide =
                     { subAgentId, dataComponentId, error },
                     'Failed to create agent-dataComponent relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -1379,8 +1285,6 @@ export const updateFullAgentServerSide =
         'All agent-dataComponent relations updated'
       );
 
-      // Step 11: Clear and recreate agent-artifactComponent relationships
-      // First, delete existing relationships for all agents in this agent
       for (const subAgentId of Object.keys(typedAgentDefinition.subAgents)) {
         await deleteAgentArtifactComponentRelationByAgent(db)({
           scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId: subAgentId },
@@ -1410,7 +1314,6 @@ export const updateFullAgentServerSide =
                     { subAgentId, artifactComponentId, error },
                     'Failed to create agent-artifactComponent relation'
                   );
-                  // Don't throw - allow partial success for relations
                 }
               })()
             );
@@ -1424,8 +1327,6 @@ export const updateFullAgentServerSide =
         'All agent-artifactComponent relations updated'
       );
 
-      // Step 12: Clear and recreate agent relationships
-      // First, delete existing relationships for this agent
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
@@ -1433,7 +1334,6 @@ export const updateFullAgentServerSide =
       const agentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
-        // Create transfer relations
         if (isInternalAgent(agentData) && agentData.canTransferTo) {
           for (const targetSubAgentId of agentData.canTransferTo) {
             agentRelationPromises.push(
@@ -1472,7 +1372,6 @@ export const updateFullAgentServerSide =
           }
         }
 
-        // Create delegation relations
         if (isInternalAgent(agentData) && agentData.canDelegateTo) {
           for (const targetSubAgentId of agentData.canDelegateTo) {
             // External agents can't delegate to other agents
@@ -1590,7 +1489,6 @@ export const deleteFullAgent =
     logger.info({ tenantId, agentId }, 'Deleting full agent and related entities');
 
     try {
-      // Get the agent first to ensure it exists
       const agent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId },
       });
@@ -1600,16 +1498,13 @@ export const deleteFullAgent =
         return false;
       }
 
-      // Step 1: Delete all agent relations for this agent
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });
       logger.info({ tenantId, agentId }, 'Agent relations deleted');
 
-      // Step 2: Delete agent-tool relations for agents in this agent
       const subAgentIds = Object.keys(agent.subAgents);
       if (subAgentIds.length > 0) {
-        // Delete agent-tool relations for all agents in this agent
         for (const subAgentId of subAgentIds) {
           await deleteAgentToolRelationByAgent(db)({
             scopes: { tenantId, projectId, agentId, subAgentId: subAgentId },
@@ -1622,7 +1517,6 @@ export const deleteFullAgent =
         );
       }
 
-      // Step 3: Delete the agent metadata
       await deleteAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });

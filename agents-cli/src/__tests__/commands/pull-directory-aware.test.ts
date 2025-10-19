@@ -1,5 +1,5 @@
+import * as p from '@clack/prompts';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 // Mock all external dependencies
@@ -24,20 +24,7 @@ vi.mock('chalk', () => ({
   },
 }));
 
-vi.mock('ora', () => ({
-  default: vi.fn(() => ({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-    warn: vi.fn().mockReturnThis(),
-    stop: vi.fn().mockReturnThis(),
-    text: '',
-  })),
-}));
-
-vi.mock('prompts', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@clack/prompts');
 
 vi.mock('../../utils/tsx-loader.js', () => ({
   importWithTypeScriptSupport: vi.fn(),
@@ -74,6 +61,17 @@ describe('Pull Command - Directory Aware', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Setup default mocks for @clack/prompts
+    const mockSpinner = {
+      start: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
+      message: vi.fn().mockReturnThis(),
+    };
+    vi.mocked(p.spinner).mockReturnValue(mockSpinner);
+    vi.mocked(p.text).mockResolvedValue('test-value');
+    vi.mocked(p.isCancel).mockReturnValue(false);
+    vi.mocked(p.cancel).mockImplementation(() => {});
 
     // Mock process.exit to prevent test runner from exiting
     mockExit = vi.fn();
@@ -156,8 +154,6 @@ describe('Pull Command - Directory Aware', () => {
     });
 
     it('should not detect project when index.ts does not exist', async () => {
-      const prompts = (await import('prompts')).default as Mock;
-
       // Mock config file exists but no index.ts
       (existsSync as Mock).mockImplementation((path: string) => {
         if (path.includes('inkeep.config.ts')) return true;
@@ -166,7 +162,8 @@ describe('Pull Command - Directory Aware', () => {
       });
 
       // Mock user input
-      prompts.mockResolvedValue({ projectId: 'user-entered-id' });
+      vi.mocked(p.text).mockResolvedValueOnce('user-entered-id');
+      vi.mocked(p.isCancel).mockReturnValue(false);
 
       // Mock API to throw error (we don't care about the rest of the flow)
       const { ManagementApiClient } = await import('../../api.js');
@@ -175,17 +172,16 @@ describe('Pull Command - Directory Aware', () => {
       await pullProjectCommand({});
 
       // Verify prompt was shown
-      expect(prompts).toHaveBeenCalledWith({
-        type: 'text',
-        name: 'projectId',
-        message: 'Enter the project ID to pull:',
-        validate: expect.any(Function),
-      });
+      expect(p.text).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Enter the project ID to pull:',
+          validate: expect.any(Function),
+        })
+      );
     });
 
     it('should not detect project when index.ts exists but has no project export', async () => {
       const { importWithTypeScriptSupport } = await import('../../utils/tsx-loader.js');
-      const prompts = (await import('prompts')).default as Mock;
 
       // Mock config and index.ts exist
       (existsSync as Mock).mockImplementation((path: string) => {
@@ -200,7 +196,8 @@ describe('Pull Command - Directory Aware', () => {
       });
 
       // Mock user input
-      prompts.mockResolvedValue({ projectId: 'user-entered-id' });
+      vi.mocked(p.text).mockResolvedValueOnce('user-entered-id');
+      vi.mocked(p.isCancel).mockReturnValue(false);
 
       // Mock API to throw error
       const { ManagementApiClient } = await import('../../api.js');
@@ -209,7 +206,7 @@ describe('Pull Command - Directory Aware', () => {
       await pullProjectCommand({});
 
       // Verify prompt was shown (project not detected)
-      expect(prompts).toHaveBeenCalled();
+      expect(p.text).toHaveBeenCalled();
     });
   });
 
@@ -321,8 +318,8 @@ describe('Pull Command - Directory Aware', () => {
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
 
       // Should NOT create a subdirectory with project ID
-      const hasSubdirectory = mkdirCalls.some((path: string) =>
-        path.includes('test-project-id') && path !== process.cwd()
+      const hasSubdirectory = mkdirCalls.some(
+        (path: string) => path.includes('test-project-id') && path !== process.cwd()
       );
       expect(hasSubdirectory).toBe(false);
     });
@@ -330,7 +327,6 @@ describe('Pull Command - Directory Aware', () => {
     it('should create subdirectory when NOT in directory-aware mode', async () => {
       const { ManagementApiClient } = await import('../../api.js');
       const { mkdirSync } = await import('node:fs');
-      const prompts = (await import('prompts')).default as Mock;
 
       // Mock config exists but no index.ts
       (existsSync as Mock).mockImplementation((path: string) => {
@@ -340,7 +336,8 @@ describe('Pull Command - Directory Aware', () => {
       });
 
       // Mock user input
-      prompts.mockResolvedValue({ projectId: 'user-project-id' });
+      vi.mocked(p.text).mockResolvedValueOnce('user-project-id');
+      vi.mocked(p.isCancel).mockReturnValue(false);
 
       // Mock API client
       const mockApiClient = {
@@ -359,9 +356,7 @@ describe('Pull Command - Directory Aware', () => {
 
       // Verify that a subdirectory with project ID is created
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
-      const hasSubdirectory = mkdirCalls.some((path: string) =>
-        path.includes('user-project-id')
-      );
+      const hasSubdirectory = mkdirCalls.some((path: string) => path.includes('user-project-id'));
       expect(hasSubdirectory).toBe(true);
     });
 
@@ -419,15 +414,16 @@ describe('Pull Command - Directory Aware', () => {
       const mkdirCalls = (mkdirSync as Mock).mock.calls.map((call) => call[0]);
 
       // Should have created agents directory in currentDir
-      const agentsDir = mkdirCalls.find((path: string) =>
-        path.includes('/agents') && path.startsWith(currentDir)
+      const agentsDir = mkdirCalls.find(
+        (path: string) => path.includes('/agents') && path.startsWith(currentDir)
       );
       expect(agentsDir).toBeTruthy();
       expect(agentsDir).toContain(currentDir);
 
       // Should NOT have created agents directory in parentDir
-      const wrongAgentsDir = mkdirCalls.find((path: string) =>
-        path.includes('/agents') && path.startsWith(parentDir) && !path.startsWith(currentDir)
+      const wrongAgentsDir = mkdirCalls.find(
+        (path: string) =>
+          path.includes('/agents') && path.startsWith(parentDir) && !path.startsWith(currentDir)
       );
       expect(wrongAgentsDir).toBeUndefined();
 

@@ -4,7 +4,8 @@ import { icon } from '@inkeep/docskit';
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import * as brandIcons from '@/components/brand-icons';
 import { File } from '@/components/sidebar/file';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -39,7 +40,9 @@ export const Folder = ({ item, depth = 0 }: { item: SidebarPage; depth?: number 
   const path = usePathname();
 
   const active = isFolderActive(item, path);
-  const groupIcon = icon(item.icon);
+  const groupIcon = item.icon?.startsWith('brand/')
+    ? React.createElement(brandIcons[item.icon.split('brand/')[1] as keyof typeof brandIcons])
+    : icon(item.icon);
 
   const [open, setOpen] = useState(active);
 

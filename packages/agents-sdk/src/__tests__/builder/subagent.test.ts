@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SubAgent } from '../../subAgent';
 import { ExternalAgent } from '../../externalAgent';
+import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { SubAgentConfig } from '../../types';
 

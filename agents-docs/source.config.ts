@@ -1,4 +1,5 @@
 import html from '@shikijs/langs/html';
+import path from 'path';
 import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
 import emoji from 'remark-emoji';
 import { mdxSnippet } from 'remark-mdx-snippets';
@@ -19,7 +20,12 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: (v) => [[remarkSourceCode, { baseDir: '..' }], mdxSnippet, [emoji, { accessible: true }], ...v],
+    remarkPlugins: (v) => [
+      [remarkSourceCode, { baseDir: '..' }],
+      [mdxSnippet, { snippetsDir: path.resolve(process.cwd(), '_snippets') }],
+      [emoji, { accessible: true }],
+      ...v
+    ],
     rehypeCodeOptions: {
       inline: 'tailing-curly-colon',
       themes: {

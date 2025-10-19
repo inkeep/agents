@@ -13,7 +13,6 @@ import type {
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
 
-// Type for artifact components that can have Zod schemas in props
 export interface ArtifactComponentWithZodProps {
   id: string;
   name: string;
@@ -35,7 +34,6 @@ import type { ExternalAgentConfig } from './externalAgent';
 import type { FunctionTool } from './function-tool';
 import type { Tool } from './tool';
 
-// Re-export ModelSettings from agents-core for convenience
 export type { ModelSettings };
 
 /**
@@ -78,7 +76,6 @@ export type Message = UserMessage | AssistantMessage | ToolMessage | SystemMessa
 
 export type MessageInput = string | string[] | Message | Message[];
 
-// Tool types
 export interface ToolCall {
   id: string;
   type: 'function';
@@ -97,7 +94,6 @@ export type AllSubAgentInterface = SubAgentInterface | ExternalAgentInterface;
 
 export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
-// Agent configuration types
 export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => SubAgentCanUseType[];
@@ -116,14 +112,12 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   conversationHistoryConfig?: AgentConversationHistoryConfig;
 }
 
-// Tool configuration types
 export interface ToolConfig extends ToolInsert {
   execute: (params: any) => Promise<any>;
   parameters?: Record<string, any>;
   schema?: z.ZodJSONSchema;
 }
 
-// Registry-based server configuration
 export interface ServerConfig {
   type: string;
   version?: string;
@@ -160,7 +154,7 @@ export interface FetchDefinitionConfig {
   credential?: CredentialReferenceApiInsert;
 }
 
-export type { FunctionToolConfig, SandboxConfig } from '@inkeep/agents-core';
+export type { FunctionToolConfig } from '@inkeep/agents-core';
 
 export interface RequestSchemaDefinition {
   body?: z.ZodSchema<any>;
@@ -174,14 +168,12 @@ export interface RequestSchemaConfig {
   optional?: ('body' | 'headers' | 'query' | 'params')[];
 }
 
-// Transfer types
 export interface TransferConfig {
   agent: SubAgentInterface;
   description?: string;
   condition?: (context: any) => boolean;
 }
 
-// Generation options
 export interface GenerateOptions {
   maxTurns?: number;
   maxSteps?: number;
@@ -190,10 +182,9 @@ export interface GenerateOptions {
   resourceId?: string;
   conversationId?: string;
   stream?: boolean;
-  customBodyParams?: Record<string, unknown>; // Request context for agent execution
+  customBodyParams?: Record<string, unknown>;
 }
 
-// Response types
 export interface AgentResponse {
   id?: string;
   text: string;
@@ -219,7 +210,6 @@ export interface StreamEvent {
   timestamp: Date;
 }
 
-// Run result types
 export interface RunResult {
   finalOutput: string;
   agent: SubAgentInterface;
@@ -235,26 +225,24 @@ export interface RunResult {
   };
 }
 
-// Agent types
 export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
   defaultSubAgent?: SubAgentInterface;
   subAgents?: () => AllSubAgentInterface[];
-  contextConfig?: any; // ContextConfigBuilder - avoiding import for now
+  contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: AgentStopWhen;
-  agentPrompt?: string;
+  prompt?: string;
   models?: {
     base?: ModelSettings;
     structuredOutput?: ModelSettings;
     summarizer?: ModelSettings;
   };
-  statusUpdates?: StatusUpdateSettings; // Configuration for LLM-powered status updates
+  statusUpdates?: StatusUpdateSettings;
 }
 
-// Error types
 export class AgentError extends Error {
   constructor(
     message: string,
@@ -289,7 +277,6 @@ export class TransferError extends AgentError {
   }
 }
 
-// Forward declaration for circular dependency
 export interface SubAgentInterface {
   config: SubAgentConfig;
   type: 'internal';
@@ -317,12 +304,11 @@ export interface ExternalAgentInterface {
   getName(): string;
   getDescription(): string;
   getBaseUrl(): string;
+  setContext?(tenantId: string, baseURL?: string): void;
   getCredentialReferenceId(): string | undefined;
   getHeaders(): Record<string, string> | undefined;
-  setContext?(tenantId: string, baseURL?: string): void;
 }
 
-// Agent interface for runner operations
 export interface AgentInterface {
   init(): Promise<void>;
   setConfig(tenantId: string, projectId: string, apiUrl: string): void;
@@ -339,7 +325,6 @@ export interface AgentInterface {
   toFullAgentDefinition(): Promise<FullAgentDefinition>;
 }
 
-// Legacy builder types (for backward compatibility)
 export interface BuilderToolConfig {
   name: string;
   description: string;

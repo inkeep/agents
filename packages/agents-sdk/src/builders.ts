@@ -61,6 +61,12 @@ export interface DataComponentConfig extends ComponentConfig {
   props: Record<string, unknown> | z.ZodObject<any>;
 }
 
+export interface StatusComponentConfig {
+  type: string;
+  description?: string;
+  detailsSchema?: Record<string, unknown> | z.ZodObject<any>;
+}
+
 // ============================================================================
 // Schemas
 // ============================================================================

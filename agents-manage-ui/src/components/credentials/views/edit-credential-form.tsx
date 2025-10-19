@@ -65,7 +65,6 @@ export function EditCredentialForm({
 
   const handleUpdateCredential = async (formData: EditCredentialFormData) => {
     try {
-      // Update credential metadata in our database
       await updateCredential(tenantId, projectId, credential.id, {
         retrievalParams: {
           ...credential.retrievalParams,
@@ -73,7 +72,6 @@ export function EditCredentialForm({
         },
       });
 
-      // Update connection metadata in Nango if we have connection info
       if (
         credential.retrievalParams?.providerConfigKey &&
         credential.retrievalParams?.connectionId &&
@@ -161,11 +159,7 @@ export function EditCredentialForm({
           )}
 
           {/* MCP Servers Using This Credential */}
-          <CredentialToolsList
-            tools={credential.tools}
-            tenantId={tenantId}
-            projectId={projectId}
-          />
+          <CredentialToolsList tools={credential.tools} tenantId={tenantId} projectId={projectId} />
         </div>
 
         <div className="flex gap-3 pt-4">

@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-run-api',
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
@@ -9,7 +10,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
-    isolate: false, // Faster execution by reusing worker context
+    isolate: true, // Ensure test isolation to prevent state leakage
     poolOptions: {
       threads: {
         maxThreads: 16, // Increase for GitHub Actions runners (have more cores)
@@ -20,17 +21,6 @@ export default defineConfig({
       ENVIRONMENT: 'test',
       DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-key-for-tests',
-    },
-    coverage: {
-      reporter: ['text', 'html', 'json'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.test.ts',
-        '**/*.test.js',
-        'src/__tests__/',
-        'coverage/',
-      ],
     },
   },
 });

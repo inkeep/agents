@@ -16,8 +16,8 @@ import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
 } from '@/lib/utils/orphaned-tools-detector';
-import type { MCPNodeData } from '../../configuration/node-types';
 import type { AgentToolConfigLookup } from '../../agent';
+import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
   selectedNode: Node<MCPNodeData>;
@@ -61,7 +61,10 @@ export function MCPServerNodeEditor({
 
   const activeTools = getActiveTools({
     availableTools: availableTools,
-    activeTools: toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.activeTools : undefined,
+    activeTools:
+      toolData?.config && toolData.config.type === 'mcp'
+        ? toolData.config.mcp.activeTools
+        : undefined,
   });
 
   // Handle missing tool data
@@ -69,7 +72,7 @@ export function MCPServerNodeEditor({
     return (
       <div className="flex items-center justify-center p-4">
         <div className="text-sm text-muted-foreground">
-          Tool data not found for {selectedNode.data.toolId}
+          Tool data not found for {selectedNode.data.toolId}.
         </div>
       </div>
     );
@@ -95,7 +98,6 @@ export function MCPServerNodeEditor({
       newSelections = [...currentSelections, toolName];
     }
 
-    // Check if all tools are now selected - if so, use null to represent "all selected"
     const allToolNames = activeTools?.map((tool) => tool.name) || [];
     let finalSelection: string[] | null = newSelections;
 
@@ -191,7 +193,9 @@ export function MCPServerNodeEditor({
         <Input
           id="url"
           name="url"
-          value={toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.server.url : ''}
+          value={
+            toolData?.config && toolData.config.type === 'mcp' ? toolData.config.mcp.server.url : ''
+          }
           onChange={handleInputChange}
           placeholder="https://mcp.inkeep.com"
           disabled

@@ -1,5 +1,5 @@
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import {
   getModelInheritanceStatus,
@@ -29,7 +29,7 @@ export function ModelSection({
     <div className="space-y-8">
       <SectionHeader
         title="Models"
-        description="Configure agent-level models."
+        description="Configure sub agent-level models."
         titleTooltip={
           <div>
             <p>How model inheritance works:</p>
@@ -59,7 +59,9 @@ export function ModelSection({
             </div>
           }
         />
-        <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
+        <p className="text-xs text-muted-foreground">
+          Primary model for general sub agent responses
+        </p>
       </div>
 
       <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">

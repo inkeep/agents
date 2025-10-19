@@ -13,7 +13,6 @@ export const dataComponentSchema = z.object({
       try {
         const parsed = JSON.parse(str);
 
-        // Validate it's a proper LLM-compatible JSON schema
         const validationResult = validateJsonSchemaForLlm(str);
         if (!validationResult.isValid) {
           const errorMessage = validationResult.errors[0]?.message || 'Invalid JSON schema';
@@ -34,6 +33,10 @@ export const dataComponentSchema = z.object({
       }
     })
     .optional(),
+  preview: z.object({
+    code: z.string(),
+    data: z.record(z.string(), z.unknown()),
+  }).nullable().optional(),
 });
 
 export type DataComponentFormData = z.infer<typeof dataComponentSchema>;

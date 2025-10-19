@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import { builtinModules } from 'node:module';
 import path from 'node:path';
+import { getLogger } from '@inkeep/agents-core';
 import * as lockfile from '@yarnpkg/lockfile';
 import * as yaml from 'js-yaml';
 import ts, { type ModuleResolutionCache } from 'typescript';
-import { getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('function-tool');
 

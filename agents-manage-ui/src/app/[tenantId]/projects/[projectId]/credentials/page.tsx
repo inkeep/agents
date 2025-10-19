@@ -1,13 +1,13 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { CredentialsList } from '@/components/credentials/credentials-list';
+import { CredentialItem } from '@/components/credentials/credential-item';
+import FullPageError from '@/components/errors/full-page-error';
 import { CredentialsIcon } from '@/components/icons/empty-state/credentials';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import type { Credential } from '@/lib/api/credentials';
 import { fetchCredentials } from '@/lib/api/credentials';
 
 export const dynamic = 'force-dynamic';
@@ -21,11 +21,12 @@ async function CredentialsPage({
   params: Promise<{ tenantId: string; projectId: string }>;
 }) {
   const { tenantId, projectId } = await params;
-  let credentials: Credential[] = [];
+
+  let credentials: Awaited<ReturnType<typeof fetchCredentials>>;
   try {
     credentials = await fetchCredentials(tenantId, projectId);
-  } catch (_error) {
-    throw new Error('Failed to fetch credentials');
+  } catch (error) {
+    return <FullPageError error={error as Error} context="credentials" />;
   }
 
   return (
@@ -48,7 +49,17 @@ async function CredentialsPage({
                 </Button>
               }
             />
-            <CredentialsList tenantId={tenantId} projectId={projectId} credentials={credentials} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+              {credentials?.map((cred) => (
+                <CredentialItem
+                  key={cred.id}
+                  id={cred.id}
+                  createdAt={cred.createdAt}
+                  tenantId={tenantId}
+                  projectId={projectId}
+                />
+              ))}
+            </div>
           </>
         ) : (
           <EmptyState

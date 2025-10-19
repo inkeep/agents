@@ -1,4 +1,5 @@
-import './env'; // Load environment files first
+import './env'; // Load environment files first (needed by instrumentation)
+import './instrumentation'; // Initialize Langfuse tracing second
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,12 +11,11 @@ import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
+import { updateCommand } from './commands/update';
 
-// Get the current directory for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Read package.json to get version
 const packageJsonPath = join(__dirname, '..', 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
 
@@ -26,7 +26,6 @@ program
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
 
-// Add command
 program
   .command('add [template]')
   .description('Add a new template to the project')
@@ -36,7 +35,6 @@ program
     await addCommand({ template, ...options });
   });
 
-// Init command
 program
   .command('init [path]')
   .description('Initialize a new Inkeep configuration file')
@@ -46,7 +44,6 @@ program
     await initCommand({ path, ...options });
   });
 
-// Config command with subcommands
 const configCommand = program.command('config').description('Manage Inkeep configuration');
 
 configCommand
@@ -55,7 +52,6 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (key, options) => {
-    // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
     await configGetCommand(key, { config });
   });
@@ -66,7 +62,6 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (key, value, options) => {
-    // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
     await configSetCommand(key, value, { config });
   });
@@ -77,12 +72,10 @@ configCommand
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (options) => {
-    // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
     await configListCommand({ config });
   });
 
-// Push command
 program
   .command('push')
   .description('Push a project configuration to the backend')
@@ -100,7 +93,6 @@ program
     await pushCommand(options);
   });
 
-// Pull command (project-based)
 program
   .command('pull')
   .description('Pull entire project configuration from backend and update local files')
@@ -117,41 +109,19 @@ program
     await pullProjectCommand(options);
   });
 
-// Chat command
-program
-  .command('chat [agent-id]')
-  .description(
-    'Start an interactive chat session with an agent (interactive selection if no ID provided)'
-  )
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--agents-manage-api-url <url>', 'Agents manage API URL')
-  .option('--agents-run-api-url <url>', 'Agents run API URL')
-  .option('--config <path>', 'Path to configuration file')
-  .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (agentId, options) => {
-    // Import the enhanced version with autocomplete
-    const { chatCommandEnhanced } = await import('./commands/chat-enhanced.js');
-    // Support both --config and --config-file-path for backward compatibility
-    const config = options.config || options.configFilePath;
-    await chatCommandEnhanced(agentId, { ...options, config });
-  });
-
-// List agent command
 program
   .command('list-agent')
-  .description('List all available agent for a specific project')
+  .description('List all available agents for a specific project')
   .requiredOption('--project <project-id>', 'Project ID to list agent for')
   .option('--tenant-id <tenant-id>', 'Tenant ID')
   .option('--agents-manage-api-url <url>', 'Agents manage API URL')
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
   .action(async (options) => {
-    // Support both --config and --config-file-path for backward compatibility
     const config = options.config || options.configFilePath;
     await listAgentsCommand({ ...options, config });
   });
 
-// Dev command
 program
   .command('dev')
   .description('Start the Inkeep dashboard server')
@@ -172,5 +142,13 @@ program
     });
   });
 
-// Parse command line arguments
+program
+  .command('update')
+  .description('Update @inkeep/agents-cli to the latest version')
+  .option('--check', 'Check for updates without installing')
+  .option('--force', 'Force update even if already on latest version')
+  .action(async (options) => {
+    await updateCommand(options);
+  });
+
 program.parse();

@@ -123,7 +123,6 @@ export async function fetchAllSpanAttributes_SQL(
       }
 
       for (const r of rows) {
-        // Build the span.data bag from the projected JSON maps
         const attrsString = JSON.parse(r.attributes_string_json || '{}');
         const attrsNum = JSON.parse(r.attributes_number_json || '{}');
         const attrsBool = JSON.parse(r.attributes_bool_json || '{}');

@@ -10,6 +10,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../types/index';
+import { validatePreview } from '../validation/preview-validation';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 /**
@@ -108,7 +109,6 @@ export const listDataComponentsPaginated =
 export const createDataComponent =
   (db: DatabaseClient) =>
   async (params: DataComponentInsert): Promise<DataComponentSelect> => {
-    // Validate props as JSON Schema (required for data components)
     if (params.props) {
       const propsValidation = validatePropsAsJsonSchema(params.props);
       if (!propsValidation.isValid) {
@@ -116,6 +116,16 @@ export const createDataComponent =
           .map((e) => `${e.field}: ${e.message}`)
           .join(', ');
         throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.preview !== undefined && params.preview !== null) {
+      const previewValidation = validatePreview(params.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
       }
     }
 
@@ -134,7 +144,6 @@ export const updateDataComponent =
     dataComponentId: string;
     data: DataComponentUpdate;
   }): Promise<DataComponentSelect | null> => {
-    // Validate props as JSON Schema if provided
     if (params.data.props !== undefined && params.data.props !== null) {
       const propsValidation = validatePropsAsJsonSchema(params.data.props);
       if (!propsValidation.isValid) {
@@ -142,6 +151,16 @@ export const updateDataComponent =
           .map((e) => `${e.field}: ${e.message}`)
           .join(', ');
         throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.data.preview !== undefined && params.data.preview !== null) {
+      const previewValidation = validatePreview(params.data.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
       }
     }
 
@@ -203,6 +222,7 @@ export const getDataComponentsForAgent =
         props: dataComponents.props,
         createdAt: dataComponents.createdAt,
         updatedAt: dataComponents.updatedAt,
+        preview: dataComponents.preview,
       })
       .from(dataComponents)
       .innerJoin(
@@ -328,11 +348,9 @@ export const isDataComponentAssociatedWithAgent =
 export const upsertAgentDataComponentRelation =
   (db: DatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }) => {
-    // Check if relation already exists
     const exists = await isDataComponentAssociatedWithAgent(db)(params);
 
     if (!exists) {
-      // Create the relation if it doesn't exist
       return await associateDataComponentWithAgent(db)(params);
     }
 
@@ -375,7 +393,6 @@ export const upsertDataComponent =
     });
 
     if (existing) {
-      // Update existing data component
       return await updateDataComponent(db)({
         scopes,
         dataComponentId: params.data.id,
@@ -386,7 +403,6 @@ export const upsertDataComponent =
         },
       });
     } else {
-      // Create new data component
       return await createDataComponent(db)(params.data);
     }
   };

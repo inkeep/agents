@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SubAgent } from '../../subAgent';
 import { transfer } from '../../builders';
+import { SubAgent } from '../../subAgent';
 
 describe('transfer builder function', () => {
   let targetAgent: SubAgent;

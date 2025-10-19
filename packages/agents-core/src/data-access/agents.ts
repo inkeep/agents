@@ -3,7 +3,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import {
-  agentFunctionToolRelations,
+  subAgentFunctionToolRelations,
   agents,
   artifactComponents,
   dataComponents,
@@ -120,7 +120,6 @@ export const updateAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; data: AgentUpdate }) => {
     const data = params.data;
 
-    // Handle model settings clearing - if empty object or no model field, set to null
     const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: new Date().toISOString(),
@@ -249,8 +248,6 @@ export const getAgentSubAgentInfos =
       throw new Error(`Agent with ID ${agentId} not found for tenant ${tenantId}`);
     }
 
-    // Get all relations for the agent within the tenant
-    // For now, this works without agent-specific filtering until schema is properly updated
     const relations = await getAgentRelations(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
     });
@@ -258,12 +255,10 @@ export const getAgentSubAgentInfos =
       .map((relation) => relation.targetSubAgentId)
       .filter((id): id is string => id !== null);
 
-    // If no relations found, return empty array
     if (targetSubAgentIds.length === 0) {
       return [];
     }
 
-    // Get agent information for each target agent
     const agentInfos = await Promise.all(
       targetSubAgentIds.map(async (subAgentId) => {
         const agent = await getSubAgentById(db)({
@@ -323,7 +318,6 @@ export const getFullAgentDefinition =
           .map((rel) => rel.targetSubAgentId)
           .filter((id): id is string => id !== null);
 
-        // Delegations can be to internal or external agents
         const canDelegateTo = subAgentRelationsList
           .filter((rel) => rel.relationType === 'delegate' || rel.relationType === 'delegate_to')
           .map((rel) => rel.targetSubAgentId || rel.externalSubAgentId)
@@ -363,7 +357,6 @@ export const getFullAgentDefinition =
             )
           );
 
-        // Get function tools for this agent
         const agentFunctionTools = await db
           .select({
             id: functionTools.id,
@@ -375,24 +368,24 @@ export const getFullAgentDefinition =
             tenantId: functionTools.tenantId,
             projectId: functionTools.projectId,
             agentId: functionTools.agentId,
-            agentToolRelationId: agentFunctionToolRelations.id,
+            agentToolRelationId: subAgentFunctionToolRelations.id,
           })
-          .from(agentFunctionToolRelations)
+          .from(subAgentFunctionToolRelations)
           .innerJoin(
             functionTools,
             and(
-              eq(agentFunctionToolRelations.functionToolId, functionTools.id),
-              eq(agentFunctionToolRelations.tenantId, functionTools.tenantId),
-              eq(agentFunctionToolRelations.projectId, functionTools.projectId),
-              eq(agentFunctionToolRelations.agentId, functionTools.agentId)
+              eq(subAgentFunctionToolRelations.functionToolId, functionTools.id),
+              eq(subAgentFunctionToolRelations.tenantId, functionTools.tenantId),
+              eq(subAgentFunctionToolRelations.projectId, functionTools.projectId),
+              eq(subAgentFunctionToolRelations.agentId, functionTools.agentId)
             )
           )
           .where(
             and(
-              eq(agentFunctionToolRelations.tenantId, tenantId),
-              eq(agentFunctionToolRelations.projectId, projectId),
-              eq(agentFunctionToolRelations.agentId, agentId),
-              eq(agentFunctionToolRelations.subAgentId, agent.id)
+              eq(subAgentFunctionToolRelations.tenantId, tenantId),
+              eq(subAgentFunctionToolRelations.projectId, projectId),
+              eq(subAgentFunctionToolRelations.agentId, agentId),
+              eq(subAgentFunctionToolRelations.subAgentId, agent.id)
             )
           );
 
@@ -414,7 +407,6 @@ export const getFullAgentDefinition =
           (rel) => rel.artifactComponentId
         );
 
-        // Construct canUse array from both MCP tools and function tools
         const mcpToolCanUse = subAgentTools.map((tool) => ({
           agentToolRelationId: tool.agentToolRelationId,
           toolId: tool.id,
@@ -466,7 +458,6 @@ export const getFullAgentDefinition =
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
-    // Tools are defined at project level, not agent level
     const agentsObject: Record<string, unknown> = {};
 
     for (const subAgent of validSubAgents) {
@@ -493,7 +484,6 @@ export const getFullAgentDefinition =
           id: agent.contextConfigId,
         });
       } catch (error) {
-        // Don't fail the entire request if contextConfig retrieval fails
         console.warn(`Failed to retrieve contextConfig ${agent.contextConfigId}:`, error);
       }
     }
@@ -516,7 +506,6 @@ export const getFullAgentDefinition =
         },
       });
     } catch (error) {
-      // Don't fail the entire request if dataComponents retrieval fails
       console.warn('Failed to retrieve dataComponents:', error);
     }
 
@@ -538,7 +527,6 @@ export const getFullAgentDefinition =
         },
       });
     } catch (error) {
-      // Don't fail the entire request if artifactComponents retrieval fails
       console.warn('Failed to retrieve artifactComponents:', error);
     }
 
@@ -579,9 +567,7 @@ export const getFullAgentDefinition =
       result.contextConfig = { id, headersSchema, contextVariables };
     }
 
-    // dataComponents and artifactComponents are defined at project level and only referenced by ID in agents
     try {
-      // Check if projects query is available (may not be in test environments)
       if (!db.query?.projects?.findFirst) {
         return result as FullAgentDefinition;
       }
@@ -597,7 +583,6 @@ export const getFullAgentDefinition =
           const resultSubAgents = (result as any).subAgents as Record<string, unknown>;
           if (resultSubAgents) {
             for (const [subAgentId, agentData] of Object.entries(resultSubAgents)) {
-              // Only apply to internal agents (not external agents with baseUrl)
               if (agentData && typeof agentData === 'object' && !('baseUrl' in agentData)) {
                 const agent = agentData as {
                   stopWhen?: { stepCountIs?: number; transferCountIs?: number };
@@ -628,7 +613,6 @@ export const getFullAgentDefinition =
                         )
                       );
 
-                    // Update the in-memory agent data to reflect the persisted values for the UI
                     (result as any).subAgents[subAgentId] = {
                       ...(result as any).subAgents[subAgentId],
                       stopWhen: agent.stopWhen,
@@ -643,7 +627,6 @@ export const getFullAgentDefinition =
         }
       }
     } catch (error) {
-      // Don't fail the entire request if inheritance fails
       console.warn('Failed to apply agent stepCountIs inheritance:', error);
     }
 
@@ -653,7 +636,6 @@ export const getFullAgentDefinition =
         pagination: { page: 1, limit: 1000 },
       });
 
-      // Build tools lookup map
       const toolsObject: Record<string, any> = {};
       for (const tool of toolsList.data) {
         toolsObject[tool.id] = {
@@ -667,13 +649,11 @@ export const getFullAgentDefinition =
       }
       result.tools = toolsObject;
 
-      // Get function tools for this agent
       const functionToolsList = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page: 1, limit: 1000 },
       });
 
-      // Build function tools lookup map
       const functionToolsObject: Record<string, any> = {};
       for (const functionTool of functionToolsList.data) {
         functionToolsObject[functionTool.id] = {
@@ -685,7 +665,6 @@ export const getFullAgentDefinition =
       }
       result.functionTools = functionToolsObject;
 
-      // Get all functions referenced by function tools
       const functionIds = new Set<string>();
       for (const functionTool of functionToolsList.data) {
         if (functionTool.functionId) {

@@ -15,7 +15,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     selectedNodeId: selectedNode.id,
   });
 
-  // Get data directly from node (like agents do)
   const nodeData = selectedNode.data;
 
   // Local state for form fields - initialize from node data

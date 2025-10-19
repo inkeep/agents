@@ -185,7 +185,9 @@ describe('OpenAPI Specification - Integration Tests', () => {
 
       // Check for A2A endpoints (they may be present)
       const paths = Object.keys(spec.paths);
-      const hasA2AEndpoints = paths.some(path => path.includes('a2a') || path.includes('.well-known'));
+      const _hasA2AEndpoints = paths.some(
+        (path) => path.includes('a2a') || path.includes('.well-known')
+      );
 
       // Just verify the spec is valid whether or not A2A endpoints are present
       expect(spec).toHaveProperty('paths');

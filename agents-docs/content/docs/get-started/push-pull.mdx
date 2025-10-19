@@ -1,0 +1,123 @@
+---
+title: Push / Pull
+description: Push and pull your agents to and from the Visual Builder
+icon: "LuArrowLeftRight"    
+---
+
+## Push code to visual
+
+With Inkeep, you can define your agents in code, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface. You can switch back to code any time.
+
+Let's walk through the process.
+
+### Step 1: Install the Inkeep CLI
+
+```bash
+pnpm install -g @inkeep/agents-cli
+```
+
+### Step 2: Download a template project
+
+Navigate to the `src/projects` directory.
+
+```bash
+cd src/projects
+```
+
+Add the docs assistant agent using `inkeep add`. 
+
+```bash
+inkeep add docs-assistant
+```
+
+Find the downloaded code in `src/projects/docs-assistant`.
+
+<Note> 
+`inkeep add` imports a template project from our [cookbook library](https://github.com/inkeep/agents-cookbook/tree/main/template-projects) into your src/projects directory.
+</Note>
+
+### Step 3: Push code to visual
+
+Navigate to your docs assistant project.
+
+```bash
+cd src/projects/docs-assistant
+```
+
+Use `inkeep push` to push the code to the Visual Builder.
+
+```bash
+inkeep push
+```
+
+### Step 4: Chat with your agent
+
+Refresh http://localhost:3000, switch to the **Docs Assistant** project (in the bottom left).
+
+Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a question about Inkeep.
+
+<img src="/gifs/docs-assistant.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
+
+## Run `inkeep pull`
+
+Make some changes, like changing a prompt, and let's walk through `inkeep pull`. 
+
+### Requirements
+
+The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
+
+```txt .env
+# Choose one:
+ANTHROPIC_API_KEY=your_api_key_here
+# or
+OPENAI_API_KEY=your_api_key_here
+# or
+GOOGLE_API_KEY=your_api_key_here
+```
+
+The CLI prioritizes Anthropic → OpenAI → Google. 
+
+Here are the models used:
+
+| Provider   | Model(s)                        | Where to Get API Key                                    |
+|------------|---------------------------------|---------------------------------------------------------|
+| Anthropic  | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/)     |
+| OpenAI     | GPT-4.1                         | [OpenAI Platform](https://platform.openai.com/)         |
+| Google     | Gemini models (with thinking mode) | [Google AI Studio](https://ai.google.dev/)              |
+
+
+### Step 1: Make an edit visually
+
+Make an edit to the docs assistant agent in the UI, such as changing the prompt of the agent.
+
+### Step 2: Pull code from visual
+
+Navigate to your docs assistant project.
+
+```bash
+cd src/projects/docs-assistant
+```
+
+Use `inkeep pull` to pull the code from the Visual Builder to your local project.
+
+```bash
+inkeep pull
+```
+
+### Step 3: Verify the code was pulled
+
+Check the `src/projects/docs-assistant/agents/docs-assistant.ts` file for the updated prompt.
+
+```bash
+cat src/projects/docs-assistant/agents/docs-assistant.ts
+```
+
+## Next steps
+
+Next, we recommend setting up observability to see live traces of your agent. See [Traces](/get-started/traces) to get started.
+
+<Cards>
+  <Card title="Traces" icon="LuActivity" href="/get-started/traces">
+    Set up SigNoz to enable live debugging capabilities for your agents
+  </Card>
+</Cards>

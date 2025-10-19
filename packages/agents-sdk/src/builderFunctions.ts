@@ -4,21 +4,23 @@ import {
   type MCPToolConfig,
   MCPToolConfigSchema,
 } from '@inkeep/agents-core';
-import { SubAgent } from './subAgent';
+import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
 import type {
   AgentMcpConfig,
   ArtifactComponentConfig,
   DataComponentConfig,
   MCPServerConfig,
+  StatusComponentConfig,
 } from './builders';
 import { DataComponent } from './data-component';
 import { FunctionTool } from './function-tool';
-import { Agent } from './agent';
 import type { ProjectConfig } from './project';
 import { Project } from './project';
+import { StatusComponent } from './status-component';
+import { SubAgent } from './subAgent';
 import { Tool } from './tool';
-import type { FunctionToolConfig, AgentConfig, SubAgentConfig } from './types';
+import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
 /**
@@ -32,8 +34,8 @@ export function agent(config: AgentConfig): Agent {
 /**
  * Helper function to create projects - OpenAI style
  *
- * Projects are the top-level organizational unit that contains agent, agents, and shared configurations.
- * They provide model inheritance and execution limits that cascade down to agent and agents.
+ * Projects are the top-level organizational unit that contains Agents, Sub Agents, and shared configurations.
+ * They provide model inheritance and execution limits that cascade down to Agents and Sub Agents.
  *
  * @param config - Project configuration
  * @returns A new Project instance
@@ -76,7 +78,7 @@ export function project(config: ProjectConfig): Project {
  * This is different from tools which auto-generate IDs from their names.
  *
  * @param config - Agent configuration including required stable ID
- * @returns A new Agent instance
+ * @returns A new SubAgent instance
  * @throws {Error} If config.id is not provided
  *
  * @example
@@ -179,6 +181,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
       : undefined,
   });
 }
+
 /**
  * Creates an MCP tool from a raw configuration object.
  *
@@ -198,9 +201,7 @@ export function mcpServer(config: MCPServerConfig): Tool {
  * });
  * ```
  */
-
 export function mcpTool(config: MCPToolConfig): Tool {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
@@ -209,9 +210,6 @@ export function mcpTool(config: MCPToolConfig): Tool {
   return new Tool(validatedConfig);
 }
 
-// ============================================================================
-// Component Builders
-// ============================================================================
 /**
  * Creates an artifact component with automatic ID generation.
  *
@@ -238,15 +236,14 @@ export function mcpTool(config: MCPToolConfig): Tool {
  * });
  * ```
  */
-
 export function artifactComponent(config: ArtifactComponentConfig): ArtifactComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new ArtifactComponent(configWithId);
 }
+
 /**
  * Creates a data component with automatic ID generation.
  *
@@ -269,14 +266,41 @@ export function artifactComponent(config: ArtifactComponentConfig): ArtifactComp
  * });
  * ```
  */
-
 export function dataComponent(config: DataComponentConfig): DataComponent {
-  // Generate ID if not provided
   const configWithId = {
     ...config,
     id: config.id || generateIdFromName(config.name),
   };
   return new DataComponent(configWithId);
+}
+
+/**
+ * Creates a status component for structured status updates.
+ *
+ * Status components define the structure of status updates
+ * that agents can generate during long-running operations.
+ *
+ * @param config - Status component configuration
+ * @returns A StatusComponent instance
+ *
+ * @example
+ * ```typescript
+ * import { z } from 'zod';
+ *
+ * const toolCallStatus = statusComponent({
+ *   type: 'tool_call_summary',
+ *   description: 'Summary of a tool execution',
+ *   detailsSchema: z.object({
+ *     tool_name: z.string(),
+ *     summary: z.string(),
+ *     status: z.enum(['success', 'error', 'in_progress'])
+ *   })
+ * });
+ * ```
+ */
+
+export function statusComponent(config: StatusComponentConfig): StatusComponent {
+  return new StatusComponent(config);
 }
 
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
@@ -287,9 +311,6 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   };
 }
 
-// ============================================================================
-// Function Tool Builders
-// ============================================================================
 /**
  * Creates a function tool that executes user-defined code in a sandboxed environment.
  *

@@ -87,7 +87,12 @@ app.openapi(
       );
 
       const credentialStores = c.get('credentialStores');
-      const agent = await getRegisteredAgent(executionContext, credentialStores);
+      const sandboxConfig = c.get('sandboxConfig');
+      const agent = await getRegisteredAgent({
+        executionContext,
+        credentialStoreRegistry: credentialStores,
+        sandboxConfig,
+      });
       logger.info({ agent }, 'agent registered: well-known agent.json');
       if (!agent) {
         throw createApiError({
@@ -109,7 +114,11 @@ app.openapi(
         'agent-level well-known agent.json'
       );
 
-      const agent = await getRegisteredAgent(executionContext);
+      const sandboxConfig = c.get('sandboxConfig');
+      const agent = await getRegisteredAgent({
+        executionContext,
+        sandboxConfig,
+      });
       if (!agent) {
         throw createApiError({
           code: 'not_found',
@@ -158,7 +167,12 @@ app.post('/a2a', async (c: Context) => {
 
     // Ensure agent is registered (lazy loading)
     const credentialStores = c.get('credentialStores');
-    const agent = await getRegisteredAgent(executionContext, credentialStores);
+    const sandboxConfig = c.get('sandboxConfig');
+    const agent = await getRegisteredAgent({
+      executionContext,
+      credentialStoreRegistry: credentialStores,
+      sandboxConfig,
+    });
 
     if (!agent) {
       return c.json(
@@ -212,7 +226,12 @@ app.post('/a2a', async (c: Context) => {
     executionContext.subAgentId = agent.defaultSubAgentId;
     // fetch the default agent and use it as entry point for the agent
     const credentialStores = c.get('credentialStores');
-    const defaultSubAgent = await getRegisteredAgent(executionContext, credentialStores);
+    const sandboxConfig = c.get('sandboxConfig');
+    const defaultSubAgent = await getRegisteredAgent({
+      executionContext,
+      credentialStoreRegistry: credentialStores,
+      sandboxConfig,
+    });
 
     if (!defaultSubAgent) {
       return c.json(

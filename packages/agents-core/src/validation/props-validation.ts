@@ -90,11 +90,9 @@ export function validatePropsAsJsonSchema(props: any): PropsValidationResult {
 
   // Use AJV to validate the schema structure (without resolving references)
   try {
-    // Create a copy of the schema without $schema field to avoid external resolution
     const schemaToValidate = { ...props };
     delete schemaToValidate.$schema;
 
-    // Create a new AJV instance that doesn't resolve references
     const schemaValidator = new Ajv({
       strict: false, // Allow unknown keywords like inPreview
       validateSchema: true, // Validate the schema itself

@@ -1,7 +1,7 @@
 import type { MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import { agentSessionManager } from '../services/AgentSession';
+import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import { setSpanWithError, tracer } from '../utils/tracer';
 
 const logger = getLogger('ResponseFormatter');
@@ -26,10 +26,8 @@ export class ResponseFormatter {
       subAgentId?: string;
     }
   ) {
-    // Store subAgentId for passing to parsing methods
     this.subAgentId = artifactParserOptions?.subAgentId;
 
-    // Get the shared ArtifactParser from AgentSession
     if (artifactParserOptions?.streamRequestId) {
       const sessionParser = agentSessionManager.getArtifactParser(
         artifactParserOptions.streamRequestId
@@ -41,8 +39,6 @@ export class ResponseFormatter {
       }
     }
 
-    // Fallback: create new parser if session parser not available (for tests, etc.)
-    // Try to get the shared ArtifactService from AgentSession
     let sharedArtifactService = null;
     if (
       artifactParserOptions?.streamRequestId &&
@@ -52,9 +48,7 @@ export class ResponseFormatter {
         sharedArtifactService = agentSessionManager.getArtifactService(
           artifactParserOptions.streamRequestId
         );
-      } catch (error) {
-        // Ignore errors in test environment or when AgentSessionManager is not available
-      }
+      } catch (_error) {}
     }
 
     this.artifactParser = new ArtifactParser(tenantId, {
@@ -69,7 +63,6 @@ export class ResponseFormatter {
   async formatObjectResponse(responseObject: any, contextId: string): Promise<MessageContent> {
     return tracer.startActiveSpan('response.format_object_response', async (span) => {
       try {
-        // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
 
         span.setAttributes({
@@ -77,14 +70,12 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse the object using unified parser, passing agentId for artifact persistence
         const parts = await this.artifactParser.parseObject(
           responseObject,
           artifactMap,
           this.subAgentId
         );
 
-        // Count and log metrics
         const uniqueArtifacts = this.countUniqueArtifacts(parts);
         span.setAttributes({
           'response.dataPartsCount': parts.length,
@@ -124,7 +115,6 @@ export class ResponseFormatter {
           'response.textLength': responseText.length,
         });
 
-        // Check if the response contains artifact markers
         if (!this.artifactParser.hasArtifactMarkers(responseText)) {
           span.setAttributes({
             'response.result': 'no_markers_found',
@@ -132,7 +122,6 @@ export class ResponseFormatter {
           return { parts: [{ kind: 'text', text: responseText }] };
         }
 
-        // Get all artifacts available in this context
         const artifactMap = await this.artifactParser.getContextArtifacts(contextId);
 
         span.setAttributes({
@@ -140,19 +129,16 @@ export class ResponseFormatter {
           'response.availableArtifacts': artifactMap.size,
         });
 
-        // Parse text using unified parser, passing subAgentId for artifact persistence
         const parts = await this.artifactParser.parseText(
           responseText,
           artifactMap,
           this.subAgentId
         );
 
-        // If only one text part, return as plain text
         if (parts.length === 1 && parts[0].kind === 'text') {
           return { text: parts[0].text };
         }
 
-        // Count and log metrics
         const textParts = parts.filter((p) => p.kind === 'text').length;
         const dataParts = parts.filter((p) => p.kind === 'data').length;
         const uniqueArtifacts = this.countUniqueArtifacts(parts);

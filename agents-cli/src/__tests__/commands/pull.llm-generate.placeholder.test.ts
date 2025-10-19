@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateTextWithPlaceholders } from '../../commands/pull.llm-generate';
 
 // Mock the AI SDK generateText function
@@ -13,11 +13,17 @@ vi.mock('../../commands/pull.placeholder-system', () => ({
   calculateTokenSavings: vi.fn(),
 }));
 
+// Mock instrumentation to disable Langfuse for tests
+vi.mock('../../instrumentation', () => ({
+  isLangfuseConfigured: vi.fn(() => false),
+  initializeInstrumentation: vi.fn(),
+}));
+
 import { generateText } from 'ai';
 import {
+  calculateTokenSavings,
   createPlaceholders,
   restorePlaceholders,
-  calculateTokenSavings,
 } from '../../commands/pull.placeholder-system';
 
 const mockGenerateText = generateText as any;
@@ -80,12 +86,7 @@ describe('generateTextWithPlaceholders', () => {
       maxOutputTokens: 4000,
     };
 
-    const result = await generateTextWithPlaceholders(
-      mockModel,
-      testData,
-      promptTemplate,
-      options
-    );
+    const result = await generateTextWithPlaceholders(mockModel, testData, promptTemplate, options);
 
     // Verify the flow
     expect(mockCreatePlaceholders).toHaveBeenCalledWith(testData);
@@ -176,12 +177,7 @@ describe('generateTextWithPlaceholders', () => {
 
     const promptTemplate = 'Start: {{DATA}} :End';
 
-    await generateTextWithPlaceholders(
-      mockModel,
-      testData,
-      promptTemplate,
-      { temperature: 0.1 }
-    );
+    await generateTextWithPlaceholders(mockModel, testData, promptTemplate, { temperature: 0.1 });
 
     const expectedPrompt = `Start: ${JSON.stringify(testData, null, 2)} :End`;
     expect(mockGenerateText).toHaveBeenCalledWith({
@@ -207,12 +203,7 @@ describe('generateTextWithPlaceholders', () => {
       abortSignal: new AbortController().signal,
     };
 
-    await generateTextWithPlaceholders(
-      mockModel,
-      testData,
-      'Template: {{DATA}}',
-      options
-    );
+    await generateTextWithPlaceholders(mockModel, testData, 'Template: {{DATA}}', options);
 
     expect(mockGenerateText).toHaveBeenCalledWith({
       model: mockModel,
@@ -231,12 +222,9 @@ describe('generateTextWithPlaceholders', () => {
     mockGenerateText.mockResolvedValue({ text: 'empty data code' });
     mockRestorePlaceholders.mockReturnValue('empty data code');
 
-    const result = await generateTextWithPlaceholders(
-      mockModel,
-      testData,
-      'Data: {{DATA}}',
-      { temperature: 0.1 }
-    );
+    const result = await generateTextWithPlaceholders(mockModel, testData, 'Data: {{DATA}}', {
+      temperature: 0.1,
+    });
 
     expect(result).toBe('empty data code');
     expect(mockCreatePlaceholders).toHaveBeenCalledWith({});
@@ -253,12 +241,7 @@ describe('generateTextWithPlaceholders', () => {
     mockGenerateText.mockRejectedValue(new Error('API Error'));
 
     await expect(
-      generateTextWithPlaceholders(
-        mockModel,
-        testData,
-        'Template: {{DATA}}',
-        { temperature: 0.1 }
-      )
+      generateTextWithPlaceholders(mockModel, testData, 'Template: {{DATA}}', { temperature: 0.1 })
     ).rejects.toThrow('API Error');
 
     // Should still have called createPlaceholders
@@ -322,12 +305,9 @@ describe('generateTextWithPlaceholders', () => {
     mockGenerateText.mockResolvedValue({ text: 'complex generated code' });
     mockRestorePlaceholders.mockReturnValue('complex restored code');
 
-    const result = await generateTextWithPlaceholders(
-      mockModel,
-      complexData,
-      'Complex: {{DATA}}',
-      { temperature: 0.1 }
-    );
+    const result = await generateTextWithPlaceholders(mockModel, complexData, 'Complex: {{DATA}}', {
+      temperature: 0.1,
+    });
 
     expect(result).toBe('complex restored code');
     expect(mockCreatePlaceholders).toHaveBeenCalledWith(complexData);

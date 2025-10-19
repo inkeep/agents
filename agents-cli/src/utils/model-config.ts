@@ -1,5 +1,5 @@
-import inquirer from 'inquirer';
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
+import * as p from '@clack/prompts';
 
 export interface ModelConfigurationResult {
   modelSettings: {
@@ -26,7 +26,6 @@ export const defaultGeminiModelConfigurations = {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE,
   },
 };
-
 
 export const defaultOpenaiModelConfigurations = {
   base: {
@@ -58,46 +57,43 @@ export const defaultAnthropicModelConfigurations = {
  */
 export async function promptForModelConfiguration(): Promise<ModelConfigurationResult> {
   // Provider selection
-  const { providers } = await inquirer.prompt([
-    {
-      type: 'checkbox',
-      name: 'providers',
-      message: 'Which AI providers would you like to configure?',
-      choices: [
-        { name: 'Anthropic (Claude)', value: 'anthropic' },
-        { name: 'OpenAI (GPT)', value: 'openai' },
-        { name: 'Google (Gemini)', value: 'google' },
-      ],
-      validate: (input: string[]) => {
-        if (input.length === 0) {
-          return 'Please select at least one provider';
-        }
-        return true;
-      },
-    },
-  ]);
+  const providers = await p.multiselect({
+    message: 'Which AI providers would you like to configure?',
+    options: [
+      { value: 'anthropic', label: 'Anthropic (Claude)' },
+      { value: 'openai', label: 'OpenAI (GPT)' },
+      { value: 'google', label: 'Google (Gemini)' },
+    ],
+    required: true,
+  }) as string[];
+
+  if (p.isCancel(providers)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
-    { name: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
-    { name: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
-    { name: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
-    { name: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
+    { label: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
+    { label: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
+    { label: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
+    { label: 'Claude Haiku 4.5', value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5 },
+    { label: 'Claude Haiku 3.5', value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU },
   ];
 
   const openaiModels = [
-    { name: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
-    { name: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
-    { name: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
-    { name: 'GPT-5', value: OPENAI_MODELS.GPT_5 },
-    { name: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
-    { name: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
+    { label: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
+    { label: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
+    { label: 'GPT-4.1 Nano', value: OPENAI_MODELS.GPT_4_1_NANO },
+    { label: 'GPT-5', value: OPENAI_MODELS.GPT_5 },
+    { label: 'GPT-5 Mini', value: OPENAI_MODELS.GPT_5_MINI },
+    { label: 'GPT-5 Nano', value: OPENAI_MODELS.GPT_5_NANO },
   ];
 
   const googleModels = [
-    { name: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
-    { name: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
-    { name: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },
+    { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
+    { label: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
+    { label: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },
   ];
 
   // Collect all available models based on selected providers
@@ -113,58 +109,72 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   }
 
   // Model selection for different use cases
-  const modelAnswers = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'baseModel',
-      message: 'Select your default model for general tasks (required):',
-      choices: availableModels,
-    },
-    {
-      type: 'confirm',
-      name: 'configureOptionalModels',
-      message: 'Would you like to configure optional models for structured output and summaries?',
-      default: false,
-    },
-  ]);
+  const baseModel = await p.select({
+    message: 'Select your default model for general tasks (required):',
+    options: availableModels,
+  }) as string;
 
-  let optionalModels: any = {};
-  if (modelAnswers.configureOptionalModels) {
-    const optionalChoices = [...availableModels, { name: 'Use base model', value: null }];
+  if (p.isCancel(baseModel)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
 
-    optionalModels = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'structuredOutputModel',
-        message: 'Select your model for structured output tasks (or use base model):',
-        choices: optionalChoices,
-      },
-      {
-        type: 'list',
-        name: 'summarizerModel',
-        message: 'Select your model for summaries and quick tasks (or use base model):',
-        choices: optionalChoices,
-      },
-    ]);
+  const configureOptionalModels = await p.confirm({
+    message: 'Would you like to configure optional models for structured output and summaries?',
+    initialValue: false,
+  });
+
+  if (p.isCancel(configureOptionalModels)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
+
+  let structuredOutputModel: string | null = null;
+  let summarizerModel: string | null = null;
+
+  if (configureOptionalModels) {
+    const optionalChoices = [...availableModels, { label: 'Use base model', value: null }];
+
+    const structuredOutputResponse = await p.select({
+      message: 'Select your model for structured output tasks (or use base model):',
+      options: optionalChoices,
+    });
+
+    if (p.isCancel(structuredOutputResponse)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+    structuredOutputModel = structuredOutputResponse as string | null;
+
+    const summarizerResponse = await p.select({
+      message: 'Select your model for summaries and quick tasks (or use base model):',
+      options: optionalChoices,
+    });
+
+    if (p.isCancel(summarizerResponse)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+    summarizerModel = summarizerResponse as string | null;
   }
 
   // Build model settings object
   const modelSettings: any = {
     base: {
-      model: modelAnswers.baseModel,
+      model: baseModel,
     },
   };
 
   // Add optional models only if they were configured
-  if (optionalModels.structuredOutputModel) {
+  if (structuredOutputModel) {
     modelSettings.structuredOutput = {
-      model: optionalModels.structuredOutputModel,
+      model: structuredOutputModel,
     };
   }
 
-  if (optionalModels.summarizerModel) {
+  if (summarizerModel) {
     modelSettings.summarizer = {
-      model: optionalModels.summarizerModel,
+      model: summarizerModel,
     };
   }
 

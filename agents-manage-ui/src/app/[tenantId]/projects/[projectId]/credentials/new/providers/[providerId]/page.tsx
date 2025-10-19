@@ -29,7 +29,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
-  const openNangoConnect = useNangoConnect();
+  const { openNangoConnect } = useNangoConnect();
 
   const { providerId, tenantId, projectId } = use(params);
 
@@ -39,7 +39,6 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
     async (event: any) => {
       if (!provider || event.type !== 'connect') return;
 
-      // Validate required payload data
       if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
         console.error('Missing required connection data:', event.payload);
         toast.error('Invalid connection data received');
@@ -84,6 +83,8 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
       try {
         const connectToken = await createProviderConnectSession({
           providerName: provider.name,
+          uniqueKey: provider.name,
+          displayName: provider.name,
           credentials:
             credentials && provider.auth_mode
               ? ({
@@ -136,7 +137,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
   if (!provider) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <h2 className="text-xl font-semibold">Provider not found</h2>
+        <h2 className="text-xl font-semibold">Provider not found.</h2>
         <p className="text-muted-foreground">
           The provider "{decodeURIComponent(providerId)}" was not found.
         </p>

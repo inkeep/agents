@@ -73,7 +73,6 @@ export const updateFullAgent = async (
 ): Promise<FullAgentDefinition> => {
   const typed = validateAndTypeAgentData(agentData);
 
-  // Validate that the agentId matches the data.id
   if (agentId !== typed.id) {
     throw new Error(`Agent ID mismatch: expected ${agentId}, got ${typed.id}`);
   }

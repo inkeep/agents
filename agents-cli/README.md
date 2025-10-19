@@ -327,37 +327,6 @@ export const myAgent = agent({
 // No agent.init() call - CLI handles initialization
 ```
 
-### `inkeep chat [graph-id]`
-
-Start an interactive chat session with a graph.
-
-```bash
-# Chat with specific graph
-inkeep chat my-graph-id
-
-# Interactive graph selection (with search)
-inkeep chat
-
-# With custom API URLs
-inkeep chat --agents-manage-api-url http://manage.example.com --agents-run-api-url http://run.example.com
-
-# With custom tenant ID
-inkeep chat --tenant-id my-tenant-id
-
-# Using config file
-inkeep chat --config ./my-config.ts
-```
-
-**Interactive Features:**
-
-- **Graph selection**: If no graph ID provided, shows searchable list
-- **Chat commands**:
-  - `help` - Show available commands
-  - `clear` - Clear screen (preserves context)
-  - `history` - Show conversation history
-  - `reset` - Reset conversation context
-  - `exit` - End chat session
-
 ### `inkeep mcp start <graph-file>` ⚠️ NOT IMPLEMENTED
 
 > **⚠️ WARNING: This command is not yet implemented in the current CLI.**
@@ -499,21 +468,7 @@ export const myAgent = agent({
 export const servers = [randomNumberServer, weatherServer];
 ```
 
-2. **Start MCP servers and chat**
-
-```bash
-# Start MCP servers (works with TypeScript directly!)
-inkeep mcp start my-agent.ts
-
-# In another terminal, start chatting
-inkeep chat my-assistant
-
-# Try commands like:
-# > "Generate a random number"
-# > "What's the weather like?"
-```
-
-3. **Monitor and manage servers**
+2. **Monitor and manage servers**
 
 ```bash
 # Check server status
@@ -537,7 +492,6 @@ INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002 inkeep list-graphs
 # Using .env file
 echo "INKEEP_AGENTS_MANAGE_API_URL=http://localhost:3002" > .env
 echo "INKEEP_AGENTS_RUN_API_URL=http://localhost:3003" >> .env
-inkeep chat my-graph
 ```
 
 ### Staging
@@ -602,8 +556,6 @@ agents-cli/
 │   ├── api.ts                # API client for backend
 │   ├── commands/             # Command implementations
 │   │   ├── push.ts           # Push graph configurations
-│   │   ├── chat.ts           # Basic chat interface
-│   │   ├── chat-enhanced.ts  # Enhanced chat with autocomplete
 │   │   ├── tenant.ts         # Tenant management
 │   │   └── list-graphs.ts    # List graphs
 │   ├── types/                # TypeScript declarations
@@ -630,17 +582,6 @@ echo $INKEEP_AGENTS_RUN_API_URL
 
 # Try with explicit URL and project
 inkeep list-graphs --project my-project-id --agents-manage-api-url http://localhost:3002
-```
-
-**"Graph not found" when using chat**
-
-```bash
-# List available graphs first (requires project)
-inkeep list-graphs --project my-project-id
-
-# Use interactive selection
-inkeep chat
-# (Select from list)
 ```
 
 **Command not found: inkeep**

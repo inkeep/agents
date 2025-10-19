@@ -9,7 +9,6 @@ import { Handle } from './handle';
 export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
   const { data, selected, id } = props;
 
-  // Get data directly from node (like agents do)
   const name = String(data.name || 'Function Tool');
   const description = String(data.description || '');
 

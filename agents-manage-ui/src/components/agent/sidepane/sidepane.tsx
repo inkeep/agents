@@ -18,6 +18,7 @@ import {
   nodeTypeMap,
 } from '../configuration/node-types';
 import EdgeEditor from './edges/edge-editor';
+import { EditorLoadingSkeleton } from './editor-loading-skeleton';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
@@ -62,12 +63,12 @@ export function SidePane({
     let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
-    if (selectedNode) {
-      const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
+    if (selectedNodeId) {
+      const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
       const nodeConfig = nodeTypeMap[nodeType];
       heading = nodeConfig?.name || 'Node';
       HeadingIcon = nodeConfig?.Icon;
-    } else if (selectedEdge) {
+    } else if (selectedEdgeId) {
       const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
       const edgeConfig = edgeTypeMap[edgeType];
       heading = edgeConfig?.name || 'Connection';
@@ -78,9 +79,16 @@ export function SidePane({
     }
 
     return { heading, HeadingIcon };
-  }, [selectedNode, selectedEdge]);
+  }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
   const editorContent = useMemo(() => {
+    if (selectedNodeId && !selectedNode) {
+      return <EditorLoadingSkeleton />;
+    }
+    if (selectedEdgeId && !selectedEdge) {
+      return <EditorLoadingSkeleton />;
+    }
+
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
       // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -135,6 +143,8 @@ export function SidePane({
     }
     return <MetadataEditor />;
   }, [
+    selectedNodeId,
+    selectedEdgeId,
     selectedNode,
     selectedEdge,
     dataComponentLookup,

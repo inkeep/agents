@@ -1,0 +1,169 @@
+---
+title: MCP Servers
+description: Create MCP servers that agents can use to access external services.
+icon: "LuServer"
+---
+
+MCP servers provide tools that your agents can use to interact with external APIs and services. Once created, these servers are automatically synced to discover available tools, which can then be added to your agents.
+
+<Snippet file="mcp/intro-create-and-add.mdx" />
+
+## Register an MCP server
+
+1. Go to the **MCP Servers** tab in the left sidebar, then select "New MCP server".
+
+2. Fill in the required server details:
+
+| Field            | Description                         |
+| ---------------- | ----------------------------------- |
+| `Name`           | Server name                         |
+| `URL`            | Endpoint URL of a remote MCP server |
+| `Transport Type` | Streamable HTTP or SSE protocol     |
+
+3. Optionally, configure additional settings:
+
+| Field        | Description                                                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Image URL`  | Custom icon for the server (URL or base64 data URL)                                                                                                                                                                                                    |
+| `Credential` | Authentication credential if the server requires it. Choose from existing credentials, or leave blank and add a credential later. For OAuth 2.1/PKCE flows, leave blank and use the `Click to Login` button in the server details page to authenticate |
+
+4. Click "Create" to create the server.
+
+## Viewing server details
+
+After creating an MCP server, you can view its details:
+
+1. Click on your created MCP server from the list
+2. The server details page shows:
+   - **Server information** - URL, transport type, creation date, etc.
+   - **Status** - healthy, unhealthy, unknown, disabled, or shows a "Click to Login" button if OAuth 2.1/PKCE flow is detected
+   - **Active tools** - Currently enabled tools for the server
+   - **Available tools** - All tools discovered from the server with descriptions and parameters
+
+<img
+  src="/images/mcp-server-healthy-status.png"
+  alt="MCP server healthy status"
+  width="60%"
+  style={{
+    borderRadius: "10px",
+    border: "1px solid #e1e5e9",
+    display: "block",
+    margin: "0 auto",
+  }}
+/>
+
+<Note>
+  Tool discovery requires a successful connection to the MCP server. If the
+  server shows "Click to Login" in the status, use the button to initiate the
+  authentication process.
+</Note>
+
+## Editing server settings
+
+To modify an existing MCP server:
+
+1. From the server details page, click the **Edit** button
+2. The edit form shows all the same fields as creation, plus the ability to update **Active Tools**. By default, all available tools are enabled. You can select specific tools to enable.
+3. Click **Save** to apply changes
+
+<img
+  src="/images/mcp-server-edit-form.png"
+  alt="MCP server healthy status"
+  width="60%"
+  style={{
+    borderRadius: "10px",
+    border: "1px solid #e1e5e9",
+    display: "block",
+    margin: "0 auto",
+  }}
+/>
+
+## Authentication setup
+
+If your MCP server requires authentication, you have two options: either use the **"Click to Login"** button to authenticate or manually create a credential to use with the MCP server.
+
+### OAuth 2.1/PKCE authentication
+
+1. Create your MCP server without selecting a credential
+2. Go to the server details page and click the **"Click to Login"** button
+3. Complete the OAuth authentication flow in your browser
+4. The credential will be automatically created and saved to your [Nango Store](/typescript-sdk/tools/credentials#nango-store) (follow steps to [setup Nango](/get-started/credentials)). If Nango is not set up, the framework will use the [Keychain Store](/typescript-sdk/tools/credentials#keychain-store) if available.
+
+<img
+  src="/images/mcp-server-click-to-login.png"
+  alt="MCP server click to login"
+  width="60%"
+  style={{
+    borderRadius: "10px",
+    border: "1px solid #e1e5e9",
+    display: "block",
+    margin: "0 auto",
+  }}
+/>
+
+#### 1-click Install MCP servers
+
+<Snippet file="mcp/popular-oauth-servers.mdx" />
+
+### Manual credential setup
+
+1. Create a credential in the [Credentials](/visual-builder/tools/credentials) section. The credential can be API Key, Bearer Token, Basic, OAuth 2.0, etc.
+2. When creating or editing your MCP server, select the credential from the dropdown
+3. The credential will be automatically used when connecting to the server
+
+## Finding more remote MCP servers
+
+For additional remote MCP servers you can connect to:
+
+- **[Anthropic's Remote MCP Servers](https://docs.anthropic.com/en/docs/agents-and-tools/remote-mcp-servers)** - Official documentation with curated third-party remote servers
+- **[Awesome Remote MCP Servers](https://github.com/jaw9c/awesome-remote-mcp-servers)** - Community-curated list of high-quality remote MCP servers
+
+## Using stdio-based MCP servers
+
+The Visual Builder requires **Streamable HTTP or SSE transport** to connect to MCP servers. If you have an MCP server that runs in **stdio mode** locally, you can use the following setup to connect to it.
+
+### Setup outline
+
+1. **Deploy your stdio -> Streamable HTTP/SSE bridge** (locally or cloud)
+2. **Set environment variables** (API tokens, etc.)
+3. **Verify it's running** (i.e. on port `4000`, `4001`, etc.)
+4. **Add to Visual Builder**:
+   - **URL**: `http://localhost:4000/mcp` (or your server URL)
+   - **Transport Type**: `Streamable HTTP` or `SSE`
+
+### Example using `mcp-proxy`
+
+1. Get familiar with [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) - proxy for MCP servers that use stdio transport
+2. [Supabase MCP server](https://github.com/supabase-community/supabase-mcp)
+3. Run the server locally:
+
+```bash
+SUPABASE_ACCESS_TOKEN=YOUR_SUPABASE_ACCESS_TOKEN mcp-proxy --port 4444 --shell "npx -y @supabase/mcp-server-supabase@latest --read-only"
+```
+
+4. Add to Visual Builder with the following settings:
+   - **URL**: `http://localhost:4444/mcp`
+   - **Transport Type**: `Streamable HTTP`
+
+## Adding servers to agents
+
+Once you have created an MCP server, you can add it to your agents:
+
+1. Go to the [Sub Agents](/visual-builder/sub-agents) page
+2. Drag and drop an MCP server into your agent
+3. Connect the MCP server to a Sub Agent by dragging from the server's connector to the Sub Agent
+4. Your Sub Agent can now use the tools provided by that MCP server
+
+<img
+  src="/images/mcp-server-add-to-agent.png"
+  alt="MCP server add to agent"
+  width="60%"
+  style={{
+    borderRadius: "10px",
+    border: "1px solid #e1e5e9",
+    display: "block",
+    margin: "0 auto",
+  }}
+/>
+
+For detailed instructions on working with MCP servers in agents, see the [Sub Agents](/visual-builder/sub-agents#adding-tools) page.

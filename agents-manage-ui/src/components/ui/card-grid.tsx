@@ -64,5 +64,4 @@ export interface CardItem {
   [key: string]: any;
 }
 
-// Helper function for items that have an id property
 export const getItemId = <T extends CardItem>(item: T): string | number => item.id;

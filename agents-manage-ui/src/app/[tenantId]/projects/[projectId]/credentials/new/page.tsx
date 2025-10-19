@@ -12,7 +12,8 @@ import { CardDescription, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ItemCardGrid } from '@/components/ui/item-card-grid';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { isNangoConfigured } from '@/lib/mcp-tools/nango';
+import { CredentialStoreType } from '@/constants/signoz';
+import { listCredentialStores } from '@/lib/api/credentialStores';
 
 interface CredentialOption {
   id: string;
@@ -30,7 +31,15 @@ async function NewCredentialsPage({
 }) {
   const { tenantId, projectId } = await params;
 
-  const isNangoReady = await isNangoConfigured();
+  const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
+
+  const isNangoReady = credentialStoresStatus.some(
+    (store) => store.type === CredentialStoreType.nango && store.available
+  );
+
+  const isKeychainReady = credentialStoresStatus.some(
+    (store) => store.type === CredentialStoreType.keychain && store.available
+  );
 
   const credentialOptions: CredentialOption[] = [
     {
@@ -49,7 +58,7 @@ async function NewCredentialsPage({
       description:
         'Create a bearer token for API authentication. Useful when you need to provide secure access tokens to your MCP servers.',
       href: `/${tenantId}/projects/${projectId}/credentials/new/bearer`,
-      isDisabled: !isNangoReady,
+      isDisabled: !isNangoReady && !isKeychainReady,
     },
   ];
 
@@ -77,8 +86,8 @@ async function NewCredentialsPage({
         <div className="text-muted-foreground text-sm font-normal space-y-2">
           <p className="mb-8">Create credentials for your MCP servers.</p>
           <p>
-            Nango Credential Store is required to create credentials.
-            <ExternalLink href={`${DOCS_BASE_URL}/quick-start/credentials`}>
+            Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is available.
+            <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
               Learn more
             </ExternalLink>
           </p>

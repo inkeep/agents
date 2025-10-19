@@ -1,11 +1,15 @@
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core/constants/models';
+import {
+  ANTHROPIC_MODELS,
+  GOOGLE_MODELS,
+  OPENAI_MODELS,
+} from '@inkeep/agents-core/constants/models';
 
 export const DEFAULT_ANTHROPIC_BASE_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 export const DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 export const DEFAULT_ANTHROPIC_SUMMARIZER_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 
 export const DEFAULT_OPENAI_BASE_MODEL = OPENAI_MODELS.GPT_4_1;
-export const DEFAULT_OPENAI_STRUCTURED_OUTPUT_MODEL = OPENAI_MODELS.GPT_4_1_MINI;
+export const DEFAULT_OPENAI_STRUCTURED_OUTPUT_MODEL = OPENAI_MODELS.GPT_4_1;
 export const DEFAULT_OPENAI_SUMMARIZER_MODEL = OPENAI_MODELS.GPT_4_1_NANO;
 
 export const DEFAULT_GOOGLE_BASE_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH;
@@ -27,8 +31,12 @@ export const modelOptions = {
       label: 'Claude Sonnet 4',
     },
     {
+      value: ANTHROPIC_MODELS.CLAUDE_HAIKU_4_5,
+      label: 'Claude Haiku 4.5',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_3_5_HAIKU,
-      label: 'Claude 3.5 Haiku',
+      label: 'Claude Haiku 3.5',
     },
   ],
   openai: [

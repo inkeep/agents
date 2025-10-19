@@ -23,7 +23,6 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
-// List data components for a specific agent in an agent
 app.openapi(
   createRoute({
     method: 'get',
@@ -61,7 +60,6 @@ app.openapi(
   }
 );
 
-// List agent ids using a specific data component
 app.openapi(
   createRoute({
     method: 'get',
@@ -105,7 +103,6 @@ app.openapi(
   }
 );
 
-// Create agent data component association
 app.openapi(
   createRoute({
     method: 'post',
@@ -166,7 +163,6 @@ app.openapi(
       });
     }
 
-    // Check if association already exists
     const exists = await isDataComponentAssociatedWithAgent(dbClient)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
@@ -236,7 +232,6 @@ app.openapi(
   }
 );
 
-// Check if data component is associated with agent
 app.openapi(
   createRoute({
     method: 'get',

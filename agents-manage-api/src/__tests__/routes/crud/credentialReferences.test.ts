@@ -730,6 +730,48 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       vi.clearAllMocks();
       globalThis.callOrder = [];
 
+      // Initialize sharedMockStores if not available (can happen with test isolation)
+      if (!globalThis.sharedMockStores) {
+        globalThis.sharedMockStores = {
+          mockCredentialStore: {
+            id: 'mock-store',
+            type: 'mock',
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockNangoStore: {
+            id: 'nango-store',
+            type: CredentialStoreType.nango,
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockMemoryStore: {
+            id: 'memory-store',
+            type: CredentialStoreType.memory,
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockResolvedValue(undefined),
+            has: vi.fn(),
+          },
+          mockTrackingStore: {
+            id: 'tracking-store',
+            type: 'mock',
+            get: vi.fn(),
+            set: vi.fn(),
+            delete: vi.fn().mockImplementation(async (key: string) => {
+              if (typeof globalThis.callOrder !== 'undefined') {
+                globalThis.callOrder.push(`external-store-delete:${key}`);
+              }
+            }),
+            has: vi.fn(),
+          },
+        };
+      }
+
       // Use the shared mock instances stored globally
       globalThis.mockCredentialStore = globalThis.sharedMockStores.mockCredentialStore;
       globalThis.mockNangoStore = globalThis.sharedMockStores.mockNangoStore;

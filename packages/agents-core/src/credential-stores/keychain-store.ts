@@ -154,6 +154,24 @@ export class KeyChainStore implements CredentialStore {
   }
 
   /**
+   * Check if the credential store is available and functional
+   */
+  async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    await this.initializationPromise;
+
+    if (!this.keytarAvailable || !this.keytar) {
+      return {
+        available: false,
+        reason: 'Keytar not available - cannot store credentials in system keychain',
+      };
+    }
+
+    return {
+      available: true,
+    };
+  }
+
+  /**
    * Delete a credential from the keychain
    */
   async delete(key: string): Promise<boolean> {

@@ -31,9 +31,7 @@ describe('Credential Environment Settings System', () => {
     it('should require environments to be provided', () => {
       const helper = createEnvironmentSettings({}) as any;
 
-      expect(() => helper.getEnvironmentSetting('any-key')).toThrow(
-        /Environment.*not found/
-      );
+      expect(() => helper.getEnvironmentSetting('any-key')).toThrow(/Environment.*not found/);
     });
 
     it('should provide type-safe helpers for single environment', () => {
@@ -241,9 +239,7 @@ describe('Credential Environment Settings System', () => {
 
       // Should error clearly when INKEEP_ENV doesn't match any environment
       process.env.INKEEP_ENV = 'test';
-      expect(() => getEnvironmentSetting('prod-key')).toThrow(
-        /Environment 'test' not found/
-      );
+      expect(() => getEnvironmentSetting('prod-key')).toThrow(/Environment 'test' not found/);
     });
   });
 });

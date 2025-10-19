@@ -147,7 +147,6 @@ app.openapi(
 
       return c.json({ data: project }, 201);
     } catch (error: any) {
-      // Check if it's a unique constraint violation
       if (
         error?.message?.includes('UNIQUE constraint') ||
         error?.message?.includes('UNIQUE') ||

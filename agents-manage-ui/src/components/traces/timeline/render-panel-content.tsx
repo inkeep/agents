@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -12,6 +14,7 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
@@ -20,6 +23,33 @@ function formatJsonSafely(content: string): string {
   } catch {
     return content;
   }
+}
+
+function AssistantMessageContent({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <LabeledBlock label="AI response content">
+      <div className="relative">
+        <Bubble className={`break-words ${isExpanded ? '' : 'max-h-48 overflow-hidden'}`}>
+          <Streamdown>
+            {content}
+          </Streamdown>
+        </Bubble>
+        {!isExpanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none" />
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="mt-2 w-full text-xs"
+      >
+        {isExpanded ? 'Show less' : 'Show more'}
+      </Button>
+    </LabeledBlock>
+  );
 }
 
 export function renderPanelContent({
@@ -66,7 +96,7 @@ export function renderPanelContent({
   const AdvancedBlock = span ? (
     <SpanAttributes span={span.data} />
   ) : (
-    <div className="text-center py-4 text-xs text-muted-foreground">Span not found</div>
+    <div className="text-center py-4 text-xs text-muted-foreground">Span not found.</div>
   );
 
   switch (selected.type) {
@@ -77,7 +107,7 @@ export function renderPanelContent({
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <Info label="Agent" value={a.agentName || '-'} />
+            <Info label="Sub agent" value={a.subAgentName || '-'} />
             {a.aiResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
@@ -123,6 +153,16 @@ export function renderPanelContent({
       return (
         <>
           <Section>
+            <Info
+              label="Sub agent"
+              value={
+                a.subAgentId ? (
+                  <Badge variant="code">{a.subAgentId}</Badge>
+                ) : (
+                  'Unknown'
+                )
+              }
+            />
             {a.hasError && a.otelStatusDescription && (
               <LabeledBlock label="Error">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
@@ -163,12 +203,9 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="AI response content">
-              <Bubble className=" whitespace-pre-wrap break-words">
-                {a.aiResponseContent || 'Response content not available'}
-              </Bubble>
-            </LabeledBlock>
-            <Info label="Agent" value={a.agentName || 'Unknown'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
+            <AssistantMessageContent content={a.aiResponseContent || 'Response content not available'} />
+
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -193,11 +230,6 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            {a.contextAgentId && (
-              <LabeledBlock label="Agent id">
-                <Badge variant="code">{a.contextAgentId}</Badge>
-              </LabeledBlock>
-            )}
             {a.contextTrigger && <Info label="Trigger" value={a.contextTrigger} />}
             <StatusBadge status={a.status} />
             {a.contextStatusDescription && (
@@ -224,13 +256,20 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info label="From agent" value={a.delegationFromAgentId || 'Unknown Agent'} />
-            <Info label="To agent" value={a.delegationToAgentId || 'Unknown Agent'} />
+            <Info label="From sub agent" value={a.delegationFromSubAgentId || 'Unknown Agent'} />
+            <Info label="To sub agent" value={a.delegationToSubAgentId || 'Unknown Agent'} />
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -257,21 +296,24 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="From agent">
-              <Badge variant="code">
-                {a.transferFromAgentId || a.agentName || 'Unknown Agent'}
-              </Badge>
+            <LabeledBlock label="From sub agent">
+              <Badge variant="code">{a.transferFromSubAgentId || 'Unknown sub agent'}</Badge>
             </LabeledBlock>
-            <LabeledBlock label="To agent">
-              <Badge variant="code">
-                {a.transferToAgentId || a.toolName?.replace('transfer_to_', '') || 'Unknown target'}
-              </Badge>
+            <LabeledBlock label="To sub agent">
+              <Badge variant="code">{a.transferToSubAgentId || 'Unknown target'}</Badge>
             </LabeledBlock>
             <Info
               label="Tool name"
               value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -310,8 +352,15 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
-            <Info label="Agent" value={a.agentName || 'Unknown agent'} />
+            <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -350,6 +399,13 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -377,12 +433,46 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
-            <Info
-              label="Operation id"
-              value={<Badge variant="code">{a.aiStreamTextOperationId || 'Unknown'}</Badge>}
-            />
+
+            {a.aiTelemetryFunctionId && (
+              <Info
+                label="Sub agent"
+                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+              />
+            )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'ai_model_streamed_object':
+      return (
+        <>
+          <Section>
+            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
+            {a.aiTelemetryFunctionId && (
+              <Info
+                label="Sub agent"
+                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+              />
+            )}
+            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
+            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
+            {a.aiStreamObjectContent && (
+              <LabeledBlock label="Structured object response">
+                <JsonEditorWithCopy
+                  value={formatJsonSafely(a.aiStreamObjectContent)}
+                  title="Object content"
+                  uri="stream-object-response.json"
+                />
+              </LabeledBlock>
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -407,8 +497,8 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
-            {a.artifactAgentId && (
-              <Info label="Agent" value={a.artifactAgentId || 'Unknown Agent'} />
+            {a.artifactSubAgentId && (
+              <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}
             {a.artifactId && (
               <Info label="Artifact ID" value={<Badge variant="code">{a.artifactId}</Badge>} />

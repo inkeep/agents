@@ -10,13 +10,11 @@ export const loadEnvironmentFiles = () => {
   // Define files in priority order (highest to lowest priority)
   const environmentFiles: string[] = [];
 
-  // 1. Current directory .env
   const currentEnv = path.resolve(process.cwd(), '.env');
   if (fs.existsSync(currentEnv)) {
     environmentFiles.push(currentEnv);
   }
 
-  // 3. Search for root .env
   const rootEnv = findUpSync('.env', { cwd: path.dirname(process.cwd()) });
   if (rootEnv) {
     if (rootEnv !== currentEnv) {
@@ -24,7 +22,6 @@ export const loadEnvironmentFiles = () => {
     }
   }
 
-  // 3. Load user global config if exists (~/.inkeep/config)
   // This allows sharing API keys across multiple local repo copies
   const userConfigPath = path.join(os.homedir(), '.inkeep', 'config');
   if (fs.existsSync(userConfigPath)) {
@@ -49,7 +46,6 @@ const envSchema = z.object({
   DB_FILE_NAME: z.string().optional(),
   TURSO_DATABASE_URL: z.string().optional(),
   TURSO_AUTH_TOKEN: z.string().optional(),
-  OTEL_TRACES_FORCE_FLUSH_ENABLED: z.coerce.boolean().optional(),
 });
 
 const parseEnv = () => {

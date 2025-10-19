@@ -37,7 +37,7 @@
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
     "clean:turbo": "turbo clean",
     "prepare": "husky",
-    "changeset:quick": "./scripts/quick-changeset.sh",
+    "changeset:quick": "node scripts/quick-changeset.mjs",
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
@@ -65,7 +65,9 @@
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
-    "turbo": "^2.5.5"
+    "turbo": "^2.5.5",
+    "unique-names-generator": "^4.7.1",
+    "vitest": "^3.2.4"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [

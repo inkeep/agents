@@ -48,7 +48,6 @@ export const listContextConfigsPaginated =
       eq(contextConfigs.agentId, params.scopes.agentId)
     );
 
-    // Get paginated results
     const [contextConfigList, totalResult] = await Promise.all([
       db
         .select()
@@ -217,7 +216,6 @@ export const upsertContextConfig =
       });
 
       if (existing) {
-        // Update existing context config
         return await updateContextConfig(db)({
           scopes,
           id: params.data.id,
@@ -229,6 +227,5 @@ export const upsertContextConfig =
       }
     }
 
-    // Create new context config (either no ID provided or ID doesn't exist)
     return await createContextConfig(db)(params.data);
   };

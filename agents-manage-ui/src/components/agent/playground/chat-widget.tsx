@@ -3,8 +3,10 @@ import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef } from 'react';
+import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import type { DataComponent } from '@/lib/api/data-components';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
@@ -17,6 +19,7 @@ interface ChatWidgetProps {
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
+  dataComponentLookup?: Record<string, DataComponent>;
 }
 
 const styleOverrides = `
@@ -130,8 +133,10 @@ export function ChatWidget({
   stopPolling,
   customHeaders = {},
   chatActivities,
+  dataComponentLookup = {},
 }: ChatWidgetProps) {
-  const { INKEEP_AGENTS_RUN_API_URL, INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
+    useRuntimeConfig();
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -247,20 +252,40 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            graphUrl: (() => {
-              console.log('INKEEP_AGENTS_RUN_API_URL:', INKEEP_AGENTS_RUN_API_URL);
-              return agentId ? `${INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined;
-            })(),
+            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId,
-              Authorization: `Bearer ${INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              'x-emit-operations': 'true',
+              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
-            // components: {
-            //   IkpMessage,
-            // },
+
+            components: new Proxy(
+              {},
+              {
+                get: (_, componentName) => {
+                  const matchingComponent = Object.values(dataComponentLookup).find(
+                    (component) => component.name === componentName && !!component.preview?.code
+                  );
+
+                  if (!matchingComponent) {
+                    return undefined;
+                  }
+
+                  const Component = function Component(props: any) {
+                    return (
+                      <DynamicComponentRenderer
+                        code={matchingComponent.preview?.code || ''}
+                        props={props || {}}
+                      />
+                    );
+                  };
+                  return Component;
+                },
+              }
+            ),
             introMessage: 'Hi! How can I help?',
           }}
         />
@@ -273,7 +298,6 @@ export function ChatWidget({
 const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
   const { message, renderMarkdown, renderComponent } = props;
 
-  // Check if we're still streaming - the last event should be a completion data-operation
   const lastPart = message.parts[message.parts.length - 1];
   const isStreaming = !(
     lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'

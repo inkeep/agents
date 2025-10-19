@@ -3,7 +3,9 @@ import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
+import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { DataComponent } from '@/lib/api/data-components';
 import { cn } from '@/lib/utils';
 
 interface IkpMessageProps {
@@ -11,6 +13,7 @@ interface IkpMessageProps {
   isStreaming?: boolean;
   renderMarkdown: (text: string) => React.ReactNode;
   renderComponent: (name: string, props: any) => React.ReactNode;
+  dataComponentLookup?: Record<string, DataComponent>;
 }
 
 // Citation Badge Component
@@ -114,7 +117,6 @@ const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLas
   );
 };
 
-// Helper function for data-operation labels
 const getOperationLabel = (operation: any) => {
   // Use LLM-generated label if available for data-operations
   if (operation.label) {
@@ -211,7 +213,6 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
               components={{
                 // Intercept superscript elements to render citations
                 sup: ({ children, ...props }) => {
-                  // Check if this is a citation (format: ^artifact identifier^)
                   if (children && typeof children === 'string') {
                     // Find the citation part
                     const citation = parts.find(
@@ -321,6 +322,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
   renderMarkdown: _renderMarkdown,
+  dataComponentLookup = {},
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
 
@@ -337,7 +339,6 @@ export const IkpMessage: FC<IkpMessageProps> = ({
     );
   }
 
-  // Check if we're still streaming text content or if there are incomplete operations
   const hasActiveOperations =
     isStreaming || message.parts.some((part) => part.type === 'text' && part.state === 'streaming');
   const isLoading = isStreaming || hasActiveOperations;
@@ -414,7 +415,13 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                       </div>
                     );
                   } else if (group.type === 'data-component') {
-                    // Regular data component - render as component box
+                    // Regular data component - render with preview if available
+                    const dataComponentId = group.data.id;
+                    const dataComponent = dataComponentId
+                      ? dataComponentLookup[dataComponentId]
+                      : undefined;
+                    const hasPreview = dataComponent?.preview?.code;
+
                     return (
                       <div
                         key={`component-${index}`}
@@ -424,14 +431,21 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                           <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-blue-400" />
                             <span className="text-xs font-medium text-gray-700 dark:text-foreground">
-                              Component: {group.data.name || 'Unnamed'}
+                              {group.data.name || 'Unnamed'}
                             </span>
                           </div>
                         </div>
                         <div className="p-3">
-                          <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
-                            {JSON.stringify(group.data.props, null, 2)}
-                          </pre>
+                          {hasPreview && dataComponent.preview ? (
+                            <DynamicComponentRenderer
+                              code={dataComponent.preview.code}
+                              props={group.data.props || {}}
+                            />
+                          ) : (
+                            <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-muted-foreground font-mono">
+                              {JSON.stringify(group.data.props, null, 2)}
+                            </pre>
+                          )}
                         </div>
                       </div>
                     );

@@ -1,0 +1,108 @@
+---
+title: Create Rich UI Blocks with Data Components
+sidebarTitle: Custom UI Blocks
+description: Learn how to create and use data components for rich, interactive Agent messages.
+icon: "LuBlocks"
+---
+
+<Snippet file="multi-agent-framework/what-are-data-components.mdx" />
+
+## Defining Data Components
+
+Data components are defined using the `dataComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
+
+```typescript
+import { dataComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
+
+export const taskList = dataComponent({
+  id: "task-list",
+  name: "TaskList", 
+  description: "Display user tasks with status",
+  props: z.object({
+    tasks: z
+      .array(
+        z.object({
+          id: z.string().describe("Unique task identifier"),
+          title: z.string().describe("Task title"),
+          completed: z.boolean().describe("Whether the task is completed"),
+          priority: z.enum(["low", "medium", "high"]).describe("Task priority"),
+        })
+      )
+      .describe("Array of user tasks"),
+    totalCount: z.number().describe("Total number of tasks"),
+    completedCount: z.number().describe("Number of completed tasks"),
+  }),
+});
+```
+
+<Callout>
+JSON Schema is also supported if you prefer traditional schema definitions.
+</Callout>
+
+## Using in Agents
+
+Register data components with your agent:
+
+```typescript
+import { agent } from '@inkeep/agents-sdk';
+import { taskList } from './data-components/task-list';
+
+const taskAgent = agent({
+  id: "task-agent",
+  name: "Task Agent", 
+  prompt: "Provide helpful answers and use data components when appropriate.",
+  dataComponents: () => [taskList],
+});
+```
+
+When a user asks "Show me my tasks", the agent will respond with:
+
+```json
+{
+  "dataComponents": [
+    {
+      "id": "task-list",
+      "name": "TaskList",
+      "props": {
+        "tasks": [
+          { "id": "1", "title": "Review documentation", "completed": false },
+          { "id": "2", "title": "Update website", "completed": true }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## Frontend Integration
+
+Create a React component matching your data component name:
+
+```tsx
+const TaskList = ({ tasks, totalCount, completedCount }) => (
+  <div className="task-list">
+    <h3>Your Tasks ({completedCount}/{totalCount} completed)</h3>
+    {tasks.map((task) => (
+      <div key={task.id} className={task.completed ? "completed" : ""}>
+        {task.title}
+      </div>
+    ))}
+  </div>
+);
+```
+
+Register it with the Inkeep chat component:
+
+```tsx
+<InkeepSidebarChat
+  aiChatSettings={{
+    agentUrl: "your-agent-url",
+    components: {
+      TaskList, // Component name must match data component name
+    },
+  }}
+/>
+```
+
+The agent will automatically return structured data that renders as your React component.

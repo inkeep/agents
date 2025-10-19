@@ -58,8 +58,8 @@ const supportAgent = agent({
   defaultSubAgent: routerSubAgent,
   subAgents: () => [routerSubAgent, qaSubAgent, orderSubAgent],
   modelSettings: {
-    model: "anthropic/claude-sonnet-4-20250514",
-    structuredOutput: "openai/gpt-4.1-mini-2025-04-14",
+    model: "anthropic/claude-sonnet-4-5",
+    structuredOutput: "openai/gpt-4.1-mini",
     providerOptions: {
       anthropic: { temperature: 0.5 },
     },

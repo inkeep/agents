@@ -107,7 +107,6 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         const finalKey = nestedPath[nestedPath.length - 1];
         if (value === undefined || value === null || value === '') {
           delete current[finalKey];
-          // Check if the parent object becomes empty after deletion
           if (Object.keys(updatedParent).length === 0) {
             updateField(parentField, null);
             return;

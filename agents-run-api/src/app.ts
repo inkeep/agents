@@ -19,7 +19,9 @@ import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
+import dataComponentPreviewRoutes from './routes/dataComponentPreview';
 import mcpRoutes from './routes/mcp';
+import type { SandboxConfig } from './types/execution-context';
 
 const logger = getLogger('agents-run-api');
 
@@ -27,12 +29,14 @@ type AppVariables = {
   executionContext: ExecutionContext;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  sandboxConfig?: SandboxConfig;
   requestBody?: any;
 };
 
 function createExecutionHono(
   serverConfig: ServerConfig,
-  credentialStores: CredentialStoreRegistry
+  credentialStores: CredentialStoreRegistry,
+  sandboxConfig?: SandboxConfig
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
@@ -41,10 +45,13 @@ function createExecutionHono(
   // Request ID middleware
   app.use('*', requestId());
 
-  // Server config and credential stores middleware
+  // Server config, credential stores, and sandbox config middleware
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    if (sandboxConfig) {
+      c.set('sandboxConfig', sandboxConfig);
+    }
     return next();
   });
 
@@ -257,6 +264,7 @@ function createExecutionHono(
   app.route('/api', chatDataRoutes);
   app.route('/v1/mcp', mcpRoutes);
   app.route('/agents', agentRoutes);
+  app.route('/v1', dataComponentPreviewRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

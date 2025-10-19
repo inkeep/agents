@@ -225,8 +225,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       const agentData: FullAgentDefinition = {
         id: agentId,
-        name: 'Single Agent Agent',
-        description: 'Agent with single agent',
+        name: 'Single Agent',
+        description: 'Agent with single sub agent',
         defaultSubAgentId: subAgentId,
         subAgents: {
           [subAgentId]: {

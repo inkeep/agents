@@ -64,4 +64,13 @@ export class InMemoryCredentialStore implements CredentialStore {
   async delete(key: string): Promise<boolean> {
     return this.credentials.delete(key);
   }
+
+  /**
+   * Check if the credential store is available and functional
+   */
+  async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    return {
+      available: true,
+    };
+  }
 }

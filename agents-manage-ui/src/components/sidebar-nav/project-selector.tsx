@@ -52,7 +52,7 @@ export function ProjectSelector({ projects, selectedProjectId, tenantId }: Proje
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
           <Command>
-            <CommandEmpty>No projects found</CommandEmpty>
+            <CommandEmpty>No projects found.</CommandEmpty>
             <CommandList className="max-h-64">
               <CommandGroup>
                 {projects.map((project) => (

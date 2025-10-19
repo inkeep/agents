@@ -69,7 +69,6 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
     }
   });
 
-  // Get remaining attributes sorted alphabetically
   const remainingKeys = Object.keys(attributes)
     .filter((key) => !PINNED_ATTRIBUTE_KEYS.includes(key as any))
     .sort();

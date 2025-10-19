@@ -5,20 +5,27 @@ description: Learn how to configure and use external agents using the A2A protoc
 icon: "LuGlobe"
 ---
 
-External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native.
-
-<Note>
-  Any agent that exposes an A2A‑compatible HTTP endpoint can be integrated by providing its `baseUrl` plus headers/auth (static or dynamic).
-</Note>
+External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native. Note that Inkeep Agents are available via an [A2A endpoint](/talk-to-your-agents/a2a) themselves and used from other platforms.
 
 Learn more about A2A:
 - A2A overview on the Google Developers Blog: [A2A — a new era of agent interoperability](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
 - A2A protocol site: [a2a.how](https://a2a.how/)
 
-Examples of platforms exposing agents via A2A (non‑exhaustive):
-- LangGraph — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
-- CrewAI — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
-- Salesforce Agentforce — listed among A2A‑compatible platforms: [Partners and platforms](https://google-a2a.wiki/agents-platforms/)
+Examples platforms that expose Agents in A2A-format:
+
+| Platform | Type | Description |
+| --- | --- | --- |
+| [LangGraph](https://docs.langchain.com/langgraph-platform/server-a2a) | Native | Built-in A2A endpoint & Agent Card for graph agents. |
+| [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/a2a/) | Native | Official guide to build agents that expose/consume A2A. |
+| [Microsoft Semantic Kernel](https://devblogs.microsoft.com/foundry/semantic-kernel-a2a-integration/) | Native | “SK now speaks A2A” with sample to expose compliant agents. |
+| [Pydantic AI](https://ai.pydantic.dev/a2a/) | Native | Convenience method to publish a Pydantic AI agent as an A2A server. |
+| [AWS Strands Agents SDK](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/agent-to-agent/) | Native | A2A support in Strands for cross‑platform agent communication. |
+| [CrewAI](https://codelabs.developers.google.com/intro-a2a-purchasing-concierge) | With Adapter | Use the A2A Python SDK to serve a CrewAI agent over A2A. |
+| [LlamaIndex](https://a2aprotocol.ai/blog/a2a-samples-llama-index-file-chat-openrouter) | With Adapter | Example Workflows app exposed via A2A (agent + card). |
+
+<Note>
+  Any agent that exposes an A2A‑compatible HTTP endpoint can be integrated by providing its `baseUrl` plus headers/auth (static or dynamic).
+</Note>
 
 ## Creating an External Agent
 
@@ -89,4 +96,4 @@ const supportExternal = externalAgent({
 | `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
 | `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
 | `headers`             | object              | No       | HTTP headers to include with every request to the external agent. See [Context Fetchers](/typescript-sdk/context-fetchers) for details about dynamic variables. |
-| `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/credentials) for details                                                 |
+| `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/tools/credentials) for details                                                 |

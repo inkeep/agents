@@ -36,7 +36,6 @@ import type {
 export const listProjects =
   (db: DatabaseClient) =>
   async (params: { tenantId: string }): Promise<ProjectInfo[]> => {
-    // First try to get from projects table
     const projectsFromTable = await db
       .select({ projectId: projects.id }) // id IS the project ID
       .from(projects)
@@ -46,7 +45,6 @@ export const listProjects =
       return projectsFromTable.map((p) => ({ projectId: p.projectId }));
     }
 
-    // Fallback to scanning all tables for backward compatibility
     const projectIdSets = await Promise.all([
       db
         .selectDistinct({ projectId: subAgents.projectId })
@@ -122,7 +120,6 @@ export const listProjects =
         .where(eq(ledgerArtifacts.tenantId, params.tenantId)),
     ]);
 
-    // Combine all unique project IDs
     const allProjectIds = new Set<string>();
     projectIdSets.forEach((results) => {
       results.forEach((row) => {
@@ -132,7 +129,6 @@ export const listProjects =
       });
     });
 
-    // Convert to array and sort
     const projectList = Array.from(allProjectIds)
       .sort()
       .map((projectId) => ({ projectId }));
@@ -185,7 +181,6 @@ export const getProjectResourceCounts =
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
 
-    // Count resources in parallel
     const [subAgentResults, agentResults, toolResults, contextConfigResults, externalAgentResults] =
       await Promise.all([
         db.select({ count: subAgents.id }).from(subAgents).where(whereClause(subAgents)),
@@ -216,7 +211,6 @@ export const getProjectResourceCounts =
 export const projectExists =
   (db: DatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<boolean> => {
-    // Check if projectId exists in any table (stop at first match for efficiency)
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
 
@@ -302,7 +296,6 @@ export const updateProject =
   }): Promise<ProjectSelect | null> => {
     const now = new Date().toISOString();
 
-    // First, get the current project to compare stopWhen values
     const currentProject = await db.query.projects.findFirst({
       where: and(
         eq(projects.tenantId, params.scopes.tenantId),
@@ -321,7 +314,6 @@ export const updateProject =
       )
       .returning();
 
-    // If stopWhen was updated, cascade the changes to agents and agent
     if (updated && params.data.stopWhen !== undefined) {
       try {
         await cascadeStopWhenUpdates(
@@ -370,14 +362,11 @@ export const projectHasResources =
 export const deleteProject =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
-    // First check if the project exists in the projects table
     const projectExistsInTableResult = await projectExistsInTable(db)({ scopes: params.scopes });
     if (!projectExistsInTableResult) {
       return false; // Project not found
     }
 
-    // With database-level cascading delete, we can safely delete projects with resources
-    // The database will automatically clean up all related resources
     await db
       .delete(projects)
       .where(
@@ -388,7 +377,7 @@ export const deleteProject =
   };
 
 /**
- * Cascade stopWhen updates from project to agent and agents
+ * Cascade stopWhen updates from project to Agents and Sub Agents
  */
 async function cascadeStopWhenUpdates(
   db: DatabaseClient,
@@ -398,16 +387,13 @@ async function cascadeStopWhenUpdates(
 ): Promise<void> {
   const { tenantId, projectId } = scopes;
 
-  // Update agent if transferCountIs changed
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
-    // Find all agent that inherited the old transferCountIs value
     const agentsToUpdate = await db.query.agents.findMany({
       where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
     });
 
     for (const agent of agentsToUpdate) {
       const agentStopWhen = agent.stopWhen as any;
-      // If agent has no explicit transferCountIs or matches old project value, update it
       if (
         !agentStopWhen?.transferCountIs ||
         agentStopWhen.transferCountIs === oldStopWhen?.transferCountIs
@@ -434,16 +420,13 @@ async function cascadeStopWhenUpdates(
     }
   }
 
-  // Update agents if stepCountIs changed
   if (oldStopWhen?.stepCountIs !== newStopWhen?.stepCountIs) {
-    // Find all agents that inherited the old stepCountIs value
     const agentsToUpdate = await db.query.subAgents.findMany({
       where: and(eq(subAgents.tenantId, tenantId), eq(subAgents.projectId, projectId)),
     });
 
     for (const agent of agentsToUpdate) {
       const agentStopWhen = agent.stopWhen as any;
-      // If agent has no explicit stepCountIs or matches old project value, update it
       if (!agentStopWhen?.stepCountIs || agentStopWhen.stepCountIs === oldStopWhen?.stepCountIs) {
         const updatedStopWhen = {
           ...(agentStopWhen || {}),

@@ -44,7 +44,7 @@ export function ExternalAgentNodeEditor({
     <div className="space-y-8 flex flex-col">
       <p className="text-sm text-muted-foreground">
         External agents are agents that live outside of your project that can communicate using the
-        A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between agent
+        A2A (Agent-to-Agent) protocol. External agents enable you to delegate tasks between agents
         within the agent framework or to third-party services.
       </p>
 

@@ -40,7 +40,6 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                 (() => {
                   try {
                     const date = new Date(startTime);
-                    // Check if the date is valid
                     if (Number.isNaN(date.getTime())) return null;
 
                     const isoString = date.toISOString();

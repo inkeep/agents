@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
 import type {
   ActivityItem,
@@ -19,11 +20,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
+import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 interface ConversationDetailProps {
   conversationId: string;
@@ -34,8 +36,34 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
   const { tenantId, projectId } = useParams();
-  const { SIGNOZ_URL } = useRuntimeConfig();
+  const { PUBLIC_SIGNOZ_URL } = useRuntimeConfig();
+
+  const handleCopyTrace = async () => {
+    if (!conversation) return;
+
+    setIsCopying(true);
+    try {
+      const result = await copyTraceToClipboard(conversation);
+      if (result.success) {
+        toast.success('Trace copied to clipboard', {
+          description: 'The OTEL trace has been copied successfully.',
+        });
+      } else {
+        toast.error('Failed to copy trace', {
+          description: result.error || 'An unknown error occurred',
+        });
+      }
+    } catch (err) {
+      toast.error('Failed to copy trace', {
+        description: err instanceof Error ? err.message : 'An unknown error occurred',
+      });
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      setIsCopying(false);
+    }
+  };
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
@@ -80,7 +108,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           <CardTitle className="text-destructive">Error Loading Conversation</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{error || 'Conversation not found'}</p>
+          <p className="text-sm text-muted-foreground">{error || 'Conversation not found.'}</p>
           {onBack && (
             <Button onClick={onBack} variant="outline" className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -216,7 +244,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                   ) : (
                     <div className="text-center">
                       <div className="text-2xl font-bold text-muted-foreground mb-1">0</div>
-                      <p className="text-xs text-muted-foreground">No AI calls found</p>
+                      <p className="text-xs text-muted-foreground">No AI calls found.</p>
                     </div>
                   )}
                 </div>
@@ -243,16 +271,24 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                     <div className="space-y-1">
                       {errors > 0 && (
                         <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold font-mono text-red-600">{errors}</span>
-                          <span className="text-sm text-muted-foreground">error{errors > 1 ? 's' : ''}</span>
+                          <span className="text-2xl font-bold font-mono text-red-600">
+                            {errors}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            error{errors > 1 ? 's' : ''}
+                          </span>
                         </div>
                       )}
-                       {warnings > 0 && (
-                         <div className="flex items-baseline gap-2">
-                           <span className="text-2xl font-bold font-mono text-yellow-500">{warnings}</span>
-                           <span className="text-sm text-muted-foreground">warning{warnings > 1 ? 's' : ''}</span>
-                         </div>
-                       )}
+                      {warnings > 0 && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold font-mono text-yellow-500">
+                            {warnings}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            warning{warnings > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
@@ -266,7 +302,10 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       size="sm"
                       className="mt-3 w-full flex items-center justify-center gap-1"
                       onClick={() => {
-                        window.open(getSignozTracesExplorerUrl(conversationId as string, SIGNOZ_URL), '_blank');
+                        window.open(
+                          getSignozTracesExplorerUrl(conversationId as string, PUBLIC_SIGNOZ_URL),
+                          '_blank'
+                        );
                       }}
                     >
                       <ExternalLinkIcon className="h-3 w-3" />
@@ -286,7 +325,12 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           direction="horizontal"
           className="h-full border rounded-xl bg-background"
         >
-          <TimelineWrapper conversation={conversation} conversationId={conversationId} />
+          <TimelineWrapper
+            conversation={conversation}
+            conversationId={conversationId}
+            onCopyTrace={handleCopyTrace}
+            isCopying={isCopying}
+          />
         </ResizablePanelGroup>
       </div>
     </div>

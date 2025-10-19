@@ -116,22 +116,12 @@ describe('Inkeep CLI', () => {
     });
   });
 
-  describe('chat command', () => {
-    it('should accept optional agent-id argument', () => {
-      const result = runCli(['chat', '--help']);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('[agent-id]');
-      expect(result.stdout).toContain('Start an interactive chat session');
-    });
-  });
-
   describe('list-agent command', () => {
     it('should require --project option and accept --url option', () => {
       const result = runCli(['list-agent', '--help']);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('List all available agent for a specific project');
+      expect(result.stdout).toContain('List all available agents for a specific project');
       expect(result.stdout).toContain('--project <project-id>');
       expect(result.stdout).toContain('--agents-manage-api-url');
     });
@@ -145,7 +135,6 @@ describe('Inkeep CLI', () => {
       expect(result.stdout).toContain('CLI tool for Inkeep Agent Framework');
       expect(result.stdout).toContain('Commands:');
       expect(result.stdout).toContain('push');
-      expect(result.stdout).toContain('chat');
       expect(result.stdout).toContain('config');
       expect(result.stdout).toContain('list-agent');
     });
@@ -156,14 +145,6 @@ describe('Inkeep CLI', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Push a project configuration');
       expect(result.stdout).toContain('--agents-manage-api-url');
-    });
-
-    it('should display help for chat command', () => {
-      const result = runCli(['chat', '--help']);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Start an interactive chat session');
-      expect(result.stdout).toContain('[agent-id]');
     });
   });
 

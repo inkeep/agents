@@ -140,7 +140,6 @@ export const deleteApiKey =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
-      // Check if the API key exists
       const existingKey = await getApiKeyById(db)({
         scopes: params.scopes,
         id: params.id,
@@ -253,18 +252,15 @@ export const validateAndGetApiKey = async (
     return null;
   }
 
-  // Validate the full key against the stored hash
   const isValid = await validateApiKey(key, apiKey.keyHash);
   if (!isValid) {
     return null;
   }
 
-  // Check if the key has expired
   if (isApiKeyExpired(apiKey.expiresAt)) {
     return null;
   }
 
-  // Update last used timestamp
   await updateApiKey(db)({
     scopes: { tenantId: apiKey.tenantId, projectId: apiKey.projectId },
     id: apiKey.id,

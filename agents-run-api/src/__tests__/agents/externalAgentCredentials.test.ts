@@ -80,7 +80,6 @@ vi.mock('../../data/conversations.js');
 describe('External Agent Credential Handling', () => {
   const mockTenantId = 'test-tenant';
   const mockAgentId = 'external-agent-1';
-  const mockSubAgentId = 'test-agent';
   const mockContextId = 'test-context';
   const mockProjectId = 'test-project';
 

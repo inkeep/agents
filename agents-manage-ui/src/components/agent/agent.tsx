@@ -98,6 +98,8 @@ function Flow({
     projectId: string;
   }>();
 
+  const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
+
   const initialNodes = useMemo<Node[]>(
     () => [
       {
@@ -144,11 +146,21 @@ function Flow({
       : { nodes: initialNodes, edges: initialEdges };
     return {
       ...result,
-      nodes: enrichNodes(result.nodes),
+      nodes: nodeId
+        ? enrichNodes(result.nodes).map((node) => ({
+            ...node,
+            selected: node.id === nodeId,
+          }))
+        : enrichNodes(result.nodes),
+      edges: edgeId
+        ? result.edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === edgeId,
+          }))
+        : result.edges,
     };
-  }, [agent, enrichNodes, initialNodes]);
+  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
 
-  // Create agent tool configuration lookup from agent data
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
     if (!agent?.subAgents) return {} as AgentToolConfigLookup;
 
@@ -204,11 +216,11 @@ function Flow({
     markSaved,
     clearSelection,
     markUnsaved,
+    reset,
   } = useAgentActions();
 
   // Always use enriched nodes for ReactFlow
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
-  const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
   const { errors, showErrors, setErrors, clearErrors, setShowErrors } = useAgentErrors();
 
   /**
@@ -227,7 +239,6 @@ function Flow({
       // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
       setTimeout(() => {
         const currentNodes = getNodes();
-        // Check if any of the replaced nodes are intersecting with others
         for (const change of replaceChanges) {
           const node = currentNodes.find((n) => n.id === change.id);
           if (!node) {
@@ -257,37 +268,15 @@ function Flow({
       toolLookup,
       agentToolConfigLookup
     );
+
+    return () => {
+      // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
+      reset();
+    };
   }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
   useEffect(() => {
-    if (!agent) {
-      openAgentPane();
-      return;
-    }
-
-    if (!nodeId && !edgeId) {
-      openAgentPane();
-    }
-
-    if (nodeId) {
-      setNodes((nodes) =>
-        nodes.map((node) => ({
-          ...node,
-          selected: node.id === nodeId,
-        }))
-      );
-    }
-
-    if (edgeId) {
-      setEdges((edges) =>
-        edges.map((edge) => ({
-          ...edge,
-          selected: edge.id === edgeId,
-        }))
-      );
-    }
-
     // If the nodeId or edgeId in URL doesn't exist in the agent, clear it
     if (nodeId && !agentNodes.some((node) => node.id === nodeId)) {
       setQueryState((prev) => ({
@@ -459,7 +448,6 @@ function Flow({
           ? edges[0]
           : null;
       const defaultPane = isOpen ? 'agent' : null;
-
       setQueryState(
         {
           pane: node ? 'node' : edge ? 'edge' : defaultPane,
@@ -517,7 +505,6 @@ function Flow({
           }))
         );
         setEdges((edges) => edges.map((edge) => ({ ...edge, selected: false })));
-
         // Open the sidepane for the selected node
         setQueryState({
           pane: 'node',
@@ -580,7 +567,6 @@ function Flow({
       agentToolConfigLookup
     );
 
-    // Build a map from toolId to React Flow node ID for function tools
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {
       if (node.type === NodeType.FunctionTool) {
@@ -590,10 +576,8 @@ function Flow({
       }
     });
 
-    // Validate the serialized data before saving
     const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
-      // Convert validation errors to the format expected by parseAgentValidationErrors
       const errorObjects = validationErrors.map((error) => ({
         message: error.message,
         field: error.field,
@@ -625,10 +609,8 @@ function Flow({
 
       // Update MCP nodes with new relationshipIds from backend response
       if (res.data) {
-        // Create a map to track which relationships were processed
         const processedRelationships = new Set<string>();
 
-        // Update nodes with the new relationshipIds
         setNodes((currentNodes) =>
           currentNodes.map((node) => {
             if (node.type === NodeType.MCP) {
@@ -683,7 +665,7 @@ function Flow({
         setErrors(errorSummary);
 
         const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage || 'Failed to save agent - validation errors found');
+        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
       } catch (parseError) {
         // Fallback for unparseable errors
         console.error('Failed to parse validation errors:', parseError);
@@ -784,6 +766,7 @@ function Flow({
           tenantId={tenantId}
           setShowPlayground={setShowPlayground}
           closeSidePane={closeSidePane}
+          dataComponentLookup={dataComponentLookup}
         />
       )}
     </div>

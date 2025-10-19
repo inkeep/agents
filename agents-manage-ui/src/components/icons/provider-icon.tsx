@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import type { IconComponentProps } from '@/components/ui/svg-icon';
+import { getProviderIcon } from '@/lib/provider-icons';
 
 interface ProviderIconProps extends Omit<IconComponentProps, 'children'> {
   provider: string;
@@ -16,11 +17,10 @@ interface ProviderIconProps extends Omit<IconComponentProps, 'children'> {
 /**
  * Get the local provider icon URL from assets
  */
-const getLocalIconUrl = (provider: string): string => {
-  const normalizedProvider = provider.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  // Note: In Next.js, files in src/assets need to be imported or moved to public/
-  // For now, we'll assume they're in public/assets/provider-icons/
-  return `/assets/provider-icons/${normalizedProvider}.svg`;
+const getLocalIconUrl = (provider: string): string | null => {
+  const iconName = getProviderIcon(provider);
+  if (!iconName) return null;
+  return `/assets/provider-icons/${iconName}.svg`;
 };
 
 /**
@@ -56,6 +56,18 @@ export function ProviderIcon({
   const [imageError, setImageError] = useState(false);
 
   const iconUrl = getLocalIconUrl(provider);
+  
+  // If no matching icon found, show fallback immediately
+  if (!iconUrl) {
+    return (
+      <div
+        className={`inline-flex items-center justify-center ${className || ''}`}
+        style={{ width: size, height: size }}
+      >
+        {fallback || createTextFallback(provider, size)}
+      </div>
+    );
+  }
 
   return (
     <div
