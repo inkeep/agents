@@ -1,7 +1,7 @@
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import ora from 'ora';
+import * as p from '@clack/prompts';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from '../utils/templates';
 
 export interface AddOptions {
@@ -114,12 +114,13 @@ export async function addCommand(options: AddOptions) {
       }
     }
 
-    const spinner = ora('Adding template...').start();
+    const s = p.spinner();
+    s.start('Adding template...');
     const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-projects/${options.template}`;
 
     // Clone into the template-named subdirectory
     await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
-    spinner.succeed(`Template "${options.template}" added to ${templateDir}`);
+    s.stop(`Template "${options.template}" added to ${templateDir}`);
     return;
   }
 }

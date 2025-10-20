@@ -393,6 +393,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -643,6 +647,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -705,6 +713,10 @@ function buildConversationListPayload(
             {
               key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
         ),
@@ -1188,6 +1200,7 @@ export async function GET(
         hasError,
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
       });
     }
 
@@ -1212,6 +1225,7 @@ export async function GET(
         aiStreamTextOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
       });
     }
 
@@ -1236,6 +1250,7 @@ export async function GET(
         aiStreamObjectOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
+        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
       });
     }
 

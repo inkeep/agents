@@ -13,6 +13,12 @@ vi.mock('../../commands/pull.placeholder-system', () => ({
   calculateTokenSavings: vi.fn(),
 }));
 
+// Mock instrumentation to disable Langfuse for tests
+vi.mock('../../instrumentation', () => ({
+  isLangfuseConfigured: vi.fn(() => false),
+  initializeInstrumentation: vi.fn(),
+}));
+
 import { generateText } from 'ai';
 import {
   calculateTokenSavings,

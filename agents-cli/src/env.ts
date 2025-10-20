@@ -18,6 +18,11 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   GOOGLE_API_KEY: z.string().optional(),
+  // Langfuse configuration for LLM observability
+  LANGFUSE_SECRET_KEY: z.string().optional(),
+  LANGFUSE_PUBLIC_KEY: z.string().optional(),
+  LANGFUSE_BASEURL: z.string().optional().default('https://cloud.langfuse.com'),
+  LANGFUSE_ENABLED: z.string().optional().transform(val => val === 'true'),
 });
 
 const parseEnv = () => {

@@ -1654,13 +1654,21 @@ export class Agent {
       };
     }
   ) {
-    return tracer.startActiveSpan('agent.generate', async (span) => {
-      // Use the ToolSession created by AgentSession
-      // All agents in this execution share the same session
-      const contextId = runtimeContext?.contextId || 'default';
-      const taskId = runtimeContext?.metadata?.taskId || 'unknown';
-      const streamRequestId = runtimeContext?.metadata?.streamRequestId;
-      const sessionId = streamRequestId || 'fallback-session';
+    return tracer.startActiveSpan(
+      'agent.generate',
+      {
+        attributes: {
+          'subagent.id': this.config.id,
+          'subagent.name': this.config.name,
+        },
+      },
+      async (span) => {
+        // Use the ToolSession created by AgentSession
+        // All agents in this execution share the same session
+        const contextId = runtimeContext?.contextId || 'default';
+        const taskId = runtimeContext?.metadata?.taskId || 'unknown';
+        const streamRequestId = runtimeContext?.metadata?.streamRequestId;
+        const sessionId = streamRequestId || 'fallback-session';
 
       // Note: ToolSession is now created by AgentSession, not by agents
       // This ensures proper lifecycle management and session coordination

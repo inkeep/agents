@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import ora from 'ora';
+import * as p from '@clack/prompts';
 import { ManagementApiClient } from '../api';
 import { initializeCommand } from '../utils/cli-pipeline';
 
@@ -27,11 +27,12 @@ export async function listAgentsCommand(options: ListAgentsOptions) {
     config.tenantId,
     options.project // pass project ID as projectIdOverride
   );
-  const spinner = ora('Fetching agent...').start();
+  const s = p.spinner();
+  s.start('Fetching agent...');
 
   try {
     const agents = await api.listAgents();
-    spinner.succeed(`Found ${agents.length} agent(s) in project "${options.project}"`);
+    s.stop(`Found ${agents.length} agent(s) in project "${options.project}"`);
 
     if (agents.length === 0) {
       console.log(
@@ -71,7 +72,7 @@ export async function listAgentsCommand(options: ListAgentsOptions) {
 
     console.log(`\n${table.toString()}`);
   } catch (error) {
-    spinner.fail('Failed to fetch agent');
+    s.stop('Failed to fetch agent');
     console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }

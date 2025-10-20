@@ -1,14 +1,17 @@
 'use client';
 
 import { Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/form/code-editor';
 import { JsonEditor } from '@/components/form/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
 
@@ -35,8 +38,10 @@ export function ComponentPreviewGenerator({
   const [streamingCode, setStreamingCode] = useState<string>('');
   const [isComplete, setIsComplete] = useState(!!existingPreview);
   const [isSaved, setIsSaved] = useState(!!existingPreview);
+  const [regenerateInstructions, setRegenerateInstructions] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const generatePreview = async () => {
+  const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
     setPreview(null);
     setStreamingCode('');
@@ -44,17 +49,17 @@ export function ComponentPreviewGenerator({
     setIsSaved(false);
 
     try {
-      const baseUrl =
-        typeof window !== 'undefined'
-          ? process.env.NEXT_PUBLIC_AGENTS_MANAGE_API_URL || 'http://localhost:3002'
-          : 'http://localhost:3002';
-      const url = `${baseUrl}/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
-
-      const response = await fetch(url, {
+      const response = await fetch(`/api/data-components/${dataComponentId}/generate-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          tenantId,
+          projectId,
+          instructions: instructions || undefined,
+          existingCode: instructions ? preview?.code : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -99,12 +104,12 @@ export function ComponentPreviewGenerator({
         setPreview(lastValidObject);
         setIsComplete(true);
         onPreviewChanged?.(lastValidObject);
-        toast.success('Component preview generated!');
+        toast.success('Preview generated successfully');
       } else {
         throw new Error('No valid preview generated');
       }
     } catch (error) {
-      console.error('Error generating preview:', error);
+      console.error('Failed to generate preview:', error);
       toast.error('Failed to generate preview');
       setIsComplete(true);
     } finally {
@@ -133,6 +138,30 @@ export function ComponentPreviewGenerator({
 
   const hasPreview = preview !== null && (preview.code?.trim().length ?? 0) > 0;
 
+  // Memoize to prevent infinite re-renders
+  const stringifiedData = useMemo(
+    () => (preview?.data ? JSON.stringify(preview.data, null, 2) : '{}'),
+    [preview?.data]
+  );
+
+  const previewCode = useMemo(() => preview?.code || '', [preview?.code]);
+  const previewData = useMemo(() => preview?.data || {}, [preview?.data]);
+
+  const handleDataChange = useCallback(
+    (newData: string) => {
+      if (!preview) return;
+      try {
+        const parsedData = JSON.parse(newData);
+        const updatedPreview = { ...preview, data: parsedData };
+        setPreview(updatedPreview);
+        onPreviewChanged?.(updatedPreview);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    },
+    [preview, onPreviewChanged]
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -144,7 +173,7 @@ export function ComponentPreviewGenerator({
         </div>
         <div className="flex gap-2">
           {!hasPreview && (
-            <Button onClick={generatePreview} disabled={isGenerating} className="gap-2">
+            <Button onClick={() => generatePreview()} disabled={isGenerating} className="gap-2">
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -160,24 +189,64 @@ export function ComponentPreviewGenerator({
           )}
           {hasPreview && (
             <>
-              <Button
-                variant="outline"
-                onClick={generatePreview}
-                disabled={isDeleting || isGenerating}
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    Regenerate
-                  </>
-                )}
-              </Button>
+              <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" disabled={isDeleting || isGenerating} className="gap-2">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Regenerate
+                      </>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Modify Component</h4>
+                      <Label htmlFor="instructions" className="text-xs text-muted-foreground">
+                        Describe what you'd like to change (optional)
+                      </Label>
+                      <Textarea
+                        id="instructions"
+                        placeholder="e.g. Make it more compact, add a border, use different icons..."
+                        value={regenerateInstructions}
+                        onChange={(e) => setRegenerateInstructions(e.target.value)}
+                        className="mt-2 min-h-[100px]"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          setIsPopoverOpen(false);
+                          await generatePreview(regenerateInstructions || undefined);
+                          setRegenerateInstructions('');
+                        }}
+                        disabled={isGenerating}
+                        className="flex-1"
+                      >
+                        {regenerateInstructions ? 'Apply Changes' : 'Regenerate'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setIsPopoverOpen(false);
+                          setRegenerateInstructions('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               {isSaved && (
                 <Button
                   variant="destructive"
@@ -202,7 +271,16 @@ export function ComponentPreviewGenerator({
         <Streamdown
           isAnimating
           className="[&_[data-code-block-header=true]]:hidden [&_pre]:bg-muted/40!"
-        >{`\`\`\`jsx\n${streamingCode}`}</Streamdown>
+        >{`\`\`\`jsx\n${streamingCode}\`\`\``}</Streamdown>
+      )}
+
+      {isGenerating && !streamingCode && (
+        <Card className="p-6">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Generating component preview...</p>
+          </div>
+        </Card>
       )}
 
       {hasPreview && !isGenerating && isComplete && preview && (
@@ -214,33 +292,27 @@ export function ComponentPreviewGenerator({
           </TabsList>
           <TabsContent value="preview">
             <Card className="p-6">
-              <DynamicComponentRenderer code={preview.code} props={preview.data} />
+              <DynamicComponentRenderer code={previewCode} props={previewData} />
             </Card>
           </TabsContent>
           <TabsContent value="code">
             <CodeEditor
-              value={preview.code}
+              value={previewCode}
               onChange={(newCode) => {
+                if (!preview) return;
                 const updatedPreview = { ...preview, code: newCode };
                 setPreview(updatedPreview);
                 onPreviewChanged?.(updatedPreview);
               }}
               language="jsx"
+              className="max-h-[500px]"
             />
           </TabsContent>
           <TabsContent value="data">
             <JsonEditor
-              value={JSON.stringify(preview.data, null, 2)}
-              onChange={(newData) => {
-                try {
-                  const parsedData = JSON.parse(newData);
-                  const updatedPreview = { ...preview, data: parsedData };
-                  setPreview(updatedPreview);
-                  onPreviewChanged?.(updatedPreview);
-                } catch {
-                  // Invalid JSON, ignore
-                }
-              }}
+              value={stringifiedData}
+              onChange={handleDataChange}
+              className="max-h-[500px]"
             />
           </TabsContent>
         </Tabs>

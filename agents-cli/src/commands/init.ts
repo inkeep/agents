@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import * as p from '@clack/prompts';
 
 export interface InitOptions {
   path?: string;
@@ -72,26 +72,27 @@ export async function initCommand(options?: InitOptions) {
       configPath = suggestedPath;
     } else {
       // Ask user to confirm or change the location
-      const { confirmedPath } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'confirmedPath',
-          message: 'Where should the config file be created?',
-          default: suggestedPath,
-          validate: (input: any) => {
-            if (!input || input.trim() === '') {
-              return 'Path is required';
-            }
-            // Check if the directory exists
-            const dir = input.endsWith('.ts') || input.endsWith('.js') ? dirname(input) : input;
-            const resolvedDir = resolve(process.cwd(), dir);
-            if (!existsSync(resolvedDir)) {
-              return `Directory does not exist: ${resolvedDir}`;
-            }
-            return true;
-          },
+      const confirmedPath = await p.text({
+        message: 'Where should the config file be created?',
+        defaultValue: suggestedPath,
+        validate: (input) => {
+          if (!input || input.trim() === '') {
+            return 'Path is required';
+          }
+          // Check if the directory exists
+          const dir = input.endsWith('.ts') || input.endsWith('.js') ? dirname(input) : input;
+          const resolvedDir = resolve(process.cwd(), dir);
+          if (!existsSync(resolvedDir)) {
+            return `Directory does not exist: ${resolvedDir}`;
+          }
+          return undefined;
         },
-      ]);
+      });
+
+      if (p.isCancel(confirmedPath)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
 
       const resolvedPath = resolve(process.cwd(), confirmedPath);
       configPath =
@@ -103,14 +104,15 @@ export async function initCommand(options?: InitOptions) {
 
   // Check if config file already exists
   if (existsSync(configPath)) {
-    const { overwrite } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'overwrite',
-        message: `${basename(configPath)} already exists at this location. Do you want to overwrite it?`,
-        default: false,
-      },
-    ]);
+    const overwrite = await p.confirm({
+      message: `${basename(configPath)} already exists at this location. Do you want to overwrite it?`,
+      initialValue: false,
+    });
+
+    if (p.isCancel(overwrite)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
 
     if (!overwrite) {
       console.log(chalk.yellow('Init cancelled.'));
@@ -119,44 +121,49 @@ export async function initCommand(options?: InitOptions) {
   }
 
   // Prompt for configuration values
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'tenantId',
-      message: 'Enter your tenant ID:',
-      validate: (input: any) => {
-        if (!input || input.trim() === '') {
-          return 'Tenant ID is required';
-        }
-        return true;
-      },
+  const tenantId = await p.text({
+    message: 'Enter your tenant ID:',
+    validate: (input) => {
+      if (!input || input.trim() === '') {
+        return 'Tenant ID is required';
+      }
+      return undefined;
     },
-    {
-      type: 'input',
-      name: 'apiUrl',
-      message: 'Enter the API URL:',
-      default: 'http://localhost:3002',
-      validate: (input: any) => {
-        try {
-          new URL(input);
-          return true;
-        } catch {
-          return 'Please enter a valid URL';
-        }
-      },
+  });
+
+  if (p.isCancel(tenantId)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
+
+  const apiUrl = await p.text({
+    message: 'Enter the API URL:',
+    defaultValue: 'http://localhost:3002',
+    validate: (input) => {
+      try {
+        new URL(input);
+        return undefined;
+      } catch {
+        return 'Please enter a valid URL';
+      }
     },
-  ]);
+  });
+
+  if (p.isCancel(apiUrl)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
 
   // Generate the config file content
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
-  tenantId: '${answers.tenantId}',
+  tenantId: '${tenantId}',
   agentsManageApi: {
-    url: '${answers.apiUrl}',
+    url: '${apiUrl}',
   },
   agentsRunApi: {
-    url: '${answers.apiUrl}',
+    url: '${apiUrl}',
   },
 });
 `;

@@ -92,13 +92,28 @@ services:
       /bin/sh -c "
         apk add --no-cache apache2-utils &&
         htpasswd -bc /etc/nginx/.htpasswd $${INKEEP_AGENTS_MANAGE_UI_USERNAME} $${INKEEP_AGENTS_MANAGE_UI_PASSWORD} &&
-        echo 'events {} http { server { listen 80;
-          location / {
-            auth_basic \"Restricted\";
-            auth_basic_user_file /etc/nginx/.htpasswd;
-            proxy_pass http://inkeep-agents-manage-ui:3000;
+        echo '
+        events {}
+        http {
+          server {
+            listen 80;
+            server_name localhost;
+
+            location / {
+              auth_basic \"Restricted\";
+              auth_basic_user_file /etc/nginx/.htpasswd;
+
+              proxy_pass http://inkeep-agents-manage-ui:3000;
+              proxy_set_header Host $$http_host;
+              proxy_set_header X-Forwarded-Host $$http_host;
+              proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $$scheme;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $$http_upgrade;
+              proxy_set_header Connection \"upgrade\";
+            }
           }
-        } }' > /etc/nginx/nginx.conf &&
+        }' > /etc/nginx/nginx.conf &&
         nginx -g 'daemon off;'
       "
 volumes:

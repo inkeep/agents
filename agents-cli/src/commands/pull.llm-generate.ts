@@ -8,6 +8,7 @@ import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import { env } from '../env';
+import { isLangfuseConfigured } from '../instrumentation';
 import {
   calculateTokenSavings,
   createPlaceholders,
@@ -397,10 +398,12 @@ export async function generateTextWithPlaceholders(
   context?: { fileType?: string },
   reasoningConfig?: Record<string, any>
 ): Promise<string> {
+
   // Create placeholders to reduce prompt size
   const { processedData, replacements } = context 
     ? createPlaceholders(data, context)
     : createPlaceholders(data);
+
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -420,16 +423,29 @@ export async function generateTextWithPlaceholders(
     console.log(`[DEBUG] Final prompt size: ${prompt.length} characters`);
   }
 
-  // Generate text using the LLM
+  // Generate text using the LLM with optional telemetry
   const { text } = await generateText({
     model,
     prompt,
     ...options,
     ...reasoningConfig, // Merge in reasoning/thinking config if provided
+    // Enable Langfuse telemetry if configured
+    ...(isLangfuseConfigured() && {
+      experimental_telemetry: {
+        isEnabled: true,
+        metadata: {
+          fileType: context?.fileType || 'unknown',
+          placeholderCount: Object.keys(replacements).length,
+          promptSize: prompt.length,
+        },
+      },
+    }),
   });
+
 
   // Restore placeholders in the generated code
   const restoredText = restorePlaceholders(text, replacements);
+
 
   if (debug && Object.keys(replacements).length > 0) {
     console.log(`[DEBUG] Placeholders restored successfully`);
@@ -513,7 +529,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'index' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -795,7 +811,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
         abortSignal: AbortSignal.timeout(300000), // 300 second timeout for complex agent (5 min, increased for reasoning)
       },
       debug, // Pass debug flag to show placeholder optimization info
-      undefined, // context
+      { fileType: 'agent' }, // context - for Langfuse metadata
       reasoningConfig // reasoning config
     );
 
@@ -903,7 +919,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'tool' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -990,7 +1006,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'data_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -1082,7 +1098,7 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'artifact_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
@@ -1172,11 +1188,127 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
       abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
     },
     false, // debug
-    undefined, // context
+    { fileType: 'status_component' }, // context - for Langfuse metadata
     reasoningConfig // reasoning config
   );
 
   writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
+ * Generate environment files using templates (no LLM needed)
+ * @param environmentsDir - Directory to write environment files
+ * @param environment - Environment name (e.g., 'development', 'staging')
+ * @param credentials - Credential data to include
+ */
+export function generateEnvironmentFileTemplate(
+  environmentsDir: string,
+  environment: string,
+  credentials?: Record<string, any>
+): void {
+  const { writeFileSync } = require('node:fs');
+  const { join } = require('node:path');
+
+  // Generate credential code if credentials exist
+  let credentialsCode = '';
+  const hasCredentials = credentials && Object.keys(credentials).length > 0;
+
+  if (hasCredentials) {
+    const credentialEntries: string[] = [];
+    for (const [credId, cred] of Object.entries(credentials)) {
+      // Skip metadata entries
+      if (credId === '_meta') continue;
+
+      // Use a sanitized version of the ID as the variable name
+      const varName = credId.replace(/-/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+
+      // Build credential definition
+      const params = [
+        `id: '${cred.id || credId}'`,
+        `type: '${cred.type || 'api_key'}'`,
+        `credentialStoreId: '${cred.credentialStoreId || 'environment'}'`,
+      ];
+
+      if (cred.retrievalParams) {
+        params.push(
+          `retrievalParams: ${JSON.stringify(cred.retrievalParams, null, 6).replace(/\n/g, '\n      ')}`
+        );
+      }
+
+      credentialEntries.push(`    ${varName}: credential({\n      ${params.join(',\n      ')}\n    })`);
+    }
+    credentialsCode = `\n${credentialEntries.join(',\n')}\n  `;
+  } else {
+    credentialsCode = '\n  ';
+  }
+
+  // Generate the environment file
+  const imports = hasCredentials
+    ? "import { credential, registerEnvironmentSettings } from '@inkeep/agents-sdk';"
+    : "import { registerEnvironmentSettings } from '@inkeep/agents-sdk';";
+
+  const envContent = `${imports}
+
+export const ${environment} = registerEnvironmentSettings({
+  credentials: {${credentialsCode}}
+});
+`;
+
+  writeFileSync(join(environmentsDir, `${environment}.env.ts`), envContent);
+
+  // Update the index.ts file
+  updateEnvironmentIndexTemplate(environmentsDir, environment);
+}
+
+/**
+ * Update environments/index.ts using templates
+ */
+function updateEnvironmentIndexTemplate(environmentsDir: string, newEnvironment: string): void {
+  const { writeFileSync, existsSync, readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+
+  const indexPath = join(environmentsDir, 'index.ts');
+  const existingEnvironments: string[] = [];
+
+  // Read existing index.ts if it exists
+  if (existsSync(indexPath)) {
+    const existingContent = readFileSync(indexPath, 'utf-8');
+
+    // Extract existing environment imports
+    const importRegex = /import\s+{\s*(\w+)\s*}\s+from\s+['"]\.\/([\w-]+)\.env['"];?/g;
+    let match: RegExpExecArray | null;
+    while ((match = importRegex.exec(existingContent)) !== null) {
+      const envName = match[2];
+      if (!existingEnvironments.includes(envName)) {
+        existingEnvironments.push(envName);
+      }
+    }
+  }
+
+  // Add the new environment if it's not already included
+  if (!existingEnvironments.includes(newEnvironment)) {
+    existingEnvironments.push(newEnvironment);
+  }
+
+  // Sort environments for consistent output
+  existingEnvironments.sort();
+
+  // Generate the complete index.ts content
+  const importStatements = existingEnvironments
+    .map((env) => `import { ${env} } from './${env}.env';`)
+    .join('\n');
+
+  const environmentObject = existingEnvironments.map((env) => `  ${env},`).join('\n');
+
+  const indexContent = `import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+${importStatements}
+
+export const envSettings = createEnvironmentSettings({
+${environmentObject}
+});
+`;
+
+  writeFileSync(indexPath, indexContent);
 }
 
 /**
@@ -1288,6 +1420,326 @@ export { ${exportStatement} };
 `;
 
   writeFileSync(indexPath, indexContent);
+}
+
+/**
+ * Batch generation for multiple files in a single LLM request
+ * Dramatically reduces token consumption by including type definitions only once
+ */
+export async function generateAllFilesInBatch(
+  fileSpecs: Array<{
+    type: 'index' | 'agent' | 'tool' | 'data_component' | 'artifact_component' | 'status_component';
+    id: string;
+    data: any;
+    outputPath: string;
+    toolFilenames?: Map<string, string>;
+    componentFilenames?: Map<string, string>;
+  }>,
+  modelSettings: ModelSettings,
+  debug: boolean = false,
+  reasoningConfig?: Record<string, any>
+): Promise<void> {
+  if (fileSpecs.length === 0) {
+    return;
+  }
+
+  const model = createModel(modelSettings);
+
+  // Build the combined prompt with type definitions included once
+  const typeDefinitions = getTypeDefinitions();
+  const sharedInstructions = `
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+`;
+
+  // Build individual file prompts
+  const filePrompts = fileSpecs.map((spec, index) => {
+    let fileSpecificInstructions = '';
+
+    switch (spec.type) {
+      case 'index':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR INDEX FILE:
+1. Import the project function from '@inkeep/agents-sdk'
+2. The project object should include all required properties and any optional properties (according to the type definitions) that are present in the project data
+
+PROJECT JSON EXAMPLE:
+${PROJECT_JSON_EXAMPLE}
+
+EXAMPLE OUTPUT:
+import { project } from '@inkeep/agents-sdk';
+
+export const myProject = project({
+  id: 'my-project',
+  name: 'My Project',
+  description: 'test test',
+  models: {
+    base: { model: 'gpt-4o-mini' }
+  }
+});
+`;
+        break;
+
+      case 'agent':
+        const importMappings = spec.toolFilenames || spec.componentFilenames
+          ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+${generateImportMappings(spec.toolFilenames, spec.componentFilenames)}
+
+!!! WARNING: Entity IDs ≠ File Paths !!!
+- Entity IDs may use underscores or different naming
+- File paths use kebab-case naming convention
+- ALWAYS use the exact import paths from the mappings above
+- NEVER use entity IDs directly as import paths
+
+`
+          : '';
+
+        fileSpecificInstructions = `
+${importMappings}REQUIREMENTS FOR AGENT FILE:
+1. IMPORTS (CRITICAL - USE FILE PATHS, NOT IDs):
+   - For tool/component imports: Use ONLY the exact file paths from IMPORT PATH MAPPINGS above
+   - Import paths are based on actual file names, not entity IDs
+   - Always use kebab-case file paths (../tools/tool-name, not ../tools/tool_name)
+   - ALWAYS import { agent, subAgent } from '@inkeep/agents-sdk'
+   - ALWAYS import { z } from 'zod' when using ANY Zod schemas (responseSchema, headersSchema, etc.)
+   - ALWAYS import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core' when agent has contextConfig
+   - Import status components from '../status-components/' when needed
+2. Define each agent using the agent() function following the type definitions provided above
+3. Create the agent using agent() with proper structure
+   - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
+4. CRITICAL: Template Literals vs Raw Code:
+   - For STRING VALUES: ALWAYS use template literals with backticks: \`string content\`
+   - This includes: prompt, description, query, url, method, body, defaultValue, etc.
+   - This prevents TypeScript syntax errors with apostrophes (user's, don't, etc.)
+   - IMPORTANT: ANY placeholder that starts with < and ends with > MUST be wrapped in template literals (backticks)
+   - For object keys: use quotes only for keys with hyphens ('Content-Type'), omit for simple identifiers (Authorization)
+
+   EXCEPTION - Schema Fields (NO template literals):
+   - headersSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - responseSchema: z.object({ ... }) (raw Zod code, NOT a string)
+   - These are TypeScript expressions, not string values
+5. For contextConfig (CRITICAL):
+   - NEVER use plain objects for contextConfig
+   - ALWAYS use helper functions: headers(), fetchDefinition(), contextConfig()
+   - Create separate const variables for each helper before the agent definition
+6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+`;
+        break;
+
+      case 'tool':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR TOOL FILE:
+1. Import mcpTool from '@inkeep/agents-sdk'
+2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
+3. CRITICAL: Use individual properties supported by mcpTool - do NOT use nested config object
+4. Extract configuration properties and map them to mcpTool's expected properties (serverUrl, transport, etc.)
+5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
+8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
+`;
+        break;
+
+      case 'data_component':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR DATA COMPONENT FILE:
+1. Import dataComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Create the data component using dataComponent()
+4. Include all properties from the component data INCLUDING the 'id' property
+5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+`;
+        break;
+
+      case 'artifact_component':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR ARTIFACT COMPONENT FILE:
+1. Import artifactComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' and preview from '@inkeep/agents-core' for schema definitions
+3. Create the artifact component using artifactComponent()
+4. Use preview() helper for fields that should be shown in previews
+5. Export following naming convention rules (camelCase version of ID)
+6. Include the 'id' property to preserve the original component ID
+7. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+8. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+`;
+        break;
+
+      case 'status_component':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR STATUS COMPONENT FILE:
+1. Import statusComponent from '@inkeep/agents-sdk'
+2. Import z from 'zod' for schema definitions
+3. Create the status component using statusComponent()
+4. Export following naming convention rules (camelCase version of ID)
+5. Use 'type' field as the identifier (like 'tool_summary')
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+7. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
+8. The statusComponent() function handles conversion to .config automatically
+`;
+        break;
+    }
+
+    return `
+--- FILE ${index + 1} OF ${fileSpecs.length}: ${spec.outputPath} ---
+FILE TYPE: ${spec.type}
+FILE ID: ${spec.id}
+
+DATA FOR THIS FILE:
+${JSON.stringify(spec.data, null, 2)}
+
+${fileSpecificInstructions}
+
+Generate ONLY the TypeScript code for this file without any markdown or explanations.
+--- END FILE ${index + 1} ---
+`;
+  });
+
+  // Combine into final prompt
+  const combinedPrompt = `You are generating multiple TypeScript files for an Inkeep project in a single batch.
+
+${typeDefinitions}
+
+${sharedInstructions}
+
+CRITICAL INSTRUCTIONS:
+1. Generate ${fileSpecs.length} separate TypeScript files
+2. Each file MUST be wrapped with its exact separator markers
+3. Use the format: --- FILE: <output-path> --- for the start marker
+4. Use the format: --- END FILE: <output-path> --- for the end marker
+5. Between markers, include ONLY the raw TypeScript code (no markdown, no explanations)
+6. DO NOT include triple backticks or "typescript" language identifiers
+7. The code between markers should be ready to write directly to a .ts file
+
+FILE SPECIFICATIONS:
+${filePrompts.join('\n\n')}
+
+OUTPUT FORMAT EXAMPLE:
+--- FILE: /path/to/file1.ts ---
+import { project } from '@inkeep/agents-sdk';
+
+export const myProject = project({
+  id: 'example'
+});
+--- END FILE: /path/to/file1.ts ---
+
+--- FILE: /path/to/file2.ts ---
+import { agent } from '@inkeep/agents-sdk';
+
+export const myAgent = agent({
+  id: 'example-agent'
+});
+--- END FILE: /path/to/file2.ts ---
+
+Now generate all ${fileSpecs.length} files following this exact format.`;
+
+  if (debug) {
+    console.log(`\n[DEBUG] === Starting BATCH generation for ${fileSpecs.length} files ===`);
+    console.log(`[DEBUG] Combined prompt size: ${combinedPrompt.length} characters`);
+    console.log(`[DEBUG] Model: ${modelSettings.model || 'default'}`);
+    console.log(`[DEBUG] Files to generate:`);
+    for (const spec of fileSpecs) {
+      console.log(`[DEBUG]   - ${spec.type}: ${spec.outputPath}`);
+    }
+  }
+
+  try {
+    const startTime = Date.now();
+
+    // Generate all files in a single LLM call
+    const { text } = await generateText({
+      model,
+      prompt: combinedPrompt,
+      temperature: 0.1,
+      maxOutputTokens: 32000, // Increased for batch generation
+      abortSignal: AbortSignal.timeout(600000), // 10 minute timeout for batch
+      ...reasoningConfig,
+      // Enable Langfuse telemetry if configured
+      ...(isLangfuseConfigured() && {
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: {
+            batchGeneration: true,
+            fileCount: fileSpecs.length,
+            fileTypes: fileSpecs.map(s => s.type).join(','),
+            promptSize: combinedPrompt.length,
+          },
+        },
+      }),
+    });
+
+    const duration = Date.now() - startTime;
+
+    if (debug) {
+      console.log(`[DEBUG] LLM response received in ${duration}ms`);
+      console.log(`[DEBUG] Response length: ${text.length} characters`);
+      console.log(`[DEBUG] Parsing individual files from response...`);
+    }
+
+    // Parse the response to extract individual files
+    const extractedFiles = parseMultiFileResponse(text, fileSpecs);
+
+    if (debug) {
+      console.log(`[DEBUG] Successfully extracted ${extractedFiles.length} files`);
+    }
+
+    // Write each file
+    for (const { path, content } of extractedFiles) {
+      const cleanedContent = cleanGeneratedCode(content);
+      writeFileSync(path, cleanedContent);
+      if (debug) {
+        console.log(`[DEBUG] Wrote file: ${path} (${cleanedContent.length} chars)`);
+      }
+    }
+
+    if (debug) {
+      console.log(`[DEBUG] === Completed BATCH generation ===\n`);
+    }
+  } catch (error: any) {
+    if (debug) {
+      console.error(`[DEBUG] === ERROR in batch generation ===`);
+      console.error(`[DEBUG] Error name: ${error.name}`);
+      console.error(`[DEBUG] Error message: ${error.message}`);
+      console.error(`[DEBUG] Full error:`, error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Parse multi-file response from LLM
+ * Extracts individual files based on separator markers
+ */
+function parseMultiFileResponse(
+  response: string,
+  fileSpecs: Array<{ outputPath: string }>
+): Array<{ path: string; content: string }> {
+  const results: Array<{ path: string; content: string }> = [];
+
+  for (const spec of fileSpecs) {
+    const startMarker = `--- FILE: ${spec.outputPath} ---`;
+    const endMarker = `--- END FILE: ${spec.outputPath} ---`;
+
+    const startIndex = response.indexOf(startMarker);
+    const endIndex = response.indexOf(endMarker);
+
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error(`Failed to find file markers for ${spec.outputPath}`);
+    }
+
+    const content = response
+      .substring(startIndex + startMarker.length, endIndex)
+      .trim();
+
+    results.push({
+      path: spec.outputPath,
+      content,
+    });
+  }
+
+  return results;
 }
 
 /**

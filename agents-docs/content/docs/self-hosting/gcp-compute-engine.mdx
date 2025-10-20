@@ -2,13 +2,14 @@
 title: Deploy to GCP Compute Engine
 sidebarTitle: GCP Compute Engine
 description: Deploy to GCP Compute Engine with Docker Compose
-icon: "brand/DockerIcon"
+icon: "LuCloudSun"
 ---
 
 ## Create a VM Instance
 
 - Go to [Compute Engine](https://console.cloud.google.com/compute/instances) in your GCP project.
 - Create an instance; a recommended size is at least `e2-standard-2` (2 vCPU, 1 core, 8 GB memory).
+- Use Debian GNU/Linux 12 (bookworm)
 - Increase the size of the boot disk to 30 GB.
 - Allow HTTP traffic.
 - Allow ingress traffic from source IPv4 ranges `0.0.0.0/0` to TCP ports: `3000, 3002, 3003, 3050, 3051, 3080`. These are the ports exposed by the Inkeep services.

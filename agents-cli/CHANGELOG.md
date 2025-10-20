@@ -1,5 +1,65 @@
 # @inkeep/agents-cli
 
+## 0.23.5
+
+### Patch Changes
+
+- 42d2dac: ui trace improvements
+- Updated dependencies [42d2dac]
+  - @inkeep/agents-manage-ui@0.23.5
+  - @inkeep/agents-core@0.23.5
+  - @inkeep/agents-sdk@0.23.5
+
+## 0.23.4
+
+### Patch Changes
+
+- dba9591: Migrate CLI to @clack/prompts for improved interactive experience
+- Updated dependencies [dba9591]
+  - @inkeep/agents-core@0.23.4
+  - @inkeep/agents-manage-ui@0.23.4
+  - @inkeep/agents-sdk@0.23.4
+
+## 0.23.3
+
+### Patch Changes
+
+- 2fad1cf: Fixed id collisions to just have variable names matter
+- Updated dependencies [2fad1cf]
+  - @inkeep/agents-manage-ui@0.23.3
+  - @inkeep/agents-core@0.23.3
+  - @inkeep/agents-sdk@0.23.3
+
+## 0.23.2
+
+### Patch Changes
+
+- a3bea34: batch generate llm pull
+- Updated dependencies [a3bea34]
+  - @inkeep/agents-core@0.23.2
+  - @inkeep/agents-manage-ui@0.23.2
+  - @inkeep/agents-sdk@0.23.2
+
+## 0.23.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.23.1
+- @inkeep/agents-core@0.23.1
+- @inkeep/agents-sdk@0.23.1
+
+## 0.23.0
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+- Updated dependencies [f878545]
+- Updated dependencies [e604038]
+- Updated dependencies [39e732b]
+  - @inkeep/agents-core@0.23.0
+  - @inkeep/agents-manage-ui@0.23.0
+  - @inkeep/agents-sdk@0.23.0
+
 ## 0.22.12
 
 ### Patch Changes
