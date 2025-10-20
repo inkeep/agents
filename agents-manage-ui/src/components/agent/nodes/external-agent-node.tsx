@@ -13,18 +13,7 @@ import { NodeTab } from './node-tab';
 
 export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeData }) {
   const { data, selected, id } = props;
-<<<<<<< HEAD
-  const { name, description, isExecuting } = data;
-  const { externalAgentLookup, subAgentExternalAgentConfigLookup, edges } = useAgentStore(
-    (state) => ({
-      externalAgentLookup: state.externalAgentLookup,
-      subAgentExternalAgentConfigLookup: state.subAgentExternalAgentConfigLookup,
-      edges: state.edges,
-    })
-  );
-=======
-  const { name, description, isExecuting } = data;
->>>>>>> 05de9ca6 (address feedback)
+  const { name, description } = data;
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
@@ -36,12 +25,8 @@ export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeDa
     <div className="relative">
       <NodeTab isSelected={selected}>External</NodeTab>
       <BaseNode
-        isSelected={selected || data.isDelegating}
-        className={cn(
-          'rounded-tl-none',
-          hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing'
-        )}
+        isSelected={selected}
+        className={cn('rounded-tl-none', hasErrors && 'ring-2 ring-red-300 border-red-300')}
         style={{ width: NODE_WIDTH }}
       >
         <BaseNodeHeader className="flex items-center justify-between gap-2">
