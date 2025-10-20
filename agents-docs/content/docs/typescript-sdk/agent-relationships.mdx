@@ -108,11 +108,13 @@ const mathAgent = agent({
   id: "math-delegation-agent",
   defaultSubAgent: mathSupervisor,
   subAgents: () => [mathSupervisor, numberProducerA, numberProducerB],
-  modelSettings: {
-    model: "anthropic/claude-3-5-haiku-20241022",
-    providerOptions: {
-      anthropic: { temperature: 0.1 },
-    },
+  models: {
+    base: {
+      model: "anthropic/claude-haiku-4-5",
+      providerOptions: {
+        temperature: 0.1,
+      }
+    }
   },
 });
 ```
