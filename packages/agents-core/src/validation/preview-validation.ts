@@ -17,15 +17,15 @@ const MAX_DATA_SIZE = 10000; // 10KB max for sample data
 const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   {
     pattern: /\beval\s*\(/i,
-    message: 'eval() is not allowed for security reasons',
+    message: 'eval() is not allowed',
   },
   {
     pattern: /\bFunction\s*\(/i,
-    message: 'Function constructor is not allowed for security reasons',
+    message: 'Function constructor is not allowed',
   },
   {
     pattern: /dangerouslySetInnerHTML/i,
-    message: 'dangerouslySetInnerHTML is not allowed for security reasons',
+    message: 'dangerouslySetInnerHTML is not allowed',
   },
   {
     pattern: /<script\b/i,
@@ -33,7 +33,7 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   },
   {
     pattern: /\bon\w+\s*=/i,
-    message: 'Inline event handlers (onClick=, onLoad=, etc.) are not allowed. Use JSX event props instead',
+    message: 'Inline event handlers (onClick=, onLoad=, etc.) are not allowed',
   },
   {
     pattern: /document\.write/i,
@@ -41,11 +41,11 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   },
   {
     pattern: /window\.location/i,
-    message: 'window.location manipulation is not allowed',
+    message: 'window.location is not allowed',
   },
   {
     pattern: /\.innerHTML\s*=/i,
-    message: 'innerHTML manipulation is not allowed for security reasons',
+    message: 'innerHTML manipulation is not allowed',
   },
 ];
 
@@ -99,7 +99,7 @@ export function validatePreview(preview: {
     if (pattern.test(preview.code)) {
       errors.push({
         field: 'preview.code',
-        message,
+        message: `Code contains potentially dangerous pattern: ${message}`,
       });
     }
   }
