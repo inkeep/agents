@@ -696,6 +696,171 @@ function Flow({
     toolLookup,
   ]);
 
+  useEffect(() => {
+    const onDataOperation: EventListenerOrEventListenerObject = (event) => {
+      // @ts-expect-error -- improve types
+      const data = event.detail;
+
+      switch (data.type) {
+        case 'agent_initializing': {
+          // TODO
+          break;
+        }
+        case 'delegation_sent':
+        case 'transfer': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: {
+                ...edge.data,
+                delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+              },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: {
+                ...node.data,
+                isDelegating: node.id === fromSubAgent || node.id === targetSubAgent,
+              },
+            }))
+          );
+          break;
+        }
+        case 'delegation_returned': {
+          const { targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: { ...edge.data, delegating: false },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === targetSubAgent, isDelegating: false },
+            }))
+          );
+          break;
+        }
+        case 'tool_call': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return {
+                  ...edge,
+                  data: { ...edge.data, delegating: hasDots },
+                };
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isExecuting: false,
+                  isDelegating:
+                    node.data.id === subAgentId ||
+                    toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'tool_result': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+
+                return {
+                  ...edge,
+                  data: {
+                    ...edge.data,
+                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                  },
+                };
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isDelegating: node.id === subAgentId,
+                  isExecuting: toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'completion': {
+          onCompletion();
+          break;
+        }
+        case 'agent_generate': {
+          const { subAgentId } = data.details;
+          setEdges((prevEdges) =>
+            prevEdges.map((node) => ({
+              ...node,
+              data: { ...node.data, delegating: false },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === subAgentId, isDelegating: false },
+            }))
+          );
+          break;
+        }
+      }
+    };
+
+    const onCompletion = () => {
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => ({
+          ...edge,
+          data: { ...edge.data, delegating: false },
+        }))
+      );
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isExecuting: false, isDelegating: false },
+        }))
+      );
+    };
+
+    document.addEventListener('ikp-data-operation', onDataOperation);
+    document.addEventListener('ikp-aborted', onCompletion);
+    return () => {
+      document.removeEventListener('ikp-data-operation', onDataOperation);
+      document.removeEventListener('ikp-aborted', onCompletion);
+    };
+  }, [setEdges, toolLookup, setNodes]);
+
   const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
     (_, node) => {
       fitView({
@@ -714,7 +879,9 @@ function Flow({
         <SelectedMarker />
         <ReactFlow
           defaultEdgeOptions={{
-            type: 'default',
+            // Built-in 'default' edges ignore the `data` prop.
+            // Use a custom edge type instead to access `data` in rendering.
+            type: 'custom',
           }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
