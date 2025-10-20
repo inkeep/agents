@@ -139,7 +139,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         top: 12,
         bottom: 12,
       },
-      experimentalGpuAcceleration: 'on',
       scrollbar: {
         vertical: 'hidden', // Hide vertical scrollbar
         horizontal: 'hidden', // Hide horizontal scrollbar

@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type * as Monaco from 'monaco-editor';
-import { MONACO_THEME_DATA, MONACO_THEME_NAME } from '@/constants/theme';
+import {
+  MONACO_THEME_DATA,
+  MONACO_THEME_NAME,
+  TEMPLATE_LANGUAGE,
+  VARIABLE_TOKEN,
+} from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
@@ -63,21 +68,16 @@ export const monacoStore = create<MonacoState>()(
           enableSchemaRequest: true,
         });
 
+        languages.register({ id: TEMPLATE_LANGUAGE });
+
         return [
           // Define tokens for template variables
-          languages.setMonarchTokensProvider('plaintext', {
+          languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
             tokenizer: {
-              root: [
-                // Template variables: {{variable}}
-                [/\{\{([^}]+)}}/, 'template-variable'],
-                // Regular text
-                [/[^{]+/, 'text'],
-                // Single { without closing }
-                [/\{/, 'text'],
-              ],
+              root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
             },
           }),
-          languages.registerCompletionItemProvider('plaintext', {
+          languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
             triggerCharacters: ['{'],
             provideCompletionItems(model, position) {
               const { variableSuggestions } = get();

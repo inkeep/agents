@@ -16,6 +16,9 @@ const baseColors: editor.IColors = {
   'editor.wordHighlightBackground': color.transparent,
 };
 
+export const TEMPLATE_LANGUAGE = 'template';
+export const VARIABLE_TOKEN = 'variable';
+
 export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneThemeData> = {
   light: {
     base: 'vs',
@@ -23,8 +26,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#b29762' },
       { token: 'string.value.json', foreground: '#1659df' },
-      { token: 'template-variable', foreground: '#e67e22', fontStyle: 'bold' },
-      { token: '', foreground: '#1b1917' },
+      { token: `${VARIABLE_TOKEN}.${TEMPLATE_LANGUAGE}`, foreground: '#e67e22', fontStyle: 'bold' },
     ],
     colors: {
       ...baseColors,
@@ -38,8 +40,7 @@ export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneTheme
     rules: [
       { token: 'string.key.json', foreground: '#9a86fd' },
       { token: 'string.value.json', foreground: '#ffb870' },
-      { token: 'template-variable', foreground: '#f39c12', fontStyle: 'bold' },
-      { token: '', foreground: '#fafafa' },
+      { token: `${VARIABLE_TOKEN}.${TEMPLATE_LANGUAGE}`, foreground: '#f39c12', fontStyle: 'bold' },
     ],
     colors: {
       ...baseColors,

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.plaintext`;
+  uri?: `${string}.template`;
 }
 
 // Reserved keys that are always valid
@@ -26,7 +26,7 @@ const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.plaintext` as `${string}.plaintext`, [id]);
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.template` as `${string}.template`, [id]);
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
