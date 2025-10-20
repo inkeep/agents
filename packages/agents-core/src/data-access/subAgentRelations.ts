@@ -1,12 +1,6 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import {
-  dataComponents,
-  subAgentRelations,
-  subAgents,
-  subAgentToolRelations,
-  tools,
-} from '../db/schema';
+import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../db/schema';
 import type {
   SubAgentRelationInsert,
   SubAgentRelationUpdate,

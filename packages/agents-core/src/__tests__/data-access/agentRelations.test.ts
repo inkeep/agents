@@ -17,7 +17,6 @@ import {
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
-import type { SubAgentRelationInsert } from '../../types/index';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;

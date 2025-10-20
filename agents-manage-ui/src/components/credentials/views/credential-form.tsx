@@ -12,10 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import {
-  type CredentialStoreStatus,
-  listCredentialStores,
-} from '@/lib/api/credentialStores';
+import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -111,7 +108,9 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
           const currentStoreId = form.getValues('credentialStoreId');
           if (!currentStoreId) {
             form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', { shouldValidate: true });
+            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
+              shouldValidate: true,
+            });
           }
         }
       } catch (err) {

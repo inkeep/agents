@@ -162,9 +162,7 @@ export function ExternalAgentItem({
             {externalAgent.credentialReferenceId && <Badge variant="code">Secured</Badge>}
           </div>
         </div>
-        <ItemCardFooter
-          footerText={`Created ${formatDate(typeof externalAgent.createdAt === 'string' ? externalAgent.createdAt : externalAgent.createdAt.toISOString())}`}
-        />
+        <ItemCardFooter footerText={`Created ${formatDate(externalAgent.createdAt)}`} />
       </ItemCardContent>
     </ItemCardRoot>
   );

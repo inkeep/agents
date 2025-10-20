@@ -907,7 +907,6 @@ export const getFullProject =
             description: externalAgent.description,
             baseUrl: externalAgent.baseUrl,
             credentialReferenceId: externalAgent.credentialReferenceId || undefined,
-            headers: externalAgent.headers || undefined,
           };
         }
         logger.info(
