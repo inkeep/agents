@@ -24,9 +24,9 @@ interface MonacoActions {
   setVariableSuggestions: (variableSuggestions: string[]) => void;
 }
 
-type MonacoState = MonacoStateData & {
+interface MonacoState extends MonacoStateData {
   actions: MonacoActions;
-};
+}
 
 const initialMonacoState: MonacoStateData = {
   monaco: null,

@@ -27,7 +27,7 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();
-  uri ??= useMemo(() => `${id.replaceAll('_', '')}.template` as `${string}.template`, [id]);
+  uri ??= useMemo(() => `${id.replaceAll('_', '')}.template` as const, [id]);
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);

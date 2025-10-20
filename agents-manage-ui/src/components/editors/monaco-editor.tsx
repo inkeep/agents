@@ -20,6 +20,7 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
   readOnly?: boolean;
   disabled?: boolean;
   onChange?: (value: string) => void;
+  /** @default '' */
   placeholder?: string;
   /**
    * Stretches the editor height to fit its content.
