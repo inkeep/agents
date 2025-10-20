@@ -104,7 +104,9 @@ export class ManagementApiClient extends BaseApiClient {
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to list agents: ${response.statusText}`);
+      throw new Error(
+        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`
+      );
     }
 
     const data = await response.json();
@@ -172,7 +174,8 @@ export class ManagementApiClient extends BaseApiClient {
         errorMessage += 'Common issues:\n';
         errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
         errorMessage += '  • API key does not have access to this tenant/project\n';
-        errorMessage += '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
+        errorMessage +=
+          '  • For local development, ensure INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET is set\n';
         if (errorText) {
           errorMessage += `\nServer response: ${errorText}`;
         }

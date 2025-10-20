@@ -93,12 +93,6 @@ inkeep list-graphs
 
 # Push your project
 inkeep push
-
-# Start an interactive chat
-inkeep chat my-graph-id
-
-# Or let the CLI show you available graphs
-inkeep chat
 ```
 
 ## Troubleshooting
@@ -169,9 +163,6 @@ After setup, try these commands:
 inkeep --help
 inkeep tenant
 inkeep list-graphs
-
-# Interactive chat
-inkeep chat  # Shows list of available graphs
 ```
 
 ## Getting Help

@@ -1,4 +1,5 @@
 import { AgentList } from '@/components/agents/agents-list';
+import FullPageError from '@/components/errors/full-page-error';
 import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
@@ -6,7 +7,6 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { agentDescription } from '@/constants/page-descriptions';
 import { fetchAgents } from '@/lib/api/agent-full-client';
-import type { Agent } from '@/lib/types/agent-full';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,22 +16,22 @@ interface AgentsPageProps {
 
 async function AgentsPage({ params }: AgentsPageProps) {
   const { tenantId, projectId } = await params;
-  let agent: { data: Agent[] } = { data: [] };
+
+  let agents: Awaited<ReturnType<typeof fetchAgents>>;
   try {
-    const response = await fetchAgents(tenantId, projectId);
-    agent = response;
-  } catch (_error) {
-    throw new Error('Failed to fetch agent');
+    agents = await fetchAgents(tenantId, projectId);
+  } catch (error) {
+    return <FullPageError error={error as Error} context="agents" />;
   }
   return (
     <BodyTemplate
       breadcrumbs={[{ label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` }]}
     >
       <MainContent className="min-h-full">
-        {agent.data.length > 0 ? (
+        {agents.data.length > 0 ? (
           <>
             <PageHeader title="Agent" description={agentDescription} />
-            <AgentList tenantId={tenantId} projectId={projectId} agent={agent.data} />
+            <AgentList tenantId={tenantId} projectId={projectId} agent={agents.data} />
           </>
         ) : (
           <EmptyState

@@ -27,6 +27,7 @@ export interface NangoCredentialData {
   provider: string;
   token?: string;
   metadata?: Record<string, any>;
+  expiresAt?: Date | undefined,
 }
 
 const SUPPORTED_AUTH_MODES = [
@@ -122,6 +123,7 @@ export class NangoCredentialStore implements CredentialStore {
         return {
           token: extractAccessTokenForBearerType(credentials.access_token),
           refresh_token: credentials.refresh_token,
+          expiresAt: credentials.expires_at,
         };
       case 'OAUTH2_CC':
         return {

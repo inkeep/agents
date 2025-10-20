@@ -310,7 +310,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               <ExternalLink
                 className="text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
                 iconClassName="text-amber-700 dark:text-amber-300 dark:group-hover/link:text-amber-200"
-                href={`${DOCS_BASE_URL}/quick-start/traces`}
+                href={`${DOCS_BASE_URL}/get-started/traces`}
               >
                 traces setup guide
               </ExternalLink>

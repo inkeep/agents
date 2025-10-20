@@ -21,6 +21,10 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 // Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
 export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
   props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
+  preview?: {
+    code: string;
+    data: Record<string, unknown>;
+  } | null;
 };
 
 /**

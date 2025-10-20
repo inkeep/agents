@@ -301,8 +301,7 @@ export const createAgents = async (
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
         `  • Edit files in src/projects/${projectId}/ for agent definitions\n` +
-        `  • Use 'inkeep push' to deploy agents to the platform\n` +
-        `  • Use 'inkeep chat' to test your agents locally\n`,
+        `  • Use 'inkeep push' to deploy agents to the platform\n`,
       'Ready to go!'
     );
   } catch (error) {

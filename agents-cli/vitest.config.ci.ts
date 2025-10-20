@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import { generateVitestCoverageConfig } from '../coverage.config';
 
+/**
+ * CI-specific configuration for agents-cli package
+ * Optimized for CI environments with sequential execution and better isolation
+ */
 export default defineConfig({
   test: {
     globals: true,
@@ -29,28 +34,7 @@ export default defineConfig({
     retry: 2,
     // Don't fail on first test failure
     bail: 0,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json', 'lcov', 'json-summary'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.d.ts',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-        'vitest.config.ts',
-        'vitest.config.ci.ts',
-        'coverage/',
-      ],
-      // Good coverage - maintaining high standards
-      thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
-      },
-    },
+    // Use sophisticated coverage system with CLI-specific thresholds
+    coverage: generateVitestCoverageConfig('cli'),
   },
 });

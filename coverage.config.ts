@@ -132,13 +132,17 @@ export function getMonorepoThresholds(): CoverageThresholds {
 
 /**
  * Generate Vitest coverage config for a package
+ * Special handling for 'monorepo' returns minimum thresholds across all packages
  */
 export function generateVitestCoverageConfig(packageName: string) {
-  const thresholds = getPackageThresholds(packageName);
+  // Special case: 'monorepo' uses minimum thresholds across all packages
+  const thresholds = packageName === 'monorepo'
+    ? getMonorepoThresholds()
+    : getPackageThresholds(packageName);
 
   return {
-    provider: 'v8',
-    reporter: ['text', 'json', 'lcov', 'json-summary'],
+    provider: 'v8' as const,
+    reporter: ['text', 'html', 'json', 'lcov', 'json-summary'] as const,
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -152,8 +156,16 @@ export function generateVitestCoverageConfig(packageName: string) {
       '**/next.config.js',
       '**/postcss.config.js',
       '**/tailwind.config.ts',
+      '**/*.d.ts',
+      '**/setup.ts',
+      '**/setup-files/**',
     ],
-    thresholds,
+    thresholds: {
+      lines: thresholds.lines,
+      statements: thresholds.statements,
+      functions: thresholds.functions,
+      branches: thresholds.branches,
+    },
   };
 }
 

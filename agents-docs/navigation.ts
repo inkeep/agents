@@ -6,7 +6,12 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces', 'get-started/credentials'],
+          pages: [
+            'get-started/quick-start',
+            'get-started/push-pull',
+            'get-started/traces',
+            'get-started/credentials',
+          ],
         },
         'concepts',
       ],
@@ -55,7 +60,11 @@ export default {
         {
           group: 'Observability',
           icon: 'LuChartColumn',
-          pages: ['typescript-sdk/signoz-usage', 'typescript-sdk/langfuse-usage'],
+          pages: [
+            'typescript-sdk/signoz-usage',
+            'typescript-sdk/langfuse-usage',
+            'typescript-sdk/cli-observability',
+          ],
         },
         'typescript-sdk/external-agents',
       ],
@@ -103,7 +112,6 @@ export default {
             'talk-to-your-agents/react/custom-trigger',
             'talk-to-your-agents/react/side-bar-chat',
             'talk-to-your-agents/react/embedded-chat',
-           
           ],
         },
         {
@@ -172,7 +180,18 @@ export default {
       icon: 'LuServer',
       pages: [
         'self-hosting/vercel',
-        'self-hosting/docker',
+        {
+          group: 'Docker',
+          icon: 'brand/DockerIcon',
+          pages: [
+            'self-hosting/docker-local',
+            'self-hosting/gcp-compute-engine',
+            'self-hosting/gcp-cloud-run',
+            'self-hosting/aws-ec2',
+            'self-hosting/hetzner',
+            'self-hosting/docker-build',
+          ],
+        },
         {
           group: 'Add Services',
           icon: 'LuPackage',

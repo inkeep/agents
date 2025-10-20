@@ -21,7 +21,7 @@ import { preview } from '@inkeep/agents-core';
 
 export const citation = artifactComponent({
   id: "citation",
-  name: "Citation",
+  name: "citation",
   description: "Structured factual information extracted from search results",
   props: z.object({
     title: preview(z.string().describe("Title of the source document")),
@@ -119,7 +119,7 @@ const searchAgent = agent({
 
 ## Citation Artifacts
 
-Citation artifacts with `title`, `url`, and `record_type` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
+Citation artifacts that are named `citation` and have `title` and `url` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
 
 <img
   src="/images/citation-widget-example.png"
@@ -143,8 +143,8 @@ const searchAgent = subAgent({
   prompt: "Search for information and cite sources using artifacts.",
   artifactComponents: [
     {
-      id: "document",
-      name: "Document",
+      id: "citation",
+      name: "citation",
       description: "Search result document",
       props: z.object({
         title: preview(z.string().describe("Document title")),

@@ -3,8 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
 import { ANTHROPIC_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import ora from 'ora';
-import prompts from 'prompts';
+import * as p from '@clack/prompts';
 import { ManagementApiClient } from '../api';
 import type { NestedInkeepConfig } from '../config';
 import { env } from '../env';
@@ -574,30 +573,35 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   // Perform background version check (non-blocking)
   performBackgroundVersionCheck();
 
-  // Validate ANTHROPIC_API_KEY is available for LLM operations
-  // Check for missing, empty, or whitespace-only values
-  const anthropicKey = env.ANTHROPIC_API_KEY?.trim();
-  if (!anthropicKey) {
+  // Detect available LLM provider based on API keys
+  let provider: 'anthropic' | 'openai' | 'google';
+  try {
+    const { detectAvailableProvider } = await import('./pull.llm-generate');
+    provider = detectAvailableProvider();
+    console.log(chalk.gray(`\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`));
+  } catch (error: any) {
     console.error(
-      chalk.red('\n❌ Error: ANTHROPIC_API_KEY is required for the pull command')
+      chalk.red('\n❌ Error: No LLM provider API key found')
     );
     console.error(
       chalk.yellow(
-        '\nThe pull command uses AI to generate TypeScript files from your project configuration.'
+        '\nThe pull command requires AI to generate TypeScript files from your project configuration.'
       )
     );
-    console.error(chalk.yellow('This requires a valid Anthropic API key.\n'));
-    console.error(chalk.cyan('How to fix:'));
-    console.error(chalk.gray('  1. Get an API key from: https://console.anthropic.com/'));
-    console.error(chalk.gray('  2. Set it in your environment:'));
-    console.error(chalk.gray('     export ANTHROPIC_API_KEY=your_api_key_here'));
-    console.error(chalk.gray('  3. Or add it to your .env file:'));
-    console.error(chalk.gray('     ANTHROPIC_API_KEY=your_api_key_here\n'));
-    console.error(chalk.yellow('💡 Note: Make sure the value is not empty or whitespace-only'));
+    console.error(chalk.yellow('You must provide an API key for one of these providers:\n'));
+    console.error(chalk.cyan('Options:'));
+    console.error(chalk.gray('  • Anthropic: https://console.anthropic.com/'));
+    console.error(chalk.gray('    Set: ANTHROPIC_API_KEY=your_api_key_here\n'));
+    console.error(chalk.gray('  • OpenAI: https://platform.openai.com/'));
+    console.error(chalk.gray('    Set: OPENAI_API_KEY=your_api_key_here\n'));
+    console.error(chalk.gray('  • Google: https://ai.google.dev/'));
+    console.error(chalk.gray('    Set: GOOGLE_API_KEY=your_api_key_here\n'));
+    console.error(chalk.yellow('💡 Note: Set the key in your environment or .env file'));
     process.exit(1);
   }
 
-  const spinner = ora('Loading configuration...').start();
+  const s = p.spinner();
+  s.start('Loading configuration...');
 
   try {
     let config: any = null;
@@ -616,14 +620,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           configFound = true;
           configLocation = configPath;
         } catch (error) {
-          spinner.fail('Failed to load specified configuration file');
+          s.stop('Failed to load specified configuration file');
           console.error(
             chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
           );
           process.exit(1);
         }
       } else {
-        spinner.fail(`Specified configuration file not found: ${configPath}`);
+        s.stop(`Specified configuration file not found: ${configPath}`);
         process.exit(1);
       }
     }
@@ -638,7 +642,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           configFound = true;
           configLocation = currentConfigPath;
         } catch (_error) {
-          spinner.warn('Failed to load configuration from current directory');
+          console.log(chalk.yellow('⚠️  Failed to load configuration from current directory'));
         }
       }
 
@@ -651,7 +655,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
             configFound = true;
             configLocation = parentConfigPath;
           } catch (_error) {
-            spinner.warn('Failed to load configuration from parent directory');
+            console.log(chalk.yellow('⚠️  Failed to load configuration from parent directory'));
           }
         }
       }
@@ -666,14 +670,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
             configFound = true;
             configLocation = foundConfigPath;
           } catch (_error) {
-            spinner.warn('Failed to load configuration from found path');
+            console.log(chalk.yellow('⚠️  Failed to load configuration from found path'));
           }
         }
       }
     }
 
     if (!configFound || !config) {
-      spinner.fail('No inkeep.config.ts found');
+      s.stop('No inkeep.config.ts found');
       console.error(chalk.red('Configuration file is required for pull command'));
       console.log(
         chalk.yellow('Please create an inkeep.config.ts file with your tenantId and API settings')
@@ -685,10 +689,10 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       process.exit(1);
     }
 
-    spinner.succeed(`Configuration loaded from ${configLocation}`);
+    s.stop(`Configuration loaded from ${configLocation}`);
 
     // Now determine base directory, considering outputDirectory from config
-    spinner.start('Determining output directory...');
+    s.start('Determining output directory...');
     let baseDir: string;
 
     if (options.project) {
@@ -710,7 +714,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       }
     }
 
-    spinner.succeed(`Output directory: ${baseDir}`);
+    s.stop(`Output directory: ${baseDir}`);
 
     // Build final config from loaded config file
     const finalConfig = {
@@ -721,7 +725,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     };
 
     // Detect if current directory is a project directory
-    spinner.text = 'Detecting project in current directory...';
+    s.start('Detecting project in current directory...');
     const currentProjectId = await detectCurrentProject(options.debug);
     let useCurrentDirectory = false;
 
@@ -729,7 +733,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     if (options.project) {
       // If --project arg is provided AND we're in a project directory, show error
       if (currentProjectId) {
-        spinner.fail('Conflicting project specification');
+        s.stop('Conflicting project specification');
         console.error(
           chalk.red('Error: Cannot specify --project argument when in a project directory')
         );
@@ -750,34 +754,33 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       finalConfig.projectId = currentProjectId;
       useCurrentDirectory = true;
       baseDir = process.cwd(); // Override baseDir to use current directory, not parent where config was found
-      spinner.succeed(`Detected project in current directory: ${currentProjectId}`);
+      s.stop(`Detected project in current directory: ${currentProjectId}`);
       console.log(chalk.gray(`  • Will pull to current directory (directory-aware mode)`));
     } else {
       // No --project arg and not in a project directory, prompt for project ID
-      spinner.stop();
-      const response = await prompts({
-        type: 'text',
-        name: 'projectId',
+      s.stop();
+      const projectId = await p.text({
         message: 'Enter the project ID to pull:',
-        validate: (value: string) => (value ? true : 'Project ID is required'),
+        validate: (value) => (value ? undefined : 'Project ID is required'),
       });
 
-      if (!response.projectId) {
-        console.error(chalk.red('Project ID is required'));
+      if (p.isCancel(projectId)) {
+        p.cancel('Operation cancelled');
         process.exit(1);
       }
-      finalConfig.projectId = response.projectId;
-      spinner.start('Configuration loaded');
+
+      finalConfig.projectId = projectId;
+      s.start('Configuration loaded');
     }
 
-    spinner.succeed('Configuration loaded');
+    s.stop('Configuration loaded');
     console.log(chalk.gray('Configuration:'));
     console.log(chalk.gray(`  • Tenant ID: ${finalConfig.tenantId}`));
     console.log(chalk.gray(`  • Project ID: ${finalConfig.projectId}`));
     console.log(chalk.gray(`  • API URL: ${finalConfig.agentsManageApiUrl}`));
 
     // Fetch project data using API client
-    spinner.start('Fetching project data from backend...');
+    s.start('Fetching project data from backend...');
     const apiClient = await ManagementApiClient.create(
       finalConfig.agentsManageApiUrl,
       options.config, // Pass the config path from options
@@ -787,7 +790,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     const projectData: FullProjectDefinition = await apiClient.getFullProject(
       finalConfig.projectId
     );
-    spinner.succeed('Project data fetched');
+    s.stop('Project data fetched');
 
     // Show project summary
     const agentCount = Object.keys(projectData.agents || {}).length;
@@ -861,34 +864,34 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
 
     // Create project directory structure
-    spinner.start('Creating project structure...');
+    s.start('Creating project structure...');
     const dirs = createProjectStructure(baseDir, finalConfig.projectId, useCurrentDirectory);
-    spinner.succeed('Project structure created');
+    s.stop('Project structure created');
 
     if (options.json) {
       // Save as JSON file
       const jsonFilePath = join(dirs.projectRoot, `${finalConfig.projectId}.json`);
       writeFileSync(jsonFilePath, JSON.stringify(projectData, null, 2));
 
-      spinner.succeed(`Project data saved to ${jsonFilePath}`);
+      s.stop(`Project data saved to ${jsonFilePath}`);
       console.log(chalk.green(`✅ JSON file created: ${jsonFilePath}`));
     }
 
     // NEW PLANNING-BASED APPROACH
 
     // Step 1: Analyze existing patterns (if project exists)
-    spinner.start('Analyzing existing code patterns...');
+    s.start('Analyzing existing code patterns...');
     const { analyzeExistingPatterns } = await import('../codegen/pattern-analyzer');
     const { DEFAULT_NAMING_CONVENTIONS } = await import('../codegen/variable-name-registry');
 
     let patterns = await analyzeExistingPatterns(dirs.projectRoot);
 
     if (patterns) {
-      spinner.succeed('Patterns detected from existing code');
+      s.stop('Patterns detected from existing code');
       const { displayPatternSummary } = await import('../codegen/display-utils');
       displayPatternSummary(patterns);
     } else {
-      spinner.succeed('Using recommended pattern for new project');
+      s.stop('Using recommended pattern for new project');
       const { displayRecommendedPattern } = await import('../codegen/display-utils');
       displayRecommendedPattern();
 
@@ -924,17 +927,26 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
 
     // Step 2: Generate plan using LLM
-    spinner.start('Generating file structure plan...');
+    s.start('Generating file structure plan...');
     const { generatePlan } = await import('../codegen/plan-builder');
-    const { createModel } = await import('./pull.llm-generate');
+    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import('./pull.llm-generate');
+
+    // Get model and reasoning config based on detected provider
+    const selectedModel = getDefaultModelForProvider(provider);
+    const reasoningConfig = getModelConfigWithReasoning(provider);
 
     const modelSettings: ModelSettings = {
-      model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
+      model: selectedModel,
     };
+
+    if (options.debug) {
+      console.log(chalk.gray(`\n📍 Debug: Model selected: ${selectedModel}`));
+      console.log(chalk.gray(`📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`));
+    }
 
     const targetEnvironment = options.env || 'development';
     const plan = await generatePlan(projectData, patterns, modelSettings, createModel, targetEnvironment);
-    spinner.succeed('Generation plan created');
+    s.stop('Generation plan created');
 
     // Step 3: Display plan and conflicts
     const { displayPlanSummary, displayConflictWarning } = await import('../codegen/display-utils');
@@ -942,14 +954,21 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     displayConflictWarning(plan.metadata.conflicts);
 
     // Step 4: Generate files from plan using unified generator
-    spinner.start('Generating project files with LLM...');
+    s.start('Generating project files with LLM...');
     const { generateFilesFromPlan } = await import('../codegen/unified-generator');
 
     const generationStart = Date.now();
-    await generateFilesFromPlan(plan, projectData, dirs, modelSettings, options.debug || false);
+    await generateFilesFromPlan(
+      plan,
+      projectData,
+      dirs,
+      modelSettings,
+      options.debug || false,
+      reasoningConfig // Pass reasoning config for enhanced code generation
+    );
     const generationDuration = Date.now() - generationStart;
 
-    spinner.succeed('Project files generated');
+    s.stop('Project files generated');
 
     const { displayGenerationComplete } = await import('../codegen/display-utils');
     displayGenerationComplete(plan, generationDuration);
@@ -985,10 +1004,10 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       fileCount.statusComponents +
       5; // +1 for index.ts, +4 for environment files (index.ts, development.env.ts, staging.env.ts, production.env.ts)
 
-    spinner.succeed(`Project files generated (${totalFiles} files created)`);
+    s.stop(`Project files generated (${totalFiles} files created)`);
 
     // Verification step: ensure generated TS files can reconstruct the original JSON
-    spinner.start('Verifying generated files...');
+    s.start('Verifying generated files...');
     try {
       const verificationResult = await verifyGeneratedFiles(
         dirs.projectRoot,
@@ -996,7 +1015,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
         options.debug || false
       );
       if (verificationResult.success) {
-        spinner.succeed('Generated files verified successfully');
+        s.stop('Generated files verified successfully');
         if (options.debug && verificationResult.warnings.length > 0) {
           console.log(chalk.yellow('\n⚠️  Verification warnings:'));
           verificationResult.warnings.forEach((warning) => {
@@ -1004,7 +1023,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           });
         }
       } else {
-        spinner.fail('Generated files verification failed');
+        s.stop('Generated files verification failed');
         console.error(chalk.red('\n❌ Verification errors:'));
         verificationResult.errors.forEach((error) => {
           console.error(chalk.red(`  • ${error}`));
@@ -1025,7 +1044,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
         // Don't exit - still show success but warn user
       }
     } catch (error: any) {
-      spinner.fail('Verification failed');
+      s.stop('Verification failed');
       console.error(chalk.red('Verification error:'), error.message);
       console.log(chalk.gray('Proceeding without verification...'));
     }
@@ -1059,7 +1078,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       chalk.gray('  • Commit changes: git add . && git commit -m "Add project from pull"')
     );
   } catch (error: any) {
-    spinner.fail('Failed to pull project');
+    s.stop('Failed to pull project');
     console.error(chalk.red('Error:'), error.message);
     process.exit(1);
   }

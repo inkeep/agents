@@ -5,14 +5,14 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
-import { ApiError } from '../types/errors';
 import type {
+  Agent,
   CreateAgentResponse,
   FullAgentDefinition,
   GetAgentResponse,
-  Agent,
   UpdateAgentResponse,
 } from '../types/agent-full';
+import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';

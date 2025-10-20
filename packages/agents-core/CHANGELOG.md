@@ -1,5 +1,57 @@
 # @inkeep/agents-core
 
+## 0.23.5
+
+### Patch Changes
+
+- 42d2dac: ui trace improvements
+
+## 0.23.4
+
+### Patch Changes
+
+- dba9591: Migrate CLI to @clack/prompts for improved interactive experience
+
+## 0.23.3
+
+### Patch Changes
+
+- 2fad1cf: Fixed id collisions to just have variable names matter
+
+## 0.23.2
+
+### Patch Changes
+
+- a3bea34: batch generate llm pull
+
+## 0.23.1
+
+## 0.23.0
+
+### Minor Changes
+
+- f878545: OAuth MCP Connections now use nango mcp-generic
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+
+## 0.22.12
+
+### Patch Changes
+
+- 79b1e87: fixed deadlinks
+
+## 0.22.11
+
+### Patch Changes
+
+- 1088fb1: Remove inkeep chat command
+
+## 0.22.9
+
+## 0.22.8
+
 ## 0.22.7
 
 ### Patch Changes

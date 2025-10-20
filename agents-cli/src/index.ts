@@ -1,4 +1,5 @@
-import './env'; // Load environment files first
+import './env'; // Load environment files first (needed by instrumentation)
+import './instrumentation'; // Initialize Langfuse tracing second
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -106,22 +107,6 @@ program
   .option('--debug', 'Enable debug logging for LLM generation')
   .action(async (options) => {
     await pullProjectCommand(options);
-  });
-
-program
-  .command('chat [agent-id]')
-  .description(
-    'Start an interactive chat session with an agent (interactive selection if no ID provided)'
-  )
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--agents-manage-api-url <url>', 'Agents manage API URL')
-  .option('--agents-run-api-url <url>', 'Agents run API URL')
-  .option('--config <path>', 'Path to configuration file')
-  .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (agentId, options) => {
-    const { chatCommandEnhanced } = await import('./commands/chat-enhanced.js');
-    const config = options.config || options.configFilePath;
-    await chatCommandEnhanced(agentId, { ...options, config });
   });
 
 program

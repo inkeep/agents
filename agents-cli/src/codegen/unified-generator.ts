@@ -10,6 +10,8 @@ import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
   cleanGeneratedCode,
   createModel,
+  generateAllFilesInBatch,
+  generateEnvironmentFileTemplate,
   generateTextWithPlaceholders,
   getTypeDefinitions,
   IMPORT_INSTRUCTIONS,
@@ -36,40 +38,118 @@ export interface DirectoryStructure {
 }
 
 /**
- * Generate all files from plan with controlled concurrency
+ * Generate all files from plan using batch generation for token efficiency
  */
 export async function generateFilesFromPlan(
   plan: GenerationPlan,
   projectData: FullProjectDefinition,
   dirs: DirectoryStructure,
   modelSettings: ModelSettings,
-  debug: boolean = false
+  debug: boolean = false,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const startTime = Date.now();
 
   if (debug) {
-    console.log(`[DEBUG] Starting parallel generation of ${plan.files.length} files...`);
+    console.log(`[DEBUG] Starting batch generation of ${plan.files.length} files...`);
   }
 
-  // Create generation tasks for each file
-  const tasks = plan.files.map((fileInfo, index) =>
-    generateFile(fileInfo, projectData, plan, dirs, modelSettings, debug).then(() => {
-      if (debug) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(
-          `[DEBUG] ✓ Completed ${index + 1}/${plan.files.length}: ${fileInfo.path} (${elapsed}s elapsed)`
-        );
-      }
-    })
-  );
+  // Separate environment files from regular files
+  // Environment files need special handling and are generated separately
+  const environmentFiles = plan.files.filter(f => f.type === 'environment');
+  const regularFiles = plan.files.filter(f => f.type !== 'environment');
 
-  // Execute all in parallel
-  await Promise.all(tasks);
+  if (debug && regularFiles.length > 0) {
+    console.log(`[DEBUG] Batching ${regularFiles.length} regular files into single LLM request...`);
+  }
+
+  // Build file specs for batch generation
+  const fileSpecs = regularFiles.map(fileInfo => {
+    const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
+    const fileData = extractDataForFile(fileInfo, projectData);
+
+    // Determine file type for batch generation
+    let batchType: 'index' | 'agent' | 'tool' | 'data_component' | 'artifact_component' | 'status_component';
+    switch (fileInfo.type) {
+      case 'index':
+        batchType = 'index';
+        break;
+      case 'agent':
+        batchType = 'agent';
+        break;
+      case 'tool':
+        batchType = 'tool';
+        break;
+      case 'dataComponent':
+        batchType = 'data_component';
+        break;
+      case 'artifactComponent':
+        batchType = 'artifact_component';
+        break;
+      case 'statusComponent':
+        batchType = 'status_component';
+        break;
+      default:
+        throw new Error(`Unknown file type for batch generation: ${fileInfo.type}`);
+    }
+
+    // Get entity ID for this file
+    const entityId = fileInfo.entities[0]?.id || fileInfo.path;
+
+    return {
+      type: batchType,
+      id: entityId,
+      data: fileData,
+      outputPath,
+      toolFilenames: undefined, // TODO: Extract from plan if needed
+      componentFilenames: undefined, // TODO: Extract from plan if needed
+    };
+  });
+
+  // Generate all regular files in a single batch
+  if (fileSpecs.length > 0) {
+    await generateAllFilesInBatch(fileSpecs, modelSettings, debug, reasoningConfig);
+  }
+
+  // Generate environment files using templates (no LLM needed)
+  if (debug && environmentFiles.length > 0) {
+    console.log(`[DEBUG] Generating ${environmentFiles.length} environment files using templates (no LLM)...`);
+  }
+
+  for (const envFile of environmentFiles) {
+    const envStartTime = Date.now();
+    const outputPath = `${dirs.projectRoot}/${envFile.path}`;
+    const fileData = extractDataForFile(envFile, projectData);
+
+    // Determine environment name from file path
+    const fileName = envFile.path.split('/').pop() || '';
+
+    if (fileName === 'index.ts') {
+      // index.ts will be generated automatically when individual env files are created
+      // Skip it here to avoid duplication
+      continue;
+    }
+
+    // Extract environment name (e.g., 'development' from 'development.env.ts')
+    const envName = fileName.replace('.env.ts', '');
+
+    if (debug) {
+      console.log(`[DEBUG] ▶ Generating ${envFile.path} using template...`);
+    }
+
+    // Use template-based generation (no LLM call)
+    generateEnvironmentFileTemplate(dirs.environmentsDir, envName, fileData);
+
+    const envDuration = ((Date.now() - envStartTime) / 1000).toFixed(1);
+    if (debug) {
+      console.log(`[DEBUG] ✓ Completed ${envFile.path} (template, ${envDuration}s)`);
+    }
+  }
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
   if (debug) {
     console.log(
-      `[DEBUG] All files generated in ${totalTime}s (${plan.files.length} files in parallel)`
+      `[DEBUG] All files generated in ${totalTime}s (${regularFiles.length} in batch, ${environmentFiles.length} via templates)`
     );
   }
 }
@@ -83,7 +163,8 @@ async function generateFile(
   plan: GenerationPlan,
   dirs: DirectoryStructure,
   modelSettings: ModelSettings,
-  debug: boolean
+  debug: boolean,
+  reasoningConfig?: Record<string, any>
 ): Promise<void> {
   const fileStartTime = Date.now();
   const model = createModel(modelSettings);
@@ -92,7 +173,8 @@ async function generateFile(
   const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
 
   // Extract relevant data for this file
-  const fileData = extractDataForFile(fileInfo, projectData);
+  let fileData = extractDataForFile(fileInfo, projectData);
+  
 
   // Find example code if available
   const exampleCode = findExampleCode(fileInfo, plan.patterns);
@@ -124,10 +206,11 @@ async function generateFile(
       {
         temperature: 0.1,
         maxOutputTokens: fileInfo.type === 'agent' ? 16000 : 4000,
-        abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 240000 : 60000),
+        abortSignal: AbortSignal.timeout(fileInfo.type === 'agent' ? 300000 : 90000), // Increased for reasoning (5 min for agents, 90s for others)
       },
       debug,
-      { fileType: fileInfo.type }
+      { fileType: fileInfo.type },
+      reasoningConfig // Pass reasoning config
     );
     const llmDuration = ((Date.now() - llmStartTime) / 1000).toFixed(1);
 
@@ -150,6 +233,7 @@ async function generateFile(
  * Extract data relevant to this file from full project data
  */
 function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefinition): any {
+  
   switch (fileInfo.type) {
     case 'index':
       // Index needs full project data
@@ -159,7 +243,9 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       // Extract agent data by ID
       const agentId = fileInfo.entities.find((e) => e.entityType === 'agent')?.id;
       if (agentId && projectData.agents) {
-        return projectData.agents[agentId];
+        const agentData = projectData.agents[agentId];
+        // Transform agent data to avoid ID collisions for LLM
+        return ensureUniqueSubAgentKeys(agentData);
       }
       return {};
     }
@@ -380,6 +466,35 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
 }
 
 /**
+ * Ensure subAgent keys are unique to avoid LLM confusion
+ * 
+ * When agent and subAgent have the same ID, the LLM sees duplicate keys and generates empty fields.
+ * This adds a simple suffix to make subAgent keys unique while preserving original IDs.
+ */
+function ensureUniqueSubAgentKeys(agentData: any): any {
+  if (!agentData?.subAgents) {
+    return agentData;
+  }
+
+  const transformedData = { ...agentData };
+  const transformedSubAgents: Record<string, any> = {};
+
+  for (const [subAgentKey, subAgentData] of Object.entries(agentData.subAgents)) {
+    let uniqueKey = subAgentKey;
+    
+    // If subAgent key matches agent ID, make it unique
+    if (subAgentKey === agentData.id) {
+      uniqueKey = `${subAgentKey}_sub`;
+    }
+    
+    transformedSubAgents[uniqueKey] = subAgentData;
+  }
+
+  transformedData.subAgents = transformedSubAgents;
+  return transformedData;
+}
+
+/**
  * Find example code from detected patterns
  */
 function findExampleCode(fileInfo: FileInfo, patterns: DetectedPatterns): string | undefined {
@@ -422,6 +537,12 @@ CRITICAL RULES:
 5. Follow detected patterns for code style
 6. Match existing formatting and conventions
 7. NEVER generate your own variable names - only use what's provided
+
+PLACEHOLDER HANDLING (CRITICAL):
+8. When you see placeholder values like "<{{path.to.field.abc123}}>" in the JSON data, copy them EXACTLY as-is into the generated TypeScript code
+9. DO NOT replace placeholders with empty strings or other values - use the exact placeholder text
+10. Placeholders will be automatically replaced with real values after code generation
+11. ESPECIALLY when IDs are duplicated in the data, always use the placeholder values from the JSON - never generate empty template literals
 `;
 
   switch (fileInfo.type) {

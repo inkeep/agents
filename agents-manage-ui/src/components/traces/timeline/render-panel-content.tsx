@@ -1,4 +1,6 @@
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
@@ -13,6 +15,7 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const JsonEditorWithCopy = dynamic(
   () =>
@@ -28,6 +31,33 @@ function formatJsonSafely(content: string): string {
   } catch {
     return content;
   }
+}
+
+function AssistantMessageContent({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <LabeledBlock label="AI response content">
+      <div className="relative">
+        <Bubble className={`break-words ${isExpanded ? '' : 'max-h-48 overflow-hidden'}`}>
+          <Streamdown>
+            {content}
+          </Streamdown>
+        </Bubble>
+        {!isExpanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none" />
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="mt-2 w-full text-xs"
+      >
+        {isExpanded ? 'Show less' : 'Show more'}
+      </Button>
+    </LabeledBlock>
+  );
 }
 
 export function renderPanelContent({
@@ -131,6 +161,16 @@ export function renderPanelContent({
       return (
         <>
           <Section>
+            <Info
+              label="Sub agent"
+              value={
+                a.subAgentId ? (
+                  <Badge variant="code">{a.subAgentId}</Badge>
+                ) : (
+                  'Unknown'
+                )
+              }
+            />
             {a.hasError && a.otelStatusDescription && (
               <LabeledBlock label="Error">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
@@ -171,12 +211,9 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <LabeledBlock label="AI response content">
-              <Bubble className=" whitespace-pre-wrap break-words">
-                {a.aiResponseContent || 'Response content not available'}
-              </Bubble>
-            </LabeledBlock>
             <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
+            <AssistantMessageContent content={a.aiResponseContent || 'Response content not available'} />
+            
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -404,10 +441,13 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiStreamTextModel || 'Unknown'} />} />
-            <Info
-              label="Operation id"
-              value={<Badge variant="code">{a.aiStreamTextOperationId || 'Unknown'}</Badge>}
-            />
+
+            {a.aiTelemetryFunctionId && (
+              <Info
+                label="Sub agent"
+                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+              />
+            )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
@@ -424,6 +464,12 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
+            {a.aiTelemetryFunctionId && (
+              <Info
+                label="Sub agent"
+                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+              />
+            )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             {a.aiStreamObjectContent && (

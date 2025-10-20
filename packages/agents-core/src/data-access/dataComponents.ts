@@ -10,6 +10,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../types/index';
+import { validatePreview } from '../validation/preview-validation';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 /**
@@ -118,6 +119,16 @@ export const createDataComponent =
       }
     }
 
+    if (params.preview !== undefined && params.preview !== null) {
+      const previewValidation = validatePreview(params.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
+      }
+    }
+
     const dataComponent = await db.insert(dataComponents).values(params).returning();
 
     return dataComponent[0];
@@ -140,6 +151,16 @@ export const updateDataComponent =
           .map((e) => `${e.field}: ${e.message}`)
           .join(', ');
         throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.data.preview !== undefined && params.data.preview !== null) {
+      const previewValidation = validatePreview(params.data.preview);
+      if (!previewValidation.isValid) {
+        const errorMessages = previewValidation.errors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(', ');
+        throw new Error(`Invalid preview: ${errorMessages}`);
       }
     }
 
@@ -201,6 +222,7 @@ export const getDataComponentsForAgent =
         props: dataComponents.props,
         createdAt: dataComponents.createdAt,
         updatedAt: dataComponents.updatedAt,
+        preview: dataComponents.preview,
       })
       .from(dataComponents)
       .innerJoin(

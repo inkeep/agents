@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-core',
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
@@ -18,27 +19,6 @@ export default defineConfig({
     env: {
       ENVIRONMENT: 'test',
       DB_FILE_NAME: ':memory:',
-    },
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json', 'lcov', 'json-summary'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.test.ts',
-        'src/__tests__/setup.ts',
-        'vitest.config.ts',
-        'coverage/',
-      ],
-      // Target thresholds - already meeting goals
-      thresholds: {
-        global: {
-          branches: 75,
-          functions: 75,
-          lines: 75,
-          statements: 75,
-        },
-      },
     },
   },
 });

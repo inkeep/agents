@@ -3,8 +3,10 @@ import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef } from 'react';
+import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import type { DataComponent } from '@/lib/api/data-components';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
@@ -17,6 +19,7 @@ interface ChatWidgetProps {
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
+  dataComponentLookup?: Record<string, DataComponent>;
 }
 
 const styleOverrides = `
@@ -130,6 +133,7 @@ export function ChatWidget({
   stopPolling,
   customHeaders = {},
   chatActivities,
+  dataComponentLookup = {},
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
@@ -257,9 +261,31 @@ export function ChatWidget({
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
-            // components: {
-            //   IkpMessage,
-            // },
+
+            components: new Proxy(
+              {},
+              {
+                get: (_, componentName) => {
+                  const matchingComponent = Object.values(dataComponentLookup).find(
+                    (component) => component.name === componentName && !!component.preview?.code
+                  );
+
+                  if (!matchingComponent) {
+                    return undefined;
+                  }
+
+                  const Component = function Component(props: any) {
+                    return (
+                      <DynamicComponentRenderer
+                        code={matchingComponent.preview?.code || ''}
+                        props={props || {}}
+                      />
+                    );
+                  };
+                  return Component;
+                },
+              }
+            ),
             introMessage: 'Hi! How can I help?',
           }}
         />
