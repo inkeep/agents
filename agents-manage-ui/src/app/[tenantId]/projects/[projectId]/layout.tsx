@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchProject } from '@/lib/api/projects';
+import { ProjectProvider } from '@/contexts/project-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +15,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
 
   try {
     // Verify project exists
-    await fetchProject(tenantId, projectId);
-  } catch (_error) {
-    return <FullPageError error={_error as Error} context="project" />;
+    const project = await fetchProject(tenantId, projectId);
+    return <ProjectProvider value={project.data}>{children}</ProjectProvider>;
+  } catch (error) {
+    return <FullPageError error={error as Error} context="project" />;
   }
-
-  return <>{children}</>;
 }

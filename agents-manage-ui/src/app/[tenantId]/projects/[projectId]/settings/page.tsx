@@ -31,13 +31,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     );
   }
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Project settings',
-        },
-      ]}
-    >
+    <BodyTemplate breadcrumbs={[{ label: 'Settings' }]}>
       <MainContent>
         <div className="max-w-2xl mx-auto py-4">
           <ProjectForm

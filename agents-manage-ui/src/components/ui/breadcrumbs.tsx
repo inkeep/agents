@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useProject } from '@/contexts/project-context';
 
 export type BreadcrumbItem = {
   label: string;
@@ -15,7 +16,9 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
+  const project = useProject();
+  const { tenantId } = useParams<{ tenantId: string }>();
+
   const allItems = useMemo(() => {
     const result: BreadcrumbItem[] = [
       {
@@ -23,17 +26,17 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         href: `/${tenantId}/projects`,
       },
     ];
-    if (projectId) {
+    if (project) {
       result.push({
-        label: projectId,
-        href: `/${tenantId}/projects/${projectId}`,
+        label: project.name,
+        href: `/${tenantId}/projects/${project.id}`,
       });
     }
     if (items) {
       result.push(...items);
     }
     return result;
-  }, [items, tenantId, projectId]);
+  }, [items, tenantId, project]);
 
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
