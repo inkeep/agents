@@ -1,6 +1,6 @@
 'use client';
 
-import { type MouseEventHandler, useCallback, useEffect } from 'react';
+import { type MouseEventHandler, useCallback } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
