@@ -23,7 +23,7 @@ export function NodeItem({ node }: NodeItemProps) {
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={`Drag ${name} node`}
-      className="border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 flex font-medium items-center text-sm rounded-md p-2 justify-between gap-2 text-left h-auto w-full group group-hover:bg-muted/50 transition-all ease-in-out duration-200 cursor-grab active:cursor-grabbing"
+      className="backdrop-blur-3xl border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 flex font-medium items-center text-sm rounded-md p-2 justify-between gap-2 text-left h-auto w-full group group-hover:bg-muted/50 transition-all ease-in-out duration-200 cursor-grab active:cursor-grabbing"
       draggable={!disabled}
       onDragStart={(e) => onDragStart(e, node)}
     >
