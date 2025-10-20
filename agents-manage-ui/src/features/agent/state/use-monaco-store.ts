@@ -17,7 +17,7 @@ interface MonacoStateData {
 
 interface MonacoActions {
   setMonacoTheme: (isDark: boolean) => void;
-  setMonaco: () => Promise<Monaco.IDisposable[]>;
+  setMonaco: (isDark: boolean) => Promise<Monaco.IDisposable[]>;
   setVariableSuggestions: (variableSuggestions: string[]) => void;
 }
 
@@ -46,14 +46,15 @@ export const monacoStore = create<MonacoState>()(
         const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
         monaco?.editor.setTheme(monacoTheme);
       },
-      async setMonaco() {
+      async setMonaco(isDark) {
+        const { actions } = get();
         const monaco = await import('monaco-editor');
         set({ monaco });
         const { editor, languages, Range } = monaco;
 
         editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
         editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
-
+        actions.setMonacoTheme(isDark);
         languages.json.jsonDefaults.setDiagnosticsOptions({
           // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
           // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator

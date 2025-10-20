@@ -777,17 +777,11 @@ function Flow({
   );
 }
 
-export function Agent({
-  agent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  toolLookup,
-  credentialLookup,
-}: AgentProps) {
+export function Agent(props: AgentProps) {
   const { resolvedTheme } = useTheme();
   const { setMonaco, setVariableSuggestions, setMonacoTheme } = useMonacoActions();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
-
+  const isDark = resolvedTheme === 'dark';
   // Generate suggestions from context config
   useEffect(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
@@ -801,10 +795,11 @@ export function Agent({
     );
   }, [contextConfig, setVariableSuggestions]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `isDark`
   useEffect(() => {
     let disposables: IDisposable[] = [];
     // Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
-    setMonaco().then(($disposables) => {
+    setMonaco(isDark).then(($disposables) => {
       disposables = $disposables;
     });
 
@@ -816,18 +811,12 @@ export function Agent({
   }, [setMonaco]);
 
   useEffect(() => {
-    setMonacoTheme(resolvedTheme === 'dark');
-  }, [resolvedTheme, setMonacoTheme]);
+    setMonacoTheme(isDark);
+  }, [isDark, setMonacoTheme]);
 
   return (
     <ReactFlowProvider>
-      <Flow
-        agent={agent}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-      />
+      <Flow {...props} />
     </ReactFlowProvider>
   );
 }
