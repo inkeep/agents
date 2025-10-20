@@ -1,12 +1,9 @@
 import type { NextRequest } from 'next/server';
 
-interface RouteContext {
-  params: Promise<{
-    dataComponentId: string;
-  }>;
-}
-
-export async function POST(request: NextRequest, context: RouteContext) {
+export async function POST(
+  request: NextRequest,
+  context: RouteContext<'/api/data-components/[dataComponentId]/generate-preview'>
+) {
   try {
     const { dataComponentId } = await context.params;
     const body = await request.json();

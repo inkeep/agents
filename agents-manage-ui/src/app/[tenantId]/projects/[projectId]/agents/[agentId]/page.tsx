@@ -9,11 +9,9 @@ import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
-interface AgentPageProps {
-  params: Promise<{ agentId: string; tenantId: string; projectId: string }>;
-}
-
-async function AgentPage({ params }: AgentPageProps) {
+async function AgentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>) {
   const { agentId, tenantId, projectId } = await params;
 
   const [agent, dataComponents, artifactComponents, credentials, tools] = await Promise.all([

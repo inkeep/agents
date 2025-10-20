@@ -13,9 +13,7 @@ const mcpServerDescription = 'Create MCP servers that agents can use to access e
 
 async function MCPServersPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers'>) {
   const { tenantId, projectId } = await params;
 
   let tools: Awaited<ReturnType<typeof fetchMCPTools>>;

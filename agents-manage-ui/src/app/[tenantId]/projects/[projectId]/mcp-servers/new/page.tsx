@@ -3,9 +3,7 @@ import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 
 async function NewMCPServerPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/new'>) {
   const { tenantId, projectId } = await params;
   let credentials: Credential[] = [];
   try {

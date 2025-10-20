@@ -8,9 +8,7 @@ import { createLookup } from '@/lib/utils';
 
 async function NewAgentPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/new'>) {
   const { tenantId, projectId } = await params;
   const [dataComponents, artifactComponents, tools, credentials] = await Promise.all([
     fetchDataComponentsAction(tenantId, projectId),
