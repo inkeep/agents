@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentProps, type FC, useId, useMemo } from 'react';
+import { type ComponentProps, type FC, useId } from 'react';
 import { MonacoEditor } from './monaco-editor';
 
 interface JsonEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
