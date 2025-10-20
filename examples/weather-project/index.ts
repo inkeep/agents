@@ -1,10 +1,22 @@
 import { project } from '@inkeep/agents-sdk';
+import { weatherAdvanced } from './agents/weather-advanced';
+import { weatherBasic } from './agents/weather-basic';
+import { weatherIntermediate } from './agents/weather-intermediate';
 
-export const myWeatherProject = project({
-  id: 'my-weather-project',
-  name: 'Weather Project',
-  description: 'Project containing sample agent framework using ',
+export const weatherProject = project({
+  id: `weather-project`,
+  name: `Weather Project`,
+  description: `Weather project template`,
   models: {
-    base: { model: 'openai/gpt-4o-mini' }
-  }
+    base: {
+      model: `anthropic/claude-sonnet-4-5-20250929`
+    },
+    structuredOutput: {
+      model: `anthropic/claude-sonnet-4-5-20250929`
+    },
+    summarizer: {
+      model: `anthropic/claude-sonnet-4-5-20250929`
+    }
+  },
+  agents: () => [weatherBasic, weatherAdvanced, weatherIntermediate]
 });

@@ -26,6 +26,7 @@ export interface PullOptions {
   env?: string;
   json?: boolean;
   debug?: boolean;
+  validate?: boolean; // Enable iterative validation with LLM function calling
 }
 
 interface VerificationResult {
@@ -955,17 +956,64 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     // Step 4: Generate files from plan using unified generator
     s.start('Generating project files with LLM...');
-    const { generateFilesFromPlan } = await import('../codegen/unified-generator');
+
+    // Use iterative validation if requested (PRD-5111)
+    const useIterativeValidation = options.validate || process.env.INKEEP_ITERATIVE_VALIDATION === 'true';
 
     const generationStart = Date.now();
-    await generateFilesFromPlan(
-      plan,
-      projectData,
-      dirs,
-      modelSettings,
-      options.debug || false,
-      reasoningConfig // Pass reasoning config for enhanced code generation
-    );
+
+    if (useIterativeValidation) {
+      if (options.debug) {
+        console.log(chalk.gray('\n📍 Using iterative validation with LLM function calling'));
+      }
+
+      // Import the new batch generator with validation
+      const { generateAllFilesWithValidation } = await import('./pull.batch-generator-with-tools');
+      const { buildFileSpecsFromPlan } = await import('../codegen/plan-to-specs');
+
+      // Build file specs from the plan
+      const fileSpecs = await buildFileSpecsFromPlan(plan, projectData, dirs);
+
+      // Generate with validation
+      const result = await generateAllFilesWithValidation({
+        fileSpecs,
+        modelSettings,
+        originalProjectDefinition: projectData,
+        projectId: finalConfig.projectId,
+        projectRoot: dirs.projectRoot,
+        tenantId: finalConfig.tenantId,
+        apiUrl: finalConfig.agentsManageApiUrl,
+        maxAttempts: 3,
+        debug: options.debug || false,
+        reasoningConfig,
+      });
+
+      if (options.debug) {
+        console.log(chalk.gray(`\n📍 Validation result:`));
+        console.log(chalk.gray(`   • Attempts: ${result.attemptCount}`));
+        console.log(chalk.gray(`   • Validation passed: ${result.validationPassed}`));
+        console.log(chalk.gray(`   • Files generated: ${result.filesGenerated}`));
+      }
+
+      if (!result.validationPassed) {
+        console.log(chalk.yellow('\n⚠️  Validation warnings:'));
+        for (const warning of result.warnings) {
+          console.log(chalk.gray(`   • ${warning}`));
+        }
+      }
+    } else {
+      // Use the current plan-based generation
+      const { generateFilesFromPlan } = await import('../codegen/unified-generator');
+      await generateFilesFromPlan(
+        plan,
+        projectData,
+        dirs,
+        modelSettings,
+        options.debug || false,
+        reasoningConfig // Pass reasoning config for enhanced code generation
+      );
+    }
+
     const generationDuration = Date.now() - generationStart;
 
     s.stop('Project files generated');

@@ -171,38 +171,51 @@ ${fileNames}
 
 CRITICAL RULES:
 
-1. TOOL TYPES - VERY IMPORTANT:
+1. AGENT AND SUBAGENT STRUCTURE - MOST IMPORTANT:
+   - **Top-level Agents** (entityType: "agent"): Create ONE file per top-level agent in agents/ directory
+   - **SubAgents** (entityType: "subAgent"): NEVER create separate files - ALWAYS include as entities in their parent agent's file
+   - Each agent file contains:
+     * All subAgents that belong to that agent (as entities in the same file)
+     * The top-level agent itself (as an entity)
+   - EXAMPLE: If "weather-agent" has subAgents "forecast-agent" and "geocode-agent", create ONE file "agents/weather-agent.ts" with THREE entities:
+     * Entity 1: forecast-agent (entityType: "subAgent")
+     * Entity 2: geocode-agent (entityType: "subAgent")
+     * Entity 3: weather-agent (entityType: "agent")
+   - WRONG: Creating separate files "agents/forecast-agent.ts" and "agents/geocode-agent.ts"
+   - The filename is based on the top-level agent's ID, NOT the subAgent IDs
+
+2. TOOL TYPES - VERY IMPORTANT:
    - **Function Tools** (type: "function"): ALWAYS define INLINE within agent files using "inlineContent" array
    - **MCP Tools** (type: "mcp"): Create separate files in tools/ directory
    - VALID FILE TYPES: Only use these exact types: "agent", "tool", "dataComponent", "artifactComponent", "statusComponent", "environment", "index"
    - NEVER create file type "functionTool" - function tools go in "inlineContent" of agent files
 
-2. STATUS COMPONENTS - VERY IMPORTANT:
+3. STATUS COMPONENTS - VERY IMPORTANT:
    - **Status Components**: ALWAYS create separate files in status-components/ directory
    - Status components are found in agent.statusUpdates.statusComponents array
    - Each status component should get its own file
    - Agents must import status components from status-components/ directory
    - Status components are NEVER inlined in agent files
 
-3. ENVIRONMENT FILES - VERY IMPORTANT:
+4. ENVIRONMENT FILES - VERY IMPORTANT:
    - **When credential references exist**: Create environment files in environments/ directory
    - **Environment Structure**: Create ONLY "${targetEnvironment}.env.ts" file for target environment (credentials are embedded in this file)
    - **Environment Index**: Create "environments/index.ts" that imports environment files and exports envSettings using createEnvironmentSettings
    - **NO separate credential files**: Credentials are defined INSIDE the environment files, not as separate files
    - **Environment entities**: Use type "environment" for both environment files and index file
 
-4. File Structure:
+5. File Structure:
    - If patterns show "toolsLocation": "inline", ALL tools should be in "inlineContent" of agent files
    - If patterns show "toolsLocation": "separate", MCP tools get separate files, function tools still inline
    - Follow the detected file naming convention (kebab-case, camelCase, or snake_case)
 
-4. Variable Names:
+6. Variable Names:
    - MUST use the exact variable names from the mappings above
    - If ID "weather" is used by both agent and subAgent, they will have different variable names
    - Do NOT generate new variable names - use what's provided
 
-5. File Placement:
-   - agents/ directory: Agent files (with function tools in "inlineContent")
+7. File Placement:
+   - agents/ directory: Agent files (with subAgents and function tools inline)
    - tools/ directory: MCP tool files only
    - data-components/ directory: Data component files
    - artifact-components/ directory: Artifact component files
@@ -210,13 +223,13 @@ CRITICAL RULES:
    - environments/ directory: Environment/credential files
    - index.ts: Main project file
 
-6. File Paths (CRITICAL):
+8. File Paths (CRITICAL):
    - Paths MUST be relative to the project root directory
    - DO NOT include the project name in the path
    - CORRECT: "agents/weather-agent.ts", "tools/inkeep-facts.ts", "status-components/tool-summary.ts"
    - WRONG: "my-project/agents/weather-agent.ts", "project-name/tools/inkeep-facts.ts"
 
-7. Dependencies:
+9. Dependencies:
    - Each file should list which variables it needs to import from other files
    - Imports should use relative paths
    - Respect detected import style (named vs default)
@@ -225,47 +238,52 @@ OUTPUT FORMAT (JSON):
 {
   "files": [
     {
-      "path": "agents/weather-agent.ts",
+      "path": "agents/weather-basic.ts",
       "type": "agent",
       "entities": [
         {
-          "id": "weather",
-          "variableName": "weatherSubAgent",
+          "id": "get-coordinates-agent",
+          "variableName": "getCoordinatesAgent",
           "entityType": "subAgent",
-          "exportName": "weatherSubAgent"
+          "exportName": "getCoordinatesAgent"
         },
         {
-          "id": "weather",
-          "variableName": "weatherAgent",
+          "id": "weather-forecaster",
+          "variableName": "weatherForecaster",
+          "entityType": "subAgent",
+          "exportName": "weatherForecaster"
+        },
+        {
+          "id": "weather-assistant",
+          "variableName": "weatherAssistant",
+          "entityType": "subAgent",
+          "exportName": "weatherAssistant"
+        },
+        {
+          "id": "weather-basic",
+          "variableName": "weatherBasic",
           "entityType": "agent",
-          "exportName": "weatherAgent"
+          "exportName": "weatherBasic"
         }
       ],
       "dependencies": [
         {
-          "variableName": "weatherApi",
-          "fromPath": "../tools/weather-api",
+          "variableName": "weatherMcp",
+          "fromPath": "../tools/weather-mcp",
           "entityType": "tool"
         }
       ],
-      "inlineContent": [
-        {
-          "id": "get-forecast",
-          "variableName": "getForecast",
-          "entityType": "tool",
-          "exportName": "getForecast"
-        }
-      ]
+      "inlineContent": []
     },
     {
-      "path": "tools/weather-api.ts",
+      "path": "tools/weather-mcp.ts",
       "type": "tool",
       "entities": [
         {
-          "id": "weather-api",
-          "variableName": "weatherApi",
+          "id": "weather-mcp",
+          "variableName": "weatherMcp",
           "entityType": "tool",
-          "exportName": "weatherApi"
+          "exportName": "weatherMcp"
         }
       ],
       "dependencies": [],
@@ -324,22 +342,27 @@ OUTPUT FORMAT (JSON):
       "type": "index",
       "entities": [
         {
-          "id": "my-weather-project",
-          "variableName": "myWeatherProject",
+          "id": "weather-project",
+          "variableName": "weatherProject",
           "entityType": "project",
-          "exportName": "myWeatherProject"
+          "exportName": "weatherProject"
         }
       ],
       "dependencies": [
         {
-          "variableName": "weatherAgent",
-          "fromPath": "./agents/weather-agent",
+          "variableName": "weatherBasic",
+          "fromPath": "./agents/weather-basic",
           "entityType": "agent"
         },
         {
-          "variableName": "weatherApi",
-          "fromPath": "./tools/weather-api",
+          "variableName": "weatherMcp",
+          "fromPath": "./tools/weather-mcp",
           "entityType": "tool"
+        },
+        {
+          "variableName": "temperatureData",
+          "fromPath": "./data-components/temperature-data",
+          "entityType": "dataComponent"
         }
       ]
     }

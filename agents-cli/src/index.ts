@@ -105,6 +105,7 @@ program
   )
   .option('--json', 'Generate project data JSON file instead of updating files')
   .option('--debug', 'Enable debug logging for LLM generation')
+  .option('--validate', 'Enable iterative validation with LLM function calling (max 3 attempts)')
   .action(async (options) => {
     await pullProjectCommand(options);
   });

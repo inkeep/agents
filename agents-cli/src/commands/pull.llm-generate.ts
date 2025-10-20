@@ -165,7 +165,7 @@ export function createModel(config: ModelSettings): any {
   }
 }
 
-const PROJECT_JSON_EXAMPLE = `
+export const PROJECT_JSON_EXAMPLE = `
 ---START OF PROJECT JSON EXAMPLE---
 {
   "id": "my-project",
