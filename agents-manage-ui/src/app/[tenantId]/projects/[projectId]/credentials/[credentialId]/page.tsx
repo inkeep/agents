@@ -34,6 +34,7 @@ async function EditCredentialsPage({
 
   try {
     credential = await fetchCredential(tenantId, projectId, credentialId);
+    console.log('credential', credential);
     initialFormData = await credentialToFormData(credential);
   } catch (error) {
     return (

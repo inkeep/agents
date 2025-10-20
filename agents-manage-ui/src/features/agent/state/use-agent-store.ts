@@ -3,11 +3,15 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
@@ -20,7 +24,9 @@ type AgentStateData = {
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
+  externalAgentLookup: Record<string, ExternalAgent>;
   agentToolConfigLookup: AgentToolConfigLookup;
+  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
   history: HistoryEntry[];
   future: HistoryEntry[];
@@ -36,13 +42,19 @@ type AgentActions = {
     dataComponentLookup?: Record<string, DataComponent>,
     artifactComponentLookup?: Record<string, ArtifactComponent>,
     toolLookup?: Record<string, MCPTool>,
-    agentToolConfigLookup?: AgentToolConfigLookup
+    agentToolConfigLookup?: AgentToolConfigLookup,
+    externalAgentLookup?: Record<string, ExternalAgent>,
+    subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
   ): void;
   reset(): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
   setArtifactComponentLookup(artifactComponentLookup: Record<string, ArtifactComponent>): void;
   setToolLookup(toolLookup: Record<string, MCPTool>): void;
   setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
+  setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
+  setSubAgentExternalAgentConfigLookup(
+    subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
+  ): void;
   setNodes(updater: (prev: Node[]) => Node[]): void;
   setEdges(updater: (prev: Edge[]) => Edge[]): void;
   onNodesChange(changes: NodeChange[]): void;
@@ -88,6 +100,8 @@ const initialAgentState: AgentStateData = {
   artifactComponentLookup: {},
   toolLookup: {},
   agentToolConfigLookup: {},
+  externalAgentLookup: {},
+  subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
   future: [],
@@ -107,7 +121,9 @@ export const agentStore = create<AgentState>()(
         dataComponentLookup = {},
         artifactComponentLookup = {},
         toolLookup = {},
-        agentToolConfigLookup = {}
+        agentToolConfigLookup = {},
+        externalAgentLookup = {},
+        subAgentExternalAgentConfigLookup = {}
       ) {
         set({
           nodes,
@@ -117,6 +133,8 @@ export const agentStore = create<AgentState>()(
           artifactComponentLookup,
           toolLookup,
           agentToolConfigLookup,
+          externalAgentLookup,
+          subAgentExternalAgentConfigLookup,
           dirty: false,
           history: [],
           future: [],
@@ -138,6 +156,12 @@ export const agentStore = create<AgentState>()(
       },
       setAgentToolConfigLookup(agentToolConfigLookup) {
         set({ agentToolConfigLookup });
+      },
+      setExternalAgentLookup(externalAgentLookup) {
+        set({ externalAgentLookup });
+      },
+      setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
+        set({ subAgentExternalAgentConfigLookup });
       },
       setNodes(updater) {
         set((state) => ({ nodes: updater(state.nodes) }));

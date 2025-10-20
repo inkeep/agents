@@ -612,6 +612,8 @@ export const createFullAgentServerSide =
                         },
                         'Processing external agent delegation relation'
                       );
+
+                      // Upsert automatically creates or updates the relation
                       await upsertSubAgentExternalAgentRelation(db)({
                         scopes: {
                           tenantId,
@@ -619,11 +621,13 @@ export const createFullAgentServerSide =
                           agentId: finalAgentId,
                           subAgentId,
                         },
+                        relationId: targetItem.subAgentExternalAgentRelationId,
                         data: {
                           externalAgentId: targetItem.externalAgentId,
                           headers: targetItem.headers || null,
                         },
                       });
+
                       logger.info(
                         {
                           subAgentId,
@@ -1394,6 +1398,7 @@ export const updateFullAgentServerSide =
               subAgentExternalAgentRelationPromises.push(
                 (async () => {
                   try {
+                    // Upsert automatically creates or updates the relation
                     await upsertSubAgentExternalAgentRelation(db)({
                       scopes: {
                         tenantId,
@@ -1401,6 +1406,7 @@ export const updateFullAgentServerSide =
                         agentId: typedAgentDefinition.id || '',
                         subAgentId,
                       },
+                      relationId: targetItem.subAgentExternalAgentRelationId,
                       data: {
                         externalAgentId: targetItem.externalAgentId,
                         headers: targetItem.headers || null,

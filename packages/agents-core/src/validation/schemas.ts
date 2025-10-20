@@ -440,7 +440,6 @@ export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpda
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
-  headers: z.record(z.string(), z.string()).nullable().optional(),
 });
 export const ExternalAgentInsertSchema = createInsertSchema(externalAgents).extend({
   id: resourceIdSchema,
@@ -525,6 +524,7 @@ export const CredentialReferenceApiSelectSchema = createApiSchema(CredentialRefe
   .extend({
     type: z.enum(CredentialStoreType),
     tools: z.array(ToolSelectSchema).optional(),
+    externalAgents: z.array(ExternalAgentSelectSchema).optional(),
   })
   .openapi('CredentialReference');
 export const CredentialReferenceApiInsertSchema = createApiInsertSchema(

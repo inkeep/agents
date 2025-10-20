@@ -307,27 +307,43 @@ export const getSubAgentExternalAgentRelationByParams =
   };
 
 /**
- * Upsert sub-agent external agent relation (create if it doesn't exist, no-op if it does)
+ * Upsert sub-agent external agent relation (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgentExternalAgentRelation =
   (db: DatabaseClient) =>
   async (params: {
     scopes: SubAgentScopeConfig;
+    relationId?: string;
     data: {
       externalAgentId: string;
       headers?: Record<string, string> | null;
     };
   }) => {
+    // If relationId provided, try to update existing relation
+    if (params.relationId) {
+      return await updateSubAgentExternalAgentRelation(db)({
+        scopes: params.scopes,
+        relationId: params.relationId,
+        data: params.data,
+      });
+    }
+
+    // Check if relation already exists by params
     const existing = await getSubAgentExternalAgentRelationByParams(db)({
       scopes: params.scopes,
       externalAgentId: params.data.externalAgentId,
     });
 
-    if (!existing) {
-      return await createSubAgentExternalAgentRelation(db)(params);
+    if (existing) {
+      return await updateSubAgentExternalAgentRelation(db)({
+        scopes: params.scopes,
+        relationId: existing.id,
+        data: params.data,
+      });
     }
 
-    return existing;
+    // Create new relation
+    return await createSubAgentExternalAgentRelation(db)(params);
   };
 
 export const updateSubAgentExternalAgentRelation =

@@ -9,10 +9,10 @@ import { z } from 'zod';
 
 // Import core types and schemas
 import {
-  type AgentApiInsert,
-  AgentApiInsertSchema,
   AgentAgentApiInsertSchema,
   type AgentAgentInsert,
+  type AgentApiInsert,
+  AgentApiInsertSchema,
   type FullAgentDefinition as CoreFullAgentDefinition,
   ErrorResponseSchema,
   type ExternalAgentDefinition,

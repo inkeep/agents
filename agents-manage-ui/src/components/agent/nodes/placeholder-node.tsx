@@ -2,11 +2,11 @@ import type { NodeProps } from '@xyflow/react';
 import { Hammer } from 'lucide-react';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 
-type MCPPlaceholderNodeData = {
+type PlaceholderNodeData = {
   name: string;
 };
 
-export function MCPPlaceholderNode(props: NodeProps & { data: MCPPlaceholderNodeData }) {
+export function PlaceholderNode(props: NodeProps & { data: PlaceholderNodeData }) {
   const { data, selected } = props;
   const { name } = data;
   return (

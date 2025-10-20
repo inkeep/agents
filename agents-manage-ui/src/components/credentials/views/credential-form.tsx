@@ -16,7 +16,9 @@ import {
   type CredentialStoreStatus,
   listCredentialStores,
 } from '@/lib/api/credentialStores';
+import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchMCPTools } from '@/lib/api/tools';
+import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import { type CredentialFormData, credentialFormSchema } from './credential-form-validation';
 
@@ -36,12 +38,16 @@ const defaultValues: CredentialFormData = {
   credentialStoreId: '',
   credentialStoreType: 'nango',
   selectedTool: undefined,
+  selectedExternalAgent: undefined,
 };
 
 export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
   const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
+  const [availableExternalAgents, setAvailableExternalAgents] = useState<ExternalAgent[]>([]);
+  const [externalAgentsLoading, setExternalAgentsLoading] = useState(true);
+  const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
   const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
 
@@ -66,6 +72,24 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     };
 
     loadAvailableTools();
+  }, [tenantId, projectId]);
+
+  useEffect(() => {
+    const loadAvailableExternalAgents = async () => {
+      try {
+        const allExternalAgents = await fetchExternalAgents(tenantId, projectId);
+        const externalAgentsWithoutCredentials = allExternalAgents.filter(
+          (agent) => !agent.credentialReferenceId
+        );
+        setAvailableExternalAgents(externalAgentsWithoutCredentials);
+      } catch (err) {
+        console.error('Failed to load external agents:', err);
+      } finally {
+        setExternalAgentsLoading(false);
+      }
+    };
+
+    loadAvailableExternalAgents();
   }, [tenantId, projectId]);
 
   useEffect(() => {
@@ -109,6 +133,13 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   }, [shouldLinkToServer, form]);
 
   useEffect(() => {
+    if (!shouldLinkToExternalAgent) {
+      // Clear the selectedExternalAgent field when not linking to external agent
+      form.setValue('selectedExternalAgent', undefined);
+    }
+  }, [shouldLinkToExternalAgent, form]);
+
+  useEffect(() => {
     const subscription = form.watch((value: any, { name }: any) => {
       if (name === 'credentialStoreId' && value.credentialStoreId) {
         const selectedStore = credentialStores.find(
@@ -126,6 +157,10 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     setShouldLinkToServer(checked === true);
   };
 
+  const handleLinkToExternalAgentChange = (checked: boolean | 'indeterminate') => {
+    setShouldLinkToExternalAgent(checked === true);
+  };
+
   const onSubmit = async (data: CredentialFormData) => {
     try {
       if (
@@ -133,6 +168,14 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         (data.selectedTool === 'loading' || data.selectedTool === 'error')
       ) {
         toast('Please select a valid MCP server');
+        return;
+      }
+
+      if (
+        shouldLinkToExternalAgent &&
+        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
+      ) {
+        toast('Please select a valid external agent');
         return;
       }
 
@@ -160,6 +203,25 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
       })),
     ],
     [availableMCPServers, toolsLoading]
+  );
+
+  const externalAgentOptions = useMemo(
+    () => [
+      ...(externalAgentsLoading
+        ? [
+            {
+              value: 'loading',
+              label: 'Loading external agents...',
+              disabled: true,
+            },
+          ]
+        : []),
+      ...availableExternalAgents.map((agent) => ({
+        value: agent.id,
+        label: `${agent.name} - ${agent.baseUrl}`,
+      })),
+    ],
+    [availableExternalAgents, externalAgentsLoading]
   );
 
   const credentialStoreOptions = useMemo(() => {
@@ -294,6 +356,36 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
                   options={serverOptions}
                   selectTriggerClassName="w-full"
                   placeholder="Choose an MCP server"
+                />
+              )}
+            </div>
+          )}
+
+          {/* External Agent Selection Section */}
+          {availableExternalAgents.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 relative">
+                <Checkbox
+                  id="linkToExternalAgent"
+                  checked={shouldLinkToExternalAgent}
+                  onCheckedChange={handleLinkToExternalAgentChange}
+                />
+                <label
+                  htmlFor="linkToExternalAgent"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Link this credential to an external agent
+                </label>
+              </div>
+
+              {shouldLinkToExternalAgent && (
+                <GenericSelect
+                  control={form.control}
+                  name="selectedExternalAgent"
+                  label=""
+                  options={externalAgentOptions}
+                  selectTriggerClassName="w-full"
+                  placeholder="Choose an external agent"
                 />
               )}
             </div>
