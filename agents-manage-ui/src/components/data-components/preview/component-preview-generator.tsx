@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/form/code-editor';
-import { JsonEditor } from '@/components/form/json-editor';
+import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
