@@ -56,7 +56,6 @@ export function ExpandableCodeEditor({
           <CodeEditor
             {...commonProps}
             editorOptions={{
-              fontSize: 14,
               padding: {
                 top: 12,
                 bottom: 36,

@@ -122,6 +122,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         top: 12,
         bottom: 12,
       },
+      experimentalGpuAcceleration: 'on',
       scrollbar: {
         vertical: 'hidden', // Hide vertical scrollbar
         horizontal: 'hidden', // Hide horizontal scrollbar
@@ -131,10 +132,10 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       stickyScroll: { enabled: false }, // Disable sticky scroll widget
       tabSize: 2,
       readOnly,
-      placeholder,
-      // scrollbar: {
-      //   verticalScrollbarSize: 10,
-      // },
+      // Monaco doesn't render whitespace at the beginning of the lines
+      placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
+        '\u00A0'.repeat(substring.length)
+      ),
       ...editorOptions,
       fontSize: editorOptions.fontSize ?? 12,
     });
@@ -183,13 +184,14 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         }
         // Update height based on content
         let contentHeight = editorInstance.getContentHeight();
+        // If there's no content but there's a placeholder, calculate height based on placeholder
+        if (!model.getValue() && placeholder) {
+          const lines = placeholder.split('\n');
+          const lineHeight = editorInstance.getOption(editor.EditorOption.lineHeight);
+          const { top, bottom } = editorInstance.getOption(editor.EditorOption.padding);
+          contentHeight = lines.length * lineHeight + top + bottom;
+        }
 
-        // if (!model.getValue()) {
-        //   const lines = placeholder.split('\n');
-        //   if (lines.length > 1) {
-        //     contentHeight = lines.length * 20;
-        //   }
-        // }
         if (container) {
           container.style.height = `${contentHeight}px`;
         }

@@ -42,11 +42,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
     (value: string) => {
       setInputSchema(value);
 
-      if (!value?.trim()) {
-        updatePath('inputSchema', undefined);
-        return;
-      }
-
       try {
         const parsed = JSON.parse(value);
         updatePath('inputSchema', parsed);
@@ -61,11 +56,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   const handleDependenciesChange = useCallback(
     (value: string) => {
       setDependencies(value);
-
-      if (!value?.trim()) {
-        updatePath('dependencies', undefined);
-        return;
-      }
 
       try {
         const parsed = JSON.parse(value);
