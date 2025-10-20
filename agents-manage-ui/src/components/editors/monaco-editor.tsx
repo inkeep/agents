@@ -1,19 +1,13 @@
 'use client';
 
-import type { FC, Ref, ComponentPropsWithoutRef } from 'react';
-import { useEffect, useRef, useImperativeHandle } from 'react';
-import { useTheme } from 'next-themes';
+import type { FC, ComponentPropsWithoutRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type * as Monaco from 'monaco-editor';
-import { MONACO_THEME_NAME } from '@/constants/theme';
 import { cn } from '@/lib/utils';
-import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
+import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { Skeleton } from '@/components/ui/skeleton';
 import '@/lib/monaco-editor/setup-monaco-workers';
-
-interface MonacoEditorRef {
-  editor: Monaco.editor.IStandaloneCodeEditor | null;
-}
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -26,7 +20,6 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
   readOnly?: boolean;
   disabled?: boolean;
   onChange?: (value: string) => void;
-  ref?: Ref<MonacoEditorRef>;
   placeholder?: string;
   /**
    * Stretches the editor height to fit its content.
@@ -41,7 +34,6 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
 }
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
-  ref,
   value = '',
   uri: $uri,
   readOnly,
@@ -59,13 +51,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
-  const { resolvedTheme } = useTheme();
   const monaco = useMonacoStore((state) => state.monaco);
-
-  // Expose editor instance through ref
-  useImperativeHandle(ref, () => ({
-    editor: editorRef.current,
-  }));
 
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
@@ -96,18 +82,13 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const { Uri, editor } = monaco;
     const uri = Uri.file($uri);
     const language = uri.path.split('.').at(-1);
-    if (!language) {
-      throw new Error(`Could not determine file language from path: "${uri.path}"`);
-    }
-    function getOrCreateModel() {
-      const model = editor.getModel(uri);
-      return model ?? editor.createModel(value, language, uri);
-    }
-    const model = getOrCreateModel();
-    const monacoTheme = resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+    const model = getOrCreateModel({
+      monaco,
+      uri: $uri,
+      value,
+    });
 
     const editorInstance = editor.create(container, {
-      theme: monacoTheme,
       model,
       language,
       automaticLayout: true,

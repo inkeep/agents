@@ -68,6 +68,24 @@ export function addDecorations({
   return { decorations, decorationCollection };
 }
 
+export function getOrCreateModel({
+  uri: $uri,
+  value,
+  monaco,
+}: {
+  uri: string;
+  value: string;
+  monaco: typeof Monaco;
+}) {
+  const uri = monaco.Uri.file($uri);
+  const language = uri.path.split('.').at(-1);
+  if (!language) {
+    throw new Error(`Could not determine file language from path: "${uri.path}"`);
+  }
+  const model = monaco.editor.getModel(uri);
+  return model ?? monaco.editor.createModel(value, language, uri);
+}
+
 /**
  * Cleanup various monaco-editor disposables functions
  */

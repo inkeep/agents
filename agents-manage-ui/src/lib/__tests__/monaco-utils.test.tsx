@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
+import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
@@ -22,22 +22,13 @@ describe('Monaco-Editor Functionality', () => {
   let model: monaco.editor.ITextModel;
   let container: HTMLDivElement;
 
-  function getOrCreateModel({ uri: $uri, value }: { uri: string; value: string }) {
-    const uri = monaco.Uri.file($uri);
-    const language = uri.path.split('.').at(-1);
-    if (!language) {
-      throw new Error(`Could not determine file language from path: "${uri.path}"`);
-    }
-    const model = monaco.editor.getModel(uri);
-    return model ?? monaco.editor.createModel(value, language, uri);
-  }
-
   beforeEach(() => {
     // Create a container for Monaco Editor
     container = document.createElement('div');
     document.body.append(container);
 
     model = getOrCreateModel({
+      monaco,
       uri: 'test.json',
       value: JSON.stringify(obj, null, 2),
     });
