@@ -4,7 +4,7 @@ import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 import type { IDisposable } from 'monaco-editor';
 import { useTheme } from 'next-themes';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 function tryJsonParse(json = ''): object {
@@ -18,7 +18,7 @@ function tryJsonParse(json = ''): object {
   }
 }
 
-export default function Layout({ children }: LayoutProps<'/[tenantId]'>) {
+export default function Layout({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme();
   const { setMonaco, setVariableSuggestions, setMonacoTheme } = useMonacoActions();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);
