@@ -12,7 +12,11 @@ import {
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
-import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import {
+  monacoStore,
+  useMonacoStore,
+  RESERVED_KEYS,
+} from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
@@ -20,9 +24,6 @@ import { Braces } from 'lucide-react';
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.template`;
 }
-
-// Reserved keys that are always valid
-const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();

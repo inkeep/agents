@@ -31,7 +31,7 @@ const initialMonacoState: MonacoStateData = {
 };
 
 // Reserved keys that are always valid
-const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
+export const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 export const monacoStore = create<MonacoState>()(
   devtools((set, get) => ({
