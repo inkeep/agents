@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  type ComponentProps,
-  type FC,
-  useCallback,
-  useId,
-  useState,
-  useEffect,
-} from 'react';
+import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
@@ -26,11 +19,10 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();
-  uri ??= `${id}.template`
+  uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
-  const variablesText = 'Add variables';
 
   useEffect(() => {
     const model = editor?.getModel();
@@ -133,7 +125,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
           onClick={handleAddVariable}
         >
           <Braces className="size-2.5" />
-          {variablesText}
+          Add variables
         </Button>
       )}
     </MonacoEditor>
