@@ -57,7 +57,13 @@ export function Toolbar({
     <div className="flex gap-2 flex-wrap justify-end content-start">
       {dirty || inPreviewDisabled ? (
         <Tooltip>
-          <TooltipTrigger asChild>{PreviewButton}</TooltipTrigger>
+          <TooltipTrigger asChild>
+            {/**
+             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+             * don’t trigger pointer events in the browser
+             **/}
+            <div>{PreviewButton}</div>
+          </TooltipTrigger>
           <TooltipContent>
             {dirty
               ? 'Please save your changes before trying the agent.'
