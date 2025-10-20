@@ -117,7 +117,7 @@
       "cache": false
     },
     "typecheck": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@inkeep/agents-manage-ui#build"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []
     },
