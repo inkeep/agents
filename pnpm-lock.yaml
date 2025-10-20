@@ -396,18 +396,9 @@ importers:
       '@ai-sdk/react':
         specifier: 2.0.11
         version: 2.0.11(react@19.1.1)(zod@4.1.12)
-      '@codemirror/autocomplete':
-        specifier: ^6.19.0
-        version: 6.19.0
       '@codemirror/lang-javascript':
         specifier: ^6.2.4
         version: 6.2.4
-      '@codemirror/lint':
-        specifier: ^6.8.5
-        version: 6.9.0
-      '@codemirror/view':
-        specifier: ^6.38.4
-        version: 6.38.5
       '@hookform/resolvers':
         specifier: ^5.2.1
         version: 5.2.2(react-hook-form@7.64.0(react@19.1.1))
