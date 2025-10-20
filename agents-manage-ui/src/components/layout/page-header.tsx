@@ -1,6 +1,4 @@
 import type { ComponentProps, ReactNode } from 'react';
-import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
-import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { cn } from '@/lib/utils';
 
 // Root component that provides the base layout
