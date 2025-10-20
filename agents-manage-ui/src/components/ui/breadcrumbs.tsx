@@ -41,7 +41,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         {allItems.map((item, idx, arr) => {
           const isLast = idx === arr.length - 1;
           return (
-            <li key={`${item.label}-${idx}`} className="flex items-center gap-2">
+            <li
+              key={`${item.label}-${idx}`}
+              className={cn(
+                'flex items-center gap-2',
+                !isLast && 'after:content-["›"] after:text-muted-foreground/60'
+              )}
+            >
               {item.href && !isLast ? (
                 <Link href={item.href} className="hover:text-foreground">
                   {item.label}
@@ -49,7 +55,6 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
               ) : (
                 <span className={cn(isLast && 'font-medium text-foreground')}>{item.label}</span>
               )}
-              {!isLast && <span className="text-muted-foreground/60">›</span>}
             </li>
           );
         })}
