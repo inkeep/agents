@@ -2,11 +2,9 @@
 
 import {
   Background,
-  type Connection,
   ConnectionMode,
   Controls,
   type Edge,
-  type IsValidConnection,
   type Node,
   Panel,
   ReactFlow,
@@ -16,7 +14,7 @@ import {
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -82,6 +80,8 @@ interface AgentProps {
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
 }
+
+type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -317,7 +317,7 @@ function Flow({
   }, [showPlayground, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
-  const onConnectWrapped = useCallback((params: Connection) => {
+  const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -397,21 +397,24 @@ function Flow({
     });
   }, []);
 
-  const isValidConnection: IsValidConnection = useCallback(({ sourceHandle, targetHandle }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  }, []);
+  const isValidConnection: ReactFlowProps['isValidConnection'] = useCallback(
+    ({ sourceHandle, targetHandle }) => {
+      // we don't want to allow connections between MCP nodes
+      if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+        return false;
+      }
+      return true;
+    },
+    []
+  );
 
-  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver: ReactFlowProps['onDragOver'] = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+  const onDrop: ReactFlowProps['onDrop'] = useCallback(
+    (event) => {
       event.preventDefault();
       const node = event.dataTransfer.getData('application/reactflow');
       if (!node) {
@@ -693,6 +696,17 @@ function Flow({
     toolLookup,
   ]);
 
+  const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
+    (_, node) => {
+      fitView({
+        maxZoom: 0.9,
+        duration: 300,
+        nodes: [node],
+      });
+    },
+    [fitView]
+  );
+
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
@@ -719,13 +733,18 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          onNodeClick={onNodeClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
           <Panel position="top-left">
             <NodeLibrary />
           </Panel>
-          <Panel position="top-right">
+          <Panel
+            position="top-right"
+            // width of NodeLibrary
+            className="left-52"
+          >
             <Toolbar
               onSubmit={onSubmit}
               inPreviewDisabled={!agent?.id}
