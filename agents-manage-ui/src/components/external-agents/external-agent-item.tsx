@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MoreVertical, Trash2 } from 'lucide-react';
+import { MoreVertical, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/item-card';
 import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-
+import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
 import { CardTitle } from '../ui/card';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
@@ -133,7 +133,7 @@ export function ExternalAgentItem({
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-md">
             <div className="flex items-center gap-3">
-              <Globe className="size-6 flex-shrink-0 text-muted-foreground" />
+              <ProviderIcon provider={externalAgent.name} size={24} className="flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-base truncate font-medium">
                   {externalAgent.name}

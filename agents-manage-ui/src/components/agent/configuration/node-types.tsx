@@ -1,4 +1,4 @@
-import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
+import { Bot, Code, Globe, Hammer } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
@@ -11,6 +11,7 @@ interface NodeData {
   isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
+  type?: 'mcp-placeholder' | 'external-agent-placeholder'; // Optional for placeholder nodes
 }
 
 import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
@@ -99,6 +100,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.ExternalAgentPlaceholder]: {
     name: 'Select external agent',
+    type: 'external-agent-placeholder',
   },
   [NodeType.MCP]: {
     name: 'MCP',
@@ -107,6 +109,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCPPlaceholder]: {
     name: 'Select MCP server',
+    type: 'mcp-placeholder',
   },
   [NodeType.FunctionTool]: {
     name: 'Function Tool',
@@ -123,12 +126,12 @@ export const nodeTypeMap = {
   [NodeType.ExternalAgent]: {
     type: NodeType.ExternalAgent,
     name: 'External Agent',
-    Icon: BotMessageSquare,
+    Icon: Globe,
   },
   [NodeType.ExternalAgentPlaceholder]: {
     type: NodeType.ExternalAgentPlaceholder,
     name: 'External Agent',
-    Icon: BotMessageSquare,
+    Icon: Globe,
   },
   [NodeType.MCPPlaceholder]: {
     type: NodeType.MCPPlaceholder,

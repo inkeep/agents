@@ -1,4 +1,4 @@
-import { BotMessageSquare } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 
@@ -22,7 +22,7 @@ export function ExternalAgentItem({ externalAgent, onClick }: ExternalAgentItemP
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 mt-0.5 size-8 rounded bg-muted flex items-center justify-center">
-          <BotMessageSquare className="size-4 text-muted-foreground" />
+          <Globe className="size-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1 gap-2 min-w-0 truncate">

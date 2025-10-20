@@ -1,5 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
-import { BotMessageSquare } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -14,6 +14,7 @@ import { NodeTab } from './node-tab';
 
 export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeData }) {
   const { data, selected, id } = props;
+<<<<<<< HEAD
   const { name, description, isExecuting } = data;
   const { externalAgentLookup, subAgentExternalAgentConfigLookup, edges } = useAgentStore(
     (state) => ({
@@ -22,18 +23,15 @@ export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeDa
       edges: state.edges,
     })
   );
+=======
+  const { name, description, isExecuting } = data;
+>>>>>>> 05de9ca6 (address feedback)
   const { getNodeErrors, hasNodeErrors } = useAgentErrors();
 
   // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
   const subAgentId = data.id || id;
-  const externalAgentData = externalAgentLookup[subAgentId];
   const nodeErrors = getNodeErrors(subAgentId);
   const hasErrors = hasNodeErrors(subAgentId);
-
-  const relationshipId = data.relationshipId;
-  const headers = relationshipId
-    ? subAgentExternalAgentConfigLookup?.[subAgentId]?.[relationshipId]?.headers
-    : null;
 
   return (
     <div className="relative">
@@ -49,7 +47,7 @@ export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeDa
       >
         <BaseNodeHeader className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <BotMessageSquare className="size-4 text-muted-foreground" />
+            <Globe className="size-4 text-muted-foreground" />
             <BaseNodeHeaderTitle>{name || 'External Agent'}</BaseNodeHeaderTitle>
           </div>
           <Badge variant="primary" className="text-xs uppercase">
