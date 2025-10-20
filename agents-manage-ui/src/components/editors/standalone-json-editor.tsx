@@ -43,7 +43,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
           onClick={handleInsertTemplate}
           variant="outline"
           size="sm"
-          className="h-6 px-2 text-xs rounded-sm"
+          className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
         >
           Template
         </Button>
@@ -53,7 +53,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
         onClick={handleFormat}
         variant="outline"
         size="sm"
-        className="h-6 px-2 text-xs rounded-sm"
+        className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
         disabled={!value.trim()}
       >
         Format

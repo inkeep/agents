@@ -786,13 +786,12 @@ export function Agent(props: AgentProps) {
   useEffect(() => {
     const contextVariables = tryJsonParse(contextConfig.contextVariables);
     const headersSchema = tryJsonParse(contextConfig.headersSchema);
-    setVariableSuggestions(
-      getContextSuggestions({
-        headersSchema,
-        // @ts-expect-error -- todo: improve type
-        contextVariables,
-      })
-    );
+    const variables = getContextSuggestions({
+      headersSchema,
+      // @ts-expect-error -- todo: improve type
+      contextVariables,
+    });
+    setVariableSuggestions(variables);
   }, [contextConfig, setVariableSuggestions]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `isDark`
