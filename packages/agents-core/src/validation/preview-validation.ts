@@ -13,16 +13,40 @@ export interface PreviewValidationResult {
 const MAX_CODE_SIZE = 50000; // 50KB max
 const MAX_DATA_SIZE = 10000; // 10KB max for sample data
 
-// Dangerous patterns that should not be allowed
-const DANGEROUS_PATTERNS = [
-  /\beval\s*\(/i,
-  /\bFunction\s*\(/i,
-  /dangerouslySetInnerHTML/i,
-  /<script\b/i,
-  /\bon\w+\s*=/i, // inline event handlers like onclick=
-  /document\.write/i,
-  /window\.location/i,
-  /\.innerHTML\s*=/i,
+// Dangerous patterns with user-friendly error messages
+const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  {
+    pattern: /\beval\s*\(/i,
+    message: 'eval() is not allowed for security reasons',
+  },
+  {
+    pattern: /\bFunction\s*\(/i,
+    message: 'Function constructor is not allowed for security reasons',
+  },
+  {
+    pattern: /dangerouslySetInnerHTML/i,
+    message: 'dangerouslySetInnerHTML is not allowed for security reasons',
+  },
+  {
+    pattern: /<script\b/i,
+    message: 'Script tags are not allowed',
+  },
+  {
+    pattern: /\bon\w+\s*=/i,
+    message: 'Inline event handlers (onClick=, onLoad=, etc.) are not allowed. Use JSX event props instead',
+  },
+  {
+    pattern: /document\.write/i,
+    message: 'document.write is not allowed',
+  },
+  {
+    pattern: /window\.location/i,
+    message: 'window.location manipulation is not allowed',
+  },
+  {
+    pattern: /\.innerHTML\s*=/i,
+    message: 'innerHTML manipulation is not allowed for security reasons',
+  },
 ];
 
 // Only allow imports from lucide-react
@@ -71,11 +95,11 @@ export function validatePreview(preview: {
   }
 
   // Check for dangerous patterns
-  for (const pattern of DANGEROUS_PATTERNS) {
+  for (const { pattern, message } of DANGEROUS_PATTERNS) {
     if (pattern.test(preview.code)) {
       errors.push({
         field: 'preview.code',
-        message: `Code contains potentially dangerous pattern: ${pattern.source}`,
+        message,
       });
     }
   }
