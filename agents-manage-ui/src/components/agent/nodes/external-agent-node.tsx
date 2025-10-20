@@ -2,7 +2,6 @@ import { type NodeProps, Position } from '@xyflow/react';
 import { Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { cn } from '@/lib/utils';
 import type { ExternalAgentNodeData } from '../configuration/node-types';

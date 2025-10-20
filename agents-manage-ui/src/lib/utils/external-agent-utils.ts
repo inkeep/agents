@@ -23,7 +23,7 @@ export function getCurrentHeadersForExternalAgentNode(
     for (const externalAgentMap of Object.values(subAgentExternalAgentConfigLookup)) {
       const config = externalAgentMap[relationshipId];
       if (config) {
-        return config.headers || {};
+        return config.headers ?? {};
       }
     }
   }

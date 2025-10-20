@@ -42,7 +42,6 @@ export function ExternalAgentNodeEditor({
     // Only save to node data if the JSON is valid
     try {
       const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
-
       if (
         typeof parsedHeaders === 'object' &&
         parsedHeaders !== null &&
@@ -61,8 +60,7 @@ export function ExternalAgentNodeEditor({
     }
   };
 
-  const { externalAgentLookup, edges } = useAgentStore((state) => ({
-    externalAgentLookup: state.externalAgentLookup,
+  const { edges } = useAgentStore((state) => ({
     edges: state.edges,
   }));
 
