@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor';
-import { getOrCreateModel, addDecorations } from '@/lib/monaco-editor/monaco-utils';
+import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
@@ -64,410 +64,7 @@ describe('Monaco-Editor Functionality', () => {
     requestAnimationFrame(resolve);
     await promise;
 
-    expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchInlineSnapshot(`
-      [
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "delimiter.bracket.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 8,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 9,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 14,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "number.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 18,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 9,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.array.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 8,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.bracket.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 6,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "string.value.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.bracket.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 5,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.array.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 6,
-            "type": "number.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 7,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 6,
-            "type": "string.value.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.array.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "delimiter.array.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 3,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "string.value.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 19,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 15,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 16,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 17,
-            "type": "string.value.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "delimiter.bracket.json",
-          },
-        ],
-      ]
-    `);
+    expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchFileSnapshot('tokenize.json');
 
     expect(model.getValue()).toMatchInlineSnapshot(`
       "{
@@ -509,15 +106,68 @@ describe('Monaco-Editor Functionality', () => {
       startColumn: range.startColumn,
     }));
 
-    // Verify we have decorations on the expected lines (based on actual token positions)
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 2)).toBe(true); // "null": null
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 3)).toBe(true); // "number": 1
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 4)).toBe(true); // "boolean": false
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 6)).toBe(true); // true
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 8)).toBe(true); // "foo": "bar"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 11)).toBe(true); // 2
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 12)).toBe(true); // "baz"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 15)).toBe(true); // "string": "hello"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 16)).toBe(true); // "emptyString": ""
+    /**
+     * Add decorations to a string content using actual decoration positions
+     * This function modifies the string content to show where decorations would be inserted
+     */
+    function addDecorationsToString(content: string, addedContent = '❌'): string {
+      const lines = content.split('\n');
+      const modifiedLines: string[] = [];
+
+      // Sort decorations by line number and column (descending) to avoid offset issues
+      const sortedDecorations = decorationPositions
+        .map((pos, index) => ({ ...pos, originalIndex: index }))
+        .sort((a, b) => {
+          if (a.startLineNumber !== b.startLineNumber) {
+            return b.startLineNumber - a.startLineNumber;
+          }
+          return b.startColumn - a.startColumn;
+        });
+
+      // Process each line
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const lineNumber = lineIndex + 1;
+        let modifiedLine = lines[lineIndex];
+
+        // Find decorations for this line
+        const lineDecorations = sortedDecorations.filter(
+          (decoration) => decoration.startLineNumber === lineNumber
+        );
+
+        // Apply decorations to this line (from right to left to maintain positions)
+        for (const decoration of lineDecorations) {
+          const insertPosition = decoration.startColumn - 1; // Convert to 0-based index
+
+          // Insert the decoration at the specified position
+          modifiedLine =
+            modifiedLine.slice(0, insertPosition) +
+            addedContent +
+            modifiedLine.slice(insertPosition);
+        }
+
+        modifiedLines.push(modifiedLine);
+      }
+
+      return modifiedLines.join('\n');
+    }
+
+    const expectedContentWithDecorations = `{
+  "null": null,❌
+  "number": 1,❌
+  "boolean": false,❌
+  "array": [
+    true,❌
+    {
+      "foo": "bar"❌
+    },
+    [
+      2,❌
+      "baz"❌
+    ]
+  ],
+  "string": "hello",❌
+  "emptyString": ""❌
+}`;
+    expect(addDecorationsToString(model.getValue())).toBe(expectedContentWithDecorations);
   });
 });
