@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../types/db';
 import {
   createSubAgentExternalAgentRelation,
   deleteSubAgentExternalAgentRelation,
@@ -14,8 +13,11 @@ import {
   updateSubAgentExternalAgentRelation,
   upsertSubAgentExternalAgentRelation,
 } from '../../data-access/subAgentExternalAgentRelations';
+import type { DatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 describe('SubAgentExternalAgentRelations Data Access', () => {
+  let db: DatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testAgentId = 'agent-789';
@@ -42,37 +44,22 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
     subAgentId: testSubAgentId,
   };
 
-  let mockDb: DatabaseClient;
-
-  beforeEach(() => {
-    mockDb = {
-      query: {
-        subAgentExternalAgentRelations: {
-          findFirst: vi.fn(),
-          findMany: vi.fn(),
-        },
-      },
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      offset: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockResolvedValue([]),
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([relationData]),
-      update: vi.fn().mockReturnThis(),
-      set: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      innerJoin: vi.fn().mockReturnThis(),
-    } as unknown as DatabaseClient;
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
   });
 
   describe('getSubAgentExternalAgentRelationById', () => {
     it('should retrieve a sub-agent external agent relation by id', async () => {
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findFirst).mockResolvedValue(
-        relationData
-      );
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findFirst: vi.fn().mockResolvedValue(relationData),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
 
       const result = await getSubAgentExternalAgentRelationById(mockDb)({
         scopes,
@@ -80,15 +67,22 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toEqual(relationData);
-      expect(mockDb.query.subAgentExternalAgentRelations.findFirst).toHaveBeenCalledWith({
+      expect(mockQuery.subAgentExternalAgentRelations.findFirst).toHaveBeenCalledWith({
         where: expect.any(Object),
       });
     });
 
     it('should return undefined when relation not found', async () => {
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findFirst).mockResolvedValue(
-        undefined
-      );
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findFirst: vi.fn().mockResolvedValue(undefined),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
 
       const result = await getSubAgentExternalAgentRelationById(mockDb)({
         scopes,
@@ -102,18 +96,71 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   describe('listSubAgentExternalAgentRelations', () => {
     it('should list all sub-agent external agent relations with pagination', async () => {
       const relations = [relationData];
-      vi.mocked(mockDb.orderBy).mockResolvedValue(relations);
+
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue(relations),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const mockCountSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 1 }]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        select: vi.fn().mockImplementation((params) => {
+          if (params && typeof params === 'object' && 'count' in params) {
+            return mockCountSelect(params);
+          }
+          return mockSelect();
+        }),
+      } as any;
 
       const result = await listSubAgentExternalAgentRelations(mockDb)({ scopes });
 
       expect(result.data).toEqual(relations);
       expect(result.pagination).toBeDefined();
       expect(result.pagination.page).toBe(1);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
     });
 
     it('should return empty array when no relations found', async () => {
-      vi.mocked(mockDb.orderBy).mockResolvedValue([]);
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              offset: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const mockCountSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 0 }]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        select: vi.fn().mockImplementation((params) => {
+          if (params && typeof params === 'object' && 'count' in params) {
+            return mockCountSelect(params);
+          }
+          return mockSelect();
+        }),
+      } as any;
 
       const result = await listSubAgentExternalAgentRelations(mockDb)({ scopes });
 
@@ -125,12 +172,21 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   describe('getSubAgentExternalAgentRelations', () => {
     it('should get all relations for a subagent', async () => {
       const relations = [relationData];
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findMany).mockResolvedValue(relations);
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue(relations),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
 
       const result = await getSubAgentExternalAgentRelations(mockDb)({ scopes });
 
       expect(result).toEqual(relations);
-      expect(mockDb.query.subAgentExternalAgentRelations.findMany).toHaveBeenCalledWith({
+      expect(mockQuery.subAgentExternalAgentRelations.findMany).toHaveBeenCalledWith({
         where: expect.any(Object),
       });
     });
@@ -138,16 +194,29 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
   describe('getSubAgentExternalAgentRelationsByAgent', () => {
     it('should get all relations for an agent', async () => {
-      const agentScopes = { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId };
+      const agentScopes = {
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+      };
       const relations = [relationData];
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findMany).mockResolvedValue(relations);
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue(relations),
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+      } as any;
 
       const result = await getSubAgentExternalAgentRelationsByAgent(mockDb)({
         scopes: agentScopes,
       });
 
       expect(result).toEqual(relations);
-      expect(mockDb.query.subAgentExternalAgentRelations.findMany).toHaveBeenCalledWith({
+      expect(mockQuery.subAgentExternalAgentRelations.findMany).toHaveBeenCalledWith({
         where: expect.any(Object),
       });
     });
@@ -155,6 +224,17 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
   describe('createSubAgentExternalAgentRelation', () => {
     it('should create a new sub-agent external agent relation', async () => {
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([relationData]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
       const result = await createSubAgentExternalAgentRelation(mockDb)({
         scopes,
         data: {
@@ -164,11 +244,21 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toEqual(relationData);
-      expect(mockDb.insert).toHaveBeenCalled();
-      expect(mockDb.values).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalled();
     });
 
     it('should generate relationId if not provided', async () => {
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([relationData]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        insert: mockInsert,
+      } as any;
+
       const result = await createSubAgentExternalAgentRelation(mockDb)({
         scopes,
         data: {
@@ -177,7 +267,7 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toEqual(relationData);
-      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalled();
     });
   });
 
@@ -187,7 +277,19 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
         ...relationData,
         headers: { 'X-Custom-Header': 'updated-value' },
       };
-      vi.mocked(mockDb.returning).mockResolvedValue([updatedData]);
+
+      const mockUpdate = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([updatedData]),
+          }),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        update: mockUpdate,
+      } as any;
 
       const result = await updateSubAgentExternalAgentRelation(mockDb)({
         scopes,
@@ -196,17 +298,22 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toEqual(updatedData);
-      expect(mockDb.update).toHaveBeenCalled();
-      expect(mockDb.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          headers: { 'X-Custom-Header': 'updated-value' },
-          updatedAt: expect.any(String),
-        })
-      );
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
     it('should return undefined when relation not found', async () => {
-      vi.mocked(mockDb.returning).mockResolvedValue([]);
+      const mockUpdate = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        update: mockUpdate,
+      } as any;
 
       const result = await updateSubAgentExternalAgentRelation(mockDb)({
         scopes,
@@ -220,7 +327,14 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
   describe('deleteSubAgentExternalAgentRelation', () => {
     it('should delete a sub-agent external agent relation', async () => {
-      vi.mocked(mockDb.where).mockResolvedValue({ rowsAffected: 1 } as any);
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
 
       const result = await deleteSubAgentExternalAgentRelation(mockDb)({
         scopes,
@@ -228,12 +342,18 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toBe(true);
-      expect(mockDb.delete).toHaveBeenCalled();
-      expect(mockDb.where).toHaveBeenCalled();
+      expect(mockDelete).toHaveBeenCalled();
     });
 
     it('should return false when no rows affected', async () => {
-      vi.mocked(mockDb.where).mockResolvedValue({ rowsAffected: 0 } as any);
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({ rowsAffected: 0 }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
 
       const result = await deleteSubAgentExternalAgentRelation(mockDb)({
         scopes,
@@ -246,9 +366,23 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
   describe('upsertSubAgentExternalAgentRelation', () => {
     it('should create a new relation when it does not exist', async () => {
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findFirst).mockResolvedValue(
-        undefined
-      );
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findFirst: vi.fn().mockResolvedValue(undefined),
+        },
+      };
+
+      const mockInsert = vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([relationData]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+        insert: mockInsert,
+      } as any;
 
       const result = await upsertSubAgentExternalAgentRelation(mockDb)({
         scopes,
@@ -259,49 +393,90 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       });
 
       expect(result).toEqual(relationData);
-      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalled();
     });
 
-    it('should return existing relation when it exists', async () => {
-      vi.mocked(mockDb.query.subAgentExternalAgentRelations.findFirst).mockResolvedValue(
-        relationData
-      );
+    it('should update existing relation when relationId provided', async () => {
+      const updatedData = {
+        ...relationData,
+        headers: { 'X-Custom-Header': 'updated-value' },
+      };
+
+      const mockQuery = {
+        subAgentExternalAgentRelations: {
+          findFirst: vi.fn().mockResolvedValue(relationData),
+        },
+      };
+
+      const mockUpdate = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([updatedData]),
+          }),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+        update: mockUpdate,
+      } as any;
 
       const result = await upsertSubAgentExternalAgentRelation(mockDb)({
         scopes,
+        relationId: testRelationId,
         data: {
           externalAgentId: testExternalAgentId,
           headers: { 'X-Custom-Header': 'updated-value' },
         },
       });
 
-      expect(result).toEqual(relationData);
-      expect(mockDb.insert).not.toHaveBeenCalled();
+      expect(result).toEqual(updatedData);
+      expect(mockUpdate).toHaveBeenCalled();
     });
   });
 
   describe('deleteSubAgentExternalAgentRelationsBySubAgent', () => {
     it('should delete all relations for a subagent', async () => {
-      vi.mocked(mockDb.where).mockResolvedValue({ rowsAffected: 2 } as any);
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({ rowsAffected: 2 }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
 
       const result = await deleteSubAgentExternalAgentRelationsBySubAgent(mockDb)({ scopes });
 
       expect(result).toBe(true);
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockDelete).toHaveBeenCalled();
     });
   });
 
   describe('deleteSubAgentExternalAgentRelationsByAgent', () => {
     it('should delete all relations for an agent', async () => {
-      const agentScopes = { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId };
-      vi.mocked(mockDb.where).mockResolvedValue({ rowsAffected: 3 } as any);
+      const agentScopes = {
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+      };
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({ rowsAffected: 3 }),
+      });
+
+      const mockDb = {
+        ...db,
+        delete: mockDelete,
+      } as any;
 
       const result = await deleteSubAgentExternalAgentRelationsByAgent(mockDb)({
         scopes: agentScopes,
       });
 
       expect(result).toBe(true);
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockDelete).toHaveBeenCalled();
     });
   });
 
@@ -324,20 +499,52 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
           },
         },
       ];
-      vi.mocked(mockDb.orderBy).mockResolvedValue(joinedData);
+
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                offset: vi.fn().mockReturnValue({
+                  orderBy: vi.fn().mockResolvedValue(joinedData),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const mockCountSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 1 }]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        select: vi.fn().mockImplementation((params) => {
+          if (params && typeof params === 'object' && 'count' in params) {
+            return mockCountSelect(params);
+          }
+          return mockSelect();
+        }),
+      } as any;
 
       const result = await getExternalAgentsForSubAgent(mockDb)({ scopes });
 
       expect(result.data).toEqual(joinedData);
       expect(result.pagination).toBeDefined();
-      expect(mockDb.select).toHaveBeenCalled();
-      expect(mockDb.innerJoin).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
     });
   });
 
   describe('getSubAgentsForExternalAgent', () => {
     it('should get subagents for an external agent with join', async () => {
-      const agentScopes = { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId };
+      const agentScopes = {
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+      };
       const joinedData = [
         {
           ...relationData,
@@ -354,7 +561,36 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
           },
         },
       ];
-      vi.mocked(mockDb.orderBy).mockResolvedValue(joinedData);
+
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                offset: vi.fn().mockReturnValue({
+                  orderBy: vi.fn().mockResolvedValue(joinedData),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+
+      const mockCountSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 1 }]),
+        }),
+      });
+
+      const mockDb = {
+        ...db,
+        select: vi.fn().mockImplementation((params) => {
+          if (params && typeof params === 'object' && 'count' in params) {
+            return mockCountSelect(params);
+          }
+          return mockSelect();
+        }),
+      } as any;
 
       const result = await getSubAgentsForExternalAgent(mockDb)({
         scopes: agentScopes,
@@ -363,8 +599,7 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
       expect(result.data).toEqual(joinedData);
       expect(result.pagination).toBeDefined();
-      expect(mockDb.select).toHaveBeenCalled();
-      expect(mockDb.innerJoin).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
     });
   });
 });

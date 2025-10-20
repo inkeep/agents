@@ -341,8 +341,6 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                   name: externalAgent.name,
                   description: externalAgent.description || '',
                   baseUrl: externalAgent.baseUrl,
-                  createdAt: externalAgent.createdAt,
-                  updatedAt: externalAgent.updatedAt,
                   credentialReferenceId: externalAgent.credentialReferenceId,
                   relationshipId,
                   tempHeaders: headers,

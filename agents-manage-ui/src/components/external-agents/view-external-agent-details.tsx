@@ -84,23 +84,11 @@ export function ViewExternalAgentDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof externalAgent.createdAt === 'string'
-                  ? externalAgent.createdAt
-                  : externalAgent.createdAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{formatDate(externalAgent.createdAt)}</ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof externalAgent.updatedAt === 'string'
-                  ? externalAgent.updatedAt
-                  : externalAgent.updatedAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{formatDate(externalAgent.updatedAt)}</ItemValue>
           </div>
         </div>
 

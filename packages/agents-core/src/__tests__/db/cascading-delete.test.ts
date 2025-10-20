@@ -5,7 +5,6 @@ import type {
   TaskInsert,
 } from '@inkeep/agents-core';
 import { eq, sql } from 'drizzle-orm';
-import { generateId } from '../../utils/conversations';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   agents,
@@ -29,6 +28,7 @@ import {
   tasks,
   tools,
 } from '../../db/schema';
+import { generateId } from '../../utils/conversations';
 import { dbClient } from '../setup';
 
 describe('Cascading Delete Tests', () => {
@@ -201,7 +201,6 @@ describe('Cascading Delete Tests', () => {
     const externalAgent = {
       tenantId,
       projectId,
-      agentId,
       id: generateId(),
       name: 'Test External Agent',
       description: 'Test external agent',
