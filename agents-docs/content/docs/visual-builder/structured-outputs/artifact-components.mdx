@@ -127,12 +127,12 @@ const researchAgent = subAgent({
   name: "Research Agent",
   prompt: "You are a research agent that can generate artifact names and descriptions",
   models: {
-    base: { model: "claude-sonnet-4-0" },
+    base: { model: "anthropic/claude-sonnet-4-0" },
     summarizer: {
-      model: "gpt-4.1-mini", // This model generates artifact names/descriptions
+      model: "openai/gpt-4.1-mini", // This model generates artifact names/descriptions
       providerOptions: {
         temperature: 0.2, // Lower temperature for consistent naming
-        maxTokens: 512,
+        maxOutputTokens: 512,
       },
     },
   },
