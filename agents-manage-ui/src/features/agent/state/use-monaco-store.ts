@@ -90,16 +90,12 @@ export const monacoStore = create<MonacoState>()(
                 endColumn: position.column,
               });
 
-              console.log('Completion triggered:', { textUntilPosition, position });
-
               // Check if we're inside a template variable (after {)
               const match = textUntilPosition.match(/\{([^}]*)$/);
               if (!match) {
                 console.log('No template variable match found');
                 return { suggestions: [] };
               }
-
-              console.log('Template variable match:', match);
 
               const query = match[1].toLowerCase();
               const filteredSuggestions = variableSuggestions.filter((suggestion) =>

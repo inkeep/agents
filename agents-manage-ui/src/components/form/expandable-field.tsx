@@ -50,7 +50,7 @@ export function ExpandableField({
                 variant="link"
                 size="sm"
                 type="button"
-                className="absolute bottom-1 start-1 text-xs rounded-sm h-6"
+                className="absolute bottom-1 start-1.5 text-xs rounded-sm h-6"
               >
                 <Maximize className="size-2.5" />
                 Expand

@@ -117,6 +117,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         '\u00A0'.repeat(substring.length)
       ),
       fontSize: 12,
+      lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
       ...editorOptions,
     });
     editorRef.current = editorInstance;
@@ -197,7 +198,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-6.5 py-3'
+        !monaco && 'px-3 py-3'
       )}
       {...props}
       ref={containerRef}
