@@ -696,8 +696,7 @@ function Flow({
   useEffect(() => {
     const onDataOperation: EventListenerOrEventListenerObject = (event) => {
       // @ts-expect-error -- improve types
-      const { conversationId, timestamp, ...data } = event.detail;
-      console.log('Data operation:', data);
+      const data = event.detail;
 
       switch (data.type) {
         case 'agent_initializing': {

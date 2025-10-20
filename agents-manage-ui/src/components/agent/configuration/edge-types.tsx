@@ -12,6 +12,8 @@ export enum A2AEdgeType {
 export enum EdgeType {
   A2A = 'a2a',
   A2AExternal = 'a2a-external',
+  // Built-in 'default' edges ignore the `data` prop.
+  // Use a custom edge type instead to access `data` in rendering.
   Default = 'custom',
   SelfLoop = 'self-loop',
 }
