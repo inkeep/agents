@@ -21,7 +21,7 @@ async function ProjectsPage({ params }: { params: Promise<{ tenantId: string }> 
   }
 
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Projects' }]}>
+    <BodyTemplate>
       <MainContent className="min-h-full">
         {projects.data.length > 0 ? (
           <>
