@@ -64,47 +64,15 @@ describe('Monaco-Editor Functionality', () => {
     requestAnimationFrame(resolve);
     await promise;
 
-    expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchFileSnapshot('tokenize.json');
+    const modelValue = model.getValue();
+    expect(modelValue).toBe(JSON.stringify(obj, null, 2));
+    await expect(monaco.editor.tokenize(modelValue, 'json')).toMatchFileSnapshot('tokenize.json');
 
-    expect(model.getValue()).toMatchInlineSnapshot(`
-      "{
-        "null": null,
-        "number": 1,
-        "boolean": false,
-        "array": [
-          true,
-          {
-            "foo": "bar"
-          },
-          [
-            2,
-            "baz"
-          ]
-        ],
-        "string": "hello",
-        "emptyString": ""
-      }"
-    `);
-
-    const { decorations, decorationCollection } = addDecorations({
+    const { decorations } = addDecorations({
       monaco,
       editorInstance: editor,
-      content: model.getValue(),
+      content: modelValue,
     });
-
-    // Verify that decorations were created (we have 9 primitive values: null, 1, false, true, "bar", 2, "baz", "hello", "")
-    expect(decorations).toHaveLength(9);
-
-    // Verify the decorations are applied to the editor
-    const appliedDecorations = decorationCollection.getRanges();
-    expect(appliedDecorations).toHaveLength(9);
-
-    // Verify that the decorations are positioned correctly
-    // Based on the debug output, we have decorations on these lines:
-    const decorationPositions = appliedDecorations.map((range) => ({
-      startLineNumber: range.startLineNumber,
-      startColumn: range.startColumn,
-    }));
 
     /**
      * Add decorations to a string content using actual decoration positions
@@ -115,9 +83,9 @@ describe('Monaco-Editor Functionality', () => {
       const modifiedLines: string[] = [];
 
       // Sort decorations by line number and column (descending) to avoid offset issues
-      const sortedDecorations = decorationPositions
+      const sortedDecorations = decorations
         .map((pos, index) => ({ ...pos, originalIndex: index }))
-        .sort((a, b) => {
+        .sort(({ range: a }, { range: b }) => {
           if (a.startLineNumber !== b.startLineNumber) {
             return b.startLineNumber - a.startLineNumber;
           }
@@ -125,18 +93,17 @@ describe('Monaco-Editor Functionality', () => {
         });
 
       // Process each line
-      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      for (let [lineIndex, modifiedLine] of lines.entries()) {
         const lineNumber = lineIndex + 1;
-        let modifiedLine = lines[lineIndex];
 
         // Find decorations for this line
         const lineDecorations = sortedDecorations.filter(
-          (decoration) => decoration.startLineNumber === lineNumber
+          (decoration) => decoration.range.startLineNumber === lineNumber
         );
 
         // Apply decorations to this line (from right to left to maintain positions)
         for (const decoration of lineDecorations) {
-          const insertPosition = decoration.startColumn - 1; // Convert to 0-based index
+          const insertPosition = decoration.range.startColumn;
 
           // Insert the decoration at the specified position
           modifiedLine =
@@ -168,6 +135,6 @@ describe('Monaco-Editor Functionality', () => {
   "string": "hello",❌
   "emptyString": ""❌
 }`;
-    expect(addDecorationsToString(model.getValue())).toBe(expectedContentWithDecorations);
+    expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });
 });

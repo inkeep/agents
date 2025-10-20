@@ -40,6 +40,23 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
   >;
 }
 
+/**
+ * Provided a duration and a function, returns a new function which is called
+ * `duration` milliseconds after the last call.
+ */
+export function debounce<F extends (...args: any[]) => any>(duration: number, fn: F) {
+  let timeout = 0;
+  return (...args: [...any]) => {
+    if (timeout) {
+      window.clearTimeout(timeout);
+    }
+    timeout = window.setTimeout(() => {
+      timeout = 0;
+      fn(...args);
+    }, duration);
+  };
+}
+
 export const MonacoEditor: FC<MonacoEditorProps> = ({
   ref,
   value = '',
@@ -184,8 +201,10 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         }
         // Update height based on content
         let contentHeight = editorInstance.getContentHeight();
+        const currentValue = model.getValue();
+        console.log([currentValue]);
         // If there's no content but there's a placeholder, calculate height based on placeholder
-        if (!model.getValue() && placeholder) {
+        if (!currentValue && placeholder) {
           const lines = placeholder.split('\n');
           const lineHeight = editorInstance.getOption(editor.EditorOption.lineHeight);
           const { top, bottom } = editorInstance.getOption(editor.EditorOption.padding);
