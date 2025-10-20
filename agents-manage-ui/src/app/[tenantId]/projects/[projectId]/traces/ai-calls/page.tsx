@@ -7,11 +7,8 @@ import { AICallsBreakdown } from '@/components/traces/ai-calls-breakdown';
 
 export default function AICallsPage() {
   const router = useRouter();
-  const params = useParams();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const searchParams = useSearchParams();
-
-  const tenantId = params.tenantId as string;
-  const projectId = params.projectId as string;
 
   const handleBackToTraces = () => {
     // Preserve the current search params when going back to traces
