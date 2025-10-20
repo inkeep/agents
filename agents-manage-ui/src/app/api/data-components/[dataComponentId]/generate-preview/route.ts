@@ -34,6 +34,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error');
+      console.error('Management API returned error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        url,
+      });
       return new Response('Failed to generate preview', { status: response.status });
     }
 
