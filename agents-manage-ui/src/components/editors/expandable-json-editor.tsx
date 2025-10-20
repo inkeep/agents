@@ -97,6 +97,7 @@ export function ExpandableJsonEditor({
     onChange,
     placeholder,
     'aria-invalid': !!error,
+    uri: `${name}.json` as const,
   };
 
   return (

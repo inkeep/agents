@@ -116,8 +116,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       placeholder: placeholder.replaceAll(/^\s+/gm, (substring) =>
         '\u00A0'.repeat(substring.length)
       ),
+      fontSize: 12,
       ...editorOptions,
-      fontSize: editorOptions.fontSize ?? 12,
     });
     editorRef.current = editorInstance;
 
@@ -188,7 +188,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className={cn(
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
@@ -201,11 +200,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         !monaco && 'px-6.5 py-3'
       )}
       {...props}
+      ref={containerRef}
     >
       {!monaco && (
         <>
           <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/5 mt-3 mb-6" />
+          <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
         </>
       )}
       {children}

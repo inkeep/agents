@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 
 interface ExpandableFieldProps {
   name: string;
@@ -30,6 +31,7 @@ export function ExpandableField({
   actions,
   isRequired = false,
 }: ExpandableFieldProps) {
+  const hasMonaco = useMonacoStore((state) => !!state.monaco);
   return (
     <Dialog>
       <div className="space-y-2">
@@ -42,17 +44,19 @@ export function ExpandableField({
         </div>
         <div className="relative">
           {compactView}
-          <DialogTrigger asChild>
-            <Button
-              variant="link"
-              size="sm"
-              type="button"
-              className="absolute bottom-1 start-1 text-xs rounded-sm h-6"
-            >
-              <Maximize className="size-2.5" />
-              Expand
-            </Button>
-          </DialogTrigger>
+          {hasMonaco && (
+            <DialogTrigger asChild>
+              <Button
+                variant="link"
+                size="sm"
+                type="button"
+                className="absolute bottom-1 start-1 text-xs rounded-sm h-6"
+              >
+                <Maximize className="size-2.5" />
+                Expand
+              </Button>
+            </DialogTrigger>
+          )}
         </div>
       </div>
 

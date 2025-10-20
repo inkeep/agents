@@ -4,7 +4,7 @@ import { Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
-import { CodeEditor } from '@/components/form/code-editor';
+import { CodeEditor } from '@/components/editors/code-editor';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -304,7 +304,6 @@ export function ComponentPreviewGenerator({
                 setPreview(updatedPreview);
                 onPreviewChanged?.(updatedPreview);
               }}
-              language="jsx"
               className="max-h-[500px]"
             />
           </TabsContent>

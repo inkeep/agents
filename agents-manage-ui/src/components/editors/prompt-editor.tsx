@@ -125,17 +125,18 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
       }}
       {...props}
     >
-      <Button
-        size="sm"
-        variant="link"
-        className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
-        type="button"
-        disabled={!(editor && monaco)}
-        onClick={handleAddVariable}
-      >
-        <Braces className="size-2.5" />
-        {variablesText}
-      </Button>
+      {editor && monaco && (
+        <Button
+          size="sm"
+          variant="link"
+          className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
+          type="button"
+          onClick={handleAddVariable}
+        >
+          <Braces className="size-2.5" />
+          {variablesText}
+        </Button>
+      )}
     </MonacoEditor>
   );
 };
