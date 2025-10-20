@@ -111,7 +111,6 @@ export function ExpandableJsonEditor({
           <JsonEditor
             {...commonProps}
             editorOptions={{
-              fontSize: 14,
               padding: {
                 top: 12,
                 bottom: 36,
