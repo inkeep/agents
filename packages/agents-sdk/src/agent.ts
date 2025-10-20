@@ -218,7 +218,6 @@ export class Agent implements AgentInterface {
       }
 
       const subAgentExternalAgents = subAgent.getExternalAgentDelegates();
-      logger.info({ subAgentExternalAgents }, 'Sub agent external agents -- agent');
       for (const externalAgentDelegate of subAgentExternalAgents) {
         const externalAgent = externalAgentDelegate.externalAgent;
         externalAgentsObject[externalAgent.getId()] = {

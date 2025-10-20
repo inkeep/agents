@@ -816,7 +816,6 @@ export class Project implements ProjectInterface {
 
         // Collect external agents from this agent
         const subAgentExternalAgents = subAgent.getExternalAgentDelegates();
-        logger.info({ subAgentExternalAgents }, 'Sub agent external agents');
         if (subAgentExternalAgents) {
           for (const externalAgentDelegate of subAgentExternalAgents) {
             const externalAgent = externalAgentDelegate.externalAgent;
