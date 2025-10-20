@@ -32,7 +32,7 @@ Examples platforms that expose Agents in A2A-format:
 Every external agent needs a unique identifier, name, description, base URL for A2A communication, and optional authentication configuration:
 
 ```typescript
-import { externalAgent } from "@inkeep/agents-manage-api/builders";
+import { externalAgent } from "@inkeep/agents-sdk";
 
 const technicalSupportAgent = externalAgent({
   id: "technical-support-agent",
@@ -47,7 +47,7 @@ const technicalSupportAgent = externalAgent({
 Agents can be configured to delegate tasks to external agents.
 
 ```typescript
-import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
+import { subAgent, agent } from "@inkeep/agents-sdk";
 
 // Define the customer support sub-agent with delegation capabilities
 const supportSubAgent = subAgent({
