@@ -16,13 +16,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
+    const baseUrl = process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
     const url = `${baseUrl}/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
+          Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
+        }),
       },
       body: JSON.stringify({
         instructions: instructions || undefined,
