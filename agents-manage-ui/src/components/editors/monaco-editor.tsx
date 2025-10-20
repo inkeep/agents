@@ -35,7 +35,7 @@ interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
 
 export const MonacoEditor: FC<MonacoEditorProps> = ({
   value = '',
-  uri: $uri,
+  uri,
   readOnly,
   children,
   className,
@@ -79,14 +79,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     if (!container || !monaco) {
       return;
     }
-    const { Uri, editor } = monaco;
-    const uri = Uri.file($uri);
-    const language = uri.path.split('.').at(-1);
-    const model = getOrCreateModel({
-      monaco,
-      uri: $uri,
-      value,
-    });
+    const { editor } = monaco;
+    const { model, language } = getOrCreateModel({ monaco, uri, value });
 
     const editorInstance = editor.create(container, {
       model,

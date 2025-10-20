@@ -76,14 +76,27 @@ export function getOrCreateModel({
   uri: string;
   value: string;
   monaco: typeof Monaco;
-}) {
+}): { model: Monaco.editor.ITextModel; language: string } {
   const uri = monaco.Uri.file($uri);
-  const language = uri.path.split('.').at(-1);
+  let language = uri.path.split('.').at(-1);
   if (!language) {
     throw new Error(`Could not determine file language from path: "${uri.path}"`);
   }
+  switch (language) {
+    case 'js':
+    case 'jsx':
+      language = 'javascript';
+      break;
+    case 'ts':
+    case 'tsx':
+      language = 'typescript';
+      break;
+  }
   const model = monaco.editor.getModel(uri);
-  return model ?? monaco.editor.createModel(value, language, uri);
+  return {
+    language,
+    model: model ?? monaco.editor.createModel(value, language, uri),
+  };
 }
 
 /**

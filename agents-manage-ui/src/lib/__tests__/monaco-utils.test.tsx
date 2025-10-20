@@ -31,7 +31,7 @@ describe('Monaco-Editor Functionality', () => {
       monaco,
       uri: 'test.json',
       value: JSON.stringify(obj, null, 2),
-    });
+    }).model;
 
     // Create Monaco editor
     editor = monaco.editor.create(container, {
