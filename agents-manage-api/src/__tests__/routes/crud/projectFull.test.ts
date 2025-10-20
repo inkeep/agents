@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { createTestToolData } from '../../utils/testHelpers';
 import { makeRequest } from '../../utils/testRequest';
@@ -31,9 +31,9 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
   // Helper function to create full project definition
   const createTestProjectDefinition = (projectId: string, suffix = '') => {
-    const subAgentId = `agent-${nanoid()}`;
-    const toolId = `tool-${nanoid()}`;
-    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${generateId()}`;
+    const toolId = `tool-${generateId()}`;
+    const agentId = `agent-${generateId()}`;
 
     return {
       id: projectId,
@@ -63,7 +63,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('POST /project-full', () => {
     it('should create a full project with all nested resources', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       const response = await makeRequest(`/tenants/${tenantId}/project-full`, {
@@ -86,7 +86,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should handle minimal project definition', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const minimalProject = {
         id: projectId,
         name: 'Minimal Project',
@@ -117,7 +117,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should return 409 when project already exists', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -173,7 +173,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('GET /project-full/{projectId}', () => {
     it('should retrieve a full project definition', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -201,7 +201,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should return 404 for non-existent project', async () => {
       const tenantId = createTestTenantId();
-      const nonExistentId = `project-${nanoid()}`;
+      const nonExistentId = `project-${generateId()}`;
 
       const response = await makeRequest(`/tenants/${tenantId}/project-full/${nonExistentId}`, {
         method: 'GET',
@@ -217,7 +217,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('PUT /project-full/{projectId}', () => {
     it('should update an existing project', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const originalDefinition = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -249,7 +249,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should create project if it does not exist (upsert behavior)', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       // Try to update a non-existent project
@@ -269,8 +269,8 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should validate project ID matches URL parameter', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
-      const differentProjectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
+      const differentProjectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(differentProjectId);
 
       const response = await makeRequest(`/tenants/${tenantId}/project-full/${projectId}`, {
@@ -287,7 +287,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should delete agents that are removed from the project definition', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const projectId = `project-${generateId()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 3 agents and 3 tools
       const agent1Id = `agent-${projectId}-1`;
@@ -368,7 +368,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should handle removing all agents from a project', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const projectId = `project-${generateId()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a project with 2 agents and 2 tools
       const agent1Id = `agent-${projectId}-1`;
@@ -424,7 +424,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('DELETE /project-full/{projectId}', () => {
     it('should delete a project and all its resources', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}`;
+      const projectId = `project-${generateId()}`;
       const projectDefinition = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -452,7 +452,7 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
 
     it('should return 404 when trying to delete non-existent project', async () => {
       const tenantId = createTestTenantId();
-      const nonExistentId = `project-${nanoid()}`;
+      const nonExistentId = `project-${generateId()}`;
 
       const response = await makeRequest(`/tenants/${tenantId}/project-full/${nonExistentId}`, {
         method: 'DELETE',
@@ -468,15 +468,15 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
   describe('Project with Complex Agent Structure', () => {
     it('should handle project with multiple agents and complex relationships', async () => {
       const tenantId = createTestTenantId();
-      const projectId = `project-${nanoid()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const projectId = `project-${generateId()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       // Create a more complex project with multiple agents
-      const subAgent1Id = `sub-agent-${nanoid()}`;
-      const subAgent2Id = `sub-agent-${nanoid()}`;
-      const tool1Id = `tool-${nanoid()}`;
-      const tool2Id = `tool-${nanoid()}`;
-      const agent1Id = `agent-${nanoid()}`;
-      const agent2Id = `agent-${nanoid()}`;
+      const subAgent1Id = `sub-agent-${generateId()}`;
+      const subAgent2Id = `sub-agent-${generateId()}`;
+      const tool1Id = `tool-${generateId()}`;
+      const tool2Id = `tool-${generateId()}`;
+      const agent1Id = `agent-${generateId()}`;
+      const agent2Id = `agent-${generateId()}`;
 
       const complexProject = {
         id: projectId,
