@@ -302,14 +302,14 @@ describe('Agent Relations Data Access', () => {
 
   describe('getRelatedAgentsForAgent', () => {
     it('should get internal related agents', async () => {
-      const internalRelations = [
+      const data = [
         { id: 'agent-2', name: 'Agent 2', description: 'Internal agent', relationType: 'transfer' },
       ];
 
       const mockSelect = vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(internalRelations),
+            where: vi.fn().mockResolvedValue(data),
           }),
         }),
       });
@@ -329,7 +329,7 @@ describe('Agent Relations Data Access', () => {
       });
 
       expect(result).toEqual({
-        internalRelations,
+        data,
       });
     });
   });

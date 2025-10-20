@@ -1,6 +1,12 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../db/schema';
+import {
+  dataComponents,
+  subAgentRelations,
+  subAgents,
+  subAgentToolRelations,
+  tools,
+} from '../db/schema';
 import type {
   SubAgentRelationInsert,
   SubAgentRelationUpdate,
@@ -152,7 +158,7 @@ export const getSubAgentRelationsByTarget =
 
 export const getRelatedAgentsForAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
-    const internalRelations = await db
+    const data = await db
       .select({
         id: subAgents.id,
         name: subAgents.name,
@@ -180,7 +186,7 @@ export const getRelatedAgentsForAgent =
       );
 
     return {
-      internalRelations,
+      data,
     };
   };
 
