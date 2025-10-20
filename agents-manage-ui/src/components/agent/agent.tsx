@@ -295,9 +295,11 @@ function Flow({
   }, []);
 
   // Auto-center agent when sidepane opens/closes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on isOpen changes
   useEffect(() => {
     // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
+    if (isOpen) {
+      return;
+    }
     const timer = setTimeout(() => {
       fitView({ maxZoom: 1, duration: 200 });
     }, 350);
@@ -863,13 +865,18 @@ function Flow({
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
     (_, node) => {
-      fitView({
-        maxZoom: 0.9,
-        duration: 300,
-        nodes: [node],
-      });
+      if (isOpen) {
+        return;
+      }
+      setTimeout(() => {
+        fitView({
+          maxZoom: 1,
+          duration: 200,
+          nodes: [node],
+        });
+      }, 350);
     },
-    [fitView]
+    [fitView, isOpen]
   );
 
   return (
