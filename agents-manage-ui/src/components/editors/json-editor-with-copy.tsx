@@ -1,7 +1,7 @@
 import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
 import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import type * as monaco from 'monaco-editor';
+import type * as Monaco from 'monaco-editor';
 import { JsonEditor } from './json-editor';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import './json-editor-with-copy.css';
 
 const handleCopyFieldValue =
-  (model: monaco.editor.IModel) => async (e: monaco.editor.IEditorMouseEvent) => {
+  (model: Monaco.editor.IModel) => async (e: Monaco.editor.IEditorMouseEvent) => {
     if (model.isDisposed()) {
       return;
     }
@@ -44,7 +44,7 @@ type JsonEditorWithCopyProps = Pick<ComponentProps<typeof JsonEditor>, 'uri' | '
 };
 
 export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, value }) => {
-  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>();
+  const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
   const handleCopyCode = useCallback(async () => {
     const code = editor?.getValue() ?? '';
