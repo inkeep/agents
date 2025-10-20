@@ -1,5 +1,5 @@
 import type { LucideProps } from 'lucide-react';
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 
 const defaultAttributes = {
   fill: 'none',
@@ -15,36 +15,28 @@ const defaultAttributes = {
 
 export type IconComponentProps = LucideProps;
 
-export const SvgIcon = forwardRef<SVGSVGElement, IconComponentProps>(
-  (
-    {
-      color = 'currentColor',
-      size = 24,
-      strokeWidth = 2,
-      absoluteStrokeWidth,
-      className = '',
-      children,
-      ...rest
-    },
-    ref
-  ) => (
-    <svg
-      role="img"
-      aria-label="SVG Icon"
-      ref={ref}
-      {...defaultAttributes}
-      className={className}
-      height={size}
-      stroke={color}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={absoluteStrokeWidth ? (Number(strokeWidth) * 24) / Number(size) : strokeWidth}
-      width={size}
-      {...rest}
-    >
-      {children}
-    </svg>
-  )
+export const SvgIcon: FC<IconComponentProps> = ({
+  color = 'currentColor',
+  size = 24,
+  strokeWidth = 2,
+  absoluteStrokeWidth,
+  className = '',
+  children,
+  ...props
+}) => (
+  <svg
+    role="img"
+    aria-label="SVG Icon"
+    {...defaultAttributes}
+    className={className}
+    height={size}
+    stroke={color}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={absoluteStrokeWidth ? (Number(strokeWidth) * 24) / Number(size) : strokeWidth}
+    width={size}
+    {...props}
+  >
+    {children}
+  </svg>
 );
-
-SvgIcon.displayName = 'SvgIcon';
