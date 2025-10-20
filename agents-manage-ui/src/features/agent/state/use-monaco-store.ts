@@ -17,6 +17,9 @@ interface MonacoStateData {
 
 interface MonacoActions {
   setMonacoTheme: (isDark: boolean) => void;
+  /**
+   * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
+   */
   setMonaco: (isDark: boolean) => Promise<Monaco.IDisposable[]>;
   setVariableSuggestions: (variableSuggestions: string[]) => void;
 }

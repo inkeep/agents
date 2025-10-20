@@ -39,7 +39,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `isDark`
   useEffect(() => {
     let disposables: IDisposable[] = [];
-    // Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
     setMonaco(isDark).then(($disposables) => {
       disposables = $disposables;
     });
