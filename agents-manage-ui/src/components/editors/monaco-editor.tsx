@@ -184,7 +184,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         // Update height based on content
         let contentHeight = editorInstance.getContentHeight();
         const currentValue = model.getValue();
-        console.log([currentValue]);
         // If there's no content but there's a placeholder, calculate height based on placeholder
         if (!currentValue && placeholder) {
           const lines = placeholder.split('\n');
