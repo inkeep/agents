@@ -887,15 +887,15 @@ REQUIREMENTS:
 6. CRITICAL: Use template literals with backticks for all STRING values (url, description, etc.)
 
 CREDENTIAL HANDLING (CRITICAL):
-If the tool data includes credential information, you MUST:
-1. Import { envSettings } from '../environments'
-2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the tool definition
+If the external agent data includes credential information, you MUST:
+1. Import { envSettings } from '../environments/index'
+2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the external agent definition
 3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
 
   Example for external agent with credential:
   \`\`\`typescript
   import { externalAgent } from '@inkeep/agents-sdk';
-  import { envSettings } from '../environments';
+  import { envSettings } from '../environments/index';
 
   export const externalHelper = externalAgent({
     id: 'external-helper',

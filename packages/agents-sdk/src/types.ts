@@ -3,7 +3,6 @@ import type {
   AgentStopWhen,
   ArtifactComponentApiInsert,
   CredentialReferenceApiInsert,
-  CredentialReferenceSelect,
   DataComponentApiInsert,
   FullAgentDefinition,
   McpTransportConfig,
@@ -310,7 +309,7 @@ export interface ExternalAgentInterface {
   getBaseUrl(): string;
   setContext?(tenantId: string, projectId: string): void;
   getCredentialReferenceId(): string | undefined;
-  getCredentialReference(): CredentialReferenceSelect | undefined;
+  getCredentialReference(): CredentialReferenceApiInsert | undefined;
 }
 
 export type subAgentExternalAgentInterface = {

@@ -205,8 +205,6 @@ export function createDelegateToAgentTool({
             storeReference,
             headers: delegateConfig.config.headers || undefined,
           });
-
-          logger.info({ resolvedHeaders }, 'resolvedHeaders');
         }
       } else {
         resolvedHeaders = {

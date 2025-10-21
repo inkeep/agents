@@ -1,4 +1,4 @@
-import type { CredentialReferenceSelect } from '@inkeep/agents-core';
+import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
 import type { ExternalAgentInterface, subAgentExternalAgentInterface } from './types';
 
@@ -10,7 +10,7 @@ export type ExternalAgentConfig = {
   name: string;
   description: string;
   baseUrl: string;
-  credentialReference?: CredentialReferenceSelect;
+  credentialReference?: CredentialReferenceApiInsert;
 };
 
 export class ExternalAgent implements ExternalAgentInterface {
@@ -197,7 +197,7 @@ export class ExternalAgent implements ExternalAgentInterface {
     return this.config.credentialReference?.id || undefined;
   }
 
-  getCredentialReference(): CredentialReferenceSelect | undefined {
+  getCredentialReference(): CredentialReferenceApiInsert | undefined {
     return this.config.credentialReference || undefined;
   }
 }
