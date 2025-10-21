@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+  - @inkeep/agents-manage-api@0.24.1
+  - @inkeep/agents-run-api@0.24.1
+
 ## 0.24.0
 
 ### Minor Changes
