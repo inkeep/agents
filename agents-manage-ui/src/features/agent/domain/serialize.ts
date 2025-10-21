@@ -458,9 +458,18 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
+  if (!data.defaultSubAgentId) {
+    errors.push({
+      message: 'Default sub agent ID is required, please select a default sub agent.',
+      field: 'defaultSubAgentId',
+      code: 'required',
+      path: ['defaultSubAgentId'],
+    });
+  }
+
   if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents.`,
+      message: `Default sub agent ID '${data.defaultSubAgentId}' not found in sub agents.`,
       field: 'defaultSubAgentId',
       code: 'invalid_reference',
       path: ['defaultSubAgentId'],
