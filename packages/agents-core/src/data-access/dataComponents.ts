@@ -1,6 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { generateId } from '../utils/conversations';
 import { dataComponents, subAgentDataComponents } from '../db/schema';
 import type {
   DataComponentInsert,
@@ -249,7 +249,7 @@ export const associateDataComponentWithAgent =
     const association = await db
       .insert(subAgentDataComponents)
       .values({
-        id: nanoid(),
+        id: generateId(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         agentId: params.scopes.agentId,

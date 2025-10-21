@@ -2,6 +2,7 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
+  generateId,
   getAgentById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
@@ -13,7 +14,6 @@ import {
   type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
@@ -390,7 +390,7 @@ export const createTaskHandler = (
                 },
                 artifacts: [
                   {
-                    artifactId: nanoid(),
+                    artifactId: generateId(),
                     parts: [
                       {
                         kind: 'data',
@@ -425,7 +425,7 @@ export const createTaskHandler = (
         status: { state: TaskState.Completed },
         artifacts: [
           {
-            artifactId: nanoid(),
+            artifactId: generateId(),
             parts,
           },
         ],

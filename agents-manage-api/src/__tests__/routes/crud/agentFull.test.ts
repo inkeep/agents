@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { createTestContextConfigDataFull, createTestToolData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
@@ -44,7 +44,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     tenantId?: string,
     projectIdParam?: string
   ) => {
-    const id = agentId || nanoid();
+    const id = agentId || generateId();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
     const toolId1 = `tool-${id}-1`;
@@ -189,8 +189,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle agent with no relationships', async () => {
       const tenantId = createTestTenantId('agent-no-relations');
       await ensureTestProject(tenantId, projectId);
-      const subAgentId = nanoid();
-      const agentId = nanoid();
+      const subAgentId = generateId();
+      const agentId = generateId();
 
       const agentData = {
         id: agentId,
@@ -243,7 +243,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('agent-model-field');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
 
@@ -316,7 +316,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('agent-provider-options');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
 
@@ -431,7 +431,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${nonExistentId}`,
@@ -508,7 +508,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-id-mismatch');
       await ensureTestProject(tenantId, projectId);
       const agentData = createFullAgentData();
-      const differentId = nanoid();
+      const differentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${differentId}`,
@@ -718,7 +718,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${nonExistentId}`,
@@ -736,7 +736,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
       const tenantId = createTestTenantId('agent-multi-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const tool1Id = `tool-${agentId}-1`;
       const tool2Id = `tool-${agentId}-2`;
@@ -782,7 +782,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle circular agent relationships', async () => {
       const tenantId = createTestTenantId('agent-circular');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const agent1Id = `agent-${agentId}-1`;
       const agent2Id = `agent-${agentId}-2`;
 
@@ -823,7 +823,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle large agent with many agents', async () => {
       const tenantId = createTestTenantId('agent-large');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const agentCount = 10;
 
       const agents: Record<string, any> = {};
@@ -1449,7 +1449,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
       const tenantId = createTestTenantId('minimal-tool-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1526,7 +1526,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should include all read-only tool fields in agent response', async () => {
       const tenantId = createTestTenantId('agent-tool-full-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1636,7 +1636,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle tools with populated availableTools field', async () => {
       const tenantId = createTestTenantId('agent-tool-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1705,7 +1705,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle multiple tools with different status values', async () => {
       const tenantId = createTestTenantId('agent-tool-statuses');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const healthyToolId = `healthy-tool-${agentId}`;
       const unhealthyToolId = `unhealthy-tool-${agentId}`;
@@ -1783,7 +1783,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle tools with capabilities field', async () => {
       const tenantId = createTestTenantId('agent-tool-capabilities');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1875,7 +1875,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle empty availableTools array', async () => {
       const tenantId = createTestTenantId('agent-empty-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1924,7 +1924,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should validate tool schema properly with all optional fields', async () => {
       const tenantId = createTestTenantId('agent-tool-optional-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 

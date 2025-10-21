@@ -16,8 +16,8 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateExternalAgent,
+  generateId,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -149,7 +149,7 @@ app.openapi(
       tenantId,
       projectId,
       agentId,
-      id: body.id ? String(body.id) : nanoid(),
+      id: body.id ? String(body.id) : generateId(),
       name: body.name,
       description: body.description,
       baseUrl: body.baseUrl,
