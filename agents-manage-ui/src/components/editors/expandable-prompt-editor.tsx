@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import type { ComponentProps } from 'react';
+import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor>;
 
@@ -61,7 +62,12 @@ export function ExpandablePromptEditor({
         </Button>
       }
     >
-      <PromptEditor uri={`${open}-${props.id}.template`} hasDynamicHeight={!open} {...props} />
+      <PromptEditor
+        uri={`${open}-${props.id}.template`}
+        hasDynamicHeight={!open}
+        className={cn(!open && 'max-h-96', className)}
+        {...props}
+      />
     </ExpandableField>
   );
 }

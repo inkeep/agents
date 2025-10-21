@@ -43,11 +43,10 @@ export function ExpandableField({
           {label}
           {isRequired && <span className="text-red-500">*</span>}
         </Label>
-        {/*{actions && <div className="flex gap-2">{actions}</div>}*/}
       </div>
       <div className={cn('relative', open && 'grow')}>
         {children}
-        <div className="bg-background dark:bg-input/30 absolute p-1.5 inset-x-px bottom-px rounded-b-md flex justify-end">
+        <div className="bg-zinc-50 dark:bg-zinc-800 border-t border-border p-1 absolute inset-x-px bottom-px rounded-b-md flex justify-end">
           {actions}
           <DialogTrigger asChild>
             <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">

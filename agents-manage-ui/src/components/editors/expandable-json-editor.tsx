@@ -83,9 +83,9 @@ export function ExpandableJsonEditor({
       type="button"
       onClick={handleFormat}
       disabled={!canFormat}
-      variant="outline"
+      variant="link"
       size="sm"
-      className="h-6 px-2 text-xs rounded-sm"
+      className="text-xs rounded-sm h-6"
     >
       Format
     </Button>
