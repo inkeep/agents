@@ -1,5 +1,5 @@
 import type { CredentialStoreType } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 
 /**
  * Creates test data for a tool (MCP-based).
@@ -136,7 +136,7 @@ export function createTestContextConfigDataFull({
   agentId?: string;
 } = {}) {
   const configId =
-    id || `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+    id || `test-context-config${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`;
   return {
     id: configId,
     // Note: tenantId, projectId, agentId, name, and description are NOT part of context config schema
@@ -147,7 +147,12 @@ export function createTestContextConfigDataFull({
         userId: { type: 'string', description: 'User identifier' },
         sessionToken: { type: 'string', description: 'Session token' },
         ...(suffix
-          ? { [`param${suffix.replace(/\s+/g, '')}`]: { type: 'string', description: `Test parameter${suffix}` } }
+          ? {
+              [`param${suffix.replace(/\s+/g, '')}`]: {
+                type: 'string',
+                description: `Test parameter${suffix}`,
+              },
+            }
           : {}),
       },
       required: ['userId'],
@@ -221,7 +226,8 @@ export function createTestArtifactComponentData(id: string, suffix = '') {
  * ```
  */
 export function createTestProjectData({ id, suffix = '' }: { id?: string; suffix?: string } = {}) {
-  const projectId = id || `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
+  const projectId =
+    id || `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`;
   return {
     id: projectId,
     name: `Test Project${suffix}`,
@@ -263,8 +269,8 @@ export function createTestCredentialData({
     name: `Test Credential${suffix}`,
     description: `Test credential description${suffix}`,
     provider: 'google',
-    connectionId: `conn-${nanoid()}`,
-    integrationId: `int-${nanoid()}`,
+    connectionId: `conn-${generateId()}`,
+    integrationId: `int-${generateId()}`,
   };
 }
 
@@ -288,7 +294,7 @@ export function createTestAgentData({
   id?: string;
   defaultSubAgentId?: string | null;
 } = {}) {
-  const agentId = id || nanoid();
+  const agentId = id || generateId();
   return {
     id: agentId,
     name: `Test Agent ${agentId}`,
@@ -333,7 +339,7 @@ export function createTestAgentToolRelationData({
   headers?: Record<string, string> | null;
 }) {
   return {
-    id: id || nanoid(),
+    id: id || generateId(),
     agentId,
     subAgentId,
     toolId,

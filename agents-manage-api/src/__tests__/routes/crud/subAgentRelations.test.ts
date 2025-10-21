@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
@@ -72,8 +72,8 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
   const setupTestEnvironment = async (tenantId: string) => {
     // Create an agent first (without defaultSubAgentId since agents don't exist yet)
     const tempAgentData = {
-      id: nanoid(),
-      name: `Test Agent ${nanoid()}`,
+      id: generateId(),
+      name: `Test Agent ${generateId()}`,
       defaultSubAgentId: null,
       contextConfigId: null,
     };
@@ -161,7 +161,7 @@ describe('Agent Relation CRUD Routes - Integration Tests', () => {
       const { sourceSubAgentId, targetSubAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const invalidRelationData = {
-        id: nanoid(),
+        id: generateId(),
         agentId: agentId,
         sourceSubAgentId,
         targetSubAgentId,

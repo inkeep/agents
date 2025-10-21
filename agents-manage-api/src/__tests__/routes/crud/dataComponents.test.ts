@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
@@ -10,7 +10,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test data component data
   const createDataComponentData = ({ suffix = '' } = {}) => ({
-    id: `test-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
+    id: `test-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`,
     name: `TestComponent${suffix}`,
     description: `Test Description${suffix}`,
     props: {
@@ -339,13 +339,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const dataComponentData = createDataComponentData();
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/data-components`,
-        {
-          method: 'POST',
-          body: JSON.stringify(dataComponentData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
+        method: 'POST',
+        body: JSON.stringify(dataComponentData),
+      });
 
       expect(res.status).toBe(201);
 
@@ -364,15 +361,12 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-create-with-id');
       await ensureTestProject(tenantId, projectId);
       const dataComponentData = createDataComponentData();
-      const providedId = nanoid();
+      const providedId = generateId();
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/data-components`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ ...dataComponentData, id: providedId }),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
+        method: 'POST',
+        body: JSON.stringify({ ...dataComponentData, id: providedId }),
+      });
 
       expect(res.status).toBe(201);
 
@@ -397,13 +391,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = createTestTenantId('data-components-create-validation');
       await ensureTestProject(tenantId, projectId);
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/data-components`,
-        {
-          method: 'POST',
-          body: JSON.stringify({}),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
 
       expect(res.status).toBe(400);
     });
@@ -412,7 +403,7 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('data-components-create-complex-props');
       await ensureTestProject(tenantId, projectId);
       const complexDataComponentData = {
-        id: `complex-component-${nanoid(6)}`,
+        id: `complex-component-${generateId(6)}`,
         name: 'ComplexComponent',
         description: 'A complex data component with nested props',
         props: {
@@ -448,13 +439,10 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/data-components`,
-        {
-          method: 'POST',
-          body: JSON.stringify(complexDataComponentData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
+        method: 'POST',
+        body: JSON.stringify(complexDataComponentData),
+      });
 
       expect(res.status).toBe(201);
 

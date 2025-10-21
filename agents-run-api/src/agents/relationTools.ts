@@ -4,13 +4,13 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  generateId,
   getCredentialReference,
   getExternalAgent,
   SPAN_KEYS,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
-import { nanoid } from 'nanoid';
 import z from 'zod';
 import { A2AClient } from '../a2a/client';
 import { saveA2AMessageResponse } from '../data/conversations';
@@ -135,7 +135,7 @@ export function createDelegateToAgentTool({
     description: generateDelegateToolDescription(delegateConfig.config),
     inputSchema: z.object({ message: z.string() }),
     execute: async (input: { message: string }, context?: any) => {
-      const delegationId = `del_${nanoid()}`;
+      const delegationId = `del_${generateId()}`;
 
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
@@ -248,7 +248,7 @@ export function createDelegateToAgentTool({
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
-        messageId: nanoid(),
+        messageId: generateId(),
         kind: 'message' as const,
         contextId,
         metadata: {
@@ -263,7 +263,7 @@ export function createDelegateToAgentTool({
       logger.info({ messageToSend }, 'messageToSend');
 
       await createMessage(dbClient)({
-        id: nanoid(),
+        id: generateId(),
         tenantId: tenantId,
         projectId: projectId,
         conversationId: contextId,
