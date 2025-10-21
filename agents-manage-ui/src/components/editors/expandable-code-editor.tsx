@@ -46,29 +46,18 @@ export function ExpandableCodeEditor({
   };
 
   return (
-    <ExpandableField
-      name={name}
-      label={label}
-      className={className}
-      isRequired={isRequired}
-      compactView={
-        <>
-          <CodeEditor
-            {...commonProps}
-            editorOptions={{
-              padding: {
-                top: 12,
-                bottom: 36,
-              },
-            }}
-            className={cn(error && 'max-h-96 mb-6')}
-          />
-          {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
-        </>
-      }
-      expandedView={
-        <ExpandedCodeEditor {...commonProps} autoFocus hasDynamicHeight={false} error={error} />
-      }
-    />
+    <ExpandableField name={name} label={label} className={className} isRequired={isRequired}>
+      <CodeEditor
+        {...commonProps}
+        editorOptions={{
+          padding: {
+            top: 12,
+            bottom: 36,
+          },
+        }}
+        className={cn(error && 'max-h-96 mb-6')}
+      />
+      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+    </ExpandableField>
   );
 }
