@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- d8e9af2: - Add delete node button to sidepane
+- Updated dependencies [51c157e]
+  - @inkeep/agents-core@0.25.0
+  - @inkeep/agents-manage-api@0.25.0
+  - @inkeep/agents-run-api@0.25.0
+
 ## 0.24.2
 
 ### Patch Changes
