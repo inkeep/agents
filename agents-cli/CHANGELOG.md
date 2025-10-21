@@ -1,5 +1,22 @@
 # @inkeep/agents-cli
 
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- Updated dependencies [3ad959e]
+- Updated dependencies [ffe9033]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+- Updated dependencies [f536bba]
+- Updated dependencies [60d728b]
+- Updated dependencies [dd7b636]
+  - @inkeep/agents-core@0.24.2
+  - @inkeep/agents-manage-ui@0.24.2
+  - @inkeep/agents-sdk@0.24.2
+
 ## 0.24.1
 
 ### Patch Changes
