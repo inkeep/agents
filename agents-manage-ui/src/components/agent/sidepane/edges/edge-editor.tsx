@@ -1,9 +1,12 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
-import { Spline } from 'lucide-react';
+import { Spline, Trash2 } from 'lucide-react';
+import { useCallback } from 'react';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
@@ -76,7 +79,12 @@ interface EdgeEditorProps {
 }
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
-  const { updateEdgeData, setEdges } = useReactFlow();
+  const { updateEdgeData, setEdges, deleteElements } = useReactFlow();
+
+  const deleteEdge = useCallback(() => {
+    deleteElements({ edges: [{ id: selectedEdge.id }] });
+  }, [selectedEdge.id, deleteElements]);
+
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
   const { markUnsaved } = useAgentActions();
@@ -216,7 +224,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
               </Badge>{' '}
               can delegate to{' '}
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>
             </div>
           ),
@@ -242,6 +250,13 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         onCheckedChange={handleCheckboxChange}
         checkedValues={selectedEdge.data?.relationships as A2AEdgeData['relationships']}
       />
+      <Separator />
+      <div className="flex justify-end">
+        <Button variant="destructive-outline" size="sm" onClick={deleteEdge}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </div>
     </div>
   );
 }

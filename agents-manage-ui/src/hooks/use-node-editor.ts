@@ -9,8 +9,12 @@ interface UseNodeEditorOptions {
 }
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {
-  const { updateNodeData, setNodes } = useReactFlow();
+  const { updateNodeData, setNodes, deleteElements } = useReactFlow();
   const { markUnsaved } = useAgentActions();
+
+  const deleteNode = useCallback(() => {
+    deleteElements({ nodes: [{ id: selectedNodeId }] });
+  }, [selectedNodeId, deleteElements]);
 
   const updateDefaultSubAgent = useCallback(
     (isDefault: boolean) => {
@@ -144,6 +148,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
     updateNestedPath,
     handleInputChange,
     updateDefaultSubAgent,
+    deleteNode,
 
     // Error handling
     getFieldError,

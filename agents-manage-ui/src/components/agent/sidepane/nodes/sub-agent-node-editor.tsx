@@ -1,6 +1,8 @@
 import type { Node } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
@@ -70,11 +72,17 @@ export function SubAgentNodeEditor({
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
-  const { updatePath, updateNestedPath, getFieldError, setFieldRef, updateDefaultSubAgent } =
-    useNodeEditor({
-      selectedNodeId: selectedNode.id,
-      errorHelpers,
-    });
+  const {
+    updatePath,
+    updateNestedPath,
+    getFieldError,
+    setFieldRef,
+    updateDefaultSubAgent,
+    deleteNode,
+  } = useNodeEditor({
+    selectedNodeId: selectedNode.id,
+    errorHelpers,
+  });
 
   const updateModelPath = useCallback(
     (path: string, value: any) => {
@@ -243,6 +251,17 @@ export function SubAgentNodeEditor({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
       />
+      {!isDefaultSubAgent && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

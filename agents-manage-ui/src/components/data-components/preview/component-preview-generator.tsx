@@ -250,7 +250,7 @@ export function ComponentPreviewGenerator({
               </Popover>
               {isSaved && (
                 <Button
-                  variant="destructive"
+                  variant="destructive-outline"
                   onClick={handleDeletePreview}
                   disabled={isDeleting || isGenerating}
                   size="icon"
