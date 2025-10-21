@@ -20,11 +20,7 @@ const createAgentOptions = (agent: Agent[]): SelectOption[] => {
   }));
 };
 
-interface ApiKeysPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function ApiKeysPage({ params }: ApiKeysPageProps) {
+async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/api-keys'>) {
   const { tenantId, projectId } = await params;
 
   let apiKeys: Awaited<ReturnType<typeof fetchApiKeys>>;

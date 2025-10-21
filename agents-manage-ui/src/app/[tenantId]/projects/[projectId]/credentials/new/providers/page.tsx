@@ -27,9 +27,7 @@ function filterSupportedProviders(providers: ApiProvider[]): ApiProvider[] {
 
 async function ProvidersPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers'>) {
   const { tenantId, projectId } = await params;
   let providers: ApiProvider[];
   let error = null;

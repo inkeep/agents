@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
 
-async function ProjectsPage({ params }: { params: Promise<{ tenantId: string }> }) {
+async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
 
   let projects: Awaited<ReturnType<typeof fetchProjects>>;

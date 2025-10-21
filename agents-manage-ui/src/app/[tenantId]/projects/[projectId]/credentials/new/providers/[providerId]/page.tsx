@@ -16,15 +16,9 @@ import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 
-interface ProviderSetupPageProps {
-  params: Promise<{
-    providerId: string;
-    tenantId: string;
-    projectId: string;
-  }>;
-}
-
-function ProviderSetupPage({ params }: ProviderSetupPageProps) {
+function ProviderSetupPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
