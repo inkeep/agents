@@ -17,8 +17,8 @@ import {
   TenantProjectParamsSchema,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
-  generateId,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -145,7 +145,7 @@ app.openapi(
       }
     }
 
-    const finalId = body.id ? String(body.id) : generateId();
+    const finalId = body.id ? String(body.id) : nanoid();
     const componentData = {
       tenantId,
       projectId,

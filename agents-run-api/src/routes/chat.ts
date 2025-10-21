@@ -5,7 +5,6 @@ import {
   createApiError,
   createMessage,
   createOrGetConversation,
-  generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
   getConversationId,
@@ -17,6 +16,7 @@ import {
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
+import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
@@ -323,7 +323,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
 
       await createMessage(dbClient)({
-        id: generateId(),
+        id: nanoid(),
         tenantId,
         projectId,
         conversationId,

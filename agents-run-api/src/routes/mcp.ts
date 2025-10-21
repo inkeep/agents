@@ -15,7 +15,6 @@ import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  generateId,
   getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
@@ -26,6 +25,7 @@ import {
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -223,7 +223,7 @@ const processUserMessage = async (
   }
 
   await createMessage(dbClient)({
-    id: generateId(),
+    id: nanoid(),
     tenantId,
     projectId,
     conversationId,

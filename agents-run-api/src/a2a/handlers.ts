@@ -1,7 +1,6 @@
 import {
   createMessage,
   createTask,
-  generateId,
   getRequestExecutionContext,
   type Message,
   type MessageSendParams,
@@ -11,6 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
@@ -91,7 +91,7 @@ async function handleMessageSend(
     const { agentId } = executionContext;
 
     const task: A2ATask = {
-      id: generateId(),
+      id: nanoid(),
       input: {
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
@@ -201,7 +201,7 @@ async function handleMessageSend(
 
       try {
         const messageData: any = {
-          id: generateId(),
+          id: nanoid(),
           tenantId: agent.tenantId,
           projectId: agent.projectId,
           conversationId: effectiveContextId,
@@ -299,7 +299,7 @@ async function handleMessageSend(
             },
             artifacts: [
               {
-                artifactId: generateId(),
+                artifactId: nanoid(),
                 parts: [
                   {
                     kind: 'data',
@@ -330,7 +330,7 @@ async function handleMessageSend(
     if (params.configuration?.blocking === false) {
       const taskResponse: Task = {
         id: task.id,
-        contextId: params.message.contextId || generateId(),
+        contextId: params.message.contextId || nanoid(),
         status: taskStatus,
         artifacts: result.artifacts,
         kind: 'task',
@@ -343,7 +343,7 @@ async function handleMessageSend(
       });
     }
     const messageResponse: Message = {
-      messageId: generateId(),
+      messageId: nanoid(),
       parts: result.artifacts?.[0]?.parts || [
         {
           kind: 'text',
@@ -396,7 +396,7 @@ async function handleMessageStream(
     }
 
     const task: A2ATask = {
-      id: generateId(),
+      id: nanoid(),
       input: {
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
@@ -417,7 +417,7 @@ async function handleMessageStream(
       try {
         const initialTask: Task = {
           id: task.id,
-          contextId: params.message.contextId || generateId(),
+          contextId: params.message.contextId || nanoid(),
           status: {
             state: TaskState.Working,
             timestamp: new Date().toISOString(),
@@ -479,7 +479,7 @@ async function handleMessageStream(
         }
 
         const messageResponse: Message = {
-          messageId: generateId(),
+          messageId: nanoid(),
           parts: result.artifacts?.[0]?.parts || [
             {
               kind: 'text',
@@ -555,14 +555,14 @@ async function handleTasksGet(
 
     const task: Task = {
       id: params.id,
-      contextId: generateId(),
+      contextId: nanoid(),
       status: {
         state: TaskState.Completed,
         timestamp: new Date().toISOString(),
       },
       artifacts: [
         {
-          artifactId: generateId(),
+          artifactId: nanoid(),
           parts: [
             {
               kind: 'text',
@@ -695,7 +695,7 @@ async function handleTasksResubscribe(
         // Mock task status for resubscription
         const task: Task = {
           id: params.taskId,
-          contextId: generateId(),
+          contextId: nanoid(),
           status: {
             state: TaskState.Completed,
             timestamp: new Date().toISOString(),

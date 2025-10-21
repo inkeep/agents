@@ -1,8 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { customAlphabet } from 'nanoid';
+import { customAlphabet, nanoid } from 'nanoid';
 import { getLogger } from './logger';
-import { generateId } from './conversations';
 
 const scryptAsync = promisify(scrypt);
 const logger = getLogger('api-key');
@@ -38,7 +37,7 @@ export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
 
   const keyHash = await hashApiKey(key);
 
-  const id = generateId();
+  const id = nanoid();
 
   return {
     id,

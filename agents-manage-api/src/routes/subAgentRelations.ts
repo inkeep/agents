@@ -24,8 +24,8 @@ import {
   updateAgentRelation,
   validateExternalAgent,
   validateInternalSubAgent,
-  generateId,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -235,7 +235,7 @@ app.openapi(
     const relationData = {
       agentId,
       tenantId,
-      id: generateId(),
+      id: nanoid(),
       projectId,
       sourceSubAgentId: body.sourceSubAgentId,
       targetSubAgentId: isExternalAgent ? undefined : body.targetSubAgentId,

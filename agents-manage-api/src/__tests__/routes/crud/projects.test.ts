@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -6,7 +6,7 @@ import { createTestTenantId } from '../../utils/testTenant';
 describe('Project CRUD Routes - Integration Tests', () => {
   // Helper function to create test project data
   const createProjectData = ({ suffix = '' } = {}) => ({
-    id: `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`,
+    id: `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
     name: `Test Project${suffix}`,
     description: `Test Description${suffix}`,
     models: {

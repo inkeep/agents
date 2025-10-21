@@ -220,7 +220,6 @@ vi.mock('@inkeep/agents-core', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
-  generateId: vi.fn(() => 'test-id-123'),
   TaskState: {
     Completed: 'completed',
     Failed: 'failed',

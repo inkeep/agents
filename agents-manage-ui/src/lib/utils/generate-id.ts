@@ -3,7 +3,7 @@
  * @param name - The name to generate an ID from
  * @returns The generated ID
  */
-export const generateIdFromName = (name: string) => {
+export const generateId = (name: string) => {
   return name
     .toLowerCase()
     .trim()

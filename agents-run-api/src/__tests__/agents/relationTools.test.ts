@@ -102,12 +102,12 @@ vi.mock('../../env.js', () => ({
   },
 }));
 
-// Mock generateId
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
+// Mock nanoid
+vi.mock('nanoid', async (importOriginal) => {
   const actual = (await importOriginal()) as any;
   return {
     ...actual,
-    generateId: () => 'test-nanoid-123',
+    nanoid: () => 'test-nanoid-123',
   };
 });
 

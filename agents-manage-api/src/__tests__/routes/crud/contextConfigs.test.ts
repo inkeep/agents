@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
@@ -342,7 +342,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createtestAgent({ tenantId });
       const minimalData = {
-        id: `minimal-context-config-${generateId(6)}`,
+        id: `minimal-context-config-${nanoid(6)}`,
         tenantId,
         projectId,
         agentId: testAgentId,
@@ -369,7 +369,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createtestAgent({ tenantId });
       const complexData = {
-        id: `complex-context-config-${generateId(6)}`,
+        id: `complex-context-config-${nanoid(6)}`,
         tenantId,
         projectId,
         agentId: testAgentId,
@@ -536,7 +536,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createtestAgent({ tenantId });
       const configData = {
-        id: `empty-context-vars-${generateId(6)}`,
+        id: `empty-context-vars-${nanoid(6)}`,
         tenantId,
         projectId,
         agentId: testAgentId,
@@ -561,7 +561,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createtestAgent({ tenantId });
       const configData = {
-        id: `null-headers-schema-${generateId(6)}`,
+        id: `null-headers-schema-${nanoid(6)}`,
         tenantId,
         projectId,
         agentId: testAgentId,
@@ -586,7 +586,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       await createtestAgent({ tenantId });
       const complexConfig = {
-        id: `complex-nested-config-${generateId(6)}`,
+        id: `complex-nested-config-${nanoid(6)}`,
         tenantId,
         projectId,
         agentId: testAgentId,
@@ -699,7 +699,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await ensureTestProject(tenantId, projectId);
         await createtestAgent({ tenantId });
         const configData = {
-          id: `empty-context-vars-config-${generateId(6)}`,
+          id: `empty-context-vars-config-${nanoid(6)}`,
           tenantId,
           projectId,
           agentId: testAgentId,
@@ -781,7 +781,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await ensureTestProject(tenantId, projectId);
         await createtestAgent({ tenantId });
         const configData = {
-          id: `null-request-schema-config-${generateId(6)}`,
+          id: `null-request-schema-config-${nanoid(6)}`,
           tenantId,
           projectId,
           agentId: testAgentId,
@@ -893,7 +893,7 @@ describe('Context Config CRUD Routes - Integration Tests', () => {
         await ensureTestProject(tenantId, projectId);
         await createtestAgent({ tenantId });
         const minimalData = {
-          id: `minimal-null-defaults-config-${generateId(6)}`,
+          id: `minimal-null-defaults-config-${nanoid(6)}`,
           tenantId,
           projectId,
           agentId: testAgentId,

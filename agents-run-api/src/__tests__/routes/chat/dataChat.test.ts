@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 
 // Logger mock is now in setup.ts globally
@@ -82,7 +82,7 @@ describe('Chat Data Stream Route', () => {
   it('should stream response using Vercel data stream protocol', async () => {
     const tenantId = createTestTenantId('chat-data-stream');
     const projectId = 'default';
-    const agentId = generateId();
+    const agentId = nanoid();
     const subAgentId = 'test-agent';
 
     // Ensure project exists first

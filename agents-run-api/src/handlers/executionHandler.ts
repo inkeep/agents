@@ -2,7 +2,6 @@ import {
   createMessage,
   createTask,
   type ExecutionContext,
-  generateId,
   getActiveAgentForConversation,
   getFullAgent,
   getTask,
@@ -10,6 +9,7 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -384,7 +384,7 @@ export class ExecutionHandler {
 
               // Store the agent response in the database with both text and parts
               await createMessage(dbClient)({
-                id: generateId(),
+                id: nanoid(),
                 tenantId,
                 projectId,
                 conversationId,

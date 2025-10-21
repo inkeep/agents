@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 
 // Logger mock is now in setup.ts globally
@@ -78,9 +78,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 describe('Chat Data Stream Advanced', () => {
   async function setupAgent() {
-    const tenantId = createTestTenantId(`advanced-${generateId().slice(0, 8)}`);
+    const tenantId = createTestTenantId(`advanced-${nanoid().slice(0, 8)}`);
     const projectId = 'default';
-    const agentId = generateId();
+    const agentId = nanoid();
     const subAgentId = 'test-agent'; // Use consistent ID that matches mocks
 
     // Import here to avoid circular dependencies

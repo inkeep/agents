@@ -1,6 +1,6 @@
 'use client';
 
-import { generateId } from '@/lib/utils/id-utils';
+import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -39,7 +39,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     try {
       // Transform prebuilt server data to MCPToolFormData format
       const mcpToolData = {
-        id: generateId(),
+        id: nanoid(),
         name: server.name,
         config: {
           type: 'mcp' as const,
@@ -62,7 +62,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       } else {
-        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name });
+        handleOAuthLogin({toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name});
       }
     } catch (error) {
       console.error('Failed to create prebuilt MCP server:', error);

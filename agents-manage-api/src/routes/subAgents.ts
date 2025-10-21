@@ -16,8 +16,8 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateSubAgent,
-  generateId,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -145,7 +145,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const subAgentId = body.id ? String(body.id) : generateId();
+    const subAgentId = body.id ? String(body.id) : nanoid();
     const subAgent = await createSubAgent(dbClient)({
       ...body,
       id: subAgentId,

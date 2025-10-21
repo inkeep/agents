@@ -1,6 +1,16 @@
+import { nanoid } from 'nanoid';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../handlers/executionHandler';
 import { makeRequest } from '../utils/testRequest';
+
+// Mock nanoid to control session ID generation
+vi.mock('nanoid', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as any),
+    nanoid: vi.fn(),
+  };
+});
 
 // Mock toReqRes to convert fetch request to node request/response
 vi.mock('fetch-to-node', () => ({
@@ -143,7 +153,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       });
       await next();
     }),
-    generateId: vi.fn(),
   };
 });
 
@@ -254,8 +263,8 @@ describe('MCP Routes', () => {
       }
     );
 
-    // Setup generateId mock
-    vi.mocked(coreModule.generateId).mockReturnValue('test-session-id');
+    // Setup nanoid mock
+    vi.mocked(nanoid).mockReturnValue('test-session-id');
   });
 
   describe('POST /v1/mcp - Initialization', () => {
