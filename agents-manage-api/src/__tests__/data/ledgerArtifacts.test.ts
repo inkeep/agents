@@ -2,12 +2,12 @@ import {
   addLedgerArtifacts,
   agents,
   conversations,
+  generateId,
   getLedgerArtifacts,
   ledgerArtifacts as ledgerArtifactsTable,
   subAgents,
   tasks,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { ensureTestProject } from '../utils/testProject';
@@ -26,7 +26,7 @@ describe('Ledger Artifacts – Data Layer', () => {
 
   // Helper function to create required parent records
   async function createTestData(contextId: string, taskId: string, tenantId: string) {
-    const subAgentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${generateId()}`;
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
@@ -73,7 +73,7 @@ describe('Ledger Artifacts – Data Layer', () => {
       subAgentId,
       metadata: {
         conversation_id: conversationId,
-        message_id: `msg-${nanoid()}`,
+        message_id: `msg-${generateId()}`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -97,16 +97,16 @@ describe('Ledger Artifacts – Data Layer', () => {
   });
 
   it('should persist and retrieve artifacts by taskId', async () => {
-    const contextId = `ctx-${nanoid()}`;
-    const taskId = `task-${nanoid()}`;
-    const tenantId = `tenant-${nanoid()}`;
+    const contextId = `ctx-${generateId()}`;
+    const taskId = `task-${generateId()}`;
+    const tenantId = `tenant-${generateId()}`;
 
     // Create required parent records
     await createTestData(contextId, taskId, tenantId);
 
     const artifacts = [
       {
-        artifactId: nanoid(),
+        artifactId: generateId(),
         name: 'Artifact One',
         description: 'First test artifact',
         parts: [
@@ -119,7 +119,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         metadata: { foo: 'bar' },
       },
       {
-        artifactId: nanoid(),
+        artifactId: generateId(),
         name: 'Artifact Two',
         description: 'Second test artifact',
         parts: [
@@ -155,15 +155,15 @@ describe('Ledger Artifacts – Data Layer', () => {
   });
 
   it('should retrieve a single artifact by artifactId', async () => {
-    const contextId = `ctx-${nanoid()}`;
-    const taskId = `task-${nanoid()}`;
-    const tenantId = `tenant-${nanoid()}`;
+    const contextId = `ctx-${generateId()}`;
+    const taskId = `task-${generateId()}`;
+    const tenantId = `tenant-${generateId()}`;
 
     // Create required parent records
     await createTestData(contextId, taskId, tenantId);
 
     const artifact = {
-      artifactId: nanoid(),
+      artifactId: generateId(),
       name: 'Solo Artifact',
       description: 'A lone artifact',
       parts: [
@@ -194,9 +194,9 @@ describe('Ledger Artifacts – Data Layer', () => {
   });
 
   it('should handle empty artifact arrays gracefully', async () => {
-    const contextId = `ctx-${nanoid()}`;
-    const taskId = `task-${nanoid()}`;
-    const tenantId = `tenant-${nanoid()}`;
+    const contextId = `ctx-${generateId()}`;
+    const taskId = `task-${generateId()}`;
+    const tenantId = `tenant-${generateId()}`;
 
     // Create required parent records
     await createTestData(contextId, taskId, tenantId);
@@ -227,9 +227,9 @@ describe('Ledger Artifacts – Data Layer', () => {
   });
 
   it('should handle missing artifacts gracefully', async () => {
-    const contextId = `ctx-${nanoid()}`;
-    const taskId = `task-${nanoid()}`;
-    const tenantId = `tenant-${nanoid()}`;
+    const contextId = `ctx-${generateId()}`;
+    const taskId = `task-${generateId()}`;
+    const tenantId = `tenant-${generateId()}`;
 
     // Create required parent records
     await createTestData(contextId, taskId, tenantId);
@@ -244,10 +244,10 @@ describe('Ledger Artifacts – Data Layer', () => {
   });
 
   it('should enforce tenant isolation', async () => {
-    const tenant1Id = `tenant1-${nanoid()}`;
-    const tenant2Id = `tenant2-${nanoid()}`;
-    const sharedContextId = `shared-ctx-${nanoid()}`;
-    const sharedTaskId = `shared-task-${nanoid()}`;
+    const tenant1Id = `tenant1-${generateId()}`;
+    const tenant2Id = `tenant2-${generateId()}`;
+    const sharedContextId = `shared-ctx-${generateId()}`;
+    const sharedTaskId = `shared-task-${generateId()}`;
 
     // Create test data for both tenants with unique conversation IDs
     await createTestData(`${sharedContextId}-1`, `${sharedTaskId}-1`, tenant1Id);

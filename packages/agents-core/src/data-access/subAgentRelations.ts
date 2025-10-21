@@ -1,6 +1,6 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { generateId } from '../utils/conversations';
 import {
   externalAgents,
   subAgentRelations,
@@ -414,7 +414,7 @@ export const createAgentToolRelation =
       headers?: Record<string, string> | null;
     };
   }) => {
-    const finalRelationId = params.relationId ?? nanoid();
+    const finalRelationId = params.relationId ?? generateId();
 
     const relation = await db
       .insert(subAgentToolRelations)

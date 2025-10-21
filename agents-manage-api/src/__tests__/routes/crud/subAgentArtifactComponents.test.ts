@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { createTestAgentArtifactComponentData } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
@@ -18,7 +18,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     suffix?: string;
   }) => {
     // First create a default agent if it doesn't exist (without defaultSubAgentId)
-    const agentId = nanoid();
+    const agentId = generateId();
     const agentData = {
       id: agentId,
       name: 'Test Agent',
@@ -75,7 +75,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     tenantId?: string;
     projectId?: string;
   } = {}) => ({
-    id: nanoid(),
+    id: generateId(),
     tenantId,
     projectId,
     name: `TestArtifactComponent${suffix}`,
@@ -237,7 +237,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
       const { agentId } = await createTestAgent({ tenantId });
-      const nonExistentSubAgentId = nanoid();
+      const nonExistentSubAgentId = generateId();
 
       const relationData = createTestAgentArtifactComponentData({
         subAgentId: nonExistentSubAgentId,
@@ -259,7 +259,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-artifact-components-create-component-not-found');
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
-      const nonExistentArtifactComponentId = nanoid();
+      const nonExistentArtifactComponentId = generateId();
 
       const relationData = createTestAgentArtifactComponentData({
         subAgentId,
@@ -548,7 +548,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
       const { agentId } = await createTestAgent({ tenantId });
-      const nonExistentSubAgentId = nanoid();
+      const nonExistentSubAgentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-artifact-components/agent/${nonExistentSubAgentId}/component/${artifactComponentId}`,
@@ -563,7 +563,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-artifact-components-delete-component-not-found');
       await ensureTestProject(tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
-      const nonExistentArtifactComponentId = nanoid();
+      const nonExistentArtifactComponentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-artifact-components/agent/${subAgentId}/component/${nonExistentArtifactComponentId}`,

@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -14,7 +14,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   }: {
     defaultSubAgentId?: string | null;
   } = {}) => {
-    const id = nanoid();
+    const id = generateId();
     return {
       id,
       name: id, // Use the same ID as the name for test consistency
