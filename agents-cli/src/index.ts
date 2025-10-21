@@ -10,6 +10,7 @@ import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
+import { pullV2Command } from './commands/pull-v2';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
 
@@ -107,6 +108,22 @@ program
   .option('--debug', 'Enable debug logging for LLM generation')
   .action(async (options) => {
     await pullProjectCommand(options);
+  });
+
+program
+  .command('pull-v2')
+  .description('Pull project configuration with deterministic code generation (no LLM required)')
+  .option('--project <project-id>', 'Project ID to pull from backend')
+  .option('--config <path>', 'Path to configuration file')
+  .option(
+    '--env <environment>',
+    'Environment file to generate (development, staging, production). Defaults to development'
+  )
+  .option('--json', 'Output project data as JSON instead of generating files')
+  .option('--debug', 'Enable debug logging')
+  .option('--force', 'Force regeneration even if no changes detected')
+  .action(async (options) => {
+    await pullV2Command(options);
   });
 
 program
