@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-api
 
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes
