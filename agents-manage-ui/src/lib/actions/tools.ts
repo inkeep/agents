@@ -78,14 +78,10 @@ export async function deleteToolAction(
 /**
  * Detect if an MCP server requires OAuth authentication
  */
-export async function detectOAuthServerAction(
-  serverUrl: string,
-  toolId: string
-): Promise<ActionResult<boolean>> {
+export async function detectOAuthServerAction(serverUrl: string): Promise<ActionResult<boolean>> {
   try {
     const requiresAuth = await detectAuthenticationRequired({
       serverUrl,
-      toolId,
     });
 
     return {

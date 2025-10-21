@@ -88,9 +88,7 @@ export function MCPServerForm({
     try {
       // handle oauth login
       if (data.credentialReferenceId === 'oauth') {
-        const toolId = generateId();
-
-        const result = await detectOAuthServerAction(data.config.mcp.server.url, toolId);
+        const result = await detectOAuthServerAction(data.config.mcp.server.url);
 
         if (!result.success) {
           toast.error(result.error || 'Failed to detect OAuth support');
@@ -105,7 +103,7 @@ export function MCPServerForm({
         }
 
         const mcpToolData = {
-          id: toolId,
+          id: generateId(),
           name: data.name,
           config: {
             type: 'mcp' as const,
