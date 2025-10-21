@@ -1,13 +1,13 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { env } from '../env';
-import { getLogger } from '../utils/logger';
+import { getLogger } from './logger';
 
-const logger = getLogger('team-agent-auth');
+const logger = getLogger('service-token-auth');
 
 /**
- * Team Agent JWT Claims
+ * Service Token JWT Claims
  */
-export interface TeamAgentTokenPayload {
+export interface ServiceTokenPayload {
   /** Issuer - always 'inkeep-agents' */
   iss: string;
   /** Audience - the target agent ID */
@@ -16,10 +16,8 @@ export interface TeamAgentTokenPayload {
   sub: string;
   /** Tenant ID - must match for both origin and target agents */
   tenantId: string;
-  /** Origin agent's project ID */
-  originProjectId: string;
-  /** Target agent's project ID */
-  targetProjectId: string;
+  /** Project ID - must match for both origin and target agents */
+  projectId: string;
   /** Issued at timestamp */
   iat: number;
   /** Expiration timestamp (5 minutes from issue) */
@@ -27,22 +25,21 @@ export interface TeamAgentTokenPayload {
 }
 
 /**
- * Parameters for generating a team agent token
+ * Parameters for generating a service token
  */
-export interface GenerateTeamAgentTokenParams {
+export interface GenerateServiceTokenParams {
   tenantId: string;
+  projectId: string;
   originAgentId: string;
-  originProjectId: string;
   targetAgentId: string;
-  targetProjectId: string;
 }
 
 /**
- * Result of verifying a team agent token
+ * Result of verifying a service token
  */
-export interface VerifyTeamAgentTokenResult {
+export interface VerifyServiceTokenResult {
   valid: boolean;
-  payload?: TeamAgentTokenPayload;
+  payload?: ServiceTokenPayload;
   error?: string;
 }
 
@@ -79,16 +76,13 @@ function getJwtSecret(): Uint8Array {
  * @param params - Token generation parameters
  * @returns Signed JWT token string
  */
-export async function generateTeamAgentToken(
-  params: GenerateTeamAgentTokenParams
-): Promise<string> {
+export async function generateServiceToken(params: GenerateServiceTokenParams): Promise<string> {
   const secret = getJwtSecret();
 
   try {
     const token = await new SignJWT({
       tenantId: params.tenantId,
-      originProjectId: params.originProjectId,
-      targetProjectId: params.targetProjectId,
+      projectId: params.projectId,
     })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .setIssuer('inkeep-agents')
@@ -109,18 +103,18 @@ export async function generateTeamAgentToken(
 
     return token;
   } catch (error) {
-    logger.error({ error }, 'Failed to generate team agent token');
-    throw new Error('Failed to generate team agent token');
+    logger.error({ error }, 'Failed to generate service token');
+    throw new Error('Failed to generate service token');
   }
 }
 
 /**
- * Verify and decode a team agent JWT token
+ * Verify and decode a service JWT token
  *
  * @param token - JWT token string to verify
  * @returns Verification result with payload if valid
  */
-export async function verifyTeamAgentToken(token: string): Promise<VerifyTeamAgentTokenResult> {
+export async function verifyServiceToken(token: string): Promise<VerifyServiceTokenResult> {
   const secret = getJwtSecret();
 
   try {
@@ -134,23 +128,21 @@ export async function verifyTeamAgentToken(token: string): Promise<VerifyTeamAge
       typeof payload.sub !== 'string' ||
       typeof payload.aud !== 'string' ||
       typeof payload.tenantId !== 'string' ||
-      typeof payload.originProjectId !== 'string' ||
-      typeof payload.targetProjectId !== 'string'
+      typeof payload.projectId !== 'string'
     ) {
-      logger.warn({ payload }, 'Invalid team agent token: missing required claims');
+      logger.warn({ payload }, 'Invalid service token: missing required claims');
       return {
         valid: false,
         error: 'Invalid token: missing required claims',
       };
     }
 
-    const validPayload: TeamAgentTokenPayload = {
+    const validPayload: ServiceTokenPayload = {
       iss: payload.iss as string,
       aud: payload.aud as string,
       sub: payload.sub,
       tenantId: payload.tenantId,
-      originProjectId: payload.originProjectId,
-      targetProjectId: payload.targetProjectId,
+      projectId: payload.projectId,
       iat: payload.iat as number,
       exp: payload.exp as number,
     };
@@ -193,10 +185,7 @@ export async function verifyTeamAgentToken(token: string): Promise<VerifyTeamAge
  * @param expectedTenantId - The tenant ID to validate against
  * @returns true if tenant IDs match, false otherwise
  */
-export function validateTenantId(
-  payload: TeamAgentTokenPayload,
-  expectedTenantId: string
-): boolean {
+export function validateTenantId(payload: ServiceTokenPayload, expectedTenantId: string): boolean {
   if (payload.tenantId !== expectedTenantId) {
     logger.warn(
       {
@@ -221,7 +210,7 @@ export function validateTenantId(
  * @returns true if agent IDs match, false otherwise
  */
 export function validateTargetAgent(
-  payload: TeamAgentTokenPayload,
+  payload: ServiceTokenPayload,
   expectedTargetAgentId: string
 ): boolean {
   if (payload.aud !== expectedTargetAgentId) {
@@ -247,7 +236,7 @@ export function validateTargetAgent(
  */
 export async function verifyAuthorizationHeader(
   authHeader: string | undefined
-): Promise<VerifyTeamAgentTokenResult> {
+): Promise<VerifyServiceTokenResult> {
   if (!authHeader) {
     return {
       valid: false,
@@ -271,5 +260,5 @@ export async function verifyAuthorizationHeader(
     };
   }
 
-  return verifyTeamAgentToken(token);
+  return verifyServiceToken(token);
 }

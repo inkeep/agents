@@ -14,7 +14,6 @@ import {
   updateAgentRelation,
   updateAgentToolRelation,
   validateSubAgent,
-  validateTeamAgent,
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
@@ -661,60 +660,6 @@ describe('Agent Relations Data Access', () => {
           agentId: testAgentId,
           subAgentId: 'non-existent',
         },
-      });
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('validateTeamAgent', () => {
-    it('should return true when team agent exists', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: 'team-agent-1' }]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await validateTeamAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          agentId: testAgentId,
-        },
-        teamAgentId: 'team-agent-1',
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when team agent does not exist', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await validateTeamAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          agentId: testAgentId,
-        },
-        teamAgentId: 'non-existent',
       });
 
       expect(result).toBe(false);

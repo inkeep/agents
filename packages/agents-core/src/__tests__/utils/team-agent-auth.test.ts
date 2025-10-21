@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  generateTeamAgentToken,
+  generateServiceToken,
+  type ServiceTokenPayload,
   validateTargetAgent,
   validateTenantId,
   verifyAuthorizationHeader,
-  verifyTeamAgentToken,
-  type TeamAgentTokenPayload,
-} from '../../utils/team-agent-auth';
+  verifyServiceToken,
+} from '../../utils/service-token-auth';
 
 describe('Team Agent Authentication', () => {
   const mockParams = {
@@ -23,7 +23,7 @@ describe('Team Agent Authentication', () => {
 
   describe('generateTeamAgentToken', () => {
     it('should generate a valid JWT token', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
 
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
@@ -31,8 +31,8 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should generate different tokens for different params', async () => {
-      const token1 = await generateTeamAgentToken(mockParams);
-      const token2 = await generateTeamAgentToken({
+      const token1 = await generateServiceToken(mockParams);
+      const token2 = await generateServiceToken({
         ...mockParams,
         targetAgentId: 'different_agent',
       });
@@ -42,8 +42,8 @@ describe('Team Agent Authentication', () => {
 
     it('should generate tokens that expire in 5 minutes', async () => {
       const beforeGeneration = Math.floor(Date.now() / 1000);
-      const token = await generateTeamAgentToken(mockParams);
-      const result = await verifyTeamAgentToken(token);
+      const token = await generateServiceToken(mockParams);
+      const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
       expect(result.payload).toBeDefined();
@@ -59,8 +59,8 @@ describe('Team Agent Authentication', () => {
 
   describe('verifyTeamAgentToken', () => {
     it('should verify a valid token', async () => {
-      const token = await generateTeamAgentToken(mockParams);
-      const result = await verifyTeamAgentToken(token);
+      const token = await generateServiceToken(mockParams);
+      const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
       expect(result.payload).toBeDefined();
@@ -68,8 +68,8 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should return correct payload claims', async () => {
-      const token = await generateTeamAgentToken(mockParams);
-      const result = await verifyTeamAgentToken(token);
+      const token = await generateServiceToken(mockParams);
+      const result = await verifyServiceToken(token);
 
       expect(result.valid).toBe(true);
       expect(result.payload).toMatchObject({
@@ -85,7 +85,7 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should reject an invalid token', async () => {
-      const result = await verifyTeamAgentToken('invalid.token.here');
+      const result = await verifyServiceToken('invalid.token.here');
 
       expect(result.valid).toBe(false);
       expect(result.payload).toBeUndefined();
@@ -93,19 +93,19 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should reject a malformed token', async () => {
-      const result = await verifyTeamAgentToken('not-a-jwt');
+      const result = await verifyServiceToken('not-a-jwt');
 
       expect(result.valid).toBe(false);
       expect(result.error).toBeDefined();
     });
 
     it('should reject a token with wrong signature', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
       // Tamper with the signature
       const parts = token.split('.');
       const tamperedToken = `${parts[0]}.${parts[1]}.TAMPERED`;
 
-      const result = await verifyTeamAgentToken(tamperedToken);
+      const result = await verifyServiceToken(tamperedToken);
 
       expect(result.valid).toBe(false);
       expect(result.error).toBeDefined();
@@ -134,7 +134,7 @@ describe('Team Agent Authentication', () => {
       // Wait a bit to ensure expiration
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const result = await verifyTeamAgentToken(expiredToken);
+      const result = await verifyServiceToken(expiredToken);
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('exp');
@@ -156,7 +156,7 @@ describe('Team Agent Authentication', () => {
         .setExpirationTime('5m')
         .sign(secret);
 
-      const result = await verifyTeamAgentToken(incompleteToken);
+      const result = await verifyServiceToken(incompleteToken);
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('missing required claims');
@@ -164,7 +164,7 @@ describe('Team Agent Authentication', () => {
   });
 
   describe('validateTenantId', () => {
-    let mockPayload: TeamAgentTokenPayload;
+    let mockPayload: ServiceTokenPayload;
 
     beforeEach(() => {
       mockPayload = {
@@ -196,7 +196,7 @@ describe('Team Agent Authentication', () => {
   });
 
   describe('validateTargetAgent', () => {
-    let mockPayload: TeamAgentTokenPayload;
+    let mockPayload: ServiceTokenPayload;
 
     beforeEach(() => {
       mockPayload = {
@@ -229,7 +229,7 @@ describe('Team Agent Authentication', () => {
 
   describe('verifyAuthorizationHeader', () => {
     it('should verify a valid Bearer token', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
       const authHeader = `Bearer ${token}`;
       const result = await verifyAuthorizationHeader(authHeader);
 
@@ -245,7 +245,7 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should reject header without Bearer prefix', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
       const result = await verifyAuthorizationHeader(token); // No "Bearer " prefix
 
       expect(result.valid).toBe(false);
@@ -253,7 +253,7 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should reject header with wrong scheme', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
       const authHeader = `Basic ${token}`;
       const result = await verifyAuthorizationHeader(authHeader);
 
@@ -269,7 +269,7 @@ describe('Team Agent Authentication', () => {
     });
 
     it('should handle Bearer token with extra whitespace', async () => {
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
       const authHeader = `Bearer  ${token}`; // Extra space
       const result = await verifyAuthorizationHeader(authHeader);
 
@@ -281,10 +281,10 @@ describe('Team Agent Authentication', () => {
   describe('End-to-end token flow', () => {
     it('should successfully generate, verify, and validate a token', async () => {
       // Generate token
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
 
       // Verify token
-      const verifyResult = await verifyTeamAgentToken(token);
+      const verifyResult = await verifyServiceToken(token);
       expect(verifyResult.valid).toBe(true);
       expect(verifyResult.payload).toBeDefined();
 
@@ -301,7 +301,7 @@ describe('Team Agent Authentication', () => {
 
     it('should handle authorization header end-to-end', async () => {
       // Generate token
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
 
       // Create auth header
       const authHeader = `Bearer ${token}`;
@@ -321,10 +321,10 @@ describe('Team Agent Authentication', () => {
 
     it('should detect and reject cross-tenant delegation attempts', async () => {
       // Generate token for tenant A
-      const token = await generateTeamAgentToken(mockParams);
+      const token = await generateServiceToken(mockParams);
 
       // Verify token
-      const verifyResult = await verifyTeamAgentToken(token);
+      const verifyResult = await verifyServiceToken(token);
       expect(verifyResult.valid).toBe(true);
 
       // Try to validate against tenant B

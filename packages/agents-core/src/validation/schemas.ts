@@ -20,10 +20,10 @@ import {
   subAgentExternalAgentRelations,
   subAgentRelations,
   subAgents,
+  subAgentTeamAgentRelations,
   subAgentToolRelations,
   taskRelations,
   tasks,
-  teamAgents,
   tools,
 } from '../db/schema';
 import {
@@ -461,23 +461,9 @@ export const ExternalAgentApiInsertSchema =
 export const ExternalAgentApiUpdateSchema =
   createApiUpdateSchema(ExternalAgentUpdateSchema).openapi('ExternalAgentUpdate');
 
-export const TeamAgentSelectSchema = createSelectSchema(teamAgents);
-export const TeamAgentInsertSchema = createInsertSchema(teamAgents).extend({
-  id: resourceIdSchema,
-});
-export const TeamAgentUpdateSchema = TeamAgentInsertSchema.partial();
-
-export const TeamAgentApiSelectSchema =
-  createAgentScopedApiSchema(TeamAgentSelectSchema).openapi('TeamAgent');
-export const TeamAgentApiInsertSchema =
-  createAgentScopedApiInsertSchema(TeamAgentInsertSchema).openapi('TeamAgentCreate');
-export const TeamAgentApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(TeamAgentUpdateSchema).openapi('TeamAgentUpdate');
-
 export const AllAgentSchema = z.discriminatedUnion('type', [
   SubAgentApiSelectSchema.extend({ type: z.literal('internal') }),
   ExternalAgentApiSelectSchema.extend({ type: z.literal('external') }),
-  TeamAgentApiSelectSchema.extend({ type: z.literal('team') }),
 ]);
 
 export const ApiKeySelectSchema = createSelectSchema(apiKeys);
@@ -741,6 +727,29 @@ export const SubAgentExternalAgentRelationApiInsertSchema = createAgentScopedApi
 export const SubAgentExternalAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentExternalAgentRelationUpdateSchema
 ).openapi('SubAgentExternalAgentRelationUpdate');
+
+// Sub-Agent Team Agent Relation Schemas
+export const SubAgentTeamAgentRelationSelectSchema = createSelectSchema(subAgentTeamAgentRelations);
+export const SubAgentTeamAgentRelationInsertSchema = createInsertSchema(
+  subAgentTeamAgentRelations
+).extend({
+  id: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  targetAgentId: resourceIdSchema,
+});
+
+export const SubAgentTeamAgentRelationUpdateSchema =
+  SubAgentTeamAgentRelationInsertSchema.partial();
+
+export const SubAgentTeamAgentRelationApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentTeamAgentRelationSelectSchema
+).openapi('SubAgentTeamAgentRelation');
+export const SubAgentTeamAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
+  SubAgentTeamAgentRelationInsertSchema
+).openapi('SubAgentTeamAgentRelationCreate');
+export const SubAgentTeamAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  SubAgentTeamAgentRelationUpdateSchema
+).openapi('SubAgentTeamAgentRelationUpdate');
 
 export const LedgerArtifactSelectSchema = createSelectSchema(ledgerArtifacts);
 export const LedgerArtifactInsertSchema = createInsertSchema(ledgerArtifacts);

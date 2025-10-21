@@ -3,7 +3,7 @@ import {
   getAgentById,
   validateAndGetApiKey,
   validateTargetAgent,
-  verifyTeamAgentToken,
+  verifyServiceToken,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -256,7 +256,7 @@ export const extractContextFromTeamAgentToken = async (
   baseUrl?: string,
   expectedSubAgentId?: string
 ) => {
-  const result = await verifyTeamAgentToken(token);
+  const result = await verifyServiceToken(token);
 
   if (!result.valid || !result.payload) {
     logger.warn({ error: result.error }, 'Invalid team agent JWT token');
@@ -287,8 +287,7 @@ export const extractContextFromTeamAgentToken = async (
       originAgentId: payload.sub,
       targetAgentId: payload.aud,
       tenantId: payload.tenantId,
-      originProjectId: payload.originProjectId,
-      targetProjectId: payload.targetProjectId,
+      projectId: payload.projectId,
     },
     'Team agent JWT token authenticated successfully'
   );
@@ -297,7 +296,7 @@ export const extractContextFromTeamAgentToken = async (
   return createExecutionContext({
     apiKey: 'team-agent-jwt', // Not an actual API key
     tenantId: payload.tenantId,
-    projectId: payload.targetProjectId,
+    projectId: payload.projectId,
     agentId: payload.aud, // Target agent ID
     apiKeyId: 'team-agent-token',
     baseUrl: baseUrl,
@@ -305,7 +304,6 @@ export const extractContextFromTeamAgentToken = async (
     metadata: {
       teamDelegation: true,
       originAgentId: payload.sub,
-      originProjectId: payload.originProjectId,
     },
   });
 };

@@ -125,6 +125,12 @@ import type {
   SubAgentRelationSelectSchema,
   SubAgentRelationUpdateSchema,
   SubAgentSelectSchema,
+  SubAgentTeamAgentRelationApiInsertSchema,
+  SubAgentTeamAgentRelationApiSelectSchema,
+  SubAgentTeamAgentRelationApiUpdateSchema,
+  SubAgentTeamAgentRelationInsertSchema,
+  SubAgentTeamAgentRelationSelectSchema,
+  SubAgentTeamAgentRelationUpdateSchema,
   SubAgentToolRelationApiInsertSchema,
   SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
@@ -135,12 +141,6 @@ import type {
   TaskApiInsertSchema,
   TaskApiSelectSchema,
   TaskApiUpdateSchema,
-  TeamAgentApiInsertSchema,
-  TeamAgentApiSelectSchema,
-  TeamAgentApiUpdateSchema,
-  TeamAgentInsertSchema,
-  TeamAgentSelectSchema,
-  TeamAgentUpdateSchema,
   TaskInsertSchema,
   TaskRelationApiInsertSchema,
   TaskRelationApiSelectSchema,
@@ -290,13 +290,6 @@ export type ExternalAgentApiSelect = z.infer<typeof ExternalAgentApiSelectSchema
 export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type ExternalAgentApiUpdate = z.infer<typeof ExternalAgentApiUpdateSchema>;
 
-export type TeamAgentSelect = z.infer<typeof TeamAgentSelectSchema>;
-export type TeamAgentInsert = z.infer<typeof TeamAgentInsertSchema>;
-export type TeamAgentUpdate = z.infer<typeof TeamAgentUpdateSchema>;
-export type TeamAgentApiSelect = z.infer<typeof TeamAgentApiSelectSchema>;
-export type TeamAgentApiInsert = z.infer<typeof TeamAgentApiInsertSchema>;
-export type TeamAgentApiUpdate = z.infer<typeof TeamAgentApiUpdateSchema>;
-
 export type AllAgentSelect = z.infer<typeof AllAgentSchema>;
 
 export type ApiKeySelect = z.infer<typeof ApiKeySelectSchema>;
@@ -338,6 +331,19 @@ export type SubAgentExternalAgentRelationApiInsert = z.infer<
 >;
 export type SubAgentExternalAgentRelationApiUpdate = z.infer<
   typeof SubAgentExternalAgentRelationApiUpdateSchema
+>;
+
+export type SubAgentTeamAgentRelationSelect = z.infer<typeof SubAgentTeamAgentRelationSelectSchema>;
+export type SubAgentTeamAgentRelationInsert = z.infer<typeof SubAgentTeamAgentRelationInsertSchema>;
+export type SubAgentTeamAgentRelationUpdate = z.infer<typeof SubAgentTeamAgentRelationUpdateSchema>;
+export type SubAgentTeamAgentRelationApiSelect = z.infer<
+  typeof SubAgentTeamAgentRelationApiSelectSchema
+>;
+export type SubAgentTeamAgentRelationApiInsert = z.infer<
+  typeof SubAgentTeamAgentRelationApiInsertSchema
+>;
+export type SubAgentTeamAgentRelationApiUpdate = z.infer<
+  typeof SubAgentTeamAgentRelationApiUpdateSchema
 >;
 
 export type LedgerArtifactSelect = z.infer<typeof LedgerArtifactSelectSchema>;
