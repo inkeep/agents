@@ -1,5 +1,23 @@
 # @inkeep/agents-manage-ui
 
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- ffe9033: add delete buttons
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+- f536bba: - Fix bug where clearing status update frequency fields caused them to disappear
+- 60d728b: prefer `PageProps`, `LayoutProps` and `RouteContext` Next.js' types
+- dd7b636: Allow users to configure the default sub agent
+- Updated dependencies [3ad959e]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+  - @inkeep/agents-core@0.24.2
+  - @inkeep/agents-manage-api@0.24.2
+  - @inkeep/agents-run-api@0.24.2
+
 ## 0.24.1
 
 ### Patch Changes
