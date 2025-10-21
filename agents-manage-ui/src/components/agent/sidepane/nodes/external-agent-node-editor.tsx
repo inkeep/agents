@@ -1,8 +1,11 @@
 import { type Node, useReactFlow } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
+import { Separator } from '@/components/ui/separator';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
@@ -27,7 +30,7 @@ export function ExternalAgentNodeEditor({
 }: ExternalAgentNodeEditorProps) {
   const { updateNodeData } = useReactFlow();
   const { markUnsaved } = useAgentActions();
-  const { handleInputChange, getFieldError, setFieldRef, updateField } = useNodeEditor({
+  const { handleInputChange, getFieldError, setFieldRef, updateField, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
@@ -168,6 +171,13 @@ export function ExternalAgentNodeEditor({
       >
         Edit External Agent
       </ExternalLink>
+      <Separator />
+      <div className="flex justify-end">
+        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </div>
     </div>
   );
 }
