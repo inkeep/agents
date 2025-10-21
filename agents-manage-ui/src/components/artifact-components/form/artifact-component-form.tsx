@@ -2,12 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import {
@@ -16,6 +18,7 @@ import {
 } from '@/lib/actions/artifact-components';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import { formatJsonField } from '@/lib/utils';
+import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { defaultValues } from './form-configuration';
 import { type ArtifactComponentFormData, artifactComponentSchema } from './validation';
 
@@ -43,6 +46,7 @@ export function ArtifactComponentForm({
   projectId,
   initialData,
 }: ArtifactComponentFormProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<ArtifactComponentFormData>({
     resolver: zodResolver(artifactComponentSchema),
     defaultValues: formatFormData(initialData),
@@ -92,47 +96,66 @@ export function ArtifactComponentForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Name"
-          placeholder="Document Artifact"
-          isRequired
+    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <GenericInput
+            control={form.control}
+            name="name"
+            label="Name"
+            placeholder="Document Artifact"
+            isRequired
+          />
+          <GenericInput
+            control={form.control}
+            name="id"
+            label="Id"
+            placeholder="my-artifact"
+            disabled={!!id}
+            isRequired
+            description={
+              id
+                ? ''
+                : 'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
+            }
+          />
+          <GenericTextarea
+            control={form.control}
+            name="description"
+            label="Description"
+            placeholder="Structured factual information extracted from search results"
+            className="min-h-[80px]"
+            isRequired
+          />
+          <JsonSchemaInput
+            control={form.control}
+            name="props"
+            label="Props (JSON schema with inPreview indicators)"
+            placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
+            description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
+          />
+          <div className="flex w-full justify-between">
+            <Button type="submit" disabled={isSubmitting}>
+              Save
+            </Button>
+            {id && (
+              <DialogTrigger asChild>
+                <Button type="button" variant="secondary">
+                  Delete Artifact
+                </Button>
+              </DialogTrigger>
+            )}
+          </div>
+        </form>
+      </Form>
+      {isDeleteOpen && id && (
+        <DeleteArtifactComponentConfirmation
+          artifactComponentId={id}
+          artifactComponentName={form.getValues('name')}
+          setIsOpen={setIsDeleteOpen}
+          redirectOnDelete={true}
         />
-        <GenericInput
-          control={form.control}
-          name="id"
-          label="Id"
-          placeholder="my-artifact"
-          disabled={!!id}
-          isRequired
-          description={
-            id
-              ? ''
-              : 'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
-          }
-        />
-        <GenericTextarea
-          control={form.control}
-          name="description"
-          label="Description"
-          placeholder="Structured factual information extracted from search results"
-          className="min-h-[80px]"
-          isRequired
-        />
-        <JsonSchemaInput
-          control={form.control}
-          name="props"
-          label="Props (JSON schema with inPreview indicators)"
-          placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
-          description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
-        />
-        <Button type="submit" disabled={isSubmitting}>
-          Save
-        </Button>
-      </form>
-    </Form>
+      )}
+    </Dialog>
   );
 }

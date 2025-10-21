@@ -246,31 +246,6 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     updateSpy.mockClear();
   });
 
-  it('should preserve the legacy initialization method', async () => {
-    const _tenantId = createTestTenantId('agent-legacy');
-
-    const subAgent1 = subAgent({
-      id: 'legacy-agent',
-      name: 'Legacy Agent',
-      description: 'Agent for legacy test',
-      prompt: 'You are a legacy agent.',
-    });
-
-    const agentId = `legacy-agent-${generateId()}`;
-    const agentObject = agent({
-      id: agentId,
-      name: 'Legacy Agent',
-      defaultSubAgent: subAgent1,
-      subAgents: () => [subAgent1],
-    });
-
-    // Verify that the initLegacy method exists and can be called
-    expect(typeof (agentObject as any).initLegacy).toBe('function');
-
-    // We won't actually call it to avoid side effects, but verify it exists
-    // This ensures backward compatibility is maintained
-  });
-
   it.skip('should handle errors in agent initialization gracefully', async () => {
     const _tenantId = createTestTenantId('agent-error');
 

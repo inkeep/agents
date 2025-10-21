@@ -1,26 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createAgentToolRelation,
-  createExternalAgentRelation,
   createSubAgentRelation,
   deleteAgentToolRelation,
   deleteSubAgentRelation,
   getAgentRelationById,
   getAgentRelations,
   getAgentRelationsBySource,
-  getExternalAgentRelations,
   getRelatedAgentsForAgent,
   getSubAgentRelationsByTarget,
   getToolsForAgent,
   listAgentRelations,
   updateAgentRelation,
   updateAgentToolRelation,
-  validateExternalAgent,
-  validateInternalSubAgent,
+  validateSubAgent,
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
 import { createInMemoryDatabaseClient } from '../../db/client';
-import type { SubAgentRelationInsert } from '../../types/index';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
@@ -304,34 +300,18 @@ describe('Agent Relations Data Access', () => {
   });
 
   describe('getRelatedAgentsForAgent', () => {
-    it('should get both internal and external related agents', async () => {
-      const internalRelations = [
+    it('should get internal related agents', async () => {
+      const data = [
         { id: 'agent-2', name: 'Agent 2', description: 'Internal agent', relationType: 'transfer' },
       ];
-      const externalRelations = [
-        {
-          id: 'relation-1',
-          relationType: 'delegate',
-          externalAgent: { id: 'ext-1', name: 'External Agent', baseUrl: 'http://example.com' },
-        },
-      ];
 
-      const mockSelect = vi
-        .fn()
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(internalRelations),
-            }),
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue(data),
           }),
-        })
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue(externalRelations),
-            }),
-          }),
-        });
+        }),
+      });
 
       const mockDb = {
         ...db,
@@ -348,8 +328,7 @@ describe('Agent Relations Data Access', () => {
       });
 
       expect(result).toEqual({
-        internalRelations,
-        externalRelations,
+        data,
       });
     });
   });
@@ -441,55 +420,7 @@ describe('Agent Relations Data Access', () => {
       expect(result).toEqual(relationData);
     });
 
-    it('should create a new agent relation with external agent', async () => {
-      const relationData = {
-        id: 'relation-1',
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        agentId: testAgentId,
-        sourceSubAgentId: 'agent-1',
-        externalSubAgentId: 'ext-agent-1',
-        relationType: 'delegate',
-      };
-
-      const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([relationData]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        insert: mockInsert,
-      } as any;
-
-      const result = await createSubAgentRelation(mockDb)({
-        ...relationData,
-      });
-
-      expect(result).toEqual(relationData);
-    });
-
-    it('should throw error when both target and external agent are specified', async () => {
-      const relationData: SubAgentRelationInsert = {
-        id: 'relation-1',
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        agentId: testAgentId,
-        sourceSubAgentId: 'agent-1',
-        targetSubAgentId: 'agent-2',
-        externalSubAgentId: 'ext-agent-1',
-        relationType: 'transfer',
-      };
-
-      await expect(
-        createSubAgentRelation(db)({
-          ...relationData,
-        })
-      ).rejects.toThrow('Cannot specify both targetSubAgentId and externalSubAgentId');
-    });
-
-    it('should throw error when neither target nor external agent is specified', async () => {
+    it('should throw error when neither target agent is specified', async () => {
       const relationData = {
         id: 'relation-1',
         tenantId: testTenantId,
@@ -504,98 +435,6 @@ describe('Agent Relations Data Access', () => {
           ...relationData,
         })
       ).rejects.toThrow('Must specify either targetSubAgentId or externalSubAgentId');
-    });
-  });
-
-  describe('createExternalAgentRelation', () => {
-    it('should create an external agent relation', async () => {
-      const relationData = {
-        id: 'relation-1',
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        agentId: testAgentId,
-        sourceSubAgentId: 'agent-1',
-        externalSubAgentId: 'ext-agent-1',
-        relationType: 'delegate',
-      };
-
-      const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([relationData]),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        insert: mockInsert,
-      } as any;
-
-      const result = await createExternalAgentRelation(mockDb)({
-        ...relationData,
-      });
-
-      expect(result).toEqual(relationData);
-    });
-  });
-
-  describe('getExternalAgentRelations', () => {
-    it('should get external agent relations', async () => {
-      const expectedRelations = [
-        {
-          id: 'relation-1',
-          relationType: 'delegate',
-          externalAgent: { id: 'ext-1', name: 'External Agent', baseUrl: 'http://example.com' },
-        },
-      ];
-
-      const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields?.count) {
-          // This is the count query
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([{ count: 1 }]),
-            }),
-          };
-        }
-        // This is the main data query (no specific fields, just select())
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(expectedRelations),
-                }),
-              }),
-            }),
-          }),
-        };
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      // Mock Promise.all to return both data and count results
-      const originalPromiseAll = Promise.all;
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 1 }]]);
-
-      const result = await getExternalAgentRelations(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          agentId: testAgentId,
-        },
-        externalSubAgentId: 'ext-1',
-      });
-
-      expect(result).toEqual({
-        data: expectedRelations,
-        pagination: { page: 1, limit: 10, total: 1, pages: 1 },
-      });
-
-      // Restore Promise.all
-      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 
@@ -786,7 +625,7 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalSubAgent(mockDb)({
+      const result = await validateSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,
@@ -812,61 +651,7 @@ describe('Agent Relations Data Access', () => {
         select: mockSelect,
       } as any;
 
-      const result = await validateInternalSubAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          agentId: testAgentId,
-          subAgentId: 'non-existent',
-        },
-      });
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('validateExternalAgent', () => {
-    it('should return true when external agent exists', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: 'ext-agent-1' }]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await validateExternalAgent(mockDb)({
-        scopes: {
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          agentId: testAgentId,
-          subAgentId: 'ext-agent-1',
-        },
-      });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when external agent does not exist', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
-
-      const mockDb = {
-        ...db,
-        select: mockSelect,
-      } as any;
-
-      const result = await validateExternalAgent(mockDb)({
+      const result = await validateSubAgent(mockDb)({
         scopes: {
           tenantId: testTenantId,
           projectId: testProjectId,

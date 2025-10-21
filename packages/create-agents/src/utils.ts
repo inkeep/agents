@@ -56,6 +56,7 @@ type FileConfig = {
   runApiPort?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
+  disableGit?: boolean;
 };
 
 export const createAgents = async (
@@ -67,9 +68,10 @@ export const createAgents = async (
     googleKey?: string;
     template?: string;
     customProjectId?: string;
+    disableGit?: boolean;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId } = args;
+  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
@@ -243,6 +245,7 @@ export const createAgents = async (
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
+      disableGit: disableGit,
     };
 
     s.message('Setting up project structure...');
@@ -275,6 +278,10 @@ export const createAgents = async (
 
     s.message('Installing dependencies (this may take a while)...');
     await installDependencies();
+
+    if (!config.disableGit) {
+      await initializeGit();
+    }
 
     s.message('Setting up database...');
     await setupDatabase();
@@ -379,6 +386,17 @@ export const myProject = project({
 
 async function installDependencies() {
   await execAsync('pnpm install');
+}
+
+async function initializeGit() {
+  try {
+    await execAsync('git init');
+  } catch (error) {
+    console.error(
+      'Error initializing git:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+  }
 }
 
 async function setupProjectInDatabase(config: FileConfig) {

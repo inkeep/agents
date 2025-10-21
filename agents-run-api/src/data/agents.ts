@@ -63,14 +63,11 @@ export function generateDescriptionWithTransfers(
   externalRelations: any[]
 ): string {
   // Filter relations by type
-  const transfers = [
-    ...internalRelations.filter((rel) => rel.relationType === 'transfer'),
-    ...externalRelations.filter((rel) => rel.relationType === 'transfer'),
-  ];
+  const transfers = [...internalRelations.filter((rel) => rel.relationType === 'transfer')];
 
   const delegates = [
     ...internalRelations.filter((rel) => rel.relationType === 'delegate'),
-    ...externalRelations.filter((rel) => rel.relationType === 'delegate'),
+    ...externalRelations.map((data) => data.externalAgent),
   ];
 
   // If no relations, return base description
@@ -96,8 +93,8 @@ export function generateDescriptionWithTransfers(
   if (delegates.length > 0) {
     const delegateList = delegates
       .map((rel) => {
-        const name = rel.externalAgent?.name || rel.name;
-        const desc = rel.externalAgent?.description || rel.description || '';
+        const name = rel.name;
+        const desc = rel.description || '';
         return `- ${name}: ${desc}`;
       })
       .join('\n');

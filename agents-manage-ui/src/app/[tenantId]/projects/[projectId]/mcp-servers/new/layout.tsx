@@ -4,10 +4,7 @@ import { MainContent } from '@/components/layout/main-content';
 export default async function NewMCPServerLayout({
   children,
   params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: LayoutProps<'/[tenantId]/projects/[projectId]/mcp-servers/new'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate

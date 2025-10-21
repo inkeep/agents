@@ -1,6 +1,9 @@
 import type { Node } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { StandaloneJsonEditor } from '@/components/form/standalone-json-editor';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
 import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
@@ -11,7 +14,7 @@ interface FunctionToolNodeEditorProps {
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
-  const { getFieldError, setFieldRef, updatePath } = useNodeEditor({
+  const { getFieldError, setFieldRef, updatePath, deleteNode } = useNodeEditor({
     selectedNodeId: selectedNode.id,
   });
 
@@ -182,6 +185,13 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         {getFieldError('dependencies') && (
           <p className="text-sm text-red-600">{getFieldError('dependencies')}</p>
         )}
+      </div>
+      <Separator />
+      <div className="flex justify-end">
+        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
       </div>
     </div>
   );

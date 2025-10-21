@@ -12,11 +12,9 @@ import { fetchDataComponents } from '@/lib/api/data-components';
 
 export const dynamic = 'force-dynamic';
 
-interface DataComponentsPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function DataComponentsPage({ params }: DataComponentsPageProps) {
+async function DataComponentsPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/components'>) {
   const { tenantId, projectId } = await params;
 
   let dataComponents: Awaited<ReturnType<typeof fetchDataComponents>>;

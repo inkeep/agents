@@ -8,7 +8,7 @@ vi.mock('ai', () => ({
   }),
 }));
 
-import type { AgentConfig, ExternalAgentConfig } from '../../agents/Agent';
+import type { AgentConfig, ExternalAgentRelationConfig } from '../../agents/Agent';
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools';
 import { saveA2AMessageResponse } from '../../data/conversations';
 
@@ -156,7 +156,7 @@ vi.mock('../../agents/ToolSessionManager.js', () => ({
 
 describe('Relationship Tools', () => {
   let mockAgentConfig: AgentConfig;
-  let mockExternalAgentConfig: ExternalAgentConfig;
+  let mockExternalAgentConfig: ExternalAgentRelationConfig;
   let _mockSendMessageInstance: any;
   let mockCredentialStoreRegistry: any;
 
@@ -184,7 +184,7 @@ describe('Relationship Tools', () => {
     },
   });
 
-  const getExternalDelegateParams = (config?: Partial<ExternalAgentConfig>) => ({
+  const getExternalDelegateParams = (config?: Partial<ExternalAgentRelationConfig>) => ({
     delegateConfig: {
       type: 'external' as const,
       config: { ...mockExternalAgentConfig, ...config },
@@ -241,6 +241,8 @@ describe('Relationship Tools', () => {
       name: 'External Agent',
       description: 'An external agent for testing',
       baseUrl: 'http://external-agent.example.com',
+      relationId: 'test-relation-id',
+      relationType: 'test-relation-type',
     };
   });
 

@@ -17,7 +17,7 @@ import {
   CredentialStoreType,
   createCredentialReference,
   generateIdFromName,
-  getCredentialReferenceWithTools,
+  getCredentialReferenceWithResources,
   getToolById,
   type ServerConfig,
   updateTool,
@@ -36,7 +36,7 @@ async function findOrCreateCredential(
 ) {
   try {
     // Try to find existing credential first
-    const existingCredential = await getCredentialReferenceWithTools(dbClient)({
+    const existingCredential = await getCredentialReferenceWithResources(dbClient)({
       scopes: { tenantId, projectId },
       id: credentialData.id,
     });

@@ -1,8 +1,8 @@
-import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
+import { Bot, Code, Globe, Hammer } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
-import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
+import { PlaceholderNode } from '../nodes/placeholder-node';
 import { SubAgentNode } from '../nodes/sub-agent-node';
 import type { AgentModels } from './agent-types';
 
@@ -11,6 +11,7 @@ interface NodeData {
   isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
+  type?: 'mcp-placeholder' | 'external-agent-placeholder'; // Optional for placeholder nodes
 }
 
 import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
@@ -48,7 +49,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   baseUrl: string;
-  headers: string;
+  relationshipId?: string | null;
   credentialReferenceId?: string | null;
 }
 
@@ -69,6 +70,7 @@ export interface FunctionToolNodeData extends Record<string, unknown> {
 export enum NodeType {
   SubAgent = 'agent',
   ExternalAgent = 'external-agent',
+  ExternalAgentPlaceholder = 'external-agent-placeholder',
   MCP = 'mcp',
   MCPPlaceholder = 'mcp-placeholder',
   FunctionTool = 'function-tool',
@@ -77,8 +79,9 @@ export enum NodeType {
 export const nodeTypes = {
   [NodeType.SubAgent]: SubAgentNode,
   [NodeType.ExternalAgent]: ExternalAgentNode,
+  [NodeType.ExternalAgentPlaceholder]: PlaceholderNode,
   [NodeType.MCP]: MCPNode,
-  [NodeType.MCPPlaceholder]: MCPPlaceholderNode,
+  [NodeType.MCPPlaceholder]: PlaceholderNode,
   [NodeType.FunctionTool]: FunctionToolNode,
 };
 
@@ -95,6 +98,10 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.ExternalAgent]: {
     name: '',
   },
+  [NodeType.ExternalAgentPlaceholder]: {
+    name: 'Select external agent',
+    type: 'external-agent-placeholder',
+  },
   [NodeType.MCP]: {
     name: 'MCP',
     subAgentId: null,
@@ -102,6 +109,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCPPlaceholder]: {
     name: 'Select MCP server',
+    type: 'mcp-placeholder',
   },
   [NodeType.FunctionTool]: {
     name: 'Function Tool',
@@ -118,7 +126,12 @@ export const nodeTypeMap = {
   [NodeType.ExternalAgent]: {
     type: NodeType.ExternalAgent,
     name: 'External Agent',
-    Icon: BotMessageSquare,
+    Icon: Globe,
+  },
+  [NodeType.ExternalAgentPlaceholder]: {
+    type: NodeType.ExternalAgentPlaceholder,
+    name: 'External Agent',
+    Icon: Globe,
   },
   [NodeType.MCPPlaceholder]: {
     type: NodeType.MCPPlaceholder,

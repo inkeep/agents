@@ -10,11 +10,7 @@ import { fetchAgents } from '@/lib/api/agent-full-client';
 
 export const dynamic = 'force-dynamic';
 
-interface AgentsPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function AgentsPage({ params }: AgentsPageProps) {
+async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
 
   let agents: Awaited<ReturnType<typeof fetchAgents>>;

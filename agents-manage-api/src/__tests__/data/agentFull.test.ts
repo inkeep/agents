@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { createTestContextConfigData } from '../utils/testHelpers';
 import { ensureTestProject } from '../utils/testProject';
-import { createTestExternalAgentData, createTestSubAgentData } from '../utils/testSubAgent';
+import { createTestSubAgentData } from '../utils/testSubAgent';
 import { createTestTenantId } from '../utils/testTenant';
 
 // Mock the logger to reduce noise in tests
@@ -81,7 +81,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     const id = agentId || generateId();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
-    const externalSubAgentId = `external-agent-${id}`;
+    const externalAgentId = `external-agent-${id}`;
     const toolId1 = `tool-${id}-1`;
     const dataComponentId1 = `datacomponent-${id}-1`;
     const contextConfigId = `context-${id}`;
@@ -102,9 +102,13 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       subAgent1.dataComponents = [dataComponentId1];
     }
 
-    // Add external subAgent relationships if requested
+    // Add external agent delegation if requested
+    // Note: External agents are NOT in subAgents, only referenced in canDelegateTo as { externalAgentId, headers }
     if (options.includeExternalAgents) {
-      subAgent1.canDelegateTo.push(externalSubAgentId);
+      subAgent1.canDelegateTo.push({
+        externalAgentId: externalAgentId,
+        headers: { 'X-Custom-Header': 'test-value' },
+      });
     }
 
     const agentData: FullAgentDefinition = {
@@ -119,13 +123,6 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
-    // Add external agents if requested
-    if (options.includeExternalAgents) {
-      agentData.subAgents[externalSubAgentId] = createTestExternalAgentData({
-        id: externalSubAgentId,
-      });
-    }
 
     // Note: DataComponents are now project-scoped and should be created separately
     // dataComponents are no longer part of the agent definition
@@ -322,23 +319,16 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
 
-      // Find external subAgent
-      const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) =>
-          'baseUrl' in subAgent &&
-          typeof subAgent.baseUrl === 'string' &&
-          subAgent.baseUrl.includes('api.example.com')
-      );
-      expect(externalAgent).toBeDefined();
-      if (externalAgent && 'baseUrl' in externalAgent) {
-        expect(externalAgent.baseUrl).toContain('api.example.com');
-      }
+      // Verify only internal subAgents are in result.subAgents (external agents are NOT included)
+      expect(Object.keys(result.subAgents)).toHaveLength(2); // Only 2 internal agents
 
-      // Verify internal subAgent can hand off to external subAgent
+      // Verify internal subAgent can delegate internally
       if (agentData.defaultSubAgentId) {
         const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('canDelegateTo' in defaultSubAgent) {
-          expect(defaultSubAgent.canDelegateTo).toContain(externalAgent?.id);
+          // Note: Like dataComponents, external agent references to non-existent external agents are filtered out
+          // canDelegateTo should only have the internal subAgent delegation since the external agent doesn't exist
+          expect(defaultSubAgent.canDelegateTo).toHaveLength(1); // Only internal delegation
         }
       }
     });
@@ -373,32 +363,26 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
 
-      // Verify all subAgents exist
-      expect(Object.keys(result.subAgents)).toHaveLength(3); // 2 internal + 1 external
+      // Verify only internal subAgents are in result.subAgents (external agents are NOT included)
+      expect(Object.keys(result.subAgents)).toHaveLength(2); // Only 2 internal agents
       expect(result.contextConfig).toBeDefined();
 
       // Verify subAgent relationships and references
       if (agentData.defaultSubAgentId) {
         const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
         if ('dataComponents' in defaultSubAgent) {
+          // Non-existent dataComponents are filtered out
           expect(defaultSubAgent.dataComponents).toHaveLength(0);
         }
         if ('canTransferTo' in defaultSubAgent) {
           expect(defaultSubAgent.canTransferTo).toHaveLength(1);
         }
         if ('canDelegateTo' in defaultSubAgent) {
-          expect(defaultSubAgent.canDelegateTo).toHaveLength(2);
+          // Note: Like dataComponents, external agent references to non-existent external agents are filtered out
+          // canDelegateTo should only have the internal subAgent delegation since the external agent doesn't exist
+          expect(defaultSubAgent.canDelegateTo).toHaveLength(1); // Only internal delegation
         }
       }
-
-      // Verify external subAgent exists
-      const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) =>
-          'baseUrl' in subAgent &&
-          typeof subAgent.baseUrl === 'string' &&
-          subAgent.baseUrl.includes('api.example.com')
-      );
-      expect(externalAgent).toBeDefined();
     });
   });
 
@@ -605,16 +589,17 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       );
 
       expect(result).toBeDefined();
-      expect(Object.keys(result.subAgents)).toHaveLength(3); // 2 internal + 1 external
+      // Only internal subAgents are in result.subAgents (external agents are NOT included)
+      expect(Object.keys(result.subAgents)).toHaveLength(2); // Only 2 internal agents
 
-      // Find external agent
-      const externalAgent = Object.values(result.subAgents).find(
-        (subAgent) =>
-          'baseUrl' in subAgent &&
-          typeof subAgent.baseUrl === 'string' &&
-          subAgent.baseUrl.includes('api.example.com')
-      );
-      expect(externalAgent).toBeDefined();
+      // Verify delegation relationships
+      if (agentData.defaultSubAgentId) {
+        const defaultSubAgent = result.subAgents[agentData.defaultSubAgentId];
+        if ('canDelegateTo' in defaultSubAgent) {
+          // Note: Like dataComponents, external agent references to non-existent external agents are filtered out
+          expect(defaultSubAgent.canDelegateTo).toHaveLength(1); // Only internal delegation
+        }
+      }
     });
 
     it.skip('should update agent removing dataComponents', async () => {
@@ -670,7 +655,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       expect(result).toBeDefined();
       expect(result.subAgents).toBeDefined();
-      expect(Object.keys(result.subAgents || {})).toHaveLength(3);
+      // Only internal subAgents are in result.subAgents (external agents are NOT included)
+      expect(Object.keys(result.subAgents || {})).toHaveLength(2);
       expect(result.contextConfig).toBeDefined();
     });
   });

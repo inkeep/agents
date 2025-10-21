@@ -17,9 +17,7 @@ const credentialDescription =
 
 async function CredentialsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials'>) {
   const { tenantId, projectId } = await params;
 
   let credentials: Awaited<ReturnType<typeof fetchCredentials>>;

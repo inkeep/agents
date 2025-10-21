@@ -5,9 +5,9 @@ import {
   createSubAgentRelation,
   deleteSubAgentRelation,
   ErrorResponseSchema,
+  generateId,
   getAgentRelationById,
   getAgentRelationsBySource,
-  getExternalAgentRelations,
   getSubAgentRelationsByTarget,
   ListResponseSchema,
   listAgentRelations,
@@ -22,9 +22,7 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateAgentRelation,
-  validateExternalAgent,
-  validateInternalSubAgent,
-  generateId,
+  validateSubAgent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
@@ -55,13 +53,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
-    const {
-      page = 1,
-      limit = 10,
-      sourceSubAgentId,
-      targetSubAgentId,
-      externalSubAgentId,
-    } = c.req.valid('query');
+    const { page = 1, limit = 10, sourceSubAgentId, targetSubAgentId } = c.req.valid('query');
     const pageNum = Number(page);
     const limitNum = Math.min(Number(limit), 100);
 
@@ -79,13 +71,6 @@ app.openapi(
         const rawResult = await getSubAgentRelationsByTarget(dbClient)({
           scopes: { tenantId, projectId, agentId },
           targetSubAgentId,
-          pagination: { page: pageNum, limit: limitNum },
-        });
-        result = { ...rawResult, data: rawResult.data };
-      } else if (externalSubAgentId) {
-        const rawResult = await getExternalAgentRelations(dbClient)({
-          scopes: { tenantId, projectId, agentId },
-          externalSubAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
@@ -180,29 +165,14 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = await c.req.valid('json');
 
-    // Determine if this is an external agent relationship
-    const isExternalAgent = body.externalSubAgentId != null;
-
-    if (isExternalAgent && body.externalSubAgentId) {
-      const externalAgentExists = await validateExternalAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId, subAgentId: body.externalSubAgentId },
-      });
-      if (!externalAgentExists) {
-        throw createApiError({
-          code: 'bad_request',
-          message: `External agent with ID ${body.externalSubAgentId} not found`,
-        });
-      }
-    }
-
-    if (!isExternalAgent && body.targetSubAgentId) {
-      const internalAgentExists = await validateInternalSubAgent(dbClient)({
+    if (body.targetSubAgentId) {
+      const subAgentExists = await validateSubAgent(dbClient)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.targetSubAgentId },
       });
-      if (!internalAgentExists) {
+      if (!subAgentExists) {
         throw createApiError({
           code: 'bad_request',
-          message: `Internal agent with ID ${body.targetSubAgentId} not found`,
+          message: `Sub agent with ID ${body.targetSubAgentId} not found`,
         });
       }
     }
@@ -217,18 +187,13 @@ app.openapi(
         return false;
       }
 
-      // Check for duplicate based on relationship type
-      if (isExternalAgent) {
-        return relation.externalSubAgentId === body.externalSubAgentId;
-      }
       return relation.targetSubAgentId === body.targetSubAgentId;
     });
 
     if (isDuplicate) {
-      const agentType = isExternalAgent ? 'external' : 'internal';
       throw createApiError({
         code: 'unprocessable_entity',
-        message: `A relation between these agents (${agentType}) in this agent already exists`,
+        message: `A relation between these agents in this agent already exists`,
       });
     }
 
@@ -238,8 +203,7 @@ app.openapi(
       id: generateId(),
       projectId,
       sourceSubAgentId: body.sourceSubAgentId,
-      targetSubAgentId: isExternalAgent ? undefined : body.targetSubAgentId,
-      externalSubAgentId: isExternalAgent ? body.externalSubAgentId : undefined,
+      targetSubAgentId: body.targetSubAgentId,
       relationType: body.relationType,
     };
 

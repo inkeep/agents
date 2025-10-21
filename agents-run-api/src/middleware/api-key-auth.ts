@@ -1,4 +1,4 @@
-import { type ExecutionContext, validateAndGetApiKey } from '@inkeep/agents-core';
+import { type ExecutionContext, getAgentById, validateAndGetApiKey } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
@@ -42,7 +42,9 @@ export const apiKeyAuth = () =>
       if (authHeader?.startsWith('Bearer ')) {
         try {
           executionContext = await extractContextFromApiKey(authHeader.substring(7), baseUrl);
-          executionContext.subAgentId = subAgentId;
+          if (subAgentId) {
+            executionContext.subAgentId = subAgentId;
+          }
           logger.info({}, 'Development/test environment - API key authenticated successfully');
         } catch {
           executionContext = createExecutionContext({
@@ -114,7 +116,9 @@ export const apiKeyAuth = () =>
         return;
       } else if (apiKey) {
         const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-        executionContext.subAgentId = subAgentId;
+        if (subAgentId) {
+          executionContext.subAgentId = subAgentId;
+        }
 
         c.set('executionContext', executionContext);
 
@@ -137,7 +141,9 @@ export const apiKeyAuth = () =>
 
     try {
       const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-      executionContext.subAgentId = subAgentId;
+      if (subAgentId) {
+        executionContext.subAgentId = subAgentId;
+      }
 
       c.set('executionContext', executionContext);
 
@@ -173,6 +179,22 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     });
   }
 
+  const agent = await getAgentById(dbClient)({
+    scopes: {
+      tenantId: apiKeyRecord.tenantId,
+      projectId: apiKeyRecord.projectId,
+      agentId: apiKeyRecord.agentId,
+    },
+  });
+
+  if (!agent) {
+    throw new HTTPException(401, {
+      message: 'Invalid or expired API key',
+    });
+  }
+
+  logger.info({ agent }, 'agent');
+  logger.info({ defaultSubAgentId: agent.defaultSubAgentId }, 'agent.defaultSubAgentId');
   return createExecutionContext({
     apiKey: apiKey,
     tenantId: apiKeyRecord.tenantId,
@@ -180,6 +202,7 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     agentId: apiKeyRecord.agentId,
     apiKeyId: apiKeyRecord.id,
     baseUrl: baseUrl,
+    subAgentId: agent.defaultSubAgentId || undefined,
   });
 };
 
