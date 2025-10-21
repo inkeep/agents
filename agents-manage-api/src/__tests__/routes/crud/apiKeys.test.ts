@@ -1,5 +1,4 @@
-import { createFullAgentServerSide, extractPublicId } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { createFullAgentServerSide, extractPublicId, generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
 import { ensureTestProject } from '../../utils/testProject';
@@ -8,10 +7,9 @@ import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantId } from '../../utils/testTenant';
 
 describe('API Key CRUD Routes - Integration Tests', () => {
-
   // Helper function to create full agent data with optional enhanced features
   const createFullAgentData = (agentId: string) => {
-    const id = agentId || nanoid();
+    const id = agentId || generateId();
 
     const agent = createTestSubAgentData();
 
@@ -39,7 +37,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     // Ensure the project exists for this tenant before creating the agent
     await ensureTestProject(tenantId, projectId);
 
-    const agentId = `test-agent${nanoid(6)}`;
+    const agentId = `test-agent${generateId(6)}`;
     const agentData = createFullAgentData(agentId);
     await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
     return { agentId, projectId }; // Return projectId as well
@@ -203,7 +201,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('api-keys-get-not-found');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = `non-existent-${nanoid()}`;
+      const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`
@@ -305,7 +303,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('api-keys-create-invalid-agent');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
-      const invalidAgentId = `invalid-${nanoid()}`;
+      const invalidAgentId = `invalid-${generateId()}`;
 
       const createData = {
         agentId: invalidAgentId,
@@ -384,7 +382,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('api-keys-update-not-found');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = `non-existent-${nanoid()}`;
+      const nonExistentId = `non-existent-${generateId()}`;
 
       const updateData = {
         expiresAt: '2025-12-31T23:59:59Z',
@@ -454,7 +452,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('api-keys-delete-not-found');
       const projectId = 'default-project';
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = `non-existent-${nanoid()}`;
+      const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys/${nonExistentId}`,
