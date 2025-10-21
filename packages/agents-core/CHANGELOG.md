@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+
 ## 0.24.0
 
 ### Patch Changes
