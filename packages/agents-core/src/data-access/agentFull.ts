@@ -1,6 +1,6 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { generateId } from '../utils/conversations';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type {
   ExternalSubAgentApiInsert,
@@ -183,7 +183,7 @@ export const createFullAgentServerSide =
 
       let finalAgentId: string;
       try {
-        const agentId = typed.id || nanoid();
+        const agentId = typed.id || generateId();
         logger.info({ agentId: agentId }, 'Creating agent metadata');
         const agent = await upsertAgent(db)({
           data: {
@@ -600,7 +600,7 @@ export const createFullAgentServerSide =
                     'Processing agent transfer relation'
                   );
                   await upsertSubAgentRelation(db)({
-                    id: nanoid(),
+                    id: generateId(),
                     tenantId,
                     projectId,
                     agentId: finalAgentId,
@@ -636,7 +636,7 @@ export const createFullAgentServerSide =
                     'Processing agent delegation relation'
                   );
                   await upsertSubAgentRelation(db)({
-                    id: nanoid(),
+                    id: generateId(),
                     tenantId,
                     projectId,
                     agentId: finalAgentId,
@@ -745,7 +745,7 @@ export const updateFullAgentServerSide =
 
       let finalAgentId: string;
       try {
-        const agentId = typedAgentDefinition.id || nanoid();
+        const agentId = typedAgentDefinition.id || generateId();
         logger.info({ agentId }, 'Getting/creating agent metadata');
         const agent = await upsertAgent(db)({
           data: {
@@ -1344,7 +1344,7 @@ export const updateFullAgentServerSide =
                   const targetField = isTargetExternal ? 'externalSubAgentId' : 'targetSubAgentId';
 
                   const relationData = {
-                    id: nanoid(),
+                    id: generateId(),
                     agentId: typedAgentDefinition.id || '',
                     sourceSubAgentId: subAgentId,
                     relationType: 'transfer',
@@ -1384,7 +1384,7 @@ export const updateFullAgentServerSide =
               (async () => {
                 try {
                   const relationData = {
-                    id: nanoid(),
+                    id: generateId(),
                     agentId: typedAgentDefinition.id || '',
                     sourceSubAgentId: subAgentId,
                     relationType: 'delegate',

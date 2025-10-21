@@ -22,8 +22,8 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
+  generateId,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 
@@ -237,7 +237,7 @@ app.openapi(
     const agent = await createAgent(dbClient)({
       tenantId,
       projectId,
-      id: validatedBody.id || nanoid(),
+      id: validatedBody.id || generateId(),
       name: validatedBody.name,
       defaultSubAgentId: validatedBody.defaultSubAgentId,
       contextConfigId: validatedBody.contextConfigId ?? undefined,

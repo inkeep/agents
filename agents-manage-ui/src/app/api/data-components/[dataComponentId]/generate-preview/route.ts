@@ -16,13 +16,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
-    const url = `${baseUrl}/tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
+    const runApiUrl =
+      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
+      'http://localhost:3003';
+    const url = `${runApiUrl}/v1/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET && {
+          Authorization: `Bearer ${process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+          'x-inkeep-tenant-id': tenantId,
+          'x-inkeep-project-id': projectId,
+          'x-inkeep-agent-id': 'preview-generator',
+        }),
       },
       body: JSON.stringify({
         instructions: instructions || undefined,
@@ -31,6 +39,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read error');
+      console.error('Run API returned error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        url,
+      });
       return new Response('Failed to generate preview', { status: response.status });
     }
 

@@ -34,9 +34,9 @@ Context fetchers allow you to embed real-time data from external APIs into your 
 Let's create a simple context fetcher that retrieves user information:
 
 ```typescript
-import { z } from "zod";
-import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
+import { agent, subAgent } from "@inkeep/agents-sdk";
 import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
+import { z } from "zod";
 
 // 1. Define a schema for headers validation. All header keys are converted to lowercase.
 // In this example all incoming headers will be validated to make sure they include user_id and api_key.

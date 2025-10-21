@@ -1,5 +1,5 @@
+import { generateId } from '@/lib/utils/id-utils';
 import type { Edge, Node } from '@xyflow/react';
-import { nanoid } from 'nanoid';
 import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
@@ -378,7 +378,7 @@ export function serializeAgentData(
   }
 
   const result: FullAgentDefinition = {
-    id: metadata?.id || nanoid(),
+    id: metadata?.id || generateId(),
     name: metadata?.name || 'Untitled Agent',
     description: metadata?.description || undefined,
     defaultSubAgentId,
@@ -432,7 +432,7 @@ export function serializeAgentData(
 
   // Add contextConfig if there's meaningful data
   if (hasContextConfig && metadata?.contextConfig) {
-    const contextConfigId = metadata.contextConfig.id || nanoid();
+    const contextConfigId = metadata.contextConfig.id || generateId();
     (result as any).contextConfigId = contextConfigId;
     (result as any).contextConfig = {
       id: contextConfigId,
