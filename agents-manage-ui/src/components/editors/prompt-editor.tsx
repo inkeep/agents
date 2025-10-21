@@ -1,6 +1,13 @@
 'use client';
 
-import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
+import {
+  type ComponentProps,
+  type FC,
+  useCallback,
+  useId,
+  useState,
+  useEffect,
+} from 'react';
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
@@ -10,20 +17,17 @@ import {
   RESERVED_KEYS,
 } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
-import { Button } from '@/components/ui/button';
-import { Braces } from 'lucide-react';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.template`;
 }
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
+export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
   const id = useId();
   uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
-
   useEffect(() => {
     const model = editor?.getModel();
     if (!monaco || !editor || !model) {
@@ -82,9 +86,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance) => {
       setEditor(editorInstance);
-      props.onMount?.(editorInstance);
+      onMount?.(editorInstance);
     },
-    [props.onMount]
+    [onMount]
   );
 
   return (

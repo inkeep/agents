@@ -36,7 +36,6 @@ export function ExpandableField({
   onOpenChange,
 }: ExpandableFieldProps) {
   const IconToUse = open ? Minimize : Maximize;
-
   const content = (
     <>
       <div className="flex items-center justify-between">
