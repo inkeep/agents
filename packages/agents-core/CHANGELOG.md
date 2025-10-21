@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
 ## 0.24.2
 
 ### Patch Changes

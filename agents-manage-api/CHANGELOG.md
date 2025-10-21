@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-api
 
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- Updated dependencies [51c157e]
+  - @inkeep/agents-core@0.25.0
+
 ## 0.24.2
 
 ### Patch Changes
