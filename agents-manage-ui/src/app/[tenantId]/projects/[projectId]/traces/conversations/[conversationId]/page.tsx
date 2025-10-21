@@ -7,11 +7,11 @@ import { ConversationDetail } from '@/components/traces/conversation-detail';
 
 export default function ConversationPage() {
   const router = useRouter();
-  const params = useParams();
-
-  const conversationId = params.conversationId as string;
-  const tenantId = params.tenantId as string;
-  const projectId = params.projectId as string;
+  const { conversationId, tenantId, projectId } = useParams<{
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+  }>();
 
   const handleBackToTraces = () => {
     router.push(`/${tenantId}/projects/${projectId}/traces`);

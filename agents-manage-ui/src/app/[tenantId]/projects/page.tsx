@@ -21,7 +21,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   }
 
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Projects' }]}>
+    <BodyTemplate>
       <MainContent className="min-h-full">
         {projects.data.length > 0 ? (
           <>
