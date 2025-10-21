@@ -13,6 +13,7 @@ import functionToolsRoutes from './functionTools';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
+import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
 import subAgentRelationsRoutes from './subAgentRelations';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
@@ -27,6 +28,10 @@ app.route('/projects', projectsRoutes);
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agents/:subAgentId/external-agent-relations',
+  subAgentExternalAgentRelationsRoutes
+);
 app.route('/projects/:projectId/agents', agentRoutes);
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-tool-relations',
@@ -45,7 +50,7 @@ app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigs
 app.route('/projects/:projectId/credentials', credentialsRoutes);
 app.route('/projects/:projectId/credential-stores', credentialStoresRoutes);
 app.route('/projects/:projectId/data-components', dataComponentsRoutes);
-app.route('/projects/:projectId/agents/:agentId/external-agents', externalAgentsRoutes);
+app.route('/projects/:projectId/external-agents', externalAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRoutes);
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);

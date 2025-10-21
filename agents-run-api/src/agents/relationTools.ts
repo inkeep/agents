@@ -6,7 +6,6 @@ import {
   createMessage,
   generateId,
   getCredentialReference,
-  getExternalAgent,
   SPAN_KEYS,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
@@ -162,24 +161,11 @@ export function createDelegateToAgentTool({
 
       const isInternal = delegateConfig.type === 'internal';
 
-      let _agentBaseUrl: string;
       let resolvedHeaders: Record<string, string> = {};
 
       if (!isInternal) {
-        _agentBaseUrl = delegateConfig.config.baseUrl;
-
-        const externalAgent = await getExternalAgent(dbClient)({
-          scopes: {
-            tenantId,
-            projectId,
-            agentId,
-          },
-          subAgentId: delegateConfig.config.id,
-        });
-
         if (
-          externalAgent &&
-          (externalAgent.credentialReferenceId || externalAgent.headers) &&
+          (delegateConfig.config.credentialReferenceId || delegateConfig.config.headers) &&
           credentialStoreRegistry
         ) {
           const contextResolver = new ContextResolver(
@@ -199,13 +185,13 @@ export function createDelegateToAgentTool({
           };
 
           let storeReference: CredentialStoreReference | undefined;
-          if (externalAgent.credentialReferenceId) {
+          if (delegateConfig.config.credentialReferenceId) {
             const credentialReference = await getCredentialReference(dbClient)({
               scopes: {
                 tenantId,
                 projectId,
               },
-              id: externalAgent.credentialReferenceId,
+              id: delegateConfig.config.credentialReferenceId,
             });
             if (credentialReference) {
               storeReference = {
@@ -217,7 +203,7 @@ export function createDelegateToAgentTool({
           resolvedHeaders = await credentialStuffer.getCredentialHeaders({
             context: credentialContext,
             storeReference,
-            headers: externalAgent.headers || undefined,
+            headers: delegateConfig.config.headers || undefined,
           });
         }
       } else {

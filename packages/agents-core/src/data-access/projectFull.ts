@@ -18,6 +18,7 @@ import { listAgents } from './agents';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
+import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
@@ -192,6 +193,53 @@ export const createFullProjectServerSide =
         );
       }
 
+      if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'Creating project externalAgents'
+        );
+
+        const externalAgentPromises = Object.entries(typed.externalAgents).map(
+          async ([externalAgentId, externalAgentData]) => {
+            try {
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'Creating externalAgent in project'
+              );
+              await upsertExternalAgent(db)({
+                data: {
+                  ...externalAgentData,
+                  tenantId,
+                  projectId: typed.id,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'ExternalAgent created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, externalAgentId, error },
+                'Failed to create externalAgent in project'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(externalAgentPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'All project externalAgents created successfully'
+        );
+      }
+
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -305,6 +353,7 @@ export const createFullProjectServerSide =
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
+              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
@@ -536,6 +585,53 @@ export const updateFullProjectServerSide =
         );
       }
 
+      if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'Updating project externalAgents'
+        );
+
+        const externalAgentPromises = Object.entries(typed.externalAgents).map(
+          async ([externalAgentId, externalAgentData]) => {
+            try {
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'Updating externalAgent in project'
+              );
+              await upsertExternalAgent(db)({
+                data: {
+                  ...externalAgentData,
+                  tenantId,
+                  projectId: typed.id,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'ExternalAgent updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, externalAgentId, error },
+                'Failed to update externalAgent in project'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(externalAgentPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'All project externalAgents updated successfully'
+        );
+      }
+
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -686,6 +782,7 @@ export const updateFullProjectServerSide =
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
+              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
@@ -795,6 +892,32 @@ export const getFullProject =
         );
       } catch (error) {
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
+      }
+
+      const projectExternalAgents: Record<string, any> = {};
+      try {
+        const externalAgentsList = await listExternalAgents(db)({
+          scopes: { tenantId, projectId },
+        });
+
+        for (const externalAgent of externalAgentsList) {
+          projectExternalAgents[externalAgent.id] = {
+            id: externalAgent.id,
+            name: externalAgent.name,
+            description: externalAgent.description,
+            baseUrl: externalAgent.baseUrl,
+            credentialReferenceId: externalAgent.credentialReferenceId || undefined,
+          };
+        }
+        logger.info(
+          { tenantId, projectId, count: Object.keys(projectExternalAgents).length },
+          'ExternalAgents retrieved for project'
+        );
+      } catch (error) {
+        logger.warn(
+          { tenantId, projectId, error },
+          'Failed to retrieve externalAgents for project'
+        );
       }
 
       const projectDataComponents: Record<string, any> = {};
@@ -921,6 +1044,7 @@ export const getFullProject =
         stopWhen: project.stopWhen || undefined,
         agents,
         tools: projectTools,
+        externalAgents: projectExternalAgents,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,
         credentialReferences: projectCredentialReferences,

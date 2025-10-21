@@ -26,6 +26,8 @@ workspace-root/               # Repository/workspace root
 │   ├── data-components/      # Data component definitions
 │   │   ├── user-profile.ts
 │   │   └── product-catalog.ts
+│   ├── external-agents/      # External agent definitions
+│   │   ├── exernal-agent-example.ts
 │   └── environments/         # Environment-specific configurations
 │       ├── index.ts
 │       ├── development.env.ts
@@ -150,6 +152,22 @@ export const customerData = dataComponent({
 });
 ```
 
+### `/external-agents/`
+
+External agent definitions:
+
+```typescript
+import { externalAgent } from '@inkeep/agents-sdk';
+
+export const exernalAgentExample = externalAgent({
+  id: 'exernal-agent-example',
+  name: 'Exernal Agent Example',
+  description: 'An example external agent',
+  baseUrl: 'https://api.example.com/agents/support',
+  credentialReference: myCredentialReference,
+});
+```
+
 ### `/environments/`
 
 Environment-specific configurations for different deployment stages:
@@ -199,6 +217,7 @@ The CLI automatically discovers files using these patterns:
    - **Sub Agent files**: Files containing Sub Agent definitions
    - **Tool files**: Files in `/tools/` directory
    - **Data component files**: Files in `/data-components/` directory
+   - **External agent files**: Files in `/external-agents/` directory
    - **Environment files**: Files in `/environments/` directory
 
 ## Best Practices

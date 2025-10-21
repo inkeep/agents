@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { CredentialToolsList } from '@/components/credentials/credential-tools-list';
+import { CredentialResourcesList } from '@/components/credentials/credential-resources-list';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
@@ -183,9 +183,10 @@ export function EditCredentialForm({
               </div>
             )}
 
-            {/* MCP Servers Using This Credential */}
-            <CredentialToolsList
+            {/* Resources Using This Credential */}
+            <CredentialResourcesList
               tools={credential.tools}
+              externalAgents={credential.externalAgents}
               tenantId={tenantId}
               projectId={projectId}
             />

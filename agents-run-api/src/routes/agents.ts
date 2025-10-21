@@ -72,7 +72,7 @@ app.openapi(
     const executionContext = getRequestExecutionContext(c);
     const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
-    console.dir('executionContext', executionContext);
+    logger.info({ executionContext }, 'executionContext');
     // If subAgentId is defined in execution context, run agent-level logic
     if (subAgentId) {
       logger.info(

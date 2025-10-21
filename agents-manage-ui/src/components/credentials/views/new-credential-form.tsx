@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
+import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
 import { createNangoApiKeyConnection } from '@/lib/mcp-tools/nango';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
@@ -70,6 +71,18 @@ export function NewCredentialForm() {
           credentialReferenceId: newCredential.id,
         };
         await updateMCPTool(tenantId, projectId, data.selectedTool, updatedTool);
+      }
+
+      if (data.selectedExternalAgent && newCredential) {
+        const updatedExternalAgent = {
+          credentialReferenceId: newCredential.id,
+        };
+        await updateExternalAgent(
+          tenantId,
+          projectId,
+          data.selectedExternalAgent,
+          updatedExternalAgent
+        );
       }
 
       toast.success('Credential created successfully');

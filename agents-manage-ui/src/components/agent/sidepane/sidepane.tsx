@@ -7,7 +7,7 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
-import type { AgentToolConfigLookup } from '../agent';
+import type { AgentToolConfigLookup, SubAgentExternalAgentConfigLookup } from '../agent';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
@@ -22,6 +22,7 @@ import { EditorLoadingSkeleton } from './editor-loading-skeleton';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
+import { ExternalAgentSelector } from './nodes/external-agent-selector/external-agent-selector';
 import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
@@ -36,6 +37,7 @@ interface SidePaneProps {
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   agentToolConfigLookup: AgentToolConfigLookup;
+  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   credentialLookup: Record<string, Credential>;
 }
 
@@ -48,6 +50,7 @@ export function SidePane({
   dataComponentLookup,
   artifactComponentLookup,
   agentToolConfigLookup,
+  subAgentExternalAgentConfigLookup,
   credentialLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -114,9 +117,13 @@ export function SidePane({
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
               credentialLookup={credentialLookup}
+              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
           );
+        }
+        case NodeType.ExternalAgentPlaceholder: {
+          return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCPPlaceholder: {
           return <MCPSelector selectedNode={selectedNode as Node} />;
@@ -154,6 +161,7 @@ export function SidePane({
     getFirstErrorField,
     agentToolConfigLookup,
     credentialLookup,
+    subAgentExternalAgentConfigLookup,
   ]);
 
   const showBackButton = useMemo(() => {

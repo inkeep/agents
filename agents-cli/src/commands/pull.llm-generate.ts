@@ -76,7 +76,9 @@ export function detectAvailableProvider(): 'anthropic' | 'openai' | 'google' {
     return 'google';
   }
 
-  throw new Error('No LLM provider API key found. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY');
+  throw new Error(
+    'No LLM provider API key found. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY'
+  );
 }
 
 /**
@@ -101,7 +103,9 @@ export function getDefaultModelForProvider(provider: 'anthropic' | 'openai' | 'g
  * Get provider-specific configuration with reasoning/thinking enabled
  * @internal - Exported for testing
  */
-export function getModelConfigWithReasoning(provider: 'anthropic' | 'openai' | 'google'): Record<string, any> {
+export function getModelConfigWithReasoning(
+  provider: 'anthropic' | 'openai' | 'google'
+): Record<string, any> {
   switch (provider) {
     case 'anthropic':
       // Enable extended thinking for Anthropic models
@@ -398,12 +402,10 @@ export async function generateTextWithPlaceholders(
   context?: { fileType?: string },
   reasoningConfig?: Record<string, any>
 ): Promise<string> {
-
   // Create placeholders to reduce prompt size
-  const { processedData, replacements } = context 
+  const { processedData, replacements } = context
     ? createPlaceholders(data, context)
     : createPlaceholders(data);
-
 
   if (debug && Object.keys(replacements).length > 0) {
     const savings = calculateTokenSavings(data, processedData);
@@ -442,10 +444,8 @@ export async function generateTextWithPlaceholders(
     }),
   });
 
-
   // Restore placeholders in the generated code
   const restoredText = restorePlaceholders(text, replacements);
-
 
   if (debug && Object.keys(replacements).length > 0) {
     console.log(`[DEBUG] Placeholders restored successfully`);
@@ -541,10 +541,11 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
  */
 function generateImportMappings(
   toolFilenames?: Map<string, string>,
-  componentFilenames?: Map<string, string>
+  componentFilenames?: Map<string, string>,
+  externalAgentFilenames?: Map<string, string>
 ): string {
   let result = '';
-  
+
   if (toolFilenames && toolFilenames.size > 0) {
     result += 'TOOLS (use exact import paths):\n';
     for (const [toolId, fileName] of toolFilenames.entries()) {
@@ -552,7 +553,7 @@ function generateImportMappings(
     }
     result += '\n';
   }
-  
+
   if (componentFilenames && componentFilenames.size > 0) {
     result += 'COMPONENTS (use exact import paths):\n';
     for (const [componentId, fileName] of componentFilenames.entries()) {
@@ -568,7 +569,16 @@ function generateImportMappings(
       result += `  - Component ID: "${componentId}" → Import: "../${directory}/${fileName.replace('.ts', '')}"\n`;
     }
   }
-  
+
+  if (externalAgentFilenames && externalAgentFilenames.size > 0) {
+    result += 'EXTERNAL AGENTS (use exact import paths):\n';
+    for (const [externalAgentId, fileName] of externalAgentFilenames.entries()) {
+      result += `  - External Agent ID: "${externalAgentId}" → Import: "../external-agents/${fileName.replace('.ts', '')}"\n`;
+    }
+    result += '\n';
+  }
+
+  console.log('result', result);
   return result;
 }
 
@@ -582,6 +592,7 @@ export async function generateAgentFile(
   modelSettings: ModelSettings,
   toolFilenames?: Map<string, string>,
   componentFilenames?: Map<string, string>,
+  externalAgentFilenames?: Map<string, string>,
   debug: boolean = false,
   reasoningConfig?: Record<string, any>
 ): Promise<void> {
@@ -594,8 +605,10 @@ AGENT DATA:
 
 AGENT ID: ${agentId}
 
-${toolFilenames || componentFilenames ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
-${generateImportMappings(toolFilenames, componentFilenames)}
+${
+  toolFilenames || componentFilenames
+    ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+${generateImportMappings(toolFilenames, componentFilenames, externalAgentFilenames)}
 
 !!! WARNING: Entity IDs ≠ File Paths !!!
 - Entity IDs may use underscores or different naming
@@ -603,7 +616,9 @@ ${generateImportMappings(toolFilenames, componentFilenames)}
 - ALWAYS use the exact import paths from the mappings above
 - NEVER use entity IDs directly as import paths
 
-` : ''}${getTypeDefinitions()}
+`
+    : ''
+}${getTypeDefinitions()}
 
 IMPORTANT CONTEXT:
 - Agents reference resources (tools, components) by their imported variable names
@@ -628,6 +643,7 @@ REQUIREMENTS:
 2. Define each agent using the agent() function following the type definitions provided above
 3. Create the agent using agent() with proper structure
    - IMPORTANT: If description is null, undefined, or empty string, omit the description field entirely
+4. External agents live within the agents directory, import them using the import { externalAgent } from '../agents/external-agent'; syntax.
 4. CRITICAL: Template Literals vs Raw Code:
    - For STRING VALUES: ALWAYS use template literals with backticks: \`string content\`
    - This includes: prompt, description, query, url, method, body, defaultValue, etc.
@@ -671,12 +687,13 @@ prompt: \`<{{subAgents.facts.prompt.abc12345}}>\`
 prompt: '<{{subAgents.facts.prompt.abc12345}}>'
 
 FULL EXAMPLE:
-import { agent, agent } from '@inkeep/agents-sdk';
+import { agent } from '@inkeep/agents-sdk';
 import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
 import { userProfile } from '../data-components/user-profile';
 import { searchTool } from '../tools/search-tool';
 import { weatherTool } from '../tools/weather-tool';
 import { toolSummary } from '../status-components/tool-summary';
+import { externalHelperAgent } from '../agents/external-helper-agent';
 import { progressStatus } from '../status-components/progress-status';
 import { z } from 'zod';
 
@@ -717,6 +734,7 @@ const routerAgent = agent({
   name: 'Router Agent',
   prompt: \`Route requests to appropriate agents using \${supportAgentContext.toTemplate('supportDescription.description')} for the user \${supportAgentHeaders.toTemplate('userId')}\`,
   canTransferTo: () => [qaAgent]
+  canDelegateTo: () => [externalHelperAgent.with({ headers: { 'X-API-Key': '123' } })],
 });
 
 const qaAgent = agent({
@@ -730,6 +748,7 @@ Follow these rules:
 - Use the user's name \${supportAgentHeaders.toTemplate('userId')} when applicable
 - Use available tools\`,
   canUse: () => [searchTool, weatherTool],
+  canDelegateTo: () => [externalHelperAgent],
   selectedTools: {
     [searchTool.id]: ['search_web', 'search_docs'],
     [weatherTool.id]: ['get_forecast']
@@ -1196,6 +1215,70 @@ Generate ONLY the TypeScript code without any markdown or explanations.`;
 }
 
 /**
+ * Generate an external agent TypeScript file
+ */
+export async function generateExternalAgentFile(
+  externalAgentData: any,
+  externalAgentId: string,
+  outputPath: string,
+  modelSettings: ModelSettings,
+  reasoningConfig?: Record<string, any>
+): Promise<void> {
+  const model = createModel(modelSettings);
+
+  const promptTemplate = `Generate a TypeScript file for an Inkeep external agent.
+
+EXTERNAL AGENT DATA:
+{{DATA}}
+
+EXTERNAL AGENT ID: ${externalAgentId}
+
+${getTypeDefinitions()}
+
+${NAMING_CONVENTION_RULES}
+
+${IMPORT_INSTRUCTIONS}
+
+REQUIREMENTS:
+1. Import externalAgent from '@inkeep/agents-sdk'
+3. Create the external agent using externalAgent()
+4. Export following naming convention rules (camelCase version of ID)
+5. Include all properties from the external agent data INCLUDING the 'id' property
+6. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+7. CRITICAL: Use template literals with backticks for all STRING values (url, description, etc.)
+
+EXAMPLE:
+import { externalAgent } from '@inkeep/agents-sdk';
+import { }
+
+export const externalHelper = externalAgent({
+  id: 'external-helper',
+  name: 'External Helper',
+  url: \`https://api.example.com/agent\`,
+  credentialReference: 'my-credential-reference',
+});
+
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+
+  const text = await generateTextWithPlaceholders(
+    model,
+    externalAgentData,
+    promptTemplate,
+    {
+      temperature: 0.1,
+      maxOutputTokens: 4000,
+      abortSignal: AbortSignal.timeout(90000), // 90 second timeout (increased for reasoning)
+    },
+    false, // debug
+    { fileType: 'external_agent' }, // context - for Langfuse metadata
+    reasoningConfig // reasoning config
+  );
+
+  writeFileSync(outputPath, cleanGeneratedCode(text));
+}
+
+/**
  * Generate environment files using templates (no LLM needed)
  * @param environmentsDir - Directory to write environment files
  * @param environment - Environment name (e.g., 'development', 'staging')
@@ -1235,7 +1318,9 @@ export function generateEnvironmentFileTemplate(
         );
       }
 
-      credentialEntries.push(`    ${varName}: credential({\n      ${params.join(',\n      ')}\n    })`);
+      credentialEntries.push(
+        `    ${varName}: credential({\n      ${params.join(',\n      ')}\n    })`
+      );
     }
     credentialsCode = `\n${credentialEntries.join(',\n')}\n  `;
   } else {
@@ -1428,7 +1513,14 @@ export { ${exportStatement} };
  */
 export async function generateAllFilesInBatch(
   fileSpecs: Array<{
-    type: 'index' | 'agent' | 'tool' | 'data_component' | 'artifact_component' | 'status_component';
+    type:
+      | 'index'
+      | 'agent'
+      | 'tool'
+      | 'data_component'
+      | 'artifact_component'
+      | 'status_component'
+      | 'external_agent';
     id: string;
     data: any;
     outputPath: string;
@@ -1481,9 +1573,10 @@ export const myProject = project({
 `;
         break;
 
-      case 'agent':
-        const importMappings = spec.toolFilenames || spec.componentFilenames
-          ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
+      case 'agent': {
+        const importMappings =
+          spec.toolFilenames || spec.componentFilenames
+            ? `IMPORT PATH MAPPINGS (CRITICAL - USE EXACT PATHS):
 ${generateImportMappings(spec.toolFilenames, spec.componentFilenames)}
 
 !!! WARNING: Entity IDs ≠ File Paths !!!
@@ -1493,7 +1586,7 @@ ${generateImportMappings(spec.toolFilenames, spec.componentFilenames)}
 - NEVER use entity IDs directly as import paths
 
 `
-          : '';
+            : '';
 
         fileSpecificInstructions = `
 ${importMappings}REQUIREMENTS FOR AGENT FILE:
@@ -1526,6 +1619,7 @@ ${importMappings}REQUIREMENTS FOR AGENT FILE:
 6. If you are writing zod schemas make them clean. For example if you see z.union([z.string(), z.null()]) write it as z.string().nullable()
 `;
         break;
+      }
 
       case 'tool':
         fileSpecificInstructions = `
@@ -1538,6 +1632,17 @@ REQUIREMENTS FOR TOOL FILE:
 6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
 8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
+`;
+        break;
+
+      case 'external_agent':
+        fileSpecificInstructions = `
+REQUIREMENTS FOR EXTERNAL AGENT FILE:
+1. Import externalAgent from '@inkeep/agents-sdk'
+2. Create the external agent using externalAgent()
+3. Export following naming convention rules (camelCase version of ID)
+5. CRITICAL: If credentialReferenceId exists in external agent data, add it as a credential property using envSettings.getEnvironmentSetting()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 `;
         break;
 
@@ -1663,7 +1768,7 @@ Now generate all ${fileSpecs.length} files following this exact format.`;
           metadata: {
             batchGeneration: true,
             fileCount: fileSpecs.length,
-            fileTypes: fileSpecs.map(s => s.type).join(','),
+            fileTypes: fileSpecs.map((s) => s.type).join(','),
             promptSize: combinedPrompt.length,
           },
         },
@@ -1729,9 +1834,7 @@ function parseMultiFileResponse(
       throw new Error(`Failed to find file markers for ${spec.outputPath}`);
     }
 
-    const content = response
-      .substring(startIndex + startMarker.length, endIndex)
-      .trim();
+    const content = response.substring(startIndex + startMarker.length, endIndex).trim();
 
     results.push({
       path: spec.outputPath,

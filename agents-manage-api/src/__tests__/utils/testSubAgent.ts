@@ -107,7 +107,6 @@ export function createTestExternalAgentData({
   projectId,
   agentId,
   baseUrl,
-  headers,
   credentialReferenceId,
 }: {
   id?: string;
@@ -116,7 +115,6 @@ export function createTestExternalAgentData({
   projectId?: string;
   agentId?: string;
   baseUrl?: string;
-  headers?: Record<string, string> | null;
   credentialReferenceId?: string | null;
 } = {}) {
   const subAgentId =
@@ -136,7 +134,6 @@ export function createTestExternalAgentData({
   if (tenantId !== undefined) baseData.tenantId = tenantId;
   if (projectId !== undefined) baseData.projectId = projectId;
   if (agentId !== undefined) baseData.agentId = agentId;
-  if (headers !== undefined) baseData.headers = headers;
   if (credentialReferenceId !== undefined) baseData.credentialReferenceId = credentialReferenceId;
 
   return baseData;

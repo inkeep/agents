@@ -1,25 +1,20 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
-import { ANTHROPIC_MODELS } from '@inkeep/agents-core';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
+
+import chalk from 'chalk';
 import { ManagementApiClient } from '../api';
+import {
+  DEFAULT_NAMING_CONVENTIONS,
+  VariableNameGenerator,
+} from '../codegen/variable-name-registry';
 import type { NestedInkeepConfig } from '../config';
-import { env } from '../env';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { loadConfig } from '../utils/config';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { performBackgroundVersionCheck } from '../utils/background-version-check';
-import {
-  generateAgentFile,
-  generateArtifactComponentFile,
-  generateDataComponentFile,
-  generateEnvironmentFiles,
-  generateIndexFile,
-  generateToolFile,
-} from './pull.llm-generate';
-import { VariableNameGenerator, DEFAULT_NAMING_CONVENTIONS } from '../codegen/variable-name-registry';
+
 export interface PullOptions {
   project?: string;
   config?: string;
@@ -338,6 +333,7 @@ function createProjectStructure(
   artifactComponentsDir: string;
   statusComponentsDir: string;
   environmentsDir: string;
+  externalAgentsDir: string;
 } {
   // In directory-aware mode, use the current directory as-is
   let projectRoot: string;
@@ -355,6 +351,7 @@ function createProjectStructure(
   const artifactComponentsDir = join(projectRoot, 'artifact-components');
   const statusComponentsDir = join(projectRoot, 'status-components');
   const environmentsDir = join(projectRoot, 'environments');
+  const externalAgentsDir = join(projectRoot, 'external-agents');
 
   // Create all directories
   ensureDirectoryExists(projectRoot);
@@ -364,6 +361,7 @@ function createProjectStructure(
   ensureDirectoryExists(artifactComponentsDir);
   ensureDirectoryExists(statusComponentsDir);
   ensureDirectoryExists(environmentsDir);
+  ensureDirectoryExists(externalAgentsDir);
 
   return {
     projectRoot,
@@ -373,197 +371,8 @@ function createProjectStructure(
     artifactComponentsDir,
     statusComponentsDir,
     environmentsDir,
+    externalAgentsDir,
   };
-}
-
-/**
- * Generate project files using LLM based on backend data
- */
-async function _generateProjectFiles(
-  dirs: {
-    projectRoot: string;
-    agentsDir: string;
-    toolsDir: string;
-    dataComponentsDir: string;
-    artifactComponentsDir: string;
-    environmentsDir: string;
-  },
-  projectData: FullProjectDefinition,
-  modelSettings: ModelSettings,
-  environment: string = 'development',
-  debug: boolean = false
-): Promise<void> {
-  const { agents, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
-
-  // Prepare all generation tasks
-  const generationTasks: Promise<void>[] = [];
-  const fileInfo: { type: string; name: string }[] = [];
-
-  // Create filename generator for consistent naming
-  const filenameGenerator = new VariableNameGenerator(DEFAULT_NAMING_CONVENTIONS);
-
-  // Build filename mappings for tools and components
-  const toolFilenames = new Map<string, string>();
-  const componentFilenames = new Map<string, string>();
-
-  // Collect tool filenames
-  if (tools && Object.keys(tools).length > 0) {
-    for (const [toolId, toolData] of Object.entries(tools)) {
-      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
-      toolFilenames.set(toolId, fileName);
-    }
-  }
-
-  // Collect component filenames (data, artifact, status components)
-  if (dataComponents && Object.keys(dataComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
-      componentFilenames.set(componentId, fileName);
-    }
-  }
-  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
-      componentFilenames.set(componentId, fileName);
-    }
-  }
-  // TODO: Add status components when they become available in projectData
-  // TODO: Add credentials/environments when they have their own component structure
-
-  // Add index.ts generation task
-  const indexPath = join(dirs.projectRoot, 'index.ts');
-  generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
-  fileInfo.push({ type: 'config', name: 'index.ts' });
-
-  // Add agent generation tasks
-  if (agents && Object.keys(agents).length > 0) {
-    for (const [agentId, agentData] of Object.entries(agents)) {
-      const fileName = filenameGenerator.generateFileName(agentId, 'agent', agentData);
-      const agentPath = join(dirs.agentsDir, `${fileName}.ts`);
-      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings, toolFilenames, componentFilenames));
-      fileInfo.push({ type: 'agent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add tool generation tasks
-  if (tools && Object.keys(tools).length > 0) {
-    for (const [toolId, toolData] of Object.entries(tools)) {
-      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
-      const toolPath = join(dirs.toolsDir, `${fileName}.ts`);
-      generationTasks.push(generateToolFile(toolData, toolId, toolPath, modelSettings));
-      fileInfo.push({ type: 'tool', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add data component generation tasks
-  if (dataComponents && Object.keys(dataComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
-      const componentPath = join(dirs.dataComponentsDir, `${fileName}.ts`);
-      generationTasks.push(
-        generateDataComponentFile(componentData, componentId, componentPath, modelSettings)
-      );
-      fileInfo.push({ type: 'dataComponent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add artifact component generation tasks
-  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
-      const componentPath = join(dirs.artifactComponentsDir, `${fileName}.ts`);
-      generationTasks.push(
-        generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings)
-      );
-      fileInfo.push({ type: 'artifactComponent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add environment files generation with actual credential data
-  const targetEnvironment = environment;
-  generationTasks.push(
-    generateEnvironmentFiles(dirs.environmentsDir, credentialReferences, targetEnvironment)
-  );
-  fileInfo.push({ type: 'env', name: `index.ts, ${targetEnvironment}.env.ts` });
-
-  // Display what we're generating
-  console.log(chalk.cyan('  📝 Generating files in parallel:'));
-  const filesByType = fileInfo.reduce(
-    (acc, file) => {
-      if (!acc[file.type]) acc[file.type] = [];
-      acc[file.type].push(file.name);
-      return acc;
-    },
-    {} as Record<string, string[]>
-  );
-
-  if (filesByType.config) {
-    console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
-  }
-  if (filesByType.agent) {
-    console.log(chalk.gray(`     • Agent: ${filesByType.agent.join(', ')}`));
-  }
-  if (filesByType.tool) {
-    console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
-  }
-  if (filesByType.dataComponent) {
-    console.log(chalk.gray(`     • Data components: ${filesByType.dataComponent.join(', ')}`));
-  }
-  if (filesByType.artifactComponent) {
-    console.log(
-      chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`)
-    );
-  }
-  if (filesByType.env) {
-    console.log(chalk.gray(`     • Environment: ${filesByType.env.join(', ')}`));
-  }
-
-  // Execute all tasks in parallel
-  console.log(chalk.yellow(`  ⚡ Processing ${generationTasks.length} files in parallel...`));
-
-  if (debug) {
-    console.log(chalk.gray('\n📍 Debug: Starting LLM file generation...'));
-    console.log(chalk.gray(`  Model: ${modelSettings.model}`));
-    console.log(chalk.gray(`  Total tasks: ${generationTasks.length}`));
-
-    // Execute with progress tracking in debug mode
-    const startTime = Date.now();
-    try {
-      await Promise.all(
-        generationTasks.map(async (task, index) => {
-          const taskStartTime = Date.now();
-          if (debug) {
-            const taskInfo = fileInfo[index];
-            console.log(
-              chalk.gray(
-                `  [${index + 1}/${generationTasks.length}] Starting ${taskInfo.type}: ${taskInfo.name}`
-              )
-            );
-          }
-          await task;
-          if (debug) {
-            const taskInfo = fileInfo[index];
-            const taskDuration = Date.now() - taskStartTime;
-            console.log(
-              chalk.gray(
-                `  [${index + 1}/${generationTasks.length}] ✓ Completed ${taskInfo.type}: ${taskInfo.name} (${taskDuration}ms)`
-              )
-            );
-          }
-        })
-      );
-    } catch (error) {
-      if (debug) {
-        console.error(chalk.red('📍 Debug: LLM generation error:'), error);
-      }
-      throw error;
-    }
-
-    const totalDuration = Date.now() - startTime;
-    console.log(chalk.gray(`\n📍 Debug: LLM generation completed in ${totalDuration}ms`));
-  } else {
-    await Promise.all(generationTasks);
-  }
 }
 
 /**
@@ -578,11 +387,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   try {
     const { detectAvailableProvider } = await import('./pull.llm-generate');
     provider = detectAvailableProvider();
-    console.log(chalk.gray(`\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`));
-  } catch (error: any) {
-    console.error(
-      chalk.red('\n❌ Error: No LLM provider API key found')
+    console.log(
+      chalk.gray(
+        `\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`
+      )
     );
+  } catch (error: any) {
+    console.error(chalk.red('\n❌ Error: No LLM provider API key found'));
     console.error(
       chalk.yellow(
         '\nThe pull command requires AI to generate TypeScript files from your project configuration.'
@@ -809,6 +620,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       return total + statusComponents.length;
     }, 0);
 
+    const externalAgentCount = Object.keys(projectData.externalAgents || {}).reduce(
+      (total, agent) => {
+        const agentObj = agent as any;
+        return total + Object.keys(agentObj.subAgents || {}).length;
+      },
+      0
+    );
+
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
@@ -823,6 +642,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (statusComponentCount > 0) {
       console.log(chalk.gray(`  • Status Components: ${statusComponentCount}`));
+    }
+    if (externalAgentCount > 0) {
+      console.log(chalk.gray(`  • External Agents: ${externalAgentCount}`));
     }
 
     // Display credential tracking information
@@ -905,6 +727,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           hasAgentsDirectory: true,
           hasDataComponentsDirectory: true,
           hasArtifactComponentsDirectory: true,
+          hasExternalAgentsDirectory: true,
           hasEnvironmentsDirectory: true,
         },
         namingConventions: DEFAULT_NAMING_CONVENTIONS,
@@ -929,7 +752,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // Step 2: Generate plan using LLM
     s.start('Generating file structure plan...');
     const { generatePlan } = await import('../codegen/plan-builder');
-    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import('./pull.llm-generate');
+    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import(
+      './pull.llm-generate'
+    );
 
     // Get model and reasoning config based on detected provider
     const selectedModel = getDefaultModelForProvider(provider);
@@ -941,11 +766,21 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     if (options.debug) {
       console.log(chalk.gray(`\n📍 Debug: Model selected: ${selectedModel}`));
-      console.log(chalk.gray(`📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`));
+      console.log(
+        chalk.gray(
+          `📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`
+        )
+      );
     }
 
     const targetEnvironment = options.env || 'development';
-    const plan = await generatePlan(projectData, patterns, modelSettings, createModel, targetEnvironment);
+    const plan = await generatePlan(
+      projectData,
+      patterns,
+      modelSettings,
+      createModel,
+      targetEnvironment
+    );
     s.stop('Generation plan created');
 
     // Step 3: Display plan and conflicts
@@ -994,6 +829,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       tools: Object.keys(projectData.tools || {}).length,
       dataComponents: Object.keys(projectData.dataComponents || {}).length,
       artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
+      externalAgents: Object.keys(projectData.externalAgents || {}).length,
       statusComponents: statusComponentsCount,
     };
     const totalFiles =
@@ -1001,6 +837,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
+      fileCount.externalAgents +
       fileCount.statusComponents +
       5; // +1 for index.ts, +4 for environment files (index.ts, development.env.ts, staging.env.ts, production.env.ts)
 
@@ -1058,6 +895,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (fileCount.tools > 0) {
       console.log(chalk.gray(`  ├── tools/ (${fileCount.tools} files)`));
+    }
+    if (fileCount.externalAgents > 0) {
+      console.log(chalk.gray(`  ├── external-agents/ (${fileCount.externalAgents} files)`));
     }
     if (fileCount.dataComponents > 0) {
       console.log(chalk.gray(`  ├── data-components/ (${fileCount.dataComponents} files)`));

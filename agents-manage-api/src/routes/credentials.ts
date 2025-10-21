@@ -12,7 +12,7 @@ import {
   deleteCredentialReference,
   ErrorResponseSchema,
   getCredentialReferenceById,
-  getCredentialReferenceWithTools,
+  getCredentialReferenceWithResources,
   getCredentialStoreLookupKeyFromRetrievalParams,
   ListResponseSchema,
   listCredentialReferencesPaginated,
@@ -91,11 +91,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const credential = await getCredentialReferenceWithTools(dbClient)({
+    const credential = await getCredentialReferenceWithResources(dbClient)({
       scopes: { tenantId, projectId },
       id,
     });
-
     if (!credential) {
       throw createApiError({
         code: 'not_found',

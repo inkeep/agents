@@ -5,7 +5,7 @@ import { NodeItem } from './node-item';
 
 const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.SubAgent],
-  nodeTypeMap[NodeType.ExternalAgent],
+  nodeTypeMap[NodeType.ExternalAgentPlaceholder],
   nodeTypeMap[NodeType.MCPPlaceholder],
   nodeTypeMap[NodeType.FunctionTool],
 ];
