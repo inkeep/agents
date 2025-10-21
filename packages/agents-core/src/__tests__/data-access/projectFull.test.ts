@@ -1,4 +1,4 @@
-import { generateId } from '../../utils/conversations';
+import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import {
   createFullProjectServerSide,
@@ -13,7 +13,7 @@ import { dbClient } from '../setup';
 describe('projectFull data access', () => {
   const db = dbClient;
   const logger = getLogger('test');
-  const tenantId = `tenant-${generateId()}`;
+  const tenantId = `tenant-${nanoid()}`;
 
   const createTestProjectDefinition = (projectId: string): FullProjectDefinition => ({
     id: projectId,
@@ -34,9 +34,9 @@ describe('projectFull data access', () => {
   });
 
   const createTestProjectWithAgents = (projectId: string): FullProjectDefinition => {
-    const agentId = `agent-${generateId()}`;
-    const subAgentId = `agent-${generateId()}`;
-    const toolId = `tool-${generateId()}`;
+    const agentId = `agent-${nanoid()}`;
+    const subAgentId = `agent-${nanoid()}`;
+    const toolId = `tool-${nanoid()}`;
 
     return {
       id: projectId,
@@ -92,7 +92,7 @@ describe('projectFull data access', () => {
 
   describe('createFullProjectServerSide', () => {
     it('should create a project with basic metadata', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
       const result = await createFullProjectServerSide(db, logger)(
@@ -109,7 +109,7 @@ describe('projectFull data access', () => {
     });
 
     it('should create a project with agent and nested resources', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectWithAgents(projectId);
 
       const result = await createFullProjectServerSide(db, logger)(
@@ -124,7 +124,7 @@ describe('projectFull data access', () => {
     });
 
     it('should handle projects with minimal data', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const minimalProject: FullProjectDefinition = {
         id: projectId,
         name: 'Minimal Project',
@@ -155,7 +155,7 @@ describe('projectFull data access', () => {
 
   describe('getFullProject', () => {
     it('should retrieve an existing project', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -178,7 +178,7 @@ describe('projectFull data access', () => {
     });
 
     it('should return null for non-existent project', async () => {
-      const nonExistentId = `project-${generateId()}`;
+      const nonExistentId = `project-${nanoid()}`;
 
       const result = await getFullProject(
         db,
@@ -191,7 +191,7 @@ describe('projectFull data access', () => {
     });
 
     it('should include all agent in the project', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
@@ -214,7 +214,7 @@ describe('projectFull data access', () => {
     });
 
     it('should have tools at project level, not in agent', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent and tools
@@ -247,7 +247,7 @@ describe('projectFull data access', () => {
 
   describe('updateFullProjectServerSide', () => {
     it('should update an existing project', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -272,7 +272,7 @@ describe('projectFull data access', () => {
     });
 
     it('should create project if it does not exist', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
       // Try to update a non-existent project (should create it)
@@ -287,7 +287,7 @@ describe('projectFull data access', () => {
     });
 
     it('should handle updating project models and stopWhen', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -319,7 +319,7 @@ describe('projectFull data access', () => {
 
   describe('deleteFullProject', () => {
     it('should delete an existing project', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
@@ -347,7 +347,7 @@ describe('projectFull data access', () => {
     });
 
     it('should return false for non-existent project', async () => {
-      const nonExistentId = `project-${generateId()}`;
+      const nonExistentId = `project-${nanoid()}`;
 
       const deleted = await deleteFullProject(
         db,
@@ -360,7 +360,7 @@ describe('projectFull data access', () => {
     });
 
     it('should cascade delete all project resources', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
@@ -412,7 +412,7 @@ describe('projectFull data access', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const projectId = `project-${generateId()}`;
+      const projectId = `project-${nanoid()}`;
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first

@@ -1,6 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { subAgentFunctionToolRelations, functionTools } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
@@ -299,7 +299,7 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
     const { tenantId, projectId, agentId } = scopes;
 
     try {
-      const relationId = generateId();
+      const relationId = nanoid();
 
       await db.insert(subAgentFunctionToolRelations).values({
         id: relationId,

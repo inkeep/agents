@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { getLogger } from '../logger';
 
 const logger = getLogger('ToolSessionManager');
@@ -46,7 +46,7 @@ export class ToolSessionManager {
    * Create a new tool session for an agent execution
    */
   createSession(tenantId: string, projectId: string, contextId: string, taskId: string): string {
-    const sessionId = generateId();
+    const sessionId = nanoid();
     return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
   }
 

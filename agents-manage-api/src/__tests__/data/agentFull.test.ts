@@ -2,10 +2,10 @@ import {
   createFullAgentServerSide,
   deleteFullAgent,
   type FullAgentDefinition,
-  generateId,
   getFullAgent,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { createTestContextConfigData } from '../utils/testHelpers';
@@ -78,7 +78,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       includeContextConfig?: boolean;
     } = {}
   ): FullAgentDefinition => {
-    const id = agentId || generateId();
+    const id = agentId || nanoid();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
     const externalSubAgentId = `external-agent-${id}`;
@@ -146,7 +146,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       // Create a simple agent with just agents (no project-scoped resources)
       const agentData: FullAgentDefinition = {
-        id: `test-agent-${generateId()}`,
+        id: `test-agent-${nanoid()}`,
         name: 'Basic Test Agent',
         description: 'A basic test agent with agents only',
         defaultSubAgentId: 'agent-1',
@@ -220,8 +220,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const subAgentId = generateId();
-      const agentId = generateId();
+      const subAgentId = nanoid();
+      const agentId = nanoid();
 
       const agentData: FullAgentDefinition = {
         id: agentId,
@@ -431,7 +431,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const nonExistentId = generateId();
+      const nonExistentId = nanoid();
 
       const result = await getFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId: nonExistentId },
@@ -494,7 +494,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       const projectId = 'default';
 
       const agentData = createFullAgentData();
-      const differentId = generateId();
+      const differentId = nanoid();
 
       await expect(
         updateFullAgentServerSide(dbClient)(
@@ -781,7 +781,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       await ensureTestProject(tenantId, 'default');
       const projectId = 'default';
 
-      const nonExistentId = generateId();
+      const nonExistentId = nanoid();
 
       const result = await deleteFullAgent(dbClient)({
         scopes: { tenantId, projectId, agentId: nonExistentId },

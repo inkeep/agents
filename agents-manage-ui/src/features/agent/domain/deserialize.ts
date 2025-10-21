@@ -1,6 +1,6 @@
-import { generateId } from '@/lib/utils/id-utils';
 import type { Edge, Node } from '@xyflow/react';
 import * as dagre from 'dagre';
+import { nanoid } from 'nanoid';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -205,7 +205,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
-        const toolNodeId = generateId();
+        const toolNodeId = nanoid();
         const relationshipId = canUseItem.agentToolRelationId;
 
         const tool = data.tools?.[toolId] || data.functionTools?.[toolId];

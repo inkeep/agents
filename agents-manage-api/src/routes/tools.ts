@@ -20,8 +20,8 @@ import {
   ToolApiUpdateSchema,
   ToolStatusSchema,
   updateTool,
-  generateId,
 } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -186,7 +186,7 @@ app.openapi(
 
     logger.info({ body }, 'body');
 
-    const id = body.id || generateId();
+    const id = body.id || nanoid();
 
     const tool = await createTool(dbClient)({
       tenantId,

@@ -1,10 +1,10 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 
 /**
  * Creates test data for an internal sub-agent.
  *
  * @param options - Configuration options for the test sub-agent
- * @param options.id - Optional custom ID (defaults to generateId())
+ * @param options.id - Optional custom ID (defaults to nanoid())
  * @param options.suffix - Optional suffix to append to name/description/prompt
  * @param options.agentId - Optional agent ID
  * @param options.tenantId - Optional tenant ID
@@ -51,8 +51,7 @@ export function createTestSubAgentData({
   dataComponents?: string[];
   artifactComponents?: string[];
 } = {}) {
-  const subAgentId =
-    id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`;
+  const subAgentId = id || `test-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
     id: subAgentId,
@@ -120,7 +119,7 @@ export function createTestExternalAgentData({
   credentialReferenceId?: string | null;
 } = {}) {
   const subAgentId =
-    id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`;
+    id || `test-external-agent${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`;
 
   const baseData: any = {
     id: subAgentId,
@@ -174,7 +173,7 @@ export function createTestAgentRelationData({
   relationType?: 'transfer' | 'delegate';
 }) {
   return {
-    id: generateId(),
+    id: nanoid(),
     agentId,
     sourceSubAgentId,
     targetSubAgentId,

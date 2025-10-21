@@ -1,6 +1,6 @@
 import { and, count, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
 
@@ -142,7 +142,7 @@ export const upsertLedgerArtifact =
     const now = new Date().toISOString();
 
     const artifactRow = {
-      id: sanitizedArt.artifactId ?? generateId(),
+      id: sanitizedArt.artifactId ?? nanoid(),
       tenantId: scopes.tenantId,
       projectId: scopes.projectId,
       taskId,
@@ -215,7 +215,7 @@ export const addLedgerArtifacts =
         taskId ?? sanitizedArt.taskId ?? (sanitizedArt.metadata as any)?.taskId ?? null;
 
       return {
-        id: sanitizedArt.artifactId ?? generateId(),
+        id: sanitizedArt.artifactId ?? nanoid(),
         tenantId: scopes.tenantId,
         projectId: scopes.projectId,
         taskId: resolvedTaskId,

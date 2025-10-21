@@ -1,4 +1,5 @@
-import { generateId, MCPTransportType } from '@inkeep/agents-core';
+import { MCPTransportType } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -9,7 +10,7 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
-    id: generateId(16),
+    id: nanoid(16),
     name: `Test MCP Tool${suffix}`,
     description: `Test MCP tool description${suffix}`,
     config: {

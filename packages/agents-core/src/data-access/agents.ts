@@ -1,7 +1,7 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import {
   subAgentFunctionToolRelations,
   agents,
@@ -710,7 +710,7 @@ export const getFullAgentDefinition =
 export const upsertAgent =
   (db: DatabaseClient) =>
   async (params: { data: AgentInsert }): Promise<AgentSelect | null> => {
-    const agentId = params.data.id || generateId();
+    const agentId = params.data.id || nanoid();
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId, agentId };
 
     const existing = await getAgentById(db)({

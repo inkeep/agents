@@ -1,8 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { generateId } from '@/lib/utils/id-utils';
 import { detectAuthenticationRequired, MCPTransportType } from '@inkeep/agents-core/client-exports';
+import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -82,7 +82,7 @@ export function MCPServerForm({
     try {
       // handle oauth login
       if (data.credentialReferenceId === 'oauth') {
-        const toolId = generateId();
+        const toolId = nanoid();
 
         const isAuthenticationRequired = await detectAuthenticationRequired({
           serverUrl: data.config.mcp.server.url,
@@ -146,7 +146,7 @@ export function MCPServerForm({
       } else {
         const newTool = await createMCPTool(tenantId, projectId, {
           ...transformedData,
-          id: generateId(),
+          id: nanoid(),
         });
         toast.success('MCP server created successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);

@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import {
   cleanupTenantCache,
   clearContextConfigCache,
@@ -7,7 +8,6 @@ import {
   invalidateHeadersCache,
   setCacheEntry,
 } from '../data-access/index';
-import { generateId } from '../utils/conversations';
 import type { DatabaseClient } from '../db/client';
 import { getLogger } from '../utils/logger';
 
@@ -101,7 +101,7 @@ export class ContextCache {
   async set(entry: CacheEntry): Promise<void> {
     try {
       const cacheData = {
-        id: generateId(),
+        id: nanoid(),
         tenantId: this.tenantId,
         projectId: this.projectId,
         conversationId: entry.conversationId,

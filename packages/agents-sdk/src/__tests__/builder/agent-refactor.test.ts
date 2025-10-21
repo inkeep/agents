@@ -1,5 +1,5 @@
 import * as agentFullModule from '@inkeep/agents-core';
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it, vi } from 'vitest';
 import { agent, mcpTool, subAgent } from '../../index';
 import { createTestTenantId } from '../utils/testTenant';
@@ -109,7 +109,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     agent1.addTransfer(agent2);
 
     // Create the agent
-    const agentId = `test-agent-${generateId()}`;
+    const agentId = `test-agent-${nanoid()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Test Agent',
@@ -174,7 +174,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You are a component-enabled agent.',
     });
 
-    const agentId = `component-agent-${generateId()}`;
+    const agentId = `component-agent-${nanoid()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Component Agent',
@@ -217,7 +217,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You work alone.',
     });
 
-    const agentId = `standalone-agent-${generateId()}`;
+    const agentId = `standalone-agent-${nanoid()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Standalone Agent',
@@ -256,7 +256,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You are a legacy agent.',
     });
 
-    const agentId = `legacy-agent-${generateId()}`;
+    const agentId = `legacy-agent-${nanoid()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Legacy Agent',
@@ -287,7 +287,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You will cause an error.',
     });
 
-    const agentId = `error-agent-${generateId()}`;
+    const agentId = `error-agent-${nanoid()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Error Agent',

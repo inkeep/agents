@@ -14,6 +14,7 @@ import {
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
+import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -37,7 +38,6 @@ import type { DataComponent } from '@/lib/api/data-components';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
-import { generateId } from '@/lib/utils/id-utils';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
@@ -103,7 +103,7 @@ function Flow({
   const initialNodes = useMemo<Node[]>(
     () => [
       {
-        id: generateId(),
+        id: nanoid(),
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { name: '', isDefault: true },
@@ -422,7 +422,7 @@ function Flow({
         x: event.clientX,
         y: event.clientY,
       });
-      const nodeId = generateId();
+      const nodeId = nanoid();
       const newNode = {
         id: nodeId,
         type: nodeData.type,

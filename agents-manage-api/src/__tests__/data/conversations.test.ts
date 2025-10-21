@@ -1,7 +1,6 @@
 import {
   createOrGetConversation as createConversation,
   createMessage,
-  generateId,
   getConversation,
   getConversationHistory,
   type MessageInsert,
@@ -10,12 +9,10 @@ import {
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock generateId to return predictable IDs
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+// Mock nanoid to return predictable IDs
+vi.mock('nanoid', async () => {
   return {
-    ...actual,
-    generateId: vi.fn(),
+    nanoid: vi.fn(),
   };
 });
 
@@ -208,8 +205,9 @@ describe('updateConversationActiveAgent', () => {
 
 describe('addMessage', () => {
   it('should add a user message', async () => {
-    // Setup generateId for this specific test
-    vi.mocked(generateId).mockReturnValueOnce('msg-123');
+    // Setup nanoid for this specific test
+    const { nanoid } = await import('nanoid');
+    vi.mocked(nanoid).mockReturnValueOnce('msg-123');
     const expectedMessage = {
       id: 'msg-123',
       tenantId: 'test-tenant',
@@ -252,8 +250,9 @@ describe('addMessage', () => {
   });
 
   it('should add an agent message with metadata', async () => {
-    // Setup generateId for this specific test
-    vi.mocked(generateId).mockReturnValueOnce('msg-124');
+    // Setup nanoid for this specific test
+    const { nanoid } = await import('nanoid');
+    vi.mocked(nanoid).mockReturnValueOnce('msg-124');
     const expectedMessage = {
       id: 'msg-124',
       tenantId: 'test-tenant',
@@ -297,8 +296,9 @@ describe('addMessage', () => {
   });
 
   it('should add A2A message', async () => {
-    // Setup generateId for this specific test
-    vi.mocked(generateId).mockReturnValueOnce('msg-125');
+    // Setup nanoid for this specific test
+    const { nanoid } = await import('nanoid');
+    vi.mocked(nanoid).mockReturnValueOnce('msg-125');
     const expectedMessage = {
       id: 'msg-125',
       tenantId: 'test-tenant',
@@ -344,8 +344,9 @@ describe('addMessage', () => {
   });
 
   it('should add external agent message', async () => {
-    // Setup generateId for this specific test
-    vi.mocked(generateId).mockReturnValueOnce('msg-126');
+    // Setup nanoid for this specific test
+    const { nanoid } = await import('nanoid');
+    vi.mocked(nanoid).mockReturnValueOnce('msg-126');
     const expectedMessage = {
       id: 'msg-126',
       tenantId: 'test-tenant',

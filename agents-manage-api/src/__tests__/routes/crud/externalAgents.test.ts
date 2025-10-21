@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
@@ -12,8 +12,8 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
   // Helper function to create a test agent and return its ID
   const createtestAgent = async (tenantId: string) => {
     const agentData = {
-      id: generateId(),
-      name: `Test Agent ${generateId()}`,
+      id: nanoid(),
+      name: `Test Agent ${nanoid()}`,
       defaultSubAgentId: null,
     };
 
@@ -401,7 +401,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const agentId = await createtestAgent(tenantId);
 
       const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: agentId });
-      const providedId = generateId();
+      const providedId = nanoid();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents`,

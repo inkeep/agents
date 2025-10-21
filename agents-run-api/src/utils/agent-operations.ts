@@ -1,5 +1,5 @@
 import type { DataOperationEvent } from '@inkeep/agents-core';
-import { generateId } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 
 // =============================================================================
 // OPERATION EVENT TYPES
@@ -106,5 +106,5 @@ export function errorOp(
  * Generate a unique tool execution ID for lifecycle tracking
  */
 export function generateToolId(): string {
-  return `tool_${generateId(8)}`;
+  return `tool_${nanoid(8)}`;
 }

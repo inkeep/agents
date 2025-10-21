@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { type FieldValues, type UseFormReturn, useWatch } from 'react-hook-form';
-import { generateId } from '@/lib/utils/id-utils';
+import { generateId } from '@/lib/utils/generate-id';
 
 interface UseAutoPrefillIdOptions<T extends FieldValues> {
   form: UseFormReturn<T>;

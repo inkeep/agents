@@ -1,4 +1,5 @@
-import { createTask, generateId, subAgents, tasks } from '@inkeep/agents-core';
+import { createTask, subAgents, tasks } from '@inkeep/agents-core';
+import { nanoid } from 'nanoid';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { ensureTestProject } from '../utils/testProject';
@@ -66,7 +67,7 @@ describe('Delegation Task Creation Fixes', () => {
 
   it('should create tasks with correct contextId and message content', async () => {
     // Test the createTask function directly
-    const taskId = `test-task-${generateId()}`;
+    const taskId = `test-task-${nanoid()}`;
     const _userMessage = 'Please help me with delegation testing';
 
     const task = await createTask(dbClient)({
@@ -96,7 +97,7 @@ describe('Delegation Task Creation Fixes', () => {
     const messageToSend = {
       role: 'agent' as const,
       parts: [{ text: 'Generate a number between 0-50', kind: 'text' as const }],
-      messageId: generateId(),
+      messageId: nanoid(),
       kind: 'message' as const,
       contextId: conversationId,
       metadata: {
@@ -141,7 +142,7 @@ describe('Delegation Task Creation Fixes', () => {
   it('should create fallback message content when message is empty', async () => {
     // Test the fallback message logic from A2A handlers
     const emptyMessage = undefined;
-    const taskId = `task-${generateId()}`;
+    const taskId = `task-${nanoid()}`;
     const effectiveContextId = conversationId;
 
     let messageContent = '';
@@ -171,7 +172,7 @@ describe('Delegation Task Creation Fixes', () => {
     const _testMessage = 'Test delegation message';
 
     const task = await createTask(dbClient)({
-      id: `delegation-test-${generateId()}`,
+      id: `delegation-test-${nanoid()}`,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
       agentId: 'test-agent',
