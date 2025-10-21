@@ -268,6 +268,7 @@ export const createSubAgentTeamAgentRelation =
     relationId?: string;
     data: {
       targetAgentId: string;
+      headers?: Record<string, string> | null;
     };
   }) => {
     const finalRelationId = params.relationId ?? nanoid();
@@ -281,6 +282,7 @@ export const createSubAgentTeamAgentRelation =
         agentId: params.scopes.agentId,
         subAgentId: params.scopes.subAgentId,
         targetAgentId: params.data.targetAgentId,
+        headers: params.data.headers,
       })
       .returning();
 
@@ -314,6 +316,7 @@ export const upsertSubAgentTeamAgentRelation =
     relationId?: string;
     data: {
       targetAgentId: string;
+      headers?: Record<string, string> | null;
     };
   }) => {
     // If relationId provided, try to update existing relation

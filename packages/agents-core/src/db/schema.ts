@@ -479,6 +479,7 @@ export const subAgentTeamAgentRelations = sqliteTable(
   {
     ...subAgentScoped,
     targetAgentId: text('target_agent_id').notNull(),
+    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [

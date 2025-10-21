@@ -736,6 +736,7 @@ export const SubAgentTeamAgentRelationInsertSchema = createInsertSchema(
   id: resourceIdSchema,
   subAgentId: resourceIdSchema,
   targetAgentId: resourceIdSchema,
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export const SubAgentTeamAgentRelationUpdateSchema =
@@ -746,7 +747,9 @@ export const SubAgentTeamAgentRelationApiSelectSchema = createAgentScopedApiSche
 ).openapi('SubAgentTeamAgentRelation');
 export const SubAgentTeamAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
   SubAgentTeamAgentRelationInsertSchema
-).openapi('SubAgentTeamAgentRelationCreate');
+)
+  .omit({ id: true, subAgentId: true })
+  .openapi('SubAgentTeamAgentRelationCreate');
 export const SubAgentTeamAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentTeamAgentRelationUpdateSchema
 ).openapi('SubAgentTeamAgentRelationUpdate');
@@ -798,6 +801,12 @@ export const canDelegateToExternalAgentSchema = z.object({
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
+export const canDelegateToTeamAgentSchema = z.object({
+  agentId: z.string(),
+  subAgentTeamAgentRelationId: z.string().optional(),
+  headers: z.record(z.string(), z.string()).nullish(),
+});
+
 export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
@@ -809,6 +818,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
       z.union([
         z.string(), // Internal subAgent ID
         canDelegateToExternalAgentSchema, // External agent with headers
+        canDelegateToTeamAgentSchema, // Team agent with headers
       ])
     )
     .optional(),

@@ -33,6 +33,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
     subAgentId: testSubAgentId,
     id: testRelationId,
     targetAgentId: testTargetAgentId,
+    headers: { 'X-Custom-Header': 'test-value' },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -239,6 +240,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
         scopes,
         data: {
           targetAgentId: testTargetAgentId,
+          headers: { 'X-Custom-Header': 'updated-value' },
         },
       });
 
@@ -262,6 +264,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
         scopes,
         data: {
           targetAgentId: testTargetAgentId,
+          headers: { 'X-Custom-Header': 'updated-value' },
         },
       });
 
@@ -293,7 +296,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
       const result = await updateSubAgentTeamAgentRelation(mockDb)({
         scopes,
         relationId: testRelationId,
-        data: { targetAgentId: testTargetAgentId },
+        data: { headers: { 'X-Custom-Header': 'updated-value' } },
       });
 
       expect(result).toEqual(updatedData);
@@ -317,7 +320,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
       const result = await updateSubAgentTeamAgentRelation(mockDb)({
         scopes,
         relationId: testRelationId,
-        data: { targetAgentId: testTargetAgentId },
+        data: { headers: { 'X-Custom-Header': 'updated-value' } },
       });
 
       expect(result).toBeUndefined();
@@ -387,6 +390,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
         scopes,
         data: {
           targetAgentId: testTargetAgentId,
+          headers: { 'X-Custom-Header': 'test-value' },
         },
       });
 
@@ -425,6 +429,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
         relationId: testRelationId,
         data: {
           targetAgentId: testTargetAgentId,
+          headers: { 'X-Custom-Header': 'updated-value' },
         },
       });
 
