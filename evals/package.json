@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "capture": "tsx run-and-capture.ts",
-    "eval": "tsx example-weather-eval.ts"
+    "eval": "tsx example-weather-eval.ts",
+    "hallucination": "tsx run-hallucination-check.ts",
+    "model-comparison": "tsx run-model-comparison.ts",
+    "simulate:multi": "tsx run-multiturn-simulation.ts",
+    "eval:multi": "tsx example-multiturn-eval.ts"
   },
   "dependencies": {
     "ai": "5.0.11",
     "@ai-sdk/anthropic": "2.0.2",
-    "zod": "^3.24.1"
+    "@ai-sdk/openai": "^1.0.9",
+    "zod": "^3.24.1",
+    "langsmith": "^0.2.7"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

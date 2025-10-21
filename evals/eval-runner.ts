@@ -1,15 +1,22 @@
 import type {
-  CapturedEval,
+  EvalInput,
   EvalResult,
   Evaluator,
 } from './types';
+import type { LangSmithIntegration } from './langsmith-integration';
+
+export interface RunEvalOptions {
+  langsmith?: LangSmithIntegration;
+  metadata?: Record<string, any>;
+}
 
 export async function runEval(
-  capturedEval: CapturedEval,
-  evaluators: Evaluator[]
+  evalInput: EvalInput,
+  evaluators: Evaluator[],
+  options?: RunEvalOptions
 ): Promise<EvalResult> {
   const gradingResults = await Promise.all(
-    evaluators.map((evaluator) => evaluator.grade(capturedEval))
+    evaluators.map((evaluator) => evaluator.grade(evalInput))
   );
 
   const totalWeight = evaluators.reduce((sum, e) => sum + (e.weight || 1), 0);
@@ -21,12 +28,21 @@ export async function runEval(
 
   const allPassed = gradingResults.every((result) => result.passed);
 
-  return {
+  const result: EvalResult = {
     passed: allPassed,
     score: weightedScore,
-    actualOutput: capturedEval,
-    expectedOutput: undefined,
+    actualOutput: evalInput,
     gradingResults,
   };
+
+  if (options?.langsmith) {
+    await options.langsmith.logEvaluation(
+      evalInput,
+      result,
+      options.metadata
+    );
+  }
+
+  return result;
 }
 

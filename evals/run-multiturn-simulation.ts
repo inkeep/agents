@@ -1,5 +1,12 @@
 import crypto from 'node:crypto';
 import { weatherAgent } from '../examples/weather-project/agents/weather-agent';
+import {
+  createLLMSimulatedUser,
+  runMultiturnSimulation,
+  type ChatMessage,
+  type MultiTurnApp,
+} from './multi-turn-simulator';
+import type { CapturedEval } from './types';
 
 interface PrettifiedTrace {
   metadata: {
@@ -16,12 +23,6 @@ interface PrettifiedTrace {
   };
   timeline: any[];
   hashes?: Record<string, string>;
-}
-
-interface EvalInput {
-  agentDefinition: any;
-  userMessage: string;
-  trace: PrettifiedTrace;
 }
 
 function hashString(str: string): string {
@@ -107,17 +108,12 @@ function formatConversationAsPrettifiedTrace(conversation: any): PrettifiedTrace
   };
 }
 
-async function runAndCaptureForEval(userMessage: string, model: string): Promise<EvalInput> {
-  console.log('📊 Step 1: Serializing agent definition...\n');
-  const agentDefinition = await weatherAgent.toFullAgentDefinition();
-  console.log(`✅ Agent serialized: ${agentDefinition.name} (${Object.keys(agentDefinition.subAgents).length} sub-agents)\n`);
-
-  console.log('💬 Step 2: Sending message to chat endpoint...\n');
-  console.log(`   Message: "${userMessage}"`);
-  console.log(`   Model: ${model}\n`);
+async function callAgentAPI(
+  conversationId: string,
+  messages: ChatMessage[],
+  model: string
+): Promise<string> {
   const baseURL = 'http://localhost:3003';
-  const conversationId = `eval-${Date.now()}`;
-  console.log(`   Conversation ID: ${conversationId}\n`);
   
   const response = await fetch(`${baseURL}/api/chat`, {
     method: 'POST',
@@ -128,14 +124,9 @@ async function runAndCaptureForEval(userMessage: string, model: string): Promise
       'x-inkeep-agent-id': 'weather-agent',
     },
     body: JSON.stringify({
-      conversationId: conversationId,
-      model: model,
-      messages: [
-        {
-          role: 'user',
-          content: userMessage,
-        },
-      ],
+      conversationId,
+      model,
+      messages,
       stream: true,
     }),
   });
@@ -144,11 +135,9 @@ async function runAndCaptureForEval(userMessage: string, model: string): Promise
     throw new Error(`Chat endpoint failed: ${response.status} ${response.statusText}`);
   }
 
-  console.log('✅ Chat endpoint responded, streaming...\n');
-
-  // Parse stream and wait for completion event (same as UI does)
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();
+  let assistantContent = '';
   let isComplete = false;
 
   if (reader) {
@@ -161,36 +150,80 @@ async function runAndCaptureForEval(userMessage: string, model: string): Promise
       
       for (const line of lines) {
         if (line.startsWith('0:"')) {
-          // Vercel AI SDK data stream format
           try {
             const jsonStr = line.slice(2, -1).replace(/\\"/g, '"');
             const parsed = JSON.parse(jsonStr);
             
-            // Check for completion operation (same as UI does)
+            if (parsed.type === 'text-delta' && parsed.textDelta) {
+              assistantContent += parsed.textDelta;
+            }
+            
             if (parsed.type === 'data-operation' && parsed.data?.type === 'completion') {
               isComplete = true;
-              process.stdout.write('✓');
               break;
             }
           } catch (e) {
-            // Skip parse errors
           }
         }
-        process.stdout.write('.');
       }
       
       if (isComplete) break;
     }
   }
 
-  console.log('\n\n✅ Assistant message complete\n');
+  return assistantContent;
+}
 
-  console.log('📋 Step 3: Fetching OTEL trace...\n');
+async function runMultiturnAndCaptureForEval(
+  initialMessage: string,
+  userPersona: string,
+  model: string,
+  maxTurns: number = 5
+): Promise<CapturedEval> {
+  console.log('📊 Step 1: Serializing agent definition...\n');
+  const agentDefinition = await weatherAgent.toFullAgentDefinition();
+  console.log(`✅ Agent serialized: ${agentDefinition.name} (${Object.keys(agentDefinition.subAgents).length} sub-agents)\n`);
+
+  console.log('🎭 Step 2: Setting up multi-turn simulation...\n');
+  console.log(`   User Persona: "${userPersona}"`);
+  console.log(`   Initial Message: "${initialMessage}"`);
+  console.log(`   Model: ${model}`);
+  console.log(`   Max Turns: ${maxTurns}\n`);
+
+  const conversationId = `eval-multiturn-${Date.now()}`;
+  const messageHistory: ChatMessage[] = [];
+
+  const app: MultiTurnApp = async (message: ChatMessage, context: { threadId: string }) => {
+    messageHistory.push(message);
+    const assistantContent = await callAgentAPI(context.threadId, messageHistory, model);
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: assistantContent,
+    };
+    messageHistory.push(assistantMessage);
+    return assistantMessage;
+  };
+
+  const user = createLLMSimulatedUser({
+    system: userPersona,
+    model: 'claude-3-5-sonnet-20241022',
+    fixedResponses: [
+      { role: 'user', content: initialMessage },
+    ],
+  });
+
+  console.log('🔄 Step 3: Running multi-turn simulation...\n');
+  const simulationResult = await runMultiturnSimulation(app, user, {
+    maxTurns,
+    conversationId,
+  });
+
+  console.log(`\n✅ Simulation complete: ${simulationResult.metadata.turns} turns\n`);
+
+  console.log('📋 Step 4: Fetching OTEL trace...\n');
   
-  // Wait a bit for traces to be written to SigNoz
   await new Promise(resolve => setTimeout(resolve, 30000));
 
-  // Fetch trace data from the manage UI API endpoint
   const manageUIUrl = 'http://localhost:3000';
   console.log(`   Fetching from: ${manageUIUrl}/api/signoz/conversations/${conversationId}\n`);
   
@@ -208,39 +241,42 @@ async function runAndCaptureForEval(userMessage: string, model: string): Promise
   const conversationDetail = (await traceResponse.json()) as any;
   console.log(`✅ Trace captured: ${conversationDetail.activities?.length || 0} activities\n`);
 
-  // Format trace using the same formatter as "Copy Trace" feature
   const prettifiedTrace = formatConversationAsPrettifiedTrace(conversationDetail);
 
-  const evalInput: EvalInput = {
+  const evalInput: CapturedEval = {
     agentDefinition,
-    userMessage,
+    userMessage: initialMessage,
     trace: prettifiedTrace,
   };
 
-  console.log('💾 Step 4: Packaging eval input...\n');
+  console.log('💾 Step 5: Packaging eval input...\n');
   return evalInput;
 }
 
 async function main() {
-  const userMessage = process.argv[2] || 'What is the weather in San Francisco?';
-  const model = process.argv[3] || 'claude-sonnet-4-20250514';
+  const initialMessage = process.argv[2] || 'What is the weather in San Francisco?';
+  const userPersona = process.argv[3] || 'You are a curious user interested in weather information. You ask follow-up questions based on the responses you receive.';
+  const model = process.argv[4] || 'claude-sonnet-4-20250514';
+  const maxTurns =2;
 
-  console.log('🚀 Running agent and capturing for eval\n');
-  console.log('=' .repeat(60));
-  console.log(`📝 Message: "${userMessage}"`);
+  console.log('🚀 Running multi-turn simulation and capturing for eval\n');
+  console.log('='.repeat(80));
+  console.log(`📝 Initial Message: "${initialMessage}"`);
+  console.log(`🎭 User Persona: "${userPersona}"`);
   console.log(`🤖 Model: ${model}`);
-  console.log('=' .repeat(60));
+  console.log(`🔄 Max Turns: ${maxTurns}`);
+  console.log('='.repeat(80));
   console.log('\n');
 
   try {
-    const evalInput = await runAndCaptureForEval(userMessage, model);
+    const evalInput = await runMultiturnAndCaptureForEval(initialMessage, userPersona, model, maxTurns);
 
-    console.log('📦 EVAL INPUT READY:\n');
-    console.log(JSON.stringify(evalInput, null, 2));
+    console.log('📦 MULTI-TURN EVAL INPUT READY:\n');
+    console.log(`Initial Message: ${evalInput.userMessage}`);
+    console.log(`Timeline Activities: ${evalInput.trace.timeline.length}\n`);
 
-    // Save to file with model name
     const modelSlug = model.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    const filename = `captured-eval-${modelSlug}-${Date.now()}.json`;
+    const filename = `captured-multiturn-eval-${modelSlug}-${Date.now()}.json`;
     const fs = await import('fs/promises');
     await fs.writeFile(filename, JSON.stringify(evalInput, null, 2));
     console.log(`\n💾 Saved to: ${filename}`);

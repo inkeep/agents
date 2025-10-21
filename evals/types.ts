@@ -19,6 +19,8 @@ export interface CapturedEval {
   };
 }
 
+export type EvalInput = CapturedEval | Record<string, CapturedEval>;
+
 export interface ExpectedBehavior<T extends z.ZodType = z.ZodType> {
   prompt?: string;
   gradingSchema: T;
@@ -36,14 +38,13 @@ export interface EvalResult<T = any> {
   passed: boolean;
   score: number;
   actualOutput: T;
-  expectedOutput: T;
   gradingResults: GradingResult[];
 }
 
 export interface GradingResult {
   evaluatorName: string;
-  passed: boolean;
-  score: number;
+  passed: boolean | null;
+  score: number | null;
   reasoning: string;
   details: Record<string, any>;
 }
