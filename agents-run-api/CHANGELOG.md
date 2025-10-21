@@ -1,5 +1,14 @@
 # @inkeep/agents-run-api
 
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes
