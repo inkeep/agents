@@ -6,6 +6,8 @@ icon: "LuRocket"
 
 ## Launch your first agent
 
+<YouTubeVideo videoId="T7ZKQz7Y1-E" title="Quick Start with Inkeep Agents" caption="Visual guide to the Quick Start steps" />
+
 ### Prerequisites
 
 Before getting started, ensure you have the following installed on your system:
@@ -47,6 +49,31 @@ The Visual Builder automatically opens at http://localhost:3000.
 Navigate to the Event Planner agent at http://localhost:3000, click **Try it**, and ask about fun activities at a location of your choice.
 
 <img src="/gifs/event-planner.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
+
+### Step 4: Install Inkeep MCP (optional)
+
+To help with development, add the `Inkeep Agents MCP` to your preferred IDE or MCP client. It has tools to help "vibe code" agents with the Inkeep SDK.
+
+<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '16px' }}>
+  <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=inkeep-agents&config=eyJ1cmwiOiJodHRwczovL2FnZW50cy5pbmtlZXAuY29tL21jcCJ9">
+    <img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add to Cursor" style={{ height: '32px', verticalAlign: 'middle' }} />
+  </a>
+  <a href="vscode:mcp/install?%7B%22name%22%3A%22inkeep-agents-mcp%22%2C%22type%22%3A%22sse%22%2C%22url%22%3A%22https%3A%2F%2Fagents.inkeep.com%2Fmcp%22%7D">
+    <img src="https://img.shields.io/badge/VS_Code-Install_Inkeep_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff" alt="Install in VS Code" style={{ height: '22px', verticalAlign: 'middle' }}/>
+  </a>
+</div>
+
+Or manually install with any MCP client:
+
+```json
+{
+  "mcpServers": {
+    "inkeep-agents": {
+      "url": "https://agents.inkeep.com/mcp"
+    }
+  }
+}
+```
 
 ### Next steps
 

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.22.9",
+  "version": "0.24.2",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -78,13 +78,13 @@
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/traverse": "^0.6.37",
-    "@vitest/coverage-v8": "^2.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "nodemon": "^3.1.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
     "vite": "^7.1.4",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.1.4"
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

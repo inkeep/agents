@@ -1,6 +1,8 @@
 import type { Edge, Node } from '@xyflow/react';
-import { nanoid } from 'nanoid';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
@@ -8,34 +10,15 @@ import { NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type { ExternalAgent } from '@/lib/types/external-agents';
+import { generateId } from '@/lib/utils/id-utils';
 
-// Use the exported InternalAgentDefinition from core
-type InternalAgent = InternalAgentDefinition;
-
-type ExternalAgent = {
-  id: string;
-  name: string;
-  description: string;
-  baseUrl: string;
-  headers?: Record<string, string> | null;
-  type: 'external';
-  credentialReferenceId?: string | null;
+export type ExtendedAgent = InternalAgentDefinition & {
+  dataComponents: string[];
+  artifactComponents: string[];
+  models?: AgentMetadata['models'];
+  type: 'internal';
 };
-
-export type ExtendedAgent =
-  | (InternalAgent & {
-      dataComponents: string[];
-      artifactComponents: string[];
-      models?: AgentMetadata['models'];
-      type: 'internal';
-    })
-  | ExternalAgent;
-
-function isInternalAgent(
-  agent: ExtendedAgent | FullAgentDefinition['subAgents'][string]
-): agent is InternalAgent {
-  return agent.type === 'internal' && 'canUse' in agent;
-}
 
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
@@ -92,9 +75,11 @@ export function serializeAgentData(
   metadata?: AgentMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
-  agentToolConfigLookup?: AgentToolConfigLookup
+  agentToolConfigLookup?: AgentToolConfigLookup,
+  subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
+  const externalAgents: Record<string, ExternalAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
   // Note: Tools are now project-scoped and not included in agent serialization
@@ -259,33 +244,32 @@ export function serializeAgentData(
         ...(stopWhen && { stopWhen }),
       };
 
-      if ((node.data as any).isDefault) {
+      if (node.data.isDefault) {
         defaultSubAgentId = subAgentId;
       }
 
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const externalAgentId = (node.data.id as string) || node.id;
 
-      // Parse headers from JSON string to object
-      const parsedHeaders = safeJsonParse(node.data.headers as string);
-
-      const agent: ExternalAgent = {
-        id: subAgentId,
+      const externalAgent: ExternalAgent & {
+        tempHeaders: Record<string, string> | null;
+        relationshipId: string | null;
+      } = {
+        id: externalAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
-        headers: parsedHeaders || null,
-        type: 'external',
+        createdAt: node.data.createdAt as string,
+        updatedAt: node.data.updatedAt as string,
         credentialReferenceId: (node.data.credentialReferenceId as string) || null,
+        tempHeaders: (node.data as any).tempHeaders || null,
+        relationshipId: (node.data.relationshipId as string) || null,
       };
 
-      if ((node.data as any).isDefault) {
-        defaultSubAgentId = subAgentId;
-      }
-
-      subAgents[subAgentId] = agent;
+      externalAgents[externalAgentId] = externalAgent;
     }
+    // External agent nodes are skipped - they are project-scoped resources
   }
 
   for (const edge of edges) {
@@ -294,35 +278,115 @@ export function serializeAgentData(
       edge.type === EdgeType.A2AExternal ||
       edge.type === EdgeType.SelfLoop
     ) {
-      // edge.source and edge.target are the ids of the nodes (since we allow editing the agent ids we need to use node ids since those are stable)
-      // we need to find the agents based on the node ids and then update the agents canTransferTo and canDelegateTo with the agent ids not the node ids
-
       const sourceAgentNode = nodes.find((node) => node.id === edge.source);
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
       const sourceSubAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
       const targetSubAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
       const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
-      const targetAgent: ExtendedAgent = subAgents[targetSubAgentId];
 
-      if (sourceAgent && targetAgent && (edge.data as any)?.relationships) {
-        const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+      const targetAgent: ExtendedAgent | undefined = subAgents[targetSubAgentId];
+      const targetExternalAgent: ExternalAgent | undefined = externalAgents[targetSubAgentId];
+      const isTargetExternal = targetExternalAgent !== undefined;
 
-        // Helper function to safely add relationship to internal agent
-        const addRelationship = (
-          agent: ExtendedAgent,
-          relationshipType: 'canTransferTo' | 'canDelegateTo',
-          targetId: string
-        ) => {
-          if (isInternalAgent(agent)) {
-            if (!agent[relationshipType]) agent[relationshipType] = [];
-            const subAgentRelationships = agent[relationshipType];
-            if (subAgentRelationships && !subAgentRelationships.includes(targetId)) {
-              subAgentRelationships.push(targetId);
+      if (!sourceAgent || !(edge.data as any)?.relationships) {
+        continue;
+      }
+
+      const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+
+      // Helper function to add relationship
+      const addRelationship = (
+        agent: ExtendedAgent,
+        relationshipType: 'canTransferTo' | 'canDelegateTo',
+        targetId: string,
+        isExternal: boolean = false,
+        headers?: Record<string, string>,
+        relationshipId?: string
+      ) => {
+        if (relationshipType === 'canDelegateTo') {
+          if (!agent.canDelegateTo) {
+            agent.canDelegateTo = [];
+          }
+
+          // External agents always use object format
+          if (isExternal) {
+            const existingIndex = agent.canDelegateTo.findIndex(
+              (item) =>
+                typeof item === 'object' &&
+                item.externalAgentId === targetId &&
+                item.subAgentExternalAgentRelationId === relationshipId
+            );
+
+            const relationshipData: any = {
+              externalAgentId: targetId,
+              headers: headers ?? null,
+            };
+
+            // Only include relationshipId if it's not null (schema expects optional, not nullable)
+            if (relationshipId) {
+              relationshipData.subAgentExternalAgentRelationId = relationshipId;
+            }
+
+            if (existingIndex !== -1) {
+              // Update existing relationship
+              agent.canDelegateTo[existingIndex] = relationshipData;
+            } else {
+              // Add new relationship
+              agent.canDelegateTo.push(relationshipData);
+            }
+          } else {
+            // Internal agents use string format
+            if (!agent.canDelegateTo.includes(targetId)) {
+              agent.canDelegateTo.push(targetId);
             }
           }
-        };
+        } else {
+          if (!agent.canTransferTo) agent.canTransferTo = [];
+          if (!agent.canTransferTo.includes(targetId)) {
+            agent.canTransferTo.push(targetId);
+          }
+        }
+      };
 
+      // Handle edges to external agents (only delegation is allowed)
+      if (isTargetExternal) {
+        if (relationships.delegateSourceToTarget) {
+          const tempHeaders = (targetExternalAgent as any).tempHeaders;
+          let externalAgentHeaders: Record<string, string> | undefined;
+          const relationshipId = (targetExternalAgent as any).relationshipId;
+
+          if (tempHeaders !== undefined) {
+            if (
+              typeof tempHeaders === 'object' &&
+              tempHeaders !== null &&
+              !Array.isArray(tempHeaders)
+            ) {
+              externalAgentHeaders = tempHeaders;
+            }
+          } else {
+            const existingConfig = relationshipId
+              ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
+              : null;
+            if (existingConfig?.headers) {
+              externalAgentHeaders = existingConfig.headers;
+            }
+          }
+
+          addRelationship(
+            sourceAgent,
+            'canDelegateTo',
+            targetSubAgentId,
+            true, // isExternal
+            externalAgentHeaders,
+            relationshipId
+          );
+        }
+        continue;
+      }
+
+      // Handle edges between internal agents
+      if (targetAgent) {
         // Process transfer relationships
         if (relationships.transferSourceToTarget) {
           addRelationship(sourceAgent, 'canTransferTo', targetSubAgentId);
@@ -378,7 +442,7 @@ export function serializeAgentData(
   }
 
   const result: FullAgentDefinition = {
-    id: metadata?.id || nanoid(),
+    id: metadata?.id || generateId(),
     name: metadata?.name || 'Untitled Agent',
     description: metadata?.description || undefined,
     defaultSubAgentId,
@@ -432,7 +496,7 @@ export function serializeAgentData(
 
   // Add contextConfig if there's meaningful data
   if (hasContextConfig && metadata?.contextConfig) {
-    const contextConfigId = metadata.contextConfig.id || nanoid();
+    const contextConfigId = metadata.contextConfig.id || generateId();
     (result as any).contextConfigId = contextConfigId;
     (result as any).contextConfig = {
       id: contextConfigId,
@@ -458,9 +522,18 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
+  if (!data.defaultSubAgentId) {
+    errors.push({
+      message: 'Default sub agent ID is required, please select a default sub agent.',
+      field: 'defaultSubAgentId',
+      code: 'required',
+      path: ['defaultSubAgentId'],
+    });
+  }
+
   if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents.`,
+      message: `Default sub agent ID '${data.defaultSubAgentId}' not found in sub agents.`,
       field: 'defaultSubAgentId',
       code: 'invalid_reference',
       path: ['defaultSubAgentId'],
@@ -468,8 +541,8 @@ export function validateSerializedData(
   }
 
   for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
-    // Only validate tools for internal agents (external agents don't have tools)
-    if (isInternalAgent(agent) && agent.canUse) {
+    // All subAgents are internal agents (external agents are project-scoped)
+    if (agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
       const toolsData = (data as any).tools;
       if (toolsData) {
@@ -487,7 +560,7 @@ export function validateSerializedData(
       }
     }
 
-    if (isInternalAgent(agent) && agent.canUse) {
+    if (agent.canUse) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolType = (canUseItem as any).toolType;
@@ -552,19 +625,20 @@ export function validateSerializedData(
       }
     }
 
-    // Only validate relationships for internal agents (external agents don't have these properties)
-    if (isInternalAgent(agent)) {
-      for (const targetId of agent.canTransferTo ?? []) {
-        if (!data.subAgents[targetId]) {
-          errors.push({
-            message: `Transfer target '${targetId}' not found in agents.`,
-            field: 'canTransferTo',
-            code: 'invalid_reference',
-            path: ['agents', subAgentId, 'canTransferTo'],
-          });
-        }
+    // Validate relationships (all subAgents are internal agents)
+    for (const targetId of agent.canTransferTo ?? []) {
+      if (!data.subAgents[targetId]) {
+        errors.push({
+          message: `Transfer target '${targetId}' not found in agents.`,
+          field: 'canTransferTo',
+          code: 'invalid_reference',
+          path: ['agents', subAgentId, 'canTransferTo'],
+        });
       }
-      for (const targetId of agent.canDelegateTo ?? []) {
+    }
+    for (const targetId of agent.canDelegateTo ?? []) {
+      // String = internal subAgent
+      if (typeof targetId === 'string') {
         if (!data.subAgents[targetId]) {
           errors.push({
             message: `Delegate target '${targetId}' not found in agents.`,

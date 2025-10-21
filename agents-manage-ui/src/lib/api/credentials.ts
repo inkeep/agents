@@ -3,6 +3,7 @@
 import type {
   CredentialReferenceApiInsert,
   CredentialReferenceApiSelect,
+  ExternalAgentApiSelect,
   McpTool,
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';
@@ -13,6 +14,7 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 // Re-export types from core package for convenience
 export type Credential = CredentialReferenceApiSelect & {
   tools?: McpTool[];
+  externalAgents?: ExternalAgentApiSelect[];
 };
 export type CreateCredentialRequest = CredentialReferenceApiInsert;
 

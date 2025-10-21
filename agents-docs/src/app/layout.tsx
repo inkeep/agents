@@ -2,7 +2,6 @@ import '@/app/global.css';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
-import type { ReactNode } from 'react';
 import type { Organization, WebSite, WithContext } from 'schema-dts';
 import { InkeepScript } from '@/components/inkeep/inkeep-script';
 import { Navbar } from '@/components/navbar';
@@ -54,7 +53,7 @@ const siteLd: WithContext<WebSite> = {
   alternateName: 'Inkeep Docs',
 };
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${inter.className} antialiased`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">

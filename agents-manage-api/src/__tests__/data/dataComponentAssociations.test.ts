@@ -3,12 +3,12 @@ import {
   createAgent,
   createDataComponent,
   createSubAgent,
+  generateId,
   getAgentsUsingDataComponent,
   getDataComponentsForAgent,
   isDataComponentAssociatedWithAgent,
   removeDataComponentFromAgent,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { ensureTestProject } from '../utils/testProject';
@@ -27,8 +27,8 @@ describe('Data Component Agent Associations', () => {
 
   beforeEach(async () => {
     // Create a test agent first
-    agentId = nanoid();
-    subAgentId = nanoid();
+    agentId = generateId();
+    subAgentId = generateId();
 
     await createAgent(dbClient)({
       id: agentId,
@@ -51,7 +51,7 @@ describe('Data Component Agent Associations', () => {
 
     // Create test data component
     const dataComponent = await createDataComponent(dbClient)({
-      id: nanoid(),
+      id: generateId(),
       tenantId,
       projectId,
       name: 'TestComponent',
@@ -124,7 +124,7 @@ describe('Data Component Agent Associations', () => {
         tenantId,
         projectId,
         agentId: agentId,
-        id: nanoid(),
+        id: generateId(),
         name: 'Test Agent 2',
         description: 'Second test agent',
         prompt: 'You are another test agent',
@@ -199,7 +199,7 @@ describe('Data Component Agent Associations', () => {
     it.skip('should return all agents using a data component', async () => {
       // Create second agent in the same agent
       const subAgent2 = await createSubAgent(dbClient)({
-        id: nanoid(),
+        id: generateId(),
         tenantId,
         projectId,
         agentId: agentId,

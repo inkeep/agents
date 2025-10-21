@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
@@ -10,7 +10,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test artifact component data
   const createArtifactComponentData = ({ suffix = '' } = {}) => ({
-    id: `test-artifact-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${nanoid(6)}`,
+    id: `test-artifact-component${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`,
     name: `TestArtifactComponent${suffix}`,
     description: `Test artifact component description${suffix}`,
     props: {
@@ -208,7 +208,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = createTestTenantId('artifact-components-get-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`
@@ -283,7 +283,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-create-minimal');
       await ensureTestProject(tenantId, projectId);
       const minimalData = {
-        id: `minimal-artifact-component-${nanoid(6)}`,
+        id: `minimal-artifact-component-${generateId(6)}`,
         name: 'MinimalArtifactComponent',
         description: 'Minimal test artifact component',
       };
@@ -446,7 +446,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = createTestTenantId('artifact-components-update-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
@@ -529,7 +529,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = createTestTenantId('artifact-components-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
@@ -618,7 +618,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-schema-valid');
       await ensureTestProject(tenantId, projectId);
       const validSchemaData = {
-        id: `schema-test-component-${nanoid(6)}`,
+        id: `schema-test-component-${generateId(6)}`,
         name: 'SchemaTestComponent',
         description: 'Testing valid JSON schema',
         props: {
@@ -649,7 +649,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('artifact-components-schema-complex');
       await ensureTestProject(tenantId, projectId);
       const complexSchemaData = {
-        id: `complex-schema-component-${nanoid(6)}`,
+        id: `complex-schema-component-${generateId(6)}`,
         name: 'ComplexSchemaComponent',
         description: 'Testing complex nested JSON schema',
         props: {

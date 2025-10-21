@@ -1,12 +1,12 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
-import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type { DataComponent } from '@/lib/api/data-components';
+import { generateId } from '@/lib/utils/id-utils';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
 
 interface ChatWidgetProps {
@@ -135,7 +135,6 @@ export function ChatWidget({
   chatActivities,
   dataComponentLookup = {},
 }: ChatWidgetProps) {
-  console.log('dataComponentLookup', dataComponentLookup);
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -206,7 +205,7 @@ export function ChatWidget({
                   stopPollingTimeoutRef.current = null;
                 }
                 stopPolling();
-                setConversationId(nanoid());
+                setConversationId(generateId());
               }
             },
             primaryBrandColor: '#3784ff',
@@ -268,7 +267,7 @@ export function ChatWidget({
               {
                 get: (_, componentName) => {
                   const matchingComponent = Object.values(dataComponentLookup).find(
-                    (component) => component.name === componentName
+                    (component) => component.name === componentName && !!component.preview?.code
                   );
 
                   if (!matchingComponent) {

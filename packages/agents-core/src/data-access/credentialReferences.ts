@@ -1,16 +1,20 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { credentialReferences, tools } from '../db/schema';
+import { credentialReferences, externalAgents, tools } from '../db/schema';
 import type {
   CredentialReferenceInsert,
   CredentialReferenceSelect,
   CredentialReferenceUpdate,
+  ExternalAgentSelect,
   PaginationConfig,
   ProjectScopeConfig,
   ToolSelect,
 } from '../types/index';
 
-export type CredentialReferenceWithTools = CredentialReferenceSelect & { tools: ToolSelect[] };
+export type CredentialReferenceWithResources = CredentialReferenceSelect & {
+  tools: ToolSelect[];
+  externalAgents: ExternalAgentSelect[];
+};
 
 /**
  * Get a credential reference by ID
@@ -33,13 +37,13 @@ export const getCredentialReference =
 /**
  * Get a credential reference by ID with its related tools
  */
-export const getCredentialReferenceWithTools =
+export const getCredentialReferenceWithResources =
   (db: DatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     id: string;
-  }): Promise<CredentialReferenceWithTools | undefined> => {
-    const [credential, relatedTools] = await Promise.all([
+  }): Promise<CredentialReferenceWithResources | undefined> => {
+    const [credential, relatedTools, relatedExternalAgents] = await Promise.all([
       db.query.credentialReferences.findFirst({
         where: and(
           eq(credentialReferences.tenantId, params.scopes.tenantId),
@@ -57,6 +61,16 @@ export const getCredentialReferenceWithTools =
             eq(tools.credentialReferenceId, params.id)
           )
         ),
+      db
+        .select()
+        .from(externalAgents)
+        .where(
+          and(
+            eq(externalAgents.tenantId, params.scopes.tenantId),
+            eq(externalAgents.projectId, params.scopes.projectId),
+            eq(externalAgents.credentialReferenceId, params.id)
+          )
+        ),
     ]);
 
     if (!credential) {
@@ -66,6 +80,7 @@ export const getCredentialReferenceWithTools =
     return {
       ...credential,
       tools: relatedTools,
+      externalAgents: relatedExternalAgents,
     };
   };
 
@@ -154,7 +169,7 @@ export const updateCredentialReference =
     scopes: ProjectScopeConfig;
     id: string;
     data: Partial<CredentialReferenceUpdate>;
-  }): Promise<CredentialReferenceWithTools | undefined> => {
+  }): Promise<CredentialReferenceWithResources | undefined> => {
     const now = new Date().toISOString();
 
     await db
@@ -171,7 +186,7 @@ export const updateCredentialReference =
         )
       );
 
-    return await getCredentialReferenceWithTools(db)({
+    return await getCredentialReferenceWithResources(db)({
       scopes: params.scopes,
       id: params.id,
     });

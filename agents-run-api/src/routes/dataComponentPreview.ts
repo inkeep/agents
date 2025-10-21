@@ -29,6 +29,19 @@ const generatePreviewRoute = createRoute({
       projectId: z.string(),
       id: z.string(),
     }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            instructions: z
+              .string()
+              .optional()
+              .describe('Custom instructions for modifying the component'),
+            existingCode: z.string().optional().describe('Existing component code to modify'),
+          }),
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -50,8 +63,19 @@ const generatePreviewRoute = createRoute({
 
 app.openapi(generatePreviewRoute, async (c): Promise<any> => {
   const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+  const { instructions, existingCode } = body;
 
-  logger.info({ tenantId, projectId, dataComponentId: id }, 'Generating component preview');
+  logger.info(
+    {
+      tenantId,
+      projectId,
+      dataComponentId: id,
+      hasInstructions: !!instructions,
+      hasExistingCode: !!existingCode,
+    },
+    'Generating component preview'
+  );
 
   const dataComponent = await getDataComponent(dbClient)({
     scopes: { tenantId, projectId },
@@ -76,7 +100,7 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
     });
   }
 
-  const prompt = buildGenerationPrompt(dataComponent);
+  const prompt = buildGenerationPrompt(dataComponent, instructions, existingCode);
 
   try {
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models.base);
@@ -97,10 +121,18 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
     c.header('Cache-Control', 'no-cache');
     c.header('Connection', 'keep-alive');
 
+    // Get existing data if we're modifying
+    const existingData =
+      existingCode && dataComponent.preview?.data ? dataComponent.preview.data : null;
+
     return stream(c, async (stream) => {
       try {
         for await (const partialObject of result.partialObjectStream) {
-          await stream.write(JSON.stringify(partialObject) + '\n');
+          // If modifying with instructions, preserve existing data
+          const outputObject =
+            instructions && existingData ? { ...partialObject, data: existingData } : partialObject;
+
+          await stream.write(JSON.stringify(outputObject) + '\n');
         }
       } catch (error) {
         logger.error(
@@ -124,15 +156,61 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
   }
 });
 
-function buildGenerationPrompt(dataComponent: {
-  name: string;
-  description: string;
-  props: Record<string, unknown> | null;
-}): string {
+function buildGenerationPrompt(
+  dataComponent: {
+    name: string;
+    description: string;
+    props: Record<string, unknown> | null;
+  },
+  instructions?: string,
+  existingCode?: string
+): string {
   const propsSchema = dataComponent.props || {};
   const propsJson = JSON.stringify(propsSchema, null, 2);
 
   const componentName = sanitizeComponentName(dataComponent.name);
+
+  // If we have custom instructions and existing code, modify the prompt
+  if (instructions && existingCode) {
+    return `You are an expert React and Tailwind CSS developer. You need to modify an existing React component based on specific instructions.
+
+COMPONENT DETAILS:
+- Original Name: ${dataComponent.name}
+- Component Function Name: ${componentName}
+- Description: ${dataComponent.description}
+- Props Schema (JSON Schema): ${propsJson}
+
+EXISTING COMPONENT CODE:
+\`\`\`jsx
+${existingCode}
+\`\`\`
+
+MODIFICATION INSTRUCTIONS:
+${instructions}
+
+REQUIREMENTS:
+1. Modify the existing component code according to the instructions
+2. Keep using Tailwind CSS SEMANTIC COLOR CLASSES (bg-background, text-foreground, etc.)
+3. Maintain the balanced spacing and design principles from the original
+4. Keep using lucide-react icons where appropriate
+5. DO NOT include export statements - just the imports and function
+6. DO NOT include TypeScript type annotations
+7. Component name should remain: ${componentName}
+8. DO NOT regenerate sample data - keep the same data structure
+
+OUTPUT FORMAT:
+You need to generate only one thing:
+1. "code": The modified React component code as a string
+
+Return ONLY the code field, the data field will be reused from the existing preview.
+
+EXAMPLE OUTPUT:
+{
+  "code": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  // Modified component code here\\n}"
+}
+
+Focus on making the requested changes while maintaining the component's quality and design principles.`;
+  }
 
   return `You are an expert React and Tailwind CSS developer. Generate a beautiful, modern React component for displaying data and sample data to preview it.
 

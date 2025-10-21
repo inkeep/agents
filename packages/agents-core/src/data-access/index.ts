@@ -17,6 +17,7 @@ export * from './ledgerArtifacts';
 export * from './messages';
 export * from './projectFull';
 export * from './projects';
+export * from './subAgentExternalAgentRelations';
 export * from './subAgentRelations';
 export * from './subAgents';
 export * from './tasks';

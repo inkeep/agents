@@ -1,12 +1,14 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { ContextResolver } from '../context';
+import { generateId } from '../utils/conversations';
 import type { CredentialStoreRegistry } from '../credential-stores';
+import type { NangoCredentialData } from '../credential-stores/nango-store';
 import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
 import { subAgentToolRelations, tools } from '../db/schema';
 import {
   type AgentScopeConfig,
+  CredentialStoreType,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -18,7 +20,10 @@ import {
   type ToolSelect,
   type ToolUpdate,
 } from '../types/index';
-import { detectAuthenticationRequired } from '../utils';
+import {
+  detectAuthenticationRequired,
+  getCredentialStoreLookupKeyFromRetrievalParams,
+} from '../utils';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
 import { getCredentialReference } from './credentialReferences';
@@ -92,7 +97,7 @@ const discoverToolsFromServer = async (
       });
 
       if (!credentialReference) {
-        throw new Error(`Credential store not found: ${credentialReferenceId}`);
+        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
       }
 
       const storeReference = {
@@ -186,6 +191,39 @@ export const dbResultToMcpTool = async (
   let availableTools: McpToolDefinition[] = [];
   let status: McpTool['status'] = 'unknown';
   let lastErrorComputed: string | null;
+  let expiresAt: Date | undefined;
+
+  if (credentialReferenceId) {
+    const credentialReference = await getCredentialReference(dbClient)({
+      scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+      id: credentialReferenceId,
+    });
+    if (credentialReference?.retrievalParams) {
+      const credentialStore = credentialStoreRegistry?.get(credentialReference.credentialStoreId);
+      if (credentialStore && credentialStore.type !== CredentialStoreType.memory) {
+        const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+          retrievalParams: credentialReference.retrievalParams,
+          credentialStoreType: credentialStore.type,
+        });
+        if (lookupKey) {
+          const credentialDataString = await credentialStore.get(lookupKey);
+          if (credentialDataString) {
+            if (credentialStore.type === CredentialStoreType.nango) {
+              const nangoCredentialData = JSON.parse(credentialDataString) as NangoCredentialData;
+              if (nangoCredentialData.expiresAt) {
+                expiresAt = nangoCredentialData.expiresAt;
+              }
+            } else if (credentialStore.type === CredentialStoreType.keychain) {
+              const oauthTokens = JSON.parse(credentialDataString);
+              if (oauthTokens.expires_at) {
+                expiresAt = new Date(oauthTokens.expires_at);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   try {
     availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry);
@@ -229,6 +267,7 @@ export const dbResultToMcpTool = async (
     credentialReferenceId: credentialReferenceId || undefined,
     createdAt: new Date(createdAt),
     updatedAt: new Date(now),
+    expiresAt,
     lastError: lastErrorComputed,
     headers: headers || undefined,
     imageUrl: imageUrl || undefined,
@@ -342,7 +381,7 @@ export const addToolToAgent =
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
   }) => {
-    const id = nanoid();
+    const id = generateId();
     const now = new Date().toISOString();
 
     const [created] = await db

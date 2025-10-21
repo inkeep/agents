@@ -1,6 +1,6 @@
-import type { CredentialReferenceSelect } from '@inkeep/agents-core';
+import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
-import type { ExternalAgentInterface } from './types';
+import type { ExternalAgentInterface, subAgentExternalAgentInterface } from './types';
 
 const logger = getLogger('external-agent-builder');
 
@@ -10,8 +10,7 @@ export type ExternalAgentConfig = {
   name: string;
   description: string;
   baseUrl: string;
-  credentialReference?: CredentialReferenceSelect;
-  headers?: Record<string, string>;
+  credentialReference?: CredentialReferenceApiInsert;
 };
 
 export class ExternalAgent implements ExternalAgentInterface {
@@ -19,13 +18,15 @@ export class ExternalAgent implements ExternalAgentInterface {
   public readonly type = 'external' as const;
   private initialized = false;
   private tenantId: string;
+  private projectId: string;
   private baseURL: string;
 
   constructor(config: ExternalAgentConfig) {
     this.config = { ...config, type: 'external' };
     // tenantId will be set by setContext method from external source
     this.tenantId = 'default';
-    this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
+    this.projectId = 'default';
+    this.baseURL = this.config.baseUrl;
 
     logger.debug(
       {
@@ -68,16 +69,21 @@ export class ExternalAgent implements ExternalAgentInterface {
   }
 
   // Set context (tenantId and baseURL) from external source (agent, CLI, etc)
-  setContext(tenantId: string, baseURL?: string): void {
+  setContext(tenantId: string, projectId: string): void {
     this.tenantId = tenantId;
-    if (baseURL) {
-      this.baseURL = baseURL;
-    }
+    this.projectId = projectId;
   }
 
   // Compute ID from name using a simple slug transformation
   getId(): string {
     return this.config.id;
+  }
+
+  with(options: { headers?: Record<string, string> }): subAgentExternalAgentInterface {
+    return {
+      externalAgent: this,
+      headers: options.headers,
+    };
   }
 
   // Private method to upsert external agent (create or update)
@@ -88,12 +94,11 @@ export class ExternalAgent implements ExternalAgentInterface {
       description: this.config.description,
       baseUrl: this.config.baseUrl,
       credentialReferenceId: this.config.credentialReference?.id || undefined,
-      headers: this.config.headers || undefined,
     };
 
     // First try to update (in case external agent exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/external-agents/${this.getId()}`,
+      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -123,7 +128,7 @@ export class ExternalAgent implements ExternalAgentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/external-agents`,
+        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/external-agents`,
         {
           method: 'POST',
           headers: {
@@ -192,8 +197,8 @@ export class ExternalAgent implements ExternalAgentInterface {
     return this.config.credentialReference?.id || undefined;
   }
 
-  getHeaders(): Record<string, string> | undefined {
-    return this.config.headers;
+  getCredentialReference(): CredentialReferenceApiInsert | undefined {
+    return this.config.credentialReference || undefined;
   }
 }
 

@@ -1,4 +1,5 @@
-import './env'; // Load environment files first
+import './env'; // Load environment files first (needed by instrumentation)
+import './instrumentation'; // Initialize Langfuse tracing second
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +29,8 @@ program
 program
   .command('add [template]')
   .description('Add a new template to the project')
+  .option('--project <template>', 'Project template to add')
+  .option('--mcp <template>', 'MCP template to add')
   .option('--target-path <path>', 'Target path to add the template to')
   .option('--config <path>', 'Path to configuration file')
   .action(async (template, options) => {

@@ -2,9 +2,11 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
+  generateId,
   getAgentById,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
+  getExternalAgentsForSubAgent,
   getRelatedAgentsForAgent,
   getSubAgentById,
   getToolsForAgent,
@@ -13,7 +15,6 @@ import {
   type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { generateDescriptionWithTransfers } from '../data/agents';
 import dbClient from '../data/db/dbClient';
@@ -66,7 +67,8 @@ export const createTaskHandler = (
       }
 
       const [
-        { internalRelations, externalRelations },
+        internalRelations,
+        externalRelations,
         toolsForAgent,
         dataComponents,
         artifactComponents,
@@ -78,6 +80,14 @@ export const createTaskHandler = (
             agentId: config.agentId,
           },
           subAgentId: config.subAgentId,
+        }),
+        getExternalAgentsForSubAgent(dbClient)({
+          scopes: {
+            tenantId: config.tenantId,
+            projectId: config.projectId,
+            agentId: config.agentId,
+            subAgentId: config.subAgentId,
+          },
         }),
         getToolsForAgent(dbClient)({
           scopes: {
@@ -108,7 +118,7 @@ export const createTaskHandler = (
       logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
       const enhancedInternalRelations = await Promise.all(
-        internalRelations.map(async (relation) => {
+        internalRelations.data.map(async (relation) => {
           try {
             const relatedAgent = await getSubAgentById(dbClient)({
               scopes: {
@@ -128,10 +138,21 @@ export const createTaskHandler = (
                 subAgentId: relation.id,
               });
 
+              const relatedAgentExternalAgentRelations = await getExternalAgentsForSubAgent(
+                dbClient
+              )({
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: config.agentId,
+                  subAgentId: relation.id,
+                },
+              });
+
               const enhancedDescription = generateDescriptionWithTransfers(
                 relation.description || '',
-                relatedAgentRelations.internalRelations,
-                relatedAgentRelations.externalRelations
+                relatedAgentRelations.data,
+                relatedAgentExternalAgentRelations.data
               );
               return { ...relation, description: enhancedDescription };
             }
@@ -146,6 +167,7 @@ export const createTaskHandler = (
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
+      // TODO: dbResultToMcpTool use here is debatable, since does not take into account "selected tools"
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(
@@ -216,14 +238,17 @@ export const createTaskHandler = (
                   transferRelations: [],
                 },
               })),
-            ...externalRelations.map((relation) => ({
+            ...externalRelations.data.map((relation) => ({
               type: 'external' as const,
               config: {
                 id: relation.externalAgent.id,
                 name: relation.externalAgent.name,
                 description: relation.externalAgent.description || '',
                 baseUrl: relation.externalAgent.baseUrl,
-                relationType: relation.relationType || undefined,
+                headers: relation.headers,
+                credentialReferenceId: relation.externalAgent.credentialReferenceId,
+                relationId: relation.id,
+                relationType: 'delegate',
               },
             })),
           ],
@@ -389,7 +414,7 @@ export const createTaskHandler = (
                 },
                 artifacts: [
                   {
-                    artifactId: nanoid(),
+                    artifactId: generateId(),
                     parts: [
                       {
                         kind: 'data',
@@ -424,7 +449,7 @@ export const createTaskHandler = (
         status: { state: TaskState.Completed },
         artifacts: [
           {
-            artifactId: nanoid(),
+            artifactId: generateId(),
             parts,
           },
         ],

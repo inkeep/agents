@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import ora, { type Ora } from 'ora';
+import * as p from '@clack/prompts';
 import type { ValidatedConfiguration } from './config';
 import { validateConfiguration } from './config';
 
@@ -23,8 +23,6 @@ export interface CommandInitOptions {
 export interface CommandInitResult {
   /** Validated configuration */
   config: ValidatedConfiguration;
-  /** Spinner instance (if enabled) */
-  spinner?: Ora;
 }
 
 /**
@@ -63,14 +61,17 @@ export async function initializeCommand(
   } = options;
 
   // Start spinner if requested
-  const spinner = showSpinner ? ora(spinnerText).start() : undefined;
+  const s = showSpinner ? p.spinner() : undefined;
+  if (s) {
+    s.start(spinnerText);
+  }
 
   try {
     // Load and validate configuration
     const config = await validateConfiguration(configPath);
 
-    if (spinner) {
-      spinner.succeed('Configuration loaded');
+    if (s) {
+      s.stop('Configuration loaded');
     }
 
     // Log configuration sources for debugging
@@ -84,10 +85,10 @@ export async function initializeCommand(
       }
     }
 
-    return { config, spinner };
+    return { config };
   } catch (error: any) {
-    if (spinner) {
-      spinner.fail('Configuration failed');
+    if (s) {
+      s.stop('Configuration failed');
     }
     console.error(chalk.red('Error:'), error.message);
 

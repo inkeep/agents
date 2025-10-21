@@ -128,6 +128,8 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
+            relationType: 'test-relation-type',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
@@ -216,6 +218,8 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
+            relationType: 'test-relation-type',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
@@ -288,6 +292,8 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
+            relationType: 'test-relation-type',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
@@ -347,6 +353,8 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
+            relationType: 'test-relation-type',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',

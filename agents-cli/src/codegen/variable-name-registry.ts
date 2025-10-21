@@ -6,6 +6,7 @@
  */
 
 export type EntityType =
+  | 'project'
   | 'agent'
   | 'subAgent'
   | 'tool'
@@ -13,10 +14,12 @@ export type EntityType =
   | 'artifactComponent'
   | 'statusComponent'
   | 'credential'
-  | 'environment';
+  | 'environment'
+  | 'externalAgent';
 
 export interface VariableNameRegistry {
   // Map from ID to variable name for each entity type
+  projects: Map<string, string>;
   agents: Map<string, string>;
   subAgents: Map<string, string>;
   tools: Map<string, string>;
@@ -25,21 +28,23 @@ export interface VariableNameRegistry {
   statusComponents: Map<string, string>;
   credentials: Map<string, string>;
   environments: Map<string, string>;
-
+  externalAgents: Map<string, string>;
   // Reverse lookup: variable name -> { id, type }
   usedNames: Map<string, { id: string; type: EntityType }>;
 }
 
 export interface NamingConventions {
   // Suffixes to add when conflicts are detected
-  subAgentSuffix: string;
+  projectSuffix: string;
   agentSuffix: string;
+  subAgentSuffix: string;
   toolSuffix: string | null;
   dataComponentSuffix: string | null;
   artifactComponentSuffix: string | null;
   statusComponentSuffix: string | null;
   credentialSuffix: string | null;
   environmentSuffix: string | null;
+  externalAgentSuffix: string | null;
 }
 
 export interface ConflictInfo {
@@ -52,14 +57,16 @@ export interface ConflictInfo {
  * Default naming conventions (recommended pattern)
  */
 export const DEFAULT_NAMING_CONVENTIONS: NamingConventions = {
-  subAgentSuffix: 'SubAgent',
+  projectSuffix: 'Project',
   agentSuffix: 'Agent',
+  subAgentSuffix: 'SubAgent',
   toolSuffix: null, // Usually no suffix needed
   dataComponentSuffix: null,
   artifactComponentSuffix: null,
   statusComponentSuffix: null,
   credentialSuffix: null,
   environmentSuffix: null, // No suffix needed for environments
+  externalAgentSuffix: null,
 };
 
 /**
@@ -74,6 +81,7 @@ export class VariableNameGenerator {
 
   constructor(conventions: NamingConventions = DEFAULT_NAMING_CONVENTIONS) {
     this.registry = {
+      projects: new Map(),
       agents: new Map(),
       subAgents: new Map(),
       tools: new Map(),
@@ -82,6 +90,7 @@ export class VariableNameGenerator {
       statusComponents: new Map(),
       credentials: new Map(),
       environments: new Map(),
+      externalAgents: new Map(),
       usedNames: new Map(),
     };
     this.conventions = conventions;
@@ -230,14 +239,14 @@ export class VariableNameGenerator {
    */
   generateFileName(id: string, entityType: EntityType, entityData?: any): string {
     let baseName: string;
-    
+
     // For MCP tools with random IDs, use the human-readable name if available
     if (entityType === 'tool' && entityData?.name && this.isRandomId(id)) {
       baseName = this.nameToFileName(entityData.name);
     } else {
       baseName = this.idToFileName(id);
     }
-    
+
     return baseName;
   }
 
@@ -268,6 +277,8 @@ export class VariableNameGenerator {
    */
   private getSuffixForType(entityType: EntityType): string {
     switch (entityType) {
+      case 'project':
+        return this.conventions.projectSuffix;
       case 'agent':
         return this.conventions.agentSuffix;
       case 'subAgent':
@@ -284,6 +295,8 @@ export class VariableNameGenerator {
         return this.conventions.credentialSuffix || '';
       case 'environment':
         return this.conventions.environmentSuffix || '';
+      case 'externalAgent':
+        return this.conventions.externalAgentSuffix || '';
       default:
         return '';
     }
@@ -294,6 +307,8 @@ export class VariableNameGenerator {
    */
   private getRegistryMap(entityType: EntityType): Map<string, string> {
     switch (entityType) {
+      case 'project':
+        return this.registry.projects;
       case 'agent':
         return this.registry.agents;
       case 'subAgent':
@@ -310,6 +325,8 @@ export class VariableNameGenerator {
         return this.registry.credentials;
       case 'environment':
         return this.registry.environments;
+      case 'externalAgent':
+        return this.registry.externalAgents;
       default:
         throw new Error(`Unknown entity type: ${entityType}`);
     }
@@ -319,8 +336,13 @@ export class VariableNameGenerator {
 /**
  * Collect all entities from project data
  */
-export function collectAllEntities(projectData: any): Array<{ id: string; type: EntityType; data?: any }> {
+export function collectAllEntities(
+  projectData: any
+): Array<{ id: string; type: EntityType; data?: any }> {
   const entities: Array<{ id: string; type: EntityType; data?: any }> = [];
+
+  // Collect project itself
+  entities.push({ id: projectData.id, type: 'project', data: projectData });
 
   // Collect agents and their subAgents
   if (projectData.agents) {
@@ -357,31 +379,38 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
     }
   }
 
-   // Collect status components from agents (NOT subAgents - only agents have statusUpdates)
-   if (projectData.agents) {
-     for (const [_agentId, agentData] of Object.entries(projectData.agents)) {
-       const agentObj = agentData as any;
-       if (agentObj.statusUpdates?.statusComponents) {
-         for (const statusComp of agentObj.statusUpdates.statusComponents) {
-           // Status components use 'type' as their identifier
-           if (statusComp.type) {
-             entities.push({ id: statusComp.type, type: 'statusComponent' });
-           }
-         }
-       }
-     }
-   }
+  // Collect external agents
+  if (projectData.externalAgents) {
+    for (const [agentId, agentData] of Object.entries(projectData.externalAgents)) {
+      entities.push({ id: agentId, type: 'externalAgent', data: agentData });
+    }
+  }
+
+  // Collect status components from agents (NOT subAgents - only agents have statusUpdates)
+  if (projectData.agents) {
+    for (const [_agentId, agentData] of Object.entries(projectData.agents)) {
+      const agentObj = agentData as any;
+      if (agentObj.statusUpdates?.statusComponents) {
+        for (const statusComp of agentObj.statusUpdates.statusComponents) {
+          // Status components use 'type' as their identifier
+          if (statusComp.type) {
+            entities.push({ id: statusComp.type, type: 'statusComponent' });
+          }
+        }
+      }
+    }
+  }
 
   // Collect credentials from all sources that can reference them
   const credentialReferences = new Set<string>();
-  
+
   // First check for direct credentialReferences structure
   if (projectData.credentialReferences) {
     for (const credId of Object.keys(projectData.credentialReferences)) {
       credentialReferences.add(credId);
     }
   }
-  
+
   // Extract credentials from tools with credentialReferenceId
   if (projectData.tools) {
     for (const [_toolId, toolData] of Object.entries(projectData.tools)) {
@@ -391,7 +420,7 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
       }
     }
   }
-  
+
   // Extract credentials from external agents with credentialReferenceId
   if (projectData.externalAgents) {
     for (const [_agentId, agentData] of Object.entries(projectData.externalAgents)) {
@@ -401,12 +430,12 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
       }
     }
   }
-  
+
   // Extract credentials from agents and subAgents (check for contextConfig with credentials)
   if (projectData.agents) {
     for (const [_agentId, agentData] of Object.entries(projectData.agents)) {
       const agent = agentData as any;
-      
+
       // Check agent's contextConfig for credentials
       if (agent.contextConfig?.headers?.credentialReferenceId) {
         credentialReferences.add(agent.contextConfig.headers.credentialReferenceId);
@@ -419,18 +448,20 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
           }
         }
       }
-      
+
       // Check subAgents for credentials
       if (agent.subAgents) {
         for (const [_subAgentId, subAgentData] of Object.entries(agent.subAgents)) {
           const subAgent = subAgentData as any;
-          
+
           // Check subAgent's contextConfig for credentials
           if (subAgent.contextConfig?.headers?.credentialReferenceId) {
             credentialReferences.add(subAgent.contextConfig.headers.credentialReferenceId);
           }
           if (subAgent.contextConfig?.contextVariables) {
-            for (const [_varId, varData] of Object.entries(subAgent.contextConfig.contextVariables)) {
+            for (const [_varId, varData] of Object.entries(
+              subAgent.contextConfig.contextVariables
+            )) {
               const contextVar = varData as any;
               if (contextVar.credentialReferenceId) {
                 credentialReferences.add(contextVar.credentialReferenceId);
@@ -441,10 +472,9 @@ export function collectAllEntities(projectData: any): Array<{ id: string; type: 
       }
     }
   }
-  
+
   // Don't add credentials as separate entities - they are embedded in environment files
   // Credentials are passed as data to environment generation, not as separate file entities
-
 
   return entities;
 }

@@ -87,7 +87,7 @@ app.openapi(
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
-
+    console.log('validatedProjectData', validatedProjectData);
     try {
       const createdProject = await createFullProjectServerSide(dbClient, logger)(
         { tenantId, projectId: validatedProjectData.id },

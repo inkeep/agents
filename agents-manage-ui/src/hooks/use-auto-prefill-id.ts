@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { type FieldValues, type UseFormReturn, useWatch } from 'react-hook-form';
-import { generateId } from '@/lib/utils/generate-id';
+import { generateIdFromName } from '@/lib/utils/generate-id';
 
 interface UseAutoPrefillIdOptions<T extends FieldValues> {
   form: UseFormReturn<T>;
@@ -29,7 +29,7 @@ export function useAutoPrefillId<T extends FieldValues>({
   // biome-ignore lint/correctness/useExhaustiveDependencies: we don't want to re-run this effect when the isIdFieldModified changes since that means the user has manually edited the ID field
   useEffect(() => {
     if (!isEditing && nameValue && !isIdFieldModified) {
-      const generatedId = generateId(nameValue);
+      const generatedId = generateIdFromName(nameValue);
       form.setValue(idField as any, generatedId as any, {
         shouldValidate: true,
       });

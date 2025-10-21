@@ -349,9 +349,13 @@ export async function createNangoApiKeyConnection({
  */
 export async function createProviderConnectSession({
   providerName,
+  uniqueKey,
+  displayName,
   credentials,
 }: {
   providerName: string;
+  uniqueKey: string;
+  displayName: string;
   credentials?: ApiPublicIntegrationCredentials;
 }): Promise<string> {
   try {
@@ -359,7 +363,7 @@ export async function createProviderConnectSession({
     let existingIntegration: (ApiPublicIntegration & { areCredentialsSet: boolean }) | null = null;
 
     try {
-      existingIntegration = await fetchNangoIntegration(providerName);
+      existingIntegration = await fetchNangoIntegration(uniqueKey);
     } catch (error) {
       if (error instanceof NangoError) {
         throw error;
@@ -374,8 +378,8 @@ export async function createProviderConnectSession({
       try {
         integration = await createNangoIntegration({
           provider: providerName,
-          uniqueKey: providerName,
-          displayName: providerName,
+          uniqueKey,
+          displayName,
           credentials,
         });
       } catch (error) {
