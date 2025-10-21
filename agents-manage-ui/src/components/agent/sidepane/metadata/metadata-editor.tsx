@@ -459,7 +459,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="event-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.numEvents}
+                        checked={statusUpdates && Object.hasOwn(statusUpdates, 'numEvents')}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -480,7 +480,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="time-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.timeInSeconds}
+                        checked={statusUpdates && Object.hasOwn(statusUpdates, 'timeInSeconds')}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -499,7 +499,7 @@ function MetadataEditor() {
                   </div>
                 </div>
 
-                {statusUpdates?.numEvents && (
+                {statusUpdates && Object.hasOwn(statusUpdates, 'numEvents') && (
                   <div className="space-y-2">
                     <Label htmlFor="num-events">Number of events</Label>
                     <Input
@@ -524,7 +524,7 @@ function MetadataEditor() {
                   </div>
                 )}
 
-                {statusUpdates?.timeInSeconds && (
+                {statusUpdates && Object.hasOwn(statusUpdates, 'timeInSeconds') && (
                   <div className="space-y-2">
                     <Label htmlFor="time-in-seconds">Time interval (seconds)</Label>
                     <Input
