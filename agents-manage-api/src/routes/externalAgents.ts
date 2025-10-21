@@ -147,7 +147,6 @@ app.openapi(
     const externalAgentData = {
       tenantId,
       projectId,
-      agentId,
       id: body.id ? String(body.id) : generateId(),
       name: body.name,
       description: body.description,
