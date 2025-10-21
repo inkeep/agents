@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/form/code-editor';
 import { JsonEditor } from '@/components/form/json-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -316,6 +317,12 @@ export function ComponentPreviewGenerator({
             />
           </TabsContent>
         </Tabs>
+      )}
+
+      {!hasPreview && !isGenerating && !isComplete && (
+        <InfoCard>
+          <p className="text-sm text-muted-foreground">No preview generated</p>
+        </InfoCard>
       )}
     </div>
   );

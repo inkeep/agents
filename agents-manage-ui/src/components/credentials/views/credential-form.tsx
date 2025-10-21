@@ -239,7 +239,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
                 keyPlaceholder="Header name (e.g., X-API-Key)"
                 valuePlaceholder="Header value"
               />
-              <InfoCard title="Additional headers">
+              <InfoCard title="How this works">
                 <p className="mb-2">
                   Add extra headers to be included with authentication requests.
                 </p>
