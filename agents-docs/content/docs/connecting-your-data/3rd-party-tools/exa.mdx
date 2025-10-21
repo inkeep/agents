@@ -11,7 +11,7 @@ Install the [exa-js](https://github.com/exa-labs/exa-js) SDK
 
 ```typescript
 import Exa from 'exa-js';
-import { agent, tool } from '@inkeep/agents-manage-api/builders';
+import { agent, subAgent } from "@inkeep/agents-sdk";
 
 const exaAgent = subAgent({
   id: 'exa-agent',
@@ -102,14 +102,13 @@ Connect directly to Exa’s hosted MCP server using this URL:
 https://mcp.exa.ai/mcp?exaApiKey=your-exa-api-key
 
 ```typescript
-import { mcpTool } from "@inkeep/agents-manage-api/builders";
+import { mcpTool } from "@inkeep/agents-sdk";
 
 const exaTool = mcpTool({
-  id: "exa-tool",
-  tenantId,
+  id: "exa-tool",  
   name: "exa",
   description: "Exa MCP tool for data scraping",
-  serverUrl: "https://mcp.exa.ai/mcp?exaApiKey=your-exa-api-key",
+  serverUrl: "https://mcp.exa.ai/mcp?exaApiKey=your-exa-api-key"
 });
 ```
 

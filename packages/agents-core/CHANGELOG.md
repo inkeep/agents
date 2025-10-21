@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+
 ## 0.23.5
 
 ### Patch Changes

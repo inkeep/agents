@@ -892,7 +892,11 @@ function Flow({
           <Panel position="top-left">
             <NodeLibrary />
           </Panel>
-          <Panel position="top-right">
+          <Panel
+            position="top-right"
+            // width of NodeLibrary
+            className="left-52"
+          >
             <Toolbar
               onSubmit={onSubmit}
               inPreviewDisabled={!agent?.id}

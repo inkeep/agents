@@ -1,5 +1,21 @@
 # @inkeep/create-agents
 
+## 0.24.1
+
+### Patch Changes
+
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes

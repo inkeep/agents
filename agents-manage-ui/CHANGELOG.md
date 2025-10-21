@@ -1,5 +1,32 @@
 # @inkeep/agents-manage-ui
 
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+  - @inkeep/agents-manage-api@0.24.1
+  - @inkeep/agents-run-api@0.24.1
+
+## 0.24.0
+
+### Minor Changes
+
+- 3c87a88: Animate Agent graph based on `ikp-data-operation` event types
+
+### Patch Changes
+
+- a8023c6: Fix React Flow toolbar buttons overflow caused by nodes and edges
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+  - @inkeep/agents-manage-api@0.24.0
+  - @inkeep/agents-run-api@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes

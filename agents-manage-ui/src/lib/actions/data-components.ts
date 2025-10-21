@@ -95,9 +95,10 @@ export async function updateDataComponentAction(
     };
   } catch (error) {
     if (error instanceof ApiError) {
+      const errorMessage = error.error.message ?? error.message;
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         code: error.error.code,
       };
     }
