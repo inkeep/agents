@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+
 ## 0.26.0
 
 ## 0.25.0
