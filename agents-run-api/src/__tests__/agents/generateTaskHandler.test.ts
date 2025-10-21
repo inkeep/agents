@@ -19,28 +19,18 @@ const {
   getAgentAgentByIdMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
+  getExternalAgentsForSubAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
 } = vi.hoisted(() => {
   const getRelatedAgentsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      internalRelations: [
+      data: [
         {
           id: 'agent-2',
           name: 'Test Agent 2',
           description: 'Test description',
           relationType: 'transfer',
-        },
-      ],
-      externalRelations: [
-        {
-          externalAgent: {
-            id: 'external-1',
-            name: 'External Agent',
-            description: 'External agent description',
-            baseUrl: 'https://external-agent.com',
-          },
-          relationType: 'delegate',
         },
       ],
     })
@@ -165,6 +155,13 @@ const {
     ])
   );
 
+  const getExternalAgentsForSubAgentMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+    })
+  );
+
   const getProjectMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-project',
@@ -191,6 +188,7 @@ const {
     getAgentAgentByIdMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
+    getExternalAgentsForSubAgentMock,
     getProjectMock,
     dbResultToMcpToolMock,
   };
@@ -212,6 +210,7 @@ vi.mock('@inkeep/agents-core', () => ({
   }),
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+  getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
   getProject: getProjectMock,
   dbResultToMcpTool: dbResultToMcpToolMock,
   getLogger: vi.fn(() => ({
@@ -220,6 +219,7 @@ vi.mock('@inkeep/agents-core', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+  generateId: vi.fn(() => 'test-id-123'),
   TaskState: {
     Completed: 'completed',
     Failed: 'failed',

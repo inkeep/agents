@@ -61,6 +61,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]), // No relations
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue({
             id: 'default-agent-1',
@@ -203,6 +206,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
         subAgents: {
           findFirst: vi
             .fn()
@@ -302,6 +308,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
         },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
@@ -407,6 +416,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
           findMany: vi.fn().mockResolvedValue([
@@ -502,6 +514,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
           findMany: vi.fn().mockResolvedValue([
@@ -586,6 +601,9 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
         },
         subAgents: {
           findFirst: vi

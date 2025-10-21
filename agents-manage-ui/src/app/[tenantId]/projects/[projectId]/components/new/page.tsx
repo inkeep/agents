@@ -2,11 +2,9 @@ import { DataComponentForm } from '@/components/data-components/form/data-compon
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 
-interface NewDataComponentPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function NewDataComponentPage({ params }: NewDataComponentPageProps) {
+async function NewDataComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/components/new'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate

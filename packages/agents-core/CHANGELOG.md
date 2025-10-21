@@ -1,5 +1,32 @@
 # @inkeep/agents-core
 
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+
 ## 0.23.5
 
 ### Patch Changes

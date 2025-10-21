@@ -6,15 +6,9 @@ import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 
 export const dynamic = 'force-dynamic';
 
-interface ArtifactComponentPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    artifactComponentId: string;
-  }>;
-}
-
-export default async function ArtifactComponentPage({ params }: ArtifactComponentPageProps) {
+export default async function ArtifactComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/artifacts/[artifactComponentId]'>) {
   const { artifactComponentId, tenantId, projectId } = await params;
 
   let artifactComponent: Awaited<ReturnType<typeof fetchArtifactComponent>>;

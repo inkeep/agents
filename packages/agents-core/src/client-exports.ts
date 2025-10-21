@@ -172,15 +172,7 @@ export const AgentAgentApiInsertSchema = z.object({
 });
 
 export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([
-      FullAgentAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({
-        id: z.string(),
-      }),
-    ])
-  ),
+  subAgents: z.record(z.string(), z.union([FullAgentAgentInsertSchema])),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({

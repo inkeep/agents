@@ -4,8 +4,8 @@ import {
   type ConversationScopeOptions,
   createMessage,
   getConversationHistory,
+  generateId,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import dbClient from './db/dbClient';
 
 /**
@@ -89,7 +89,7 @@ export async function saveA2AMessageResponse(
 
   // Save the message
   return await createMessage(dbClient)({
-    id: nanoid(),
+    id: generateId(),
     tenantId: params.tenantId,
     projectId: params.projectId,
     conversationId: params.conversationId,

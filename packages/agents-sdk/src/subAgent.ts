@@ -17,6 +17,7 @@ import type {
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
+  subAgentExternalAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
 
@@ -132,6 +133,53 @@ export class SubAgent implements SubAgentInterface {
 
   getTransfers(): SubAgentInterface[] {
     return typeof this.config.canTransferTo === 'function' ? this.config.canTransferTo() : [];
+  }
+
+  getSubAgentDelegates(): SubAgentInterface[] {
+    return typeof this.config.canDelegateTo === 'function'
+      ? (this.config.canDelegateTo().filter((delegate) => {
+          // Filter out subAgentExternalAgentInterface (has externalAgent property)
+          if (typeof delegate === 'object' && 'externalAgent' in delegate) {
+            return false;
+          }
+          // Filter out raw ExternalAgent instances (have type: 'external')
+          if (typeof delegate === 'object' && 'type' in delegate && delegate.type === 'external') {
+            return false;
+          }
+          return true;
+        }) as SubAgentInterface[])
+      : [];
+  }
+
+  getExternalAgentDelegates(): subAgentExternalAgentInterface[] {
+    if (typeof this.config.canDelegateTo !== 'function') {
+      return [];
+    }
+
+    return this.config
+      .canDelegateTo()
+      .filter((delegate) => {
+        // Accept wrapped external agents (from .with())
+        if (typeof delegate === 'object' && 'externalAgent' in delegate) {
+          return true;
+        }
+        // Accept raw ExternalAgent instances
+        if (typeof delegate === 'object' && 'type' in delegate && delegate.type === 'external') {
+          return true;
+        }
+        return false;
+      })
+      .map((delegate) => {
+        // If it's already wrapped, return as-is
+        if ('externalAgent' in delegate) {
+          return delegate as subAgentExternalAgentInterface;
+        }
+        // If it's a raw ExternalAgent, wrap it
+        return {
+          externalAgent: delegate as any,
+          headers: undefined,
+        };
+      });
   }
 
   getDelegates(): AllSubAgentInterface[] {

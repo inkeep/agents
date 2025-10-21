@@ -1,5 +1,4 @@
 import { Bug, X } from 'lucide-react';
-import { nanoid } from 'nanoid';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
+import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
@@ -28,7 +28,7 @@ export const Playground = ({
   setShowPlayground,
   dataComponentLookup = {},
 }: PlaygroundProps) => {
-  const [conversationId, setConversationId] = useState<string>(nanoid());
+  const [conversationId, setConversationId] = useState<string>(generateId());
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [showTraces, setShowTraces] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);

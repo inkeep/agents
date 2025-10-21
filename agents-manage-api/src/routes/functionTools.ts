@@ -14,9 +14,9 @@ import {
   SingleResponseSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
+  generateId,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -153,7 +153,7 @@ app.openapi(
     const body = c.req.valid('json');
 
     try {
-      const id = body.id || nanoid();
+      const id = body.id || generateId();
 
       const functionTool = await createFunctionTool(dbClient)({
         scopes: { tenantId, projectId, agentId },

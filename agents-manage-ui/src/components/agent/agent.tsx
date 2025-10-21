@@ -14,7 +14,6 @@ import {
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
-import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -38,6 +37,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
+import { generateId } from '@/lib/utils/id-utils';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
@@ -48,9 +48,21 @@ export type AgentToolConfig = {
   headers?: Record<string, string>;
 };
 
+export type SubAgentExternalAgentConfig = {
+  externalAgentId: string;
+  headers?: Record<string, string>;
+};
+
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
 
+// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentExternalAgentConfigLookup = Record<
+  string,
+  Record<string, SubAgentExternalAgentConfig>
+>;
+
+import type { ExternalAgent } from '@/lib/api/external-agents';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -81,6 +93,7 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
+  externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
 function Flow({
@@ -89,6 +102,7 @@ function Flow({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
+  externalAgentLookup = {},
 }: AgentProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
@@ -103,7 +117,7 @@ function Flow({
   const initialNodes = useMemo<Node[]>(
     () => [
       {
-        id: nanoid(),
+        id: generateId(),
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { name: '', isDefault: true },
@@ -187,6 +201,28 @@ function Flow({
         });
         if (Object.keys(toolsMap).length > 0) {
           lookup[subAgentId] = toolsMap;
+        }
+      }
+    });
+    return lookup;
+  }, [agent?.subAgents]);
+
+  const subAgentExternalAgentConfigLookup = useMemo((): SubAgentExternalAgentConfigLookup => {
+    if (!agent?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
+    const lookup: SubAgentExternalAgentConfigLookup = {};
+    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
+      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
+        agentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
+          .forEach((delegate) => {
+            externalAgentConfigs[delegate.externalAgentId] = {
+              externalAgentId: delegate.externalAgentId,
+              headers: delegate.headers ?? undefined,
+            };
+          });
+        if (Object.keys(externalAgentConfigs).length > 0) {
+          lookup[subAgentId] = externalAgentConfigs;
         }
       }
     });
@@ -422,7 +458,7 @@ function Flow({
         x: event.clientX,
         y: event.clientY,
       });
-      const nodeId = nanoid();
+      const nodeId = generateId();
       const newNode = {
         id: nodeId,
         type: nodeData.type,
@@ -564,7 +600,8 @@ function Flow({
       metadata,
       dataComponentLookup,
       artifactComponentLookup,
-      agentToolConfigLookup
+      agentToolConfigLookup,
+      subAgentExternalAgentConfigLookup
     );
 
     const functionToolNodeMap = new Map<string, string>();
@@ -691,6 +728,8 @@ function Flow({
     setErrors,
     agentToolConfigLookup,
     toolLookup,
+    subAgentExternalAgentConfigLookup,
+    externalAgentLookup,
   ]);
 
   useEffect(() => {
@@ -892,7 +931,11 @@ function Flow({
           <Panel position="top-left">
             <NodeLibrary />
           </Panel>
-          <Panel position="top-right">
+          <Panel
+            position="top-right"
+            // width of NodeLibrary
+            className="left-52"
+          >
             <Toolbar
               onSubmit={onSubmit}
               inPreviewDisabled={!agent?.id}
@@ -924,6 +967,7 @@ function Flow({
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         agentToolConfigLookup={agentToolConfigLookup}
+        subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
         credentialLookup={credentialLookup}
       />
       {showPlayground && agent?.id && (
@@ -946,6 +990,7 @@ export function Agent({
   artifactComponentLookup,
   toolLookup,
   credentialLookup,
+  externalAgentLookup,
 }: AgentProps) {
   return (
     <ReactFlowProvider>
@@ -955,6 +1000,7 @@ export function Agent({
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}
         credentialLookup={credentialLookup}
+        externalAgentLookup={externalAgentLookup}
       />
     </ReactFlowProvider>
   );

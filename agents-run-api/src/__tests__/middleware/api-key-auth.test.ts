@@ -1,15 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
-const { validateAndGetApiKeyMock, updateApiKeyLastUsedMock } = vi.hoisted(() => ({
+const { validateAndGetApiKeyMock, updateApiKeyLastUsedMock, getAgentByIdMock } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   updateApiKeyLastUsedMock: vi.fn(),
+  getAgentByIdMock: vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      id: 'test-agent',
+      name: 'Test Agent',
+      contextConfigId: 'test-context',
+    })
+  ),
 }));
 
 // Mock the dependencies before imports
 vi.mock('@inkeep/agents-core', () => ({
   validateAndGetApiKey: validateAndGetApiKeyMock,
   updateApiKeyLastUsed: updateApiKeyLastUsedMock,
+  getAgentById: getAgentByIdMock,
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),

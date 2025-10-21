@@ -1,5 +1,45 @@
 # @inkeep/agents-sdk
 
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- Updated dependencies [51c157e]
+  - @inkeep/agents-core@0.25.0
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+- Updated dependencies [3ad959e]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+  - @inkeep/agents-core@0.24.2
+
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes

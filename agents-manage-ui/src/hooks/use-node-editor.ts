@@ -9,8 +9,28 @@ interface UseNodeEditorOptions {
 }
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {
-  const { updateNodeData } = useReactFlow();
+  const { updateNodeData, setNodes, deleteElements } = useReactFlow();
   const { markUnsaved } = useAgentActions();
+
+  const deleteNode = useCallback(() => {
+    deleteElements({ nodes: [{ id: selectedNodeId }] });
+  }, [selectedNodeId, deleteElements]);
+
+  const updateDefaultSubAgent = useCallback(
+    (isDefault: boolean) => {
+      setNodes((nodes) =>
+        nodes.map((node) => {
+          if (node.id === selectedNodeId) {
+            return { ...node, data: { ...node.data, isDefault }, deletable: !isDefault };
+          } else if (isDefault && node.data.isDefault) {
+            return { ...node, data: { ...node.data, isDefault: false }, deletable: true };
+          }
+          return node;
+        })
+      );
+    },
+    [selectedNodeId, setNodes]
+  );
 
   // Focus management for error fields
   const fieldRefs = useRef<Record<string, HTMLElement>>({});
@@ -127,6 +147,8 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
     updatePath,
     updateNestedPath,
     handleInputChange,
+    updateDefaultSubAgent,
+    deleteNode,
 
     // Error handling
     getFieldError,

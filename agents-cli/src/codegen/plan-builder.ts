@@ -38,6 +38,7 @@ export interface FileInfo {
     | 'dataComponent'
     | 'artifactComponent'
     | 'statusComponent'
+    | 'externalAgent'
     | 'environment'
     | 'index';
   entities: FileEntity[];
@@ -100,7 +101,12 @@ export async function generatePlan(
 
   // Step 4: Use LLM to generate file structure plan with placeholder optimization
   const model = createModel(modelSettings);
-  const promptTemplate = createPlanningPromptTemplate(nameGenerator.getRegistry(), allEntities, fileNameMappings, targetEnvironment);
+  const promptTemplate = createPlanningPromptTemplate(
+    nameGenerator.getRegistry(),
+    allEntities,
+    fileNameMappings,
+    targetEnvironment
+  );
 
   // Combine projectData and patterns for placeholder processing
   const promptData = {
@@ -150,7 +156,7 @@ function createPlanningPromptTemplate(
 ): string {
   // Format variable mappings for prompt
   const mappings = formatVariableMappings(registry, allEntities);
-  
+
   // Format filename mappings for prompt
   const fileNames = formatFileNameMappings(fileNameMappings, allEntities);
 
@@ -174,7 +180,7 @@ CRITICAL RULES:
 1. TOOL TYPES - VERY IMPORTANT:
    - **Function Tools** (type: "function"): ALWAYS define INLINE within agent files using "inlineContent" array
    - **MCP Tools** (type: "mcp"): Create separate files in tools/ directory
-   - VALID FILE TYPES: Only use these exact types: "agent", "tool", "dataComponent", "artifactComponent", "statusComponent", "environment", "index"
+   - VALID FILE TYPES: Only use these exact types: "agent", "tool", "dataComponent", "artifactComponent", "externalAgent", "statusComponent", "environment", "index"
    - NEVER create file type "functionTool" - function tools go in "inlineContent" of agent files
 
 2. STATUS COMPONENTS - VERY IMPORTANT:
@@ -207,6 +213,7 @@ CRITICAL RULES:
    - data-components/ directory: Data component files
    - artifact-components/ directory: Artifact component files
    - status-components/ directory: Status component files
+    - external-agents/ directory: External agent files
    - environments/ directory: Environment/credential files
    - index.ts: Main project file
 
@@ -247,6 +254,11 @@ OUTPUT FORMAT (JSON):
           "fromPath": "../tools/weather-api",
           "entityType": "tool"
         }
+        {
+          "variableName": "externalHelper",
+          "fromPath": "../external-agents/external-helper",
+          "entityType": "externalAgent"
+        }
       ],
       "inlineContent": [
         {
@@ -266,6 +278,20 @@ OUTPUT FORMAT (JSON):
           "variableName": "weatherApi",
           "entityType": "tool",
           "exportName": "weatherApi"
+        }
+      ],
+      "dependencies": [],
+      "inlineContent": null
+    },
+    {
+      "path": "external-agents/external-helper.ts",
+      "type": "externalAgent",
+      "entities": [
+        {
+          "id": "external-helper",
+          "variableName": "externalHelper",
+          "entityType": "externalAgent",
+          "exportName": "externalHelper"
         }
       ],
       "dependencies": [],
@@ -367,6 +393,7 @@ function formatVariableMappings(
     dataComponent: [],
     artifactComponent: [],
     statusComponent: [],
+    externalAgent: [],
     credential: [],
     environment: [],
   };
@@ -411,6 +438,7 @@ function formatFileNameMappings(
     artifactComponent: [],
     statusComponent: [],
     credential: [],
+    externalAgent: [],
     environment: [],
   };
 
@@ -420,7 +448,7 @@ function formatFileNameMappings(
       byType[entity.type].push({
         id: entity.id,
         fileName,
-        name: entity.data?.name // Include human-readable name for context
+        name: entity.data?.name, // Include human-readable name for context
       });
     }
   }
@@ -464,6 +492,8 @@ function getRegistryMap(
       return registry.artifactComponents;
     case 'statusComponent':
       return registry.statusComponents;
+    case 'externalAgent':
+      return registry.externalAgents;
     case 'credential':
       return registry.credentials;
     case 'environment':

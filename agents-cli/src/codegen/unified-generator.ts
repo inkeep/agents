@@ -56,20 +56,27 @@ export async function generateFilesFromPlan(
 
   // Separate environment files from regular files
   // Environment files need special handling and are generated separately
-  const environmentFiles = plan.files.filter(f => f.type === 'environment');
-  const regularFiles = plan.files.filter(f => f.type !== 'environment');
+  const environmentFiles = plan.files.filter((f) => f.type === 'environment');
+  const regularFiles = plan.files.filter((f) => f.type !== 'environment');
 
   if (debug && regularFiles.length > 0) {
     console.log(`[DEBUG] Batching ${regularFiles.length} regular files into single LLM request...`);
   }
 
   // Build file specs for batch generation
-  const fileSpecs = regularFiles.map(fileInfo => {
+  const fileSpecs = regularFiles.map((fileInfo) => {
     const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
     const fileData = extractDataForFile(fileInfo, projectData);
 
     // Determine file type for batch generation
-    let batchType: 'index' | 'agent' | 'tool' | 'data_component' | 'artifact_component' | 'status_component';
+    let batchType:
+      | 'index'
+      | 'agent'
+      | 'tool'
+      | 'data_component'
+      | 'artifact_component'
+      | 'status_component'
+      | 'external_agent';
     switch (fileInfo.type) {
       case 'index':
         batchType = 'index';
@@ -88,6 +95,9 @@ export async function generateFilesFromPlan(
         break;
       case 'statusComponent':
         batchType = 'status_component';
+        break;
+      case 'externalAgent':
+        batchType = 'external_agent';
         break;
       default:
         throw new Error(`Unknown file type for batch generation: ${fileInfo.type}`);
@@ -113,7 +123,9 @@ export async function generateFilesFromPlan(
 
   // Generate environment files using templates (no LLM needed)
   if (debug && environmentFiles.length > 0) {
-    console.log(`[DEBUG] Generating ${environmentFiles.length} environment files using templates (no LLM)...`);
+    console.log(
+      `[DEBUG] Generating ${environmentFiles.length} environment files using templates (no LLM)...`
+    );
   }
 
   for (const envFile of environmentFiles) {
@@ -173,8 +185,7 @@ async function generateFile(
   const outputPath = `${dirs.projectRoot}/${fileInfo.path}`;
 
   // Extract relevant data for this file
-  let fileData = extractDataForFile(fileInfo, projectData);
-  
+  const fileData = extractDataForFile(fileInfo, projectData);
 
   // Find example code if available
   const exampleCode = findExampleCode(fileInfo, plan.patterns);
@@ -233,7 +244,6 @@ async function generateFile(
  * Extract data relevant to this file from full project data
  */
 function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefinition): any {
-  
   switch (fileInfo.type) {
     case 'index':
       // Index needs full project data
@@ -255,6 +265,15 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       const toolId = fileInfo.entities[0]?.id;
       if (toolId && projectData.tools) {
         return projectData.tools[toolId];
+      }
+      return {};
+    }
+
+    case 'externalAgent': {
+      // Extract external agent data by ID
+      const agentId = fileInfo.entities[0]?.id;
+      if (agentId && projectData.externalAgents) {
+        return projectData.externalAgents[agentId];
       }
       return {};
     }
@@ -300,14 +319,13 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
       // Extract credential references from all possible sources
       const credentialData: Record<string, any> = {};
       const sources: string[] = [];
-      
-      
+
       // Use direct credentialReferences if available
       if (projectData.credentialReferences) {
         Object.assign(credentialData, projectData.credentialReferences);
         sources.push('direct credentialReferences');
       }
-      
+
       // Extract from tools with credentialReferenceId
       if (projectData.tools) {
         for (const [toolId, toolData] of Object.entries(projectData.tools)) {
@@ -321,14 +339,14 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                 source: 'tool',
                 toolId,
                 toolName: tool.name,
-                serverUrl: tool.serverUrl
-              }
+                serverUrl: tool.serverUrl,
+              },
             };
             sources.push(`tool:${toolId}`);
           }
         }
       }
-      
+
       // Extract from external agents with credentialReferenceId
       if ((projectData as any).externalAgents) {
         for (const [agentId, agentData] of Object.entries((projectData as any).externalAgents)) {
@@ -342,19 +360,19 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                 source: 'externalAgent',
                 agentId,
                 agentName: agent.name,
-                baseUrl: agent.baseUrl
-              }
+                baseUrl: agent.baseUrl,
+              },
             };
             sources.push(`externalAgent:${agentId}`);
           }
         }
       }
-      
+
       // Extract from agents and subAgents contextConfig
       if (projectData.agents) {
         for (const [agentId, agentData] of Object.entries(projectData.agents)) {
           const agent = agentData as any;
-          
+
           // Check agent's contextConfig for credentials
           if (agent.contextConfig?.headers?.credentialReferenceId) {
             const credId = agent.contextConfig.headers.credentialReferenceId;
@@ -366,13 +384,13 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                 _context: {
                   source: 'agent.contextConfig.headers',
                   agentId,
-                  agentName: agent.name
-                }
+                  agentName: agent.name,
+                },
               };
               sources.push(`agent:${agentId}:headers`);
             }
           }
-          
+
           if (agent.contextConfig?.contextVariables) {
             for (const [varId, varData] of Object.entries(agent.contextConfig.contextVariables)) {
               const contextVar = varData as any;
@@ -387,20 +405,20 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                       source: 'agent.contextConfig.contextVariables',
                       agentId,
                       agentName: agent.name,
-                      variableId: varId
-                    }
+                      variableId: varId,
+                    },
                   };
                   sources.push(`agent:${agentId}:contextVar:${varId}`);
                 }
               }
             }
           }
-          
+
           // Check subAgents for credentials
           if (agent.subAgents) {
             for (const [subAgentId, subAgentData] of Object.entries(agent.subAgents)) {
               const subAgent = subAgentData as any;
-              
+
               if (subAgent.contextConfig?.headers?.credentialReferenceId) {
                 const credId = subAgent.contextConfig.headers.credentialReferenceId;
                 if (!credentialData[credId]) {
@@ -412,15 +430,17 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                       source: 'subAgent.contextConfig.headers',
                       agentId,
                       subAgentId,
-                      subAgentName: subAgent.name
-                    }
+                      subAgentName: subAgent.name,
+                    },
                   };
                   sources.push(`subAgent:${subAgentId}:headers`);
                 }
               }
-              
+
               if (subAgent.contextConfig?.contextVariables) {
-                for (const [varId, varData] of Object.entries(subAgent.contextConfig.contextVariables)) {
+                for (const [varId, varData] of Object.entries(
+                  subAgent.contextConfig.contextVariables
+                )) {
                   const contextVar = varData as any;
                   if (contextVar.credentialReferenceId) {
                     const credId = contextVar.credentialReferenceId;
@@ -434,8 +454,8 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
                           agentId,
                           subAgentId,
                           subAgentName: subAgent.name,
-                          variableId: varId
-                        }
+                          variableId: varId,
+                        },
                       };
                       sources.push(`subAgent:${subAgentId}:contextVar:${varId}`);
                     }
@@ -446,17 +466,16 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
           }
         }
       }
-      
+
       // Add metadata about where credentials were found
       if (Object.keys(credentialData).length > 0) {
         credentialData._meta = {
-          foundCredentials: Object.keys(credentialData).filter(k => k !== '_meta'),
+          foundCredentials: Object.keys(credentialData).filter((k) => k !== '_meta'),
           sources,
-          extractedFrom: 'comprehensive scan of project data'
+          extractedFrom: 'comprehensive scan of project data',
         };
       }
-      
-      
+
       return credentialData;
     }
 
@@ -467,7 +486,7 @@ function extractDataForFile(fileInfo: FileInfo, projectData: FullProjectDefiniti
 
 /**
  * Ensure subAgent keys are unique to avoid LLM confusion
- * 
+ *
  * When agent and subAgent have the same ID, the LLM sees duplicate keys and generates empty fields.
  * This adds a simple suffix to make subAgent keys unique while preserving original IDs.
  */
@@ -481,12 +500,12 @@ function ensureUniqueSubAgentKeys(agentData: any): any {
 
   for (const [subAgentKey, subAgentData] of Object.entries(agentData.subAgents)) {
     let uniqueKey = subAgentKey;
-    
+
     // If subAgent key matches agent ID, make it unique
     if (subAgentKey === agentData.id) {
       uniqueKey = `${subAgentKey}_sub`;
     }
-    
+
     transformedSubAgents[uniqueKey] = subAgentData;
   }
 
@@ -554,6 +573,9 @@ PLACEHOLDER HANDLING (CRITICAL):
 
     case 'tool':
       return createToolPrompt(fileData, context, registryInfo, commonInstructions);
+
+    case 'externalAgent':
+      return createExternalAgentPrompt(fileData, context, registryInfo, commonInstructions);
 
     case 'dataComponent':
       return createDataComponentPrompt(fileData, context, registryInfo, commonInstructions);
@@ -841,6 +863,61 @@ Generate ONLY the TypeScript code without markdown.`;
 }
 
 /**
+ * Create prompt for external agent file
+ */
+function createExternalAgentPrompt(
+  _externalAgentData: any,
+  _context: GenerationContext,
+  _registryInfo: string,
+  commonInstructions: string
+): string {
+  return `Generate TypeScript file for Inkeep external agent.
+
+EXTERNAL AGENT DATA:
+{{DATA}}
+
+${commonInstructions}
+
+REQUIREMENTS:
+1. Import externalAgent from '@inkeep/agents-sdk'
+2. Create the external agent using externalAgent()
+3. Export following naming convention rules (camelCase version of ID)
+4. Include all properties from the external agent data INCLUDING the 'id' property
+5. CRITICAL: All imports must be alphabetically sorted to comply with Biome linting
+6. CRITICAL: Use template literals with backticks for all STRING values (url, description, etc.)
+
+CREDENTIAL HANDLING (CRITICAL):
+If the external agent data includes credential information, you MUST:
+1. Import { envSettings } from '../environments/index'
+2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the external agent definition
+3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
+
+  Example for external agent with credential:
+  \`\`\`typescript
+  import { externalAgent } from '@inkeep/agents-sdk';
+  import { envSettings } from '../environments/index';
+
+  export const externalHelper = externalAgent({
+    id: 'external-helper',
+    name: 'External Helper',
+    url: 'https://api.example.com/agent',
+    credentialReference: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+  });
+  \`\`\`
+
+EXAMPLE:
+import { externalAgent } from '@inkeep/agents-sdk';
+
+export const externalHelper = externalAgent({
+  id: 'external-helper',
+  name: 'External Helper',
+  url: 'https://api.example.com/agent',
+});
+
+Generate ONLY the TypeScript code without any markdown or explanations.`;
+}
+
+/**
  * Create prompt for data component file
  */
 function createDataComponentPrompt(
@@ -1018,8 +1095,9 @@ function formatRegistryForFile(fileInfo: FileInfo, _registry: any): string {
     result += 'Entity IDs (with underscores) are NOT the same as file paths (with kebab-case):\n';
     for (const dep of fileInfo.dependencies) {
       // Try to extract the entity from the file info to show the ID vs path difference
-      const entity = fileInfo.entities.find(e => e.variableName === dep.variableName) ||
-                     fileInfo.inlineContent?.find(e => e.variableName === dep.variableName);
+      const entity =
+        fileInfo.entities.find((e) => e.variableName === dep.variableName) ||
+        fileInfo.inlineContent?.find((e) => e.variableName === dep.variableName);
       if (entity && entity.id !== dep.fromPath.split('/').pop()?.replace('.ts', '')) {
         result += `- Entity ID: "${entity.id}" → File path: "${dep.fromPath}"\n`;
       }
@@ -1060,29 +1138,34 @@ function createEnvironmentPrompt(
   // Determine environment name from file path (e.g., "development" from "environments/development.env.ts")
   const filePath = context.fileInfo.path || '';
   const fileName = filePath.split('/').pop() || '';
-  
+
   // Check if this is the environments index file
   if (fileName === 'index.ts') {
     // Find all environment files from the plan to get their exact variable names
-    const environmentFiles = context.plan.files.filter(f => 
-      f.type === 'environment' && f.path !== 'environments/index.ts'
+    const environmentFiles = context.plan.files.filter(
+      (f) => f.type === 'environment' && f.path !== 'environments/index.ts'
     );
-    
-    // Build import statements using exact variable names from registry
-    const imports = environmentFiles.map(envFile => {
-      const envEntity = envFile.entities[0]; // Environment files have one entity
-      if (envEntity) {
-        return `import { ${envEntity.variableName} } from './${envFile.path.replace('environments/', '').replace('.ts', '')}';`;
-      }
-      return '';
-    }).filter(Boolean).join('\n');
-    
-    // Build the object properties using exact variable names
-    const envSettings = environmentFiles.map(envFile => {
-      const envEntity = envFile.entities[0];
-      return envEntity ? `  ${envEntity.variableName},` : '';
-    }).filter(Boolean).join('\n');
 
+    // Build import statements using exact variable names from registry
+    const imports = environmentFiles
+      .map((envFile) => {
+        const envEntity = envFile.entities[0]; // Environment files have one entity
+        if (envEntity) {
+          return `import { ${envEntity.variableName} } from './${envFile.path.replace('environments/', '').replace('.ts', '')}';`;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    // Build the object properties using exact variable names
+    const envSettings = environmentFiles
+      .map((envFile) => {
+        const envEntity = envFile.entities[0];
+        return envEntity ? `  ${envEntity.variableName},` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
 
     return `${commonInstructions}
 
@@ -1114,10 +1197,10 @@ CRITICAL RULES:
 
 Generate ONLY the TypeScript code without markdown.`;
   }
-  
+
   // Individual environment file
   const envName = fileName.replace('.env.ts', '') || 'development';
-  
+
   return `${commonInstructions}
 
 ENVIRONMENT FILE (CRITICAL):
