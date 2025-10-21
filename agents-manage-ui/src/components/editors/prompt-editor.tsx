@@ -82,24 +82,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance) => {
       setEditor(editorInstance);
+      props.onMount?.(editorInstance);
     },
-    []
+    [props.onMount]
   );
-
-  const handleAddVariable = useCallback(() => {
-    if (!editor || !monaco) {
-      return;
-    }
-    const selection = editor.getSelection();
-    const pos = selection ? selection.getStartPosition() : editor.getPosition();
-    if (!pos) return;
-
-    const range = new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
-    editor.executeEdits('insert-template-variable', [{ range, text: '{' }]);
-    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
-    editor.focus();
-    editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [editor, monaco]);
 
   return (
     <MonacoEditor
@@ -115,19 +101,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
         ...editorOptions,
       }}
       {...props}
-    >
-      {editor && monaco && (
-        <Button
-          size="sm"
-          variant="link"
-          className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
-          type="button"
-          onClick={handleAddVariable}
-        >
-          <Braces className="size-2.5" />
-          Add variables
-        </Button>
-      )}
-    </MonacoEditor>
+    />
   );
 };
