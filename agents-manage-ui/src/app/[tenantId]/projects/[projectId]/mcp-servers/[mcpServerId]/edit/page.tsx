@@ -76,8 +76,6 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
   };
 
-  // MCPServerForm handles all the form logic
-
   return (
     <BodyTemplate
       breadcrumbs={[

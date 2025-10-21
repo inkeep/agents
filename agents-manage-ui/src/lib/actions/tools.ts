@@ -6,8 +6,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { deleteMCPTool, fetchMCPTools } from '../api/tools';
-import type { MCPTool } from '../types/tools';
 import { ApiError } from '../types/errors';
+import type { MCPTool } from '../types/tools';
 import type { ActionResult } from './types';
 
 /**
@@ -46,12 +46,14 @@ export async function fetchToolsAction(
 export async function deleteToolAction(
   tenantId: string,
   projectId: string,
-  toolId: string
+  toolId: string,
+  shouldRevalidate = true
 ): Promise<ActionResult<void>> {
   try {
     await deleteMCPTool(tenantId, projectId, toolId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/mcp-servers`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+    if (shouldRevalidate) {
+      revalidatePath(`/${tenantId}/projects/${projectId}/mcp-servers`, 'page');
+    }
     return {
       success: true,
     };
