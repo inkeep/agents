@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { generateId } from '@/lib/utils/generate-id';
+import { generateIdFromName } from '@/lib/utils/generate-id';
 
 interface UseAutoPrefillIdZustandOptions {
   nameValue: string | undefined;
@@ -56,7 +56,7 @@ export function useAutoPrefillIdZustand({
   // Auto-prefill ID based on name field
   useEffect(() => {
     if (!isEditing && nameValue && !hasManuallyEditedId.current) {
-      const generatedId = generateId(nameValue);
+      const generatedId = generateIdFromName(nameValue);
 
       // Only update if the generated ID is different from current ID
       if (generatedId !== currentIdValue.current) {

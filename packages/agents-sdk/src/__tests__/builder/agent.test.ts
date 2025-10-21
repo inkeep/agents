@@ -1,7 +1,7 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
-import { ExternalAgent } from '../../externalAgent';
+import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { AgentConfig, GenerateOptions, MessageInput } from '../../types';
@@ -211,7 +211,7 @@ describe('Agent', () => {
 
     // Add relationships
     defaultSubAgent.addTransfer(supportAgent);
-    defaultSubAgent.addDelegate(externalAgent);
+    defaultSubAgent.addDelegate(externalAgent.with({ headers: { 'X-API-Key': '123' } }));
   });
 
   describe('Constructor', () => {
@@ -238,16 +238,15 @@ describe('Agent', () => {
         id: 'test-agent',
         name: 'Test Agent',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        subAgents: () => [supportAgent],
       };
 
       const agent = new Agent(config);
       const subAgents = agent.getSubAgents();
 
-      expect(subAgents).toHaveLength(3); // defaultSubAgent + 2 additional
+      expect(subAgents).toHaveLength(2); // defaultSubAgent + 1 additional
       expect(subAgents.some((a) => a.getName() === 'Default Agent')).toBe(true);
       expect(subAgents.some((a) => a.getName() === 'Support Agent')).toBe(true);
-      expect(subAgents.some((a) => a.getName() === 'External Agent')).toBe(true);
     });
 
     it('should initialize with agents object', () => {
@@ -255,13 +254,13 @@ describe('Agent', () => {
         id: 'test-agent',
         name: 'Test Agent',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        subAgents: () => [supportAgent],
       };
 
       const agent = new Agent(config);
       const subAgents = agent.getSubAgents();
 
-      expect(subAgents).toHaveLength(3);
+      expect(subAgents).toHaveLength(2);
     });
 
     it('should handle missing optional parameters', () => {
@@ -543,7 +542,7 @@ describe('Agent', () => {
         name: 'Test Agent',
         description: 'Test description',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        subAgents: () => [supportAgent],
       });
 
       await agent.init();
@@ -561,7 +560,11 @@ describe('Agent', () => {
             name: 'Default Agent',
             type: 'internal',
             canTransferTo: ['support-agent'],
-            canDelegateTo: ['external-1'],
+            canDelegateTo: [
+              {
+                externalAgentId: 'external-1',
+              },
+            ],
           },
           'support-agent': {
             id: 'support-agent',

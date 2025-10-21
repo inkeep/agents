@@ -1,19 +1,6 @@
 import type { z } from 'zod';
-import type {
-  SubAgentDefinition,
-  ExternalSubAgentApiInsert,
-  FullAgentDefinition,
-  InternalSubAgentDefinition,
-} from '../types/entities';
+import type { FullAgentDefinition } from '../types/entities';
 import { AgentWithinContextOfProjectSchema } from './schemas';
-
-export function isInternalAgent(agent: SubAgentDefinition): agent is InternalSubAgentDefinition {
-  return 'prompt' in agent;
-}
-
-export function isExternalAgent(agent: SubAgentDefinition): agent is ExternalSubAgentApiInsert {
-  return 'baseUrl' in agent;
-}
 
 // Zod-based validation and typing using the existing schema
 export function validateAndTypeAgentData(
@@ -39,7 +26,7 @@ export function validateToolReferences(
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have tools
-    if (isInternalAgent(subAgent) && subAgent.canUse && Array.isArray(subAgent.canUse)) {
+    if (subAgent.canUse && Array.isArray(subAgent.canUse)) {
       for (const canUseItem of subAgent.canUse) {
         if (!availableToolIds.has(canUseItem.toolId)) {
           errors.push(`Agent '${subAgentId}' references non-existent tool '${canUseItem.toolId}'`);
@@ -69,7 +56,7 @@ export function validateDataComponentReferences(
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have dataComponents
-    if (isInternalAgent(subAgent) && subAgent.dataComponents) {
+    if (subAgent.dataComponents) {
       for (const dataComponentId of subAgent.dataComponents) {
         if (!availableDataComponentIds.has(dataComponentId)) {
           errors.push(
@@ -101,7 +88,7 @@ export function validateArtifactComponentReferences(
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have artifactComponents
-    if (isInternalAgent(subAgent) && subAgent.artifactComponents) {
+    if (subAgent.artifactComponents) {
       for (const artifactComponentId of subAgent.artifactComponents) {
         if (!availableArtifactComponentIds.has(artifactComponentId)) {
           errors.push(
@@ -123,25 +110,30 @@ export function validateArtifactComponentReferences(
 export function validateAgentRelationships(agentData: FullAgentDefinition): void {
   const errors: string[] = [];
   const availableAgentIds = new Set(Object.keys(agentData.subAgents));
+  const availableExternalAgentIds = new Set(Object.keys(agentData.externalAgents ?? {}));
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have relationship properties
-    if (isInternalAgent(subAgent)) {
-      if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
-        for (const targetId of subAgent.canTransferTo) {
-          if (!availableAgentIds.has(targetId)) {
-            errors.push(
-              `Agent '${subAgentId}' has transfer target '${targetId}' that doesn't exist in agent`
-            );
-          }
+    if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
+      for (const targetId of subAgent.canTransferTo) {
+        if (!availableAgentIds.has(targetId)) {
+          errors.push(
+            `Agent '${subAgentId}' has transfer target '${targetId}' that doesn't exist in agent`
+          );
         }
       }
+    }
 
-      if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
-        for (const targetId of subAgent.canDelegateTo) {
-          if (!availableAgentIds.has(targetId)) {
+    if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
+      for (const targetItem of subAgent.canDelegateTo) {
+        console.log('targetItem', targetItem);
+        // canDelegateTo can be a string (internal subAgent ID) or object (external agent reference)
+        if (typeof targetItem === 'string') {
+          console.log('targetItem is string', targetItem);
+          // Validate internal subAgent delegation
+          if (!availableAgentIds.has(targetItem) && !availableExternalAgentIds.has(targetItem)) {
             errors.push(
-              `Agent '${subAgentId}' has delegation target '${targetId}' that doesn't exist in agent`
+              `Agent '${subAgentId}' has delegation target '${targetItem}' that doesn't exist in agent`
             );
           }
         }
@@ -149,9 +141,36 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
     }
   }
 
-  if (errors.length > 0) {
+  if (errors.length > 0)
     throw new Error(`Agent relationship validation failed:\n${errors.join('\n')}`);
+}
+
+export function validateSubAgentExternalAgentRelations(
+  agentData: FullAgentDefinition,
+  availableExternalAgentIds?: Set<string>
+): void {
+  if (!availableExternalAgentIds) {
+    return;
   }
+
+  const errors: string[] = [];
+
+  for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
+    if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
+      for (const targetItem of subAgent.canDelegateTo) {
+        if (typeof targetItem === 'object' && 'externalAgentId' in targetItem) {
+          if (!availableExternalAgentIds.has(targetItem.externalAgentId)) {
+            errors.push(
+              `Agent '${subAgentId}' has delegation target '${targetItem.externalAgentId}' that doesn't exist in agent`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  if (errors.length > 0)
+    throw new Error(`Sub agent external agent relation validation failed:\n${errors.join('\n')}`);
 }
 
 /**
@@ -164,6 +183,7 @@ export function validateAgentStructure(
     toolIds?: Set<string>;
     dataComponentIds?: Set<string>;
     artifactComponentIds?: Set<string>;
+    externalAgentIds?: Set<string>;
   }
 ): void {
   if (agentData.defaultSubAgentId && !agentData.subAgents[agentData.defaultSubAgentId]) {
@@ -174,6 +194,7 @@ export function validateAgentStructure(
     validateToolReferences(agentData, projectResources.toolIds);
     validateDataComponentReferences(agentData, projectResources.dataComponentIds);
     validateArtifactComponentReferences(agentData, projectResources.artifactComponentIds);
+    validateSubAgentExternalAgentRelations(agentData, projectResources.externalAgentIds);
   }
 
   validateAgentRelationships(agentData);

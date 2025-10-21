@@ -17,9 +17,9 @@ import {
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
 import {
+  type Agent,
   type FullAgentDefinition,
   FullAgentDefinitionSchema,
-  type Agent,
 } from '../types/agent-full';
 
 /**

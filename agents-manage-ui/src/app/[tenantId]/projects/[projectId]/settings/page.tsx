@@ -7,14 +7,9 @@ import { fetchProject } from '@/lib/api/projects';
 
 export const dynamic = 'force-dynamic';
 
-interface SettingsPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-  }>;
-}
-
-export default async function SettingsPage({ params }: SettingsPageProps) {
+export default async function SettingsPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/settings'>) {
   const { tenantId, projectId } = await params;
 
   let projectData: Awaited<ReturnType<typeof fetchProject>>;

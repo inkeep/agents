@@ -95,9 +95,10 @@ export async function updateDataComponentAction(
     };
   } catch (error) {
     if (error instanceof ApiError) {
+      const errorMessage = error.error.message ?? error.message;
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         code: error.error.code,
       };
     }
@@ -121,7 +122,6 @@ export async function deleteDataComponentAction(
   try {
     await deleteDataComponent(tenantId, projectId, dataComponentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/components/${dataComponentId}`);
     return {
       success: true,
     };

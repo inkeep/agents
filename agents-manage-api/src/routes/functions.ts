@@ -14,8 +14,8 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   upsertFunction,
+  generateId,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -156,7 +156,7 @@ app.openapi(
 
     try {
       // Generate ID if not provided
-      const id = functionData.id || nanoid();
+      const id = functionData.id || generateId();
 
       await upsertFunction(dbClient)({
         data: {

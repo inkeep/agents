@@ -1,15 +1,12 @@
-import type { ReactNode } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { fetchProject } from '@/lib/api/projects';
 
 export const dynamic = 'force-dynamic';
 
-interface ProjectLayoutProps {
-  children: ReactNode;
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
+export default async function ProjectLayout({
+  children,
+  params,
+}: LayoutProps<'/[tenantId]/projects/[projectId]'>) {
   const { tenantId, projectId } = await params;
 
   try {

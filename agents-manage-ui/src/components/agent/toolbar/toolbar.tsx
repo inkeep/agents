@@ -1,5 +1,5 @@
 import { Play, Settings } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -20,14 +20,20 @@ export function Toolbar({
 }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+
+  const commonProps: ComponentProps<typeof Button> = {
+    className: 'backdrop-blur-3xl',
+    type: 'button',
+    variant: 'outline',
+  };
+
   const PreviewButton = (
     <Button
+      {...commonProps}
       disabled={dirty || inPreviewDisabled}
-      variant="outline"
-      type="button"
       onClick={() => setShowPlayground(true)}
     >
-      <Play className="w-4 h-4 text-muted-foreground" />
+      <Play className="size-4 text-muted-foreground" />
       Try it
     </Button>
   );
@@ -48,10 +54,14 @@ export function Toolbar({
   }, []);
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-wrap justify-end content-start">
       {dirty || inPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
+            {/**
+             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+             * don’t trigger pointer events in the browser
+             **/}
             <div>{PreviewButton}</div>
           </TooltipTrigger>
           <TooltipContent>
@@ -64,6 +74,7 @@ export function Toolbar({
         PreviewButton
       )}
       <Button
+        {...commonProps}
         onClick={onSubmit}
         variant={dirty ? 'default' : 'outline'}
         disabled={!dirty && !inPreviewDisabled}
@@ -71,8 +82,8 @@ export function Toolbar({
       >
         {inPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>
-      <Button type="button" variant="outline" onClick={toggleSidePane}>
-        <Settings className="w-4 h-4" />
+      <Button {...commonProps} onClick={toggleSidePane}>
+        <Settings className="size-4" />
         Agent Settings
       </Button>
     </div>

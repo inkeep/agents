@@ -1,17 +1,21 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { generateId } from '@/lib/utils/id-utils';
 import { detectAuthenticationRequired, MCPTransportType } from '@inkeep/agents-core/client-exports';
-import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
+import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { deleteToolAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
@@ -54,6 +58,8 @@ export function MCPServerForm({
   projectId,
 }: MCPServerFormProps) {
   const router = useRouter();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -82,7 +88,7 @@ export function MCPServerForm({
     try {
       // handle oauth login
       if (data.credentialReferenceId === 'oauth') {
-        const toolId = nanoid();
+        const toolId = generateId();
 
         const isAuthenticationRequired = await detectAuthenticationRequired({
           serverUrl: data.config.mcp.server.url,
@@ -146,7 +152,7 @@ export function MCPServerForm({
       } else {
         const newTool = await createMCPTool(tenantId, projectId, {
           ...transformedData,
-          id: nanoid(),
+          id: generateId(),
         });
         toast.success('MCP server created successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
@@ -157,9 +163,29 @@ export function MCPServerForm({
     }
   };
 
+  const handleDelete = async () => {
+    if (!tool) return;
+    
+    setIsDeleting(true);
+    try {
+      // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
+      const result = await deleteToolAction(tenantId, projectId, tool.id, false);
+      if (result.success) {
+        setIsDeleteOpen(false);
+        toast.success('MCP server deleted.');
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
+      } else {
+        toast.error(result.error || 'Failed to delete MCP server.');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"
@@ -240,10 +266,27 @@ export function MCPServerForm({
           />
         )}
 
-        <Button type="submit" disabled={isSubmitting}>
-          {mode === 'update' ? 'Save' : 'Create'}
-        </Button>
+        <div className="flex w-full justify-between">
+          <Button type="submit" disabled={isSubmitting}>
+            {mode === 'update' ? 'Save' : 'Create'}
+          </Button>
+          {mode === 'update' && tool && (
+            <DialogTrigger asChild>
+              <Button type="button" variant="secondary">
+                Delete Server
+              </Button>
+            </DialogTrigger>
+          )}
+        </div>
       </form>
     </Form>
+    {isDeleteOpen && tool && (
+      <DeleteConfirmation
+        itemName={tool.name || 'this MCP server'}
+        isSubmitting={isDeleting}
+        onDelete={handleDelete}
+      />
+    )}
+  </Dialog>
   );
 }

@@ -6,15 +6,9 @@ import { fetchDataComponent } from '@/lib/api/data-components';
 
 export const dynamic = 'force-dynamic';
 
-interface DataComponentPageProps {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    dataComponentId: string;
-  }>;
-}
-
-export default async function DataComponentPage({ params }: DataComponentPageProps) {
+export default async function DataComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/components/[dataComponentId]'>) {
   const { tenantId, projectId, dataComponentId } = await params;
 
   let dataComponent: Awaited<ReturnType<typeof fetchDataComponent>>;

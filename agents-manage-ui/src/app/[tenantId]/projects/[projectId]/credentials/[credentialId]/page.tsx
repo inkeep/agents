@@ -26,13 +26,7 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
 
 async function EditCredentialsPage({
   params,
-}: {
-  params: Promise<{
-    tenantId: string;
-    projectId: string;
-    credentialId: string;
-  }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/[credentialId]'>) {
   const { tenantId, projectId, credentialId } = await params;
 
   let credential: Credential;

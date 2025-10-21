@@ -18,8 +18,7 @@ describe('External Agents Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
-  const testAgentId = 'agent-123';
-  const testSubAgentId = 'agent-789';
+  const testExternalAgentId = 'external-agent-789';
 
   beforeEach(() => {
     db = createInMemoryDatabaseClient();
@@ -30,13 +29,11 @@ describe('External Agents Data Access', () => {
       const agentData = {
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
-        id: testAgentId,
+        id: testExternalAgentId,
         name: 'Test Agent',
         description: 'A test external agent',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: 'cred-123',
-        headers: { 'X-API-Key': 'test-key' },
       };
 
       const expectedAgent = {
@@ -66,13 +63,11 @@ describe('External Agents Data Access', () => {
       const agentData = {
         tenantId: testTenantId,
         projectId: testProjectId,
-        agentId: testAgentId,
-        id: testAgentId,
+        id: testExternalAgentId,
         name: 'Minimal Agent',
         description: 'Agent with minimal data',
         baseUrl: 'https://minimal.api.com',
         credentialReferenceId: undefined,
-        headers: undefined,
       };
 
       const expectedAgent = {
@@ -95,21 +90,19 @@ describe('External Agents Data Access', () => {
       const result = await createExternalAgent(mockDb)(agentData);
 
       expect(result.credentialReferenceId).toBeUndefined();
-      expect(result.headers).toBeUndefined();
     });
   });
 
   describe('getExternalAgent', () => {
     it('should retrieve an external agent by ID', async () => {
       const expectedAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Agent',
         description: 'A test external agent',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: 'cred-123',
-        headers: { 'X-API-Key': 'test-key' },
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -126,8 +119,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await getExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
       });
 
       expect(mockQuery.externalAgents.findFirst).toHaveBeenCalled();
@@ -147,8 +140,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await getExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: 'non-existent',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: 'non-existent',
       });
 
       expect(result).toBeNull();
@@ -158,14 +151,13 @@ describe('External Agents Data Access', () => {
   describe('getExternalAgentByUrl', () => {
     it('should retrieve an external agent by base URL', async () => {
       const expectedAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'URL Agent',
         description: 'Agent found by URL',
         baseUrl: 'https://unique.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -182,7 +174,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await getExternalAgentByUrl(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         baseUrl: 'https://unique.api.com',
       });
 
@@ -203,7 +195,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await getExternalAgentByUrl(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         baseUrl: 'https://nonexistent.api.com',
       });
 
@@ -222,7 +214,6 @@ describe('External Agents Data Access', () => {
           description: 'First agent',
           baseUrl: 'https://api-a.com',
           credentialReferenceId: null,
-          headers: null,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -234,7 +225,6 @@ describe('External Agents Data Access', () => {
           description: 'Second agent',
           baseUrl: 'https://api-b.com',
           credentialReferenceId: 'cred-456',
-          headers: { Authorization: 'Bearer token' },
           createdAt: '2024-01-02T00:00:00Z',
           updatedAt: '2024-01-02T00:00:00Z',
         },
@@ -252,7 +242,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await listExternalAgents(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(mockQuery.externalAgents.findMany).toHaveBeenCalled();
@@ -272,7 +262,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await listExternalAgents(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toEqual([]);
@@ -290,7 +280,6 @@ describe('External Agents Data Access', () => {
           description: 'First agent',
           baseUrl: 'https://api-1.com',
           credentialReferenceId: null,
-          headers: null,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -328,7 +317,7 @@ describe('External Agents Data Access', () => {
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedAgents, [{ count: 5 }]]);
 
       const result = await listExternalAgentsPaginated(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         pagination: { page: 1, limit: 10 },
       });
 
@@ -375,7 +364,7 @@ describe('External Agents Data Access', () => {
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedAgents, [{ count: 0 }]]);
 
       const result = await listExternalAgentsPaginated(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toEqual({
@@ -421,7 +410,7 @@ describe('External Agents Data Access', () => {
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedAgents, [{ count: '0' }]]);
 
       const result = await listExternalAgentsPaginated(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         pagination: { page: 1, limit: 150 }, // Above max of 100
       });
 
@@ -440,14 +429,13 @@ describe('External Agents Data Access', () => {
       };
 
       const expectedAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Updated Agent',
         description: 'Updated description',
         baseUrl: 'https://updated.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T12:00:00Z',
       };
@@ -466,8 +454,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await updateExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
         data: updateData,
       });
 
@@ -478,18 +466,16 @@ describe('External Agents Data Access', () => {
     it('should handle clearing optional fields', async () => {
       const updateData = {
         credentialReferenceId: null,
-        headers: null,
       };
 
       const expectedAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Agent',
         description: 'Agent description',
         baseUrl: 'https://api.example.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T12:00:00Z',
       };
@@ -508,13 +494,12 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await updateExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
         data: updateData,
       });
 
       expect(result?.credentialReferenceId).toBeNull();
-      expect(result?.headers).toBeNull();
     });
 
     it('should throw error when no fields to update', async () => {
@@ -524,8 +509,8 @@ describe('External Agents Data Access', () => {
 
       await expect(
         updateExternalAgent(mockDb)({
-          scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-          subAgentId: testSubAgentId,
+          scopes: { tenantId: testTenantId, projectId: testProjectId },
+          externalAgentId: testExternalAgentId,
           data: {},
         })
       ).rejects.toThrow('No fields to update');
@@ -550,8 +535,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await updateExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: 'non-existent',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: 'non-existent',
         data: updateData,
       });
 
@@ -563,7 +548,7 @@ describe('External Agents Data Access', () => {
     it('should delete an external agent successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([{ id: testAgentId }]),
+          returning: vi.fn().mockResolvedValue([{ id: testExternalAgentId }]),
         }),
       });
 
@@ -573,8 +558,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await deleteExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
       });
 
       expect(mockDelete).toHaveBeenCalled();
@@ -594,8 +579,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await deleteExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: 'non-existent',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: 'non-existent',
       });
 
       expect(result).toBe(false);
@@ -617,8 +602,8 @@ describe('External Agents Data Access', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await deleteExternalAgent(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
       });
 
       expect(result).toBe(false);
@@ -631,14 +616,13 @@ describe('External Agents Data Access', () => {
   describe('externalAgentExists', () => {
     it('should return true when external agent exists', async () => {
       const existingAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Existing Agent',
         description: 'Agent that exists',
         baseUrl: 'https://existing.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -655,8 +639,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await externalAgentExists(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: testSubAgentId,
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: testExternalAgentId,
       });
 
       expect(result).toBe(true);
@@ -675,8 +659,8 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await externalAgentExists(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-        subAgentId: 'non-existent',
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
+        externalAgentId: 'non-existent',
       });
 
       expect(result).toBe(false);
@@ -686,14 +670,13 @@ describe('External Agents Data Access', () => {
   describe('externalAgentUrlExists', () => {
     it('should return true when external agent with URL exists', async () => {
       const existingAgent = {
-        id: testAgentId,
+        id: testExternalAgentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'URL Agent',
         description: 'Agent with unique URL',
         baseUrl: 'https://unique.url.api.com',
         credentialReferenceId: null,
-        headers: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -710,7 +693,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await externalAgentUrlExists(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         baseUrl: 'https://unique.url.api.com',
       });
 
@@ -730,7 +713,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await externalAgentUrlExists(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
         baseUrl: 'https://nonexistent.url.api.com',
       });
 
@@ -752,7 +735,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await countExternalAgents(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBe(3);
@@ -771,7 +754,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await countExternalAgents(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBe(7);
@@ -790,7 +773,7 @@ describe('External Agents Data Access', () => {
       } as any;
 
       const result = await countExternalAgents(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
       expect(result).toBe(0);

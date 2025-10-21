@@ -4,11 +4,9 @@ import { MainContent } from '@/components/layout/main-content';
 import { ViewMCPServerDetails } from '@/components/mcp-servers/view-mcp-server-details';
 import { fetchMCPTool } from '@/lib/api/tools';
 
-interface MCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
-}
-
-async function MCPPage({ params }: MCPPageProps) {
+async function MCPPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/[mcpServerId]'>) {
   const { mcpServerId, tenantId, projectId } = await params;
 
   let tool: Awaited<ReturnType<typeof fetchMCPTool>>;

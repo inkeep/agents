@@ -7,17 +7,13 @@ import {
   getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
-import {
-  convertZodToJsonSchema,
-  isZodSchema,
-} from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
 import type {
   AgentConfig,
   AgentInterface,
   AllSubAgentInterface,
-  ExternalAgentInterface,
   GenerateOptions,
   MessageInput,
   ModelSettings,
@@ -37,8 +33,8 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 }
 
 export class Agent implements AgentInterface {
-  private subAgents: AllSubAgentInterface[] = [];
-  private agentMap: Map<string, AllSubAgentInterface> = new Map();
+  private subAgents: SubAgentInterface[] = [];
+  private agentMap: Map<string, SubAgentInterface> = new Map();
   private defaultSubAgent?: SubAgentInterface;
   private baseURL: string;
   private tenantId: string;
@@ -129,29 +125,20 @@ export class Agent implements AgentInterface {
     this.baseURL = apiUrl;
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
-    for (const agent of this.subAgents) {
-      if (this.isInternalAgent(agent)) {
-        const internalAgent = agent as SubAgentInterface;
-        // Set the context on the agent
-        if (internalAgent.setContext) {
-          internalAgent.setContext(tenantId, projectId, apiUrl);
-        }
+    for (const subAgent of this.subAgents) {
+      // Set the context on the agent
+      if (subAgent.setContext) {
+        subAgent.setContext(tenantId, projectId, apiUrl);
+      }
 
-        // Also update tools in this agent
-        const tools = internalAgent.getTools();
-        for (const [_, toolInstance] of Object.entries(tools)) {
-          if (toolInstance && typeof toolInstance === 'object') {
-            // Set context on the tool if it has the method
-            if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
-              toolInstance.setContext(tenantId, projectId, apiUrl);
-            }
+      // Also update tools in this agent
+      const tools = subAgent.getTools();
+      for (const [_, toolInstance] of Object.entries(tools)) {
+        if (toolInstance && typeof toolInstance === 'object') {
+          // Set context on the tool if it has the method
+          if ('setContext' in toolInstance && typeof toolInstance.setContext === 'function') {
+            toolInstance.setContext(tenantId, projectId, apiUrl);
           }
-        }
-      } else {
-        // External agent
-        const externalAgent = agent as ExternalAgentInterface;
-        if (externalAgent.setContext) {
-          externalAgent.setContext(tenantId, apiUrl);
         }
       }
     }
@@ -176,120 +163,128 @@ export class Agent implements AgentInterface {
    * Convert the Agent to FullAgentDefinition format for the new agent endpoint
    */
   async toFullAgentDefinition(): Promise<FullAgentDefinition> {
-    const agentsObject: Record<string, any> = {};
+    const subAgentsObject: Record<string, any> = {};
+    const externalAgentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
 
-    for (const agent of this.subAgents) {
-      if (this.isInternalAgent(agent)) {
-        // Handle internal agents
-        const internalAgent = agent as SubAgentInterface;
+    for (const subAgent of this.subAgents) {
+      // Get agent relationships
+      const transfers = subAgent.getTransfers();
+      const delegates = subAgent.getDelegates();
 
-        // Get agent relationships
-        const transfers = internalAgent.getTransfers();
-        const delegates = internalAgent.getDelegates();
+      // Convert tools to the expected format (agent.tools should be an array of tool IDs)
+      const tools: string[] = [];
+      const selectedToolsMapping: Record<string, string[]> = {};
+      const headersMapping: Record<string, Record<string, string>> = {};
+      const subAgentTools = subAgent.getTools();
 
-        // Convert tools to the expected format (agent.tools should be an array of tool IDs)
-        const tools: string[] = [];
-        const selectedToolsMapping: Record<string, string[]> = {};
-        const headersMapping: Record<string, Record<string, string>> = {};
-        const agentTools = internalAgent.getTools();
+      for (const [_toolName, toolInstance] of Object.entries(subAgentTools)) {
+        const toolId = toolInstance.getId();
 
-        for (const [_toolName, toolInstance] of Object.entries(agentTools)) {
-          const toolId = toolInstance.getId();
-
-          if (toolInstance.selectedTools) {
-            selectedToolsMapping[toolId] = toolInstance.selectedTools;
-          }
-
-          if (toolInstance.headers) {
-            headersMapping[toolId] = toolInstance.headers;
-          }
-
-          tools.push(toolId);
-
-          // Handle function tools - collect them for agent-level functionTools and functions
-          if (
-            toolInstance.constructor.name === 'FunctionTool' &&
-            toolInstance instanceof FunctionTool
-          ) {
-            // Add to functions object (global entity)
-            if (!functionsObject[toolId]) {
-              const functionData = toolInstance.serializeFunction();
-              functionsObject[toolId] = functionData;
-            }
-
-            // Add to functionTools object (agent-scoped)
-            if (!functionToolsObject[toolId]) {
-              const toolData = toolInstance.serializeTool();
-              functionToolsObject[toolId] = {
-                id: toolData.id,
-                name: toolData.name,
-                description: toolData.description,
-                functionId: toolData.functionId,
-                agentId: this.agentId, // Include agentId for agent-scoped function tools
-              };
-            }
-          }
+        if (toolInstance.selectedTools) {
+          selectedToolsMapping[toolId] = toolInstance.selectedTools;
         }
 
-        // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
-        const dataComponents: string[] = [];
-        const subAgentDataComponents = internalAgent.getDataComponents();
-        if (subAgentDataComponents) {
-          for (const dataComponent of subAgentDataComponents) {
-            const dataComponentId =
-              dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
-            dataComponents.push(dataComponentId);
-          }
+        if (toolInstance.headers) {
+          headersMapping[toolId] = toolInstance.headers;
         }
 
-        // Convert artifactComponents to the expected format (agent.artifactComponents should be an array of artifactComponent IDs)
-        const artifactComponents: string[] = [];
-        const subAgentArtifactComponents = internalAgent.getArtifactComponents();
-        if (subAgentArtifactComponents) {
-          for (const artifactComponent of subAgentArtifactComponents) {
-            const artifactComponentId =
-              artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
-            artifactComponents.push(artifactComponentId);
+        tools.push(toolId);
+
+        // Handle function tools - collect them for agent-level functionTools and functions
+        if (
+          toolInstance.constructor.name === 'FunctionTool' &&
+          toolInstance instanceof FunctionTool
+        ) {
+          // Add to functions object (global entity)
+          if (!functionsObject[toolId]) {
+            const functionData = toolInstance.serializeFunction();
+            functionsObject[toolId] = functionData;
+          }
+
+          // Add to functionTools object (agent-scoped)
+          if (!functionToolsObject[toolId]) {
+            const toolData = toolInstance.serializeTool();
+            functionToolsObject[toolId] = {
+              id: toolData.id,
+              name: toolData.name,
+              description: toolData.description,
+              functionId: toolData.functionId,
+              agentId: this.agentId, // Include agentId for agent-scoped function tools
+            };
           }
         }
+      }
 
-        // Convert tools and selectedTools to canUse array
-        // Always include canUse for internal agents (even if empty) as it's required by the API
-        const canUse = tools.map((toolId) => ({
-          toolId,
-          toolSelection: selectedToolsMapping[toolId] || null,
-          headers: headersMapping[toolId] || null,
-        }));
-
-        agentsObject[internalAgent.getId()] = {
-          id: internalAgent.getId(),
-          name: internalAgent.getName(),
-          description: internalAgent.config.description || `Agent ${internalAgent.getName()}`,
-          prompt: internalAgent.getInstructions(),
-          models: internalAgent.config.models,
-          canTransferTo: transfers.map((h) => h.getId()),
-          canDelegateTo: delegates.map((d) => d.getId()),
-          canUse, // Always include for internal agents (required by API)
-          dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
-          artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
-          type: 'internal',
-        };
-      } else {
-        // Handle external agents
-        const externalAgent = agent as ExternalAgentInterface;
-
-        agentsObject[externalAgent.getId()] = {
+      const subAgentExternalAgents = subAgent.getExternalAgentDelegates();
+      for (const externalAgentDelegate of subAgentExternalAgents) {
+        const externalAgent = externalAgentDelegate.externalAgent;
+        externalAgentsObject[externalAgent.getId()] = {
           id: externalAgent.getId(),
           name: externalAgent.getName(),
           description: externalAgent.getDescription(),
           baseUrl: externalAgent.getBaseUrl(),
           credentialReferenceId: externalAgent.getCredentialReferenceId(),
-          headers: externalAgent.getHeaders(),
           type: 'external',
         };
       }
+
+      // Convert dataComponents to the expected format (agent.dataComponents should be an array of dataComponent IDs)
+      const dataComponents: string[] = [];
+      const subAgentDataComponents = subAgent.getDataComponents();
+      if (subAgentDataComponents) {
+        for (const dataComponent of subAgentDataComponents) {
+          const dataComponentId =
+            dataComponent.id || dataComponent.name.toLowerCase().replace(/\s+/g, '-');
+          dataComponents.push(dataComponentId);
+        }
+      }
+
+      // Convert artifactComponents to the expected format (agent.artifactComponents should be an array of artifactComponent IDs)
+      const artifactComponents: string[] = [];
+      const subAgentArtifactComponents = subAgent.getArtifactComponents();
+      if (subAgentArtifactComponents) {
+        for (const artifactComponent of subAgentArtifactComponents) {
+          const artifactComponentId =
+            artifactComponent.id || artifactComponent.name.toLowerCase().replace(/\s+/g, '-');
+          artifactComponents.push(artifactComponentId);
+        }
+      }
+
+      // Convert tools and selectedTools to canUse array
+      // Always include canUse for internal agents (even if empty) as it's required by the API
+      const canUse = tools.map((toolId) => ({
+        toolId,
+        toolSelection: selectedToolsMapping[toolId] || null,
+        headers: headersMapping[toolId] || null,
+      }));
+
+      subAgentsObject[subAgent.getId()] = {
+        id: subAgent.getId(),
+        name: subAgent.getName(),
+        description: subAgent.config.description || `Agent ${subAgent.getName()}`,
+        prompt: subAgent.getInstructions(),
+        models: subAgent.config.models,
+        canTransferTo: transfers.map((h) => h.getId()),
+        canDelegateTo: delegates.map((d) => {
+          if (typeof d === 'object' && 'externalAgent' in d) {
+            return {
+              externalAgentId: d.externalAgent.getId(),
+              ...(d.headers && { headers: d.headers }),
+            };
+          } else if (typeof d === 'object' && 'type' in d && d.type === 'external') {
+            return {
+              externalAgentId: d.getId(),
+            };
+          }
+          return d.getId();
+        }),
+        canUse,
+        dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
+        artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
+        type: 'internal',
+      };
     }
 
     // Note: Tools are now managed at the PROJECT level, not agent level
@@ -337,7 +332,8 @@ export class Agent implements AgentInterface {
       name: this.agentName,
       description: this.agentDescription,
       defaultSubAgentId: this.defaultSubAgent?.getId() || '',
-      subAgents: agentsObject,
+      subAgents: subAgentsObject,
+      externalAgents: externalAgentsObject,
       contextConfig: this.contextConfig?.toObject(),
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
@@ -357,14 +353,8 @@ export class Agent implements AgentInterface {
 
     const toolInitPromises: Promise<void>[] = [];
 
-    for (const agent of this.subAgents) {
-      // Skip external agents as they don't have getTools method
-      if (!(agent as SubAgentInterface).getTools) {
-        continue;
-      }
-
-      const internalAgent = agent as SubAgentInterface;
-      const agentTools = internalAgent.getTools();
+    for (const subAgent of this.subAgents) {
+      const agentTools = subAgent.getTools();
 
       for (const [toolName, toolInstance] of Object.entries(agentTools)) {
         if (toolInstance && typeof toolInstance === 'object') {
@@ -389,7 +379,7 @@ export class Agent implements AgentInterface {
                   }
                   logger.debug(
                     {
-                      subAgentId: agent.getId(),
+                      subAgentId: subAgent.getId(),
                       toolName,
                       toolType: toolInstance.constructor.name,
                       skipDbRegistration,
@@ -399,7 +389,7 @@ export class Agent implements AgentInterface {
                 } catch (error) {
                   logger.error(
                     {
-                      subAgentId: agent.getId(),
+                      subAgentId: subAgent.getId(),
                       toolName,
                       error: error instanceof Error ? error.message : 'Unknown error',
                     },
@@ -489,101 +479,6 @@ export class Agent implements AgentInterface {
   }
 
   /**
-   * Legacy initialization method - kept for backward compatibility
-   * Initialize the agent and all agents in the backend using individual endpoints
-   */
-  async initLegacy(): Promise<void> {
-    if (this.initialized) {
-      logger.info({ agentId: this.agentId }, 'Agent already initialized');
-      return;
-    }
-
-    logger.info(
-      {
-        agentId: this.agentId,
-        agentCount: this.subAgents.length,
-      },
-      'Initializing agent'
-    );
-
-    try {
-      // Component mode has been removed
-
-      // Step 2: Initialize context configuration if provided
-      if (this.contextConfig) {
-        await this.contextConfig.init();
-        logger.info(
-          {
-            agentId: this.agentId,
-            contextConfigId: this.contextConfig.getId(),
-          },
-          'Context configuration initialized for agent'
-        );
-      }
-
-      // Step 3: Initialize all agents
-      const initPromises = this.subAgents.map(async (agent) => {
-        try {
-          // Set the agentId on the agent config before initialization
-          (agent as any).config.agentId = this.agentId;
-
-          await agent.init();
-          logger.debug(
-            {
-              subAgentId: agent.getId(),
-              agentId: this.agentId,
-            },
-            'Agent initialized in agent'
-          );
-        } catch (error) {
-          logger.error(
-            {
-              subAgentId: agent.getId(),
-              agentId: this.agentId,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-            'Failed to initialize agent in agent'
-          );
-          throw error;
-        }
-      });
-
-      await Promise.all(initPromises);
-
-      // Step 2: Create agent in database (now that agents exist)
-      await this.saveToDatabase();
-
-      // Step 3: Create external agents in database
-      await this.createExternalAgents();
-
-      // Step 4: Create agent relations (transfer and delegation) using the agent's agentId
-      await this.createAgentRelations();
-
-      // Step 5: Set up agent-level relationships
-      await this.saveRelations();
-
-      this.initialized = true;
-
-      logger.info(
-        {
-          agentId: this.agentId,
-          agentCount: this.subAgents.length,
-        },
-        'Agent initialized successfully'
-      );
-    } catch (error) {
-      logger.error(
-        {
-          agentId: this.agentId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to initialize agent'
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Generate a response using the default agent
    */
   async generate(input: MessageInput, options?: GenerateOptions): Promise<string> {
@@ -664,13 +559,6 @@ export class Agent implements AgentInterface {
       throw new Error(`Agent '${subAgentId}' not found in agent`);
     }
 
-    // Only internal agents can be run directly via this method
-    if (!this.isInternalAgent(agent)) {
-      throw new Error(
-        `Agent '${subAgentId}' is an external agent and cannot be run directly. External agents are only accessible via delegation.`
-      );
-    }
-
     logger.info(
       {
         agentId: this.agentId,
@@ -698,7 +586,7 @@ export class Agent implements AgentInterface {
   /**
    * Get an agent by name (unified method for all agent types)
    */
-  getSubAgent(name: string): AllSubAgentInterface | undefined {
+  getSubAgent(name: string): SubAgentInterface | undefined {
     return this.agentMap.get(name);
   }
 
@@ -710,17 +598,16 @@ export class Agent implements AgentInterface {
     this.agentMap.set(agent.getId(), agent);
 
     // Apply immediate model inheritance if agent has models
-    if (this.models && this.isInternalAgent(agent)) {
-      this.propagateModelSettingsToAgent(agent as SubAgentInterface);
+    if (this.models) {
+      this.propagateModelSettingsToAgent(agent);
     }
 
     logger.info(
       {
         agentId: this.agentId,
         subAgentId: agent.getId(),
-        agentType: this.isInternalAgent(agent) ? 'internal' : 'external',
       },
-      'Agent added to agent'
+      'SubAgent added to agent'
     );
   }
 
@@ -750,7 +637,7 @@ export class Agent implements AgentInterface {
   /**
    * Get all agents in the agent
    */
-  getSubAgents(): AllSubAgentInterface[] {
+  getSubAgents(): SubAgentInterface[] {
     return this.subAgents;
   }
 
@@ -880,35 +767,35 @@ export class Agent implements AgentInterface {
 
     // Validate agent names are unique
     const names = new Set<string>();
-    for (const agent of this.subAgents) {
-      const name = agent.getName();
+    for (const subAgent of this.subAgents) {
+      const name = subAgent.getName();
       if (names.has(name)) {
         errors.push(`Duplicate agent name: ${name}`);
       }
       names.add(name);
     }
 
-    // Validate agent relationships (transfer and delegation) for internal agents only
-    for (const agent of this.subAgents) {
-      if (!this.isInternalAgent(agent)) continue; // Skip external agents for relationship validation
-
+    // Validate agent relationships (transfer and delegation)
+    for (const subAgent of this.subAgents) {
       // Validate transfer relationships
-      const transfers = agent.getTransfers();
+      const transfers = subAgent.getTransfers();
       for (const transferAgent of transfers) {
         if (!this.agentMap.has(transferAgent.getName())) {
           errors.push(
-            `Agent '${agent.getName()}' has transfer to '${transferAgent.getName()}' which is not in the agent`
+            `Agent '${subAgent.getName()}' has transfer to '${transferAgent.getName()}' which is not in the agent`
           );
         }
       }
 
       // Validate delegation relationships
-      const delegates = agent.getDelegates();
+      const delegates = subAgent.getDelegates();
       for (const delegateAgent of delegates) {
-        if (!this.agentMap.has(delegateAgent.getName())) {
-          errors.push(
-            `Agent '${agent.getName()}' has delegation to '${delegateAgent.getName()}' which is not in the agent`
-          );
+        if (this.isInternalAgent(delegateAgent)) {
+          if (!this.agentMap.has(delegateAgent.getName())) {
+            errors.push(
+              `Agent '${subAgent.getName()}' has delegation to '${delegateAgent.getName()}' which is not in the agent`
+            );
+          }
         }
       }
     }
@@ -1012,10 +899,8 @@ export class Agent implements AgentInterface {
     await this.applyStopWhenInheritance();
 
     // Propagate to agents
-    for (const agent of this.subAgents) {
-      if (this.isInternalAgent(agent)) {
-        this.propagateModelSettingsToAgent(agent as SubAgentInterface);
-      }
+    for (const subAgent of this.subAgents) {
+      this.propagateModelSettingsToAgent(subAgent as SubAgentInterface);
     }
   }
 
@@ -1046,19 +931,15 @@ export class Agent implements AgentInterface {
 
     // Propagate stepCountIs from project to agents
     if (projectStopWhen?.stepCountIs !== undefined) {
-      for (const agent of this.subAgents) {
-        if (this.isInternalAgent(agent)) {
-          const internalAgent = agent as SubAgentInterface;
+      for (const subAgent of this.subAgents) {
+        // Initialize agent stopWhen if it doesn't exist
+        if (!subAgent.config.stopWhen) {
+          subAgent.config.stopWhen = {};
+        }
 
-          // Initialize agent stopWhen if it doesn't exist
-          if (!internalAgent.config.stopWhen) {
-            internalAgent.config.stopWhen = {};
-          }
-
-          // Inherit stepCountIs from project if not set at agent level
-          if (internalAgent.config.stopWhen.stepCountIs === undefined) {
-            internalAgent.config.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
-          }
+        // Inherit stepCountIs from project if not set at agent level
+        if (subAgent.config.stopWhen.stepCountIs === undefined) {
+          subAgent.config.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
         }
       }
     }
@@ -1100,18 +981,9 @@ export class Agent implements AgentInterface {
    * Immediately propagate agent-level models to all agents during construction
    */
   private propagateImmediateModelSettings(): void {
-    for (const agent of this.subAgents) {
-      if (this.isInternalAgent(agent)) {
-        this.propagateModelSettingsToAgent(agent as SubAgentInterface);
-      }
+    for (const subAgent of this.subAgents) {
+      this.propagateModelSettingsToAgent(subAgent as SubAgentInterface);
     }
-  }
-
-  /**
-   * Type guard to check if an agent is an external AgentInterface
-   */
-  isExternalAgent(agent: AllSubAgentInterface): agent is ExternalAgentInterface {
-    return !this.isInternalAgent(agent);
   }
 
   /**
@@ -1313,38 +1185,34 @@ export class Agent implements AgentInterface {
     }
   }
 
-  private async createAgentRelations(): Promise<void> {
+  private async createSubAgentRelations(): Promise<void> {
     // Create both transfer and delegation relations for all agents now that they have agentId
-    const allRelationPromises: Promise<void>[] = [];
+    const allSubAgentRelationPromises: Promise<void>[] = [];
 
     // Collect all relation creation promises from all agents
-    for (const agent of this.subAgents) {
-      if (this.isInternalAgent(agent)) {
-        // Create internal transfer relations
-        const transfers = agent.getTransfers();
-        for (const transferAgent of transfers) {
-          allRelationPromises.push(
-            this.createInternalAgentRelation(agent, transferAgent, 'transfer')
-          );
-        }
+    for (const subAgent of this.subAgents) {
+      // Create internal transfer relations
+      const transfers = subAgent.getTransfers();
+      for (const transferAgent of transfers) {
+        allSubAgentRelationPromises.push(
+          this.createSubAgentRelation(subAgent, transferAgent, 'transfer')
+        );
+      }
 
-        // Create internal delegation relations
-        const delegates = agent.getDelegates();
-        for (const delegate of delegates) {
-          if (delegate.type === 'external') {
-            allRelationPromises.push(this.createExternalAgentRelation(agent, delegate, 'delegate'));
-          } else {
-            // Must be an internal agent (AgentInterface)
-            allRelationPromises.push(
-              this.createInternalAgentRelation(agent, delegate as SubAgentInterface, 'delegate')
-            );
-          }
+      // Create internal delegation relations
+      const delegates = subAgent.getSubAgentDelegates();
+      for (const delegate of delegates) {
+        // Must be an internal agent (AgentInterface)
+        if (this.isInternalAgent(delegate)) {
+          allSubAgentRelationPromises.push(
+            this.createSubAgentRelation(subAgent, delegate as SubAgentInterface, 'delegate')
+          );
         }
       }
     }
 
     // Use Promise.allSettled for better error handling - allows all operations to complete
-    const results = await Promise.allSettled(allRelationPromises);
+    const results = await Promise.allSettled(allSubAgentRelationPromises);
 
     // Log and collect errors without failing the entire operation
     const errors: Error[] = [];
@@ -1368,7 +1236,7 @@ export class Agent implements AgentInterface {
     logger.info(
       {
         agentId: this.agentId,
-        totalRelations: allRelationPromises.length,
+        totalRelations: allSubAgentRelationPromises.length,
         successCount,
         errorCount: errors.length,
       },
@@ -1381,7 +1249,7 @@ export class Agent implements AgentInterface {
     }
   }
 
-  private async createInternalAgentRelation(
+  private async createSubAgentRelation(
     sourceAgent: SubAgentInterface,
     targetAgent: SubAgentInterface,
     relationType: 'transfer' | 'delegate'
@@ -1417,7 +1285,7 @@ export class Agent implements AgentInterface {
           return;
         }
 
-        throw new Error(`Failed to create agent relation: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to create subAgent relation: ${response.status} - ${errorText}`);
       }
 
       logger.info(
@@ -1427,7 +1295,7 @@ export class Agent implements AgentInterface {
           agentId: this.agentId,
           relationType,
         },
-        `${relationType} relation created successfully`
+        `${relationType} subAgent relation created successfully`
       );
     } catch (error) {
       logger.error(
@@ -1438,131 +1306,7 @@ export class Agent implements AgentInterface {
           relationType,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-        `Failed to create ${relationType} relation`
-      );
-      throw error;
-    }
-  }
-
-  private async createExternalAgentRelation(
-    sourceAgent: SubAgentInterface,
-    externalAgent: ExternalAgentInterface,
-    relationType: 'transfer' | 'delegate'
-  ): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agent-relations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agentId: this.agentId,
-          sourceSubAgentId: sourceAgent.getId(),
-          externalSubAgentId: externalAgent.getId(),
-          relationType,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-
-        // Check if this is a duplicate relation (which is acceptable)
-        if (response.status === 422 && errorText.includes('already exists')) {
-          logger.info(
-            {
-              sourceSubAgentId: sourceAgent.getId(),
-              externalSubAgentId: externalAgent.getId(),
-              agentId: this.agentId,
-              relationType,
-            },
-            `${relationType} relation already exists, skipping creation`
-          );
-          return;
-        }
-
-        throw new Error(
-          `Failed to create external agent relation: ${response.status} - ${errorText}`
-        );
-      }
-
-      logger.info(
-        {
-          sourceSubAgentId: sourceAgent.getId(),
-          externalSubAgentId: externalAgent.getId(),
-          agentId: this.agentId,
-          relationType,
-        },
-        `${relationType} relation created successfully`
-      );
-    } catch (error) {
-      logger.error(
-        {
-          sourceSubAgentId: sourceAgent.getId(),
-          externalSubAgentId: externalAgent.getId(),
-          agentId: this.agentId,
-          relationType,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        `Failed to create ${relationType} relation`
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Create external agents in the database
-   */
-  private async createExternalAgents(): Promise<void> {
-    const externalAgents = this.subAgents.filter((agent) => this.isExternalAgent(agent));
-
-    logger.info(
-      {
-        agentId: this.agentId,
-        externalAgentCount: externalAgents.length,
-      },
-      'Creating external agents in database'
-    );
-
-    const initPromises = externalAgents.map(async (externalAgent) => {
-      try {
-        await externalAgent.init();
-        logger.debug(
-          {
-            externalSubAgentId: externalAgent.getId(),
-            agentId: this.agentId,
-          },
-          'External agent created in database'
-        );
-      } catch (error) {
-        logger.error(
-          {
-            externalSubAgentId: externalAgent.getId(),
-            agentId: this.agentId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-          'Failed to create external agent in database'
-        );
-        throw error;
-      }
-    });
-
-    try {
-      await Promise.all(initPromises);
-
-      logger.info(
-        {
-          agentId: this.agentId,
-          externalAgentCount: externalAgents.length,
-        },
-        'All external agents created successfully'
-      );
-    } catch (error) {
-      logger.error(
-        {
-          agentId: this.agentId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to create some external agents'
+        `Failed to create ${relationType} subAgent relation`
       );
       throw error;
     }
