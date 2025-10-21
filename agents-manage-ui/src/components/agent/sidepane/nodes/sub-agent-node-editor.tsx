@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -64,14 +65,16 @@ export function SubAgentNodeEditor({
   }>();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
+  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
-  const { updatePath, updateNestedPath, getFieldError, setFieldRef } = useNodeEditor({
-    selectedNodeId: selectedNode.id,
-    errorHelpers,
-  });
+  const { updatePath, updateNestedPath, getFieldError, setFieldRef, updateDefaultSubAgent } =
+    useNodeEditor({
+      selectedNodeId: selectedNode.id,
+      errorHelpers,
+    });
 
   const updateModelPath = useCallback(
     (path: string, value: any) => {
@@ -97,6 +100,22 @@ export function SubAgentNodeEditor({
 
   return (
     <div className="space-y-8 flex flex-col">
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="is-default-sub-agent"
+            checked={isDefaultSubAgent}
+            disabled={isDefaultSubAgent}
+            onCheckedChange={(checked) => {
+              updateDefaultSubAgent(checked === true);
+            }}
+          />
+          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          The default sub agent is the initial entry point for conversations.
+        </p>
+      </div>
       <InputField
         ref={(el) => setFieldRef('name', el)}
         id="name"
