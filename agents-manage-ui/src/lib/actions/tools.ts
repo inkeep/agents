@@ -4,6 +4,7 @@
 
 'use server';
 
+import { detectAuthenticationRequired } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import { deleteMCPTool, fetchMCPTools } from '../api/tools';
 import { ApiError } from '../types/errors';
@@ -70,6 +71,32 @@ export async function deleteToolAction(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       code: 'unknown_error',
+    };
+  }
+}
+
+/**
+ * Detect if an MCP server requires OAuth authentication
+ */
+export async function detectOAuthServerAction(
+  serverUrl: string,
+  toolId: string
+): Promise<ActionResult<boolean>> {
+  try {
+    const requiresAuth = await detectAuthenticationRequired({
+      serverUrl,
+      toolId,
+    });
+
+    return {
+      success: true,
+      data: requiresAuth,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to detect OAuth support',
+      code: 'oauth_detection_failed',
     };
   }
 }

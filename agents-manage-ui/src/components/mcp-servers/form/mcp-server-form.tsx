@@ -1,8 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { generateId } from '@/lib/utils/id-utils';
-import { detectAuthenticationRequired, MCPTransportType } from '@inkeep/agents-core/client-exports';
+import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,10 +14,11 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { deleteToolAction } from '@/lib/actions/tools';
+import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { generateId } from '@/lib/utils/id-utils';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { type MCPToolFormData, mcpToolSchema } from './validation';
 
@@ -90,12 +90,14 @@ export function MCPServerForm({
       if (data.credentialReferenceId === 'oauth') {
         const toolId = generateId();
 
-        const isAuthenticationRequired = await detectAuthenticationRequired({
-          serverUrl: data.config.mcp.server.url,
-          toolId,
-        });
+        const result = await detectOAuthServerAction(data.config.mcp.server.url, toolId);
 
-        if (!isAuthenticationRequired) {
+        if (!result.success) {
+          toast.error(result.error || 'Failed to detect OAuth support');
+          return;
+        }
+
+        if (!result.data) {
           toast.error(
             'This MCP server does not support OAuth authentication. Please select a different credential.'
           );
@@ -165,7 +167,7 @@ export function MCPServerForm({
 
   const handleDelete = async () => {
     if (!tool) return;
-    
+
     setIsDeleting(true);
     try {
       // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
@@ -186,107 +188,107 @@ export function MCPServerForm({
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Name"
-          placeholder="MCP server"
-          isRequired
-        />
-        <GenericInput
-          control={form.control}
-          name="config.mcp.server.url"
-          label="URL"
-          placeholder="https://api.example.com/mcp"
-          isRequired
-        />
-        <GenericSelect
-          control={form.control}
-          selectTriggerClassName="w-full"
-          name="config.mcp.transport.type"
-          label="Transport type"
-          placeholder="Select transport type"
-          options={[
-            {
-              value: MCPTransportType.streamableHttp,
-              label: 'Streamable HTTP',
-            },
-            { value: MCPTransportType.sse, label: 'Server-Sent Events (SSE)' },
-          ]}
-        />
-        <GenericInput
-          control={form.control}
-          name="imageUrl"
-          label="Image URL (optional)"
-          placeholder="https://example.com/icon.png or data:image/png;base64,..."
-        />
-
-        <div className="space-y-3">
+          <GenericInput
+            control={form.control}
+            name="name"
+            label="Name"
+            placeholder="MCP server"
+            isRequired
+          />
+          <GenericInput
+            control={form.control}
+            name="config.mcp.server.url"
+            label="URL"
+            placeholder="https://api.example.com/mcp"
+            isRequired
+          />
           <GenericSelect
             control={form.control}
             selectTriggerClassName="w-full"
-            name="credentialReferenceId"
-            label="Credential"
-            placeholder="Select a credential"
+            name="config.mcp.transport.type"
+            label="Transport type"
+            placeholder="Select transport type"
             options={[
-              { value: 'oauth', label: 'OAuth' },
-              { value: 'none', label: 'No Authentication' },
-              ...credentials.map((credential) => ({
-                value: credential.id,
-                label: credential.id,
-              })),
+              {
+                value: MCPTransportType.streamableHttp,
+                label: 'Streamable HTTP',
+              },
+              { value: MCPTransportType.sse, label: 'Server-Sent Events (SSE)' },
             ]}
           />
-          <InfoCard title="How this works">
-            <div className="space-y-2">
-              <p>
-                Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code> to
-                authenticate with the MCP server's OAuth flow, which will start after you click
-                "Create".
-              </p>
-              <p>
-                Select{' '}
-                <code className="bg-background px-1.5 py-0.5 rounded border">
-                  No Authentication
-                </code>{' '}
-                to skip authentication (i.e. none required or add a credential later).
-              </p>
-              <p>Or select from the existing credentials you have already created.</p>
-            </div>
-          </InfoCard>
-        </div>
-
-        {mode === 'update' && (
-          <ActiveToolsSelector
+          <GenericInput
             control={form.control}
-            name="config.mcp.toolsConfig"
-            label="Tools"
-            availableTools={tool?.availableTools || []}
-            description="Select which tools should be enabled for this MCP server"
+            name="imageUrl"
+            label="Image URL (optional)"
+            placeholder="https://example.com/icon.png or data:image/png;base64,..."
           />
-        )}
 
-        <div className="flex w-full justify-between">
-          <Button type="submit" disabled={isSubmitting}>
-            {mode === 'update' ? 'Save' : 'Create'}
-          </Button>
-          {mode === 'update' && tool && (
-            <DialogTrigger asChild>
-              <Button type="button" variant="secondary">
-                Delete Server
-              </Button>
-            </DialogTrigger>
+          <div className="space-y-3">
+            <GenericSelect
+              control={form.control}
+              selectTriggerClassName="w-full"
+              name="credentialReferenceId"
+              label="Credential"
+              placeholder="Select a credential"
+              options={[
+                { value: 'oauth', label: 'OAuth' },
+                { value: 'none', label: 'No Authentication' },
+                ...credentials.map((credential) => ({
+                  value: credential.id,
+                  label: credential.id,
+                })),
+              ]}
+            />
+            <InfoCard title="How this works">
+              <div className="space-y-2">
+                <p>
+                  Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
+                  to authenticate with the MCP server's OAuth flow, which will start after you click
+                  "Create".
+                </p>
+                <p>
+                  Select{' '}
+                  <code className="bg-background px-1.5 py-0.5 rounded border">
+                    No Authentication
+                  </code>{' '}
+                  to skip authentication (i.e. none required or add a credential later).
+                </p>
+                <p>Or select from the existing credentials you have already created.</p>
+              </div>
+            </InfoCard>
+          </div>
+
+          {mode === 'update' && (
+            <ActiveToolsSelector
+              control={form.control}
+              name="config.mcp.toolsConfig"
+              label="Tools"
+              availableTools={tool?.availableTools || []}
+              description="Select which tools should be enabled for this MCP server"
+            />
           )}
-        </div>
-      </form>
-    </Form>
-    {isDeleteOpen && tool && (
-      <DeleteConfirmation
-        itemName={tool.name || 'this MCP server'}
-        isSubmitting={isDeleting}
-        onDelete={handleDelete}
-      />
-    )}
-  </Dialog>
+
+          <div className="flex w-full justify-between">
+            <Button type="submit" disabled={isSubmitting}>
+              {mode === 'update' ? 'Save' : 'Create'}
+            </Button>
+            {mode === 'update' && tool && (
+              <DialogTrigger asChild>
+                <Button type="button" variant="secondary">
+                  Delete Server
+                </Button>
+              </DialogTrigger>
+            )}
+          </div>
+        </form>
+      </Form>
+      {isDeleteOpen && tool && (
+        <DeleteConfirmation
+          itemName={tool.name || 'this MCP server'}
+          isSubmitting={isDeleting}
+          onDelete={handleDelete}
+        />
+      )}
+    </Dialog>
   );
 }
