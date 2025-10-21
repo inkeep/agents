@@ -100,22 +100,6 @@ export function SubAgentNodeEditor({
 
   return (
     <div className="space-y-8 flex flex-col">
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is-default-sub-agent"
-            checked={isDefaultSubAgent}
-            disabled={isDefaultSubAgent}
-            onCheckedChange={(checked) => {
-              updateDefaultSubAgent(checked === true);
-            }}
-          />
-          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          The default sub agent is the initial entry point for conversations.
-        </p>
-      </div>
       <InputField
         ref={(el) => setFieldRef('name', el)}
         id="name"
@@ -164,6 +148,21 @@ export function SubAgentNodeEditor({
         {getFieldError('prompt') && (
           <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
         )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="is-default-sub-agent"
+            checked={isDefaultSubAgent}
+            onCheckedChange={(checked) => {
+              updateDefaultSubAgent(checked === true);
+            }}
+          />
+          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          The default sub agent is the initial entry point for conversations.
+        </p>
       </div>
       <Separator />
       <ModelSection
