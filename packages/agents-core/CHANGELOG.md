@@ -1,5 +1,16 @@
 # @inkeep/agents-core
 
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+
 ## 0.26.2
 
 ### Patch Changes
