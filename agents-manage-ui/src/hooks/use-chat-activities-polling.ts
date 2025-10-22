@@ -160,7 +160,7 @@ export const useChatActivitiesPolling = ({
   useEffect(() => {
     if (prevConversationIdRef.current !== conversationId) {
       setChatActivities(null);
-      setLastActivityCount(0);
+      lastActivityCount.current = 0;
       setError(null);
 
       // Stop polling for old conversation
