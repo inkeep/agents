@@ -8,7 +8,7 @@ keywords: SigNoz, traces, live debugger, observability, OpenTelemetry, monitorin
 
 ## Overview
 
-The Inkeep Agent Framework provides powerful **traces** and **live debugging** capabilities powered by SigNoz. This gives you:
+The Inkeep Agent Framework provides powerful **traces** and **live debugging** capabilities powered by SigNoz. Setting up SigNoz gives you:
 
 - **Real-time trace visualization** - See exactly how your agents execute step-by-step
 - **Live debugging** - Debug agent conversations as they happen
@@ -23,14 +23,6 @@ The Inkeep Agent Framework provides powerful **traces** and **live debugging** c
   style={{ borderRadius: "10px" }}
 />
 
-## Why Set Up SigNoz?
-
-SigNoz powers two critical features:
-
-1. **Traces Interface** - Visual representation of agent execution flows
-2. **Live Debugger** - Real-time debugging capabilities for agent conversations
-
-
 ## Setup Options
 
 You can set up SigNoz in two ways:
@@ -39,6 +31,8 @@ You can set up SigNoz in two ways:
 2. **Local Setup**: Run SigNoz locally using Docker 
 
 ## Option 1: SigNoz Cloud Setup
+
+<YouTubeVideo videoId="F8n6427hjUE" title="SigNoz Cloud Setup" caption="Visual guide to the SigNoz Cloud Setup steps" />
 
 ### Step 1: Create a SigNoz Cloud Project
 
@@ -88,6 +82,8 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 ## Option 2: Local SigNoz Setup
 
+<YouTubeVideo videoId="DWuL4AeRzAA" title="Local SigNoz Setup" caption="Visual guide to the Local SigNoz Setup steps" />
+
 ### Prerequisites
 
 - Docker installed on your machine
@@ -101,7 +97,7 @@ git clone https://github.com/inkeep/agents-optional-local-dev
 cd agents-optional-local-dev
 ```
 
-### Step 3: Start SigNoz Services
+### Step 2: Start SigNoz Services
 
 Run the following command to start SigNoz and related services:
 
@@ -115,9 +111,9 @@ This will start:
 - SigNoz OTEL collector
 - ClickHouse database
 
-When you visit `http://localhost:3080`, you can log in using the credentials you configured above.
+When you visit `http://localhost:3080`, you can sign up with your desired credentials.
 
-### Step 4: Configure Environment Variables
+### Step 3: Configure Environment Variables
 
 In your **root project directory** (e.g., `my-agent-directory`), update your `.env` file:
 
@@ -139,7 +135,7 @@ To get your SigNoz API key:
    - Choose any role (Admin, Editor, or Viewer) - Viewer is sufficient for observability
    - Set the expiration field to "No Expiry" to prevent the key from expiring
 
-### Step 5: Verify Setup
+### Step 4: Verify Setup
 
 1. Restart your Inkeep agents:
    ```bash

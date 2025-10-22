@@ -12,50 +12,70 @@ The fastest way to get started is by connecting to existing MCP servers provided
 
 ### MCPs with OAuth 2.1/PKCE support
 
-These servers often implement OAuth 2.1 with PKCE for secure authentication that allow for "1-click" authentication without the need to manually create API keys or credentials.
-
-The credential for these servers is created automatically when you click the "Click to Login" button in the Visual Builder. It will be saved to your [Nango Store](/typescript-sdk/tools/credentials#nango-store) (follow steps to [setup Nango](/get-started/credentials)). If Nango is not set up, the framework will use the [Keychain Store](/typescript-sdk/tools/credentials#keychain-store) if available.
+These servers often implement OAuth 2.1 with PKCE for secure authentication that allow for `1-click` authentication without the need for API keys.
 
 <Snippet file="mcp/popular-oauth-servers.mdx" />
-
-To add them to your Inkeep Project, use the [Visual Builder](/visual-builder/tools/mcp-servers).
 
 ## Build Your Own
 
 Creating custom MCP servers gives you complete control over functionality and integration with your internal systems.
 
-### Using Vercel Template
+### From the Quick Start
 
-Vercel provides a [Next.js MCP template](https://vercel.com/templates/next.js/model-context-protocol-mcp-with-next-js) that makes it easy to deploy MCP servers with serverless functions.
+The Quick Start workspace includes a Next.js app in the `apps/mcp/app/` directory that you can use to expose your MCP servers.
+Each MCP server you create will be exposed on a separate route on this app. 
 
-Vercel's template provides:
-- **Easy to deploy** staging environments
-- **Serverless deployment** for automatic scaling with Vercel Functions
-- **SSE transport** for real-time streaming (requires Redis for state management)
-- **Next.js integration** so MCPs can be added as part of existing Next.js apps
+#### Adding from a template
 
-#### Quick start
+You can add a new MCP server from our [templates repository](https://github.com/inkeep/agents-cookbook) using the [CLI](/typescript-sdk/cli-reference#inkeep-add).
 ```bash
-# Clone the template
-git clone https://github.com/vercel-labs/mcp-for-next.js
-cd mcp-for-next.js
-
-# Install dependencies
-pnpm install
-
-# Configure your tools in app/[transport]/route.ts
-# Deploy to Vercel
-vercel deploy
+inkeep add --mcp [server-name]
 ```
 
+This will automatically add a new MCP server to your Quick Start workspace.
+
+#### Using Vercel's Template
+
+If you want to create a custom MCP server, you can use Vercel's [Next.js MCP template](https://vercel.com/templates/next.js/model-context-protocol-mcp-with-next-js) as a starting point.
+
+<Steps>
+<Step>
+Create a new directory in your project's `apps/mcp/app/` directory with your desired server name (e.g. `apps/mcp/app/my-email-mcp/mcp`).
+```bash
+mkdir -p apps/mcp/app/[server-name]/mcp
+```
+</Step>
+<Step>
+Copy the template route.ts file from the [Vercel MCP template](https://github.com/vercel-labs/mcp-for-next.js/blob/main/app/mcp/route.ts) into `apps/mcp/app/[server-name]/mcp/route.ts`.
+</Step>
+<Step>
+Modify the template route.ts file with your desired tools and resources.
+</Step>
+<Step>
+Set the `basePath` of the `createMcpHandler` to `/[server-name]`.
+</Step>
+</Steps>  
+
+#### Running locally
+
+```bash
+pnpm dev
+```
+
+This will start the server on port 3006.
+
+#### Deploying to Vercel
+
+Follow the instructions in [Deploy to Vercel](/self-hosting/vercel#step-9-create-a-vercel-project-for-your-mcp-server-optional).
+If you have already deployed to Vercel, you can simply update the deployment by pushing to the same repository.
+
 <Note>
-Enable Fluid compute and set `maxDuration` to 800 in `app/route.ts` if you're on a Pro or Enterprise plan and have long-running operations.
+Enable Fluid compute and set `maxDuration` to 800 in `apps/mcp/app/[server-name]/[transport]/route.ts` if you're on a Pro or Enterprise plan and have long-running operations.
 </Note>
 
 ### Using Gram
 
 [Speakeasy Gram](https://www.speakeasy.com/product/gram) provides a lightweight open source framework for repurposing and remixing existing APIs into MCP Servers.
-
 
 ### Using Anthropic's MCP SDKs
 

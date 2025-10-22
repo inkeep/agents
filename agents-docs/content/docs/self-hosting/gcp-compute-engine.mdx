@@ -2,13 +2,14 @@
 title: Deploy to GCP Compute Engine
 sidebarTitle: GCP Compute Engine
 description: Deploy to GCP Compute Engine with Docker Compose
-icon: "brand/DockerIcon"
+icon: "LuCloudSun"
 ---
 
 ## Create a VM Instance
 
 - Go to [Compute Engine](https://console.cloud.google.com/compute/instances) in your GCP project.
 - Create an instance; a recommended size is at least `e2-standard-2` (2 vCPU, 1 core, 8 GB memory).
+- Use Debian GNU/Linux 12 (bookworm)
 - Increase the size of the boot disk to 30 GB.
 - Allow HTTP traffic.
 - Allow ingress traffic from source IPv4 ranges `0.0.0.0/0` to TCP ports: `3000, 3002, 3003, 3050, 3051, 3080`. These are the ports exposed by the Inkeep services.
@@ -115,6 +116,7 @@ cp .env.docker.example .env
 
 Here's an overview of the important environment variables when deploying to production. Make sure to replace all of these in the `.env` file.
 ```bash
+# Change to "production" if deploying to production
 ENVIRONMENT=production
 
 # AI Provider Keys (you need at least one)
@@ -128,11 +130,12 @@ NANGO_SECRET_KEY=
 # SigNoz
 SIGNOZ_API_KEY=
 
-# Create each of these with (openssl rand -hex 32)
+# Uncomment and set each of these with (openssl rand -hex 32)
 INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+INKEEP_AGENTS_JWT_SIGNING_SECRET=
 
-# Production Environment Variables for Manage UI at http://<vm_external_ip>:3000
+# Uncomment and set these for the Manage UI at http://<vm_external_ip>:3000
 PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://<vm_external_ip>:3002
 PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://<vm_external_ip>:3003
 PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<copy INKEEP_AGENTS_RUN_API_BYPASS_SECRET>
@@ -140,7 +143,7 @@ PUBLIC_NANGO_SERVER_URL=http://<vm_external_ip>:3050
 PUBLIC_NANGO_CONNECT_BASE_URL=http://<vm_external_ip>:3051
 PUBLIC_SIGNOZ_URL=http://<vm_external_ip>:3080
 
-# Modify these in production environments!
+# Uncomment and set these to access Manage UI at http://<vm_external_ip>:3000
 INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
 INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 ```

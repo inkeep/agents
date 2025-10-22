@@ -5,7 +5,6 @@ import type {
   TaskInsert,
 } from '@inkeep/agents-core';
 import { eq, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   agents,
@@ -29,11 +28,12 @@ import {
   tasks,
   tools,
 } from '../../db/schema';
+import { generateId } from '../../utils/conversations';
 import { dbClient } from '../setup';
 
 describe('Cascading Delete Tests', () => {
   const tenantId = 'test-tenant';
-  const projectId = nanoid();
+  const projectId = generateId();
 
   beforeAll(async () => {
     // Enable foreign key constraints for cascading delete tests
@@ -75,8 +75,8 @@ describe('Cascading Delete Tests', () => {
     await dbClient.insert(projects).values(project);
 
     // Create an agent first
-    const agentId = nanoid();
-    const subAgentId = nanoid();
+    const agentId = generateId();
+    const subAgentId = generateId();
     const agent = {
       tenantId,
       projectId,
@@ -104,7 +104,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       agentId,
-      id: nanoid(),
+      id: generateId(),
       name: 'Test Context Config',
       description: 'Test context configuration',
     };
@@ -114,8 +114,8 @@ describe('Cascading Delete Tests', () => {
     const contextCacheEntry = {
       tenantId,
       projectId,
-      id: nanoid(),
-      conversationId: nanoid(),
+      id: generateId(),
+      conversationId: generateId(),
       contextConfigId: contextConfig.id,
       contextVariableKey: 'test-key',
       value: { test: 'data' },
@@ -127,7 +127,7 @@ describe('Cascading Delete Tests', () => {
     const conversation = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       activeSubAgentId: subAgentId,
     };
     await dbClient.insert(conversations).values(conversation);
@@ -136,7 +136,7 @@ describe('Cascading Delete Tests', () => {
     const message = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       conversationId: conversation.id,
       role: 'user',
       content: { type: 'text', text: 'Hello' },
@@ -147,9 +147,9 @@ describe('Cascading Delete Tests', () => {
     const task: TaskInsert = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       agentId: agentId,
-      contextId: nanoid(),
+      contextId: generateId(),
       status: 'pending',
       subAgentId: subAgentId,
     };
@@ -159,7 +159,7 @@ describe('Cascading Delete Tests', () => {
     const dataComponent = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       name: 'Test Data Component',
       description: 'Test data component',
       props: {},
@@ -170,7 +170,7 @@ describe('Cascading Delete Tests', () => {
     const artifactComponent = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       name: 'Test Artifact Component',
       description: 'Test artifact component',
       props: {},
@@ -181,7 +181,7 @@ describe('Cascading Delete Tests', () => {
     const tool = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       name: 'Test Tool',
       config: {
         type: 'mcp' as const,
@@ -201,8 +201,7 @@ describe('Cascading Delete Tests', () => {
     const externalAgent = {
       tenantId,
       projectId,
-      agentId,
-      id: nanoid(),
+      id: generateId(),
       name: 'Test External Agent',
       description: 'Test external agent',
       baseUrl: 'https://example.com',
@@ -211,11 +210,11 @@ describe('Cascading Delete Tests', () => {
 
     // Create API key
     const apiKey = {
-      id: nanoid(),
+      id: generateId(),
       tenantId,
       projectId,
       agentId,
-      publicId: nanoid(),
+      publicId: generateId(),
       keyHash: 'test-hash',
       keyPrefix: 'sk_test_',
     } satisfies ApiKeyInsert;
@@ -225,9 +224,9 @@ describe('Cascading Delete Tests', () => {
     const ledgerArtifact = {
       tenantId,
       projectId,
-      id: nanoid(),
-      taskId: nanoid(),
-      contextId: nanoid(),
+      id: generateId(),
+      taskId: generateId(),
+      contextId: generateId(),
       type: 'source' as const,
     };
     await dbClient.insert(ledgerArtifacts).values(ledgerArtifact);
@@ -236,7 +235,7 @@ describe('Cascading Delete Tests', () => {
     const credentialReference = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       type: 'memory',
       credentialStoreId: 'test-store',
     };
@@ -247,7 +246,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       agentId,
-      id: nanoid(),
+      id: generateId(),
       subAgentId: subAgentId,
       dataComponentId: dataComponent.id,
     };
@@ -257,7 +256,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       agentId,
-      id: nanoid(),
+      id: generateId(),
       subAgentId: subAgentId,
       artifactComponentId: artifactComponent.id,
     };
@@ -267,7 +266,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       agentId,
-      id: nanoid(),
+      id: generateId(),
       subAgentId: subAgentId,
       toolId: tool.id,
     };
@@ -276,7 +275,7 @@ describe('Cascading Delete Tests', () => {
     const agentRelation = {
       tenantId,
       projectId,
-      id: nanoid(),
+      id: generateId(),
       agentId,
       sourceSubAgentId: subAgentId,
       targetSubAgentId: subAgentId,
@@ -414,8 +413,8 @@ describe('Cascading Delete Tests', () => {
   });
 
   it('should not affect other projects when deleting one project', async () => {
-    const project1Id = nanoid();
-    const project2Id = nanoid();
+    const project1Id = generateId();
+    const project2Id = generateId();
 
     // Create two projects
     await dbClient.insert(projects).values([
@@ -434,10 +433,10 @@ describe('Cascading Delete Tests', () => {
     ]);
 
     // Create agents for both projects
-    const agent1Id = nanoid();
-    const agent2Id = nanoid();
-    const subAgent1Id = nanoid();
-    const subAgent2Id = nanoid();
+    const agent1Id = generateId();
+    const agent2Id = generateId();
+    const subAgent1Id = generateId();
+    const subAgent2Id = generateId();
 
     await dbClient.insert(agents).values([
       {

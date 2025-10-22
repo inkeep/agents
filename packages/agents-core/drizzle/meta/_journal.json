@@ -78,6 +78,20 @@
       "when": 1760564153811,
       "tag": "0010_wet_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1760738344628,
+      "tag": "0011_slippery_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1761082381737,
+      "tag": "0012_salty_psynapse",
+      "breakpoints": true
     }
   ]
 }

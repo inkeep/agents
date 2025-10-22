@@ -4,9 +4,7 @@ import { MainContent } from '@/components/layout/main-content';
 
 async function NewBearerCredentialsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/bearer'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate

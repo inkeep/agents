@@ -1,5 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { ArrowRight, ArrowRightLeft } from 'lucide-react';
+import { AnimatedCircle } from '@/components/agent/edges/default-edge';
 import type { A2AEdgeData } from '../configuration/edge-types';
 
 interface AgentToAgentEdgeProps extends EdgeProps {
@@ -22,6 +23,7 @@ export function AgentToAgentEdge({
     delegateTargetToSource: false,
     delegateSourceToTarget: false,
   };
+  const delegating = data?.delegating;
 
   const hasDelegate = relationships.delegateTargetToSource || relationships.delegateSourceToTarget;
   const hasTransfer = relationships.transferTargetToSource || relationships.transferSourceToTarget;
@@ -86,16 +88,20 @@ export function AgentToAgentEdge({
   const delegateMarkerEnd =
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
+  const className =
+    selected || delegating ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
+
   return (
     <>
+      {/* Animated circles based on delegating direction */}
+      {delegating && <AnimatedCircle edgePath={edgePath} inverted={delegating === 'inverted'} />}
+
       {/* Render transfer path (solid line) */}
       {hasTransfer && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={className}
           path={hasDelegate ? calculateOffsetPath(-3)[0] : edgePath}
-          style={{
-            strokeWidth: 2,
-          }}
+          style={{ strokeWidth: 2 }}
           markerEnd={transferMarkerEnd}
           markerStart={transferMarkerStart}
         />
@@ -104,7 +110,7 @@ export function AgentToAgentEdge({
       {/* Render delegate path (dashed line) */}
       {hasDelegate && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={className}
           path={hasTransfer ? calculateOffsetPath(3)[0] : edgePath}
           style={{
             strokeDasharray: '5,5',

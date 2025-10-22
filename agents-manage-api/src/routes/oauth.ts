@@ -16,9 +16,8 @@ import {
   type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
-  dbResultToMcpTool,
   generateIdFromName,
-  getCredentialReferenceWithTools,
+  getCredentialReferenceWithResources,
   getToolById,
   type ServerConfig,
   updateTool,
@@ -37,7 +36,7 @@ async function findOrCreateCredential(
 ) {
   try {
     // Try to find existing credential first
-    const existingCredential = await getCredentialReferenceWithTools(dbClient)({
+    const existingCredential = await getCredentialReferenceWithResources(dbClient)({
       scopes: { tenantId, projectId },
       id: credentialData.id,
     });
@@ -232,15 +231,12 @@ app.openapi(
         return c.text('Tool not found', 404);
       }
 
-      const credentialStores = c.get('credentialStores');
-      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
-
       const baseUrl = getBaseUrlFromRequest(c);
       const { redirectUrl } = await oauthService.initiateOAuthFlow({
-        tool: mcpTool,
         tenantId,
         projectId,
         toolId,
+        mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
       });
 
@@ -327,7 +323,15 @@ app.openapi(
         return c.html(expiredPage);
       }
 
-      const { codeVerifier, toolId, tenantId, projectId, clientId } = pkceData;
+      const {
+        codeVerifier,
+        toolId,
+        tenantId,
+        projectId,
+        clientInformation,
+        metadata,
+        resourceUrl,
+      } = pkceData;
 
       const tool = await getToolById(dbClient)({
         scopes: { tenantId, projectId },
@@ -344,14 +348,14 @@ app.openapi(
 
       const credentialStores = c.get('credentialStores');
 
-      const mcpTool = await dbResultToMcpTool(tool, dbClient, credentialStores);
-
       const baseUrl = getBaseUrlFromRequest(c);
       const { tokens } = await oauthService.exchangeCodeForTokens({
         code,
         codeVerifier,
-        clientId,
-        tool: mcpTool,
+        clientInformation,
+        metadata,
+        resourceUrl,
+        mcpServerUrl: tool.config.mcp.server.url,
         baseUrl,
       });
 
@@ -360,43 +364,27 @@ app.openapi(
         'Token exchange successful'
       );
 
-      // Store access token in nango, and fall back to keychain.
+      // Store access token in keychain.
       const credentialTokenKey = `oauth_token_${toolId}`;
       let newCredentialData: CredentialReferenceApiInsert | undefined;
 
-      if (process.env.NANGO_SECRET_KEY) {
-        const nangoStore = credentialStores.get('nango-default');
-        await nangoStore?.set(credentialTokenKey, JSON.stringify(tokens));
-        newCredentialData = {
-          id: generateIdFromName(mcpTool.name),
-          type: CredentialStoreType.nango,
-          credentialStoreId: 'nango-default',
-          retrievalParams: {
-            connectionId: credentialTokenKey,
-            providerConfigKey: credentialTokenKey,
-            provider: 'private-api-bearer',
-            authMode: 'API_KEY',
-          },
-        };
-      } else {
-        const keychainStore = credentialStores.get('keychain-default');
-        if (keychainStore) {
-          try {
-            await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
-            newCredentialData = {
-              id: generateIdFromName(mcpTool.name),
-              type: CredentialStoreType.keychain,
-              credentialStoreId: 'keychain-default',
-              retrievalParams: {
-                key: credentialTokenKey,
-              },
-            };
-          } catch (error) {
-            logger.info(
-              { error: error instanceof Error ? error.message : error },
-              'Keychain store not available.'
-            );
-          }
+      const keychainStore = credentialStores.get('keychain-default');
+      if (keychainStore) {
+        try {
+          await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
+          newCredentialData = {
+            id: generateIdFromName(tool.name),
+            type: CredentialStoreType.keychain,
+            credentialStoreId: 'keychain-default',
+            retrievalParams: {
+              key: credentialTokenKey,
+            },
+          };
+        } catch (error) {
+          logger.info(
+            { error: error instanceof Error ? error.message : error },
+            'Keychain store not available.'
+          );
         }
       }
 

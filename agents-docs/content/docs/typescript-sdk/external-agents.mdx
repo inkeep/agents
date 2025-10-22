@@ -5,7 +5,7 @@ description: Learn how to configure and use external agents using the A2A protoc
 icon: "LuGlobe"
 ---
 
-External agents let you integrate agents built outside of Inkeep—using other frameworks or platforms—into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native. Note that Inkeep Agents are available via an [A2A endpoint](/talk-to-your-agents/a2a) themselves and used from other platforms.
+External agents let you integrate agents built outside of Inkeep (using other frameworks or platforms) into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native. Note that Inkeep Agents are available via an [A2A endpoint](/talk-to-your-agents/a2a) themselves and used from other platforms.
 
 Learn more about A2A:
 - A2A overview on the Google Developers Blog: [A2A — a new era of agent interoperability](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
@@ -32,7 +32,7 @@ Examples platforms that expose Agents in A2A-format:
 Every external agent needs a unique identifier, name, description, base URL for A2A communication, and optional authentication configuration:
 
 ```typescript
-import { externalAgent } from "@inkeep/agents-manage-api/builders";
+import { externalAgent } from "@inkeep/agents-sdk";
 
 const technicalSupportAgent = externalAgent({
   id: "technical-support-agent",
@@ -47,7 +47,8 @@ const technicalSupportAgent = externalAgent({
 Agents can be configured to delegate tasks to external agents.
 
 ```typescript
-import { subAgent, agent } from "@inkeep/agents-manage-api/builders";
+import { subAgent, agent } from "@inkeep/agents-sdk";
+import { myExternalAgent } from "./external-agents/exernal-agent-example";
 
 // Define the customer support sub-agent with delegation capabilities
 const supportSubAgent = subAgent({
@@ -55,7 +56,7 @@ const supportSubAgent = subAgent({
   name: "Customer Support Sub-Agent",
   description: "Handles customer inquiries and escalates technical issues",
   prompt: `You are a customer support sub-agent that handles general customer inquiries.`,
-  canDelegateTo: () => [technicalSupportAgent],
+  canDelegateTo: () => [myExternalAgent],
 });
 
 // Create the customer support agent with external agent capabilities
@@ -64,28 +65,35 @@ export const supportAgent = agent({
   name: "Customer Support System",
   description: "Handles customer inquiries and escalates to technical teams when needed",
   defaultSubAgent: supportSubAgent,
-  subAgents: () => [supportSubAgent, technicalSupportAgent],
+  subAgents: () => [supportSubAgent],
 });
 ```
 
 ## External Agent Options
 
-Configure authentication and custom headers as needed (static values or dynamic context variables).
+Configure authentication by providing a [credential reference](/typescript-sdk/tools/credentials).
 
 ```typescript
-const supportExternal = externalAgent({
+const myExternalAgent = externalAgent({
   // Required
   name: "External Support Agent", // Human-readable agent name
   description: "External AI agent for specialized support", // Agent's purpose
   baseUrl: "https://api.example.com/agents/support", // A2A endpoint URL
-
-  // Optional - Static or dynamic headers
-  headers: {
-    Authorization: "{{headers.Authorization}}",
-  },
-
   // Optional - Credential Reference
   credentialReference: myCredentialReference,
+});
+```
+
+When delegating to an external agent, you can specify headers to include with every request to the external agent.
+These headers can be dynamic variables that are [resolved at runtime](/typescript-sdk/headers).
+
+```typescript
+const supportSubAgent = subAgent({
+  id: "support-agent",
+  name: "Customer Support Sub-Agent",
+  description: "Handles customer inquiries and escalates technical issues",
+  prompt: `You are a customer support sub-agent that handles general customer inquiries.`,
+  canDelegateTo: () => [myExternalAgent.with({ headers: { Authorization: "Bearer {{headers.Authorization}}" } })],
 });
 ```
 
@@ -95,5 +103,4 @@ const supportExternal = externalAgent({
 | `name`                | string              | Yes      | Human-readable name for the external agent                                                                                                                      |
 | `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
 | `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
-| `headers`             | object              | No       | HTTP headers to include with every request to the external agent. See [Context Fetchers](/typescript-sdk/context-fetchers) for details about dynamic variables. |
 | `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/tools/credentials) for details                                                 |

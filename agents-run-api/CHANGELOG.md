@@ -1,5 +1,120 @@
 # @inkeep/agents-run-api
 
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+  - @inkeep/agents-core@0.26.2
+
+## 0.26.1
+
+### Patch Changes
+
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+
+## 0.26.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- Updated dependencies [51c157e]
+  - @inkeep/agents-core@0.25.0
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+- Updated dependencies [3ad959e]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+  - @inkeep/agents-core@0.24.2
+
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+
+## 0.23.5
+
+### Patch Changes
+
+- 42d2dac: ui trace improvements
+- Updated dependencies [42d2dac]
+  - @inkeep/agents-core@0.23.5
+
+## 0.23.4
+
+### Patch Changes
+
+- dba9591: Migrate CLI to @clack/prompts for improved interactive experience
+- Updated dependencies [dba9591]
+  - @inkeep/agents-core@0.23.4
+
+## 0.23.3
+
+### Patch Changes
+
+- 2fad1cf: Fixed id collisions to just have variable names matter
+- Updated dependencies [2fad1cf]
+  - @inkeep/agents-core@0.23.3
+
+## 0.23.2
+
+### Patch Changes
+
+- a3bea34: batch generate llm pull
+- Updated dependencies [a3bea34]
+  - @inkeep/agents-core@0.23.2
+
+## 0.23.1
+
+### Patch Changes
+
+- 80407ab: Revert env detection
+  - @inkeep/agents-core@0.23.1
+
+## 0.23.0
+
+### Minor Changes
+
+- f878545: OAuth MCP Connections now use nango mcp-generic
+
+### Patch Changes
+
+- e604038: Updated Pull to support other providers
+- Updated dependencies [f878545]
+- Updated dependencies [e604038]
+  - @inkeep/agents-core@0.23.0
+
 ## 0.22.12
 
 ### Patch Changes

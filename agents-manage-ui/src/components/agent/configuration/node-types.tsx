@@ -1,9 +1,10 @@
-import { Bot, BotMessageSquare, Code, Hammer } from 'lucide-react';
+import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
 import { MCPNode } from '../nodes/mcp-node';
-import { MCPPlaceholderNode } from '../nodes/mcp-placeholder-node';
+import { PlaceholderNode } from '../nodes/placeholder-node';
 import { SubAgentNode } from '../nodes/sub-agent-node';
+import { TeamAgentNode } from '../nodes/team-agent-node';
 import type { AgentModels } from './agent-types';
 
 interface NodeData {
@@ -11,6 +12,7 @@ interface NodeData {
   isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
+  type?: 'mcp-placeholder' | 'external-agent-placeholder' | 'team-agent-placeholder'; // Optional for placeholder nodes
 }
 
 import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
@@ -22,6 +24,8 @@ export interface MCPNodeData extends Record<string, unknown> {
   name?: string;
   imageUrl?: string;
   provider?: string;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
 }
 
 // Re-export the shared type for consistency
@@ -36,6 +40,9 @@ export interface AgentNodeData extends Record<string, unknown> {
   artifactComponents?: string[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
+  isDefault?: boolean;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
 }
 
 export interface ExternalAgentNodeData extends Record<string, unknown> {
@@ -43,7 +50,7 @@ export interface ExternalAgentNodeData extends Record<string, unknown> {
   name: string;
   description?: string;
   baseUrl: string;
-  headers: string;
+  relationshipId?: string | null;
   credentialReferenceId?: string | null;
 }
 
@@ -57,11 +64,23 @@ export interface FunctionToolNodeData extends Record<string, unknown> {
   code?: string;
   inputSchema?: Record<string, unknown>;
   dependencies?: Record<string, unknown>;
+  isExecuting?: boolean;
+  isDelegating?: boolean;
+}
+
+export interface TeamAgentNodeData extends Record<string, unknown> {
+  id: string;
+  name: string;
+  description?: string;
+  relationshipId?: string | null;
 }
 
 export enum NodeType {
   SubAgent = 'agent',
   ExternalAgent = 'external-agent',
+  TeamAgent = 'team-agent',
+  TeamAgentPlaceholder = 'team-agent-placeholder',
+  ExternalAgentPlaceholder = 'external-agent-placeholder',
   MCP = 'mcp',
   MCPPlaceholder = 'mcp-placeholder',
   FunctionTool = 'function-tool',
@@ -70,8 +89,11 @@ export enum NodeType {
 export const nodeTypes = {
   [NodeType.SubAgent]: SubAgentNode,
   [NodeType.ExternalAgent]: ExternalAgentNode,
+  [NodeType.ExternalAgentPlaceholder]: PlaceholderNode,
+  [NodeType.TeamAgent]: TeamAgentNode,
+  [NodeType.TeamAgentPlaceholder]: PlaceholderNode,
   [NodeType.MCP]: MCPNode,
-  [NodeType.MCPPlaceholder]: MCPPlaceholderNode,
+  [NodeType.MCPPlaceholder]: PlaceholderNode,
   [NodeType.FunctionTool]: FunctionToolNode,
 };
 
@@ -80,6 +102,7 @@ export const agentNodeSourceHandleId = 'source-agent';
 export const agentNodeTargetHandleId = 'target-agent';
 export const externalAgentNodeTargetHandleId = 'target-external-agent';
 export const functionToolNodeHandleId = 'target-function-tool';
+export const teamAgentNodeTargetHandleId = 'target-team-agent';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.SubAgent]: {
@@ -88,6 +111,10 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.ExternalAgent]: {
     name: '',
   },
+  [NodeType.ExternalAgentPlaceholder]: {
+    name: 'Select external agent',
+    type: 'external-agent-placeholder',
+  },
   [NodeType.MCP]: {
     name: 'MCP',
     subAgentId: null,
@@ -95,10 +122,20 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCPPlaceholder]: {
     name: 'Select MCP server',
+    type: 'mcp-placeholder',
   },
   [NodeType.FunctionTool]: {
     name: 'Function Tool',
     subAgentId: null,
+  },
+  [NodeType.TeamAgent]: {
+    name: 'Team Agent',
+    subAgentId: null,
+    relationshipId: null,
+  },
+  [NodeType.TeamAgentPlaceholder]: {
+    name: 'Select team agent',
+    type: 'team-agent-placeholder',
   },
 };
 
@@ -111,7 +148,12 @@ export const nodeTypeMap = {
   [NodeType.ExternalAgent]: {
     type: NodeType.ExternalAgent,
     name: 'External Agent',
-    Icon: BotMessageSquare,
+    Icon: Globe,
+  },
+  [NodeType.ExternalAgentPlaceholder]: {
+    type: NodeType.ExternalAgentPlaceholder,
+    name: 'External Agent',
+    Icon: Globe,
   },
   [NodeType.MCPPlaceholder]: {
     type: NodeType.MCPPlaceholder,
@@ -127,5 +169,15 @@ export const nodeTypeMap = {
     type: NodeType.FunctionTool,
     name: 'Function Tool',
     Icon: Code,
+  },
+  [NodeType.TeamAgent]: {
+    type: NodeType.TeamAgent,
+    name: 'Team Agent',
+    Icon: Users,
+  },
+  [NodeType.TeamAgentPlaceholder]: {
+    type: NodeType.TeamAgentPlaceholder,
+    name: 'Team Agent',
+    Icon: Users,
   },
 };

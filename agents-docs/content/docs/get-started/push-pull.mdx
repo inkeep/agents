@@ -27,7 +27,7 @@ cd src/projects
 Add the docs assistant agent using `inkeep add`. 
 
 ```bash
-inkeep add docs-assistant
+inkeep add --project docs-assistant
 ```
 
 Find the downloaded code in `src/projects/docs-assistant`.
@@ -41,7 +41,7 @@ Find the downloaded code in `src/projects/docs-assistant`.
 Navigate to your docs assistant project.
 
 ```bash
-cd src/projects/docs-assistant
+cd docs-assistant
 ```
 
 Use `inkeep push` to push the code to the Visual Builder.
@@ -60,19 +60,31 @@ Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a 
 
 ## Run `inkeep pull`
 
-Make some changes, like changing a prompt, and let's walk through `inkeep pull`. The `inkeep pull` command uses AI to sync your TypeScript files to the state of your Visual Builder.
+Make some changes, like changing a prompt, and let's walk through `inkeep pull`. 
 
-<Note>
-**Prerequisites:** Currently, we only support Anthropic. Support for other providers will be coming soon.
+### Requirements
 
-If you don't already have an ANTHROPIC_API_KEY, you can get one from the [Anthropic Console](https://console.anthropic.com/).
+The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
 
-Then add it to your `.env` file:
 ```txt .env
+# Choose one:
 ANTHROPIC_API_KEY=your_api_key_here
+# or
+OPENAI_API_KEY=your_api_key_here
+# or
+GOOGLE_API_KEY=your_api_key_here
 ```
 
-</Note>
+The CLI prioritizes Anthropic → OpenAI → Google. 
+
+Here are the models used:
+
+| Provider   | Model(s)                        | Where to Get API Key                                    |
+|------------|---------------------------------|---------------------------------------------------------|
+| Anthropic  | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/)     |
+| OpenAI     | GPT-4.1                         | [OpenAI Platform](https://platform.openai.com/)         |
+| Google     | Gemini models (with thinking mode) | [Google AI Studio](https://ai.google.dev/)              |
+
 
 ### Step 1: Make an edit visually
 

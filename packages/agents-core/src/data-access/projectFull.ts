@@ -18,6 +18,7 @@ import { listAgents } from './agents';
 import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
 import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
 import { listDataComponents, upsertDataComponent } from './dataComponents';
+import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
@@ -192,6 +193,53 @@ export const createFullProjectServerSide =
         );
       }
 
+      if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'Creating project externalAgents'
+        );
+
+        const externalAgentPromises = Object.entries(typed.externalAgents).map(
+          async ([externalAgentId, externalAgentData]) => {
+            try {
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'Creating externalAgent in project'
+              );
+              await upsertExternalAgent(db)({
+                data: {
+                  ...externalAgentData,
+                  tenantId,
+                  projectId: typed.id,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'ExternalAgent created successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, externalAgentId, error },
+                'Failed to create externalAgent in project'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(externalAgentPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'All project externalAgents created successfully'
+        );
+      }
+
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -295,29 +343,45 @@ export const createFullProjectServerSide =
           'Creating project agent'
         );
 
+        // Phase 1: Create all agents without sub-agents to avoid circular dependency issues
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 1: Creating agents without sub-agents'
+        );
+
         const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
+            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project (phase 1)');
 
-            const agentDataWithProjectResources = {
+            // Create agent without sub-agents
+            const agentDataWithoutSubAgents = {
               ...agentData,
+              subAgents: {}, // No sub-agents in phase 1
+              defaultSubAgentId: undefined, // Clear defaultSubAgentId since no sub-agents exist yet
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
+              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
             await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              agentDataWithProjectResources
+              agentDataWithoutSubAgents
             );
 
-            logger.info({ projectId: typed.id, agentId }, 'Agent created successfully in project');
+            logger.info(
+              { projectId: typed.id, agentId },
+              'Agent created successfully in project (phase 1)'
+            );
           } catch (error) {
             logger.error(
               { projectId: typed.id, agentId, error },
-              'Failed to create agent in project'
+              'Failed to create agent in project (phase 1)'
             );
             throw error;
           }
@@ -329,7 +393,55 @@ export const createFullProjectServerSide =
             projectId: typed.id,
             agentCount: Object.keys(typed.agents).length,
           },
-          'All project agent created successfully'
+          'Phase 1 complete: All agents created without sub-agents'
+        );
+
+        // Phase 2: Add all sub-agents with their relationships
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2: Adding sub-agents with relationships'
+        );
+
+        const updatePromises = Object.entries(typed.agents)
+          .filter(([_, agentData]) => Object.keys(agentData.subAgents).length > 0)
+          .map(async ([agentId, agentData]) => {
+            try {
+              logger.info({ projectId: typed.id, agentId }, 'Adding sub-agents (phase 2)');
+
+              // Add all sub-agents with their relationships
+              const updateData = {
+                ...agentData,
+                subAgents: agentData.subAgents, // Include all sub-agents with their relationships
+              };
+
+              await updateFullAgentServerSide(db, logger)(
+                { tenantId, projectId: typed.id },
+                updateData as any
+              );
+
+              logger.info(
+                { projectId: typed.id, agentId },
+                'Sub-agents added successfully (phase 2)'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, agentId, error },
+                'Failed to add sub-agents (phase 2)'
+              );
+              throw error;
+            }
+          });
+
+        await Promise.all(updatePromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2 complete: All sub-agents added successfully'
         );
       }
 
@@ -536,6 +648,53 @@ export const updateFullProjectServerSide =
         );
       }
 
+      if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'Updating project externalAgents'
+        );
+
+        const externalAgentPromises = Object.entries(typed.externalAgents).map(
+          async ([externalAgentId, externalAgentData]) => {
+            try {
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'Updating externalAgent in project'
+              );
+              await upsertExternalAgent(db)({
+                data: {
+                  ...externalAgentData,
+                  tenantId,
+                  projectId: typed.id,
+                },
+              });
+              logger.info(
+                { projectId: typed.id, externalAgentId },
+                'ExternalAgent updated successfully'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, externalAgentId, error },
+                'Failed to update externalAgent in project'
+              );
+              throw error;
+            }
+          }
+        );
+
+        await Promise.all(externalAgentPromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            count: Object.keys(typed.externalAgents).length,
+          },
+          'All project externalAgents updated successfully'
+        );
+      }
+
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
         logger.info(
           {
@@ -686,6 +845,7 @@ export const updateFullProjectServerSide =
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
+              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
@@ -795,6 +955,32 @@ export const getFullProject =
         );
       } catch (error) {
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
+      }
+
+      const projectExternalAgents: Record<string, any> = {};
+      try {
+        const externalAgentsList = await listExternalAgents(db)({
+          scopes: { tenantId, projectId },
+        });
+
+        for (const externalAgent of externalAgentsList) {
+          projectExternalAgents[externalAgent.id] = {
+            id: externalAgent.id,
+            name: externalAgent.name,
+            description: externalAgent.description,
+            baseUrl: externalAgent.baseUrl,
+            credentialReferenceId: externalAgent.credentialReferenceId || undefined,
+          };
+        }
+        logger.info(
+          { tenantId, projectId, count: Object.keys(projectExternalAgents).length },
+          'ExternalAgents retrieved for project'
+        );
+      } catch (error) {
+        logger.warn(
+          { tenantId, projectId, error },
+          'Failed to retrieve externalAgents for project'
+        );
       }
 
       const projectDataComponents: Record<string, any> = {};
@@ -921,6 +1107,7 @@ export const getFullProject =
         stopWhen: project.stopWhen || undefined,
         agents,
         tools: projectTools,
+        externalAgents: projectExternalAgents,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,
         credentialReferences: projectCredentialReferences,

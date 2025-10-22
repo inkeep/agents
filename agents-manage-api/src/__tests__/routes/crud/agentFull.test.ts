@@ -1,6 +1,6 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
-import { createTestContextConfigDataFull, createTestToolData } from '../../utils/testHelpers';
+import { createTestContextConfigDataFull } from '../../utils/testHelpers';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
@@ -44,7 +44,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     tenantId?: string,
     projectIdParam?: string
   ) => {
-    const id = agentId || nanoid();
+    const id = agentId || generateId();
     const subAgentId1 = `agent-${id}-1`;
     const subAgentId2 = `agent-${id}-2`;
     const toolId1 = `tool-${id}-1`;
@@ -111,18 +111,23 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     // Add external agent if requested
     if (options?.includeExternalAgent) {
-      const externalSubAgentId = `external-${id}`;
+      const externalAgentId = `external-${id}`;
       const externalAgent = createTestExternalAgentData({
-        id: externalSubAgentId,
+        id: externalAgentId,
         suffix: 'External',
         tenantId,
         projectId: projectIdParam,
       });
 
-      agentData.subAgents[externalSubAgentId] = externalAgent;
+      // External agents are now project-scoped
+      agentData.externalAgents = {
+        [externalAgentId]: externalAgent,
+      };
 
-      // Set up relationships with external agent
-      agent1.canDelegateTo.push(externalSubAgentId);
+      // Set up relationships with external agent using new object format
+      agent1.canDelegateTo.push({
+        externalAgentId,
+      });
     }
 
     return agentData;
@@ -189,8 +194,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle agent with no relationships', async () => {
       const tenantId = createTestTenantId('agent-no-relations');
       await ensureTestProject(tenantId, projectId);
-      const subAgentId = nanoid();
-      const agentId = nanoid();
+      const subAgentId = generateId();
+      const agentId = generateId();
 
       const agentData = {
         id: agentId,
@@ -243,7 +248,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('agent-model-field');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
 
@@ -316,7 +321,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture
       const tenantId = createTestTenantId('agent-provider-options');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
 
@@ -431,7 +436,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${nonExistentId}`,
@@ -508,7 +513,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const tenantId = createTestTenantId('agent-id-mismatch');
       await ensureTestProject(tenantId, projectId);
       const agentData = createFullAgentData();
-      const differentId = nanoid();
+      const differentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${differentId}`,
@@ -560,12 +565,28 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       // Create an agent with external agent included
-      const initialAgentData = createFullAgentData(undefined, {
-        includeExternalAgent: true,
+      const initialAgentData = createFullAgentData(
+        undefined,
+        {
+          includeExternalAgent: true,
+        },
+        tenantId,
+        projectId
+      );
+
+      // First create the external agent at project level
+      const externalAgentId = Object.keys(initialAgentData.externalAgents)[0];
+      const externalAgentData = initialAgentData.externalAgents[externalAgentId];
+
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify(externalAgentData),
       });
+
+      // Now create the agent
       const { agentData } = await createTestAgent(tenantId, initialAgentData);
 
-      // Verify initial state - should have 2 internal agents + 1 external agent = 3 total
+      // Verify initial state - should have 2 internal agents + 1 external agent
       const getInitialRes = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${agentData.id}`,
         {
@@ -574,18 +595,20 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       );
       expect(getInitialRes.status).toBe(200);
       const initialBody = await getInitialRes.json();
-      expect(Object.keys(initialBody.data.subAgents)).toHaveLength(3);
+      expect(Object.keys(initialBody.data.subAgents)).toHaveLength(2); // Internal agents only
+      expect(Object.keys(initialBody.data.externalAgents || {})).toHaveLength(1); // External agents
 
-      // Get agent IDs to verify which are internal vs external
-      const allAgentIds = Object.keys(initialBody.data.subAgents);
+      // Get agent IDs to verify which are internal
+      const allInternalAgentIds = Object.keys(initialBody.data.subAgents);
       const defaultSubAgentId = agentData.defaultSubAgentId;
 
-      // Update agent to only include the default agent (remove 1 internal + 1 external agent)
+      // Update agent to only include the default agent (remove 1 internal agent and all external agents)
       const updatedAgentData = {
         ...agentData,
         subAgents: {
           [defaultSubAgentId]: agentData.subAgents[defaultSubAgentId],
         },
+        externalAgents: {}, // Remove all external agents
       };
 
       // Clear relationships since other agents are removed
@@ -603,16 +626,19 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(updateRes.status).toBe(200);
       const updateBody = await updateRes.json();
 
-      // Verify only 1 agent remains
+      // Verify only 1 internal agent remains
       expect(Object.keys(updateBody.data.subAgents)).toHaveLength(1);
       expect(updateBody.data.subAgents).toHaveProperty(defaultSubAgentId);
 
-      // Verify the removed agents are no longer present
-      for (const subAgentId of allAgentIds) {
+      // Verify the removed internal agents are no longer present
+      for (const subAgentId of allInternalAgentIds) {
         if (subAgentId !== defaultSubAgentId) {
           expect(updateBody.data.subAgents).not.toHaveProperty(subAgentId);
         }
       }
+
+      // Verify external agents are removed
+      expect(Object.keys(updateBody.data.externalAgents || {})).toHaveLength(0);
 
       // Verify by fetching the agent again
       const getFinalRes = await makeRequest(
@@ -625,6 +651,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const finalBody = await getFinalRes.json();
       expect(Object.keys(finalBody.data.subAgents)).toHaveLength(1);
       expect(finalBody.data.subAgents).toHaveProperty(defaultSubAgentId);
+      expect(Object.keys(finalBody.data.externalAgents || {})).toHaveLength(0);
     });
 
     it('should handle removing all agents except default agent', async () => {
@@ -718,7 +745,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent agent', async () => {
       const tenantId = createTestTenantId('agent-delete-not-found');
       await ensureTestProject(tenantId, projectId);
-      const nonExistentId = nanoid();
+      const nonExistentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agent/${nonExistentId}`,
@@ -736,7 +763,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
       const tenantId = createTestTenantId('agent-multi-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const tool1Id = `tool-${agentId}-1`;
       const tool2Id = `tool-${agentId}-2`;
@@ -782,7 +809,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle circular agent relationships', async () => {
       const tenantId = createTestTenantId('agent-circular');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const agent1Id = `agent-${agentId}-1`;
       const agent2Id = `agent-${agentId}-2`;
 
@@ -823,7 +850,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle large agent with many agents', async () => {
       const tenantId = createTestTenantId('agent-large');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const agentCount = 10;
 
       const agents: Record<string, any> = {};
@@ -1029,6 +1056,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should create an agent with external agents', async () => {
       const tenantId = createTestTenantId('agent-external');
       await ensureTestProject(tenantId, projectId);
+
+      // First, create the external agent at the project level
       const agentData = createFullAgentData(
         undefined,
         { includeExternalAgent: true },
@@ -1036,6 +1065,15 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
+      const externalAgentId = Object.keys(agentData.externalAgents)[0];
+      const externalAgentData = agentData.externalAgents[externalAgentId];
+
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify(externalAgentData),
+      });
+
+      // Now create the agent (which will create the subAgentExternalAgentRelations)
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -1044,13 +1082,15 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
       const body = await res.json();
 
-      // Verify agents were created (2 internal + 1 external = 3 total)
-      expect(Object.keys(body.data.subAgents)).toHaveLength(3);
+      // Verify internal agents were created (2 internal)
+      expect(Object.keys(body.data.subAgents)).toHaveLength(2);
+
+      // Verify external agents were created (1 external)
+      expect(body.data.externalAgents).toBeDefined();
+      expect(Object.keys(body.data.externalAgents)).toHaveLength(1);
 
       // Find the external agent
-      const externalAgent = Object.values(body.data.subAgents).find(
-        (agent: any) => agent.baseUrl !== undefined
-      );
+      const externalAgent = Object.values(body.data.externalAgents)[0] as any;
       expect(externalAgent).toBeDefined();
       expect(externalAgent).toMatchObject({
         name: expect.stringContaining('Test External Agent'),
@@ -1060,7 +1100,14 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
       // Verify transfer relationships do not include external agent
       const defaultSubAgent = body.data.subAgents[agentData.defaultSubAgentId];
-      expect(defaultSubAgent.canTransferTo).not.toContain((externalAgent as any).id);
+      expect(defaultSubAgent.canTransferTo).not.toContain(externalAgent.id);
+
+      // Verify delegation relationships include external agent as object
+      expect(defaultSubAgent.canDelegateTo).toContainEqual(
+        expect.objectContaining({
+          externalAgentId: externalAgent.id,
+        })
+      );
     });
 
     it.skip('should create a complete agent with all features', async () => {
@@ -1158,6 +1205,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle external agent relationships correctly', async () => {
       const tenantId = createTestTenantId('agent-external-relations');
       await ensureTestProject(tenantId, projectId);
+
+      // First, create the external agent at the project level
       const agentData = createFullAgentData(
         undefined,
         { includeExternalAgent: true },
@@ -1165,6 +1214,15 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
         projectId
       );
 
+      const externalAgentId = Object.keys(agentData.externalAgents)[0];
+      const externalAgentData = agentData.externalAgents[externalAgentId];
+
+      await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify(externalAgentData),
+      });
+
+      // Now create the agent (which will create the subAgentExternalAgentRelations)
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -1173,23 +1231,26 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(201);
       const body = await res.json();
 
-      // Find external agent
-      const externalAgent = Object.values(body.data.subAgents).find(
-        (agent: any) => agent.baseUrl !== undefined
-      );
+      // Find external agent in externalAgents (project-scoped)
+      expect(body.data.externalAgents).toBeDefined();
+      const externalAgent = Object.values(body.data.externalAgents)[0] as any;
       expect(externalAgent).toBeDefined();
 
       // External agents should not have internal relationships or tools fields
-      expect((externalAgent as any).canTransferTo).toBeUndefined();
-      expect((externalAgent as any).canDelegateTo).toBeUndefined();
-      expect((externalAgent as any).canUse).toBeUndefined();
+      expect(externalAgent.canTransferTo).toBeUndefined();
+      expect(externalAgent.canDelegateTo).toBeUndefined();
+      expect(externalAgent.canUse).toBeUndefined();
 
-      // Internal agents should be able to transfer to external agents
+      // Internal agents should NOT be able to transfer to external agents
       const defaultSubAgent = body.data.subAgents[agentData.defaultSubAgentId];
-      expect(defaultSubAgent.canTransferTo).not.toContain((externalAgent as any).id);
+      expect(defaultSubAgent.canTransferTo).not.toContain(externalAgent.id);
 
-      // But internal agents should be able to delegate to external agents
-      expect(defaultSubAgent.canDelegateTo).toContain((externalAgent as any).id);
+      // But internal agents should be able to delegate to external agents (as objects)
+      expect(defaultSubAgent.canDelegateTo).toContainEqual(
+        expect.objectContaining({
+          externalAgentId: externalAgent.id,
+        })
+      );
     });
   });
 
@@ -1449,7 +1510,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
       const tenantId = createTestTenantId('minimal-tool-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1526,7 +1587,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should include all read-only tool fields in agent response', async () => {
       const tenantId = createTestTenantId('agent-tool-full-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1636,7 +1697,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle tools with populated availableTools field', async () => {
       const tenantId = createTestTenantId('agent-tool-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1705,7 +1766,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle multiple tools with different status values', async () => {
       const tenantId = createTestTenantId('agent-tool-statuses');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const healthyToolId = `healthy-tool-${agentId}`;
       const unhealthyToolId = `unhealthy-tool-${agentId}`;
@@ -1783,7 +1844,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle tools with capabilities field', async () => {
       const tenantId = createTestTenantId('agent-tool-capabilities');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1875,7 +1936,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should handle empty availableTools array', async () => {
       const tenantId = createTestTenantId('agent-empty-available-tools');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 
@@ -1924,7 +1985,7 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     it('should validate tool schema properly with all optional fields', async () => {
       const tenantId = createTestTenantId('agent-tool-optional-fields');
       await ensureTestProject(tenantId, projectId);
-      const agentId = nanoid();
+      const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
 

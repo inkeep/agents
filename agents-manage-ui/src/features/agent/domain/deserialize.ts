@@ -1,6 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
 import * as dagre from 'dagre';
-import { nanoid } from 'nanoid';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -9,13 +8,11 @@ import {
   functionToolNodeHandleId,
   mcpNodeHandleId,
   NodeType,
+  teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import type {
-  ExternalAgentDefinition,
-  FullAgentDefinition,
-  InternalAgentDefinition,
-} from '@/lib/types/agent-full';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
+import { generateId } from '@/lib/utils/id-utils';
 
 interface TransformResult {
   nodes: Node[];
@@ -104,91 +101,79 @@ export function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 export function deserializeAgentData(data: FullAgentDefinition): TransformResult {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
+  const createdExternalAgentNodes = new Set<string>();
+  const createdTeamAgentNodes = new Set<string>();
 
   const subAgentIds: string[] = Object.keys(data.subAgents);
   for (const subAgentId of subAgentIds) {
-    const agent = data.subAgents[subAgentId];
+    const subAgent = data.subAgents[subAgentId];
     const isDefault = subAgentId === data.defaultSubAgentId;
-    const isExternal = agent.type === 'external';
 
-    const nodeType = isExternal ? NodeType.ExternalAgent : NodeType.SubAgent;
-    const agentNodeData = isExternal
-      ? {
-          id: agent.id,
-          name: agent.name,
-          description: agent.description,
-          baseUrl: (agent as ExternalAgentDefinition).baseUrl,
-          headers: formatJsonField(agent.headers) || '{}',
-          type: agent.type,
-          credentialReferenceId: agent.credentialReferenceId,
-        }
-      : (() => {
-          const internalAgent = agent as InternalAgentDefinition;
-          return {
-            id: agent.id,
-            name: agent.name,
-            isDefault,
-            prompt: internalAgent.prompt,
-            description: agent.description,
-            dataComponents: internalAgent.dataComponents,
-            artifactComponents: internalAgent.artifactComponents,
-            models: internalAgent.models
-              ? {
-                  base: internalAgent.models.base
-                    ? {
-                        model: internalAgent.models.base.model ?? '',
-                        providerOptions: internalAgent.models.base.providerOptions
-                          ? formatJsonField(internalAgent.models.base.providerOptions)
-                          : undefined,
-                      }
-                    : undefined,
-                  structuredOutput: internalAgent.models.structuredOutput
-                    ? {
-                        model: internalAgent.models.structuredOutput.model ?? '',
-                        providerOptions: internalAgent.models.structuredOutput.providerOptions
-                          ? formatJsonField(internalAgent.models.structuredOutput.providerOptions)
-                          : undefined,
-                      }
-                    : undefined,
-                  summarizer: internalAgent.models.summarizer
-                    ? {
-                        model: internalAgent.models.summarizer.model ?? '',
-                        providerOptions: internalAgent.models.summarizer.providerOptions
-                          ? formatJsonField(internalAgent.models.summarizer.providerOptions)
-                          : undefined,
-                      }
-                    : undefined,
+    const nodeType = NodeType.SubAgent;
+    const agentNodeData = (() => {
+      return {
+        id: subAgent.id,
+        name: subAgent.name,
+        isDefault,
+        prompt: subAgent.prompt,
+        description: subAgent.description,
+        dataComponents: subAgent.dataComponents,
+        artifactComponents: subAgent.artifactComponents,
+        models: subAgent.models
+          ? {
+              base: subAgent.models.base
+                ? {
+                    model: subAgent.models.base.model ?? '',
+                    providerOptions: subAgent.models.base.providerOptions
+                      ? formatJsonField(subAgent.models.base.providerOptions)
+                      : undefined,
+                  }
+                : undefined,
+              structuredOutput: subAgent.models.structuredOutput
+                ? {
+                    model: subAgent.models.structuredOutput.model ?? '',
+                    providerOptions: subAgent.models.structuredOutput.providerOptions
+                      ? formatJsonField(subAgent.models.structuredOutput.providerOptions)
+                      : undefined,
+                  }
+                : undefined,
+              summarizer: subAgent.models.summarizer
+                ? {
+                    model: subAgent.models.summarizer.model ?? '',
+                    providerOptions: subAgent.models.summarizer.providerOptions
+                      ? formatJsonField(subAgent.models.summarizer.providerOptions)
+                      : undefined,
+                  }
+                : undefined,
+            }
+          : undefined,
+        stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
+        type: subAgent.type,
+        tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
+        selectedTools: subAgent.canUse
+          ? subAgent.canUse.reduce(
+              (acc, item) => {
+                if (item.toolSelection) {
+                  acc[item.toolId] = item.toolSelection;
                 }
-              : undefined,
-            stopWhen: internalAgent.stopWhen
-              ? { stepCountIs: internalAgent.stopWhen.stepCountIs }
-              : undefined,
-            type: agent.type,
-            tools: internalAgent.canUse ? internalAgent.canUse.map((item) => item.toolId) : [],
-            selectedTools: internalAgent.canUse
-              ? internalAgent.canUse.reduce(
-                  (acc, item) => {
-                    if (item.toolSelection) {
-                      acc[item.toolId] = item.toolSelection;
-                    }
-                    return acc;
-                  },
-                  {} as Record<string, string[]>
-                )
-              : undefined,
-            headers: internalAgent.canUse
-              ? internalAgent.canUse.reduce(
-                  (acc, item) => {
-                    if (item.headers) {
-                      acc[item.toolId] = item.headers;
-                    }
-                    return acc;
-                  },
-                  {} as Record<string, Record<string, string>>
-                )
-              : undefined,
-          };
-        })();
+                return acc;
+              },
+              {} as Record<string, string[]>
+            )
+          : undefined,
+        headers: subAgent.canUse
+          ? subAgent.canUse.reduce(
+              (acc, item) => {
+                if (item.headers) {
+                  acc[item.toolId] = item.headers;
+                }
+                return acc;
+              },
+              {} as Record<string, Record<string, string>>
+            )
+          : undefined,
+      };
+    })();
 
     const agentNode: Node = {
       id: subAgentId,
@@ -205,7 +190,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
     if ('canUse' in agent && agent.canUse && agent.canUse.length > 0) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
-        const toolNodeId = nanoid();
+        const toolNodeId = generateId();
         const relationshipId = canUseItem.agentToolRelationId;
 
         const tool = data.tools?.[toolId] || data.functionTools?.[toolId];
@@ -296,30 +281,26 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
+                sourceAgent.canDelegateTo?.some((item) =>
+                  typeof item === 'string' ? item === targetSubAgentId : false
+                )) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
+                targetAgent.canDelegateTo?.some((item) =>
+                  typeof item === 'string' ? item === sourceSubAgentId : false
+                )) ||
               false;
-
-            const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
                 ? `edge-self-${sourceSubAgentId}`
                 : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
-              type: isSelfReference
-                ? EdgeType.SelfLoop
-                : isTargetExternal
-                  ? EdgeType.A2AExternal
-                  : EdgeType.A2A,
+              type: isSelfReference ? EdgeType.SelfLoop : EdgeType.A2A,
               source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
               target: targetSubAgentId,
-              targetHandle: isTargetExternal
-                ? externalAgentNodeTargetHandleId
-                : agentNodeTargetHandleId,
+              targetHandle: agentNodeTargetHandleId,
               selected: false,
               data: {
                 relationships: {
@@ -337,8 +318,117 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
     }
 
     if ('canDelegateTo' in sourceAgent && sourceAgent.canDelegateTo) {
-      for (const targetSubAgentId of sourceAgent.canDelegateTo) {
-        if (data.subAgents[targetSubAgentId]) {
+      for (const targetSubAgent of sourceAgent.canDelegateTo) {
+        let targetSubAgentId: string;
+        let isTargetExternal: boolean;
+        let isTargetTeamAgent: boolean;
+        let headers: Record<string, string> | undefined;
+        let relationshipId: string | undefined;
+
+        if (typeof targetSubAgent === 'object' && 'externalAgentId' in targetSubAgent) {
+          targetSubAgentId = targetSubAgent.externalAgentId;
+          isTargetExternal = true;
+          isTargetTeamAgent = false;
+          headers = targetSubAgent.headers ?? undefined;
+          relationshipId = targetSubAgent.subAgentExternalAgentRelationId;
+
+          // Create external agent node if it doesn't exist
+          if (!createdExternalAgentNodes.has(targetSubAgentId)) {
+            const externalAgent = data.externalAgents?.[targetSubAgentId];
+            if (externalAgent) {
+              const externalAgentNode: Node = {
+                id: targetSubAgentId,
+                type: NodeType.ExternalAgent,
+                position: { x: 0, y: 0 },
+                data: {
+                  id: externalAgent.id,
+                  name: externalAgent.name,
+                  description: externalAgent.description || '',
+                  baseUrl: externalAgent.baseUrl,
+                  credentialReferenceId: externalAgent.credentialReferenceId,
+                  relationshipId,
+                  tempHeaders: headers,
+                },
+              };
+              nodes.push(externalAgentNode);
+              createdExternalAgentNodes.add(targetSubAgentId);
+            }
+          }
+
+          // Create edge from source agent to external agent
+          const edge: Edge = {
+            id: `edge-${sourceSubAgentId}-${targetSubAgentId}`,
+            type: EdgeType.A2AExternal,
+            source: sourceSubAgentId,
+            sourceHandle: agentNodeSourceHandleId,
+            target: targetSubAgentId,
+            targetHandle: externalAgentNodeTargetHandleId,
+            selected: false,
+            data: {
+              relationships: {
+                transferTargetToSource: false,
+                transferSourceToTarget: false,
+                delegateTargetToSource: false,
+                delegateSourceToTarget: true,
+              },
+            },
+          };
+          edges.push(edge);
+        } else if (typeof targetSubAgent === 'object' && 'agentId' in targetSubAgent) {
+          // Handle team agent delegation
+          targetSubAgentId = targetSubAgent.agentId;
+          isTargetExternal = false;
+          isTargetTeamAgent = true;
+          headers = targetSubAgent.headers ?? undefined;
+          relationshipId = targetSubAgent.subAgentTeamAgentRelationId;
+
+          // Create team agent node if it doesn't exist
+          if (!createdTeamAgentNodes.has(targetSubAgentId)) {
+            const teamAgent = data.teamAgents?.[targetSubAgentId];
+            if (teamAgent) {
+              const teamAgentNode: Node = {
+                id: targetSubAgentId,
+                type: NodeType.TeamAgent,
+                position: { x: 0, y: 0 },
+                data: {
+                  id: targetSubAgentId,
+                  name: teamAgent.name,
+                  description: teamAgent.description,
+                  relationshipId,
+                  tempHeaders: headers,
+                },
+              };
+              nodes.push(teamAgentNode);
+              createdTeamAgentNodes.add(targetSubAgentId);
+            }
+          }
+
+          // Create edge from source agent to team agent
+          const edge: Edge = {
+            id: `edge-${sourceSubAgentId}-${targetSubAgentId}`,
+            type: EdgeType.A2ATeam, // Use same edge type as external agents
+            source: sourceSubAgentId,
+            sourceHandle: agentNodeSourceHandleId,
+            target: targetSubAgentId,
+            targetHandle: teamAgentNodeTargetHandleId,
+            selected: false,
+            data: {
+              relationships: {
+                transferTargetToSource: false,
+                transferSourceToTarget: false,
+                delegateTargetToSource: false,
+                delegateSourceToTarget: true,
+              },
+            },
+          };
+          edges.push(edge);
+        } else {
+          targetSubAgentId = targetSubAgent;
+          isTargetExternal = false;
+          isTargetTeamAgent = false;
+        }
+
+        if (!isTargetExternal && !isTargetTeamAgent && data.subAgents[targetSubAgentId]) {
           // Special handling for self-referencing edges
           const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference
@@ -359,30 +449,26 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
               false;
             const sourceCanDelegateToTarget =
               ('canDelegateTo' in sourceAgent &&
-                sourceAgent.canDelegateTo?.includes(targetSubAgentId)) ||
+                sourceAgent.canDelegateTo?.some((item) =>
+                  typeof item === 'string' ? item === targetSubAgentId : false
+                )) ||
               false;
             const targetCanDelegateToSource =
               ('canDelegateTo' in targetAgent &&
-                targetAgent.canDelegateTo?.includes(sourceSubAgentId)) ||
+                targetAgent.canDelegateTo?.some((item) =>
+                  typeof item === 'string' ? item === sourceSubAgentId : false
+                )) ||
               false;
-
-            const isTargetExternal = targetAgent.type === 'external';
 
             const edge = {
               id: isSelfReference
                 ? `edge-self-${sourceSubAgentId}`
                 : `edge-${targetSubAgentId}-${sourceSubAgentId}`,
-              type: isSelfReference
-                ? EdgeType.SelfLoop
-                : isTargetExternal
-                  ? EdgeType.A2AExternal
-                  : EdgeType.A2A,
+              type: isSelfReference ? EdgeType.SelfLoop : EdgeType.A2A,
               source: sourceSubAgentId,
               sourceHandle: agentNodeSourceHandleId,
               target: targetSubAgentId,
-              targetHandle: isTargetExternal
-                ? externalAgentNodeTargetHandleId
-                : agentNodeTargetHandleId,
+              targetHandle: agentNodeTargetHandleId,
               selected: false,
               data: {
                 relationships: {

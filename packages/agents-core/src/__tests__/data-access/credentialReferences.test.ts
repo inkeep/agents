@@ -5,7 +5,7 @@ import {
   deleteCredentialReference,
   getCredentialReference,
   getCredentialReferenceById,
-  getCredentialReferenceWithTools,
+  getCredentialReferenceWithResources,
   hasCredentialReference,
   listCredentialReferences,
   listCredentialReferencesPaginated,
@@ -77,7 +77,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, expectedTools]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: testCredentialId,
       });
@@ -114,7 +114,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([null, []]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: 'non-existent',
       });
@@ -157,7 +157,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, []]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: testCredentialId,
       });

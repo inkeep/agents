@@ -1,6 +1,6 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { generateId } from '../utils/conversations';
 import { contextConfigs } from '../db/schema';
 import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
@@ -74,7 +74,7 @@ export const listContextConfigsPaginated =
   };
 
 export const createContextConfig = (db: DatabaseClient) => async (params: ContextConfigInsert) => {
-  const id = params.id || nanoid();
+  const id = params.id || generateId();
   const now = new Date().toISOString();
 
   // Process contextVariables: empty object should be treated as null for consistency

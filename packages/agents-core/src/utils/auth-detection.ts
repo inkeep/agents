@@ -1,7 +1,19 @@
 /**
  * Centralized authentication detection utilities for MCP tools
+ * Uses proper MCP OAuth specification (RFC 9728 + RFC 8414) for discovery
  */
 
+import {
+  discoverAuthorizationServerMetadata,
+  discoverOAuthProtectedResourceMetadata,
+  exchangeAuthorization,
+  registerClient,
+  startAuthorization,
+} from '@modelcontextprotocol/sdk/client/auth.js';
+import type {
+  OAuthMetadata,
+  OAuthProtectedResourceMetadata,
+} from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { PinoLogger } from './logger';
 
 /**
@@ -12,180 +24,281 @@ export interface OAuthConfig {
   tokenUrl: string;
   registrationUrl?: string;
   supportsDynamicRegistration: boolean;
+  scopes?: string;
 }
 
 /**
- * Helper function to construct well-known OAuth endpoint URLs
+ * MCP OAuth metadata discovery result
  */
-const getWellKnownUrls = (baseUrl: string): string[] => [
-  `${baseUrl}/.well-known/oauth-authorization-server`,
-  `${baseUrl}/.well-known/openid-configuration`,
-];
+interface McpDiscoveryResult {
+  success: boolean;
+  metadata?: OAuthMetadata;
+  resourceMetadata?: OAuthProtectedResourceMetadata;
+  scopes?: string;
+  error?: string;
+}
 
 /**
- * Helper function to validate OAuth metadata for PKCE support
+ * Discovers OAuth scopes from server metadata, with preference for resource metadata scopes
  */
-const validateOAuthMetadata = (metadata: any): boolean => {
-  return metadata.code_challenge_methods_supported?.includes('S256');
-};
+function discoverScopes(
+  resourceMetadata?: OAuthProtectedResourceMetadata,
+  metadata?: OAuthMetadata
+): string | undefined {
+  const resourceScopes = resourceMetadata?.scopes_supported;
+  const oauthScopes = metadata?.scopes_supported;
+  const scopes = (resourceScopes?.length ? resourceScopes : oauthScopes) || [];
+  return scopes.length > 0 ? scopes.join(' ') : undefined;
+}
 
 /**
- * Helper function to construct OAuthConfig from metadata
+ * MCP Dynamic OAuth metadata discovery utility
+ * Implements RFC9728 (Protected Resource Metadata Discovery) + RFC8414 (Authorization Server Metadata Discovery)
  */
-const buildOAuthConfig = (metadata: any): OAuthConfig => ({
-  authorizationUrl: metadata.authorization_endpoint,
-  tokenUrl: metadata.token_endpoint,
-  registrationUrl: metadata.registration_endpoint,
-  supportsDynamicRegistration: !!metadata.registration_endpoint,
-});
-
-/**
- * Helper function to try OAuth discovery at well-known endpoints
- */
-const tryWellKnownEndpoints = async (
-  baseUrl: string,
+async function discoverMcpMetadata(
+  mcpServerUrl: string,
   logger?: PinoLogger
-): Promise<OAuthConfig | null> => {
-  const wellKnownUrls = getWellKnownUrls(baseUrl);
-
-  for (const wellKnownUrl of wellKnownUrls) {
-    try {
-      const response = await fetch(wellKnownUrl);
-      if (response.ok) {
-        const metadata = await response.json();
-        if (validateOAuthMetadata(metadata)) {
-          logger?.debug({ baseUrl, wellKnownUrl }, 'OAuth 2.1/PKCE support detected');
-          return buildOAuthConfig(metadata);
-        }
-      }
-    } catch (error) {
-      logger?.debug({ wellKnownUrl, error }, 'OAuth endpoint check failed');
-    }
-  }
-  return null;
-};
-
-/**
- * Check if a server supports OAuth 2.1/PKCE endpoints (simple boolean)
- */
-const checkForOAuthEndpoints = async (serverUrl: string, logger?: PinoLogger): Promise<boolean> => {
-  const config = await discoverOAuthEndpoints(serverUrl, logger);
-  return config !== null;
-};
-
-/**
- * Full OAuth endpoint discovery with complete configuration
- */
-export const discoverOAuthEndpoints = async (
-  serverUrl: string,
-  logger?: PinoLogger
-): Promise<OAuthConfig | null> => {
+): Promise<McpDiscoveryResult> {
   try {
-    const response = await fetch(serverUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
+    // RFC9728 - Protected Resource Metadata Discovery
+    let resourceMetadata: OAuthProtectedResourceMetadata | null = null;
+    let authServerUrl = new URL(mcpServerUrl);
 
-    if (response.status === 401) {
-      const wwwAuth = response.headers.get('WWW-Authenticate');
-      if (wwwAuth) {
-        // Parse Protected Resource Metadata URL from WWW-Authenticate header
-        const metadataMatch = wwwAuth.match(/as_uri="([^"]+)"/);
-        if (metadataMatch) {
-          const metadataResponse = await fetch(metadataMatch[1]);
-          if (metadataResponse.ok) {
-            const metadata = (await metadataResponse.json()) as any;
-            if (metadata.authorization_servers?.length > 0) {
-              return await tryWellKnownEndpoints(metadata.authorization_servers[0], logger);
-            }
-          }
-        }
+    try {
+      resourceMetadata = await discoverOAuthProtectedResourceMetadata(mcpServerUrl);
+
+      if (
+        resourceMetadata?.authorization_servers?.length &&
+        resourceMetadata.authorization_servers[0]
+      ) {
+        authServerUrl = new URL(resourceMetadata.authorization_servers[0]);
       }
+    } catch {
+      // RFC9728 resource metadata discovery is optional - if it fails,
+      // we continue with the original MCP server URL as the authorization server
     }
-  } catch (_error) {
-    // Continue to well-known endpoints
+
+    // RFC8414 - Authorization Server Metadata Discovery
+    const metadata = await discoverAuthorizationServerMetadata(authServerUrl.href);
+    if (!metadata) {
+      throw new Error('Failed to discover OAuth authorization server metadata');
+    }
+
+    logger?.debug(
+      {
+        tokenEndpoint: metadata.token_endpoint,
+        authEndpoint: metadata.authorization_endpoint,
+      },
+      'MCP metadata discovery successful'
+    );
+
+    const discoveredScopes = discoverScopes(resourceMetadata ?? undefined, metadata);
+
+    return {
+      success: true,
+      metadata,
+      ...(resourceMetadata && { resourceMetadata }),
+      ...(discoveredScopes && { scopes: discoveredScopes }),
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger?.debug({ error: errorMessage }, 'MCP metadata discovery failed');
+    return { success: false, error: errorMessage };
   }
-
-  const url = new URL(serverUrl);
-  const baseUrl = `${url.protocol}//${url.host}`;
-
-  return await tryWellKnownEndpoints(baseUrl, logger);
-};
+}
 
 /**
- * Detect if OAuth 2.1/PKCE authentication is specifically required for a tool
+ * MCP OAuth flow initiation result
+ */
+export interface McpOAuthFlowResult {
+  authorizationUrl: string;
+  codeVerifier: string;
+  state: string;
+  clientInformation: any;
+  scopes?: string;
+  metadata: any;
+  resourceUrl?: string;
+}
+
+/**
+ * MCP OAuth token exchange result
+ */
+export interface McpTokenExchangeResult {
+  access_token: string;
+  refresh_token?: string;
+  expires_at?: Date;
+  token_type: string;
+  scope?: string;
+}
+
+/**
+ * Initiate MCP OAuth flow using the official MCP SDK
+ */
+export async function initiateMcpOAuthFlow({
+  mcpServerUrl,
+  redirectUri,
+  state,
+  clientName = 'Inkeep Agent Framework',
+  clientUri = 'https://inkeep.com',
+  logoUri,
+  defaultClientId = 'mcp-client',
+  logger,
+}: {
+  mcpServerUrl: string;
+  redirectUri: string;
+  state: string;
+  clientName?: string;
+  clientUri?: string;
+  logoUri?: string;
+  defaultClientId?: string;
+  logger?: PinoLogger;
+}): Promise<McpOAuthFlowResult> {
+  const discoveryResult = await discoverMcpMetadata(mcpServerUrl, logger);
+  if (!discoveryResult.success || !discoveryResult.metadata) {
+    throw new Error(`OAuth not supported by this server: ${discoveryResult.error}`);
+  }
+
+  const { metadata, resourceMetadata, scopes: discoveredScopes } = discoveryResult;
+
+  const clientMetadata = {
+    redirect_uris: [redirectUri],
+    token_endpoint_auth_method: 'none', // PKCE - no client secret
+    grant_types: ['authorization_code', 'refresh_token'],
+    response_types: ['code'],
+    client_name: clientName,
+    client_uri: clientUri,
+    ...(logoUri && { logo_uri: logoUri }),
+  };
+
+  // Handle client registration (dynamic or static)
+  let clientInformation: any;
+  if (metadata.registration_endpoint) {
+    clientInformation = await registerClient(mcpServerUrl, {
+      metadata,
+      clientMetadata,
+    });
+  } else {
+    clientInformation = {
+      client_id: defaultClientId,
+      ...clientMetadata,
+    };
+  }
+
+  // Node's URL and global DOM URL are identical at runtime but have different TypeScript types
+  // The MCP SDK expects the DOM URL type, so we cast appropriately
+  const resource = resourceMetadata?.resource
+    ? (new globalThis.URL(resourceMetadata.resource) as unknown as URL)
+    : undefined;
+
+  const authResult = await startAuthorization(mcpServerUrl, {
+    metadata,
+    clientInformation,
+    redirectUrl: redirectUri,
+    state,
+    scope: discoveredScopes || '',
+    ...(resource && { resource }),
+  });
+
+  logger?.debug(
+    {
+      authorizationUrl: authResult.authorizationUrl.href,
+      scopes: discoveredScopes,
+      clientId: clientInformation.client_id,
+    },
+    'MCP OAuth flow initiated successfully'
+  );
+
+  return {
+    authorizationUrl: authResult.authorizationUrl.href,
+    codeVerifier: authResult.codeVerifier,
+    state,
+    clientInformation,
+    metadata,
+    resourceUrl: resource?.href || undefined,
+    ...(discoveredScopes && { scopes: discoveredScopes }),
+  };
+}
+
+/**
+ * Exchange authorization code for tokens using MCP SDK
+ */
+export async function exchangeMcpAuthorizationCode({
+  mcpServerUrl,
+  metadata,
+  clientInformation,
+  authorizationCode,
+  codeVerifier,
+  redirectUri,
+  resourceUrl,
+  logger,
+}: {
+  mcpServerUrl: string;
+  metadata: any;
+  clientInformation: any;
+  authorizationCode: string;
+  codeVerifier: string;
+  redirectUri: string;
+  resourceUrl?: string;
+  logger?: PinoLogger;
+}): Promise<McpTokenExchangeResult> {
+  // Node's URL and global DOM URL are identical at runtime but have different TypeScript types
+  // The MCP SDK expects the DOM URL type, so we cast appropriately
+  const resource = resourceUrl ? (new globalThis.URL(resourceUrl) as unknown as URL) : undefined;
+
+  const tokens = await exchangeAuthorization(mcpServerUrl, {
+    metadata,
+    clientInformation,
+    authorizationCode,
+    codeVerifier,
+    redirectUri,
+    ...(resource && { resource }),
+  });
+
+  logger?.debug(
+    {
+      tokenType: tokens.token_type,
+      hasRefreshToken: !!tokens.refresh_token,
+      expiresIn: tokens.expires_in,
+    },
+    'MCP token exchange successful'
+  );
+
+  // Convert to standardized format
+  return {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : undefined,
+    token_type: tokens.token_type || 'Bearer',
+    scope: tokens.scope,
+  };
+}
+
+/**
+ * Detect if MCP OAuth authentication is specifically required for a tool
+ * Uses proper MCP OAuth specification discovery methods
  */
 export const detectAuthenticationRequired = async ({
   serverUrl,
-  toolId,
   error,
   logger,
 }: {
   serverUrl: string;
-  toolId: string;
-  error: Error;
+  error?: Error;
   logger?: PinoLogger;
 }): Promise<boolean> => {
   try {
-    const hasOAuthEndpoints = await checkForOAuthEndpoints(serverUrl, logger);
-    if (hasOAuthEndpoints) {
-      logger?.info(
-        { toolId, serverUrl },
-        'OAuth 2.1/PKCE support confirmed via endpoint discovery'
-      );
-      return true; // Server supports OAuth 2.1/PKCE
+    const discoveryResult = await discoverMcpMetadata(serverUrl, logger);
+    if (discoveryResult.success && discoveryResult.metadata) {
+      logger?.info({ serverUrl }, 'MCP OAuth support confirmed via metadata discovery');
+      return true;
     }
   } catch (discoveryError) {
-    logger?.debug({ toolId, discoveryError }, 'OAuth endpoint discovery failed');
+    logger?.debug({ discoveryError }, 'MCP OAuth metadata discovery failed');
   }
 
-  try {
-    const response = await fetch(serverUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'initialize',
-        id: 1,
-        params: { protocolVersion: '2024-11-05', capabilities: {} },
-      }),
-    });
-
-    if (response.status === 401) {
-      const wwwAuth = response.headers.get('WWW-Authenticate');
-      if (wwwAuth) {
-        // Only trigger OAuth for very specific patterns that indicate actual OAuth flows
-        const authLower = wwwAuth.toLowerCase();
-        const hasActiveOAuthFlow =
-          authLower.includes('authorization_uri') ||
-          authLower.includes('as_uri=') ||
-          (authLower.includes('bearer') &&
-            (authLower.includes('scope=') || authLower.includes('error_uri=')));
-
-        if (hasActiveOAuthFlow) {
-          logger?.info(
-            { toolId, wwwAuth },
-            'Active OAuth flow detected via WWW-Authenticate parameters'
-          );
-          return true;
-        } else {
-          logger?.debug(
-            { toolId, wwwAuth },
-            'Bearer authentication detected - likely simple token auth, not OAuth'
-          );
-        }
-      }
-    }
-  } catch (fetchError) {
-    logger?.debug({ toolId, fetchError }, 'Direct fetch authentication check failed');
-  }
-
-  // If no OAuth-specific patterns are found, return false
-  // This prevents simple bearer token auth from triggering OAuth flows
   logger?.debug(
-    { toolId, error: error.message },
-    'No OAuth 2.1/PKCE authentication requirement detected'
+    { error: error?.message },
+    'No MCP OAuth authentication requirement detected'
   );
   return false;
 };

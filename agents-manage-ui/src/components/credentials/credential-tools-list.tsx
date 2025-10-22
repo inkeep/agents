@@ -1,6 +1,7 @@
+import type { McpTool } from '@inkeep/agents-core';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
-import type { McpTool } from '@inkeep/agents-core';
+import { InfoCard } from '../ui/info-card';
 
 interface CredentialToolsListProps {
   tools?: McpTool[];
@@ -68,9 +69,9 @@ export function CredentialToolsList({
           ))}
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground p-3 py-2 bg-gray-100/80 dark:bg-sidebar rounded-md">
-          No MCP servers are currently using this credential
-        </div>
+        <InfoCard>
+          <p>No MCP servers are currently using this credential</p>
+        </InfoCard>
       )}
     </div>
   );

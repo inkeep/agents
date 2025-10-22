@@ -26,9 +26,7 @@ interface CredentialOption {
 
 async function NewCredentialsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new'>) {
   const { tenantId, projectId } = await params;
 
   const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
@@ -86,7 +84,8 @@ async function NewCredentialsPage({
         <div className="text-muted-foreground text-sm font-normal space-y-2">
           <p className="mb-8">Create credentials for your MCP servers.</p>
           <p>
-            Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is available.
+            Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
+            available.
             <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
               Learn more
             </ExternalLink>

@@ -1,6 +1,9 @@
 import type { Node } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -64,11 +67,19 @@ export function SubAgentNodeEditor({
   }>();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
+  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
-  const { updatePath, updateNestedPath, getFieldError, setFieldRef } = useNodeEditor({
+  const {
+    updatePath,
+    updateNestedPath,
+    getFieldError,
+    setFieldRef,
+    updateDefaultSubAgent,
+    deleteNode,
+  } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
@@ -145,6 +156,21 @@ export function SubAgentNodeEditor({
         {getFieldError('prompt') && (
           <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
         )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="is-default-sub-agent"
+            checked={isDefaultSubAgent}
+            onCheckedChange={(checked) => {
+              updateDefaultSubAgent(checked === true);
+            }}
+          />
+          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          The default sub agent is the initial entry point for conversations.
+        </p>
       </div>
       <Separator />
       <ModelSection
@@ -225,6 +251,17 @@ export function SubAgentNodeEditor({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
       />
+      {!isDefaultSubAgent && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -21,7 +21,7 @@ import { preview } from '@inkeep/agents-core';
 
 export const citation = artifactComponent({
   id: "citation",
-  name: "Citation",
+  name: "citation",
   description: "Structured factual information extracted from search results",
   props: z.object({
     title: preview(z.string().describe("Title of the source document")),
@@ -44,6 +44,30 @@ export const citation = artifactComponent({
 <Callout>
 JSON Schema is also supported. Set `inPreview: true` on properties instead of using `preview()`.
 </Callout>
+
+## Schema Requirements
+
+<Callout type="warning">
+**Critical**: Artifact schemas must match your tool's output structure. The system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+</Callout>
+
+```typescript
+// ❌ WRONG: Tool returns text, schema expects structured data
+// Tool output: { result: { content: [{ text: "Weather: Sunny, 75°F" }] } }
+props: z.object({
+  temperature: z.number(), // ❌ Cannot extract number from text
+  condition: z.string()    // ❌ Cannot extract condition from text  
+})
+
+// ✅ CORRECT: Tool returns structured data matching schema  
+// Tool output: { result: { temperature: 75, condition: "Sunny" } }
+props: z.object({
+  temperature: z.number(),
+  condition: z.string()
+})
+```
+
+Use OpenTelemetry traces to debug schema validation issues.
 
 ## Preview Fields
 
@@ -95,7 +119,7 @@ const searchAgent = agent({
 
 ## Citation Artifacts
 
-Citation artifacts with `title`, `url`, and `record_type` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
+Citation artifacts that are named `citation` and have `title` and `url` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
 
 <img
   src="/images/citation-widget-example.png"
@@ -119,8 +143,8 @@ const searchAgent = subAgent({
   prompt: "Search for information and cite sources using artifacts.",
   artifactComponents: [
     {
-      id: "document",
-      name: "Document",
+      id: "citation",
+      name: "citation",
       description: "Search result document",
       props: z.object({
         title: preview(z.string().describe("Document title")),

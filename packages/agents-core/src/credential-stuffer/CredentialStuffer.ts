@@ -39,6 +39,7 @@ export interface CredentialData {
   headers: Record<string, string>;
   /** Additional metadata for the credentials */
   metadata?: Record<string, any>;
+  expiresAt?: Date;
 }
 
 /**
