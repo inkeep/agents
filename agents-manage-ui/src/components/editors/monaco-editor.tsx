@@ -193,7 +193,9 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-3 py-3'
+        !monaco && 'px-3 py-4',
+        // Fixes cursor blinking at the beginning of the line
+        '[&_.native-edit-context]:caret-transparent'
       )}
       {...props}
       ref={containerRef}

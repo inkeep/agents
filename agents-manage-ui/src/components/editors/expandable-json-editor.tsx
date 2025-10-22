@@ -75,6 +75,7 @@ export function ExpandableJsonEditor({
     onChange,
     !!(externalError || internalError)
   );
+  const [open, setOpen] = useState(false);
 
   const error = externalError || internalError;
 
@@ -91,25 +92,29 @@ export function ExpandableJsonEditor({
     </Button>
   );
 
-  const commonProps = {
-    id: name,
-    value,
-    onChange,
-    placeholder,
-    'aria-invalid': !!error,
-  };
-
   return (
-    <ExpandableField name={name} label={label} className={className} actions={formatButton}>
+    <ExpandableField
+      open={open}
+      onOpenChange={setOpen}
+      name={name}
+      label={label}
+      className={className}
+      actions={formatButton}
+    >
       <JsonEditor
-        {...commonProps}
+        id={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        aria-invalid={!!error}
         editorOptions={{
           padding: {
             top: 12,
-            bottom: 36,
+            bottom: 46,
           },
         }}
         className={cn(error && 'max-h-96 mb-6')}
+        hasDynamicHeight={!open}
       />
       {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
     </ExpandableField>

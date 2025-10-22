@@ -63,9 +63,15 @@ export function ExpandablePromptEditor({
       }
     >
       <PromptEditor
-        uri={`${open}-${props.id}.template`}
+        uri={`${open ? 'small' : 'full'}-${props.id}.template`}
         hasDynamicHeight={!open}
         className={cn(!open && 'max-h-96', className)}
+        editorOptions={{
+          padding: {
+            top: 12,
+            bottom: 46,
+          },
+        }}
         {...props}
       />
     </ExpandableField>

@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  type ComponentProps,
-  type FC,
-  useCallback,
-  useId,
-  useState,
-  useEffect,
-} from 'react';
+import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
 import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
@@ -96,10 +89,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
       uri={uri}
       onMount={handleOnMount}
       editorOptions={{
-        padding: {
-          top: 12,
-          bottom: 36,
-        },
         autoClosingBrackets: 'never',
         renderLineHighlight: 'none', // disable active line highlight
         ...editorOptions,
