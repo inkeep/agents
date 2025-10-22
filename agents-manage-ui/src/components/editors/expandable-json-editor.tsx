@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'react';
+import { type ComponentPropsWithoutRef, useEffect, useState } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
@@ -51,15 +51,6 @@ const useJsonFormat = (value: string, onChange: (value: string) => void, hasErro
   return { handleFormat, canFormat: !hasError && !!value?.trim() };
 };
 
-const ExpandedJsonEditor: FC<JsonEditorProps & { error?: string }> = ({ error, id, ...props }) => {
-  return (
-    <>
-      <JsonEditor {...props} id={`${id}-expanded`} />
-      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-    </>
-  );
-};
-
 export function ExpandableJsonEditor({
   name,
   value,
@@ -107,12 +98,6 @@ export function ExpandableJsonEditor({
         onChange={onChange}
         placeholder={placeholder}
         aria-invalid={!!error}
-        editorOptions={{
-          padding: {
-            top: 12,
-            bottom: 46,
-          },
-        }}
         className={cn(error && 'max-h-96 mb-6')}
         hasDynamicHeight={!open}
       />

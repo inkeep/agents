@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentPropsWithoutRef, type FC, useState } from 'react';
+import { type ComponentPropsWithoutRef, useState } from 'react';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { cn } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
@@ -17,15 +17,6 @@ interface ExpandableCodeEditorProps {
   error?: string;
   placeholder?: CodeEditorProps['placeholder'];
 }
-
-const ExpandedCodeEditor: FC<CodeEditorProps & { error?: string }> = ({ error, id, ...props }) => {
-  return (
-    <>
-      <CodeEditor {...props} id={`${id}-expanded`} />
-      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-    </>
-  );
-};
 
 export function ExpandableCodeEditor({
   name,
@@ -54,12 +45,6 @@ export function ExpandableCodeEditor({
         onChange={onChange}
         placeholder={placeholder}
         aria-invalid={!!error}
-        editorOptions={{
-          padding: {
-            top: 12,
-            bottom: 46,
-          },
-        }}
         hasDynamicHeight={!open}
         className={cn(error && 'max-h-96 mb-6')}
       />
