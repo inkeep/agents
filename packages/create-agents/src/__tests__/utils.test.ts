@@ -85,7 +85,7 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use activity-planner as default template and project ID', async () => {
+    it('should use activies-planner as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
@@ -99,8 +99,8 @@ describe('createAgents - Template and Project ID Logic', () => {
         expect.any(String)
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/activity-planner',
-        'src/projects/activity-planner',
+        'https://github.com/inkeep/agents-cookbook/template-projects/activities-planner',
+        'src/projects/activities-planner',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
