@@ -16,7 +16,8 @@
       "@inkeep/agent-framework": ["../configuration/dist/index.js"],
       "@inkeep/agent-framework/*": ["../configuration/dist/*"],
       "@inkeep/agents-cli": ["../cli/dist/exports.js"],
-      "@inkeep/agents-cli/*": ["../cli/dist/*"]
+      "@inkeep/agents-cli/*": ["../cli/dist/*"],
+      "@schema": ["./activities-planner/data-components/activities/schema"]
     }
   },
   "exclude": ["node_modules", "dist"]

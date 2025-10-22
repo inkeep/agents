@@ -995,6 +995,7 @@ export const getFullProject =
             name: component.name,
             description: component.description,
             props: component.props,
+            render: component.render,
           };
         }
         logger.info(

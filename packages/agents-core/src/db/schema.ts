@@ -265,9 +265,9 @@ export const dataComponents = sqliteTable(
     ...projectScoped,
     ...uiProperties,
     props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    preview: blob('preview', { mode: 'json' }).$type<{
-      code: string;
-      data: Record<string, unknown>;
+    render: blob('render', { mode: 'json' }).$type<{
+      component: string;
+      mockData: Record<string, unknown>;
     }>(),
     ...timestamps,
   },

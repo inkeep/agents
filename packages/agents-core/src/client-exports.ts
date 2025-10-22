@@ -142,6 +142,13 @@ export const DataComponentApiInsertSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   props: z.record(z.string(), z.unknown()),
+  render: z
+    .object({
+      component: z.string(),
+      mockData: z.record(z.string(), z.unknown()),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
