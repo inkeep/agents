@@ -2,11 +2,9 @@ import { ArtifactComponentForm } from '@/components/artifact-components/form/art
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 
-interface NewArtifactComponentPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function NewArtifactComponentPage({ params }: NewArtifactComponentPageProps) {
+async function NewArtifactComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/artifacts/new'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate

@@ -180,7 +180,6 @@ export const subAgentRelations = sqliteTable(
     ...agentScoped,
     sourceSubAgentId: text('source_sub_agent_id').notNull(),
     targetSubAgentId: text('target_sub_agent_id'),
-    externalSubAgentId: text('external_sub_agent_id'),
     relationType: text('relation_type'),
     ...timestamps,
   },
@@ -197,19 +196,18 @@ export const subAgentRelations = sqliteTable(
 export const externalAgents = sqliteTable(
   'external_agents',
   {
-    ...agentScoped,
+    ...projectScoped,
     ...uiProperties,
     baseUrl: text('base_url').notNull(),
     credentialReferenceId: text('credential_reference_id'),
-    headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'external_agents_agent_fk',
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'external_agents_project_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.credentialReferenceId],
@@ -453,6 +451,52 @@ export const subAgentToolRelations = sqliteTable(
   ]
 );
 
+export const subAgentExternalAgentRelations = sqliteTable(
+  'sub_agent_external_agent_relations',
+  {
+    ...subAgentScoped,
+    externalAgentId: text('external_agent_id').notNull(),
+    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+      name: 'sub_agent_external_agent_relations_sub_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.externalAgentId],
+      foreignColumns: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
+      name: 'sub_agent_external_agent_relations_external_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const subAgentTeamAgentRelations = sqliteTable(
+  'sub_agent_team_agent_relations',
+  {
+    ...subAgentScoped,
+    targetAgentId: text('target_agent_id').notNull(),
+    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+      name: 'sub_agent_team_agent_relations_sub_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.targetAgentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'sub_agent_team_agent_relations_target_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const subAgentFunctionToolRelations = sqliteTable(
   'sub_agent_function_tool_relations',
   {
@@ -515,6 +559,9 @@ export const messages = sqliteTable(
     fromExternalAgentId: text('from_external_sub_agent_id'),
 
     toExternalAgentId: text('to_external_sub_agent_id'),
+
+    fromTeamAgentId: text('from_team_agent_id'),
+    toTeamAgentId: text('to_team_agent_id'),
 
     content: blob('content', { mode: 'json' }).$type<MessageContent>().notNull(),
 
@@ -742,7 +789,7 @@ export const externalAgentsRelations = relations(externalAgents, ({ one, many })
     fields: [externalAgents.tenantId, externalAgents.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  subAgentRelations: many(subAgentRelations),
+  subAgentExternalAgentRelations: many(subAgentExternalAgentRelations),
   credentialReference: one(credentialReferences, {
     fields: [externalAgents.credentialReferenceId],
     references: [credentialReferences.id],
@@ -819,14 +866,24 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     references: [subAgents.id],
     relationName: 'receivedMessages',
   }),
+  fromTeamAgent: one(agents, {
+    fields: [messages.fromTeamAgentId],
+    references: [agents.id],
+    relationName: 'receivedTeamMessages',
+  }),
+  toTeamAgent: one(agents, {
+    fields: [messages.toTeamAgentId],
+    references: [agents.id],
+    relationName: 'sentTeamMessages',
+  }),
   fromExternalAgent: one(externalAgents, {
-    fields: [messages.fromExternalAgentId],
-    references: [externalAgents.id],
+    fields: [messages.tenantId, messages.projectId, messages.fromExternalAgentId],
+    references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
     relationName: 'receivedExternalMessages',
   }),
   toExternalAgent: one(externalAgents, {
-    fields: [messages.toExternalAgentId],
-    references: [externalAgents.id],
+    fields: [messages.tenantId, messages.projectId, messages.toExternalAgentId],
+    references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
     relationName: 'sentExternalMessages',
   }),
   task: one(tasks, {
@@ -918,10 +975,6 @@ export const subAgentRelationsRelations = relations(subAgentRelations, ({ one })
     references: [subAgents.id],
     relationName: 'targetRelations',
   }),
-  externalAgent: one(externalAgents, {
-    fields: [subAgentRelations.externalSubAgentId],
-    references: [externalAgents.id],
-  }),
 }));
 
 // FunctionTools relations
@@ -952,6 +1005,53 @@ export const subAgentFunctionToolRelationsRelations = relations(
     functionTool: one(functionTools, {
       fields: [subAgentFunctionToolRelations.functionToolId],
       references: [functionTools.id],
+    }),
+  })
+);
+
+// SubAgentExternalAgentRelations relations
+export const subAgentExternalAgentRelationsRelations = relations(
+  subAgentExternalAgentRelations,
+  ({ one }) => ({
+    subAgent: one(subAgents, {
+      fields: [
+        subAgentExternalAgentRelations.tenantId,
+        subAgentExternalAgentRelations.projectId,
+        subAgentExternalAgentRelations.agentId,
+        subAgentExternalAgentRelations.subAgentId,
+      ],
+      references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+    }),
+    externalAgent: one(externalAgents, {
+      fields: [
+        subAgentExternalAgentRelations.tenantId,
+        subAgentExternalAgentRelations.projectId,
+        subAgentExternalAgentRelations.externalAgentId,
+      ],
+      references: [externalAgents.tenantId, externalAgents.projectId, externalAgents.id],
+    }),
+  })
+);
+
+export const subAgentTeamAgentRelationsRelations = relations(
+  subAgentTeamAgentRelations,
+  ({ one }) => ({
+    subAgent: one(subAgents, {
+      fields: [
+        subAgentTeamAgentRelations.tenantId,
+        subAgentTeamAgentRelations.projectId,
+        subAgentTeamAgentRelations.agentId,
+        subAgentTeamAgentRelations.subAgentId,
+      ],
+      references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+    }),
+    targetAgent: one(agents, {
+      fields: [
+        subAgentTeamAgentRelations.tenantId,
+        subAgentTeamAgentRelations.projectId,
+        subAgentTeamAgentRelations.targetAgentId,
+      ],
+      references: [agents.tenantId, agents.projectId, agents.id],
     }),
   })
 );

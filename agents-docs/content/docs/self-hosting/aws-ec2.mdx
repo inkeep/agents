@@ -100,6 +100,7 @@ cp .env.docker.example .env
 
 Here's an overview of the important environment variables when deploying to production. Make sure to replace all of these in the `.env` file.
 ```bash
+# Change to "production" if deploying to production
 ENVIRONMENT=production
 
 # AI Provider Keys (you need at least one)
@@ -113,11 +114,12 @@ NANGO_SECRET_KEY=
 # SigNoz
 SIGNOZ_API_KEY=
 
-# Create each of these with (openssl rand -hex 32)
+# Uncomment and set each of these with (openssl rand -hex 32)
 INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+INKEEP_AGENTS_JWT_SIGNING_SECRET=
 
-# Production Environment Variables for Manage UI at http://<vm_external_ip>:3000
+# Uncomment and set these for the Manage UI at http://<vm_external_ip>:3000
 PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://<vm_external_ip>:3002
 PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://<vm_external_ip>:3003
 PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<copy INKEEP_AGENTS_RUN_API_BYPASS_SECRET>
@@ -125,7 +127,7 @@ PUBLIC_NANGO_SERVER_URL=http://<vm_external_ip>:3050
 PUBLIC_NANGO_CONNECT_BASE_URL=http://<vm_external_ip>:3051
 PUBLIC_SIGNOZ_URL=http://<vm_external_ip>:3080
 
-# Modify these in production environments!
+# Uncomment and set these to access Manage UI at http://<vm_external_ip>:3000
 INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
 INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
 ```

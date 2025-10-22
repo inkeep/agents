@@ -68,7 +68,7 @@ export function useNangoConnect() {
         return result;
       } catch (error) {
         if (error instanceof Error) {
-          throw new Error(`Nango headless auth failed: ${error.message}`);
+          throw new Error(`Authentication failed: ${error.message}`);
         }
         throw error;
       }

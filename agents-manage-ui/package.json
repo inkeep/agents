@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.23.5",
+  "version": "0.26.2",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -35,7 +35,7 @@
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "format:check": "biome format",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "test": "vitest --run",
     "test:coverage": "vitest --run --coverage"

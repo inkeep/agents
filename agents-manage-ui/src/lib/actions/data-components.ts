@@ -122,7 +122,6 @@ export async function deleteDataComponentAction(
   try {
     await deleteDataComponent(tenantId, projectId, dataComponentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/components`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/components/${dataComponentId}`);
     return {
       success: true,
     };

@@ -193,7 +193,11 @@ async function handleMessageSend(
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
-    if (params.message.metadata?.fromSubAgentId || params.message.metadata?.fromExternalAgentId) {
+    if (
+      params.message.metadata?.fromSubAgentId ||
+      params.message.metadata?.fromExternalAgentId ||
+      params.message.metadata?.fromTeamAgentId
+    ) {
       const messageText = params.message.parts
         .filter((part) => part.kind === 'text' && 'text' in part && part.text)
         .map((part) => (part as any).text)
@@ -220,6 +224,9 @@ async function handleMessageSend(
         } else if (params.message.metadata?.fromExternalAgentId) {
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
           messageData.toSubAgentId = agent.subAgentId;
+        } else if (params.message.metadata?.fromTeamAgentId) {
+          messageData.fromTeamAgentId = params.message.metadata.fromTeamAgentId;
+          messageData.toTeamAgentId = agent.subAgentId;
         }
 
         await createMessage(dbClient)(messageData);
@@ -228,7 +235,9 @@ async function handleMessageSend(
           {
             fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
+            fromTeamAgentId: params.message.metadata.fromTeamAgentId,
             toSubAgentId: agent.subAgentId,
+            toTeamAgentId: params.message.metadata.fromTeamAgentId ? agent.subAgentId : undefined,
             conversationId: effectiveContextId,
             messageType: 'a2a-request',
             taskId: task.id,
@@ -241,6 +250,7 @@ async function handleMessageSend(
             error,
             fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
+            fromTeamAgentId: params.message.metadata.fromTeamAgentId,
             toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
           },

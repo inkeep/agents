@@ -1,25 +1,20 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
-import { ANTHROPIC_MODELS } from '@inkeep/agents-core';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import type { FullProjectDefinition, ModelSettings } from '@inkeep/agents-core';
+
+import chalk from 'chalk';
 import { ManagementApiClient } from '../api';
+import {
+  DEFAULT_NAMING_CONVENTIONS,
+  VariableNameGenerator,
+} from '../codegen/variable-name-registry';
 import type { NestedInkeepConfig } from '../config';
-import { env } from '../env';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { loadConfig } from '../utils/config';
 import { findProjectDirectory } from '../utils/project-directory';
 import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { performBackgroundVersionCheck } from '../utils/background-version-check';
-import {
-  generateAgentFile,
-  generateArtifactComponentFile,
-  generateDataComponentFile,
-  generateEnvironmentFiles,
-  generateIndexFile,
-  generateToolFile,
-} from './pull.llm-generate';
-import { VariableNameGenerator, DEFAULT_NAMING_CONVENTIONS } from '../codegen/variable-name-registry';
+
 export interface PullOptions {
   project?: string;
   config?: string;
@@ -273,6 +268,119 @@ async function verifyGeneratedFiles(
 }
 
 /**
+ * Perform round-trip validation by loading generated TypeScript and comparing
+ * with original backend data
+ *
+ * This validation ensures that the generated TypeScript files can be:
+ * 1. Successfully loaded and imported
+ * 2. Serialized back to JSON using the same logic as `inkeep push`
+ * 3. The serialized JSON matches the original data from the backend
+ *
+ * This reuses the exact conversion logic from push, eliminating code duplication.
+ */
+async function roundTripValidation(
+  projectDir: string,
+  originalProjectData: FullProjectDefinition,
+  config: { tenantId: string; agentsManageApiUrl: string; agentsManageApiKey?: string },
+  debug: boolean = false
+): Promise<VerificationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    if (debug) {
+      console.log(chalk.gray('\n[DEBUG] Starting round-trip validation...'));
+      console.log(chalk.gray(`  • Loading project from: ${projectDir}`));
+    }
+
+    // Import shared utilities
+    const { loadProject } = await import('../utils/project-loader');
+    const { compareProjectDefinitions } = await import('../utils/json-comparison');
+
+    // Set environment variables temporarily for project loading
+    const originalTenantId = process.env.INKEEP_TENANT_ID;
+    const originalApiUrl = process.env.INKEEP_API_URL;
+
+    process.env.INKEEP_TENANT_ID = config.tenantId;
+    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+
+    // Load the generated TypeScript project
+    let project;
+    try {
+      project = await loadProject(projectDir);
+      if (debug) {
+        console.log(chalk.gray(`  • Project loaded successfully: ${project.getId()}`));
+      }
+    } catch (loadError: any) {
+      errors.push(`Failed to load generated project: ${loadError.message}`);
+      return { success: false, errors, warnings };
+    } finally {
+      // Restore original environment variables
+      if (originalTenantId !== undefined) {
+        process.env.INKEEP_TENANT_ID = originalTenantId;
+      } else {
+        delete process.env.INKEEP_TENANT_ID;
+      }
+      if (originalApiUrl !== undefined) {
+        process.env.INKEEP_API_URL = originalApiUrl;
+      } else {
+        delete process.env.INKEEP_API_URL;
+      }
+    }
+
+    // Set configuration on the loaded project (same as push does)
+    if (typeof project.setConfig === 'function') {
+      project.setConfig(
+        config.tenantId,
+        config.agentsManageApiUrl,
+        undefined, // models - come from project definition
+        config.agentsManageApiKey
+      );
+    }
+
+    // Get the full definition (same as push does via toFullProjectDefinition())
+    let generatedDefinition;
+    try {
+      generatedDefinition = await project.getFullDefinition();
+      if (debug) {
+        console.log(chalk.gray(`  • Generated definition serialized successfully`));
+        console.log(chalk.gray(`    - Agents: ${Object.keys(generatedDefinition.agents || {}).length}`));
+        console.log(chalk.gray(`    - Tools: ${Object.keys(generatedDefinition.tools || {}).length}`));
+      }
+    } catch (serializeError: any) {
+      errors.push(`Failed to serialize generated project: ${serializeError.message}`);
+      return { success: false, errors, warnings };
+    }
+
+    // Compare the generated definition with the original
+    const comparisonResult = compareProjectDefinitions(originalProjectData, generatedDefinition);
+
+    if (debug) {
+      console.log(chalk.gray(`  • Comparison complete:`));
+      console.log(chalk.gray(`    - Matches: ${comparisonResult.matches}`));
+      console.log(chalk.gray(`    - Differences: ${comparisonResult.differences.length}`));
+      console.log(chalk.gray(`    - Warnings: ${comparisonResult.warnings.length}`));
+    }
+
+    // Accumulate differences and warnings
+    errors.push(...comparisonResult.differences);
+    warnings.push(...comparisonResult.warnings);
+
+    return {
+      success: comparisonResult.matches && errors.length === 0,
+      errors,
+      warnings,
+    };
+  } catch (error: any) {
+    errors.push(`Round-trip validation failed: ${error.message}`);
+    if (debug) {
+      console.log(chalk.red(`[DEBUG] Round-trip validation error: ${error.stack}`));
+    }
+    return { success: false, errors, warnings };
+  }
+}
+
+/**
  * Load and validate inkeep.config.ts using the centralized config loader
  * Converts normalized config to nested format for backward compatibility
  */
@@ -338,6 +446,7 @@ function createProjectStructure(
   artifactComponentsDir: string;
   statusComponentsDir: string;
   environmentsDir: string;
+  externalAgentsDir: string;
 } {
   // In directory-aware mode, use the current directory as-is
   let projectRoot: string;
@@ -355,6 +464,7 @@ function createProjectStructure(
   const artifactComponentsDir = join(projectRoot, 'artifact-components');
   const statusComponentsDir = join(projectRoot, 'status-components');
   const environmentsDir = join(projectRoot, 'environments');
+  const externalAgentsDir = join(projectRoot, 'external-agents');
 
   // Create all directories
   ensureDirectoryExists(projectRoot);
@@ -364,6 +474,7 @@ function createProjectStructure(
   ensureDirectoryExists(artifactComponentsDir);
   ensureDirectoryExists(statusComponentsDir);
   ensureDirectoryExists(environmentsDir);
+  ensureDirectoryExists(externalAgentsDir);
 
   return {
     projectRoot,
@@ -373,197 +484,8 @@ function createProjectStructure(
     artifactComponentsDir,
     statusComponentsDir,
     environmentsDir,
+    externalAgentsDir,
   };
-}
-
-/**
- * Generate project files using LLM based on backend data
- */
-async function _generateProjectFiles(
-  dirs: {
-    projectRoot: string;
-    agentsDir: string;
-    toolsDir: string;
-    dataComponentsDir: string;
-    artifactComponentsDir: string;
-    environmentsDir: string;
-  },
-  projectData: FullProjectDefinition,
-  modelSettings: ModelSettings,
-  environment: string = 'development',
-  debug: boolean = false
-): Promise<void> {
-  const { agents, tools, dataComponents, artifactComponents, credentialReferences } = projectData;
-
-  // Prepare all generation tasks
-  const generationTasks: Promise<void>[] = [];
-  const fileInfo: { type: string; name: string }[] = [];
-
-  // Create filename generator for consistent naming
-  const filenameGenerator = new VariableNameGenerator(DEFAULT_NAMING_CONVENTIONS);
-
-  // Build filename mappings for tools and components
-  const toolFilenames = new Map<string, string>();
-  const componentFilenames = new Map<string, string>();
-
-  // Collect tool filenames
-  if (tools && Object.keys(tools).length > 0) {
-    for (const [toolId, toolData] of Object.entries(tools)) {
-      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
-      toolFilenames.set(toolId, fileName);
-    }
-  }
-
-  // Collect component filenames (data, artifact, status components)
-  if (dataComponents && Object.keys(dataComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
-      componentFilenames.set(componentId, fileName);
-    }
-  }
-  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
-      componentFilenames.set(componentId, fileName);
-    }
-  }
-  // TODO: Add status components when they become available in projectData
-  // TODO: Add credentials/environments when they have their own component structure
-
-  // Add index.ts generation task
-  const indexPath = join(dirs.projectRoot, 'index.ts');
-  generationTasks.push(generateIndexFile(projectData, indexPath, modelSettings));
-  fileInfo.push({ type: 'config', name: 'index.ts' });
-
-  // Add agent generation tasks
-  if (agents && Object.keys(agents).length > 0) {
-    for (const [agentId, agentData] of Object.entries(agents)) {
-      const fileName = filenameGenerator.generateFileName(agentId, 'agent', agentData);
-      const agentPath = join(dirs.agentsDir, `${fileName}.ts`);
-      generationTasks.push(generateAgentFile(agentData, agentId, agentPath, modelSettings, toolFilenames, componentFilenames));
-      fileInfo.push({ type: 'agent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add tool generation tasks
-  if (tools && Object.keys(tools).length > 0) {
-    for (const [toolId, toolData] of Object.entries(tools)) {
-      const fileName = filenameGenerator.generateFileName(toolId, 'tool', toolData);
-      const toolPath = join(dirs.toolsDir, `${fileName}.ts`);
-      generationTasks.push(generateToolFile(toolData, toolId, toolPath, modelSettings));
-      fileInfo.push({ type: 'tool', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add data component generation tasks
-  if (dataComponents && Object.keys(dataComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(dataComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'dataComponent', componentData);
-      const componentPath = join(dirs.dataComponentsDir, `${fileName}.ts`);
-      generationTasks.push(
-        generateDataComponentFile(componentData, componentId, componentPath, modelSettings)
-      );
-      fileInfo.push({ type: 'dataComponent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add artifact component generation tasks
-  if (artifactComponents && Object.keys(artifactComponents).length > 0) {
-    for (const [componentId, componentData] of Object.entries(artifactComponents)) {
-      const fileName = filenameGenerator.generateFileName(componentId, 'artifactComponent', componentData);
-      const componentPath = join(dirs.artifactComponentsDir, `${fileName}.ts`);
-      generationTasks.push(
-        generateArtifactComponentFile(componentData, componentId, componentPath, modelSettings)
-      );
-      fileInfo.push({ type: 'artifactComponent', name: `${fileName}.ts` });
-    }
-  }
-
-  // Add environment files generation with actual credential data
-  const targetEnvironment = environment;
-  generationTasks.push(
-    generateEnvironmentFiles(dirs.environmentsDir, credentialReferences, targetEnvironment)
-  );
-  fileInfo.push({ type: 'env', name: `index.ts, ${targetEnvironment}.env.ts` });
-
-  // Display what we're generating
-  console.log(chalk.cyan('  📝 Generating files in parallel:'));
-  const filesByType = fileInfo.reduce(
-    (acc, file) => {
-      if (!acc[file.type]) acc[file.type] = [];
-      acc[file.type].push(file.name);
-      return acc;
-    },
-    {} as Record<string, string[]>
-  );
-
-  if (filesByType.config) {
-    console.log(chalk.gray(`     • Config files: ${filesByType.config.join(', ')}`));
-  }
-  if (filesByType.agent) {
-    console.log(chalk.gray(`     • Agent: ${filesByType.agent.join(', ')}`));
-  }
-  if (filesByType.tool) {
-    console.log(chalk.gray(`     • Tools: ${filesByType.tool.join(', ')}`));
-  }
-  if (filesByType.dataComponent) {
-    console.log(chalk.gray(`     • Data components: ${filesByType.dataComponent.join(', ')}`));
-  }
-  if (filesByType.artifactComponent) {
-    console.log(
-      chalk.gray(`     • Artifact components: ${filesByType.artifactComponent.join(', ')}`)
-    );
-  }
-  if (filesByType.env) {
-    console.log(chalk.gray(`     • Environment: ${filesByType.env.join(', ')}`));
-  }
-
-  // Execute all tasks in parallel
-  console.log(chalk.yellow(`  ⚡ Processing ${generationTasks.length} files in parallel...`));
-
-  if (debug) {
-    console.log(chalk.gray('\n📍 Debug: Starting LLM file generation...'));
-    console.log(chalk.gray(`  Model: ${modelSettings.model}`));
-    console.log(chalk.gray(`  Total tasks: ${generationTasks.length}`));
-
-    // Execute with progress tracking in debug mode
-    const startTime = Date.now();
-    try {
-      await Promise.all(
-        generationTasks.map(async (task, index) => {
-          const taskStartTime = Date.now();
-          if (debug) {
-            const taskInfo = fileInfo[index];
-            console.log(
-              chalk.gray(
-                `  [${index + 1}/${generationTasks.length}] Starting ${taskInfo.type}: ${taskInfo.name}`
-              )
-            );
-          }
-          await task;
-          if (debug) {
-            const taskInfo = fileInfo[index];
-            const taskDuration = Date.now() - taskStartTime;
-            console.log(
-              chalk.gray(
-                `  [${index + 1}/${generationTasks.length}] ✓ Completed ${taskInfo.type}: ${taskInfo.name} (${taskDuration}ms)`
-              )
-            );
-          }
-        })
-      );
-    } catch (error) {
-      if (debug) {
-        console.error(chalk.red('📍 Debug: LLM generation error:'), error);
-      }
-      throw error;
-    }
-
-    const totalDuration = Date.now() - startTime;
-    console.log(chalk.gray(`\n📍 Debug: LLM generation completed in ${totalDuration}ms`));
-  } else {
-    await Promise.all(generationTasks);
-  }
 }
 
 /**
@@ -578,11 +500,13 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
   try {
     const { detectAvailableProvider } = await import('./pull.llm-generate');
     provider = detectAvailableProvider();
-    console.log(chalk.gray(`\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`));
-  } catch (error: any) {
-    console.error(
-      chalk.red('\n❌ Error: No LLM provider API key found')
+    console.log(
+      chalk.gray(
+        `\n🤖 Using ${provider.charAt(0).toUpperCase() + provider.slice(1)} for code generation`
+      )
     );
+  } catch (error: any) {
+    console.error(chalk.red('\n❌ Error: No LLM provider API key found'));
     console.error(
       chalk.yellow(
         '\nThe pull command requires AI to generate TypeScript files from your project configuration.'
@@ -809,6 +733,14 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       return total + statusComponents.length;
     }, 0);
 
+    const externalAgentCount = Object.keys(projectData.externalAgents || {}).reduce(
+      (total, agent) => {
+        const agentObj = agent as any;
+        return total + Object.keys(agentObj.subAgents || {}).length;
+      },
+      0
+    );
+
     console.log(chalk.cyan('\n📊 Project Summary:'));
     console.log(chalk.gray(`  • Name: ${projectData.name}`));
     console.log(chalk.gray(`  • Description: ${projectData.description || 'No description'}`));
@@ -823,6 +755,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (statusComponentCount > 0) {
       console.log(chalk.gray(`  • Status Components: ${statusComponentCount}`));
+    }
+    if (externalAgentCount > 0) {
+      console.log(chalk.gray(`  • External Agents: ${externalAgentCount}`));
     }
 
     // Display credential tracking information
@@ -905,6 +840,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           hasAgentsDirectory: true,
           hasDataComponentsDirectory: true,
           hasArtifactComponentsDirectory: true,
+          hasExternalAgentsDirectory: true,
           hasEnvironmentsDirectory: true,
         },
         namingConventions: DEFAULT_NAMING_CONVENTIONS,
@@ -929,7 +865,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     // Step 2: Generate plan using LLM
     s.start('Generating file structure plan...');
     const { generatePlan } = await import('../codegen/plan-builder');
-    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import('./pull.llm-generate');
+    const { createModel, getDefaultModelForProvider, getModelConfigWithReasoning } = await import(
+      './pull.llm-generate'
+    );
 
     // Get model and reasoning config based on detected provider
     const selectedModel = getDefaultModelForProvider(provider);
@@ -941,11 +879,21 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
 
     if (options.debug) {
       console.log(chalk.gray(`\n📍 Debug: Model selected: ${selectedModel}`));
-      console.log(chalk.gray(`📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`));
+      console.log(
+        chalk.gray(
+          `📍 Debug: Reasoning enabled: ${Object.keys(reasoningConfig).length > 0 ? 'Yes' : 'No'}`
+        )
+      );
     }
 
     const targetEnvironment = options.env || 'development';
-    const plan = await generatePlan(projectData, patterns, modelSettings, createModel, targetEnvironment);
+    const plan = await generatePlan(
+      projectData,
+      patterns,
+      modelSettings,
+      createModel,
+      targetEnvironment
+    );
     s.stop('Generation plan created');
 
     // Step 3: Display plan and conflicts
@@ -994,6 +942,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       tools: Object.keys(projectData.tools || {}).length,
       dataComponents: Object.keys(projectData.dataComponents || {}).length,
       artifactComponents: Object.keys(projectData.artifactComponents || {}).length,
+      externalAgents: Object.keys(projectData.externalAgents || {}).length,
       statusComponents: statusComponentsCount,
     };
     const totalFiles =
@@ -1001,6 +950,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       fileCount.tools +
       fileCount.dataComponents +
       fileCount.artifactComponents +
+      fileCount.externalAgents +
       fileCount.statusComponents +
       5; // +1 for index.ts, +4 for environment files (index.ts, development.env.ts, staging.env.ts, production.env.ts)
 
@@ -1017,10 +967,64 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       if (verificationResult.success) {
         s.stop('Generated files verified successfully');
         if (options.debug && verificationResult.warnings.length > 0) {
-          console.log(chalk.yellow('\n⚠️  Verification warnings:'));
+          console.log(chalk.yellow('\n⚠️  File verification warnings:'));
           verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
+        }
+
+        // Perform round-trip validation: load TS and compare with original JSON
+        s.start('Performing round-trip validation...');
+        try {
+          const roundTripResult = await roundTripValidation(
+            dirs.projectRoot,
+            projectData,
+            {
+              tenantId: finalConfig.tenantId,
+              agentsManageApiUrl: finalConfig.agentsManageApiUrl,
+              agentsManageApiKey: finalConfig.agentsManageApiKey,
+            },
+            options.debug || false
+          );
+
+          if (roundTripResult.success) {
+            s.stop('Round-trip validation passed - generated TS matches backend data');
+            if (options.debug && roundTripResult.warnings.length > 0) {
+              console.log(chalk.yellow('\n⚠️  Round-trip validation warnings:'));
+              roundTripResult.warnings.forEach((warning) => {
+                console.log(chalk.gray(`  • ${warning}`));
+              });
+            }
+          } else {
+            s.stop('Round-trip validation failed');
+            console.error(chalk.red('\n❌ Round-trip validation errors:'));
+            console.error(
+              chalk.gray(
+                '   The generated TypeScript does not serialize back to match the original backend data.'
+              )
+            );
+            roundTripResult.errors.forEach((error) => {
+              console.error(chalk.red(`  • ${error}`));
+            });
+            if (roundTripResult.warnings.length > 0) {
+              console.log(chalk.yellow('\n⚠️  Round-trip validation warnings:'));
+              roundTripResult.warnings.forEach((warning) => {
+                console.log(chalk.gray(`  • ${warning}`));
+              });
+            }
+            console.log(
+              chalk.yellow(
+                '\n⚠️  This indicates an issue with LLM generation or schema mappings.'
+              )
+            );
+            console.log(chalk.gray('The generated files may not work correctly with `inkeep push`.'));
+          }
+        } catch (roundTripError: any) {
+          s.stop('Round-trip validation could not be completed');
+          console.error(chalk.yellow(`\nRound-trip validation error: ${roundTripError.message}`));
+          if (options.debug && roundTripError.stack) {
+            console.error(chalk.gray(roundTripError.stack));
+          }
         }
       } else {
         s.stop('Generated files verification failed');
@@ -1029,7 +1033,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           console.error(chalk.red(`  • ${error}`));
         });
         if (verificationResult.warnings.length > 0) {
-          console.log(chalk.yellow('\n⚠️  Verification warnings:'));
+          console.log(chalk.yellow('\n⚠️  File verification warnings:'));
           verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
@@ -1041,7 +1045,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           chalk.gray('This could indicate an issue with the LLM generation or schema mappings.')
         );
 
-        // Don't exit - still show success but warn user
+        // Don't run round-trip validation if basic verification failed
       }
     } catch (error: any) {
       s.stop('Verification failed');
@@ -1058,6 +1062,9 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
     }
     if (fileCount.tools > 0) {
       console.log(chalk.gray(`  ├── tools/ (${fileCount.tools} files)`));
+    }
+    if (fileCount.externalAgents > 0) {
+      console.log(chalk.gray(`  ├── external-agents/ (${fileCount.externalAgents} files)`));
     }
     if (fileCount.dataComponents > 0) {
       console.log(chalk.gray(`  ├── data-components/ (${fileCount.dataComponents} files)`));

@@ -39,6 +39,7 @@ export function displayPlanSummary(plan: GenerationPlan): void {
     dataComponent: [],
     artifactComponent: [],
     statusComponent: [],
+    externalAgent: [],
     environment: [],
   };
 
@@ -77,6 +78,13 @@ export function displayPlanSummary(plan: GenerationPlan): void {
         const badge = entity.id !== entity.variableName ? ` (id: "${entity.id}")` : '';
         console.log(chalk.gray(`        - ${entity.variableName}${badge}`));
       }
+    }
+  }
+
+  if (filesByType.externalAgent.length > 0) {
+    console.log(chalk.gray('\n  External Agents:'));
+    for (const file of filesByType.externalAgent) {
+      console.log(chalk.gray(`    • ${file.path}`));
     }
   }
 

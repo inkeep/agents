@@ -61,6 +61,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]), // No relations
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue({
             id: 'default-agent-1',
@@ -203,6 +209,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
+        },
         subAgents: {
           findFirst: vi
             .fn()
@@ -254,6 +266,117 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       expect(result?.subAgents).toHaveProperty('agent-2');
     });
 
+    it('should handle agent with team agent relationships', async () => {
+      const mockAgent = {
+        id: testAgentId,
+        name: 'Test Agent',
+        defaultSubAgentId: 'agent-1',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        description: null,
+        models: null,
+        contextConfigId: null,
+      };
+
+      const mockTeamAgentRelations = [
+        {
+          id: 'team-relation-1',
+          subAgentId: 'agent-1',
+          targetAgentId: 'team-agent-1',
+          headers: { 'X-Custom-Header': 'value' },
+          agentId: testAgentId,
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ];
+
+      const mockAgents = [
+        {
+          id: 'agent-1',
+          name: 'Agent 1',
+          description: 'First agent',
+          prompt: 'Instructions 1',
+          models: null,
+          tenantId: testTenantId,
+          projectId: testProjectId,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ];
+
+      // Mock database queries
+      const mockQuery = {
+        agents: {
+          findFirst: vi.fn().mockResolvedValue(mockAgent),
+        },
+        subAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue(mockTeamAgentRelations),
+        },
+        subAgents: {
+          findFirst: vi.fn().mockResolvedValue(mockAgents[0]),
+          findMany: vi.fn().mockResolvedValue(
+            mockAgents.map((agent) => ({
+              ...agent,
+              agentId: testAgentId,
+            }))
+          ),
+        },
+        subAgentDataComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentArtifactComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        projects: {
+          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
+        },
+      };
+
+      const mockDb = {
+        ...db,
+        query: mockQuery,
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      } as any;
+
+      const result = await getFullAgentDefinition(mockDb)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.subAgents).toHaveProperty('agent-1');
+
+      // Check that team agent delegation is included in canDelegateTo
+      const agent1 = result?.subAgents['agent-1'];
+      expect(agent1?.canDelegateTo).toContainEqual({
+        agentId: 'team-agent-1',
+        headers: { 'X-Custom-Header': 'value' },
+        subAgentTeamAgentRelationId: 'team-relation-1',
+      });
+    });
+
     it('should include tools when present', async () => {
       const mockAgent = {
         id: testAgentId,
@@ -302,6 +425,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
         },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
@@ -407,6 +536,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
           findMany: vi.fn().mockResolvedValue([
@@ -502,6 +637,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue([]),
         },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
+        },
         subAgents: {
           findFirst: vi.fn().mockResolvedValue(mockSubAgent),
           findMany: vi.fn().mockResolvedValue([
@@ -586,6 +727,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
         subAgentRelations: {
           findMany: vi.fn().mockResolvedValue(mockRelations),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
         },
         subAgents: {
           findFirst: vi

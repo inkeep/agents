@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
@@ -56,6 +57,7 @@ type FileConfig = {
   runApiPort?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
+  disableGit?: boolean;
 };
 
 export const createAgents = async (
@@ -67,9 +69,10 @@ export const createAgents = async (
     googleKey?: string;
     template?: string;
     customProjectId?: string;
+    disableGit?: boolean;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId } = args;
+  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
   const tenantId = 'default';
   const manageApiPort = '3002';
   const runApiPort = '3003';
@@ -93,8 +96,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'event-planner';
-    templateName = 'event-planner';
+    projectId = 'activities-planner';
+    templateName = 'activities-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -243,6 +246,7 @@ export const createAgents = async (
       runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
+      disableGit: disableGit,
     };
 
     s.message('Setting up project structure...');
@@ -275,6 +279,10 @@ export const createAgents = async (
 
     s.message('Installing dependencies (this may take a while)...');
     await installDependencies();
+
+    if (!config.disableGit) {
+      await initializeGit();
+    }
 
     s.message('Setting up database...');
     await setupDatabase();
@@ -321,6 +329,8 @@ async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
   const dbPath = process.cwd().replace(/\\/g, '/');
 
+  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -346,6 +356,9 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 # Nango Configuration
 NANGO_SECRET_KEY=
+
+# JWT Signing Secret
+INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 `;
 
   await fs.writeFile('.env', envContent);
@@ -379,6 +392,17 @@ export const myProject = project({
 
 async function installDependencies() {
   await execAsync('pnpm install');
+}
+
+async function initializeGit() {
+  try {
+    await execAsync('git init');
+  } catch (error) {
+    console.error(
+      'Error initializing git:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+  }
 }
 
 async function setupProjectInDatabase(config: FileConfig) {

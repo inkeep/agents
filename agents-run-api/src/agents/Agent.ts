@@ -128,16 +128,30 @@ export type AgentConfig = {
   sandboxConfig?: SandboxConfig;
 };
 
-export type ExternalAgentConfig = {
+export type ExternalAgentRelationConfig = {
+  relationId: string;
   id: string;
   name: string;
   description: string;
   baseUrl: string;
+  credentialReferenceId?: string | null;
+  headers?: Record<string, string> | null;
+  relationType: string;
+};
+
+export type TeamAgentRelationConfig = {
+  relationId: string;
+  id: string;
+  name: string;
+  description: string;
+  baseUrl: string;
+  headers?: Record<string, string> | null;
 };
 
 export type DelegateRelation =
   | { type: 'internal'; config: AgentConfig }
-  | { type: 'external'; config: ExternalAgentConfig };
+  | { type: 'external'; config: ExternalAgentRelationConfig }
+  | { type: 'team'; config: TeamAgentRelationConfig };
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
@@ -454,6 +468,7 @@ export class Agent {
       }),
       ...delegateRelations.map((relation) => {
         const toolName = createToolName('delegate', relation.config.id);
+
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -525,7 +540,12 @@ export class Agent {
             try {
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              if (rawResult && typeof rawResult === 'object' && 'isError' in rawResult && rawResult.isError) {
+              if (
+                rawResult &&
+                typeof rawResult === 'object' &&
+                'isError' in rawResult &&
+                rawResult.isError
+              ) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
@@ -1670,400 +1690,401 @@ export class Agent {
         const streamRequestId = runtimeContext?.metadata?.streamRequestId;
         const sessionId = streamRequestId || 'fallback-session';
 
-      // Note: ToolSession is now created by AgentSession, not by agents
-      // This ensures proper lifecycle management and session coordination
+        // Note: ToolSession is now created by AgentSession, not by agents
+        // This ensures proper lifecycle management and session coordination
 
-      try {
-        // Set streaming helper from registry if available
-        this.streamRequestId = streamRequestId;
-        this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
-        const conversationId = runtimeContext?.metadata?.conversationId;
+        try {
+          // Set streaming helper from registry if available
+          this.streamRequestId = streamRequestId;
+          this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
+          const conversationId = runtimeContext?.metadata?.conversationId;
 
-        if (conversationId) {
-          this.setConversationId(conversationId);
-        }
-
-        // Load all tools and both system prompts in parallel
-        // Note: getDefaultTools needs to be called after streamHelper is set above
-        const [
-          mcpTools,
-          systemPrompt,
-          thinkingSystemPrompt,
-          functionTools,
-          relationTools,
-          defaultTools,
-        ] = await tracer.startActiveSpan(
-          'agent.load_tools',
-          {
-            attributes: {
-              'subAgent.name': this.config.name,
-              'session.id': sessionId || 'none',
-            },
-          },
-          async (childSpan: Span) => {
-            try {
-              const result = await Promise.all([
-                this.getMcpTools(sessionId, streamRequestId),
-                this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
-                this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
-                this.getFunctionTools(sessionId, streamRequestId),
-                Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
-                this.getDefaultTools(streamRequestId),
-              ]);
-
-              childSpan.setStatus({ code: SpanStatusCode.OK });
-              return result;
-            } catch (err) {
-              // Use helper function for consistent error handling
-              const errorObj = err instanceof Error ? err : new Error(String(err));
-              setSpanWithError(childSpan, errorObj);
-              throw err;
-            } finally {
-              childSpan.end();
-            }
+          if (conversationId) {
+            this.setConversationId(conversationId);
           }
-        );
 
-        // Combine all tools for AI SDK
-        const allTools = {
-          ...mcpTools,
-          ...functionTools,
-          ...relationTools,
-          ...defaultTools,
-        };
-
-        // Sanitize tool names at runtime for AI SDK compatibility
-        const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
-
-        // Get conversation history
-        let conversationHistory = '';
-        const historyConfig =
-          this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
-
-        if (historyConfig && historyConfig.mode !== 'none') {
-          if (historyConfig.mode === 'full') {
-            conversationHistory = await getFormattedConversationHistory({
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              conversationId: contextId,
-              currentMessage: userMessage,
-              options: historyConfig,
-              filters: {},
-            });
-          } else if (historyConfig.mode === 'scoped') {
-            conversationHistory = await getFormattedConversationHistory({
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              conversationId: contextId,
-              currentMessage: userMessage,
-              options: historyConfig,
-              filters: {
-                subAgentId: this.config.id,
-                taskId: taskId,
-              },
-            });
-          }
-        }
-
-        // Use the primary model for text generation
-        const primaryModelSettings = this.getPrimaryModel();
-        const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
-        let response: any;
-        let textResponse: string;
-
-        // Check if we have structured output components
-        const hasStructuredOutput =
-          this.config.dataComponents && this.config.dataComponents.length > 0;
-
-        // Phase 1: Stream only if no structured output needed
-        const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
-
-        // Extract maxDuration from config and convert to milliseconds, or use defaults
-        // Add upper bound validation to prevent extremely long timeouts
-        const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
-        const configuredTimeout = modelSettings.maxDuration
-          ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
-          : shouldStreamPhase1
-            ? CONSTANTS.PHASE_1_TIMEOUT_MS
-            : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
-
-        // Ensure timeout doesn't exceed maximum
-        const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
-
-        if (
-          modelSettings.maxDuration &&
-          modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
-        ) {
-          logger.warn(
+          // Load all tools and both system prompts in parallel
+          // Note: getDefaultTools needs to be called after streamHelper is set above
+          const [
+            mcpTools,
+            systemPrompt,
+            thinkingSystemPrompt,
+            functionTools,
+            relationTools,
+            defaultTools,
+          ] = await tracer.startActiveSpan(
+            'agent.load_tools',
             {
-              requestedTimeout: modelSettings.maxDuration * 1000,
-              appliedTimeout: timeoutMs,
-              maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+              attributes: {
+                'subAgent.name': this.config.name,
+                'session.id': sessionId || 'none',
+              },
             },
-            'Requested timeout exceeded maximum allowed, capping to 10 minutes'
-          );
-        }
+            async (childSpan: Span) => {
+              try {
+                const result = await Promise.all([
+                  this.getMcpTools(sessionId, streamRequestId),
+                  this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
+                  this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
+                  this.getFunctionTools(sessionId, streamRequestId),
+                  Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
+                  this.getDefaultTools(streamRequestId),
+                ]);
 
-        // Build messages for Phase 1 - use thinking prompt if structured output needed
-        const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
-        const messages: any[] = [];
-        messages.push({ role: 'system', content: phase1SystemPrompt });
-
-        if (conversationHistory.trim() !== '') {
-          messages.push({ role: 'user', content: conversationHistory });
-        }
-        messages.push({
-          role: 'user',
-          content: userMessage,
-        });
-
-        // ----- PHASE 1: Planning with tools -----
-
-        if (shouldStreamPhase1) {
-          // Streaming Phase 1: Natural text + tools (no structured output needed)
-          const streamConfig = {
-            ...modelSettings,
-            toolChoice: 'auto' as const, // Allow natural text + tools
-          };
-
-          // Use streamText for Phase 1 (text-only responses)
-          const streamResult = streamText({
-            ...streamConfig,
-            messages,
-            tools: sanitizedTools,
-            stopWhen: async ({ steps }) => {
-              const last = steps.at(-1);
-              if (last && 'text' in last && last.text) {
-                try {
-                  await agentSessionManager.recordEvent(
-                    this.getStreamRequestId(),
-                    'agent_reasoning',
-                    this.config.id,
-                    {
-                      parts: [{ type: 'text', content: last.text }],
-                    }
-                  );
-                } catch (error) {
-                  logger.debug({ error }, 'Failed to track agent reasoning');
-                }
+                childSpan.setStatus({ code: SpanStatusCode.OK });
+                return result;
+              } catch (err) {
+                // Use helper function for consistent error handling
+                const errorObj = err instanceof Error ? err : new Error(String(err));
+                setSpanWithError(childSpan, errorObj);
+                throw err;
+              } finally {
+                childSpan.end();
               }
-
-              if (steps.length >= 2) {
-                const previousStep = steps[steps.length - 2];
-                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
-                  const hasTransferCall = previousStep.toolCalls.some((tc: any) =>
-                    tc.toolName.startsWith('transfer_to_')
-                  );
-                  if (
-                    hasTransferCall &&
-                    'toolResults' in previousStep &&
-                    previousStep.toolResults
-                  ) {
-                    return true; // Stop after transfer tool has executed
-                  }
-                }
-              }
-
-              return steps.length >= this.getMaxGenerationSteps();
-            },
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: this.config.id,
-              recordInputs: true,
-              recordOutputs: true,
-            },
-            abortSignal: AbortSignal.timeout(timeoutMs),
-          });
-
-          const streamHelper = this.getStreamingHelper();
-          if (!streamHelper) {
-            throw new Error('Stream helper is unexpectedly undefined in streaming context');
-          }
-          const session = toolSessionManager.getSession(sessionId);
-          const artifactParserOptions = {
-            sessionId,
-            taskId: session?.taskId,
-            projectId: session?.projectId,
-            artifactComponents: this.artifactComponents,
-            streamRequestId: this.getStreamRequestId(),
-            subAgentId: this.config.id,
-          };
-          const parser = new IncrementalStreamParser(
-            streamHelper,
-            this.config.tenantId,
-            contextId,
-            artifactParserOptions
+            }
           );
 
-          for await (const event of streamResult.fullStream) {
-            switch (event.type) {
-              case 'text-delta':
-                await parser.processTextChunk(event.text);
-                break;
-              case 'tool-call':
-                parser.markToolResult();
-                break;
-              case 'tool-result':
-                parser.markToolResult();
-                break;
-              case 'finish':
-                if (event.finishReason === 'tool-calls') {
-                  parser.markToolResult();
-                }
-                break;
-              case 'error':
-                if (event.error instanceof Error) {
-                  throw event.error;
-                } else {
-                  const errorMessage = (event.error as any)?.error?.message;
-                  throw new Error(errorMessage);
-                }
+          // Combine all tools for AI SDK
+          const allTools = {
+            ...mcpTools,
+            ...functionTools,
+            ...relationTools,
+            ...defaultTools,
+          };
+
+          // Sanitize tool names at runtime for AI SDK compatibility
+          const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
+
+          // Get conversation history
+          let conversationHistory = '';
+          const historyConfig =
+            this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
+
+          if (historyConfig && historyConfig.mode !== 'none') {
+            if (historyConfig.mode === 'full') {
+              conversationHistory = await getFormattedConversationHistory({
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: contextId,
+                currentMessage: userMessage,
+                options: historyConfig,
+                filters: {},
+              });
+            } else if (historyConfig.mode === 'scoped') {
+              conversationHistory = await getFormattedConversationHistory({
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: contextId,
+                currentMessage: userMessage,
+                options: historyConfig,
+                filters: {
+                  subAgentId: this.config.id,
+                  taskId: taskId,
+                },
+              });
             }
           }
 
-          await parser.finalize();
+          // Use the primary model for text generation
+          const primaryModelSettings = this.getPrimaryModel();
+          const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
+          let response: any;
+          let textResponse: string;
 
-          response = await streamResult;
+          // Check if we have structured output components
+          const hasStructuredOutput =
+            this.config.dataComponents && this.config.dataComponents.length > 0;
 
-          const collectedParts = parser.getCollectedParts();
-          if (collectedParts.length > 0) {
-            response.formattedContent = {
-              parts: collectedParts.map((part) => ({
-                kind: part.kind,
-                ...(part.kind === 'text' && { text: part.text }),
-                ...(part.kind === 'data' && { data: part.data }),
-              })),
-            };
+          // Phase 1: Stream only if no structured output needed
+          const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
+
+          // Extract maxDuration from config and convert to milliseconds, or use defaults
+          // Add upper bound validation to prevent extremely long timeouts
+          const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
+          const configuredTimeout = modelSettings.maxDuration
+            ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
+            : shouldStreamPhase1
+              ? CONSTANTS.PHASE_1_TIMEOUT_MS
+              : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
+
+          // Ensure timeout doesn't exceed maximum
+          const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
+
+          if (
+            modelSettings.maxDuration &&
+            modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
+          ) {
+            logger.warn(
+              {
+                requestedTimeout: modelSettings.maxDuration * 1000,
+                appliedTimeout: timeoutMs,
+                maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+              },
+              'Requested timeout exceeded maximum allowed, capping to 10 minutes'
+            );
           }
 
-          const streamedContent = parser.getAllStreamedContent();
-          if (streamedContent.length > 0) {
-            response.streamedContent = {
-              parts: streamedContent.map((part: any) => ({
-                kind: part.kind,
-                ...(part.kind === 'text' && { text: part.text }),
-                ...(part.kind === 'data' && { data: part.data }),
-              })),
-            };
+          // Build messages for Phase 1 - use thinking prompt if structured output needed
+          const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
+          const messages: any[] = [];
+          messages.push({ role: 'system', content: phase1SystemPrompt });
+
+          if (conversationHistory.trim() !== '') {
+            messages.push({ role: 'user', content: conversationHistory });
           }
-        } else {
-          let genConfig: any;
-          if (hasStructuredOutput) {
-            genConfig = {
+          messages.push({
+            role: 'user',
+            content: userMessage,
+          });
+
+          // ----- PHASE 1: Planning with tools -----
+
+          if (shouldStreamPhase1) {
+            // Streaming Phase 1: Natural text + tools (no structured output needed)
+            const streamConfig = {
               ...modelSettings,
-              toolChoice: 'required' as const, // Force tool usage, prevent text generation
+              toolChoice: 'auto' as const, // Allow natural text + tools
             };
-          } else {
-            genConfig = {
-              ...modelSettings,
-              toolChoice: 'auto' as const, // Allow both tools and text generation
-            };
-          }
 
-          response = await generateText({
-            ...genConfig,
-            messages,
-            tools: sanitizedTools,
-            stopWhen: async ({ steps }) => {
-              const last = steps.at(-1);
-              if (last && 'text' in last && last.text) {
-                try {
-                  await agentSessionManager.recordEvent(
-                    this.getStreamRequestId(),
-                    'agent_reasoning',
-                    this.config.id,
-                    {
-                      parts: [{ type: 'text', content: last.text }],
-                    }
-                  );
-                } catch (error) {
-                  logger.debug({ error }, 'Failed to track agent reasoning');
-                }
-              }
-
-              if (steps.length >= 2) {
-                const previousStep = steps[steps.length - 2];
-                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
-                  const hasStopTool = previousStep.toolCalls.some(
-                    (tc: any) =>
-                      tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
-                  );
-                  if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
-                    return true; // Stop after transfer/thinking_complete tool has executed
+            // Use streamText for Phase 1 (text-only responses)
+            const streamResult = streamText({
+              ...streamConfig,
+              messages,
+              tools: sanitizedTools,
+              stopWhen: async ({ steps }) => {
+                const last = steps.at(-1);
+                if (last && 'text' in last && last.text) {
+                  try {
+                    await agentSessionManager.recordEvent(
+                      this.getStreamRequestId(),
+                      'agent_reasoning',
+                      this.config.id,
+                      {
+                        parts: [{ type: 'text', content: last.text }],
+                      }
+                    );
+                  } catch (error) {
+                    logger.debug({ error }, 'Failed to track agent reasoning');
                   }
                 }
-              }
 
-              return steps.length >= this.getMaxGenerationSteps();
-            },
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: this.config.id,
-              recordInputs: true,
-              recordOutputs: true,
-              metadata: {
-                phase: 'planning',
+                if (steps.length >= 2) {
+                  const previousStep = steps[steps.length - 2];
+                  if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                    const hasTransferCall = previousStep.toolCalls.some((tc: any) =>
+                      tc.toolName.startsWith('transfer_to_')
+                    );
+                    if (
+                      hasTransferCall &&
+                      'toolResults' in previousStep &&
+                      previousStep.toolResults
+                    ) {
+                      return true; // Stop after transfer tool has executed
+                    }
+                  }
+                }
+
+                return steps.length >= this.getMaxGenerationSteps();
               },
-            },
-            abortSignal: AbortSignal.timeout(timeoutMs),
-          });
-        }
+              experimental_telemetry: {
+                isEnabled: true,
+                functionId: this.config.id,
+                recordInputs: true,
+                recordOutputs: true,
+              },
+              abortSignal: AbortSignal.timeout(timeoutMs),
+            });
 
-        if (response.steps) {
-          const resolvedSteps = await response.steps;
-          response = { ...response, steps: resolvedSteps };
-        }
+            const streamHelper = this.getStreamingHelper();
+            if (!streamHelper) {
+              throw new Error('Stream helper is unexpectedly undefined in streaming context');
+            }
+            const session = toolSessionManager.getSession(sessionId);
+            const artifactParserOptions = {
+              sessionId,
+              taskId: session?.taskId,
+              projectId: session?.projectId,
+              artifactComponents: this.artifactComponents,
+              streamRequestId: this.getStreamRequestId(),
+              subAgentId: this.config.id,
+            };
+            const parser = new IncrementalStreamParser(
+              streamHelper,
+              this.config.tenantId,
+              contextId,
+              artifactParserOptions
+            );
 
-        if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
-          const thinkingCompleteCall = response.steps
-            ?.flatMap((s: any) => s.toolCalls || [])
-            ?.find((tc: any) => tc.toolName === 'thinking_complete');
+            for await (const event of streamResult.fullStream) {
+              switch (event.type) {
+                case 'text-delta':
+                  await parser.processTextChunk(event.text);
+                  break;
+                case 'tool-call':
+                  parser.markToolResult();
+                  break;
+                case 'tool-result':
+                  parser.markToolResult();
+                  break;
+                case 'finish':
+                  if (event.finishReason === 'tool-calls') {
+                    parser.markToolResult();
+                  }
+                  break;
+                case 'error':
+                  if (event.error instanceof Error) {
+                    throw event.error;
+                  } else {
+                    const errorMessage = (event.error as any)?.error?.message;
+                    throw new Error(errorMessage);
+                  }
+              }
+            }
 
-          if (thinkingCompleteCall) {
-            const reasoningFlow: any[] = [];
-            if (response.steps) {
-              response.steps.forEach((step: any) => {
-                if (step.toolCalls && step.toolResults) {
-                  step.toolCalls.forEach((call: any, index: number) => {
-                    const result = step.toolResults[index];
-                    if (result) {
-                      const storedResult = toolSessionManager.getToolResult(
-                        sessionId,
-                        result.toolCallId
-                      );
-                      const toolName = storedResult?.toolName || call.toolName;
+            await parser.finalize();
 
-                      if (toolName === 'thinking_complete') {
-                        return;
+            response = await streamResult;
+
+            const collectedParts = parser.getCollectedParts();
+            if (collectedParts.length > 0) {
+              response.formattedContent = {
+                parts: collectedParts.map((part) => ({
+                  kind: part.kind,
+                  ...(part.kind === 'text' && { text: part.text }),
+                  ...(part.kind === 'data' && { data: part.data }),
+                })),
+              };
+            }
+
+            const streamedContent = parser.getAllStreamedContent();
+            if (streamedContent.length > 0) {
+              response.streamedContent = {
+                parts: streamedContent.map((part: any) => ({
+                  kind: part.kind,
+                  ...(part.kind === 'text' && { text: part.text }),
+                  ...(part.kind === 'data' && { data: part.data }),
+                })),
+              };
+            }
+          } else {
+            let genConfig: any;
+            if (hasStructuredOutput) {
+              genConfig = {
+                ...modelSettings,
+                toolChoice: 'required' as const, // Force tool usage, prevent text generation
+              };
+            } else {
+              genConfig = {
+                ...modelSettings,
+                toolChoice: 'auto' as const, // Allow both tools and text generation
+              };
+            }
+
+            response = await generateText({
+              ...genConfig,
+              messages,
+              tools: sanitizedTools,
+              stopWhen: async ({ steps }) => {
+                const last = steps.at(-1);
+                if (last && 'text' in last && last.text) {
+                  try {
+                    await agentSessionManager.recordEvent(
+                      this.getStreamRequestId(),
+                      'agent_reasoning',
+                      this.config.id,
+                      {
+                        parts: [{ type: 'text', content: last.text }],
                       }
-                      const actualResult = storedResult?.result || result.result || result;
-                      const actualArgs = storedResult?.args || call.args;
+                    );
+                  } catch (error) {
+                    logger.debug({ error }, 'Failed to track agent reasoning');
+                  }
+                }
 
-                      const cleanResult =
-                        actualResult &&
-                        typeof actualResult === 'object' &&
-                        !Array.isArray(actualResult)
-                          ? Object.fromEntries(
-                              Object.entries(actualResult).filter(
-                                ([key]) => key !== '_structureHints'
+                if (steps.length >= 2) {
+                  const previousStep = steps[steps.length - 2];
+                  if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+                    const hasStopTool = previousStep.toolCalls.some(
+                      (tc: any) =>
+                        tc.toolName.startsWith('transfer_to_') ||
+                        tc.toolName === 'thinking_complete'
+                    );
+                    if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
+                      return true; // Stop after transfer/thinking_complete tool has executed
+                    }
+                  }
+                }
+
+                return steps.length >= this.getMaxGenerationSteps();
+              },
+              experimental_telemetry: {
+                isEnabled: true,
+                functionId: this.config.id,
+                recordInputs: true,
+                recordOutputs: true,
+                metadata: {
+                  phase: 'planning',
+                },
+              },
+              abortSignal: AbortSignal.timeout(timeoutMs),
+            });
+          }
+
+          if (response.steps) {
+            const resolvedSteps = await response.steps;
+            response = { ...response, steps: resolvedSteps };
+          }
+
+          if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
+            const thinkingCompleteCall = response.steps
+              ?.flatMap((s: any) => s.toolCalls || [])
+              ?.find((tc: any) => tc.toolName === 'thinking_complete');
+
+            if (thinkingCompleteCall) {
+              const reasoningFlow: any[] = [];
+              if (response.steps) {
+                response.steps.forEach((step: any) => {
+                  if (step.toolCalls && step.toolResults) {
+                    step.toolCalls.forEach((call: any, index: number) => {
+                      const result = step.toolResults[index];
+                      if (result) {
+                        const storedResult = toolSessionManager.getToolResult(
+                          sessionId,
+                          result.toolCallId
+                        );
+                        const toolName = storedResult?.toolName || call.toolName;
+
+                        if (toolName === 'thinking_complete') {
+                          return;
+                        }
+                        const actualResult = storedResult?.result || result.result || result;
+                        const actualArgs = storedResult?.args || call.args;
+
+                        const cleanResult =
+                          actualResult &&
+                          typeof actualResult === 'object' &&
+                          !Array.isArray(actualResult)
+                            ? Object.fromEntries(
+                                Object.entries(actualResult).filter(
+                                  ([key]) => key !== '_structureHints'
+                                )
                               )
-                            )
-                          : actualResult;
+                            : actualResult;
 
-                      const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
-                      const output =
-                        typeof cleanResult === 'string'
-                          ? cleanResult
-                          : JSON.stringify(cleanResult, null, 2);
+                        const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
+                        const output =
+                          typeof cleanResult === 'string'
+                            ? cleanResult
+                            : JSON.stringify(cleanResult, null, 2);
 
-                      let structureHintsFormatted = '';
-                      if (
-                        actualResult?._structureHints &&
-                        this.artifactComponents &&
-                        this.artifactComponents.length > 0
-                      ) {
-                        const hints = actualResult._structureHints;
-                        structureHintsFormatted = `
+                        let structureHintsFormatted = '';
+                        if (
+                          actualResult?._structureHints &&
+                          this.artifactComponents &&
+                          this.artifactComponents.length > 0
+                        ) {
+                          const hints = actualResult._structureHints;
+                          structureHintsFormatted = `
 ### 📊 Structure Hints for Artifact Creation
 
 **Terminal Field Paths (${hints.terminalPaths?.length || 0} found):**
@@ -2087,9 +2108,9 @@ ${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  
 
 **Forbidden Syntax:** ${hints.forbiddenSyntax || 'Use these paths for artifact base selectors.'}
 `;
-                      }
+                        }
 
-                      const formattedResult = `## Tool: ${call.toolName}
+                        const formattedResult = `## Tool: ${call.toolName}
 
 ### 🔧 TOOL_CALL_ID: ${result.toolCallId}
 
@@ -2099,152 +2120,73 @@ ${input}
 ### Output
 ${output}${structureHintsFormatted}`;
 
-                      reasoningFlow.push({
-                        role: 'assistant',
-                        content: formattedResult,
-                      });
-                    }
-                  });
-                }
-              });
-            }
+                        reasoningFlow.push({
+                          role: 'assistant',
+                          content: formattedResult,
+                        });
+                      }
+                    });
+                  }
+                });
+              }
 
-            const componentSchemas: z.ZodType<any>[] = [];
+              const componentSchemas: z.ZodType<any>[] = [];
 
-            if (this.config.dataComponents && this.config.dataComponents.length > 0) {
-              this.config.dataComponents.forEach((dc) => {
-                const propsSchema = jsonSchemaToZod(dc.props);
-                componentSchemas.push(
-                  z.object({
-                    id: z.string(),
-                    name: z.literal(dc.name),
-                    props: propsSchema,
-                  })
+              if (this.config.dataComponents && this.config.dataComponents.length > 0) {
+                this.config.dataComponents.forEach((dc) => {
+                  const propsSchema = jsonSchemaToZod(dc.props);
+                  componentSchemas.push(
+                    z.object({
+                      id: z.string(),
+                      name: z.literal(dc.name),
+                      props: propsSchema,
+                    })
+                  );
+                });
+              }
+
+              if (this.artifactComponents.length > 0) {
+                const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
+                  this.artifactComponents
                 );
-              });
-            }
-
-            if (this.artifactComponents.length > 0) {
-              const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
-                this.artifactComponents
-              );
-              componentSchemas.push(...artifactCreateSchemas);
-              componentSchemas.push(ArtifactReferenceSchema.getSchema());
-            }
-
-            let dataComponentsSchema: z.ZodType<any>;
-            if (componentSchemas.length === 1) {
-              dataComponentsSchema = componentSchemas[0];
-            } else {
-              dataComponentsSchema = z.union(
-                componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
-              );
-            }
-
-            const structuredModelSettings = ModelFactory.prepareGenerationConfig(
-              this.getStructuredOutputModel()
-            );
-            const phase2TimeoutMs = structuredModelSettings.maxDuration
-              ? structuredModelSettings.maxDuration * 1000
-              : CONSTANTS.PHASE_2_TIMEOUT_MS;
-
-            const shouldStreamPhase2 = this.getStreamingHelper();
-
-            if (shouldStreamPhase2) {
-              const phase2Messages: any[] = [
-                {
-                  role: 'system',
-                  content: await this.buildPhase2SystemPrompt(runtimeContext),
-                },
-              ];
-
-              if (conversationHistory.trim() !== '') {
-                phase2Messages.push({ role: 'user', content: conversationHistory });
+                componentSchemas.push(...artifactCreateSchemas);
+                componentSchemas.push(ArtifactReferenceSchema.getSchema());
               }
 
-              phase2Messages.push({ role: 'user', content: userMessage });
-              phase2Messages.push(...reasoningFlow);
+              let dataComponentsSchema: z.ZodType<any>;
+              if (componentSchemas.length === 1) {
+                dataComponentsSchema = componentSchemas[0];
+              } else {
+                dataComponentsSchema = z.union(
+                  componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
+                );
+              }
 
-              const streamResult = streamObject({
-                ...structuredModelSettings,
-                messages: phase2Messages,
-                schema: z.object({
-                  dataComponents: z.array(dataComponentsSchema),
-                }),
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: this.config.id,
-                  recordInputs: true,
-                  recordOutputs: true,
-                  metadata: {
-                    phase: 'structured_generation',
+              const structuredModelSettings = ModelFactory.prepareGenerationConfig(
+                this.getStructuredOutputModel()
+              );
+              const phase2TimeoutMs = structuredModelSettings.maxDuration
+                ? structuredModelSettings.maxDuration * 1000
+                : CONSTANTS.PHASE_2_TIMEOUT_MS;
+
+              const shouldStreamPhase2 = this.getStreamingHelper();
+
+              if (shouldStreamPhase2) {
+                const phase2Messages: any[] = [
+                  {
+                    role: 'system',
+                    content: await this.buildPhase2SystemPrompt(runtimeContext),
                   },
-                },
-                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-              });
+                ];
 
-              const streamHelper = this.getStreamingHelper();
-              if (!streamHelper) {
-                throw new Error('Stream helper is unexpectedly undefined in streaming context');
-              }
-              const session = toolSessionManager.getSession(sessionId);
-              const artifactParserOptions = {
-                sessionId,
-                taskId: session?.taskId,
-                projectId: session?.projectId,
-                artifactComponents: this.artifactComponents,
-                streamRequestId: this.getStreamRequestId(),
-                subAgentId: this.config.id,
-              };
-              const parser = new IncrementalStreamParser(
-                streamHelper,
-                this.config.tenantId,
-                contextId,
-                artifactParserOptions
-              );
-
-              for await (const delta of streamResult.partialObjectStream) {
-                if (delta) {
-                  await parser.processObjectDelta(delta);
+                if (conversationHistory.trim() !== '') {
+                  phase2Messages.push({ role: 'user', content: conversationHistory });
                 }
-              }
 
-              await parser.finalize();
+                phase2Messages.push({ role: 'user', content: userMessage });
+                phase2Messages.push(...reasoningFlow);
 
-              const structuredResponse = await streamResult;
-
-              const collectedParts = parser.getCollectedParts();
-              if (collectedParts.length > 0) {
-                response.formattedContent = {
-                  parts: collectedParts.map((part) => ({
-                    kind: part.kind,
-                    ...(part.kind === 'text' && { text: part.text }),
-                    ...(part.kind === 'data' && { data: part.data }),
-                  })),
-                };
-              }
-
-              response = {
-                ...response,
-                object: structuredResponse.object,
-              };
-              textResponse = JSON.stringify(structuredResponse.object, null, 2);
-            } else {
-              const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
-
-              const phase2Messages: any[] = [
-                { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
-              ];
-
-              if (conversationHistory.trim() !== '') {
-                phase2Messages.push({ role: 'user', content: conversationHistory });
-              }
-
-              phase2Messages.push({ role: 'user', content: userMessage });
-              phase2Messages.push(...reasoningFlow);
-
-              const structuredResponse = await generateObject(
-                withJsonPostProcessing({
+                const streamResult = streamObject({
                   ...structuredModelSettings,
                   messages: phase2Messages,
                   schema: z.object({
@@ -2260,79 +2202,159 @@ ${output}${structureHintsFormatted}`;
                     },
                   },
                   abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-                })
-              );
+                });
 
-              response = {
-                ...response,
-                object: structuredResponse.object,
-              };
-              textResponse = JSON.stringify(structuredResponse.object, null, 2);
+                const streamHelper = this.getStreamingHelper();
+                if (!streamHelper) {
+                  throw new Error('Stream helper is unexpectedly undefined in streaming context');
+                }
+                const session = toolSessionManager.getSession(sessionId);
+                const artifactParserOptions = {
+                  sessionId,
+                  taskId: session?.taskId,
+                  projectId: session?.projectId,
+                  artifactComponents: this.artifactComponents,
+                  streamRequestId: this.getStreamRequestId(),
+                  subAgentId: this.config.id,
+                };
+                const parser = new IncrementalStreamParser(
+                  streamHelper,
+                  this.config.tenantId,
+                  contextId,
+                  artifactParserOptions
+                );
+
+                for await (const delta of streamResult.partialObjectStream) {
+                  if (delta) {
+                    await parser.processObjectDelta(delta);
+                  }
+                }
+
+                await parser.finalize();
+
+                const structuredResponse = await streamResult;
+
+                const collectedParts = parser.getCollectedParts();
+                if (collectedParts.length > 0) {
+                  response.formattedContent = {
+                    parts: collectedParts.map((part) => ({
+                      kind: part.kind,
+                      ...(part.kind === 'text' && { text: part.text }),
+                      ...(part.kind === 'data' && { data: part.data }),
+                    })),
+                  };
+                }
+
+                response = {
+                  ...response,
+                  object: structuredResponse.object,
+                };
+                textResponse = JSON.stringify(structuredResponse.object, null, 2);
+              } else {
+                const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
+
+                const phase2Messages: any[] = [
+                  { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
+                ];
+
+                if (conversationHistory.trim() !== '') {
+                  phase2Messages.push({ role: 'user', content: conversationHistory });
+                }
+
+                phase2Messages.push({ role: 'user', content: userMessage });
+                phase2Messages.push(...reasoningFlow);
+
+                const structuredResponse = await generateObject(
+                  withJsonPostProcessing({
+                    ...structuredModelSettings,
+                    messages: phase2Messages,
+                    schema: z.object({
+                      dataComponents: z.array(dataComponentsSchema),
+                    }),
+                    experimental_telemetry: {
+                      isEnabled: true,
+                      functionId: this.config.id,
+                      recordInputs: true,
+                      recordOutputs: true,
+                      metadata: {
+                        phase: 'structured_generation',
+                      },
+                    },
+                    abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+                  })
+                );
+
+                response = {
+                  ...response,
+                  object: structuredResponse.object,
+                };
+                textResponse = JSON.stringify(structuredResponse.object, null, 2);
+              }
+            } else {
+              textResponse = response.text || '';
             }
           } else {
-            textResponse = response.text || '';
+            textResponse = response.steps[response.steps.length - 1].text || '';
           }
-        } else {
-          textResponse = response.steps[response.steps.length - 1].text || '';
-        }
 
-        span.setStatus({ code: SpanStatusCode.OK });
-        span.end();
+          span.setStatus({ code: SpanStatusCode.OK });
+          span.end();
 
-        let formattedContent: MessageContent | null = response.formattedContent || null;
+          let formattedContent: MessageContent | null = response.formattedContent || null;
 
-        if (!formattedContent) {
-          const session = toolSessionManager.getSession(sessionId);
-          const responseFormatter = new ResponseFormatter(this.config.tenantId, {
-            sessionId,
-            taskId: session?.taskId,
-            projectId: session?.projectId,
-            contextId,
-            artifactComponents: this.artifactComponents,
-            streamRequestId: this.getStreamRequestId(),
-            subAgentId: this.config.id,
-          });
+          if (!formattedContent) {
+            const session = toolSessionManager.getSession(sessionId);
+            const responseFormatter = new ResponseFormatter(this.config.tenantId, {
+              sessionId,
+              taskId: session?.taskId,
+              projectId: session?.projectId,
+              contextId,
+              artifactComponents: this.artifactComponents,
+              streamRequestId: this.getStreamRequestId(),
+              subAgentId: this.config.id,
+            });
 
-          if (response.object) {
-            formattedContent = await responseFormatter.formatObjectResponse(
-              response.object,
-              contextId
-            );
-          } else if (textResponse) {
-            formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
+            if (response.object) {
+              formattedContent = await responseFormatter.formatObjectResponse(
+                response.object,
+                contextId
+              );
+            } else if (textResponse) {
+              formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
+            }
           }
+
+          const formattedResponse = {
+            ...response,
+            formattedContent: formattedContent,
+          };
+
+          if (streamRequestId) {
+            const generationType = response.object ? 'object_generation' : 'text_generation';
+
+            agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
+              parts: (formattedContent?.parts || []).map((part) => ({
+                type:
+                  part.kind === 'text'
+                    ? ('text' as const)
+                    : part.kind === 'data'
+                      ? ('tool_result' as const)
+                      : ('text' as const),
+                content: part.text || JSON.stringify(part.data),
+              })),
+              generationType,
+            });
+          }
+
+          return formattedResponse;
+        } catch (error) {
+          // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
+          const errorToThrow = error instanceof Error ? error : new Error(String(error));
+          setSpanWithError(span, errorToThrow);
+          span.end();
+          throw errorToThrow;
         }
-
-        const formattedResponse = {
-          ...response,
-          formattedContent: formattedContent,
-        };
-
-        if (streamRequestId) {
-          const generationType = response.object ? 'object_generation' : 'text_generation';
-
-          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
-            parts: (formattedContent?.parts || []).map((part) => ({
-              type:
-                part.kind === 'text'
-                  ? ('text' as const)
-                  : part.kind === 'data'
-                    ? ('tool_result' as const)
-                    : ('text' as const),
-              content: part.text || JSON.stringify(part.data),
-            })),
-            generationType,
-          });
-        }
-
-        return formattedResponse;
-      } catch (error) {
-        // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
-        const errorToThrow = error instanceof Error ? error : new Error(String(error));
-        setSpanWithError(span, errorToThrow);
-        span.end();
-        throw errorToThrow;
       }
-    });
+    );
   }
 }

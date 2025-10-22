@@ -11,6 +11,10 @@ export function createExecutionContext(params: {
   apiKeyId: string;
   subAgentId?: string;
   baseUrl?: string;
+  metadata?: {
+    teamDelegation?: boolean;
+    originAgentId?: string;
+  };
 }): ExecutionContext {
   return {
     apiKey: params.apiKey,
@@ -20,6 +24,7 @@ export function createExecutionContext(params: {
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
     subAgentId: params.subAgentId,
+    metadata: params.metadata || {},
   };
 }
 

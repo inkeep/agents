@@ -1,5 +1,90 @@
 # @inkeep/agents-cli
 
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+- Updated dependencies [c1c55b5]
+  - @inkeep/agents-core@0.26.2
+  - @inkeep/agents-manage-ui@0.26.2
+  - @inkeep/agents-sdk@0.26.2
+
+## 0.26.1
+
+### Patch Changes
+
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+  - @inkeep/agents-manage-ui@0.26.1
+  - @inkeep/agents-sdk@0.26.1
+
+## 0.26.0
+
+### Patch Changes
+
+- Updated dependencies [5f537a8]
+- Updated dependencies [0562d82]
+  - @inkeep/agents-manage-ui@0.26.0
+  - @inkeep/agents-core@0.26.0
+  - @inkeep/agents-sdk@0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- Updated dependencies [d8e9af2]
+- Updated dependencies [51c157e]
+  - @inkeep/agents-manage-ui@0.25.0
+  - @inkeep/agents-core@0.25.0
+  - @inkeep/agents-sdk@0.25.0
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- Updated dependencies [3ad959e]
+- Updated dependencies [ffe9033]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+- Updated dependencies [f536bba]
+- Updated dependencies [60d728b]
+- Updated dependencies [dd7b636]
+  - @inkeep/agents-core@0.24.2
+  - @inkeep/agents-manage-ui@0.24.2
+  - @inkeep/agents-sdk@0.24.2
+
+## 0.24.1
+
+### Patch Changes
+
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+  - @inkeep/agents-sdk@0.24.1
+  - @inkeep/agents-manage-ui@0.24.1
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- Updated dependencies [3c87a88]
+- Updated dependencies [a8023c6]
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-manage-ui@0.24.0
+  - @inkeep/agents-core@0.24.0
+  - @inkeep/agents-sdk@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes

@@ -125,9 +125,6 @@ export function createTestContextConfigData(id: string, agentId: string, suffix 
 export function createTestContextConfigDataFull({
   id,
   suffix = '',
-  tenantId = 'default-tenant',
-  projectId = 'default',
-  agentId = 'test-agent',
 }: {
   id?: string;
   suffix?: string;

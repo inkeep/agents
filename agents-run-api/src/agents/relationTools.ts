@@ -5,9 +5,11 @@ import {
   CredentialStuffer,
   createMessage,
   generateId,
+  generateServiceToken,
   getCredentialReference,
-  getExternalAgent,
+  headers,
   SPAN_KEYS,
+  TemplateEngine,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
@@ -161,25 +163,14 @@ export function createDelegateToAgentTool({
       }
 
       const isInternal = delegateConfig.type === 'internal';
+      const isExternal = delegateConfig.type === 'external';
+      const isTeam = delegateConfig.type === 'team';
 
-      let _agentBaseUrl: string;
       let resolvedHeaders: Record<string, string> = {};
 
-      if (!isInternal) {
-        _agentBaseUrl = delegateConfig.config.baseUrl;
-
-        const externalAgent = await getExternalAgent(dbClient)({
-          scopes: {
-            tenantId,
-            projectId,
-            agentId,
-          },
-          subAgentId: delegateConfig.config.id,
-        });
-
+      if (isExternal) {
         if (
-          externalAgent &&
-          (externalAgent.credentialReferenceId || externalAgent.headers) &&
+          (delegateConfig.config.credentialReferenceId || delegateConfig.config.headers) &&
           credentialStoreRegistry
         ) {
           const contextResolver = new ContextResolver(
@@ -199,13 +190,13 @@ export function createDelegateToAgentTool({
           };
 
           let storeReference: CredentialStoreReference | undefined;
-          if (externalAgent.credentialReferenceId) {
+          if (delegateConfig.config.credentialReferenceId) {
             const credentialReference = await getCredentialReference(dbClient)({
               scopes: {
                 tenantId,
                 projectId,
               },
-              id: externalAgent.credentialReferenceId,
+              id: delegateConfig.config.credentialReferenceId,
             });
             if (credentialReference) {
               storeReference = {
@@ -217,9 +208,28 @@ export function createDelegateToAgentTool({
           resolvedHeaders = await credentialStuffer.getCredentialHeaders({
             context: credentialContext,
             storeReference,
-            headers: externalAgent.headers || undefined,
+            headers: delegateConfig.config.headers || undefined,
           });
         }
+      } else if (isTeam) {
+        const contextResolver = new ContextResolver(
+          tenantId,
+          projectId,
+          dbClient,
+          credentialStoreRegistry
+        );
+        const context = await contextResolver.resolveHeaders(metadata.conversationId, contextId);
+
+        for (const [key, value] of Object.entries(headers)) {
+          resolvedHeaders[key] = TemplateEngine.render(value, context, { strict: true });
+        }
+
+        resolvedHeaders.Authorization = `Bearer ${await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: delegateConfig.config.id,
+        })}`;
       } else {
         resolvedHeaders = {
           Authorization: `Bearer ${metadata.apiKey}`,

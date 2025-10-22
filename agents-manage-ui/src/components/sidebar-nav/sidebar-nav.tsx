@@ -4,6 +4,7 @@ import {
   Activity,
   BookOpen,
   Component,
+  Globe,
   Key,
   Layers,
   Library,
@@ -68,6 +69,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: 'MCP Servers',
             url: `/${tenantId}/projects/${projectId}/mcp-servers`,
             icon: MCPIcon as LucideIcon,
+          },
+          {
+            title: 'External Agents',
+            url: `/${tenantId}/projects/${projectId}/external-agents`,
+            icon: Globe,
           },
           {
             title: 'Credentials',

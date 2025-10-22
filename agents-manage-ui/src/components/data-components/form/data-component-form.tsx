@@ -2,12 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Form } from '@/components/ui/form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
@@ -17,6 +19,7 @@ import {
 } from '@/lib/actions/data-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { formatJsonField } from '@/lib/utils';
+import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentPreviewGenerator } from '../preview/component-preview-generator';
 import { defaultValues } from './form-configuration';
 import { type DataComponentFormData, dataComponentSchema } from './validation';
@@ -44,6 +47,7 @@ export function DataComponentForm({
   id,
   initialData,
 }: DataComponentFormProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<DataComponentFormData>({
     resolver: zodResolver(dataComponentSchema),
     defaultValues: formatFormData(initialData),
@@ -87,71 +91,90 @@ export function DataComponentForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <GenericInput
-          control={form.control}
-          name="name"
-          label="Name"
-          placeholder="ListOrders"
-          description={
-            <>
-              This name is used to identify the component in chat widget integration.{' '}
-              <ExternalLink
-                href="https://docs.inkeep.com/typescript-sdk/structured-outputs/data-components#frontend-integration"
-                target="_blank"
-              >
-                Learn more
-              </ExternalLink>
-            </>
-          }
-          isRequired
-        />
-        <GenericInput
-          control={form.control}
-          name="id"
-          label="Id"
-          placeholder="my-data-component"
-          disabled={!!id}
-          description={
-            id
-              ? ''
-              : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
-          }
-          isRequired
-        />
-        <GenericTextarea
-          control={form.control}
-          name="description"
-          label="Description"
-          placeholder="Display a list of user orders with interactive options"
-          className="min-h-[80px]"
-          isRequired
-        />
-        <JsonSchemaInput
-          control={form.control}
-          name="props"
-          label="Props (JSON schema)"
-          placeholder="Enter a valid JSON Schema..."
-          isRequired
-        />
-
-        {id && (
-          <ComponentPreviewGenerator
-            tenantId={tenantId}
-            projectId={projectId}
-            dataComponentId={id}
-            existingPreview={initialData?.preview || null}
-            onPreviewChanged={(preview) => {
-              form.setValue('preview', preview);
-            }}
+    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <GenericInput
+            control={form.control}
+            name="name"
+            label="Name"
+            placeholder="ListOrders"
+            description={
+              <>
+                This name is used to identify the component in chat widget integration.{' '}
+                <ExternalLink
+                  href="https://docs.inkeep.com/typescript-sdk/structured-outputs/data-components#frontend-integration"
+                  target="_blank"
+                >
+                  Learn more
+                </ExternalLink>
+              </>
+            }
+            isRequired
           />
-        )}
+          <GenericInput
+            control={form.control}
+            name="id"
+            label="Id"
+            placeholder="my-data-component"
+            disabled={!!id}
+            description={
+              id
+                ? ''
+                : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
+            }
+            isRequired
+          />
+          <GenericTextarea
+            control={form.control}
+            name="description"
+            label="Description"
+            placeholder="Display a list of user orders with interactive options"
+            className="min-h-[80px]"
+            isRequired
+          />
+          <JsonSchemaInput
+            control={form.control}
+            name="props"
+            label="Props (JSON schema)"
+            placeholder="Enter a valid JSON Schema..."
+            isRequired
+          />
 
-        <Button type="submit" disabled={isSubmitting}>
-          Save
-        </Button>
-      </form>
-    </Form>
+          {id && (
+            <ComponentPreviewGenerator
+              tenantId={tenantId}
+              projectId={projectId}
+              dataComponentId={id}
+              existingPreview={initialData?.preview || null}
+              onPreviewChanged={(preview) => {
+                form.setValue('preview', preview);
+              }}
+            />
+          )}
+
+          <div className="flex w-full justify-between">
+            <Button type="submit" disabled={isSubmitting}>
+              Save
+            </Button>
+            {id && (
+              <DialogTrigger asChild>
+                <Button type="button" variant="destructive-outline">
+                  Delete Component
+                </Button>
+              </DialogTrigger>
+            )}
+          </div>
+        </form>
+      </Form>
+      {isDeleteOpen && id && (
+        <DeleteDataComponentConfirmation
+          dataComponentId={id}
+          dataComponentName={form.getValues('name')}
+          setIsOpen={setIsDeleteOpen}
+          redirectOnDelete={true}
+        />
+      )}
+    </Dialog>
   );
 }

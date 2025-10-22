@@ -9,7 +9,6 @@ import {
   listSubAgentsPaginated,
   PaginationQueryParamsSchema,
   SubAgentApiInsertSchema,
-  SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
   SubAgentListResponse,
   SubAgentResponse,

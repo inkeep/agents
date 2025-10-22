@@ -25,9 +25,9 @@ import { APIPage } from 'fumadocs-openapi/ui';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
-
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
+import { YouTubeVideo } from '@/components/youtube-video';
 
 // Snippet component for MDX snippets
 // This is a placeholder that should be replaced by remark-mdx-snippets plugin
@@ -109,5 +109,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Mermaid,
     Snippet,
+    YouTubeVideo,
   };
 }

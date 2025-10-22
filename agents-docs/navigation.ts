@@ -53,7 +53,6 @@ export default {
             'typescript-sdk/configuration',
             'typescript-sdk/environments',
             'typescript-sdk/push-pull-workflows',
-            'typescript-sdk/cli-reference',
           ],
         },
         'typescript-sdk/data-operations',
@@ -67,6 +66,7 @@ export default {
           ],
         },
         'typescript-sdk/external-agents',
+        'typescript-sdk/cli-reference',
       ],
     },
     {

@@ -19,28 +19,19 @@ const {
   getAgentAgentByIdMock,
   getDataComponentsForAgentMock,
   getArtifactComponentsForAgentMock,
+  getExternalAgentsForSubAgentMock,
+  getTeamAgentsForSubAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
 } = vi.hoisted(() => {
   const getRelatedAgentsForAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
-      internalRelations: [
+      data: [
         {
           id: 'agent-2',
           name: 'Test Agent 2',
           description: 'Test description',
           relationType: 'transfer',
-        },
-      ],
-      externalRelations: [
-        {
-          externalAgent: {
-            id: 'external-1',
-            name: 'External Agent',
-            description: 'External agent description',
-            baseUrl: 'https://external-agent.com',
-          },
-          relationType: 'delegate',
         },
       ],
     })
@@ -165,6 +156,30 @@ const {
     ])
   );
 
+  const getExternalAgentsForSubAgentMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+    })
+  );
+
+  const getTeamAgentsForSubAgentMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'team-relation-1',
+          targetAgent: {
+            id: 'team-agent-1',
+            name: 'Team Agent 1',
+            description: 'A team agent for delegation',
+          },
+          headers: { 'X-Custom-Header': 'team-value' },
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    })
+  );
+
   const getProjectMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'test-project',
@@ -191,6 +206,8 @@ const {
     getAgentAgentByIdMock,
     getDataComponentsForAgentMock,
     getArtifactComponentsForAgentMock,
+    getExternalAgentsForSubAgentMock,
+    getTeamAgentsForSubAgentMock,
     getProjectMock,
     dbResultToMcpToolMock,
   };
@@ -203,6 +220,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentById: getAgentAgentMock,
   getAgentAgent: getAgentAgentMock,
   getAgentAgentById: getAgentAgentByIdMock,
+  getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
   getTracer: vi.fn().mockReturnValue({
     startSpan: vi.fn().mockReturnValue({
       setAttributes: vi.fn(),
@@ -212,6 +230,7 @@ vi.mock('@inkeep/agents-core', () => ({
   }),
   getDataComponentsForAgent: getDataComponentsForAgentMock,
   getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+  getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
   getProject: getProjectMock,
   dbResultToMcpTool: dbResultToMcpToolMock,
   getLogger: vi.fn(() => ({
