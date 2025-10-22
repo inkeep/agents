@@ -85,8 +85,13 @@ export type AgentMcpConfig = {
   headers?: Record<string, string>;
 };
 
+/**
+ * Input configuration for MCP tool customization
+ */
 export type AgentMcpConfigInput = {
+  /** Specific tools to enable from the MCP server */
   selectedTools?: string[];
+  /** Custom headers for MCP server requests */
   headers?: Record<string, string>;
 };
 

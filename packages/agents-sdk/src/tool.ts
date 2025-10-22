@@ -189,6 +189,22 @@ export class Tool implements ToolInterface {
     throw new Error(`Failed to update tool: ${updateResponse.status}`);
   }
 
+  /**
+   * Creates a new AgentMcpConfig with the given configuration.
+   *
+   * @param config - The configuration for the AgentMcpConfig
+   * @returns A new AgentMcpConfig
+   *
+   * example:
+   * ```typescript
+   * const tool = new Tool({
+   *   id: 'tool-id',
+   *   name: 'Tool Name',
+   *   serverUrl: 'https://example.com/mcp',
+   * });
+   * const agentMcpConfig = tool.with({ selectedTools: ['tool-1', 'tool-2'], headers: { 'Authorization': 'Bearer token' } });
+   * ```
+   */
   with(config: AgentMcpConfigInput): AgentMcpConfig {
     return {
       server: this,
