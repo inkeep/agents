@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  context: RouteContext<'/api/data-components/[dataComponentId]/generate-preview'>
+  context: RouteContext<'/api/data-components/[dataComponentId]/generate-render'>
 ) {
   try {
     const { dataComponentId } = await context.params;
@@ -13,10 +13,8 @@ export async function POST(
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
 
-    const runApiUrl =
-      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
-      'http://localhost:3003';
-    const url = `${runApiUrl}/v1/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-preview`;
+    const runApiUrl = process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL || 'http://localhost:3003';
+    const url = `${runApiUrl}/v1/${tenantId}/projects/${projectId}/data-components/${dataComponentId}/generate-render`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -26,7 +24,6 @@ export async function POST(
           Authorization: `Bearer ${process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
           'x-inkeep-tenant-id': tenantId,
           'x-inkeep-project-id': projectId,
-          'x-inkeep-agent-id': 'preview-generator',
         }),
       },
       body: JSON.stringify({

@@ -235,7 +235,7 @@ export async function pushCommand(options: PushOptions) {
 
     // Display project URL if available
     if (config.manageUiUrl) {
-      const projectUrl = `${config.manageUiUrl}/projects/${projectId}`;
+      const projectUrl = `${config.manageUiUrl}/${config.tenantId}/projects/${projectId}`;
       console.log(chalk.cyan('\n🔗 Project URL:'));
       console.log(chalk.blue.underline(`  ${projectUrl}`));
     }

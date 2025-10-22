@@ -3,7 +3,7 @@ import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
-import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DataComponent } from '@/lib/api/data-components';
 import { cn } from '@/lib/utils';
@@ -415,12 +415,11 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                       </div>
                     );
                   } else if (group.type === 'data-component') {
-                    // Regular data component - render with preview if available
                     const dataComponentId = group.data.id;
                     const dataComponent = dataComponentId
                       ? dataComponentLookup[dataComponentId]
                       : undefined;
-                    const hasPreview = dataComponent?.preview?.code;
+                    const hasRender = dataComponent?.render?.component;
 
                     return (
                       <div
@@ -436,9 +435,9 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                           </div>
                         </div>
                         <div className="p-3">
-                          {hasPreview && dataComponent.preview ? (
+                          {hasRender && dataComponent.render ? (
                             <DynamicComponentRenderer
-                              code={dataComponent.preview.code}
+                              code={dataComponent.render.component}
                               props={group.data.props || {}}
                             />
                           ) : (

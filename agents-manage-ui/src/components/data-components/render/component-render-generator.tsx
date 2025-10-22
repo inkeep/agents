@@ -29,37 +29,40 @@ interface ComponentPreviewGeneratorProps {
   tenantId: string;
   projectId: string;
   dataComponentId: string;
-  existingPreview?: { code: string; data: Record<string, unknown> } | null;
-  onPreviewChanged?: (preview: { code: string; data: Record<string, unknown> } | null) => void;
+  existingRender?: { component: string; mockData: Record<string, unknown> } | null;
+  onRenderChanged?: (
+    render: { component: string; mockData: Record<string, unknown> } | null
+  ) => void;
 }
 
-export function ComponentPreviewGenerator({
+export function ComponentRenderGenerator({
   tenantId,
   projectId,
   dataComponentId,
-  existingPreview,
-  onPreviewChanged,
+  existingRender,
+  onRenderChanged,
 }: ComponentPreviewGeneratorProps) {
-  const [preview, setPreview] = useState<{ code: string; data: Record<string, unknown> } | null>(
-    existingPreview || null
-  );
+  const [render, setRender] = useState<{
+    component: string;
+    mockData: Record<string, unknown>;
+  } | null>(existingRender || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [streamingCode, setStreamingCode] = useState<string>('');
-  const [isComplete, setIsComplete] = useState(!!existingPreview);
-  const [isSaved, setIsSaved] = useState(!!existingPreview);
+  const [isComplete, setIsComplete] = useState(!!existingRender);
+  const [isSaved, setIsSaved] = useState(!!existingRender);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
-    setPreview(null);
+    setRender(null);
     setStreamingCode('');
     setIsComplete(false);
     setIsSaved(false);
 
     try {
-      const response = await fetch(`/api/data-components/${dataComponentId}/generate-preview`, {
+      const response = await fetch(`/api/data-components/${dataComponentId}/generate-render`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,12 +71,12 @@ export function ComponentPreviewGenerator({
           tenantId,
           projectId,
           instructions: instructions || undefined,
-          existingCode: instructions ? preview?.code : undefined,
+          existingCode: instructions ? render?.component : undefined,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate preview');
+        throw new Error('Failed to generate render');
       }
 
       if (!response.body) {
@@ -83,7 +86,7 @@ export function ComponentPreviewGenerator({
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let lastValidObject: { code: string; data: Record<string, unknown> } | null = null;
+      let lastValidObject: { component: string; mockData: Record<string, unknown> } | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -100,8 +103,8 @@ export function ComponentPreviewGenerator({
             try {
               const parsed = JSON.parse(line);
               lastValidObject = parsed;
-              if (parsed.code) {
-                setStreamingCode(parsed.code);
+              if (parsed.component) {
+                setStreamingCode(parsed.component);
               }
             } catch (error) {
               console.warn('Failed to parse line:', line, error);
@@ -111,16 +114,16 @@ export function ComponentPreviewGenerator({
       }
 
       if (lastValidObject) {
-        setPreview(lastValidObject);
+        setRender(lastValidObject);
         setIsComplete(true);
-        onPreviewChanged?.(lastValidObject);
-        toast.success('Preview generated successfully');
+        onRenderChanged?.(lastValidObject);
+        toast.success('Render generated successfully');
       } else {
-        throw new Error('No valid preview generated');
+        throw new Error('No valid render generated');
       }
     } catch (error) {
-      console.error('Failed to generate preview:', error);
-      toast.error('Failed to generate preview');
+      console.error('Failed to generate render:', error);
+      toast.error('Failed to generate render');
       setIsComplete(true);
     } finally {
       setIsGenerating(false);
@@ -132,57 +135,57 @@ export function ComponentPreviewGenerator({
     try {
       await updateDataComponent(tenantId, projectId, {
         id: dataComponentId,
-        preview: null,
+        render: null,
       });
-      setPreview(null);
+      setRender(null);
       setIsSaved(false);
-      onPreviewChanged?.(null);
-      toast.success('Preview deleted');
+      onRenderChanged?.(null);
+      toast.success('Render deleted');
     } catch (error) {
-      console.error('Error deleting preview:', error);
-      toast.error('Failed to delete preview');
+      console.error('Error deleting render:', error);
+      toast.error('Failed to delete render');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const hasPreview = preview !== null && (preview.code?.trim().length ?? 0) > 0;
+  const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
 
   // Memoize to prevent infinite re-renders
   const stringifiedData = useMemo(
-    () => (preview?.data ? JSON.stringify(preview.data, null, 2) : '{}'),
-    [preview?.data]
+    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
+    [render?.mockData]
   );
 
-  const previewCode = useMemo(() => preview?.code || '', [preview?.code]);
-  const previewData = useMemo(() => preview?.data || {}, [preview?.data]);
+  const renderCode = useMemo(() => render?.component || '', [render?.component]);
+  const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);
 
   const handleDataChange = useCallback(
     (newData: string) => {
-      if (!preview) return;
+      if (!render) return;
       try {
         const parsedData = JSON.parse(newData);
-        const updatedPreview = { ...preview, data: parsedData };
-        setPreview(updatedPreview);
-        onPreviewChanged?.(updatedPreview);
+        const updatedRender = { ...render, mockData: parsedData };
+        setRender(updatedRender);
+        onRenderChanged?.(updatedRender);
       } catch {
         // Invalid JSON, ignore
       }
     },
-    [preview, onPreviewChanged]
+    [render, onRenderChanged]
   );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h3 className="text-md font-medium">Component Preview</h3>
+          <h3 className="text-md font-medium">Component Renderer</h3>
           <p className="text-sm text-muted-foreground">
             Generate a React/Tailwind component based on your schema.
           </p>
         </div>
         <div className="flex gap-2">
-          {!hasPreview && (
+          {!hasRender && (
             <Button
               onClick={() => generatePreview()}
               disabled={isGenerating}
@@ -202,7 +205,7 @@ export function ComponentPreviewGenerator({
               )}
             </Button>
           )}
-          {hasPreview && (
+          {hasRender && (
             <>
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                 <PopoverTrigger asChild>
@@ -272,7 +275,7 @@ export function ComponentPreviewGenerator({
                   onClick={handleDeletePreview}
                   disabled={isDeleting || isGenerating}
                   size="icon"
-                  title="Delete preview"
+                  title="Delete render"
                 >
                   {isDeleting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -295,32 +298,32 @@ export function ComponentPreviewGenerator({
         <Card className="p-6">
           <div className="flex flex-row items-center justify-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground/70">Generating component preview...</p>
+            <p className="text-sm text-muted-foreground/70">Generating component render...</p>
           </div>
         </Card>
       )}
-      {hasPreview && !isGenerating && isComplete && preview && (
+      {hasRender && !isGenerating && isComplete && render && (
         <Card className="px-2 py-4 pt-0">
-          <Tabs defaultValue="preview" className="w-full">
+          <Tabs defaultValue="render" className="w-full">
             <TabsList className="bg-transparent relative rounded-none border-b p-0 w-full justify-start gap-2">
-              <StyledTabsTrigger value="preview">Preview</StyledTabsTrigger>
+              <StyledTabsTrigger value="render">Render</StyledTabsTrigger>
               <StyledTabsTrigger value="code">Code</StyledTabsTrigger>
               <StyledTabsTrigger value="data">Sample Data</StyledTabsTrigger>
             </TabsList>
 
-            <TabsContent value="preview">
+            <TabsContent value="render">
               <div className="p-4">
-                <DynamicComponentRenderer code={previewCode} props={previewData} />
+                <DynamicComponentRenderer code={renderCode} props={renderData} />
               </div>
             </TabsContent>
             <TabsContent value="code">
               <CodeEditor
-                value={previewCode}
+                value={renderCode}
                 onChange={(newCode) => {
-                  if (!preview) return;
-                  const updatedPreview = { ...preview, code: newCode };
-                  setPreview(updatedPreview);
-                  onPreviewChanged?.(updatedPreview);
+                  if (!render) return;
+                  const updatedRender = { ...render, component: newCode };
+                  setRender(updatedRender);
+                  onRenderChanged?.(updatedRender);
                 }}
                 className="max-h-[500px] border-0 shadow-none"
               />
@@ -335,9 +338,9 @@ export function ComponentPreviewGenerator({
           </Tabs>
         </Card>
       )}
-      {!hasPreview && !isGenerating && !isComplete && (
+      {!hasRender && !isGenerating && !isComplete && (
         <InfoCard>
-          <p className="text-sm text-muted-foreground">No preview generated</p>
+          <p className="text-sm text-muted-foreground">No render generated</p>
         </InfoCard>
       )}
     </div>

@@ -59,6 +59,10 @@ export interface ArtifactComponentConfig extends ComponentConfig {
 
 export interface DataComponentConfig extends ComponentConfig {
   props: Record<string, unknown> | z.ZodObject<any>;
+  render?: {
+    component: string;
+    mockData: Record<string, unknown>;
+  };
 }
 
 export interface StatusComponentConfig {

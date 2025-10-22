@@ -239,6 +239,7 @@ export class SubAgent implements SubAgentInterface {
           name: comp.getName(),
           description: comp.getDescription(),
           props: comp.getProps(),
+          render: comp.getRender?.() || null,
         };
       }
       // If it's a plain object, check if props is a Zod schema
@@ -248,6 +249,7 @@ export class SubAgent implements SubAgentInterface {
           name: comp.name,
           description: comp.description,
           props: convertZodToJsonSchemaWithPreview(comp.props),
+          render: comp.render || null,
         };
       }
       // Otherwise assume it's already a plain object
@@ -869,6 +871,7 @@ export class SubAgent implements SubAgentInterface {
         name: dataComponent.name,
         description: dataComponent.description,
         props: dataComponent.props,
+        render: dataComponent.render,
       });
 
       // Set the context from the agent

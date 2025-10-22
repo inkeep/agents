@@ -835,6 +835,9 @@ importers:
       '@inkeep/agents-sdk':
         specifier: workspace:*
         version: link:../packages/agents-sdk
+      lucide-react:
+        specifier: ^0.546.0
+        version: 0.546.0(react@19.2.0)
       zod:
         specifier: ^4.1.11
         version: 4.1.12
@@ -845,6 +848,9 @@ importers:
       '@types/node':
         specifier: ^20.10.0
         version: 20.19.23
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.2
       tsx:
         specifier: ^4.7.1
         version: 4.20.6
@@ -7647,6 +7653,11 @@ packages:
 
   lucide-react@0.542.0:
     resolution: {integrity: sha512-w3hD8/SQB7+lzU2r4VdFyzzOzKnUjTZIF/MQJGSSvni7Llewni4vuViRppfRAa2guOsY5k4jZyxw/i9DQHv+dw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@0.546.0:
+    resolution: {integrity: sha512-Z94u6fKT43lKeYHiVyvyR8fT7pwCzDu7RyMPpTvh054+xahSgj4HFQ+NmflvzdXsoAjYGdCguGaFKYuvq0ThCQ==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -17998,6 +18009,10 @@ snapshots:
   lucide-react@0.542.0(react@19.1.1):
     dependencies:
       react: 19.1.1
+
+  lucide-react@0.546.0(react@19.2.0):
+    dependencies:
+      react: 19.2.0
 
   lz-string@1.5.0: {}
 
