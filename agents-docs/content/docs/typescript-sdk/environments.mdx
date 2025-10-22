@@ -157,7 +157,7 @@ export const development = registerEnvironmentSettings({
 
 ```typescript
 // environments/production.env.ts
-export const development = registerEnvironmentSettings({
+export const production = registerEnvironmentSettings({
   mcpServers: {
     "my-mcp-server": {
       id: "my-mcp-server",
@@ -258,7 +258,7 @@ export const development = registerEnvironmentSettings({
     },
   },
   mcpServers: {
-      "my-mcp-server": {
+    "my-mcp-server": {
       id: "my-mcp-server",
       type: CredentialStoreType.memory,
       serverUrl: "http://localhost:3000/mcp",
@@ -267,7 +267,7 @@ export const development = registerEnvironmentSettings({
         type: CredentialStoreType.memory,
         credentialStoreId: "memory-default",
         retrievalParams: {
-          key: "MY_MCP_SERVER_KEY_STAGING",
+          key: "MY_MCP_SERVER_KEY_DEV",
         },
      },
     },

@@ -9,7 +9,7 @@ MCP tools connect to external servers that implement the MCP standard. This allo
 
 <Snippet file="mcp/intro-create-and-add.mdx" />
 
-### Registring an MCP Server
+### Registering an MCP Server
 
 ```typescript
 import { agent, mcpTool } from "@inkeep/agents-sdk";
@@ -112,7 +112,7 @@ const weatherAssistant = subAgent({
 
 ## Environment-Aware MCP Servers
 
-You can also configure MCP servers to switch based on your environment. This is useful when you want to use different MCP servers configurationsfor development vs production.
+You can also configure MCP servers to switch based on your environment. This is useful when you want to use different MCP servers configurations for development vs production.
 
 ```typescript
 import { environmentMcpTool } from "@inkeep/agents-sdk";
@@ -131,9 +131,8 @@ You can also configure entire MCP tools to switch based on your environment. Thi
 <Tabs>
   <Tab title="Development Config">
     ```typescript title="environments/development.env.ts"
-    import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
     import { CredentialStoreType } from '@inkeep/agents-core';
-
 
     export const development = registerEnvironmentSettings({
       mcpServers: {
@@ -151,7 +150,7 @@ You can also configure entire MCP tools to switch based on your environment. Thi
 
   <Tab title="Production Config">
     ```typescript title="environments/production.env.ts"
-    import { registerEnvironmentSettings } from '@inkeep/agents-sdk';
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
     import { CredentialStoreType } from '@inkeep/agents-core';
 
     export const production = registerEnvironmentSettings({
