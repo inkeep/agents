@@ -26,7 +26,6 @@ export const apiKeyAuth = () =>
     }
 
     const authHeader = c.req.header('Authorization');
-    const serviceToken = c.req.header('x-inkeep-internal-service-token');
     const tenantId = c.req.header('x-inkeep-tenant-id');
     const projectId = c.req.header('x-inkeep-project-id');
     const agentId = c.req.header('x-inkeep-agent-id');
@@ -43,64 +42,42 @@ export const apiKeyAuth = () =>
           ? `${reqUrl.protocol}//${host}`
           : `${reqUrl.origin}`;
 
-    if (serviceToken) {
-      // First, try to authenticate as a team agent JWT token
-      // JWT tokens are longer than typical API keys and have a specific structure
-      try {
-        const executionContext = await extractContextFromTeamAgentToken(
-          serviceToken,
-          baseUrl,
-          subAgentId
-        );
-
-        c.set('executionContext', executionContext);
-
-        logger.debug(
-          {
-            tenantId: executionContext.tenantId,
-            projectId: executionContext.projectId,
-            agentId: executionContext.agentId,
-            subAgentId: executionContext.subAgentId,
-            teamDelegation: true,
-          },
-          'Team agent JWT authenticated successfully'
-        );
-
-        await next();
-        return;
-      } catch (jwtError) {
-        // If JWT verification fails, fall through to try API key authentication
-        logger.debug(
-          { error: jwtError instanceof Error ? jwtError.message : 'Unknown error' },
-          'JWT authentication failed, trying API key authentication'
-        );
-      }
-    }
-
     if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {
+      logger.info({}, 'development environment');
       let executionContext: ExecutionContext;
 
       if (authHeader?.startsWith('Bearer ')) {
+        // Try to authenticate as a API key
+        const apiKey = authHeader.substring(7);
         try {
-          executionContext = await extractContextFromApiKey(authHeader.substring(7), baseUrl);
+          executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
             executionContext.subAgentId = subAgentId;
           }
-          logger.info({}, 'Development/test environment - API key authenticated successfully');
+          c.set('executionContext', executionContext);
         } catch {
-          executionContext = createExecutionContext({
-            apiKey: 'development',
-            tenantId: tenantId || 'test-tenant',
-            projectId: projectId || 'test-project',
-            agentId: agentId || 'test-agent',
-            apiKeyId: 'test-key',
-            baseUrl: baseUrl,
-            subAgentId: subAgentId,
-          });
-          logger.info(
-            {},
-            'Development/test environment - fallback to default context due to invalid API key'
-          );
+          // If the API key is invalid, try jwt
+          try {
+            executionContext = await extractContextFromTeamAgentToken(apiKey, baseUrl, subAgentId);
+            c.set('executionContext', executionContext);
+          } catch {
+            // If JWT verification fails, fall through to default context
+
+            executionContext = createExecutionContext({
+              apiKey: 'development',
+              tenantId: tenantId || 'test-tenant',
+              projectId: projectId || 'test-project',
+              agentId: agentId || 'test-agent',
+              apiKeyId: 'test-key',
+              baseUrl: baseUrl,
+              subAgentId: subAgentId,
+            });
+            c.set('executionContext', executionContext);
+            logger.info(
+              {},
+              'Development/test environment - fallback to default context due to invalid API key'
+            );
+          }
         }
       } else {
         executionContext = createExecutionContext({
@@ -112,13 +89,12 @@ export const apiKeyAuth = () =>
           baseUrl: baseUrl,
           subAgentId: subAgentId,
         });
+        c.set('executionContext', executionContext);
         logger.info(
           {},
           'Development/test environment - no API key provided, using default context'
         );
       }
-
-      c.set('executionContext', executionContext);
       await next();
       return;
     }
@@ -156,14 +132,23 @@ export const apiKeyAuth = () =>
         await next();
         return;
       } else if (apiKey) {
-        const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-        if (subAgentId) {
-          executionContext.subAgentId = subAgentId;
+        try {
+          const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
+          if (subAgentId) {
+            executionContext.subAgentId = subAgentId;
+          }
+
+          c.set('executionContext', executionContext);
+
+          logger.info({}, 'API key authenticated successfully');
+        } catch {
+          const executionContext = await extractContextFromTeamAgentToken(
+            apiKey,
+            baseUrl,
+            subAgentId
+          );
+          c.set('executionContext', executionContext);
         }
-
-        c.set('executionContext', executionContext);
-
-        logger.info({}, 'API key authenticated successfully');
 
         await next();
         return;
@@ -199,15 +184,26 @@ export const apiKeyAuth = () =>
       );
 
       await next();
-    } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
+    } catch {
+      try {
+        const executionContext = await extractContextFromTeamAgentToken(
+          apiKey,
+          baseUrl,
+          subAgentId
+        );
+        c.set('executionContext', executionContext);
 
-      logger.error({ error }, 'API key authentication error');
-      throw new HTTPException(500, {
-        message: 'Authentication failed',
-      });
+        await next();
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+
+        logger.error({ error }, 'API key authentication error');
+        throw new HTTPException(500, {
+          message: 'Authentication failed',
+        });
+      }
     }
   });
 
@@ -234,8 +230,15 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     });
   }
 
-  logger.info({ agent }, 'agent');
-  logger.info({ defaultSubAgentId: agent.defaultSubAgentId }, 'agent.defaultSubAgentId');
+  logger.debug(
+    {
+      tenantId: apiKeyRecord.tenantId,
+      projectId: apiKeyRecord.projectId,
+      agentId: apiKeyRecord.agentId,
+      subAgentId: agent.defaultSubAgentId || undefined,
+    },
+    'API key authenticated successfully'
+  );
   return createExecutionContext({
     apiKey: apiKey,
     tenantId: apiKeyRecord.tenantId,
@@ -300,7 +303,7 @@ export const extractContextFromTeamAgentToken = async (
     agentId: payload.aud, // Target agent ID
     apiKeyId: 'team-agent-token',
     baseUrl: baseUrl,
-    subAgentId: payload.aud, // Set subAgentId to target agent
+    subAgentId: undefined,
     metadata: {
       teamDelegation: true,
       originAgentId: payload.sub,

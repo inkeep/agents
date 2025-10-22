@@ -126,6 +126,7 @@ export const getTeamAgentsForSubAgent =
           agentId: subAgentTeamAgentRelations.agentId,
           subAgentId: subAgentTeamAgentRelations.subAgentId,
           targetAgentId: subAgentTeamAgentRelations.targetAgentId,
+          headers: subAgentTeamAgentRelations.headers,
           createdAt: subAgentTeamAgentRelations.createdAt,
           updatedAt: subAgentTeamAgentRelations.updatedAt,
           targetAgent: {

@@ -11,10 +11,9 @@ import {
 describe('Team Agent Authentication', () => {
   const mockParams = {
     tenantId: 'tenant_123',
+    projectId: 'project_123',
     originAgentId: 'agent_origin',
-    originProjectId: 'project_origin',
     targetAgentId: 'agent_target',
-    targetProjectId: 'project_target',
   };
 
   beforeEach(() => {
@@ -77,8 +76,7 @@ describe('Team Agent Authentication', () => {
         sub: mockParams.originAgentId,
         aud: mockParams.targetAgentId,
         tenantId: mockParams.tenantId,
-        originProjectId: mockParams.originProjectId,
-        targetProjectId: mockParams.targetProjectId,
+        projectId: mockParams.projectId,
       });
       expect(result.payload?.iat).toBeDefined();
       expect(result.payload?.exp).toBeDefined();
@@ -172,8 +170,7 @@ describe('Team Agent Authentication', () => {
         aud: 'agent_target',
         sub: 'agent_origin',
         tenantId: 'tenant_123',
-        originProjectId: 'project_origin',
-        targetProjectId: 'project_target',
+        projectId: 'project_123',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
       };
@@ -204,8 +201,7 @@ describe('Team Agent Authentication', () => {
         aud: 'agent_target',
         sub: 'agent_origin',
         tenantId: 'tenant_123',
-        originProjectId: 'project_origin',
-        targetProjectId: 'project_target',
+        projectId: 'project_123',
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 300,
       };

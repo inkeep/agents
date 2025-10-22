@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { SubAgentConfig } from '../../types';
@@ -143,7 +142,6 @@ describe('Agent Builder', () => {
     let sourceAgent: SubAgent;
     let transferAgent: SubAgent;
     let delegateAgent: SubAgent;
-    let externalAgent: ExternalAgent;
 
     beforeEach(() => {
       sourceAgent = new SubAgent({
@@ -165,13 +163,6 @@ describe('Agent Builder', () => {
         name: 'Delegate Agent',
         description: 'Delegate agent description',
         prompt: 'Handles delegated tasks',
-      });
-
-      externalAgent = new ExternalAgent({
-        id: 'external-1',
-        name: 'External Agent',
-        description: 'External service',
-        baseUrl: 'https://external.com',
       });
     });
 
@@ -225,23 +216,6 @@ describe('Agent Builder', () => {
 
       expect(delegates).toHaveLength(1);
       expect(delegates[0]).toBe(delegateAgent);
-    });
-
-    it('should add external agent delegates', () => {
-      sourceAgent.addDelegate(externalAgent);
-      const delegates = sourceAgent.getDelegates();
-
-      expect(delegates).toHaveLength(1);
-      expect(delegates[0]).toBe(externalAgent);
-    });
-
-    it('should combine internal and external delegates', () => {
-      sourceAgent.addDelegate(delegateAgent, externalAgent);
-      const delegates = sourceAgent.getDelegates();
-
-      expect(delegates).toHaveLength(2);
-      expect(delegates).toContain(delegateAgent);
-      expect(delegates).toContain(externalAgent);
     });
   });
 

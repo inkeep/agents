@@ -237,7 +237,7 @@ export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultSubAgent?: SubAgentInterface;
+  defaultSubAgent: SubAgentInterface;
   subAgents?: () => SubAgentInterface[];
   contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];

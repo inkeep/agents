@@ -73,61 +73,33 @@ app.openapi(
     const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
     logger.info({ executionContext }, 'executionContext');
-    // If subAgentId is defined in execution context, run agent-level logic
-    if (subAgentId) {
-      logger.info(
-        {
-          message: 'getRegisteredAgent (agent-level)',
-          tenantId,
-          projectId,
-          agentId,
-          subAgentId,
-        },
-        'agent-level well-known agent.json'
-      );
+    logger.info(
+      {
+        message: 'getRegisteredAgent (agent-level)',
+        tenantId,
+        projectId,
+        agentId,
+        subAgentId,
+      },
+      'agent-level well-known agent.json'
+    );
 
-      const credentialStores = c.get('credentialStores');
-      const sandboxConfig = c.get('sandboxConfig');
-      const agent = await getRegisteredAgent({
-        executionContext,
-        credentialStoreRegistry: credentialStores,
-        sandboxConfig,
+    const credentialStores = c.get('credentialStores');
+    const sandboxConfig = c.get('sandboxConfig');
+    const agent = await getRegisteredAgent({
+      executionContext,
+      credentialStoreRegistry: credentialStores,
+      sandboxConfig,
+    });
+    logger.info({ agent }, 'agent registered: well-known agent.json');
+    if (!agent) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
       });
-      logger.info({ agent }, 'agent registered: well-known agent.json');
-      if (!agent) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Agent not found',
-        });
-      }
-
-      return c.json(agent.agentCard);
-    } else {
-      // Run agent-level logic
-      logger.info(
-        {
-          message: 'getRegisteredAgent (agent-level)',
-          tenantId,
-          projectId,
-          agentId,
-        },
-        'agent-level well-known agent.json'
-      );
-
-      const sandboxConfig = c.get('sandboxConfig');
-      const agent = await getRegisteredAgent({
-        executionContext,
-        sandboxConfig,
-      });
-      if (!agent) {
-        throw createApiError({
-          code: 'not_found',
-          message: 'Agent not found',
-        });
-      }
-
-      return c.json(agent.agentCard);
     }
+
+    return c.json(agent.agentCard);
   }
 );
 
