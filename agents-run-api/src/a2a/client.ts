@@ -21,13 +21,8 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core'; // Updated to use the consolidated schema
-import {
-  A2A_BACKOFF_EXPONENT,
-  A2A_BACKOFF_INITIAL_INTERVAL_MS,
-  A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
-  A2A_BACKOFF_MAX_INTERVAL_MS,
-  A2A_RETRY_STATUS_CODES,
-} from '@inkeep/agents-core';
+import { A2A_RETRY_STATUS_CODES } from '@inkeep/agents-core';
+import { runtimeConfig } from '../env';
 import { getLogger } from '../logger';
 
 const logger = getLogger('a2aClient');
@@ -56,10 +51,10 @@ export interface A2AClientOptions {
 }
 
 const DEFAULT_BACKOFF: BackoffStrategy = {
-  initialInterval: A2A_BACKOFF_INITIAL_INTERVAL_MS,
-  maxInterval: A2A_BACKOFF_MAX_INTERVAL_MS,
-  exponent: A2A_BACKOFF_EXPONENT,
-  maxElapsedTime: A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
+  initialInterval: runtimeConfig.A2A_BACKOFF_INITIAL_INTERVAL_MS,
+  maxInterval: runtimeConfig.A2A_BACKOFF_MAX_INTERVAL_MS,
+  exponent: runtimeConfig.A2A_BACKOFF_EXPONENT,
+  maxElapsedTime: runtimeConfig.A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
 };
 
 const DEFAULT_RETRY_STATUS_CODES = [...A2A_RETRY_STATUS_CODES];

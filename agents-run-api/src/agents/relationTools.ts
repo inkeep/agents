@@ -5,14 +5,11 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
-  DELEGATION_TOOL_BACKOFF_EXPONENT,
-  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
-  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
-  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
   generateId,
   getCredentialReference,
   SPAN_KEYS,
 } from '@inkeep/agents-core';
+import { runtimeConfig } from '../env';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import z from 'zod';
@@ -228,10 +225,10 @@ export function createDelegateToAgentTool({
           retryConnectionErrors: true,
           statusCodes: [...A2A_RETRY_STATUS_CODES],
           backoff: {
-            initialInterval: DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
-            maxInterval: DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
-            exponent: DELEGATION_TOOL_BACKOFF_EXPONENT,
-            maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+            initialInterval: runtimeConfig.DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+            maxInterval: runtimeConfig.DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+            exponent: runtimeConfig.DELEGATION_TOOL_BACKOFF_EXPONENT,
+            maxElapsedTime: runtimeConfig.DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
       });

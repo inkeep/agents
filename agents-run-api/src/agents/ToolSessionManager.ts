@@ -1,8 +1,5 @@
-import {
-  generateId,
-  SESSION_CLEANUP_INTERVAL_MS,
-  SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS,
-} from '@inkeep/agents-core';
+import { generateId } from '@inkeep/agents-core';
+import { runtimeConfig } from '../env';
 import { getLogger } from '../logger';
 
 const logger = getLogger('ToolSessionManager');
@@ -32,11 +29,11 @@ export interface ToolSession {
 export class ToolSessionManager {
   private static instance: ToolSessionManager;
   private sessions: Map<string, ToolSession> = new Map();
-  private readonly SESSION_TIMEOUT = SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS;
+  private readonly SESSION_TIMEOUT = runtimeConfig.SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS;
 
   private constructor() {
     // Cleanup expired sessions every minute
-    setInterval(() => this.cleanupExpiredSessions(), SESSION_CLEANUP_INTERVAL_MS);
+    setInterval(() => this.cleanupExpiredSessions(), runtimeConfig.SESSION_CLEANUP_INTERVAL_MS);
   }
 
   static getInstance(): ToolSessionManager {
