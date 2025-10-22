@@ -2,11 +2,9 @@
 
 import {
   Background,
-  type Connection,
   ConnectionMode,
   Controls,
   type Edge,
-  type IsValidConnection,
   type Node,
   Panel,
   ReactFlow,
@@ -15,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -104,6 +102,8 @@ interface AgentProps {
   credentialLookup?: Record<string, Credential>;
   externalAgentLookup?: Record<string, ExternalAgent>;
 }
+
+type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -363,9 +363,11 @@ function Flow({
   }, []);
 
   // Auto-center agent when sidepane opens/closes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on isOpen changes
   useEffect(() => {
     // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
+    if (isOpen) {
+      return;
+    }
     const timer = setTimeout(() => {
       fitView({ maxZoom: 1, duration: 200 });
     }, 350);
@@ -385,7 +387,7 @@ function Flow({
   }, [showPlayground, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
-  const onConnectWrapped = useCallback((params: Connection) => {
+  const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -482,21 +484,24 @@ function Flow({
     });
   }, []);
 
-  const isValidConnection: IsValidConnection = useCallback(({ sourceHandle, targetHandle }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  }, []);
+  const isValidConnection: ReactFlowProps['isValidConnection'] = useCallback(
+    ({ sourceHandle, targetHandle }) => {
+      // we don't want to allow connections between MCP nodes
+      if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+        return false;
+      }
+      return true;
+    },
+    []
+  );
 
-  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver: ReactFlowProps['onDragOver'] = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+  const onDrop: ReactFlowProps['onDrop'] = useCallback(
+    (event) => {
       event.preventDefault();
       const node = event.dataTransfer.getData('application/reactflow');
       if (!node) {
@@ -948,6 +953,22 @@ function Flow({
     };
   }, [setEdges, toolLookup, setNodes]);
 
+  const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
+    (_, node) => {
+      if (isOpen) {
+        return;
+      }
+      setTimeout(() => {
+        fitView({
+          maxZoom: 1,
+          duration: 200,
+          nodes: [node],
+        });
+      }, 350);
+    },
+    [fitView, isOpen]
+  );
+
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
@@ -976,6 +997,7 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          onNodeClick={onNodeClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
