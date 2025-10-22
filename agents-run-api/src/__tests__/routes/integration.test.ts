@@ -154,11 +154,15 @@ vi.mock('../../utils/tracer.js', () => ({
   },
 }));
 
-vi.mock('../../env.js', () => ({
-  env: {
-    AGENT_BASE_URL: 'http://localhost:3002',
-  },
-}));
+vi.mock('../../env.js', async (importOriginal) => {
+  const { runtimeConsts } = await import('@inkeep/agents-core');
+  return {
+    env: {
+      AGENT_BASE_URL: 'http://localhost:3002',
+    },
+    runtimeConfig: runtimeConsts,
+  };
+});
 
 vi.mock('../../logger.js', () => {
   const mockLogger = {
