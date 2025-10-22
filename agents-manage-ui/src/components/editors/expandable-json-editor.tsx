@@ -98,7 +98,7 @@ export function ExpandableJsonEditor({
         onChange={onChange}
         placeholder={placeholder}
         aria-invalid={!!error}
-        className={cn(error && 'max-h-96 mb-6')}
+        className={cn(error && 'max-h-96')}
         hasDynamicHeight={!open}
       />
       {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
