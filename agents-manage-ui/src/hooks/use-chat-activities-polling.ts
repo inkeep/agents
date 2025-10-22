@@ -23,7 +23,7 @@ export const useChatActivitiesPolling = ({
   const [chatActivities, setChatActivities] = useState<ConversationDetail | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastActivityCount, setLastActivityCount] = useState(0);
+  const lastActivityCount = useRef(0)
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComponentMountedRef = useRef(true);
@@ -65,9 +65,9 @@ export const useChatActivitiesPolling = ({
       if (isComponentMountedRef.current && currentConversationId === conversationId) {
         // Only update state if data actually changed (by checking activity count)
         const newCount = data.activities?.length || 0;
-        if (newCount !== lastActivityCount) {
+        if (newCount !== lastActivityCount.current) {
           setChatActivities(data);
-          setLastActivityCount(newCount);
+          lastActivityCount.current = newCount;
         }
       }
 
