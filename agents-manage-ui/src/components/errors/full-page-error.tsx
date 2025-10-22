@@ -45,13 +45,8 @@ export default function FullPageError({
   if (!statusCode && error) {
     if (hasStatusCode(error.cause)) {
       statusCode = error.cause.status;
-    } else {
-      const match = error.message.match(/^\[(\d{3})\]/);
-      if (match) {
-        statusCode = Number.parseInt(match[1], 10);
-      } else if (hasStatusCode(error)) {
-        statusCode = error.status;
-      }
+    } else if (hasStatusCode(error)) {
+      statusCode = error.status;
     }
   }
 
@@ -60,10 +55,7 @@ export default function FullPageError({
 
   if (error && !title) {
     title = `Failed to load ${context}`;
-    let errorMessage =
-      error.message || `An unexpected error occurred while loading this ${context}.`;
-    errorMessage = errorMessage.replace(/^\[\d{3}\]\s*/, '');
-    description = errorMessage;
+    description = error.message || `An unexpected error occurred while loading this ${context}.`;
 
     if (statusCode === 404) {
       title = `${context.charAt(0).toUpperCase() + context.slice(1)} not found`;
