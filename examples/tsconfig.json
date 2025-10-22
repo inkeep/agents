@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
+    "jsx": "react-jsx",
     "checkJs": false,
     "noEmit": true,
     "baseUrl": ".",
@@ -16,9 +17,8 @@
       "@inkeep/agent-framework": ["../configuration/dist/index.js"],
       "@inkeep/agent-framework/*": ["../configuration/dist/*"],
       "@inkeep/agents-cli": ["../cli/dist/exports.js"],
-      "@inkeep/agents-cli/*": ["../cli/dist/*"],
-      "@schema": ["./activities-planner/data-components/activities/schema"]
+      "@inkeep/agents-cli/*": ["../cli/dist/*"]
     }
   },
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/ui/*.tsx"]
 }
