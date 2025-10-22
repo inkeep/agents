@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentPropsWithoutRef, FC } from 'react';
+import { type ComponentPropsWithoutRef, type FC, useState } from 'react';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { cn } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
@@ -37,24 +37,30 @@ export function ExpandableCodeEditor({
   error,
   isRequired,
 }: ExpandableCodeEditorProps) {
-  const commonProps = {
-    id: name,
-    value,
-    onChange,
-    placeholder,
-    'aria-invalid': !!error,
-  };
+  const [open, setOpen] = useState(false);
 
   return (
-    <ExpandableField name={name} label={label} className={className} isRequired={isRequired}>
+    <ExpandableField
+      open={open}
+      onOpenChange={setOpen}
+      name={name}
+      label={label}
+      className={className}
+      isRequired={isRequired}
+    >
       <CodeEditor
-        {...commonProps}
+        id={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        aria-invalid={!!error}
         editorOptions={{
           padding: {
             top: 12,
-            bottom: 36,
+            bottom: 46,
           },
         }}
+        hasDynamicHeight={!open}
         className={cn(error && 'max-h-96 mb-6')}
       />
       {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
