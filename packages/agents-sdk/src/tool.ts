@@ -1,5 +1,6 @@
 import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
+import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';
 
 const logger = getLogger('tool');
 
@@ -12,6 +13,7 @@ export interface ToolInterface {
   getServerUrl(): string;
   getActiveTools(): string[] | undefined;
   getCredentialReferenceId(): string | null | undefined;
+  with(config: AgentMcpConfigInput): AgentMcpConfig;
 }
 
 export class Tool implements ToolInterface {
@@ -185,5 +187,13 @@ export class Tool implements ToolInterface {
 
     // If we get here, the update failed for some other reason
     throw new Error(`Failed to update tool: ${updateResponse.status}`);
+  }
+
+  with(config: AgentMcpConfigInput): AgentMcpConfig {
+    return {
+      server: this,
+      selectedTools: config.selectedTools,
+      headers: config.headers,
+    };
   }
 }

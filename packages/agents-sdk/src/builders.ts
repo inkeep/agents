@@ -84,6 +84,12 @@ export type AgentMcpConfig = {
   selectedTools?: string[];
   headers?: Record<string, string>;
 };
+
+export type AgentMcpConfigInput = {
+  selectedTools?: string[];
+  headers?: Record<string, string>;
+};
+
 // ============================================================================
 // Transfer Builders
 // ============================================================================

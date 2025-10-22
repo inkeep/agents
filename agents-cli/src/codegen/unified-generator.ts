@@ -788,7 +788,7 @@ const weatherSubAgent = subAgent({
   prompt: \`You are a helpful assistant.
 When users ask about weather, use your tools.
 Always be clear and concise.\`,  // Template literal for multi-line
-  canUse: () => [tool1, tool2],  // FUNCTION returning array
+  canUse: () => [tool1, tool2.with({ selectedTools: ['tool-id'] })],  // FUNCTION returning array
   canDelegateTo: () => [otherAgent],  // FUNCTION returning array
   dataComponents: () => [component1]  // FUNCTION returning array
 });
