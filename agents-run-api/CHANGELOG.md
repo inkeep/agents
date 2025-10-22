@@ -1,5 +1,20 @@
 # @inkeep/agents-run-api
 
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+- Updated dependencies [4a2af4c]
+- Updated dependencies [0a6df6e]
+- Updated dependencies [a423b57]
+  - @inkeep/agents-core@0.27.0
+
 ## 0.26.2
 
 ### Patch Changes

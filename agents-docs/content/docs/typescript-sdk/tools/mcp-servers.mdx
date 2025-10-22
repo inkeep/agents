@@ -85,12 +85,12 @@ const selectiveTool = mcpTool({
 });
 ```
 
-### Using agentMcp for Tool Selection
+### Using `with` for Tool Selection
 
-While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `agentMcp`. This allows different agents to use different subsets of tools from the same MCP server.
+While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `mcpTool.with`. This allows different agents to use different subsets of tools from the same MCP server.
 
 ```typescript
-import { agent, mcpTool, agentMcp } from "@inkeep/agents-sdk";
+import { agent, mcpTool } from "@inkeep/agents-sdk";
 
 // Define the MCP server with all available tools
 const echoTool = mcpTool({
@@ -106,6 +106,6 @@ const weatherAssistant = subAgent({
   description: "Responsible for routing between the geocoder agent and weather forecast agent",
   prompt: "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
   canDelegateTo: () => [weatherForecaster, geocoderAgent],
-  canUse: () => [agentMcp({ server: echoTool, selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
+  canUse: () => [echoTool.with({ selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
 });
 ```

@@ -331,8 +331,8 @@ export const IkpMessage: FC<IkpMessageProps> = ({
 
   if (message.role === 'user') {
     return (
-      <div className="">
-        <div className="">
+      <div>
+        <div>
           <p className="text-sm">{textContent}</p>
         </div>
       </div>

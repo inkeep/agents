@@ -1,4 +1,3 @@
-import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -16,14 +15,7 @@ import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
-const JsonEditorWithCopy = dynamic(
-  () =>
-    import('@/components/traces/editors/json-editor-with-copy').then(
-      (mod) => mod.JsonEditorWithCopy
-    ),
-  { ssr: false } // ensures it only loads on the client side
-);
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
   try {
@@ -35,7 +27,7 @@ function formatJsonSafely(content: string): string {
 
 function AssistantMessageContent({ content }: { content: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   return (
     <LabeledBlock label="AI response content">
       <div className="relative">
@@ -213,7 +205,7 @@ export function renderPanelContent({
           <Section>
             <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
             <AssistantMessageContent content={a.aiResponseContent || 'Response content not available'} />
-            
+
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
