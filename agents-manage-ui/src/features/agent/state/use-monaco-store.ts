@@ -4,7 +4,11 @@ import { useShallow } from 'zustand/react/shallow';
 import type * as Monaco from 'monaco-editor';
 import { createHighlighter } from 'shiki';
 import { shikiToMonaco } from '@shikijs/monaco';
-import { TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
+import {
+  MONACO_THEME_NAME,
+  TEMPLATE_LANGUAGE,
+  VARIABLE_TOKEN,
+} from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
@@ -30,9 +34,6 @@ const initialMonacoState: MonacoStateData = {
   variableSuggestions: [],
 };
 
-// Reserved keys that are always valid
-export const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
-
 export const monacoStore = create<MonacoState>()(
   devtools((set, get) => ({
     ...initialMonacoState,
@@ -43,27 +44,25 @@ export const monacoStore = create<MonacoState>()(
       },
       setMonacoTheme(isDark) {
         const monaco = get().monaco;
-        const monacoTheme = isDark ? 'github-dark-default' : 'github-light-default';
+        const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
         monaco?.editor.setTheme(monacoTheme);
       },
       async setMonaco(isDark) {
         const { actions } = get();
         const monaco = await import('monaco-editor');
         set({ monaco });
-
         // Create the highlighter, it can be reused
         const highlighter = await createHighlighter({
           themes: ['github-dark-default', 'github-light-default'],
           langs: ['javascript', 'typescript', 'json'],
         });
-
+        monaco.languages.register({ id: 'json' });
+        monaco.languages.register({ id: TEMPLATE_LANGUAGE });
         // Register the themes from Shiki, and provide syntax highlighting for Monaco.
         shikiToMonaco(highlighter, monaco);
         actions.setMonacoTheme(isDark);
 
-        const { languages, Range } = monaco;
-
-        languages.json.jsonDefaults.setDiagnosticsOptions({
+        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
           // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
           // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
           schemas: [
@@ -77,16 +76,14 @@ export const monacoStore = create<MonacoState>()(
           enableSchemaRequest: true,
         });
 
-        languages.register({ id: TEMPLATE_LANGUAGE });
-
         return [
           // Define tokens for template variables
-          languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
+          monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
             tokenizer: {
               root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
             },
           }),
-          languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
+          monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
             triggerCharacters: ['{'],
             provideCompletionItems(model, position) {
               const { variableSuggestions } = get();
@@ -111,7 +108,7 @@ export const monacoStore = create<MonacoState>()(
               );
 
               const word = model.getWordUntilPosition(position);
-              const range = new Range(
+              const range = new monaco.Range(
                 position.lineNumber,
                 word.startColumn,
                 position.lineNumber,
@@ -128,22 +125,16 @@ export const monacoStore = create<MonacoState>()(
                   detail: 'Context variable',
                   sortText: '0',
                 })),
-                // Add reserved keys
-                ...Array.from(RESERVED_KEYS).map((label) => ({
-                  label,
-                  detail: 'Reserved variable',
-                  sortText: '1',
-                })),
                 // Add environment variables
                 {
                   label: '$env.',
                   detail: 'Environment variable',
-                  sortText: '2',
+                  sortText: '1',
                 },
               ];
               return {
                 suggestions: completionItems.map((item) => ({
-                  kind: languages.CompletionItemKind.Module,
+                  kind: monaco.languages.CompletionItemKind.Module,
                   range,
                   insertText: `{${item.label}}}`,
                   ...item,

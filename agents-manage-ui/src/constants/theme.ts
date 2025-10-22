@@ -1,9 +1,9 @@
 // import type { editor } from 'monaco-editor';
 
-// export const MONACO_THEME_NAME = {
-//   light: 'inkeep-light',
-//   dark: 'inkeep-dark',
-// };
+export const MONACO_THEME_NAME = {
+  light: 'github-light-default',
+  dark: 'github-dark-default',
+} as const;
 
 // const color = {
 //   transparent: '#00000000',
