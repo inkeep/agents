@@ -407,6 +407,8 @@ async function installDependencies() {
 async function initializeGit() {
   try {
     await execAsync('git init');
+    await execAsync('git add .');
+    await execAsync('git commit -m "Initial commit from inkeep/create-agents"');
   } catch (error) {
     console.error(
       'Error initializing git:',
