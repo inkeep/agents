@@ -95,8 +95,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'event-planner';
-    templateName = 'event-planner';
+    projectId = 'activity-planner';
+    templateName = 'activity-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));

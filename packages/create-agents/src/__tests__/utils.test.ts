@@ -85,7 +85,7 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use event-planner as default template and project ID', async () => {
+    it('should use activity-planner as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
@@ -99,8 +99,8 @@ describe('createAgents - Template and Project ID Logic', () => {
         expect.any(String)
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/event-planner',
-        'src/projects/event-planner',
+        'https://github.com/inkeep/agents-cookbook/template-projects/activity-planner',
+        'src/projects/activity-planner',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
@@ -419,7 +419,10 @@ describe('createAgents - Template and Project ID Logic', () => {
           call[0] &&
           typeof call[0] === 'object' &&
           'message' in call[0] &&
-          (call[0].message.includes('API key') || call[0].message.includes('Anthropic') || call[0].message.includes('OpenAI') || call[0].message.includes('Google'))
+          (call[0].message.includes('API key') ||
+            call[0].message.includes('Anthropic') ||
+            call[0].message.includes('OpenAI') ||
+            call[0].message.includes('Google'))
       );
       expect(apiKeyCalls).toHaveLength(0);
     });
