@@ -322,7 +322,7 @@ export function ComponentPreviewGenerator({
                   setPreview(updatedPreview);
                   onPreviewChanged?.(updatedPreview);
                 }}
-                // className="max-h-[500px] border-0 shadow-none"
+                className="max-h-[500px] border-0 shadow-none"
               />
             </TabsContent>
             <TabsContent value="data">

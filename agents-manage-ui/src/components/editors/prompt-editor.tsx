@@ -1,7 +1,6 @@
 'use client';
 
 import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
-import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
 import {
@@ -66,7 +65,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
       monaco.editor.setModelMarkers(model, 'template-variables', markers);
     };
 
-    const disposables: IDisposable[] = [];
+    const disposables: Monaco.IDisposable[] = [];
 
     // Add model change listener to trigger validation for this specific editor
     disposables.push(model.onDidChangeContent(validateTemplateVariables));

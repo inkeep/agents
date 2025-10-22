@@ -1,6 +1,4 @@
 import type { editor } from 'monaco-editor';
-import themeLight from './github-light.json';
-import themeDark from './github-dark.json';
 
 export const MONACO_THEME_NAME = {
   light: 'inkeep-light',

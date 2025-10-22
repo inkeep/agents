@@ -86,6 +86,11 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       model,
       language,
+      extraEditorClassName: [
+        '[--vscode-editor-background:transparent]!',
+        '[--vscode-editorGutter-background:transparent]!',
+        '[--vscode-focusBorder:transparent]!',
+      ].join('\n'),
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
