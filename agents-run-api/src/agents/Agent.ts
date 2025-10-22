@@ -2155,9 +2155,29 @@ ${output}${structureHintsFormatted}`;
               const structuredModelSettings = ModelFactory.prepareGenerationConfig(
                 this.getStructuredOutputModel()
               );
-              const phase2TimeoutMs = structuredModelSettings.maxDuration
-                ? structuredModelSettings.maxDuration * 1000
+
+              // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
+              const configuredPhase2Timeout = structuredModelSettings.maxDuration
+                ? Math.min(structuredModelSettings.maxDuration * 1000, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
                 : CONSTANTS.PHASE_2_TIMEOUT_MS;
+
+              // Ensure timeout doesn't exceed maximum
+              const phase2TimeoutMs = Math.min(configuredPhase2Timeout, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
+
+              if (
+                structuredModelSettings.maxDuration &&
+                structuredModelSettings.maxDuration * 1000 > runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+              ) {
+                logger.warn(
+                  {
+                    requestedTimeout: structuredModelSettings.maxDuration * 1000,
+                    appliedTimeout: phase2TimeoutMs,
+                    maxAllowed: runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+                    phase: 'structured_generation',
+                  },
+                  'Phase 2 requested timeout exceeded maximum allowed, capping to 10 minutes'
+                );
+              }
 
               const shouldStreamPhase2 = this.getStreamingHelper();
 

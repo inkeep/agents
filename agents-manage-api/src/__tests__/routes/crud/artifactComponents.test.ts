@@ -1,6 +1,7 @@
 import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
+import { runtimeConfig } from '../../../env';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
@@ -168,7 +169,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.pagination).toMatchObject({
         page: 1,
-        limit: 10,
+        limit: runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT,
       });
     });
 

@@ -1,5 +1,6 @@
 import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import { runtimeConfig } from '../../../env';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
@@ -184,12 +185,12 @@ describe('Project CRUD Routes - Integration Tests', () => {
         const res2 = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=100`);
         expect(res2.status).toBe(200);
         const body2 = await res2.json();
-        expect(body2.pagination.limit).toBe(100);
+        expect(body2.pagination.limit).toBe(runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT);
       } else {
-        // Original test - backend caps at 100
+        // Original test - backend caps at max limit
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.pagination.limit).toBe(100); // Should be capped at 100
+        expect(body.pagination.limit).toBe(runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT);
       }
     });
 
@@ -202,7 +203,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.pagination.page).toBe(1); // Default page
-      expect(body.pagination.limit).toBe(50); // Default limit
+      expect(body.pagination.limit).toBe(runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT);
     });
   });
 
