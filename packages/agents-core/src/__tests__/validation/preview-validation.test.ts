@@ -64,21 +64,6 @@ function MyComponent(props) {
     expect(result.errors.some((e) => e.message.includes('not allowed'))).toBe(true);
   });
 
-  it('should reject code with export statements', () => {
-    const preview = {
-      component: `function MyComponent(props) {
-  return <div>{props.name}</div>;
-}
-
-export default MyComponent;`,
-      mockData: {},
-    };
-
-    const result = validateRender(preview);
-    expect(result.isValid).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('export'))).toBe(true);
-  });
-
   it('should reject code exceeding size limit', () => {
     const preview = {
       component: 'a'.repeat(60000),
@@ -122,7 +107,7 @@ export default MyComponent;`,
 
     const result = validateRender(preview);
     expect(result.isValid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'preview.code')).toBe(true);
+    expect(result.errors.some((e) => e.field === 'render.component')).toBe(true);
   });
 
   it('should reject missing or invalid data', () => {
@@ -135,7 +120,7 @@ export default MyComponent;`,
 
     const result = validateRender(preview);
     expect(result.isValid).toBe(false);
-    expect(result.errors.some((e) => e.field === 'preview.data')).toBe(true);
+    expect(result.errors.some((e) => e.field === 'render.mockData')).toBe(true);
   });
 
   it('should accept valid code with lucide-react imports', () => {

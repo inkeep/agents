@@ -13,7 +13,7 @@ CREATE TABLE `__new_data_components` (
 	FOREIGN KEY (`tenant_id`,`project_id`) REFERENCES `projects`(`tenant_id`,`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-INSERT INTO `__new_data_components`("tenant_id", "id", "project_id", "name", "description", "props", "render", "created_at", "updated_at") SELECT "tenant_id", "id", "project_id", "name", "description", "props", "preview", "created_at", "updated_at" FROM `data_components`;--> statement-breakpoint
-DROP TABLE `data_components`;--> statement-breakpoint
+INSERT INTO `__new_data_components`("tenant_id", "id", "project_id", "name", "description", "props", "render", "created_at", "updated_at") SELECT "tenant_id", "id", "project_id", "name", "description", "props", NULL, "created_at", "updated_at" FROM `data_components` WHERE EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='data_components');--> statement-breakpoint
+DROP TABLE IF EXISTS `data_components`;--> statement-breakpoint
 ALTER TABLE `__new_data_components` RENAME TO `data_components`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;
