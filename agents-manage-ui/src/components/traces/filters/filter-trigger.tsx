@@ -13,6 +13,7 @@ interface FilterTriggerComponentProps {
   disabled?: boolean;
   isRemovable?: boolean;
   hideFilterLabelWhenSelected?: boolean;
+  placeholder?: string;
 }
 
 export function FilterTriggerComponent({
@@ -25,6 +26,7 @@ export function FilterTriggerComponent({
   disabled,
   isRemovable = true,
   hideFilterLabelWhenSelected = false,
+  placeholder,
 }: FilterTriggerComponentProps) {
   const countMultipleFilterValues = multipleCheckboxValues.length;
   const isShowSelectedOptions = !!countMultipleFilterValues;
@@ -51,8 +53,8 @@ export function FilterTriggerComponent({
               {filterLabel}
             </div>
           )}
-          {isShowSelectedOptions &&
-            (isShowOneSelectedOption ? (
+          {isShowSelectedOptions ? (
+            isShowOneSelectedOption ? (
               <div className="flex items-center gap-2 truncate">
                 {!hideFilterLabelWhenSelected && (
                   <p className="text-gray-400 dark:text-white/50">is</p>
@@ -69,7 +71,15 @@ export function FilterTriggerComponent({
                   {countMultipleFilterValues} {pluralFilterLabel || filterLabel}
                 </p>
               </div>
-            ))}
+            )
+          ) : (
+            placeholder && (
+              <div className="flex items-center gap-2 truncate">
+                <p className="text-gray-400 dark:text-white/50">is</p>
+                {placeholder}
+              </div>
+            )
+          )}
           <ChevronDown
             className="mt-[2.5px] text-gray-400 dark:text-white/50"
             height={14}

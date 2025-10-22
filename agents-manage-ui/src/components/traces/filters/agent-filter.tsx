@@ -67,6 +67,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
           }}
           multipleCheckboxValues={selectedValue ? [selectedValue] : []}
           options={agentOptions}
+          placeholder="All agents"
         />
       }
     />
