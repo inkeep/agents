@@ -118,8 +118,7 @@ describe('Team Agent Authentication', () => {
 
       const expiredToken = await new SignJWT({
         tenantId: mockParams.tenantId,
-        originProjectId: mockParams.originProjectId,
-        targetProjectId: mockParams.targetProjectId,
+        projectId: mockParams.projectId,
       })
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuer('inkeep-agents')

@@ -1,7 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import {
   agents,
   artifactComponents,
@@ -17,6 +16,7 @@ import {
 } from '../db/schema';
 import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
@@ -24,6 +24,7 @@ import { listFunctionTools } from './functionTools';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
+import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
 
 export const getAgentById =
@@ -303,6 +304,15 @@ export const getFullAgentDefinition =
       scopes: { tenantId, projectId, agentId },
     });
 
+    const teamAgentRelations = await getSubAgentTeamAgentRelationsByAgent(db)({
+      scopes: { tenantId, projectId, agentId },
+    });
+
+    const teamAgentSubAgentIds = new Set<string>();
+    for (const relation of teamAgentRelations) {
+      teamAgentSubAgentIds.add(relation.targetAgentId);
+    }
+
     const externalSubAgentIds = new Set<string>();
     for (const relation of externalAgentRelations) {
       externalSubAgentIds.add(relation.externalAgentId);
@@ -334,6 +344,14 @@ export const getFullAgentDefinition =
             headers: rel.headers as Record<string, string> | null | undefined,
           }));
 
+        const canDelegateToTeam = teamAgentRelations
+          .filter((rel) => rel.subAgentId === agent.id)
+          .map((rel) => ({
+            agentId: rel.targetAgentId,
+            subAgentTeamAgentRelationId: rel.id,
+            headers: rel.headers as Record<string, string> | null | undefined,
+          }));
+
         const canDelegateTo: (
           | string
           | {
@@ -341,7 +359,12 @@ export const getFullAgentDefinition =
               subAgentExternalAgentRelationId?: string;
               headers?: Record<string, string> | null;
             }
-        )[] = [...canDelegateToInternal, ...canDelegateToExternal];
+          | {
+              agentId: string;
+              subAgentTeamAgentRelationId?: string;
+              headers?: Record<string, string> | null;
+            }
+        )[] = [...canDelegateToInternal, ...canDelegateToExternal, ...canDelegateToTeam];
 
         const subAgentTools = await db
           .select({
@@ -475,6 +498,22 @@ export const getFullAgentDefinition =
       })
     );
 
+    const teamAgents = await Promise.all(
+      Array.from(teamAgentSubAgentIds).map(async (teamAgentId) => {
+        const teamAgent = await getAgentById(db)({
+          scopes: { tenantId, projectId, agentId: teamAgentId },
+        });
+        if (!teamAgent) return null;
+
+        return {
+          id: teamAgent.id,
+          name: teamAgent.name,
+          description: teamAgent.description,
+          type: 'team' as const,
+        };
+      })
+    );
+
     const validSubAgents = processedSubAgents.filter(
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
@@ -483,9 +522,13 @@ export const getFullAgentDefinition =
       (agent): agent is NonNullable<typeof agent> => agent !== null
     );
 
+    const validTeamAgents = teamAgents.filter(
+      (agent): agent is NonNullable<typeof agent> => agent !== null
+    );
+
     const agentsObject: Record<string, unknown> = {};
     const externalAgentsObject: Record<string, unknown> = {};
-
+    const teamAgentsObject: Record<string, unknown> = {};
     // Add internal agents to agentsObject
     for (const subAgent of validSubAgents) {
       agentsObject[subAgent.id] = subAgent;
@@ -501,6 +544,9 @@ export const getFullAgentDefinition =
         credentialReferenceId: externalAgent.credentialReferenceId,
         type: 'external',
       };
+    }
+    for (const teamAgent of validTeamAgents) {
+      teamAgentsObject[teamAgent.id] = teamAgent;
     }
 
     let contextConfig = null;
@@ -576,6 +622,10 @@ export const getFullAgentDefinition =
     // Add external agents if any exist
     if (Object.keys(externalAgentsObject).length > 0) {
       result.externalAgents = externalAgentsObject;
+    }
+
+    if (Object.keys(teamAgentsObject).length > 0) {
+      result.teamAgents = teamAgentsObject;
     }
 
     if (agent.models) {

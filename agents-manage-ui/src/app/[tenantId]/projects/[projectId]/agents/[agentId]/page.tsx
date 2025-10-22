@@ -65,6 +65,7 @@ async function AgentPage({
   const externalAgentLookup = createLookup(
     externalAgents.success ? externalAgents.data : undefined
   );
+
   return (
     <BodyTemplate
       breadcrumbs={[
