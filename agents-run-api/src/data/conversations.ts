@@ -1,6 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
@@ -19,7 +20,7 @@ export function createDefaultConversationHistoryConfig(
 ): AgentConversationHistoryConfig {
   return {
     mode,
-    limit: 50,
+    limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
     includeInternal: true,
     messageTypes: ['chat'],
     maxOutputTokens: 4000,
@@ -177,7 +178,7 @@ export async function getUserFacingHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  limit = 50
+  limit = CONVERSATION_HISTORY_DEFAULT_LIMIT
 ): Promise<any[]> {
   return await getConversationHistory(dbClient)({
     scopes: { tenantId, projectId },

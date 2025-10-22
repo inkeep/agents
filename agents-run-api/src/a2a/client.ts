@@ -21,6 +21,13 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core'; // Updated to use the consolidated schema
+import {
+  A2A_BACKOFF_EXPONENT,
+  A2A_BACKOFF_INITIAL_INTERVAL_MS,
+  A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
+  A2A_BACKOFF_MAX_INTERVAL_MS,
+  A2A_RETRY_STATUS_CODES,
+} from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 
 const logger = getLogger('a2aClient');
@@ -49,13 +56,13 @@ export interface A2AClientOptions {
 }
 
 const DEFAULT_BACKOFF: BackoffStrategy = {
-  initialInterval: 500,
-  maxInterval: 60000,
-  exponent: 1.5,
-  maxElapsedTime: 30000, // 30 seconds for A2A calls
+  initialInterval: A2A_BACKOFF_INITIAL_INTERVAL_MS,
+  maxInterval: A2A_BACKOFF_MAX_INTERVAL_MS,
+  exponent: A2A_BACKOFF_EXPONENT,
+  maxElapsedTime: A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
 };
 
-const DEFAULT_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
+const DEFAULT_RETRY_STATUS_CODES = [...A2A_RETRY_STATUS_CODES];
 
 /**
  * Error classes for retry logic

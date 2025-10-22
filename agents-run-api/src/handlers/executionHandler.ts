@@ -1,4 +1,6 @@
 import {
+  AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS,
+  AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
   type ExecutionContext,
@@ -42,7 +44,7 @@ interface ExecutionResult {
 }
 
 export class ExecutionHandler {
-  private readonly MAX_ERRORS = 3;
+  private readonly MAX_ERRORS = AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS;
 
   /**
    * performs exeuction loop
@@ -195,7 +197,8 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
+      const maxTransfers =
+        agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
       while (iterations < maxTransfers) {
         iterations++;

@@ -1,0 +1,135 @@
+---
+title: Configure Runtime Limits
+description: Customize execution limits, timeouts, and constraints for your deployment
+icon: "LuSettings2"
+---
+
+# Configure Runtime Limits
+
+## Overview
+
+The Inkeep Agent Framework includes sensible defaults for execution limits, timeouts, and constraints. However, certain use cases—like long-running orchestration agents—may require different configurations.
+
+## How Runtime Configuration Works
+
+### Two Types of Limits
+
+**1. API-Configurable Limits** (set per agent/sub-agent via manage-api)
+- Configured in your agent definitions using `stopWhen`
+- Controls agent-specific behavior
+- See [Agent Settings - StopWhen](/docs/typescript-sdk/agent-settings#configuring-stopwhen)
+
+**2. Runtime Environment Limits** (set via environment variables)
+- System-wide defaults and maximum allowed values
+- Controls infrastructure-level constraints
+- Documented in this guide
+
+### Configuration Hierarchy
+
+When an agent executes:
+1. Uses agent-specific `stopWhen` settings if configured
+2. Falls back to runtime environment defaults
+3. Cannot exceed runtime environment maximums
+
+## Use Case: Long-Running Orchestration Agents
+
+For agents that orchestrate complex workflows (like coding agents that run for hours), you'll want to increase various limits and timeouts.
+
+### Recommended Configuration
+
+Add these to your `.env` file:
+
+```bash
+# Agent Execution - Allow more sub-agent transfers for complex orchestration
+AGENTS_EXECUTION_TRANSFER_COUNT_DEFAULT=50  # Default: 10
+AGENTS_EXECUTION_TRANSFER_COUNT_MAX=2000    # Default: 1000
+
+# Sub-Agent Turns - Allow more LLM generation steps per turn
+AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT=30  # Default: 12
+AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MAX=2000    # Default: 1000
+
+# LLM Timeouts - Increase for longer-running operations
+AGENTS_LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING=600000   # 10min, Default: 4.5min
+AGENTS_LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS=180000        # 3min, Default: 1.5min
+
+# Function Tools - Allow longer execution for complex operations
+AGENTS_FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT=120000  # 2min, Default: 30sec
+
+# MCP Tools - Increase timeout for external tool operations
+AGENTS_MCP_TOOL_REQUEST_TIMEOUT_MS_DEFAULT=180000  # 3min, Default: 1min
+
+# Session Management - Keep tool results cached longer
+AGENTS_SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS=1800000  # 30min, Default: 5min
+
+# Streaming - Allow streams to run longer
+AGENTS_STREAM_MAX_LIFETIME_MS=1800000  # 30min, Default: 10min
+```
+
+### Why These Settings?
+
+- **Transfer Count**: Coding orchestration often involves many handoffs between specialist agents (planning → implementation → testing → refinement)
+- **Generation Steps**: Each coding operation may require multiple tool calls (read files, analyze, write code, run tests)
+- **Timeouts**: Code generation and analysis can take time, especially for large files or complex refactoring
+- **Cache Duration**: Keeps tool results available throughout long sessions for artifact processing
+
+## Setting Variables by Deployment Type
+
+### Local Development (Docker Compose)
+
+```bash
+# Edit .env file
+vim .env
+
+# Add your overrides
+AGENTS_EXECUTION_TRANSFER_COUNT_DEFAULT=50
+# ... other settings
+
+# Restart services
+docker compose down && docker compose up -d
+```
+
+### Production Deployments
+
+#### AWS EC2, GCP, Hetzner
+Add variables to your `.env` file before running `docker compose up`:
+
+```bash
+cp .env.docker.example .env
+# Edit .env with your overrides
+vim .env
+docker compose up -d
+```
+
+#### Vercel, Cloud Run, etc.
+Set environment variables in your platform's environment configuration UI.
+
+## All Available Configuration Variables
+
+All runtime configuration variables are defined with their defaults in the repository's `.env.example` file. These serve as the source of truth for available overrides.
+
+```typescript title=".env.example" source="@/../.env.example#L71-L173"
+```
+
+### Configuration Categories
+
+The runtime configuration is organized into categories:
+
+- **Agent Execution Loop**: Controls transfers between sub-agents and error handling
+- **Sub-Agent Turn Execution**: LLM generation steps within a single activation
+- **LLM Generation Timeouts**: Timeout behavior for AI model calls
+- **Function Tool Sandbox**: Limits for function tools in isolated sandboxes
+- **MCP Tools**: Timeout and connection settings for MCP tools
+- **Delegation & A2A**: Inter-agent communication settings
+- **Artifact Processing**: UI component generation with retry mechanisms
+- **Session Management**: Tool result caching and cleanup
+- **Status Updates & Streaming**: Frequency and batching of updates
+- **Stream Buffers**: Memory limits for streaming responses
+- **Validation Limits**: Hard limits enforced at API layer
+- **Data Components**: External data fetching timeouts
+- **Conversation History**: Message retrieval limits
+
+## Related Documentation
+
+- [Agent Settings - StopWhen](/docs/typescript-sdk/agent-settings#configuring-stopwhen) - Configure per-agent limits
+- [Environment Configuration](/docs/community/contributing/environment-configuration) - Development environment setup
+- [Configuration Management](/docs/typescript-sdk/configuration) - Workspace configuration

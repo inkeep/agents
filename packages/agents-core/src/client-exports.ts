@@ -7,6 +7,16 @@
  */
 
 import { z } from 'zod';
+import {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_PAGINATION_DEFAULT_LIMIT,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} from './constants/runtime';
 import { CredentialStoreType, MCPTransportType } from './types';
 
 import {
@@ -59,7 +69,11 @@ export const IdParamsSchema = z.object({
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(10),
+  limit: z
+    .coerce.number()
+    .min(1)
+    .max(VALIDATION_PAGINATION_MAX_LIMIT)
+    .default(VALIDATION_PAGINATION_DEFAULT_LIMIT),
   total: z.number(),
   pages: z.number(),
 });
@@ -198,16 +212,20 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
     .optional(),
   stopWhen: z
     .object({
-      transferCountIs: z.number().min(1).max(100).optional(),
+      transferCountIs: z
+        .number()
+        .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+        .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+        .optional(),
     })
     .optional(),
-  prompt: z.string().max(5000).optional(),
+  prompt: z.string().max(VALIDATION_AGENT_PROMPT_MAX_CHARS).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),
-      numEvents: z.number().min(1).max(100).optional(),
-      timeInSeconds: z.number().min(1).max(600).optional(),
-      prompt: z.string().max(2000).optional(),
+      numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+      timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+      prompt: z.string().max(VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS).optional(),
       statusComponents: z
         .array(
           z.object({

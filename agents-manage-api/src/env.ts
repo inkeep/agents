@@ -1,4 +1,16 @@
-import { loadEnvironmentFiles } from '@inkeep/agents-core';
+import {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT,
+  loadEnvironmentFiles,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} from '@inkeep/agents-core';
 import { z } from 'zod';
 
 // Load all environment files using shared logic
@@ -36,3 +48,70 @@ const parseEnv = () => {
 
 export const env = parseEnv();
 export type Env = z.infer<typeof envSchema>;
+
+/**
+ * Runtime Configuration Schema for Validation Constants
+ * These constants control maximum/minimum values that users can configure via manage-api.
+ * They are used in validation schemas to enforce limits on user input.
+ * All values are optional and default to constants defined in agents-core.
+ */
+const runtimeConfigSchema = z.object({
+  // Sub-Agent Validation
+  AGENTS_VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS: z.coerce.number().optional(),
+  AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MIN: z.coerce.number().optional(),
+  AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MAX: z.coerce.number().optional(),
+
+  // Agent Validation
+  AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS: z.coerce.number().optional(),
+  AGENTS_AGENT_EXECUTION_TRANSFER_COUNT_MIN: z.coerce.number().optional(),
+  AGENTS_AGENT_EXECUTION_TRANSFER_COUNT_MAX: z.coerce.number().optional(),
+
+  // Status Updates
+  AGENTS_STATUS_UPDATE_MAX_NUM_EVENTS: z.coerce.number().optional(),
+  AGENTS_STATUS_UPDATE_MAX_INTERVAL_SECONDS: z.coerce.number().optional(),
+
+  // Data Components
+  AGENTS_DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT: z.coerce.number().optional(),
+
+  // Pagination
+  AGENTS_VALIDATION_PAGINATION_MAX_LIMIT: z.coerce.number().optional(),
+});
+
+const parseRuntimeConfig = () => {
+  const envOverrides = runtimeConfigSchema.parse(process.env);
+
+  return {
+    VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS:
+      envOverrides.AGENTS_VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS ??
+      VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+    SUB_AGENT_TURN_GENERATION_STEPS_MIN:
+      envOverrides.AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MIN ??
+      SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+    SUB_AGENT_TURN_GENERATION_STEPS_MAX:
+      envOverrides.AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MAX ??
+      SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+    VALIDATION_AGENT_PROMPT_MAX_CHARS:
+      envOverrides.AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS ?? VALIDATION_AGENT_PROMPT_MAX_CHARS,
+    AGENT_EXECUTION_TRANSFER_COUNT_MIN:
+      envOverrides.AGENTS_AGENT_EXECUTION_TRANSFER_COUNT_MIN ??
+      AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+    AGENT_EXECUTION_TRANSFER_COUNT_MAX:
+      envOverrides.AGENTS_AGENT_EXECUTION_TRANSFER_COUNT_MAX ??
+      AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+    STATUS_UPDATE_MAX_NUM_EVENTS:
+      envOverrides.AGENTS_STATUS_UPDATE_MAX_NUM_EVENTS ?? STATUS_UPDATE_MAX_NUM_EVENTS,
+    STATUS_UPDATE_MAX_INTERVAL_SECONDS:
+      envOverrides.AGENTS_STATUS_UPDATE_MAX_INTERVAL_SECONDS ?? STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+    DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT:
+      envOverrides.AGENTS_DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT ??
+      DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT,
+    VALIDATION_PAGINATION_MAX_LIMIT:
+      envOverrides.AGENTS_VALIDATION_PAGINATION_MAX_LIMIT ?? VALIDATION_PAGINATION_MAX_LIMIT,
+  };
+};
+
+/**
+ * Runtime configuration object that merges environment variable overrides with default constants.
+ * Use this instead of importing constants directly to respect environment variable overrides.
+ */
+export const runtimeConfig = parseRuntimeConfig();

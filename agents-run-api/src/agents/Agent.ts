@@ -7,6 +7,8 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   type DataComponentApiInsert,
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
   getContextConfigById,
   getCredentialReference,
   getFullAgentDefinition,
@@ -15,6 +17,10 @@ import {
   getLedgerArtifacts,
   getToolsForAgent,
   listTaskIdsByContextId,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -24,6 +30,7 @@ import {
   type MessageContent,
   type ModelSettings,
   type Models,
+  SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -81,10 +88,10 @@ export function hasToolCallWithPrefix(prefix: string) {
 const logger = getLogger('Agent');
 
 const CONSTANTS = {
-  MAX_GENERATION_STEPS: 12,
-  PHASE_1_TIMEOUT_MS: 270_000,
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000,
-  PHASE_2_TIMEOUT_MS: 90_000,
+  MAX_GENERATION_STEPS: SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT,
+  PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  NON_STREAMING_PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  PHASE_2_TIMEOUT_MS: LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } as const;
 
 function validateModel(modelString: string | undefined, modelType: string): string {
@@ -906,8 +913,8 @@ export class Agent {
               const defaultSandboxConfig: SandboxConfig = {
                 provider: 'native',
                 runtime: 'node22',
-                timeout: 30000,
-                vcpus: 4,
+                timeout: FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+                vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
               const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
@@ -1790,25 +1797,24 @@ export class Agent {
 
           // Extract maxDuration from config and convert to milliseconds, or use defaults
           // Add upper bound validation to prevent extremely long timeouts
-          const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
           const configuredTimeout = modelSettings.maxDuration
-            ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
+            ? Math.min(modelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
             : shouldStreamPhase1
               ? CONSTANTS.PHASE_1_TIMEOUT_MS
               : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
 
           // Ensure timeout doesn't exceed maximum
-          const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
+          const timeoutMs = Math.min(configuredTimeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
 
           if (
             modelSettings.maxDuration &&
-            modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
+            modelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
           ) {
             logger.warn(
               {
                 requestedTimeout: modelSettings.maxDuration * 1000,
                 appliedTimeout: timeoutMs,
-                maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+                maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
               },
               'Requested timeout exceeded maximum allowed, capping to 10 minutes'
             );

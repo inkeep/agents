@@ -1,5 +1,10 @@
 import crypto from 'node:crypto';
 import { Sandbox } from '@vercel/sandbox';
+import {
+  FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
+  FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
+  FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
+} from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import type { VercelSandboxConfig } from '../types/execution-context';
 import type { FunctionToolConfig } from './NativeSandboxExecutor';
@@ -31,8 +36,8 @@ export class VercelSandboxExecutor {
   private static instance: VercelSandboxExecutor;
   private config: VercelSandboxConfig;
   private sandboxPool: Map<string, CachedSandbox> = new Map();
-  private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
-  private readonly MAX_USE_COUNT = 50;
+  private readonly POOL_TTL = FUNCTION_TOOL_SANDBOX_POOL_TTL_MS;
+  private readonly MAX_USE_COUNT = FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor(config: VercelSandboxConfig) {
@@ -189,7 +194,7 @@ export class VercelSandboxExecutor {
           }
         }
       },
-      60 * 1000 // Run every minute
+      FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS
     );
   }
 

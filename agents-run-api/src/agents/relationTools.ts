@@ -1,9 +1,14 @@
 import {
+  A2A_RETRY_STATUS_CODES,
   ContextResolver,
   type CredentialStoreReference,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  DELEGATION_TOOL_BACKOFF_EXPONENT,
+  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
   generateId,
   getCredentialReference,
   SPAN_KEYS,
@@ -221,12 +226,12 @@ export function createDelegateToAgentTool({
         retryConfig: {
           strategy: 'backoff',
           retryConnectionErrors: true,
-          statusCodes: ['429', '500', '502', '503', '504'],
+          statusCodes: [...A2A_RETRY_STATUS_CODES],
           backoff: {
-            initialInterval: 100,
-            maxInterval: 10000,
-            exponent: 2,
-            maxElapsedTime: 20000, // 1 minute max retry time
+            initialInterval: DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+            maxInterval: DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+            exponent: DELEGATION_TOOL_BACKOFF_EXPONENT,
+            maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
       });
