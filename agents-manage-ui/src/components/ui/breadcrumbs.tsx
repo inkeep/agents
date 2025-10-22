@@ -1,4 +1,10 @@
+'use client';
+
+import { useMemo } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { useProject } from '@/contexts/project-context';
 
 export type BreadcrumbItem = {
   label: string;
@@ -6,26 +12,52 @@ export type BreadcrumbItem = {
 };
 
 interface BreadcrumbsProps {
-  items: BreadcrumbItem[];
+  items?: BreadcrumbItem[];
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
-  if (!items?.length) return null;
+  const project = useProject();
+  const { tenantId } = useParams<{ tenantId: string }>();
+
+  const allItems = useMemo(() => {
+    const result: BreadcrumbItem[] = [
+      {
+        label: 'Projects',
+        href: `/${tenantId}/projects`,
+      },
+    ];
+    if (project) {
+      result.push({
+        label: project.name,
+        href: `/${tenantId}/projects/${project.id}`,
+      });
+    }
+    if (items) {
+      result.push(...items);
+    }
+    return result;
+  }, [items, tenantId, project]);
+
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
       <ol className="flex items-center gap-2">
-        {items.map((item, idx) => {
-          const isLast = idx === items.length - 1;
+        {allItems.map((item, idx, arr) => {
+          const isLast = idx === arr.length - 1;
           return (
-            <li key={`${item.label}-${idx}`} className="flex items-center gap-2">
+            <li
+              key={`${item.label}-${idx}`}
+              className={cn(
+                'flex items-center gap-2',
+                !isLast && 'after:content-["›"] after:text-muted-foreground/60'
+              )}
+            >
               {item.href && !isLast ? (
                 <Link href={item.href} className="hover:text-foreground">
                   {item.label}
                 </Link>
               ) : (
-                <span className={isLast ? 'font-medium text-foreground' : ''}>{item.label}</span>
+                <span className={cn(isLast && 'font-medium text-foreground')}>{item.label}</span>
               )}
-              {!isLast && <span className="text-muted-foreground/60">›</span>}
             </li>
           );
         })}

@@ -16,6 +16,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
 
+const StyledTabsTrigger = (props: React.ComponentProps<typeof TabsTrigger>) => {
+  return (
+    <TabsTrigger
+      {...props}
+      className="bg-transparent data-[state=active]:border-primary dark:data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:bg-transparent uppercase font-mono text-xs mt-0.5 pt-2"
+    />
+  );
+};
+
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
   projectId: string;
@@ -166,15 +175,20 @@ export function ComponentPreviewGenerator({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Component Preview</h3>
+        <div className="space-y-2">
+          <h3 className="text-md font-medium">Component Preview</h3>
           <p className="text-sm text-muted-foreground">
-            Generate a React/Tailwind component based on your schema
+            Generate a React/Tailwind component based on your schema.
           </p>
         </div>
         <div className="flex gap-2">
           {!hasPreview && (
-            <Button onClick={() => generatePreview()} disabled={isGenerating} className="gap-2">
+            <Button
+              onClick={() => generatePreview()}
+              disabled={isGenerating}
+              size="sm"
+              className="gap-2"
+            >
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -192,7 +206,12 @@ export function ComponentPreviewGenerator({
             <>
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" disabled={isDeleting || isGenerating} className="gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isDeleting || isGenerating}
+                    className="gap-2 font-mono uppercase"
+                  >
                     {isGenerating ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -221,19 +240,7 @@ export function ComponentPreviewGenerator({
                         className="mt-2 min-h-[100px]"
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          setIsPopoverOpen(false);
-                          await generatePreview(regenerateInstructions || undefined);
-                          setRegenerateInstructions('');
-                        }}
-                        disabled={isGenerating}
-                        className="flex-1"
-                      >
-                        {regenerateInstructions ? 'Apply Changes' : 'Regenerate'}
-                      </Button>
+                    <div className="flex justify-end gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -243,6 +250,17 @@ export function ComponentPreviewGenerator({
                         }}
                       >
                         Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          setIsPopoverOpen(false);
+                          await generatePreview(regenerateInstructions || undefined);
+                          setRegenerateInstructions('');
+                        }}
+                        disabled={isGenerating}
+                      >
+                        {regenerateInstructions ? 'Apply Changes' : 'Regenerate'}
                       </Button>
                     </div>
                   </div>
@@ -267,57 +285,56 @@ export function ComponentPreviewGenerator({
           )}
         </div>
       </div>
-
       {isGenerating && streamingCode && (
         <Streamdown
           isAnimating
           className="[&_[data-code-block-header=true]]:hidden [&_pre]:bg-muted/40!"
         >{`\`\`\`jsx\n${streamingCode}\`\`\``}</Streamdown>
       )}
-
       {isGenerating && !streamingCode && (
         <Card className="p-6">
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Generating component preview...</p>
+          <div className="flex flex-row items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground/70">Generating component preview...</p>
           </div>
         </Card>
       )}
-
       {hasPreview && !isGenerating && isComplete && preview && (
-        <Tabs defaultValue="preview" className="w-full">
-          <TabsList>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-            <TabsTrigger value="code">Code</TabsTrigger>
-            <TabsTrigger value="data">Sample Data</TabsTrigger>
-          </TabsList>
-          <TabsContent value="preview">
-            <Card className="p-6">
-              <DynamicComponentRenderer code={previewCode} props={previewData} />
-            </Card>
-          </TabsContent>
-          <TabsContent value="code">
-            <CodeEditor
-              value={previewCode}
-              onChange={(newCode) => {
-                if (!preview) return;
-                const updatedPreview = { ...preview, code: newCode };
-                setPreview(updatedPreview);
-                onPreviewChanged?.(updatedPreview);
-              }}
-              className="max-h-[500px]"
-            />
-          </TabsContent>
-          <TabsContent value="data">
-            <JsonEditor
-              value={stringifiedData}
-              onChange={handleDataChange}
-              className="max-h-[500px]"
-            />
-          </TabsContent>
-        </Tabs>
-      )}
+        <Card className="px-2 py-4 pt-0">
+          <Tabs defaultValue="preview" className="w-full">
+            <TabsList className="bg-transparent relative rounded-none border-b p-0 w-full justify-start gap-2">
+              <StyledTabsTrigger value="preview">Preview</StyledTabsTrigger>
+              <StyledTabsTrigger value="code">Code</StyledTabsTrigger>
+              <StyledTabsTrigger value="data">Sample Data</StyledTabsTrigger>
+            </TabsList>
 
+            <TabsContent value="preview">
+              <div className="p-4">
+                <DynamicComponentRenderer code={previewCode} props={previewData} />
+              </div>
+            </TabsContent>
+            <TabsContent value="code">
+              <CodeEditor
+                value={previewCode}
+                onChange={(newCode) => {
+                  if (!preview) return;
+                  const updatedPreview = { ...preview, code: newCode };
+                  setPreview(updatedPreview);
+                  onPreviewChanged?.(updatedPreview);
+                }}
+                // className="max-h-[500px] border-0 shadow-none"
+              />
+            </TabsContent>
+            <TabsContent value="data">
+              <JsonEditor
+                value={stringifiedData}
+                onChange={handleDataChange}
+                className="max-h-[500px] border-0 shadow-none"
+              />
+            </TabsContent>
+          </Tabs>
+        </Card>
+      )}
       {!hasPreview && !isGenerating && !isComplete && (
         <InfoCard>
           <p className="text-sm text-muted-foreground">No preview generated</p>

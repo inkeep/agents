@@ -227,6 +227,12 @@ const getBaseMCPServers = (isDark: boolean): PrebuiltMCPServer[] => [
     imageUrl: 'https://www.prisma.io/docs/img/favicon.png',
   },
   {
+    id: 'ramp',
+    name: 'Ramp',
+    url: 'https://mcp.ramp.com/mcp',
+    transport: MCPTransportType.streamableHttp,
+  },
+  {
     id: 'rube',
     name: 'Rube',
     url: 'https://rube.app/mcp',
@@ -274,6 +280,12 @@ const getBaseMCPServers = (isDark: boolean): PrebuiltMCPServer[] => [
     url: 'https://mcp.stytch.dev/mcp',
     transport: MCPTransportType.streamableHttp,
     imageUrl: 'https://stytch.com/favicon.ico',
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    url: 'https://mcp.supabase.com/mcp',
+    transport: MCPTransportType.streamableHttp,
   },
   {
     id: 'telnyx',

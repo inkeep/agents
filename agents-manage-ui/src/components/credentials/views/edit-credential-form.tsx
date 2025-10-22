@@ -199,7 +199,7 @@ export function EditCredentialForm({
               </Button>
             )}
             <DialogTrigger asChild>
-              <Button type="button" variant="secondary">
+              <Button type="button" variant="destructive-outline">
                 Delete Credential
               </Button>
             </DialogTrigger>

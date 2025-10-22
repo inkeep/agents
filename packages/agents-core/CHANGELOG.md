@@ -1,5 +1,26 @@
 # @inkeep/agents-core
 
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+
+## 0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
 ## 0.24.2
 
 ### Patch Changes

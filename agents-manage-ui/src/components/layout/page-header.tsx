@@ -1,6 +1,4 @@
 import type { ComponentProps, ReactNode } from 'react';
-import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
-import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { cn } from '@/lib/utils';
 
 // Root component that provides the base layout
@@ -54,20 +52,12 @@ interface PageHeaderProps {
   description?: string | ReactNode;
   action?: ReactNode;
   className?: string;
-  breadcrumbs?: BreadcrumbItem[];
 }
 
-export function PageHeader({
-  title,
-  description,
-  action,
-  className,
-  breadcrumbs,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, action, className }: PageHeaderProps) {
   return (
     <PageHeaderRoot className={className}>
       <PageHeaderContent>
-        {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
         <PageHeaderTitle>{title}</PageHeaderTitle>
         {description && <PageHeaderDescription>{description}</PageHeaderDescription>}
       </PageHeaderContent>
