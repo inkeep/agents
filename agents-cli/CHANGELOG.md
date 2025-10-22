@@ -1,5 +1,38 @@
 # @inkeep/agents-cli
 
+## 0.26.1
+
+### Patch Changes
+
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+  - @inkeep/agents-manage-ui@0.26.1
+  - @inkeep/agents-sdk@0.26.1
+
+## 0.26.0
+
+### Patch Changes
+
+- Updated dependencies [5f537a8]
+- Updated dependencies [0562d82]
+  - @inkeep/agents-manage-ui@0.26.0
+  - @inkeep/agents-core@0.26.0
+  - @inkeep/agents-sdk@0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- Updated dependencies [d8e9af2]
+- Updated dependencies [51c157e]
+  - @inkeep/agents-manage-ui@0.25.0
+  - @inkeep/agents-core@0.25.0
+  - @inkeep/agents-sdk@0.25.0
+
 ## 0.24.2
 
 ### Patch Changes

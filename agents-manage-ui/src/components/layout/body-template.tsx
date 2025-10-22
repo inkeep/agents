@@ -3,7 +3,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 
 type BodyTemplateProps = {
   children: React.ReactNode;
-  breadcrumbs: { label: string; href?: string }[];
+  breadcrumbs?: { label: string; href?: string }[];
 };
 
 export function BodyTemplate({ children, breadcrumbs }: BodyTemplateProps) {

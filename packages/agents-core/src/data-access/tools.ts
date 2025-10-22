@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { ContextResolver } from '../context';
-import { generateId } from '../utils/conversations';
 import type { CredentialStoreRegistry } from '../credential-stores';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
 import { CredentialStuffer } from '../credential-stuffer';
@@ -24,6 +23,7 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
 } from '../utils';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
 import { getCredentialReference } from './credentialReferences';
@@ -234,7 +234,6 @@ export const dbResultToMcpTool = async (
       error instanceof Error &&
       (await detectAuthenticationRequired({
         serverUrl: dbResult.config.mcp.server.url,
-        toolId: dbResult.id,
         error,
         logger,
       }));
