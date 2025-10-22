@@ -22,6 +22,7 @@ import {
   updateCredentialReference,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { runtimeConfig } from '../env';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -55,7 +56,10 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
-    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const limit = Math.min(
+      Number(c.req.query('limit')) || runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT,
+      runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT
+    );
 
     const result = await listCredentialReferencesPaginated(dbClient)({
       scopes: { tenantId, projectId },

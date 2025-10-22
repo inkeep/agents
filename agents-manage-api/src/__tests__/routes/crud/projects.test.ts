@@ -202,7 +202,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.pagination.page).toBe(1); // Default page
-      expect(body.pagination.limit).toBe(10); // Default limit
+      expect(body.pagination.limit).toBe(50); // Default limit
     });
   });
 

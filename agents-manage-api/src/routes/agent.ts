@@ -25,6 +25,7 @@ import {
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
+import { runtimeConfig } from '../env';
 
 const app = new OpenAPIHono();
 
@@ -54,7 +55,10 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
-    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const limit = Math.min(
+      Number(c.req.query('limit')) || runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT,
+      runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT
+    );
 
     const agent = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
     return c.json({
