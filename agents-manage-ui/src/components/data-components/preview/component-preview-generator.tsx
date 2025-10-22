@@ -284,7 +284,7 @@ export function ComponentPreviewGenerator({
             </>
           )}
         </div>
-      </div>{' '}
+      </div>
       {isGenerating && streamingCode && (
         <Streamdown
           isAnimating
