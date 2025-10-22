@@ -110,7 +110,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <InputField
         ref={(el) => setFieldRef('name', el)}
         id="function-tool-name"
@@ -135,31 +135,29 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         isRequired
         maxHeight="max-h-32"
       />
+      <div className="space-y-2">
+        <ExpandableTextArea
+          id="function-tool-code"
+          label="Code"
+          value={code}
+          onChange={handleCodeChange}
+          placeholder="Enter function code here..."
+          data-invalid={getFieldError('code') ? '' : undefined}
+          isRequired
+          className="font-mono text-sm data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
+        />
+        <p className="text-xs text-muted-foreground">
+          JavaScript function code to be executed by the tool. The function will receive arguments
+          based on the input schema and should return a result.
+        </p>
 
-      <ExpandableTextArea
-        id="function-tool-code"
-        label="Code"
-        value={code}
-        onChange={handleCodeChange}
-        placeholder="Enter function code here..."
-        data-invalid={getFieldError('code') ? '' : undefined}
-        isRequired
-        className="font-mono text-sm data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
-      />
-      <p className="text-sm text-muted-foreground">
-        JavaScript function code to be executed by the tool. The function will receive arguments
-        based on the input schema and should return a result.
-      </p>
-      {getFieldError('code') && <p className="text-sm text-red-600">{getFieldError('code')}</p>}
-
+        {getFieldError('code') && <p className="text-sm text-red-600">{getFieldError('code')}</p>}
+      </div>
       <div className="space-y-2">
         <div className="text-sm font-medium">
           Input Schema <span className="text-red-500">*</span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          JSON schema defining the parameters that the function will receive. This defines the
-          structure and validation rules for the function's input arguments.
-        </p>
+
         <StandaloneJsonEditor
           value={inputSchema}
           onChange={handleInputSchemaChange}
@@ -178,6 +176,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   "required": ["param1"]
 }`}
         />
+        <p className="text-xs text-muted-foreground">
+          JSON schema defining the parameters that the function will receive. This defines the
+          structure and validation rules for the function's input arguments.
+        </p>
         {getFieldError('inputSchema') && (
           <p className="text-sm text-red-600">{getFieldError('inputSchema')}</p>
         )}
@@ -185,10 +187,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
 
       <div className="space-y-2">
         <div className="text-sm font-medium">Dependencies</div>
-        <p className="text-sm text-muted-foreground">
-          External npm packages that the function code requires. These packages will be installed
-          before executing the function.
-        </p>
+
         <StandaloneJsonEditor
           value={dependencies}
           onChange={handleDependenciesChange}
@@ -197,6 +196,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   "lodash": "^4.17.21"
 }`}
         />
+        <p className="text-xs text-muted-foreground">
+          External npm packages that the function code requires. These packages will be installed
+          before executing the function.
+        </p>
         {getFieldError('dependencies') && (
           <p className="text-sm text-red-600">{getFieldError('dependencies')}</p>
         )}

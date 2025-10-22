@@ -272,7 +272,7 @@ export function MCPServerForm({
             </Button>
             {mode === 'update' && tool && (
               <DialogTrigger asChild>
-                <Button type="button" variant="secondary">
+                <Button type="button" variant="destructive-outline">
                   Delete Server
                 </Button>
               </DialogTrigger>
