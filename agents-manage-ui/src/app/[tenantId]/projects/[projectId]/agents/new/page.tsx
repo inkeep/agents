@@ -1,6 +1,5 @@
 import { Agent } from '@/components/agent/agent';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { fetchTeamAgentsAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
@@ -17,7 +16,6 @@ async function NewAgentPage({ params }: PageProps<'/[tenantId]/projects/[project
       fetchToolsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
       fetchExternalAgentsAction(tenantId, projectId),
-      fetchTeamAgentsAction(tenantId, projectId),
     ]);
 
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {

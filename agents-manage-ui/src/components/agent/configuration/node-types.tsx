@@ -177,7 +177,7 @@ export const nodeTypeMap = {
   },
   [NodeType.TeamAgentPlaceholder]: {
     type: NodeType.TeamAgentPlaceholder,
-    name: 'Team agent',
+    name: 'Team Agent',
     Icon: Users,
   },
 };
