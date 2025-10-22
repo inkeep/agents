@@ -8,10 +8,27 @@ import fs from 'fs-extra';
 import color from 'picocolors';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
-const DIRECTORY_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
-const DIRECTORY_NAME_ERROR =
-  'Directory name can only contain letters, numbers, hyphens (-), and underscores (_)';
+// Shared validation utility
+const DIRECTORY_VALIDATION = {
+  pattern: /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/,
+  reservedNames: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i,
+  minLength: 1,
+  maxLength: 255,
 
+  validate(value: string): string | undefined {
+    if (!value || value.trim() === '') return 'Directory name is required';
+    if (value.length < this.minLength || value.length > this.maxLength) {
+      return `Directory name must be between ${this.minLength} and ${this.maxLength} characters`;
+    }
+    if (this.reservedNames.test(value)) {
+      return 'Directory name cannot be a reserved system name';
+    }
+    if (!this.pattern.test(value)) {
+      return 'Directory name can only contain letters, numbers, and hyphens (-), and underscores (_) and must start with a letter or number';
+    }
+    return undefined;
+  },
+};
 const execAsync = promisify(exec);
 
 export const defaultGoogleModelConfigurations = {
@@ -111,15 +128,7 @@ export const createAgents = async (
       message: 'What do you want to name your agents directory?',
       placeholder: 'agents',
       defaultValue: 'agents',
-      validate: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Directory name is required';
-        }
-        if (!DIRECTORY_NAME_PATTERN.test(value)) {
-          return DIRECTORY_NAME_ERROR;
-        }
-        return undefined;
-      },
+      validate: (value) => DIRECTORY_VALIDATION.validate(value),
     });
 
     if (p.isCancel(dirResponse)) {
@@ -129,8 +138,9 @@ export const createAgents = async (
     dirName = dirResponse as string;
   } else {
     // Validate the provided dirName
-    if (!DIRECTORY_NAME_PATTERN.test(dirName)) {
-      throw new Error(DIRECTORY_NAME_ERROR);
+    const validationError = DIRECTORY_VALIDATION.validate(dirName);
+    if (validationError) {
+      throw new Error(validationError);
     }
   }
 
