@@ -1,0 +1,429 @@
+{
+  "id": "weather-project",
+  "name": "Weather Project",
+  "description": "Weather project template",
+  "models": {
+    "base": {
+      "model": "anthropic/claude-sonnet-4-5-20250929"
+    },
+    "structuredOutput": {
+      "model": "anthropic/claude-sonnet-4-5-20250929"
+    },
+    "summarizer": {
+      "model": "anthropic/claude-sonnet-4-5-20250929"
+    }
+  },
+  "agents": {
+    "weather-basic": {
+      "id": "weather-basic",
+      "name": "Weather basic",
+      "description": "Asks for the weather forecast for the given location",
+      "defaultSubAgentId": "weather-assistant",
+      "subAgents": {
+        "get-coordinates-agent": {
+          "id": "get-coordinates-agent",
+          "name": "Coordinates agent",
+          "description": "Responsible for converting location or address into coordinates",
+          "prompt": "You are a helpful assistant responsible for converting location or address into coordinates using your coordinate converter tool",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "jBGWN-yg0Ux873bLleUOe",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_coordinates"
+              ],
+              "headers": null
+            }
+          ]
+        },
+        "weather-assistant": {
+          "id": "weather-assistant",
+          "name": "Weather assistant",
+          "description": "Responsible for routing between the coordinates agent and weather forecast agent",
+          "prompt": "You are a helpful assistant. When the user asks about the weather in a given location, first ask the coordinates agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast. If the user does not ask about weather related questions, politely decline to answer and redirect the user to a weather related question.",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [
+            "weather-forecaster",
+            "get-coordinates-agent"
+          ],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "weather-forecaster": {
+          "id": "weather-forecaster",
+          "name": "Weather forecaster",
+          "description": "This agent is responsible for taking in coordinates and returning the forecast for the weather at that location",
+          "prompt": "You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "B9FHQiR1fWbu1RMDfIV_u",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_weather_forecast"
+              ],
+              "headers": null
+            }
+          ]
+        }
+      },
+      "createdAt": "2025-10-14T20:37:28.442Z",
+      "updatedAt": "2025-10-14T20:37:28.442Z",
+      "tools": {
+        "weather-mcp": {
+          "id": "weather-mcp",
+          "name": "Weather",
+          "description": null,
+          "config": {
+            "type": "mcp",
+            "mcp": {
+              "server": {
+                "url": "https://weather-mcp-hazel.vercel.app/mcp"
+              }
+            }
+          },
+          "credentialReferenceId": null,
+          "imageUrl": "https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp"
+        }
+      },
+      "functionTools": {}
+    },
+    "weather-advanced": {
+      "id": "weather-advanced",
+      "name": "Weather advanced",
+      "description": "Asks for the weather forecast for the given location with time context and rich UI rendering",
+      "defaultSubAgentId": "weather-assistant-advanced",
+      "subAgents": {
+        "coordinates-agent-advanced": {
+          "id": "coordinates-agent-advanced",
+          "name": "Coordinates agent",
+          "description": "Responsible for converting location or address into coordinates",
+          "prompt": "You are a helpful assistant responsible for converting location or address into coordinates using your coordinate converter tool",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "pow8XkQdrlUE1tGOfBJ7V",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_coordinates"
+              ],
+              "headers": null
+            }
+          ]
+        },
+        "weather-assistant-advanced": {
+          "id": "weather-assistant-advanced",
+          "name": "Weather assistant",
+          "description": "Responsible for routing between the coordinates agent and using the weather forecast tool",
+          "prompt": "You are a helpful assistant. The time is {{time}} in the timezone {{requestContext.tz}}.  When the user asks about the weather in a given location, first ask the coordinates agent for the coordinates, \n    and then pass those coordinates to the weather forecast agent to get the weather forecast. Be sure to pass todays date to the weather forecaster.",
+          "models": {
+            "base": {
+              "model": "anthropic/claude-sonnet-4-20250514"
+            },
+            "structuredOutput": {
+              "model": "anthropic/claude-sonnet-4-20250514"
+            },
+            "summarizer": {
+              "model": "anthropic/claude-3-5-haiku-20241022"
+            }
+          },
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [
+            "coordinates-agent-advanced"
+          ],
+          "dataComponents": [
+            "temperature-data"
+          ],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "2tP9MpBkqPdiBMPX9Vhb3",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_weather_forecast_for_date_range"
+              ],
+              "headers": null
+            }
+          ]
+        }
+      },
+      "createdAt": "2025-10-14T20:37:28.442Z",
+      "updatedAt": "2025-10-14T20:37:28.457Z",
+      "contextConfig": {
+        "id": "i1b42sq626v93ggi60vn0",
+        "headersSchema": {
+          "type": "object",
+          "properties": {
+            "tz": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tz"
+          ],
+          "additionalProperties": false
+        },
+        "contextVariables": {
+          "time": {
+            "id": "time-info",
+            "name": "Time Information",
+            "trigger": "invocation",
+            "fetchConfig": {
+              "url": "https://world-time-api3.p.rapidapi.com/timezone/{{{{headers.tz}}}}",
+              "method": "GET",
+              "headers": {
+                "x-rapidapi-key": "590c52974dmsh0da44377420ef4bp1c64ebjsnf8d55149e28d"
+              }
+            },
+            "responseSchema": {
+              "type": "object",
+              "properties": {
+                "datetime": {
+                  "type": "string"
+                },
+                "timezone": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "datetime"
+              ],
+              "additionalProperties": false
+            },
+            "defaultValue": "Unable to fetch time information"
+          }
+        }
+      },
+      "tools": {
+        "weather-mcp": {
+          "id": "weather-mcp",
+          "name": "Weather",
+          "description": null,
+          "config": {
+            "type": "mcp",
+            "mcp": {
+              "server": {
+                "url": "https://weather-mcp-hazel.vercel.app/mcp"
+              }
+            }
+          },
+          "credentialReferenceId": null,
+          "imageUrl": "https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp"
+        }
+      },
+      "functionTools": {}
+    },
+    "weather-intermediate": {
+      "id": "weather-intermediate",
+      "name": "Weather intermediate",
+      "description": "Asks for the weather forecast for the given location with time context",
+      "defaultSubAgentId": "weather-assistant",
+      "subAgents": {
+        "coordinates-agent-intermediate": {
+          "id": "coordinates-agent-intermediate",
+          "name": "Coordinates agent",
+          "description": "Responsible for converting location or address into coordinates",
+          "prompt": "You are a helpful assistant responsible for converting location or address into coordinates using your coordinate converter tool",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "HyKPRtDjShZRKzxxe2yD5",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_coordinates"
+              ],
+              "headers": null
+            }
+          ]
+        },
+        "weather-assistant": {
+          "id": "weather-assistant",
+          "name": "Weather assistant",
+          "description": "Responsible for routing between the coordinates agent and weather forecast agent",
+          "prompt": "You are a helpful assistant. The time is {{time}} in the timezone {{requestContext.tz}}.  When the user asks about the weather in a given location, first ask the coordinates agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast. Be sure to pass todays date to the weather forecaster.",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [
+            "coordinates-agent-intermediate",
+            "weather-forecaster-intermediate"
+          ],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": []
+        },
+        "weather-forecaster-intermediate": {
+          "id": "weather-forecaster-intermediate",
+          "name": "Weather forecaster",
+          "description": "This agent is responsible for taking in coordinates and returning the forecast for the weather at that location",
+          "prompt": "You are a helpful assistant responsible for taking in coordinates and returning the forecast for that location using your forecasting tool. Pass in todays date as the start date if the user does not specify a date and 7 days from today as the end date.",
+          "models": null,
+          "stopWhen": null,
+          "canTransferTo": [],
+          "canDelegateTo": [],
+          "dataComponents": [],
+          "artifactComponents": [],
+          "canUse": [
+            {
+              "agentToolRelationId": "LIs-UindTGjAKFWxVixVF",
+              "toolId": "weather-mcp",
+              "toolSelection": [
+                "get_weather_forecast_for_date_range"
+              ],
+              "headers": null
+            }
+          ]
+        }
+      },
+      "createdAt": "2025-10-14T20:37:28.442Z",
+      "updatedAt": "2025-10-14T20:37:28.457Z",
+      "contextConfig": {
+        "id": "ttnzm2ntvamq269l0j1x8",
+        "headersSchema": {
+          "type": "object",
+          "properties": {
+            "tz": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tz"
+          ],
+          "additionalProperties": false
+        },
+        "contextVariables": {
+          "time": {
+            "id": "time-info",
+            "name": "Time Information",
+            "trigger": "invocation",
+            "fetchConfig": {
+              "url": "https://world-time-api3.p.rapidapi.com/timezone/{{{{headers.tz}}}}",
+              "method": "GET",
+              "headers": {
+                "x-rapidapi-key": "590c52974dmsh0da44377420ef4bp1c64ebjsnf8d55149e28d"
+              }
+            },
+            "responseSchema": {
+              "type": "object",
+              "properties": {
+                "datetime": {
+                  "type": "string"
+                },
+                "timezone": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "datetime"
+              ],
+              "additionalProperties": false
+            },
+            "defaultValue": "Unable to fetch time information"
+          }
+        }
+      },
+      "tools": {
+        "weather-mcp": {
+          "id": "weather-mcp",
+          "name": "Weather",
+          "description": null,
+          "config": {
+            "type": "mcp",
+            "mcp": {
+              "server": {
+                "url": "https://weather-mcp-hazel.vercel.app/mcp"
+              }
+            }
+          },
+          "credentialReferenceId": null,
+          "imageUrl": "https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp"
+        }
+      },
+      "functionTools": {}
+    }
+  },
+  "tools": {
+    "weather-mcp": {
+      "id": "weather-mcp",
+      "name": "Weather",
+      "config": {
+        "type": "mcp",
+        "mcp": {
+          "server": {
+            "url": "https://weather-mcp-hazel.vercel.app/mcp"
+          }
+        }
+      },
+      "imageUrl": "https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp"
+    }
+  },
+  "dataComponents": {
+    "temperature-data": {
+      "id": "temperature-data",
+      "name": "Temperature data",
+      "description": "Temperature data",
+      "props": {
+        "type": "object",
+        "properties": {
+          "temperature_data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "The date of the temperature data"
+                },
+                "temperature": {
+                  "type": "number",
+                  "description": "The temperature in degrees Fahrenheit"
+                },
+                "weather_code": {
+                  "type": "number",
+                  "description": "The weather code"
+                }
+              },
+              "required": [
+                "date",
+                "temperature",
+                "weather_code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "temperature_data"
+        ]
+      }
+    }
+  },
+  "artifactComponents": {},
+  "credentialReferences": {},
+  "createdAt": "2025-10-14T20:37:28.421Z",
+  "updatedAt": "2025-10-14T20:37:28.421Z"
+}
