@@ -194,38 +194,42 @@ const {
   };
 });
 
-vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
-  getToolsForAgent: getToolsForAgentMock,
-  getSubAgentById: getAgentByIdMock,
-  getAgentById: getAgentAgentMock,
-  getAgentAgent: getAgentAgentMock,
-  getAgentAgentById: getAgentAgentByIdMock,
-  getTracer: vi.fn().mockReturnValue({
-    startSpan: vi.fn().mockReturnValue({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
+    getToolsForAgent: getToolsForAgentMock,
+    getSubAgentById: getAgentByIdMock,
+    getAgentById: getAgentAgentMock,
+    getAgentAgent: getAgentAgentMock,
+    getAgentAgentById: getAgentAgentByIdMock,
+    getTracer: vi.fn().mockReturnValue({
+      startSpan: vi.fn().mockReturnValue({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      }),
     }),
-  }),
-  getDataComponentsForAgent: getDataComponentsForAgentMock,
-  getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
-  getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
-  getProject: getProjectMock,
-  dbResultToMcpTool: dbResultToMcpToolMock,
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  generateId: vi.fn(() => 'test-id-123'),
-  TaskState: {
-    Completed: 'completed',
-    Failed: 'failed',
-    Working: 'working',
-  },
-}));
+    getDataComponentsForAgent: getDataComponentsForAgentMock,
+    getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+    getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
+    getProject: getProjectMock,
+    dbResultToMcpTool: dbResultToMcpToolMock,
+    getLogger: vi.fn(() => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    })),
+    generateId: vi.fn(() => 'test-id-123'),
+    TaskState: {
+      Completed: 'completed',
+      Failed: 'failed',
+      Working: 'working',
+    },
+  };
+});
 
 // Mock database client
 vi.mock('../../data/db/dbClient.js', () => ({
