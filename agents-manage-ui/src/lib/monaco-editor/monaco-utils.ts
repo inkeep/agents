@@ -6,6 +6,7 @@ function shouldShowCopyIcon(tokenType: string): boolean {
     case 'string.value.json':
     case 'number.json':
     case 'keyword.json':
+    case 'string':
       return true;
   }
   return false;
