@@ -42,7 +42,7 @@ describe('Credential Environment Settings System', () => {
     it('should require environments to be provided', () => {
       const helper = createEnvironmentSettings({}) as any;
 
-      expect(() => helper.getEnvrionmentCredential('any-key')).toThrow(/Environment.*not found/);
+      expect(() => helper.getEnvironmentCredential('any-key')).toThrow(/Environment.*not found/);
     });
 
     it('should provide type-safe helpers for single environment', () => {
