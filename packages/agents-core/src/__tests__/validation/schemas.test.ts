@@ -226,7 +226,7 @@ describe('Validation Schemas', () => {
     it('should validate pagination object with defaults', () => {
       const pagination = {
         total: 100,
-        pages: 10,
+        pages: 2,
       };
 
       const result = PaginationSchema.parse(pagination);
