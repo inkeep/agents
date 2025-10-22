@@ -2,12 +2,9 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type * as Monaco from 'monaco-editor';
-import {
-  MONACO_THEME_DATA,
-  MONACO_THEME_NAME,
-  TEMPLATE_LANGUAGE,
-  VARIABLE_TOKEN,
-} from '@/constants/theme';
+import { createHighlighter } from 'shiki';
+import { shikiToMonaco } from '@shikijs/monaco';
+import { TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
@@ -46,18 +43,26 @@ export const monacoStore = create<MonacoState>()(
       },
       setMonacoTheme(isDark) {
         const monaco = get().monaco;
-        const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+        const monacoTheme = isDark ? 'github-dark-default' : 'github-light-default';
         monaco?.editor.setTheme(monacoTheme);
       },
       async setMonaco(isDark) {
         const { actions } = get();
         const monaco = await import('monaco-editor');
         set({ monaco });
-        const { editor, languages, Range } = monaco;
 
-        editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
-        editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
+        // Create the highlighter, it can be reused
+        const highlighter = await createHighlighter({
+          themes: ['github-dark-default', 'github-light-default'],
+          langs: ['javascript', 'typescript', 'json'],
+        });
+
+        // Register the themes from Shiki, and provide syntax highlighting for Monaco.
+        shikiToMonaco(highlighter, monaco);
         actions.setMonacoTheme(isDark);
+
+        const { languages, Range } = monaco;
+
         languages.json.jsonDefaults.setDiagnosticsOptions({
           // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
           // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
