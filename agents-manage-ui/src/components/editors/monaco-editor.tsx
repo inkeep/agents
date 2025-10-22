@@ -3,9 +3,10 @@
 import type { FC, ComponentPropsWithoutRef } from 'react';
 import { useEffect, useRef } from 'react';
 import type * as Monaco from 'monaco-editor';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { Skeleton } from '@/components/ui/skeleton';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
@@ -53,7 +54,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
-
+  const { setupHighlighter } = useMonacoActions();
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     editorRef.current?.updateOptions({
@@ -73,7 +74,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
-
+  const isDark = useTheme().resolvedTheme === 'dark';
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
@@ -181,9 +182,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
 
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
-
+    setupHighlighter(isDark);
     onMount?.(editorInstance);
-
     return cleanupDisposables(disposables);
   }, [monaco]);
 

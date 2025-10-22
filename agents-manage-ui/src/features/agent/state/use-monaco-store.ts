@@ -2,18 +2,15 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type * as Monaco from 'monaco-editor';
-import { createHighlighter } from 'shiki';
+import { createHighlighter, type HighlighterGeneric } from 'shiki';
 import { shikiToMonaco } from '@shikijs/monaco';
-import {
-  MONACO_THEME_NAME,
-  TEMPLATE_LANGUAGE,
-  VARIABLE_TOKEN,
-} from '@/constants/theme';
+import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
   monaco: typeof Monaco | null;
   variableSuggestions: string[];
+  highlighter: HighlighterGeneric<any, any> | null;
 }
 
 interface MonacoActions {
@@ -21,8 +18,9 @@ interface MonacoActions {
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
-  setMonaco: (isDark: boolean) => Promise<Monaco.IDisposable[]>;
+  setMonaco: () => Promise<Monaco.IDisposable[]>;
   setVariableSuggestions: (variableSuggestions: string[]) => void;
+  setupHighlighter: (isDark: boolean) => void;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -32,6 +30,7 @@ interface MonacoState extends MonacoStateData {
 const initialMonacoState: MonacoStateData = {
   monaco: null,
   variableSuggestions: [],
+  highlighter: null,
 };
 
 export const monacoStore = create<MonacoState>()(
@@ -47,21 +46,24 @@ export const monacoStore = create<MonacoState>()(
         const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
         monaco?.editor.setTheme(monacoTheme);
       },
-      async setMonaco(isDark) {
-        const { actions } = get();
-        const monaco = await import('monaco-editor');
-        set({ monaco });
-        // Create the highlighter, it can be reused
-        const highlighter = await createHighlighter({
-          themes: ['github-dark-default', 'github-light-default'],
-          langs: ['javascript', 'typescript', 'json'],
-        });
-        monaco.languages.register({ id: 'json' });
-        monaco.languages.register({ id: TEMPLATE_LANGUAGE });
+      async setupHighlighter(isDark) {
+        const { highlighter: prevHighlighter, monaco, actions } = get();
+        const highlighter =
+          prevHighlighter ??
+          (await createHighlighter({
+            themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+            langs: ['javascript', 'typescript', 'json'],
+          }));
+        // Create the highlighter
         // Register the themes from Shiki, and provide syntax highlighting for Monaco.
         shikiToMonaco(highlighter, monaco);
         actions.setMonacoTheme(isDark);
-
+        set({ highlighter });
+      },
+      async setMonaco() {
+        const monaco = await import('monaco-editor');
+        set({ monaco });
+        monaco.languages.register({ id: TEMPLATE_LANGUAGE });
         monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
           // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
           // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
@@ -75,7 +77,6 @@ export const monacoStore = create<MonacoState>()(
           ],
           enableSchemaRequest: true,
         });
-
         return [
           // Define tokens for template variables
           monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
