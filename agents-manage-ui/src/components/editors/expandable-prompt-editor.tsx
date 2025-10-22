@@ -13,6 +13,7 @@ export function ExpandablePromptEditor({
   label,
   isRequired = false,
   className,
+  error,
   ...props
 }: {
   label: string;
@@ -20,12 +21,13 @@ export function ExpandablePromptEditor({
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
+  const uri = `${open ? 'small' : 'full'}-${props.id}.template`;
 
   const handleAddVariable = useCallback(() => {
     if (!monaco) {
       return;
     }
-    const model = monaco.editor.getModel(monaco.Uri.parse(`${open}-${props.id}.template`));
+    const model = monaco.editor.getModel(monaco.Uri.parse(uri));
     const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
     if (!editor) {
       return;
@@ -40,7 +42,7 @@ export function ExpandablePromptEditor({
     editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
     editor.focus();
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [monaco, open, props.id]);
+  }, [monaco, uri]);
 
   return (
     <ExpandableField
@@ -63,17 +65,13 @@ export function ExpandablePromptEditor({
       }
     >
       <PromptEditor
-        uri={`${open ? 'small' : 'full'}-${props.id}.template`}
+        uri={uri}
         hasDynamicHeight={!open}
+        aria-invalid={!!error}
         className={cn(!open && 'max-h-96', className)}
-        editorOptions={{
-          padding: {
-            top: 12,
-            bottom: 46,
-          },
-        }}
         {...props}
       />
+      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
     </ExpandableField>
   );
 }

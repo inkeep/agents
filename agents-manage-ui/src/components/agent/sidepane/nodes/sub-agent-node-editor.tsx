@@ -148,13 +148,10 @@ export function SubAgentNodeEditor({
           value={selectedNode.data.prompt}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."
-          aria-invalid={errorHelpers?.hasFieldError('prompt')}
+          error={getFieldError('prompt')}
           label="Prompt"
           isRequired
         />
-        {getFieldError('prompt') && (
-          <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
-        )}
       </div>
       <div className="space-y-2">
         <div className="flex items-center space-x-2">

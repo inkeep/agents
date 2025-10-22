@@ -1,6 +1,6 @@
 'use client';
 
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize } from 'lucide-react';
 import type { ReactNode, ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,7 +35,6 @@ export function ExpandableField({
   open,
   onOpenChange,
 }: ExpandableFieldProps) {
-  const IconToUse = open ? Minimize : Maximize;
   const content = (
     <>
       <div className="flex items-center justify-between">
@@ -43,19 +42,19 @@ export function ExpandableField({
           {label}
           {isRequired && <span className="text-red-500">*</span>}
         </Label>
-      </div>
-      <div className={cn('relative', open && 'grow')}>
-        {children}
-        <div className="bg-zinc-50 dark:bg-zinc-800 border-t border-border p-1 absolute inset-x-px bottom-px rounded-b-md flex justify-end">
+        <div className="flex gap-2">
           {actions}
-          <DialogTrigger asChild>
-            <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
-              <IconToUse className="size-3.5" />
-              {open ? 'Minimize' : 'Expand'}
-            </Button>
-          </DialogTrigger>
+          {!open && (
+            <DialogTrigger asChild>
+              <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
+                <Maximize className="size-3.5" />
+                Expand
+              </Button>
+            </DialogTrigger>
+          )}
         </div>
       </div>
+      <div className={cn('relative', open && 'grow')}>{children}</div>
     </>
   );
 
