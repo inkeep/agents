@@ -1,6 +1,7 @@
 import type { MCPToolConfig } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { mcpTool } from '../../builderFunctions';
+import type { AgentMcpConfigInput } from '../../builders';
 
 describe('mcpTool builder function', () => {
   it('should create an MCP tool with basic config', () => {
@@ -81,5 +82,98 @@ describe('mcpTool builder function', () => {
     const tool = mcpTool(config);
     expect(tool.config.activeTools).toBeUndefined();
     expect(tool.config.transport).toBeUndefined();
+  });
+
+  describe('with() method', () => {
+    it('should create AgentMcpConfig with selectedTools', () => {
+      const config: MCPToolConfig = {
+        id: 'test-tool',
+        name: 'Test Tool',
+        description: 'Test MCP tool',
+        serverUrl: 'http://localhost:3000/mcp',
+      };
+
+      const tool = mcpTool(config);
+      const mcpConfigInput: AgentMcpConfigInput = {
+        selectedTools: ['search', 'fetch', 'analyze'],
+      };
+
+      const agentMcpConfig = tool.with(mcpConfigInput);
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.selectedTools).toEqual(['search', 'fetch', 'analyze']);
+      expect(agentMcpConfig.headers).toBeUndefined();
+    });
+
+    it('should create AgentMcpConfig with headers', () => {
+      const config: MCPToolConfig = {
+        id: 'auth-tool',
+        name: 'Auth Tool',
+        description: 'MCP tool with authentication',
+        serverUrl: 'http://localhost:3000/auth',
+      };
+
+      const tool = mcpTool(config);
+      const mcpConfigInput: AgentMcpConfigInput = {
+        headers: {
+          Authorization: 'Bearer token123',
+          'X-Custom-Header': 'custom-value',
+        },
+      };
+
+      const agentMcpConfig = tool.with(mcpConfigInput);
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.headers).toEqual({
+        Authorization: 'Bearer token123',
+        'X-Custom-Header': 'custom-value',
+      });
+      expect(agentMcpConfig.selectedTools).toBeUndefined();
+    });
+
+    it('should create AgentMcpConfig with both selectedTools and headers', () => {
+      const config: MCPToolConfig = {
+        id: 'full-config-tool',
+        name: 'Full Config Tool',
+        description: 'MCP tool with full configuration',
+        serverUrl: 'http://localhost:3000/full',
+      };
+
+      const tool = mcpTool(config);
+      const mcpConfigInput: AgentMcpConfigInput = {
+        selectedTools: ['read', 'write'],
+        headers: {
+          'API-Key': 'secret-key',
+          'Content-Type': 'application/json',
+        },
+      };
+
+      const agentMcpConfig = tool.with(mcpConfigInput);
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.selectedTools).toEqual(['read', 'write']);
+      expect(agentMcpConfig.headers).toEqual({
+        'API-Key': 'secret-key',
+        'Content-Type': 'application/json',
+      });
+    });
+
+    it('should create AgentMcpConfig with empty config', () => {
+      const config: MCPToolConfig = {
+        id: 'empty-config-tool',
+        name: 'Empty Config Tool',
+        description: 'MCP tool with empty configuration',
+        serverUrl: 'http://localhost:3000/empty',
+      };
+
+      const tool = mcpTool(config);
+      const mcpConfigInput: AgentMcpConfigInput = {};
+
+      const agentMcpConfig = tool.with(mcpConfigInput);
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.selectedTools).toBeUndefined();
+      expect(agentMcpConfig.headers).toBeUndefined();
+    });
   });
 });
