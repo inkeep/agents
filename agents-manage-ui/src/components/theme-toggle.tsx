@@ -1,6 +1,6 @@
 'use client';
 
-import { type MouseEventHandler, useCallback, useEffect } from 'react';
+import { type MouseEventHandler, useCallback } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -10,19 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MONACO_THEME_NAME } from '@/constants/theme';
 
 export function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
-
-  useEffect(() => {
-    // Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
-    import('monaco-editor').then(({ editor }) => {
-      const monacoTheme =
-        resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      editor.setTheme(monacoTheme);
-    });
-  }, [resolvedTheme]);
+  const { setTheme } = useTheme();
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {

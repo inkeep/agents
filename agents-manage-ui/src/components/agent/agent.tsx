@@ -1036,24 +1036,10 @@ function Flow({
   );
 }
 
-export function Agent({
-  agent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  toolLookup,
-  credentialLookup,
-  externalAgentLookup,
-}: AgentProps) {
+export function Agent(props: AgentProps) {
   return (
     <ReactFlowProvider>
-      <Flow
-        agent={agent}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-        externalAgentLookup={externalAgentLookup}
-      />
+      <Flow {...props} />
     </ReactFlowProvider>
   );
 }
