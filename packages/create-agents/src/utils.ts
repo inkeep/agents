@@ -8,6 +8,10 @@ import fs from 'fs-extra';
 import color from 'picocolors';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
+const DIRECTORY_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const DIRECTORY_NAME_ERROR =
+  'Directory name can only contain letters, numbers, hyphens (-), and underscores (_)';
+
 const execAsync = promisify(exec);
 
 export const defaultGoogleModelConfigurations = {
@@ -111,8 +115,8 @@ export const createAgents = async (
         if (!value || value.trim() === '') {
           return 'Directory name is required';
         }
-        if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
-          return 'Directory name can only contain letters, numbers, hyphens (-), and underscores (_)';
+        if (!DIRECTORY_NAME_PATTERN.test(value)) {
+          return DIRECTORY_NAME_ERROR;
         }
         return undefined;
       },
@@ -125,10 +129,8 @@ export const createAgents = async (
     dirName = dirResponse as string;
   } else {
     // Validate the provided dirName
-    if (!/^[a-zA-Z0-9_-]+$/.test(dirName)) {
-      throw new Error(
-        'Directory name can only contain letters, numbers, hyphens (-), and underscores (_)'
-      );
+    if (!DIRECTORY_NAME_PATTERN.test(dirName)) {
+      throw new Error(DIRECTORY_NAME_ERROR);
     }
   }
 
