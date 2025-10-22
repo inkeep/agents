@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-ui
 
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+  - @inkeep/agents-manage-api@0.26.1
+  - @inkeep/agents-run-api@0.26.1
+
+## 0.26.0
+
+### Minor Changes
+
+- 0562d82: include `Projects` > `Project Name` > in breadcrumbs
+
+### Patch Changes
+
+- 5f537a8: remove unneeded agents-manage-ui/src/components/theme-provider.tsx file (next-themes already has `use client` directive)
+  - @inkeep/agents-manage-api@0.26.0
+  - @inkeep/agents-run-api@0.26.0
+  - @inkeep/agents-core@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { detectAuthenticationRequired, MCPTransportType } from '@inkeep/agents-core/client-exports';
+import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -14,7 +14,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
-import { deleteToolAction } from '@/lib/actions/tools';
+import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
@@ -88,14 +88,14 @@ export function MCPServerForm({
     try {
       // handle oauth login
       if (data.credentialReferenceId === 'oauth') {
-        const toolId = generateId();
+        const result = await detectOAuthServerAction(data.config.mcp.server.url);
 
-        const isAuthenticationRequired = await detectAuthenticationRequired({
-          serverUrl: data.config.mcp.server.url,
-          toolId,
-        });
+        if (!result.success) {
+          toast.error(result.error || 'Failed to detect OAuth support');
+          return;
+        }
 
-        if (!isAuthenticationRequired) {
+        if (!result.data) {
           toast.error(
             'This MCP server does not support OAuth authentication. Please select a different credential.'
           );
@@ -103,7 +103,7 @@ export function MCPServerForm({
         }
 
         const mcpToolData = {
-          id: toolId,
+          id: generateId(),
           name: data.name,
           config: {
             type: 'mcp' as const,
