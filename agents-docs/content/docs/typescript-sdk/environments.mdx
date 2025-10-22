@@ -130,15 +130,68 @@ export const production = registerEnvironmentSettings({
 });
 ```
 
+### MCP Server Management
+
+Environments can also manage MCP servers for different deployment stages. If your MCP server requires credentials, you can define them inline on the MCP server definition:
+
+```typescript
+// environments/development.env.ts
+export const development = registerEnvironmentSettings({
+  mcpServers: {
+    "my-mcp-server": {
+      id: "my-mcp-server",
+      type: CredentialStoreType.memory,
+      serverUrl: "http://localhost:3000/mcp",
+      credential: {
+        id: "my-mcp-server-credential",
+        type: CredentialStoreType.memory,
+        credentialStoreId: "memory-default",
+        retrievalParams: {
+          key: "MY_MCP_SERVER_KEY_DEV",
+        },
+     },
+    },
+  },
+});
+```
+
+```typescript
+// environments/production.env.ts
+export const development = registerEnvironmentSettings({
+  mcpServers: {
+    "my-mcp-server": {
+      id: "my-mcp-server",
+      type: CredentialStoreType.memory,
+      serverUrl: "https://my-mcp-server-prod.com/mcp",
+      credential: {
+        id: "my-mcp-server-credential",
+        type: CredentialStoreType.memory,
+        credentialStoreId: "memory-default",
+        retrievalParams: {
+          key: "MY_MCP_SERVER_KEY_PROD",
+        },
+     },
+    },
+  },
+});
+```
+
 ### Environment Index File
 
 Export all environments from the index file:
 
 ```typescript
 // environments/index.ts
-export { development } from './development.env';
-export { staging } from './staging.env';
-export { production } from './production.env';
+import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+import { development } from './development.env';
+import { staging } from './staging.env';
+import { production } from './production.env';
+
+export const envSettings = createEnvironmentSettings({
+  development,
+  staging,
+  production,
+});
 ```
 
 ## Credential Store Types
@@ -204,6 +257,21 @@ export const development = registerEnvironmentSettings({
       },
     },
   },
+  mcpServers: {
+      "my-mcp-server": {
+      id: "my-mcp-server",
+      type: CredentialStoreType.memory,
+      serverUrl: "http://localhost:3000/mcp",
+      credential: {
+        id: "my-mcp-server-credential",
+        type: CredentialStoreType.memory,
+        credentialStoreId: "memory-default",
+        retrievalParams: {
+          key: "MY_MCP_SERVER_KEY_STAGING",
+        },
+     },
+    },
+  },
 });
 ```
 
@@ -231,6 +299,21 @@ export const staging = registerEnvironmentSettings({
       },
     },
   },
+  mcpServers: {
+    "my-mcp-server": {
+      id: "my-mcp-server",
+      type: CredentialStoreType.memory,
+      serverUrl: "https://my-mcp-server-staging.com/mcp",
+      credential: {
+        id: "my-mcp-server-credential",
+        type: CredentialStoreType.memory,
+        credentialStoreId: "memory-default",
+        retrievalParams: {
+          key: "MY_MCP_SERVER_KEY_STAGING",
+        },
+     },
+    },
+  },
 });
 ```
 
@@ -249,6 +332,21 @@ export const production = registerEnvironmentSettings({
       },
     },
   },
+  mcpServers: {
+    "my-mcp-server": {
+      id: "my-mcp-server",
+      type: CredentialStoreType.memory,
+      serverUrl: "https://my-mcp-server-prod.com/mcp",
+      credential: {
+        id: "my-mcp-server-credential",
+        type: CredentialStoreType.memory,
+        credentialStoreId: "memory-default",
+        retrievalParams: {
+          key: "MY_MCP_SERVER_KEY_PROD",
+        },
+     },
+    },
+  },
 });
 ```
 
@@ -256,7 +354,7 @@ export const production = registerEnvironmentSettings({
 
 ### Environment-Specific Overrides
 
-While environments primarily manage credentials, they can include other settings:
+While environments primarily manage credentials and MCP servers, they can include other settings:
 
 ```typescript
 // environments/development.env.ts

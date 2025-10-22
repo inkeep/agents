@@ -201,7 +201,7 @@ REQUIREMENTS:
 2. Use exact variable name from registry
 3. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
 4. Use individual properties supported by mcpTool - do NOT use nested config object
-5. If credentialReferenceId exists, add it as a credential property using envSettings.getEnvironmentSetting()
+5. If credentialReferenceId exists, add it as a credential property using envSettings.getEnvironmentCredential()
 6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores
 
 EXAMPLE:
@@ -212,7 +212,7 @@ export const inkeepFacts = mcpTool({
   id: 'inkeep_facts',
   name: 'inkeep_facts',
   serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
-  credential: envSettings.getEnvironmentSetting('inkeep_api_credential')
+  credential: envSettings.getEnvironmentCredential('inkeep_api_credential')
 });
 
 Generate ONLY the TypeScript code without any markdown or explanations.`;
