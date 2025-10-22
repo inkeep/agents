@@ -7,9 +7,7 @@ import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
 
-async function NewAgentPage({
-  params,
-}: PageProps<'/[tenantId]/projects/[projectId]/agents/new'>) {
+async function NewAgentPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents/new'>) {
   const { tenantId, projectId } = await params;
   const [dataComponents, artifactComponents, tools, credentials, externalAgents] =
     await Promise.all([
@@ -42,6 +40,7 @@ async function NewAgentPage({
   const externalAgentLookup = createLookup(
     externalAgents.success ? externalAgents.data : undefined
   );
+
   return (
     <BodyTemplate
       breadcrumbs={[

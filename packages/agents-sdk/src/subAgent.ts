@@ -13,11 +13,13 @@ import { FunctionTool } from './function-tool';
 import { Tool } from './tool';
 import type {
   AgentTool,
-  AllSubAgentInterface,
+  AllDelegateInputInterface,
+  AllDelegateOutputInterface,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
   subAgentExternalAgentInterface,
+  subAgentTeamAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
 
@@ -142,6 +144,14 @@ export class SubAgent implements SubAgentInterface {
           if (typeof delegate === 'object' && 'externalAgent' in delegate) {
             return false;
           }
+          // Filter out subAgentTeamAgentInterface (has agent property)
+          if (typeof delegate === 'object' && 'agent' in delegate) {
+            return false;
+          }
+          // Filter out AgentInterface (has agent property)
+          if (typeof delegate === 'object' && 'toFullAgentDefinition' in delegate) {
+            return false;
+          }
           // Filter out raw ExternalAgent instances (have type: 'external')
           if (typeof delegate === 'object' && 'type' in delegate && delegate.type === 'external') {
             return false;
@@ -181,9 +191,41 @@ export class SubAgent implements SubAgentInterface {
         };
       });
   }
+  getTeamAgentDelegates(): subAgentTeamAgentInterface[] {
+    if (typeof this.config.canDelegateTo !== 'function') {
+      return [];
+    }
 
-  getDelegates(): AllSubAgentInterface[] {
-    return typeof this.config.canDelegateTo === 'function' ? this.config.canDelegateTo() : [];
+    return this.config
+      .canDelegateTo()
+      .filter((delegate) => {
+        if (typeof delegate === 'object' && 'agent' in delegate) {
+          return true;
+        }
+        if (typeof delegate === 'object' && 'toFullAgentDefinition' in delegate) {
+          return true;
+        }
+        return false;
+      })
+      .map((delegate) => {
+        if ('agent' in delegate) {
+          return delegate as subAgentTeamAgentInterface;
+        }
+
+        // If it's a raw Agent, wrap it for simplicity
+        return {
+          agent: delegate as any,
+          headers: undefined,
+        };
+      });
+  }
+
+  getDelegates(): AllDelegateOutputInterface[] {
+    return [
+      ...this.getSubAgentDelegates(),
+      ...this.getTeamAgentDelegates(),
+      ...this.getExternalAgentDelegates(),
+    ];
   }
 
   getDataComponents(): DataComponentApiInsert[] {
@@ -258,7 +300,7 @@ export class SubAgent implements SubAgentInterface {
     }
   }
 
-  addDelegate(...agents: AllSubAgentInterface[]): void {
+  addDelegate(...agents: AllDelegateInputInterface[]): void {
     if (typeof this.config.canDelegateTo === 'function') {
       const existingDelegates = this.config.canDelegateTo;
       this.config.canDelegateTo = () => [...existingDelegates(), ...agents];

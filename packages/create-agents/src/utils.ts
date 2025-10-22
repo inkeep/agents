@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
@@ -328,6 +329,8 @@ async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
   const dbPath = process.cwd().replace(/\\/g, '/');
 
+  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -353,6 +356,9 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 # Nango Configuration
 NANGO_SECRET_KEY=
+
+# JWT Signing Secret
+INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 `;
 
   await fs.writeFile('.env', envContent);
