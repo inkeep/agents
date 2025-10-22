@@ -90,9 +90,14 @@ export class Agent implements AgentInterface {
     this.subAgents = resolveGetter(config.subAgents) || [];
     this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
-    // Add default agent to map
+    // Add default agent to map if not already present
     if (this.defaultSubAgent) {
-      this.subAgents.push(this.defaultSubAgent);
+      const isAlreadyPresent = this.subAgents.some(
+        (agent) => agent.getId() === this.defaultSubAgent?.getId()
+      );
+      if (!isAlreadyPresent) {
+        this.subAgents.push(this.defaultSubAgent);
+      }
       this.agentMap.set(this.defaultSubAgent.getId(), this.defaultSubAgent);
     }
 
