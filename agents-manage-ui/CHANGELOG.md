@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- c1c55b5: Tighten up form styles, styles for component generation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+  - @inkeep/agents-core@0.26.2
+  - @inkeep/agents-manage-api@0.26.2
+  - @inkeep/agents-run-api@0.26.2
+
 ## 0.26.1
 
 ### Patch Changes
