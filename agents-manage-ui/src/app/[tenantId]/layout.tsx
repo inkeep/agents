@@ -36,10 +36,9 @@ export default function Layout({ children }: { children: ReactNode }) {
     setVariableSuggestions(variables);
   }, [contextConfig, setVariableSuggestions]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `isDark`
   useEffect(() => {
     let disposables: IDisposable[] = [];
-    setMonaco(isDark).then(($disposables) => {
+    setMonaco().then(($disposables) => {
       disposables = $disposables;
     });
 

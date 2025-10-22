@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentPropsWithoutRef, type FC, useEffect, useState } from 'react';
+import { type ComponentPropsWithoutRef, useEffect, useState } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
@@ -51,15 +51,6 @@ const useJsonFormat = (value: string, onChange: (value: string) => void, hasErro
   return { handleFormat, canFormat: !hasError && !!value?.trim() };
 };
 
-const ExpandedJsonEditor: FC<JsonEditorProps & { error?: string }> = ({ error, id, ...props }) => {
-  return (
-    <>
-      <JsonEditor {...props} id={`${id}-expanded`} />
-      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-    </>
-  );
-};
-
 export function ExpandableJsonEditor({
   name,
   value,
@@ -75,54 +66,40 @@ export function ExpandableJsonEditor({
     onChange,
     !!(externalError || internalError)
   );
+  const [open, setOpen] = useState(false);
 
   const error = externalError || internalError;
 
-  const formatButton = (
-    <Button
-      type="button"
-      onClick={handleFormat}
-      disabled={!canFormat}
-      variant="outline"
-      size="sm"
-      className="h-6 px-2 text-xs rounded-sm"
-    >
-      Format
-    </Button>
-  );
-
-  const commonProps = {
-    id: name,
-    value,
-    onChange,
-    placeholder,
-    'aria-invalid': !!error,
-  };
-
   return (
     <ExpandableField
+      open={open}
+      onOpenChange={setOpen}
       name={name}
       label={label}
       className={className}
-      actions={formatButton}
-      compactView={
-        <>
-          <JsonEditor
-            {...commonProps}
-            editorOptions={{
-              padding: {
-                top: 12,
-                bottom: 36,
-              },
-            }}
-            className={cn(error && 'max-h-96 mb-6')}
-          />
-          {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
-        </>
+      actions={
+        <Button
+          type="button"
+          onClick={handleFormat}
+          disabled={!canFormat}
+          variant="link"
+          size="sm"
+          className="text-xs rounded-sm h-6"
+        >
+          Format
+        </Button>
       }
-      expandedView={
-        <ExpandedJsonEditor {...commonProps} autoFocus hasDynamicHeight={false} error={error} />
-      }
-    />
+    >
+      <JsonEditor
+        id={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        aria-invalid={!!error}
+        className={cn(!open && error && 'max-h-96')}
+        hasDynamicHeight={!open}
+      />
+      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+    </ExpandableField>
   );
 }

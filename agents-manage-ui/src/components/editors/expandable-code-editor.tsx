@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentPropsWithoutRef, FC } from 'react';
+import { type ComponentPropsWithoutRef, useState } from 'react';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { cn } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
@@ -18,15 +18,6 @@ interface ExpandableCodeEditorProps {
   placeholder?: CodeEditorProps['placeholder'];
 }
 
-const ExpandedCodeEditor: FC<CodeEditorProps & { error?: string }> = ({ error, id, ...props }) => {
-  return (
-    <>
-      <CodeEditor {...props} id={`${id}-expanded`} />
-      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-    </>
-  );
-};
-
 export function ExpandableCodeEditor({
   name,
   value,
@@ -37,38 +28,27 @@ export function ExpandableCodeEditor({
   error,
   isRequired,
 }: ExpandableCodeEditorProps) {
-  const commonProps = {
-    id: name,
-    value,
-    onChange,
-    placeholder,
-    'aria-invalid': !!error,
-  };
+  const [open, setOpen] = useState(false);
 
   return (
     <ExpandableField
+      open={open}
+      onOpenChange={setOpen}
       name={name}
       label={label}
       className={className}
       isRequired={isRequired}
-      compactView={
-        <>
-          <CodeEditor
-            {...commonProps}
-            editorOptions={{
-              padding: {
-                top: 12,
-                bottom: 36,
-              },
-            }}
-            className={cn(error && 'max-h-96 mb-6')}
-          />
-          {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
-        </>
-      }
-      expandedView={
-        <ExpandedCodeEditor {...commonProps} autoFocus hasDynamicHeight={false} error={error} />
-      }
-    />
+    >
+      <CodeEditor
+        id={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        aria-invalid={!!error}
+        hasDynamicHeight={!open}
+        className={cn(!open && error && 'max-h-96')}
+      />
+      {error && <p className="text-sm mt-1 text-destructive">{error}</p>}
+    </ExpandableField>
   );
 }

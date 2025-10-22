@@ -13,7 +13,7 @@ export const CodeEditor: FC<CodeEditorProps> = ({
   ...props
 }) => {
   const id = useId();
-  uri ??= `${id}.js`
+  uri ??= `${id}.jsx`;
 
   return <MonacoEditor uri={uri} placeholder={placeholder} {...props} />;
 };

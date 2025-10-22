@@ -2,17 +2,15 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type * as Monaco from 'monaco-editor';
-import {
-  MONACO_THEME_DATA,
-  MONACO_THEME_NAME,
-  TEMPLATE_LANGUAGE,
-  VARIABLE_TOKEN,
-} from '@/constants/theme';
+import { createHighlighter, type HighlighterGeneric } from 'shiki';
+import { shikiToMonaco } from '@shikijs/monaco';
+import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
 interface MonacoStateData {
   monaco: typeof Monaco | null;
   variableSuggestions: string[];
+  highlighter: HighlighterGeneric<any, any> | null;
 }
 
 interface MonacoActions {
@@ -20,8 +18,9 @@ interface MonacoActions {
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
-  setMonaco: (isDark: boolean) => Promise<Monaco.IDisposable[]>;
+  setMonaco: () => Promise<Monaco.IDisposable[]>;
   setVariableSuggestions: (variableSuggestions: string[]) => void;
+  setupHighlighter: (isDark: boolean) => void;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -31,10 +30,8 @@ interface MonacoState extends MonacoStateData {
 const initialMonacoState: MonacoStateData = {
   monaco: null,
   variableSuggestions: [],
+  highlighter: null,
 };
-
-// Reserved keys that are always valid
-export const RESERVED_KEYS = new Set(['$time', '$date', '$timestamp', '$now']);
 
 export const monacoStore = create<MonacoState>()(
   devtools((set, get) => ({
@@ -49,16 +46,25 @@ export const monacoStore = create<MonacoState>()(
         const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
         monaco?.editor.setTheme(monacoTheme);
       },
-      async setMonaco(isDark) {
-        const { actions } = get();
+      async setupHighlighter(isDark) {
+        const { highlighter: prevHighlighter, monaco, actions } = get();
+        const highlighter =
+          prevHighlighter ??
+          (await createHighlighter({
+            themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+            langs: ['javascript', 'typescript', 'json'],
+          }));
+        // Create the highlighter
+        // Register the themes from Shiki, and provide syntax highlighting for Monaco.
+        shikiToMonaco(highlighter, monaco);
+        actions.setMonacoTheme(isDark);
+        set({ highlighter });
+      },
+      async setMonaco() {
         const monaco = await import('monaco-editor');
         set({ monaco });
-        const { editor, languages, Range } = monaco;
-
-        editor.defineTheme(MONACO_THEME_NAME.dark, MONACO_THEME_DATA.dark);
-        editor.defineTheme(MONACO_THEME_NAME.light, MONACO_THEME_DATA.light);
-        actions.setMonacoTheme(isDark);
-        languages.json.jsonDefaults.setDiagnosticsOptions({
+        monaco.languages.register({ id: TEMPLATE_LANGUAGE });
+        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
           // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
           // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
           schemas: [
@@ -71,17 +77,14 @@ export const monacoStore = create<MonacoState>()(
           ],
           enableSchemaRequest: true,
         });
-
-        languages.register({ id: TEMPLATE_LANGUAGE });
-
         return [
           // Define tokens for template variables
-          languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
+          monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
             tokenizer: {
               root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
             },
           }),
-          languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
+          monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
             triggerCharacters: ['{'],
             provideCompletionItems(model, position) {
               const { variableSuggestions } = get();
@@ -106,7 +109,7 @@ export const monacoStore = create<MonacoState>()(
               );
 
               const word = model.getWordUntilPosition(position);
-              const range = new Range(
+              const range = new monaco.Range(
                 position.lineNumber,
                 word.startColumn,
                 position.lineNumber,
@@ -123,22 +126,16 @@ export const monacoStore = create<MonacoState>()(
                   detail: 'Context variable',
                   sortText: '0',
                 })),
-                // Add reserved keys
-                ...Array.from(RESERVED_KEYS).map((label) => ({
-                  label,
-                  detail: 'Reserved variable',
-                  sortText: '1',
-                })),
                 // Add environment variables
                 {
                   label: '$env.',
                   detail: 'Environment variable',
-                  sortText: '2',
+                  sortText: '1',
                 },
               ];
               return {
                 suggestions: completionItems.map((item) => ({
-                  kind: languages.CompletionItemKind.Module,
+                  kind: monaco.languages.CompletionItemKind.Module,
                   range,
                   insertText: `{${item.label}}}`,
                   ...item,

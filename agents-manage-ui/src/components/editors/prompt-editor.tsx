@@ -1,29 +1,21 @@
 'use client';
 
 import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
-import type { IDisposable } from 'monaco-editor';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
-import {
-  monacoStore,
-  useMonacoStore,
-  RESERVED_KEYS,
-} from '@/features/agent/state/use-monaco-store';
+import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
-import { Button } from '@/components/ui/button';
-import { Braces } from 'lucide-react';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.template`;
 }
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...props }) => {
+export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
   const id = useId();
   uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
-
   useEffect(() => {
     const model = editor?.getModel();
     if (!monaco || !editor || !model) {
@@ -43,10 +35,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
         while ((match = regex.exec(line)) !== null) {
           const variableName = match[1];
 
-          // Check if variable is valid (in suggestions) or reserved
+          // Check if variable is valid (in suggestions) or reserved env
           const isValid =
             validVariables.has(variableName) ||
-            RESERVED_KEYS.has(variableName) ||
             variableName.startsWith('$env.') ||
             // Exclude arrays from linting, as they are indicated with [*] in the suggestions
             variableName.includes('[') ||
@@ -69,7 +60,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
       monaco.editor.setModelMarkers(model, 'template-variables', markers);
     };
 
-    const disposables: IDisposable[] = [];
+    const disposables: Monaco.IDisposable[] = [];
 
     // Add model change listener to trigger validation for this specific editor
     disposables.push(model.onDidChangeContent(validateTemplateVariables));
@@ -82,52 +73,21 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, ...pro
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance) => {
       setEditor(editorInstance);
+      onMount?.(editorInstance);
     },
-    []
+    [onMount]
   );
-
-  const handleAddVariable = useCallback(() => {
-    if (!editor || !monaco) {
-      return;
-    }
-    const selection = editor.getSelection();
-    const pos = selection ? selection.getStartPosition() : editor.getPosition();
-    if (!pos) return;
-
-    const range = new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
-    editor.executeEdits('insert-template-variable', [{ range, text: '{' }]);
-    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
-    editor.focus();
-    editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [editor, monaco]);
 
   return (
     <MonacoEditor
       uri={uri}
       onMount={handleOnMount}
       editorOptions={{
-        padding: {
-          top: 12,
-          bottom: 36,
-        },
         autoClosingBrackets: 'never',
         renderLineHighlight: 'none', // disable active line highlight
         ...editorOptions,
       }}
       {...props}
-    >
-      {editor && monaco && (
-        <Button
-          size="sm"
-          variant="link"
-          className="absolute end-1 bottom-1 z-1 text-xs rounded-sm h-6"
-          type="button"
-          onClick={handleAddVariable}
-        >
-          <Braces className="size-2.5" />
-          Add variables
-        </Button>
-      )}
-    </MonacoEditor>
+    />
   );
 };

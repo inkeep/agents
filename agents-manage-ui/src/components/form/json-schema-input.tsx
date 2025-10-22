@@ -37,6 +37,7 @@ export function JsonSchemaInput<T extends FieldValues>({
         <StandaloneJsonEditor
           placeholder={placeholder}
           {...field}
+          value={field.value || ''} // can be `null`
           onChange={field.onChange}
           readOnly={readOnly}
           disabled={disabled}

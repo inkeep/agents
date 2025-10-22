@@ -148,7 +148,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           JavaScript function code to be executed by the tool. The function will receive arguments
           based on the input schema and should return a result.
         </p>
-        {getFieldError('code') && <p className="text-sm text-red-600">{getFieldError('code')}</p>}
       </div>
       <div className="space-y-2">
         <div className="text-sm font-medium">
