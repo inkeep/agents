@@ -17,6 +17,7 @@ import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelatio
 import subAgentRelationsRoutes from './subAgentRelations';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
+import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';
 import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import toolsRoutes from './tools';
 
@@ -31,6 +32,10 @@ app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRe
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agents/:subAgentId/external-agent-relations',
   subAgentExternalAgentRelationsRoutes
+);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agents/:subAgentId/team-agent-relations',
+  subAgentTeamAgentRelationsRoutes
 );
 app.route('/projects/:projectId/agents', agentRoutes);
 app.route(

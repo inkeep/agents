@@ -7,7 +7,11 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
-import type { AgentToolConfigLookup, SubAgentExternalAgentConfigLookup } from '../agent';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '../agent';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
@@ -16,6 +20,7 @@ import {
   type MCPNodeData,
   NodeType,
   nodeTypeMap,
+  type TeamAgentNodeData,
 } from '../configuration/node-types';
 import EdgeEditor from './edges/edge-editor';
 import { EditorLoadingSkeleton } from './editor-loading-skeleton';
@@ -27,6 +32,8 @@ import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
+import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
+import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
 
 interface SidePaneProps {
   selectedNodeId: string | null;
@@ -38,6 +45,7 @@ interface SidePaneProps {
   artifactComponentLookup: Record<string, ArtifactComponent>;
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
+  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   credentialLookup: Record<string, Credential>;
 }
 
@@ -51,6 +59,7 @@ export function SidePane({
   artifactComponentLookup,
   agentToolConfigLookup,
   subAgentExternalAgentConfigLookup,
+  subAgentTeamAgentConfigLookup,
   credentialLookup,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
@@ -125,6 +134,18 @@ export function SidePane({
         case NodeType.ExternalAgentPlaceholder: {
           return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
+        case NodeType.TeamAgent: {
+          return (
+            <TeamAgentNodeEditor
+              selectedNode={selectedNode as Node<TeamAgentNodeData>}
+              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+              errorHelpers={errorHelpers}
+            />
+          );
+        }
+        case NodeType.TeamAgentPlaceholder: {
+          return <TeamAgentSelector selectedNode={selectedNode as Node} />;
+        }
         case NodeType.MCPPlaceholder: {
           return <MCPSelector selectedNode={selectedNode as Node} />;
         }
@@ -162,6 +183,7 @@ export function SidePane({
     agentToolConfigLookup,
     credentialLookup,
     subAgentExternalAgentConfigLookup,
+    subAgentTeamAgentConfigLookup,
   ]);
 
   const showBackButton = useMemo(() => {

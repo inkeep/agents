@@ -188,13 +188,19 @@ export const createSubAgentRelation =
   (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
     const hasTargetAgent = params.targetSubAgentId != null;
     const hasExternalAgent = params.externalSubAgentId != null;
+    const hasTeamAgent = params.teamSubAgentId != null;
+    const count = [hasTargetAgent, hasExternalAgent, hasTeamAgent].filter(Boolean).length;
 
-    if (hasTargetAgent && hasExternalAgent) {
-      throw new Error('Cannot specify both targetSubAgentId and externalSubAgentId');
+    if (count > 1) {
+      throw new Error(
+        'Cannot specify more than one of targetSubAgentId, externalSubAgentId, or teamSubAgentId'
+      );
     }
 
-    if (!hasTargetAgent && !hasExternalAgent) {
-      throw new Error('Must specify either targetSubAgentId or externalSubAgentId');
+    if (count === 0) {
+      throw new Error(
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId'
+      );
     }
 
     const relation = await db

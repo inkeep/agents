@@ -9,6 +9,7 @@ import {
   getExternalAgentsForSubAgent,
   getRelatedAgentsForAgent,
   getSubAgentById,
+  getTeamAgentsForSubAgent,
   getToolsForAgent,
   type McpTool,
   type Part,
@@ -69,6 +70,7 @@ export const createTaskHandler = (
       const [
         internalRelations,
         externalRelations,
+        teamRelations,
         toolsForAgent,
         dataComponents,
         artifactComponents,
@@ -82,6 +84,14 @@ export const createTaskHandler = (
           subAgentId: config.subAgentId,
         }),
         getExternalAgentsForSubAgent(dbClient)({
+          scopes: {
+            tenantId: config.tenantId,
+            projectId: config.projectId,
+            agentId: config.agentId,
+            subAgentId: config.subAgentId,
+          },
+        }),
+        getTeamAgentsForSubAgent(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -249,6 +259,17 @@ export const createTaskHandler = (
                 credentialReferenceId: relation.externalAgent.credentialReferenceId,
                 relationId: relation.id,
                 relationType: 'delegate',
+              },
+            })),
+            ...teamRelations.data.map((relation) => ({
+              type: 'team' as const,
+              config: {
+                id: relation.targetAgent.id,
+                name: relation.targetAgent.name,
+                description: relation.targetAgent.description || '',
+                baseUrl: config.baseUrl,
+                headers: relation.headers,
+                relationId: relation.id,
               },
             })),
           ],

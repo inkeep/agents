@@ -53,6 +53,11 @@ export type SubAgentExternalAgentConfig = {
   headers?: Record<string, string>;
 };
 
+export type SubAgentTeamAgentConfig = {
+  agentId: string;
+  headers?: Record<string, string>;
+};
+
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
 
@@ -61,6 +66,9 @@ export type SubAgentExternalAgentConfigLookup = Record<
   string,
   Record<string, SubAgentExternalAgentConfig>
 >;
+
+// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
 
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
@@ -73,6 +81,7 @@ import {
   NodeType,
   newNodeDefaults,
   nodeTypes,
+  teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
@@ -223,6 +232,29 @@ function Flow({
           });
         if (Object.keys(externalAgentConfigs).length > 0) {
           lookup[subAgentId] = externalAgentConfigs;
+        }
+      }
+    });
+    return lookup;
+  }, [agent?.subAgents]);
+
+  const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
+    if (!agent?.subAgents) return {} as SubAgentTeamAgentConfigLookup;
+    const lookup: SubAgentTeamAgentConfigLookup = {};
+    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
+      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
+        agentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
+          .forEach((delegate) => {
+            // For team agents, the delegate is just the target agent ID string
+            teamAgentConfigs[delegate.agentId] = {
+              agentId: delegate.agentId,
+              headers: delegate.headers ?? undefined,
+            };
+          });
+        if (Object.keys(teamAgentConfigs).length > 0) {
+          lookup[subAgentId] = teamAgentConfigs;
         }
       }
     });
@@ -405,6 +437,23 @@ function Flow({
             transferSourceToTarget: false,
             delegateTargetToSource: false,
             delegateSourceToTarget: true, // this is the only valid option for external agents to connect to internal agents
+          },
+        },
+      };
+    } else if (
+      (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId) &&
+      targetHandle === teamAgentNodeTargetHandleId
+    ) {
+      newEdge = {
+        ...newEdge,
+        type: EdgeType.A2ATeam,
+        selected: true,
+        data: {
+          relationships: {
+            transferTargetToSource: false,
+            transferSourceToTarget: false,
+            delegateTargetToSource: false,
+            delegateSourceToTarget: true,
           },
         },
       };
@@ -601,7 +650,8 @@ function Flow({
       dataComponentLookup,
       artifactComponentLookup,
       agentToolConfigLookup,
-      subAgentExternalAgentConfigLookup
+      subAgentExternalAgentConfigLookup,
+      subAgentTeamAgentConfigLookup
     );
 
     const functionToolNodeMap = new Map<string, string>();
@@ -729,6 +779,7 @@ function Flow({
     agentToolConfigLookup,
     toolLookup,
     subAgentExternalAgentConfigLookup,
+    subAgentTeamAgentConfigLookup,
     externalAgentLookup,
   ]);
 
@@ -968,6 +1019,7 @@ function Flow({
         artifactComponentLookup={artifactComponentLookup}
         agentToolConfigLookup={agentToolConfigLookup}
         subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+        subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
         credentialLookup={credentialLookup}
       />
       {showPlayground && agent?.id && (

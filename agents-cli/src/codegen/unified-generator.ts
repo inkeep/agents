@@ -813,6 +813,48 @@ canUse: [tool1, tool2],  // NO - must be a function
 subAgents: [weatherSubAgent],  // NO - must be a function
 statusComponents: [{ type: '...', ... }],  // NO - import from files
 
+METHOD CHAINING (CRITICAL):
+- Use .with() to add options to an agent or external agent when headers are present in the subAgentTeamAgentRelation or subAgentExternalAgentRelation
+
+✅ CORRECT:
+import { subAgent } from '@inkeep/agents-sdk';
+import { events } from '../data-components/events';
+import { eventEvaluator } from './event-evaluator';
+import { getCoordinatesAgent } from './get-coordinates-agent';
+
+
+export const eventPlanningCoordinator = subAgent({
+  id: 'event-planning-coordinator',
+  name: 'Event planning coordinator',
+  description: \`Responsible for routing between the coordinates agent and weather forecast agent\`,
+  prompt: \`You are a helpful assistant. When the user asks about event planning in a given location\`,
+  canDelegateTo: () => [
+    getCoordinatesAgent,
+    eventEvaluator.with({ headers: { authorization: 'my-api-key' } }),
+  ],
+  dataComponents: () => [events],
+});
+
+❌ WRONG:
+export const eventPlanningCoordinator = subAgent({
+  id: 'event-planning-coordinator',
+  name: 'Event planning coordinator',
+  description: \`Responsible for routing between the coordinates agent and weather forecast agent\`,
+  prompt: \`You are a helpful assistant. When the user asks about event planning in a given location\`,
+    canDelegateTo: () => [
+    getCoordinatesAgent,
+    {
+      externalAgent: eventEvaluator,
+      headers: {
+        authorization: 'my-api-key',
+      },
+    },
+  ],
+  dataComponents: () => [events],
+});
+
+
+
 Generate ONLY the TypeScript code without markdown.`;
 }
 

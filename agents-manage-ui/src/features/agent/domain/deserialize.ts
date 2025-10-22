@@ -1,4 +1,3 @@
-import { generateId } from '@/lib/utils/id-utils';
 import type { Edge, Node } from '@xyflow/react';
 import * as dagre from 'dagre';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
@@ -9,9 +8,11 @@ import {
   functionToolNodeHandleId,
   mcpNodeHandleId,
   NodeType,
+  teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { formatJsonField } from '@/lib/utils';
+import { generateId } from '@/lib/utils/id-utils';
 
 interface TransformResult {
   nodes: Node[];
@@ -101,6 +102,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const createdExternalAgentNodes = new Set<string>();
+  const createdTeamAgentNodes = new Set<string>();
 
   const subAgentIds: string[] = Object.keys(data.subAgents);
   for (const subAgentId of subAgentIds) {
@@ -319,12 +321,14 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
       for (const targetSubAgent of sourceAgent.canDelegateTo) {
         let targetSubAgentId: string;
         let isTargetExternal: boolean;
+        let isTargetTeamAgent: boolean;
         let headers: Record<string, string> | undefined;
         let relationshipId: string | undefined;
 
         if (typeof targetSubAgent === 'object' && 'externalAgentId' in targetSubAgent) {
           targetSubAgentId = targetSubAgent.externalAgentId;
           isTargetExternal = true;
+          isTargetTeamAgent = false;
           headers = targetSubAgent.headers ?? undefined;
           relationshipId = targetSubAgent.subAgentExternalAgentRelationId;
 
@@ -370,12 +374,61 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
             },
           };
           edges.push(edge);
+        } else if (typeof targetSubAgent === 'object' && 'agentId' in targetSubAgent) {
+          // Handle team agent delegation
+          targetSubAgentId = targetSubAgent.agentId;
+          isTargetExternal = false;
+          isTargetTeamAgent = true;
+          headers = targetSubAgent.headers ?? undefined;
+          relationshipId = targetSubAgent.subAgentTeamAgentRelationId;
+
+          // Create team agent node if it doesn't exist
+          if (!createdTeamAgentNodes.has(targetSubAgentId)) {
+            const teamAgent = data.teamAgents?.[targetSubAgentId];
+            if (teamAgent) {
+              const teamAgentNode: Node = {
+                id: targetSubAgentId,
+                type: NodeType.TeamAgent,
+                position: { x: 0, y: 0 },
+                data: {
+                  id: targetSubAgentId,
+                  name: teamAgent.name,
+                  description: teamAgent.description,
+                  relationshipId,
+                  tempHeaders: headers,
+                },
+              };
+              nodes.push(teamAgentNode);
+              createdTeamAgentNodes.add(targetSubAgentId);
+            }
+          }
+
+          // Create edge from source agent to team agent
+          const edge: Edge = {
+            id: `edge-${sourceSubAgentId}-${targetSubAgentId}`,
+            type: EdgeType.A2ATeam, // Use same edge type as external agents
+            source: sourceSubAgentId,
+            sourceHandle: agentNodeSourceHandleId,
+            target: targetSubAgentId,
+            targetHandle: teamAgentNodeTargetHandleId,
+            selected: false,
+            data: {
+              relationships: {
+                transferTargetToSource: false,
+                transferSourceToTarget: false,
+                delegateTargetToSource: false,
+                delegateSourceToTarget: true,
+              },
+            },
+          };
+          edges.push(edge);
         } else {
           targetSubAgentId = targetSubAgent;
           isTargetExternal = false;
+          isTargetTeamAgent = false;
         }
 
-        if (!isTargetExternal && data.subAgents[targetSubAgentId]) {
+        if (!isTargetExternal && !isTargetTeamAgent && data.subAgents[targetSubAgentId]) {
           // Special handling for self-referencing edges
           const isSelfReference = sourceSubAgentId === targetSubAgentId;
           const pairKey = isSelfReference

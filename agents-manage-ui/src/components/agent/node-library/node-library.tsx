@@ -7,6 +7,7 @@ const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.SubAgent],
   nodeTypeMap[NodeType.ExternalAgentPlaceholder],
   nodeTypeMap[NodeType.MCPPlaceholder],
+  nodeTypeMap[NodeType.TeamAgentPlaceholder],
   nodeTypeMap[NodeType.FunctionTool],
 ];
 
