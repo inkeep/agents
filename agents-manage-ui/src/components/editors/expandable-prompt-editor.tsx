@@ -18,10 +18,11 @@ export function ExpandablePromptEditor({
 }: {
   label: string;
   isRequired?: boolean;
+  error?: string;
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
-  const uri = `${open ? 'small' : 'full'}-${props.id}.template`;
+  const uri = `${open ? 'small' : 'full'}-${props.id}.template` as const;
 
   const handleAddVariable = useCallback(() => {
     if (!monaco) {

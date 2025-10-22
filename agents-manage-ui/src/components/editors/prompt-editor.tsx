@@ -3,11 +3,7 @@
 import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
 import type * as Monaco from 'monaco-editor';
 import { MonacoEditor } from './monaco-editor';
-import {
-  monacoStore,
-  useMonacoStore,
-  RESERVED_KEYS,
-} from '@/features/agent/state/use-monaco-store';
+import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
@@ -39,10 +35,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
         while ((match = regex.exec(line)) !== null) {
           const variableName = match[1];
 
-          // Check if variable is valid (in suggestions) or reserved
+          // Check if variable is valid (in suggestions) or reserved env
           const isValid =
             validVariables.has(variableName) ||
-            RESERVED_KEYS.has(variableName) ||
             variableName.startsWith('$env.') ||
             // Exclude arrays from linting, as they are indicated with [*] in the suggestions
             variableName.includes('[') ||

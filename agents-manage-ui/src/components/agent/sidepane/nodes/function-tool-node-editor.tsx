@@ -143,7 +143,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           placeholder="Enter function code here..."
           error={getFieldError('code')}
           isRequired
-          className="font-mono text-sm data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
         />
         <p className="text-xs text-muted-foreground">
           JavaScript function code to be executed by the tool. The function will receive arguments

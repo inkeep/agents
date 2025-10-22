@@ -48,7 +48,7 @@ export function ExpandableCodeEditor({
         hasDynamicHeight={!open}
         className={cn(!open && error && 'max-h-96')}
       />
-      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm mt-1 text-destructive">{error}</p>}
     </ExpandableField>
   );
 }
