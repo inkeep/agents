@@ -231,9 +231,9 @@ describe('Validation Schemas', () => {
 
       const result = PaginationSchema.parse(pagination);
       expect(result.page).toBe(1); // default
-      expect(result.limit).toBe(10); // default
+      expect(result.limit).toBe(50); // default
       expect(result.total).toBe(100);
-      expect(result.pages).toBe(10);
+      expect(result.pages).toBe(2);
     });
 
     it('should validate pagination object with custom values', () => {
@@ -285,7 +285,7 @@ describe('Validation Schemas', () => {
 
       const result = PaginationQueryParamsSchema.parse(queryParams);
       expect(result.page).toBe(1);
-      expect(result.limit).toBe(10);
+      expect(result.limit).toBe(50);
     });
 
     it('should enforce limits on coerced values', () => {

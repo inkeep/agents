@@ -268,6 +268,119 @@ async function verifyGeneratedFiles(
 }
 
 /**
+ * Perform round-trip validation by loading generated TypeScript and comparing
+ * with original backend data
+ *
+ * This validation ensures that the generated TypeScript files can be:
+ * 1. Successfully loaded and imported
+ * 2. Serialized back to JSON using the same logic as `inkeep push`
+ * 3. The serialized JSON matches the original data from the backend
+ *
+ * This reuses the exact conversion logic from push, eliminating code duplication.
+ */
+async function roundTripValidation(
+  projectDir: string,
+  originalProjectData: FullProjectDefinition,
+  config: { tenantId: string; agentsManageApiUrl: string; agentsManageApiKey?: string },
+  debug: boolean = false
+): Promise<VerificationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    if (debug) {
+      console.log(chalk.gray('\n[DEBUG] Starting round-trip validation...'));
+      console.log(chalk.gray(`  • Loading project from: ${projectDir}`));
+    }
+
+    // Import shared utilities
+    const { loadProject } = await import('../utils/project-loader');
+    const { compareProjectDefinitions } = await import('../utils/json-comparison');
+
+    // Set environment variables temporarily for project loading
+    const originalTenantId = process.env.INKEEP_TENANT_ID;
+    const originalApiUrl = process.env.INKEEP_API_URL;
+
+    process.env.INKEEP_TENANT_ID = config.tenantId;
+    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+
+    // Load the generated TypeScript project
+    let project;
+    try {
+      project = await loadProject(projectDir);
+      if (debug) {
+        console.log(chalk.gray(`  • Project loaded successfully: ${project.getId()}`));
+      }
+    } catch (loadError: any) {
+      errors.push(`Failed to load generated project: ${loadError.message}`);
+      return { success: false, errors, warnings };
+    } finally {
+      // Restore original environment variables
+      if (originalTenantId !== undefined) {
+        process.env.INKEEP_TENANT_ID = originalTenantId;
+      } else {
+        delete process.env.INKEEP_TENANT_ID;
+      }
+      if (originalApiUrl !== undefined) {
+        process.env.INKEEP_API_URL = originalApiUrl;
+      } else {
+        delete process.env.INKEEP_API_URL;
+      }
+    }
+
+    // Set configuration on the loaded project (same as push does)
+    if (typeof project.setConfig === 'function') {
+      project.setConfig(
+        config.tenantId,
+        config.agentsManageApiUrl,
+        undefined, // models - come from project definition
+        config.agentsManageApiKey
+      );
+    }
+
+    // Get the full definition (same as push does via toFullProjectDefinition())
+    let generatedDefinition;
+    try {
+      generatedDefinition = await project.getFullDefinition();
+      if (debug) {
+        console.log(chalk.gray(`  • Generated definition serialized successfully`));
+        console.log(chalk.gray(`    - Agents: ${Object.keys(generatedDefinition.agents || {}).length}`));
+        console.log(chalk.gray(`    - Tools: ${Object.keys(generatedDefinition.tools || {}).length}`));
+      }
+    } catch (serializeError: any) {
+      errors.push(`Failed to serialize generated project: ${serializeError.message}`);
+      return { success: false, errors, warnings };
+    }
+
+    // Compare the generated definition with the original
+    const comparisonResult = compareProjectDefinitions(originalProjectData, generatedDefinition);
+
+    if (debug) {
+      console.log(chalk.gray(`  • Comparison complete:`));
+      console.log(chalk.gray(`    - Matches: ${comparisonResult.matches}`));
+      console.log(chalk.gray(`    - Differences: ${comparisonResult.differences.length}`));
+      console.log(chalk.gray(`    - Warnings: ${comparisonResult.warnings.length}`));
+    }
+
+    // Accumulate differences and warnings
+    errors.push(...comparisonResult.differences);
+    warnings.push(...comparisonResult.warnings);
+
+    return {
+      success: comparisonResult.matches && errors.length === 0,
+      errors,
+      warnings,
+    };
+  } catch (error: any) {
+    errors.push(`Round-trip validation failed: ${error.message}`);
+    if (debug) {
+      console.log(chalk.red(`[DEBUG] Round-trip validation error: ${error.stack}`));
+    }
+    return { success: false, errors, warnings };
+  }
+}
+
+/**
  * Load and validate inkeep.config.ts using the centralized config loader
  * Converts normalized config to nested format for backward compatibility
  */
@@ -854,10 +967,64 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
       if (verificationResult.success) {
         s.stop('Generated files verified successfully');
         if (options.debug && verificationResult.warnings.length > 0) {
-          console.log(chalk.yellow('\n⚠️  Verification warnings:'));
+          console.log(chalk.yellow('\n⚠️  File verification warnings:'));
           verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
+        }
+
+        // Perform round-trip validation: load TS and compare with original JSON
+        s.start('Performing round-trip validation...');
+        try {
+          const roundTripResult = await roundTripValidation(
+            dirs.projectRoot,
+            projectData,
+            {
+              tenantId: finalConfig.tenantId,
+              agentsManageApiUrl: finalConfig.agentsManageApiUrl,
+              agentsManageApiKey: finalConfig.agentsManageApiKey,
+            },
+            options.debug || false
+          );
+
+          if (roundTripResult.success) {
+            s.stop('Round-trip validation passed - generated TS matches backend data');
+            if (options.debug && roundTripResult.warnings.length > 0) {
+              console.log(chalk.yellow('\n⚠️  Round-trip validation warnings:'));
+              roundTripResult.warnings.forEach((warning) => {
+                console.log(chalk.gray(`  • ${warning}`));
+              });
+            }
+          } else {
+            s.stop('Round-trip validation failed');
+            console.error(chalk.red('\n❌ Round-trip validation errors:'));
+            console.error(
+              chalk.gray(
+                '   The generated TypeScript does not serialize back to match the original backend data.'
+              )
+            );
+            roundTripResult.errors.forEach((error) => {
+              console.error(chalk.red(`  • ${error}`));
+            });
+            if (roundTripResult.warnings.length > 0) {
+              console.log(chalk.yellow('\n⚠️  Round-trip validation warnings:'));
+              roundTripResult.warnings.forEach((warning) => {
+                console.log(chalk.gray(`  • ${warning}`));
+              });
+            }
+            console.log(
+              chalk.yellow(
+                '\n⚠️  This indicates an issue with LLM generation or schema mappings.'
+              )
+            );
+            console.log(chalk.gray('The generated files may not work correctly with `inkeep push`.'));
+          }
+        } catch (roundTripError: any) {
+          s.stop('Round-trip validation could not be completed');
+          console.error(chalk.yellow(`\nRound-trip validation error: ${roundTripError.message}`));
+          if (options.debug && roundTripError.stack) {
+            console.error(chalk.gray(roundTripError.stack));
+          }
         }
       } else {
         s.stop('Generated files verification failed');
@@ -866,7 +1033,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           console.error(chalk.red(`  • ${error}`));
         });
         if (verificationResult.warnings.length > 0) {
-          console.log(chalk.yellow('\n⚠️  Verification warnings:'));
+          console.log(chalk.yellow('\n⚠️  File verification warnings:'));
           verificationResult.warnings.forEach((warning) => {
             console.log(chalk.gray(`  • ${warning}`));
           });
@@ -878,7 +1045,7 @@ export async function pullProjectCommand(options: PullOptions): Promise<void> {
           chalk.gray('This could indicate an issue with the LLM generation or schema mappings.')
         );
 
-        // Don't exit - still show success but warn user
+        // Don't run round-trip validation if basic verification failed
       }
     } catch (error: any) {
       s.stop('Verification failed');
