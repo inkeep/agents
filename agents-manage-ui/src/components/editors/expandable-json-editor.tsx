@@ -70,19 +70,6 @@ export function ExpandableJsonEditor({
 
   const error = externalError || internalError;
 
-  const formatButton = (
-    <Button
-      type="button"
-      onClick={handleFormat}
-      disabled={!canFormat}
-      variant="link"
-      size="sm"
-      className="text-xs rounded-sm h-6"
-    >
-      Format
-    </Button>
-  );
-
   return (
     <ExpandableField
       open={open}
@@ -90,7 +77,18 @@ export function ExpandableJsonEditor({
       name={name}
       label={label}
       className={className}
-      actions={formatButton}
+      actions={
+        <Button
+          type="button"
+          onClick={handleFormat}
+          disabled={!canFormat}
+          variant="link"
+          size="sm"
+          className="text-xs rounded-sm h-6"
+        >
+          Format
+        </Button>
+      }
     >
       <JsonEditor
         id={name}
