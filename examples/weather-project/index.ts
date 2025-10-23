@@ -1,4 +1,5 @@
 import { project } from '@inkeep/agents-sdk';
+import { weatherAgent } from './agents/weather-agent';
 
 export const myWeatherProject = project({
   id: 'my-weather-project',
@@ -6,5 +7,6 @@ export const myWeatherProject = project({
   description: 'Project containing sample agent framework using ',
   models: {
     base: { model: 'openai/gpt-4o-mini' }
-  }
+  },
+  agents: () => [weatherAgent],
 });
