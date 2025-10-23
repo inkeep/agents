@@ -85,6 +85,13 @@ export async function generateMetadata(props: PageProps<'/[[...slug]]'>) {
     description: page.data.description,
     openGraph: {
       url: page.url,
+      images: [
+        {
+          url: `/api/docs-og/${params.slug?.join('/')}/image.png`,
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
     keywords: page.data.keywords,
   });

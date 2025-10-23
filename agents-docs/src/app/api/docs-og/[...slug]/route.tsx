@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { generateOGImage } from './og';
 import { source } from '@/lib/source';
+import type { NextRequest } from 'next/server';
 
-const font = readFileSync('./src/app/[...slug]/Inter-Regular.ttf');
-const fontSemiBold = readFileSync('./src/app/[...slug]/Inter-SemiBold.ttf');
+const font = readFileSync('./src/app/api/docs-og/[...slug]/Inter-Regular.ttf');
+const fontSemiBold = readFileSync('./src/app/api/docs-og/[...slug]/Inter-SemiBold.ttf');
 
 function getSubheading(path: string) {
   const parts = path.split('/');
@@ -19,8 +20,9 @@ function getSubheading(path: string) {
 
 export const contentType = 'image/png';
 
-export default async function Image({ params }: PageProps<'/[[...slug]]'>) {
-  const page = source.getPage((await params).slug);
+export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[...slug]'>) => {
+  const { slug } = await ctx.params;
+  const page = source.getPage(slug.slice(0, -1));
   if (!page) return;
   const subHeading = getSubheading(page.url);
   return generateOGImage({
@@ -45,4 +47,4 @@ export default async function Image({ params }: PageProps<'/[[...slug]]'>) {
       },
     ],
   });
-}
+};
