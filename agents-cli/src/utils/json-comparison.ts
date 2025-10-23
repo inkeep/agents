@@ -28,7 +28,8 @@ export function compareProjectDefinitions(
   const dbGeneratedFields = ['agentToolRelationId']; // Database-generated IDs that should be ignored entirely
   const sdkGeneratedFields = ['type']; // SDK-generated metadata fields that should be ignored
   const contextFields = ['tenantId', 'projectId', 'agentId']; // Runtime context fields added by SDK
-  const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields];
+  const cosmenticFields = ['imageUrl']; // Cosmetic UI fields that don't affect functionality
+  const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields, ...cosmenticFields];
 
   // Helper to compare primitive values
   const comparePrimitive = (path: string, a: any, b: any): boolean => {
