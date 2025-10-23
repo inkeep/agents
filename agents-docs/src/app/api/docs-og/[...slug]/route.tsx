@@ -18,8 +18,6 @@ function getSubheading(path: string) {
   return secondToLastItem.replace(/-/g, ' ');
 }
 
-export const contentType = 'image/png';
-
 export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[...slug]'>) => {
   const { slug } = await ctx.params;
   const page = source.getPage(slug.slice(0, -1));
