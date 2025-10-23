@@ -593,9 +593,34 @@ function generateSubAgentVariable(
   if (subAgentData.canUse && subAgentData.canUse.length > 0) {
     lines.push(`${indent}canUse: () => [`);
     for (const toolRef of subAgentData.canUse) {
-      const toolId = typeof toolRef === 'string' ? toolRef : toolRef.toolId;
-      const toolVarName = toToolVariableName(toolId);
-      lines.push(`${indent}${style.indentation}${toolVarName},`);
+      if (typeof toolRef === 'string') {
+        // Simple tool reference
+        const toolVarName = toToolVariableName(toolRef);
+        lines.push(`${indent}${style.indentation}${toolVarName},`);
+      } else {
+        // Tool with configuration (.with() format)
+        const toolId = toolRef.toolId || toolRef.id;
+        const toolVarName = toToolVariableName(toolId);
+        
+        if (toolRef.selectedTools || toolRef.headers) {
+          // Generate .with() configuration
+          lines.push(`${indent}${style.indentation}${toolVarName}.with({`);
+          
+          if (toolRef.selectedTools && toolRef.selectedTools.length > 0) {
+            const selectedToolsStr = toolRef.selectedTools.map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`).join(', ');
+            lines.push(`${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`);
+          }
+          
+          if (toolRef.headers && typeof toolRef.headers === 'object') {
+            lines.push(`${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`);
+          }
+          
+          lines.push(`${indent}${style.indentation}}),`);
+        } else {
+          // Simple tool reference even though it's an object
+          lines.push(`${indent}${style.indentation}${toolVarName},`);
+        }
+      }
     }
     lines.push(`${indent}],`);
   }
@@ -718,9 +743,34 @@ function generateSubAgent(
   if (subAgentData.canUse && subAgentData.canUse.length > 0) {
     lines.push(`${indent}canUse: () => [`);
     for (const toolRef of subAgentData.canUse) {
-      const toolId = typeof toolRef === 'string' ? toolRef : toolRef.toolId;
-      const toolVarName = toToolVariableName(toolId);
-      lines.push(`${indent}${style.indentation}${toolVarName},`);
+      if (typeof toolRef === 'string') {
+        // Simple tool reference
+        const toolVarName = toToolVariableName(toolRef);
+        lines.push(`${indent}${style.indentation}${toolVarName},`);
+      } else {
+        // Tool with configuration (.with() format)
+        const toolId = toolRef.toolId || toolRef.id;
+        const toolVarName = toToolVariableName(toolId);
+        
+        if (toolRef.selectedTools || toolRef.headers) {
+          // Generate .with() configuration
+          lines.push(`${indent}${style.indentation}${toolVarName}.with({`);
+          
+          if (toolRef.selectedTools && toolRef.selectedTools.length > 0) {
+            const selectedToolsStr = toolRef.selectedTools.map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`).join(', ');
+            lines.push(`${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`);
+          }
+          
+          if (toolRef.headers && typeof toolRef.headers === 'object') {
+            lines.push(`${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`);
+          }
+          
+          lines.push(`${indent}${style.indentation}}),`);
+        } else {
+          // Simple tool reference even though it's an object
+          lines.push(`${indent}${style.indentation}${toolVarName},`);
+        }
+      }
     }
     lines.push(`${indent}],`);
   }

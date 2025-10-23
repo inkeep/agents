@@ -47,7 +47,13 @@ export function generateToolFile(
 
   // Determine tool type and generate appropriate code
   if (toolData.config?.type === 'mcp' || toolData.mcpConfig) {
-    return generateMcpTool(toolId, toolData, style);
+    // Generate MCP tool using separate imports/exports pattern
+    const imports = generateToolImports(toolId, toolData, style);
+    const toolVarName = toToolVariableName(toolId);
+    const componentNameMap = new Map([['tool:' + toolId, { name: toolVarName, type: 'tool' }]]);
+    const exportDef = generateMcpToolExport(toolId, toolData, style, componentNameMap);
+    
+    return imports.join('\n') + '\n\n' + exportDef + '\n';
   } else if (toolData.config?.type === 'function') {
     return generateFunctionTool(toolId, toolData, style);
   } else {
@@ -83,7 +89,7 @@ function generateMcpToolExport(
   lines.push(`${indent}id: ${q}${toolId}${q},`);
   lines.push(`${indent}name: ${formatString(toolData.name || toolId, q)},`);
 
-  // Add server URL if available (handle different data structures)
+  // Add server URL (handle different data structures)
   let serverUrl = null;
   if (toolData.config?.mcp?.server?.url) {
     serverUrl = toolData.config.mcp.server.url;
@@ -97,15 +103,15 @@ function generateMcpToolExport(
     lines.push(`${indent}serverUrl: ${formatString(serverUrl, q)},`);
   }
 
+  // Add imageUrl if available (but ignore it in validation)
+  if (toolData.imageUrl) {
+    lines.push(`${indent}imageUrl: ${formatString(toolData.imageUrl, q)},`);
+  }
+
   // Add transport configuration if available
   if (toolData.config?.mcp?.transport) {
     const transport = toolData.config.mcp.transport;
     lines.push(`${indent}transport: ${formatObject(transport, style, 1)},`);
-  }
-
-  // Add imageUrl if available
-  if (toolData.imageUrl) {
-    lines.push(`${indent}imageUrl: ${formatString(toolData.imageUrl, q)},`);
   }
 
   // Remove trailing comma from the last property line (but not from lines that don't have properties)
