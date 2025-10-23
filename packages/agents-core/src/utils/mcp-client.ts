@@ -21,7 +21,7 @@ import {
   MCP_TOOL_MAX_RECONNECTION_DELAY_MS,
   MCP_TOOL_MAX_RETRIES,
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
-} from '../constants/runtime';
+} from '../constants/schema-validation';
 import { MCPTransportType } from '../types/utility';
 
 interface SharedServerConfig {

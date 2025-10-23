@@ -12,7 +12,7 @@ import {
   VALIDATION_PAGINATION_DEFAULT_LIMIT,
   VALIDATION_PAGINATION_MAX_LIMIT,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} from '../constants/runtime';
+} from '../constants/schema-validation';
 import {
   agents,
   apiKeys,

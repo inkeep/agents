@@ -19,9 +19,12 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentExternalAgentRelation,
 } from '@inkeep/agents-core';
+import {
+  VALIDATION_PAGINATION_DEFAULT_LIMIT,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+} from '@inkeep/agents-core/constants/schema-validation';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
-import { runtimeConfig } from '../env';
 
 const app = new OpenAPIHono();
 
@@ -50,9 +53,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
-    const { page = 1, limit = runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT } = c.req.valid('query');
+    const { page = 1, limit = VALIDATION_PAGINATION_DEFAULT_LIMIT } = c.req.valid('query');
     const pageNum = Number(page);
-    const limitNum = Math.min(Number(limit), runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT);
+    const limitNum = Math.min(Number(limit), VALIDATION_PAGINATION_MAX_LIMIT);
 
     try {
       const result: { data: SubAgentExternalAgentRelationApiSelect[]; pagination: Pagination } =

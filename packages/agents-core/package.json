@@ -9,6 +9,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./constants/models": "./src/constants/models.ts",
+    "./constants/schema-validation": "./src/constants/schema-validation/index.ts",
     "./schema": "./src/db/schema.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",

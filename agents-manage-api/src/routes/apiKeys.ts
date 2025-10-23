@@ -19,9 +19,12 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
+import {
+  VALIDATION_PAGINATION_DEFAULT_LIMIT,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+} from '@inkeep/agents-core/constants/schema-validation';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
-import { runtimeConfig } from '../env';
 
 const app = new OpenAPIHono();
 
@@ -55,8 +58,8 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(
-      Number(c.req.query('limit')) || runtimeConfig.VALIDATION_PAGINATION_DEFAULT_LIMIT,
-      runtimeConfig.VALIDATION_PAGINATION_MAX_LIMIT
+      Number(c.req.query('limit')) || VALIDATION_PAGINATION_DEFAULT_LIMIT,
+      VALIDATION_PAGINATION_MAX_LIMIT
     );
     const agentId = c.req.query('agentId');
 
