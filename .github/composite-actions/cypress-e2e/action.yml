@@ -27,6 +27,8 @@ runs:
 
     - run: pnpm setup-dev
       shell: bash
+    - run: "pnpm db:migrate"
+      shell: bash
 
     # Start the backend API server
     - name: Start Backend API Server
