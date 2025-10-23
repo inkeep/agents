@@ -7,7 +7,10 @@
  */
 
 import { z } from 'zod';
-import {
+import { schemaValidationDefaults } from './constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
   AGENT_EXECUTION_TRANSFER_COUNT_MAX,
   AGENT_EXECUTION_TRANSFER_COUNT_MIN,
   STATUS_UPDATE_MAX_INTERVAL_SECONDS,
@@ -16,7 +19,7 @@ import {
   VALIDATION_PAGINATION_DEFAULT_LIMIT,
   VALIDATION_PAGINATION_MAX_LIMIT,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} from './constants/schema-validation';
+} = schemaValidationDefaults;
 import { CredentialStoreType, MCPTransportType } from './types';
 
 import {
