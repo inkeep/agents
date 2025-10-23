@@ -24,6 +24,12 @@ export function compareProjectDefinitions(
   const differences: string[] = [];
   const warnings: string[] = [];
 
+  // Define ignored fields at the top level so all helper functions can access them
+  const dbGeneratedFields = ['agentToolRelationId']; // Database-generated IDs that should be ignored entirely
+  const sdkGeneratedFields = ['type']; // SDK-generated metadata fields that should be ignored
+  const contextFields = ['tenantId', 'projectId', 'agentId']; // Runtime context fields added by SDK
+  const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields];
+
   // Helper to compare primitive values
   const comparePrimitive = (path: string, a: any, b: any): boolean => {
     if (a === b) return true;
@@ -46,13 +52,33 @@ export function compareProjectDefinitions(
     }
     
     // For certain paths, treat arrays as sets (order doesn't matter)
-    const orderIndependentPaths = ['canDelegateTo', 'tools', 'functionTools'];
+    const orderIndependentPaths = [
+      'canDelegateTo', 
+      'canTransferTo', 
+      'canUse',
+      'tools', 
+      'functionTools', 
+      'dataComponents', 
+      'artifactComponents'
+    ];
     const isOrderIndependent = orderIndependentPaths.some(pattern => path.includes(pattern));
     
     if (isOrderIndependent) {
       // Compare as sets - all elements in a must exist in b
-      const aSet = new Set(a.map(item => typeof item === 'object' ? JSON.stringify(item) : item));
-      const bSet = new Set(b.map(item => typeof item === 'object' ? JSON.stringify(item) : item));
+      // Filter out ignored fields before comparison
+      const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields];
+      
+      const filterIgnoredFields = (item: any) => {
+        if (typeof item === 'object' && item !== null) {
+          const filtered = { ...item };
+          allIgnoredFields.forEach(field => delete filtered[field]);
+          return JSON.stringify(filtered);
+        }
+        return item;
+      };
+      
+      const aSet = new Set(a.map(filterIgnoredFields));
+      const bSet = new Set(b.map(filterIgnoredFields));
       
       if (aSet.size !== bSet.size) {
         differences.push(`Array content mismatch at ${path}: different unique elements`);
@@ -88,11 +114,6 @@ export function compareProjectDefinitions(
     const bKeys = Object.keys(b || {}).filter((k) => !ignoredFields.includes(k));
 
     // Check for missing keys, but ignore fields that are null/empty in API but omitted in SDK
-    const dbGeneratedFields = ['agentToolRelationId']; // Database-generated IDs that should be ignored entirely
-    const sdkGeneratedFields = ['type']; // SDK-generated metadata fields that should be ignored
-    const contextFields = ['tenantId', 'projectId', 'agentId']; // Runtime context fields added by SDK
-    
-    const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields];
     
     const missingInB = aKeys.filter((k) => 
       !bKeys.includes(k) && 
