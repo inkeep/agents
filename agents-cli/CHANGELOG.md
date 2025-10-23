@@ -1,5 +1,18 @@
 # @inkeep/agents-cli
 
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+### Patch Changes
+
+- Updated dependencies [38db07a]
+  - @inkeep/agents-core@0.29.0
+  - @inkeep/agents-sdk@0.29.0
+  - @inkeep/agents-manage-ui@0.29.0
+
 ## 0.28.0
 
 ### Patch Changes
