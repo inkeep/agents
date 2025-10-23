@@ -71,7 +71,15 @@ export function generateStatusComponentExport(
   
   // Add detailsSchema if available
   if (componentData.detailsSchema) {
-    lines.push(`${indent}detailsSchema: ${formatZodSchema(componentData.detailsSchema, style, 1)}`);
+    let zodSchemaString: string;
+    if (typeof componentData.detailsSchema === 'string') {
+      // Schema is already a Zod string (converted by placeholder system)
+      zodSchemaString = componentData.detailsSchema;
+    } else {
+      // Schema is a JSON schema object, convert it
+      zodSchemaString = formatZodSchema(componentData.detailsSchema, style, 1);
+    }
+    lines.push(`${indent}detailsSchema: ${zodSchemaString}`);
   }
   
   lines.push(`})${semi}`);
@@ -116,7 +124,15 @@ export function generateStatusComponentFile(
   
   // Add detailsSchema if available
   if (componentData.detailsSchema) {
-    lines.push(`${indent}detailsSchema: ${formatZodSchema(componentData.detailsSchema, style, 1)}`);
+    let zodSchemaString: string;
+    if (typeof componentData.detailsSchema === 'string') {
+      // Schema is already a Zod string (converted by placeholder system)
+      zodSchemaString = componentData.detailsSchema;
+    } else {
+      // Schema is a JSON schema object, convert it
+      zodSchemaString = formatZodSchema(componentData.detailsSchema, style, 1);
+    }
+    lines.push(`${indent}detailsSchema: ${zodSchemaString}`);
   }
   
   lines.push(`})${semi}`);

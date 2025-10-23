@@ -89,27 +89,57 @@ export function compareProjectDefinitions(
 
     // Check for missing keys, but ignore fields that are null/empty in API but omitted in SDK
     const dbGeneratedFields = ['agentToolRelationId']; // Database-generated IDs that should be ignored entirely
+    const sdkGeneratedFields = ['type']; // SDK-generated metadata fields that should be ignored
+    const contextFields = ['tenantId', 'projectId', 'agentId']; // Runtime context fields added by SDK
+    
+    const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields];
     
     const missingInB = aKeys.filter((k) => 
       !bKeys.includes(k) && 
       a[k] !== null &&  // Ignore if API has null (SDK omits null fields)
       !(Array.isArray(a[k]) && a[k].length === 0) && // Ignore if API has empty array
       !(typeof a[k] === 'object' && a[k] !== null && Object.keys(a[k]).length === 0) && // Ignore if API has empty object
-      !dbGeneratedFields.includes(k)
+      !allIgnoredFields.includes(k)
     );
     const extraInB = bKeys.filter((k) => 
       !aKeys.includes(k) && 
       b[k] !== null &&  // Ignore if SDK has null (API might omit null fields)  
       !(Array.isArray(b[k]) && b[k].length === 0) && // Ignore if SDK has empty array
       !(typeof b[k] === 'object' && b[k] !== null && Object.keys(b[k]).length === 0) && // Ignore if SDK has empty object
-      !dbGeneratedFields.includes(k)
+      !allIgnoredFields.includes(k)
     );
 
     if (missingInB.length > 0) {
       differences.push(`Missing keys in generated at ${path}: ${missingInB.join(', ')}`);
     }
     if (extraInB.length > 0) {
-      warnings.push(`Extra keys in generated at ${path}: ${extraInB.join(', ')}`);
+      // Split extra keys into meaningful content vs empty content
+      const meaningfulExtraKeys = [];
+      const emptyExtraKeys = [];
+      
+      for (const key of extraInB) {
+        const value = b[key];
+        const isEmpty = value === null || 
+                       value === undefined ||
+                       value === '' ||
+                       (Array.isArray(value) && value.length === 0) ||
+                       (typeof value === 'object' && value !== null && Object.keys(value).length === 0);
+        
+        if (isEmpty) {
+          emptyExtraKeys.push(key);
+        } else {
+          meaningfulExtraKeys.push(key);
+        }
+      }
+      
+      // Meaningful extra content = real difference (generated files out of sync)
+      if (meaningfulExtraKeys.length > 0) {
+        differences.push(`Extra keys in generated at ${path}: ${meaningfulExtraKeys.join(', ')}`);
+      }
+      // Empty extra content = just warning (probably harmless metadata)
+      if (emptyExtraKeys.length > 0) {
+        warnings.push(`Extra keys in generated at ${path}: ${emptyExtraKeys.join(', ')}`);
+      }
     }
 
     let allMatch = true;

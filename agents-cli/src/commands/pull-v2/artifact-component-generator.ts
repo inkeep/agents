@@ -83,8 +83,18 @@ export function generateArtifactComponentExport(
   
   // Add schema/props (always include, use empty object if none provided)
   const schema = componentData.props || componentData.schema;
-  if (schema && typeof schema === 'object' && (schema.type || schema.properties || schema.anyOf || schema.allOf)) {
-    const formattedSchema = formatArtifactSchema(schema, style, 1);
+  if (schema) {
+    let formattedSchema: string;
+    if (typeof schema === 'string') {
+      // Schema is already a Zod string (converted by placeholder system)
+      formattedSchema = schema;
+    } else if (typeof schema === 'object' && (schema.type || schema.properties || schema.anyOf || schema.allOf)) {
+      // Schema is a JSON schema object, convert it
+      formattedSchema = formatArtifactSchema(schema, style, 1);
+    } else {
+      // Invalid schema, use default
+      formattedSchema = 'z.object({})';
+    }
     
     if (formattedSchema.includes('\n')) {
       // Multi-line schema - format properly with correct indentation
@@ -168,8 +178,18 @@ export function generateArtifactComponentFile(
   
   // Add schema/props (always include, use empty object if none provided)
   const schema = componentData.props || componentData.schema;
-  if (schema && typeof schema === 'object' && (schema.type || schema.properties || schema.anyOf || schema.allOf)) {
-    const formattedSchema = formatArtifactSchema(schema, style, 1);
+  if (schema) {
+    let formattedSchema: string;
+    if (typeof schema === 'string') {
+      // Schema is already a Zod string (converted by placeholder system)
+      formattedSchema = schema;
+    } else if (typeof schema === 'object' && (schema.type || schema.properties || schema.anyOf || schema.allOf)) {
+      // Schema is a JSON schema object, convert it
+      formattedSchema = formatArtifactSchema(schema, style, 1);
+    } else {
+      // Invalid schema, use default
+      formattedSchema = 'z.object({})';
+    }
     
     if (formattedSchema.includes('\n')) {
       // Multi-line schema - format properly with correct indentation
