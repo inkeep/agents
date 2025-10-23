@@ -5,7 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import { Breadcrumb } from '@/components/breadcrumb';
 import { Footer } from '@/components/footer';
 import { Markdown } from '@/components/markdown';
-import { createMetadata, metadataImage } from '@/lib/metadata';
+import { createMetadata } from '@/lib/metadata';
 import { getDocsGroupFirstChild, source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
 
@@ -80,14 +80,12 @@ export async function generateMetadata(props: PageProps<'/[[...slug]]'>) {
 
   if (!page) notFound();
 
-  return createMetadata(
-    metadataImage.withImage(page.slugs, {
-      title: `${page.data.title} - Inkeep Open Source Docs`,
-      description: page.data.description,
-      openGraph: {
-        url: page.url,
-      },
-      keywords: page.data.keywords,
-    })
-  );
+  return createMetadata({
+    title: `${page.data.title} - Inkeep Open Source Docs`,
+    description: page.data.description,
+    openGraph: {
+      url: page.url,
+    },
+    keywords: page.data.keywords,
+  });
 }
