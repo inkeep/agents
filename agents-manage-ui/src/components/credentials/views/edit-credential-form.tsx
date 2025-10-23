@@ -40,16 +40,34 @@ interface EditCredentialFormProps {
   initialFormData: EditCredentialFormData;
 }
 
-function getCredentialType(credential: Credential) {
-  if (credential.retrievalParams?.provider === 'private-api-bearer') {
-    return 'Bearer Auth';
+function getCredentialAuthenticationType(credential: Credential): string | undefined {
+  if (
+    credential.type === CredentialStoreType.nango &&
+    credential.retrievalParams?.provider === 'private-api-bearer'
+  ) {
+    return 'Bearer authentication';
   }
 
-  if (credential.retrievalParams && 'authMode' in credential.retrievalParams) {
-    return credential.retrievalParams.authMode as string;
+  if (
+    credential.type === CredentialStoreType.nango &&
+    credential.retrievalParams?.provider === 'mcp-generic'
+  ) {
+    return 'OAuth';
   }
 
-  return credential.type;
+  if (
+    credential.type === CredentialStoreType.keychain &&
+    credential.retrievalParams?.key &&
+    typeof credential.retrievalParams?.key === 'string'
+  ) {
+    if (credential.retrievalParams?.key.startsWith('oauth_token_')) {
+      return 'OAuth';
+    }
+
+    return 'Bearer authentication';
+  }
+
+  return undefined;
 }
 
 export function EditCredentialForm({
@@ -72,10 +90,7 @@ export function EditCredentialForm({
   const handleUpdateCredential = async (formData: EditCredentialFormData) => {
     try {
       await updateCredential(tenantId, projectId, credential.id, {
-        retrievalParams: {
-          ...credential.retrievalParams,
-          ...formData.metadata,
-        },
+        name: formData.name,
       });
 
       if (
@@ -119,6 +134,8 @@ export function EditCredentialForm({
     }
   };
 
+  const credentialAuthenticationType = getCredentialAuthenticationType(credential);
+
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
@@ -130,14 +147,21 @@ export function EditCredentialForm({
               name="name"
               label="Name"
               placeholder="e.g., production-api-key"
-              disabled={true}
             />
 
             {/* Credential Type Display */}
             <div className="space-y-3">
               <Label>Credential type</Label>
-              <Input type="text" disabled={true} value={getCredentialType(credential)} />
-              {getCredentialType(credential) === 'Bearer Auth' && (
+              <Input
+                type="text"
+                disabled={true}
+                value={
+                  credentialAuthenticationType
+                    ? `${credentialAuthenticationType} (${credential.type})`
+                    : credential.type
+                }
+              />
+              {credentialAuthenticationType === 'Bearer authentication' && (
                 <InfoCard title="How this works">
                   <p>
                     When your agent connects to the MCP server, this API key will be automatically

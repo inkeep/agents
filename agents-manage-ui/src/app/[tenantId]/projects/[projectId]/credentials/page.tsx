@@ -52,6 +52,7 @@ async function CredentialsPage({
                 <CredentialItem
                   key={cred.id}
                   id={cred.id}
+                  name={cred.name}
                   createdAt={cred.createdAt}
                   tenantId={tenantId}
                   projectId={projectId}

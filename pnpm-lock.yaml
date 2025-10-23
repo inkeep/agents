@@ -326,11 +326,11 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@nangohq/node':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@nangohq/types':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -415,14 +415,14 @@ importers:
         specifier: ^1.2.1
         version: 1.2.2
       '@nangohq/frontend':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@nangohq/node':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@nangohq/types':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -873,11 +873,11 @@ importers:
         specifier: ^1.17.2
         version: 1.20.1
       '@nangohq/node':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@nangohq/types':
-        specifier: ^0.69.3
-        version: 0.69.4
+        specifier: ^0.69.5
+        version: 0.69.5
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
@@ -2421,22 +2421,22 @@ packages:
   '@nangohq/frontend@0.66.2':
     resolution: {integrity: sha512-+Mh1bBCi5YzNpohmzHIoJEoRN0BND2wUvQ5OCsbQwO05GprNlSxIxbdSHRx6hDE5lDkONrqjtI9miYsf4F2DGw==}
 
-  '@nangohq/frontend@0.69.4':
-    resolution: {integrity: sha512-teOUM330/I6oxGYVVwgA/ml71Ub3AvuWJ8Sa7w6N5jzTgYUwsDaGwOwvGnNbdRpFDFM2EOjzDKEq5Y/yADpU/Q==}
+  '@nangohq/frontend@0.69.5':
+    resolution: {integrity: sha512-Df0GYFHoCIkd3R73UmbkfdOC7eQFaGj+MNXjjLuLjHPFZVNaEKxUg2wTbYs63mOofcY7uiTg762nD16ofDPQDQ==}
 
   '@nangohq/node@0.66.2':
     resolution: {integrity: sha512-iCbQQ8XAq3vFBFekx/yhAfPKy0IX8sb0rS0qB1+CuGfEVLQkVxeZM8ZBkp81J3yBUSaaAQAKuxNtY4ukvJAdog==}
     engines: {node: '>=20.0'}
 
-  '@nangohq/node@0.69.4':
-    resolution: {integrity: sha512-ubo9EGBHYVye32pFmogx0gEWuUEYkrVvP/fSxmPgPKPsKpfd+eGOyBmQHmtHfc9Imoqbm9EabTdlMzy1tUwlOA==}
+  '@nangohq/node@0.69.5':
+    resolution: {integrity: sha512-kUOd4Nhmw8zSUq05K8/i7etUWtOCxOkFvUGM34zqpoLfHRCye6QD3b/5OXAd+A5rKr+JuNvoD5C7+LrwYwtmVg==}
     engines: {node: '>=20.0'}
 
   '@nangohq/types@0.66.2':
     resolution: {integrity: sha512-IliUrlaCA8wc1+iUuvfY/rNtYW4Zp9++Erl8+2Qk3V2Z35dreCHDZFi/DUXZv+bol398K0Tpvp4gXTr7P8JwZg==}
 
-  '@nangohq/types@0.69.4':
-    resolution: {integrity: sha512-VS8cJIghTjIgB3Vk6LvcHvCfIqXJHAM/+f3Ii/f7cTLFnkbFO1ajeeQUaRAFMuQowzxFormlgA+3fxtE8gvoNA==}
+  '@nangohq/types@0.69.5':
+    resolution: {integrity: sha512-X3vpr8eUyQVJNU9osngmTcEc7TPrNJU8XGB4iezts3mNVDok9l+lMVcUzOtdsUDols6xfNHql6kT4VuIzg65PQ==}
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
@@ -11991,9 +11991,9 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@nangohq/frontend@0.69.4':
+  '@nangohq/frontend@0.69.5':
     dependencies:
-      '@nangohq/types': 0.69.4
+      '@nangohq/types': 0.69.5
     transitivePeerDependencies:
       - debug
 
@@ -12004,9 +12004,9 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@nangohq/node@0.69.4':
+  '@nangohq/node@0.69.5':
     dependencies:
-      '@nangohq/types': 0.69.4
+      '@nangohq/types': 0.69.5
       axios: 1.12.0
     transitivePeerDependencies:
       - debug
@@ -12019,7 +12019,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@nangohq/types@0.69.4':
+  '@nangohq/types@0.69.5':
     dependencies:
       axios: 1.12.0
       json-schema: 0.4.0

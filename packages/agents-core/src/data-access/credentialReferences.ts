@@ -295,6 +295,7 @@ export const upsertCredentialReference =
         scopes,
         id: params.data.id,
         data: {
+          name: params.data.name,
           type: params.data.type,
           credentialStoreId: params.data.credentialStoreId,
           retrievalParams: params.data.retrievalParams,
