@@ -25,6 +25,7 @@ export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
         ref={ref}
         dur="2s"
         path={edgePath}
+        fill="freeze"
         {...(inverted && {
           pathLength: '1',
           keyPoints: '1;0',
