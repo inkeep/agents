@@ -28,11 +28,13 @@ import {
   type ToolInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
+import type { TeamAgent } from './team-agents';
 
 // Extend FullAgentDefinition with UI-specific lookup maps
 export type FullAgentDefinition = CoreFullAgentDefinition & {
   tools?: Record<string, ToolApiInsert>;
   externalAgents?: Record<string, ExternalAgentApiInsert>;
+  teamAgents?: Record<string, TeamAgent>;
   functionTools?: Record<string, any>; // Function tools are agent-scoped
   functions?: Record<string, FunctionApiInsert>;
 };

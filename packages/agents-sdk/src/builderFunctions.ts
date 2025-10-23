@@ -303,6 +303,14 @@ export function statusComponent(config: StatusComponentConfig): StatusComponent 
   return new StatusComponent(config);
 }
 
+/**
+ * (deprecated in favor of mcpTool.with()) Creates an agent MCP configuration.
+ *
+ * Agent MCP configurations are used to configure the MCP server for an agent.
+ *
+ * @param config - Agent MCP configuration
+ * @returns An AgentMcpConfig instance
+ */
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   return {
     server: config.server,

@@ -9,7 +9,7 @@ MCP tools connect to external servers that implement the MCP standard. This allo
 
 <Snippet file="mcp/intro-create-and-add.mdx" />
 
-### Registring an MCP Server
+### Registering an MCP Server
 
 ```typescript
 import { agent, mcpTool } from "@inkeep/agents-sdk";
@@ -85,12 +85,12 @@ const selectiveTool = mcpTool({
 });
 ```
 
-### Using agentMcp for Tool Selection
+### Using `with` for Tool Selection
 
-While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `agentMcp`. This allows different agents to use different subsets of tools from the same MCP server.
+While `activeTools` in `mcpTool` limits which tools are available from the server, you can further refine tool access at the agent level using `mcpTool.with`. This allows different agents to use different subsets of tools from the same MCP server.
 
 ```typescript
-import { agent, mcpTool, agentMcp } from "@inkeep/agents-sdk";
+import { agent, mcpTool } from "@inkeep/agents-sdk";
 
 // Define the MCP server with all available tools
 const echoTool = mcpTool({
@@ -106,6 +106,84 @@ const weatherAssistant = subAgent({
   description: "Responsible for routing between the geocoder agent and weather forecast agent",
   prompt: "You are a helpful assistant. When the user asks about the weather in a given location, first ask the geocoder agent for the coordinates, and then pass those coordinates to the weather forecast agent to get the weather forecast",
   canDelegateTo: () => [weatherForecaster, geocoderAgent],
-  canUse: () => [agentMcp({ server: echoTool, selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
+  canUse: () => [echoTool.with({ selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
 });
 ```
+
+## Environment-Aware MCP Servers
+
+You can also configure MCP servers to switch based on your environment. This is useful when you want to use different MCP servers configurations for development vs production.
+
+```typescript
+import { environmentMcpTool } from "@inkeep/agents-sdk";
+
+const echoTool = environmentMcpTool({
+  id: "echo-tool",
+  name: "Echo tool",
+  serverUrl: "https://mcp-for-next-js-seven-iota.vercel.app/mcp",
+});
+```
+
+You can also configure entire MCP tools to switch based on your environment. This is useful when you want to use different MCP servers or configurations for development vs production.
+
+### Basic Setup Example
+
+<Tabs>
+  <Tab title="Development Config">
+    ```typescript title="environments/development.env.ts"
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+    import { CredentialStoreType } from '@inkeep/agents-core';
+
+    export const development = registerEnvironmentSettings({
+      mcpServers: {
+        'inkeep-mcp': mcpTool({
+          id: 'my-inkeep-mcp',
+          name: 'Inkeep MCP',
+          description: 'Inkeep MCP for development',
+          serverUrl: 'http://localhost:3000/mcp',
+          transport: { type: 'streamable_http' },
+        })
+      },
+    });
+    ```
+  </Tab>
+
+  <Tab title="Production Config">
+    ```typescript title="environments/production.env.ts"
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+    import { CredentialStoreType } from '@inkeep/agents-core';
+
+    export const production = registerEnvironmentSettings({
+      mcpServers: {
+        'inkeep-mcp': mcpTool({
+          id: 'my-inkeep-mcp',
+          name: 'Inkeep MCP',
+          description: 'Inkeep MCP for production',
+          serverUrl: 'https://inkeep-mcp-prod.com/mcp',
+          credential: {
+            id: 'inkeep-mcp-credential',
+            type: CredentialStoreType.memory,
+            credentialStoreId: 'memory-default',
+            retrievalParams: {
+              key: 'INKEEP_MCP_KEY_PROD',
+            },
+          },
+        })
+      },
+    });
+    ```
+  </Tab>
+
+  <Tab title="Index File">
+    ```typescript title="environments/index.ts"
+    import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+    import { development } from './development.env';
+    import { production } from './production.env';
+
+    export const envSettings = createEnvironmentSettings({
+      development,
+      production,
+    });
+    ```
+  </Tab>
+</Tabs>

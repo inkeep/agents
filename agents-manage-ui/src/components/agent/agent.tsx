@@ -2,11 +2,9 @@
 
 import {
   Background,
-  type Connection,
   ConnectionMode,
   Controls,
   type Edge,
-  type IsValidConnection,
   type Node,
   Panel,
   ReactFlow,
@@ -15,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -53,6 +51,11 @@ export type SubAgentExternalAgentConfig = {
   headers?: Record<string, string>;
 };
 
+export type SubAgentTeamAgentConfig = {
+  agentId: string;
+  headers?: Record<string, string>;
+};
+
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
 
@@ -61,6 +64,9 @@ export type SubAgentExternalAgentConfigLookup = Record<
   string,
   Record<string, SubAgentExternalAgentConfig>
 >;
+
+// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
 
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
@@ -73,6 +79,7 @@ import {
   NodeType,
   newNodeDefaults,
   nodeTypes,
+  teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
@@ -95,6 +102,8 @@ interface AgentProps {
   credentialLookup?: Record<string, Credential>;
   externalAgentLookup?: Record<string, ExternalAgent>;
 }
+
+type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -229,6 +238,29 @@ function Flow({
     return lookup;
   }, [agent?.subAgents]);
 
+  const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
+    if (!agent?.subAgents) return {} as SubAgentTeamAgentConfigLookup;
+    const lookup: SubAgentTeamAgentConfigLookup = {};
+    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
+      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
+        agentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
+          .forEach((delegate) => {
+            // For team agents, the delegate is just the target agent ID string
+            teamAgentConfigs[delegate.agentId] = {
+              agentId: delegate.agentId,
+              headers: delegate.headers ?? undefined,
+            };
+          });
+        if (Object.keys(teamAgentConfigs).length > 0) {
+          lookup[subAgentId] = teamAgentConfigs;
+        }
+      }
+    });
+    return lookup;
+  }, [agent?.subAgents]);
+
   const {
     screenToFlowPosition,
     updateNodeData,
@@ -331,9 +363,11 @@ function Flow({
   }, []);
 
   // Auto-center agent when sidepane opens/closes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on isOpen changes
   useEffect(() => {
     // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
+    if (isOpen) {
+      return;
+    }
     const timer = setTimeout(() => {
       fitView({ maxZoom: 1, duration: 200 });
     }, 350);
@@ -353,7 +387,7 @@ function Flow({
   }, [showPlayground, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
-  const onConnectWrapped = useCallback((params: Connection) => {
+  const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -408,6 +442,23 @@ function Flow({
           },
         },
       };
+    } else if (
+      (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId) &&
+      targetHandle === teamAgentNodeTargetHandleId
+    ) {
+      newEdge = {
+        ...newEdge,
+        type: EdgeType.A2ATeam,
+        selected: true,
+        data: {
+          relationships: {
+            transferTargetToSource: false,
+            transferSourceToTarget: false,
+            delegateTargetToSource: false,
+            delegateSourceToTarget: true,
+          },
+        },
+      };
     }
 
     // Update MCP node subAgentId when connecting agent to MCP tool
@@ -433,21 +484,24 @@ function Flow({
     });
   }, []);
 
-  const isValidConnection: IsValidConnection = useCallback(({ sourceHandle, targetHandle }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  }, []);
+  const isValidConnection: ReactFlowProps['isValidConnection'] = useCallback(
+    ({ sourceHandle, targetHandle }) => {
+      // we don't want to allow connections between MCP nodes
+      if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+        return false;
+      }
+      return true;
+    },
+    []
+  );
 
-  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver: ReactFlowProps['onDragOver'] = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+  const onDrop: ReactFlowProps['onDrop'] = useCallback(
+    (event) => {
       event.preventDefault();
       const node = event.dataTransfer.getData('application/reactflow');
       if (!node) {
@@ -601,7 +655,8 @@ function Flow({
       dataComponentLookup,
       artifactComponentLookup,
       agentToolConfigLookup,
-      subAgentExternalAgentConfigLookup
+      subAgentExternalAgentConfigLookup,
+      subAgentTeamAgentConfigLookup
     );
 
     const functionToolNodeMap = new Map<string, string>();
@@ -729,6 +784,7 @@ function Flow({
     agentToolConfigLookup,
     toolLookup,
     subAgentExternalAgentConfigLookup,
+    subAgentTeamAgentConfigLookup,
     externalAgentLookup,
   ]);
 
@@ -897,6 +953,22 @@ function Flow({
     };
   }, [setEdges, toolLookup, setNodes]);
 
+  const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
+    (_, node) => {
+      if (isOpen) {
+        return;
+      }
+      setTimeout(() => {
+        fitView({
+          maxZoom: 1,
+          duration: 200,
+          nodes: [node],
+        });
+      }, 350);
+    },
+    [fitView, isOpen]
+  );
+
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
       <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
@@ -925,6 +997,7 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          onNodeClick={onNodeClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
@@ -968,6 +1041,7 @@ function Flow({
         artifactComponentLookup={artifactComponentLookup}
         agentToolConfigLookup={agentToolConfigLookup}
         subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+        subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
         credentialLookup={credentialLookup}
       />
       {showPlayground && agent?.id && (
@@ -984,24 +1058,10 @@ function Flow({
   );
 }
 
-export function Agent({
-  agent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  toolLookup,
-  credentialLookup,
-  externalAgentLookup,
-}: AgentProps) {
+export function Agent(props: AgentProps) {
   return (
     <ReactFlowProvider>
-      <Flow
-        agent={agent}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-        externalAgentLookup={externalAgentLookup}
-      />
+      <Flow {...props} />
     </ReactFlowProvider>
   );
 }

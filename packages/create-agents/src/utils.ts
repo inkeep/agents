@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
@@ -7,6 +8,27 @@ import fs from 'fs-extra';
 import color from 'picocolors';
 import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
 
+// Shared validation utility
+const DIRECTORY_VALIDATION = {
+  pattern: /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/,
+  reservedNames: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i,
+  minLength: 1,
+  maxLength: 255,
+
+  validate(value: string): string | undefined {
+    if (!value || value.trim() === '') return 'Directory name is required';
+    if (value.length < this.minLength || value.length > this.maxLength) {
+      return `Directory name must be between ${this.minLength} and ${this.maxLength} characters`;
+    }
+    if (this.reservedNames.test(value)) {
+      return 'Directory name cannot be a reserved system name';
+    }
+    if (!this.pattern.test(value)) {
+      return 'Directory name can only contain letters, numbers, and hyphens (-), and underscores (_) and must start with a letter or number';
+    }
+    return undefined;
+  },
+};
 const execAsync = promisify(exec);
 
 export const defaultGoogleModelConfigurations = {
@@ -95,8 +117,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'event-planner';
-    templateName = 'event-planner';
+    projectId = 'activities-planner';
+    templateName = 'activities-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -106,12 +128,7 @@ export const createAgents = async (
       message: 'What do you want to name your agents directory?',
       placeholder: 'agents',
       defaultValue: 'agents',
-      validate: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Directory name is required';
-        }
-        return undefined;
-      },
+      validate: (value) => DIRECTORY_VALIDATION.validate(value),
     });
 
     if (p.isCancel(dirResponse)) {
@@ -119,6 +136,12 @@ export const createAgents = async (
       process.exit(0);
     }
     dirName = dirResponse as string;
+  } else {
+    // Validate the provided dirName
+    const validationError = DIRECTORY_VALIDATION.validate(dirName);
+    if (validationError) {
+      throw new Error(validationError);
+    }
   }
 
   if (!anthropicKey && !openAiKey && !googleKey) {
@@ -328,6 +351,8 @@ async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
   const dbPath = process.cwd().replace(/\\/g, '/');
 
+  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -353,6 +378,9 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 # Nango Configuration
 NANGO_SECRET_KEY=
+
+# JWT Signing Secret
+INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 `;
 
   await fs.writeFile('.env', envContent);
@@ -391,6 +419,8 @@ async function installDependencies() {
 async function initializeGit() {
   try {
     await execAsync('git init');
+    await execAsync('git add .');
+    await execAsync('git commit -m "Initial commit from inkeep/create-agents"');
   } catch (error) {
     console.error(
       'Error initializing git:',

@@ -744,6 +744,7 @@ export class Project implements ProjectInterface {
             let dataComponentName: string;
             let dataComponentDescription: string;
             let dataComponentProps: any;
+            let dataComponentRender: any;
 
             if (dataComponent.getId) {
               // DataComponent instance
@@ -751,6 +752,7 @@ export class Project implements ProjectInterface {
               dataComponentName = dataComponent.getName();
               dataComponentDescription = dataComponent.getDescription() || '';
               dataComponentProps = dataComponent.getProps() || {};
+              dataComponentRender = dataComponent.getRender?.() || null;
             } else {
               // Plain object from agent config
               dataComponentId =
@@ -759,6 +761,7 @@ export class Project implements ProjectInterface {
               dataComponentName = dataComponent.name || '';
               dataComponentDescription = dataComponent.description || '';
               dataComponentProps = dataComponent.props || {};
+              dataComponentRender = dataComponent.render || null;
             }
 
             // Only add if not already added (avoid duplicates)
@@ -768,6 +771,7 @@ export class Project implements ProjectInterface {
                 name: dataComponentName,
                 description: dataComponentDescription,
                 props: dataComponentProps,
+                render: dataComponentRender,
               };
             }
           }

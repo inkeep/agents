@@ -12,6 +12,7 @@ export enum A2AEdgeType {
 export enum EdgeType {
   A2A = 'a2a',
   A2AExternal = 'a2a-external',
+  A2ATeam = 'a2a-team',
   // Built-in 'default' edges ignore the `data` prop.
   // Use a custom edge type instead to access `data` in rendering.
   Default = 'custom',
@@ -35,6 +36,7 @@ export const edgeTypes = {
   [EdgeType.A2A]: AgentToAgentEdge,
   [EdgeType.Default]: DefaultEdge,
   [EdgeType.A2AExternal]: DefaultEdge,
+  [EdgeType.A2ATeam]: DefaultEdge,
   [EdgeType.SelfLoop]: SelfLoopEdge,
 } as const;
 

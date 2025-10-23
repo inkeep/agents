@@ -18,11 +18,11 @@ const app = new OpenAPIHono();
 
 const generatePreviewRoute = createRoute({
   method: 'post',
-  path: '/:tenantId/projects/:projectId/data-components/:id/generate-preview',
+  path: '/:tenantId/projects/:projectId/data-components/:id/generate-render',
   tags: ['Data Component Preview'],
-  summary: 'Generate Component Preview',
+  summary: 'Generate Component Render',
   description:
-    'Generate a React/Tailwind component preview using AI based on the data component schema',
+    'Generate a React/Tailwind component render using AI based on the data component schema',
   request: {
     params: z.object({
       tenantId: z.string(),
@@ -105,15 +105,15 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
   try {
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models.base);
 
-    const previewSchema = z.object({
-      code: z.string().describe('The React component code'),
-      data: z.any().describe('Sample data matching the props schema'),
+    const renderSchema = z.object({
+      component: z.string().describe('The React component code'),
+      mockData: z.any().describe('Sample data matching the props schema'),
     });
 
     const result = streamObject({
       ...modelConfig,
       prompt,
-      schema: previewSchema,
+      schema: renderSchema,
       temperature: 0.7,
     });
 
@@ -123,14 +123,21 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
 
     // Get existing data if we're modifying
     const existingData =
-      existingCode && dataComponent.preview?.data ? dataComponent.preview.data : null;
+      existingCode &&
+      dataComponent.render &&
+      typeof dataComponent.render === 'object' &&
+      'mockData' in dataComponent.render
+        ? (dataComponent.render as any).mockData
+        : null;
 
     return stream(c, async (stream) => {
       try {
         for await (const partialObject of result.partialObjectStream) {
           // If modifying with instructions, preserve existing data
           const outputObject =
-            instructions && existingData ? { ...partialObject, data: existingData } : partialObject;
+            instructions && existingData
+              ? { ...partialObject, mockData: existingData }
+              : partialObject;
 
           await stream.write(JSON.stringify(outputObject) + '\n');
         }
@@ -140,7 +147,8 @@ app.openapi(generatePreviewRoute, async (c): Promise<any> => {
           'Error streaming preview generation'
         );
         await stream.write(
-          JSON.stringify({ code: '// Error generating component preview', data: {} }) + '\n'
+          JSON.stringify({ component: '// Error generating component preview', mockData: {} }) +
+            '\n'
         );
       }
     }) as any;
@@ -200,13 +208,13 @@ REQUIREMENTS:
 
 OUTPUT FORMAT:
 You need to generate only one thing:
-1. "code": The modified React component code as a string
+1. "component": The modified React component code as a string
 
-Return ONLY the code field, the data field will be reused from the existing preview.
+Return ONLY the component field, the mockData field will be reused from the existing render.
 
 EXAMPLE OUTPUT:
 {
-  "code": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  // Modified component code here\\n}"
+  "component": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  // Modified component code here\\n}"
 }
 
 Focus on making the requested changes while maintaining the component's quality and design principles.`;
@@ -261,13 +269,13 @@ AVAILABLE SEMANTIC COLOR CLASSES:
 
 OUTPUT FORMAT:
 You need to generate two things:
-1. "code": The complete React component code as a string
-2. "data": Realistic sample data that matches the props schema (as a JSON object)
+1. "component": The complete React component code as a string
+2. "mockData": Realistic sample data that matches the props schema (as a JSON object)
 
 EXAMPLE OUTPUT (for a user profile schema with name, email, role):
 {
-  "code": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  return (\\n    <div className=\\"p-4 rounded-lg border border-border bg-card\\">\\n      <div className=\\"flex items-center gap-2.5 mb-2\\">\\n        <User className=\\"size-4 text-muted-foreground\\" />\\n        <span className=\\"text-base font-medium text-foreground\\">{props.name}</span>\\n      </div>\\n      <div className=\\"flex items-center gap-2 text-sm text-muted-foreground\\">\\n        <Mail className=\\"size-4\\" />\\n        <span>{props.email}</span>\\n      </div>\\n      <div className=\\"text-xs text-muted-foreground mt-2\\">Role: {props.role}</div>\\n    </div>\\n  );\\n}",
-  "data": {
+  "component": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  return (\\n    <div className=\\"p-4 rounded-lg border border-border bg-card\\">\\n      <div className=\\"flex items-center gap-2.5 mb-2\\">\\n        <User className=\\"size-4 text-muted-foreground\\" />\\n        <span className=\\"text-base font-medium text-foreground\\">{props.name}</span>\\n      </div>\\n      <div className=\\"flex items-center gap-2 text-sm text-muted-foreground\\">\\n        <Mail className=\\"size-4\\" />\\n        <span>{props.email}</span>\\n      </div>\\n      <div className=\\"text-xs text-muted-foreground mt-2\\">Role: {props.role}</div>\\n    </div>\\n  );\\n}",
+  "mockData": {
     "name": "Sarah Chen",
     "email": "sarah.chen@example.com",
     "role": "Product Manager"

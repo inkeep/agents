@@ -14,11 +14,13 @@
     "@inkeep/agents-manage-api": "workspace:*",
     "@inkeep/agents-run-api": "workspace:*",
     "@inkeep/agents-sdk": "workspace:*",
+    "lucide-react": "^0.546.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@inkeep/agents-cli": "workspace:*",
     "@types/node": "^20.10.0",
+    "@types/react": "^19.0.0",
     "tsx": "^4.7.1",
     "typescript": "^5.9.2"
   },

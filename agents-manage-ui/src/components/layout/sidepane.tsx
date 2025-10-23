@@ -4,6 +4,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import type React from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface SidePaneRootProps {
   isOpen: boolean;
@@ -21,7 +22,11 @@ interface SidePaneContentProps {
 function SidePaneRoot({ isOpen, children }: SidePaneRootProps) {
   return (
     <div
-      className={`relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] transform transition-transform duration-300 ease-in-out group z-50 ${isOpen ? 'translate-x-0 w-[480px]' : 'translate-x-full w-0'}`}
+      className={cn(
+        'relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] transform transition-transform duration-300 ease-in-out group z-50',
+        // Do not use `translate-x-0` as it prevents Monaco Editor popups from appearing
+        isOpen ? 'w-[480px]' : 'translate-x-full w-0'
+      )}
     >
       {children}
     </div>
