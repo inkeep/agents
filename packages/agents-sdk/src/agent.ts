@@ -327,6 +327,38 @@ export class Agent implements AgentInterface {
         }
       : undefined;
 
+    // Collect tools used by this agent's subAgents for agent-level tools field
+    const agentToolsObject: Record<string, any> = {};
+    for (const subAgent of this.subAgents) {
+      const subAgentTools = subAgent.getTools();
+      for (const [_toolName, toolInstance] of Object.entries(subAgentTools)) {
+        const toolId = toolInstance.getId();
+        // Only include MCP tools, not function tools (function tools go to project level)
+        if (toolInstance.constructor.name !== 'FunctionTool') {
+          if (!agentToolsObject[toolId]) {
+            // This should match the project-level tool format
+            if ('config' in toolInstance && 'serverUrl' in toolInstance.config) {
+              const mcpTool = toolInstance as any;
+              agentToolsObject[toolId] = {
+                id: toolId,
+                name: toolInstance.getName(),
+                description: null,
+                config: {
+                  type: 'mcp',
+                  mcp: {
+                    server: {
+                      url: mcpTool.config.serverUrl,
+                    },
+                  },
+                },
+                credentialReferenceId: null,
+              };
+            }
+          }
+        }
+      }
+    }
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -335,8 +367,11 @@ export class Agent implements AgentInterface {
       subAgents: subAgentsObject,
       externalAgents: externalAgentsObject,
       contextConfig: this.contextConfig?.toObject(),
-      ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
-      ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
+      // Include tools used by subAgents at agent level (MCP tools only)
+      ...(Object.keys(agentToolsObject).length > 0 && { tools: agentToolsObject }),
+      // NOTE: functionTools/functions stay at PROJECT level only
+      // ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
+      // ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,

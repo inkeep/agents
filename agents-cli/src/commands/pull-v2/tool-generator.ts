@@ -57,21 +57,26 @@ export function generateToolFile(
 }
 
 /**
- * Generate an MCP tool file
+ * Generate an MCP tool export definition (without imports)
  */
-function generateMcpTool(toolId: string, toolData: any, style: CodeStyle): string {
+function generateMcpToolExport(
+  toolId: string, 
+  toolData: any, 
+  style: CodeStyle, 
+  componentNameMap?: Map<string, { name: string; type: string }>
+): string {
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
 
   const lines: string[] = [];
 
-  // Import statement
-  lines.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  lines.push('');
-
-  // Generate variable name (handle weird IDs like 'fUI2riwrBVJ6MepT8rjx0')
-  const toolVarName = toToolVariableName(toolId);
+  // Use the globally registered name from componentNameMap (deterministic system)
+  const globalEntry = componentNameMap?.get(`tool:${toolId}`);
+  if (!globalEntry) {
+    throw new Error(`Tool ${toolId} not found in componentNameMap - this indicates a bug in the deterministic system`);
+  }
+  const toolVarName = globalEntry.name;
 
   // Export the tool
   lines.push(`export const ${toolVarName} = mcpTool({`);
@@ -115,7 +120,7 @@ function generateMcpTool(toolId: string, toolData: any, style: CodeStyle): strin
 
   lines.push(`})${semi}`);
 
-  return lines.join('\n') + '\n';
+  return lines.join('\n');
 }
 
 /**
@@ -202,6 +207,51 @@ function generateGenericTool(toolId: string, toolData: any, style: CodeStyle): s
   lines.push(`})${semi}`);
 
   return lines.join('\n') + '\n';
+}
+
+/**
+ * Generate imports needed for a tool
+ */
+export function generateToolImports(toolId: string, toolData: any, style: CodeStyle): string[] {
+  const q = style.quotes === 'single' ? "'" : '"';
+  const semi = style.semicolons ? ';' : '';
+  const imports: string[] = [];
+
+  if (toolData.config?.type === 'mcp' || toolData.mcpConfig) {
+    imports.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
+  } else if (toolData.config?.type === 'function') {
+    imports.push(`import { functionTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
+    
+    // Add zod import if we have schema
+    if (toolData.schema) {
+      imports.push(`import { z } from ${q}zod${q}${semi}`);
+    }
+  } else {
+    // Fallback to mcpTool
+    imports.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
+  }
+
+  return imports;
+}
+
+/**
+ * Generate export definition for a tool
+ */
+export function generateToolExport(
+  toolId: string, 
+  toolData: any, 
+  style: CodeStyle,
+  componentNameMap?: Map<string, { name: string; type: string }>
+): string {
+  if (toolData.config?.type === 'mcp' || toolData.mcpConfig) {
+    return generateMcpToolExport(toolId, toolData, style, componentNameMap);
+  } else if (toolData.config?.type === 'function') {
+    // For now, fallback to MCP tool until we implement function tool exports
+    return generateMcpToolExport(toolId, toolData, style, componentNameMap);
+  } else {
+    // Fallback for unknown tool types
+    return generateMcpToolExport(toolId, toolData, style, componentNameMap);
+  }
 }
 
 // All utility functions now imported from generator-utils

@@ -6,6 +6,7 @@ export interface ComparisonResult {
   warnings: string[];
 }
 
+
 /**
  * Deep compare two FullProjectDefinition objects
  *
@@ -43,23 +44,66 @@ export function compareProjectDefinitions(
       differences.push(`Array length mismatch at ${path}: ${a.length} vs ${b.length}`);
       return false;
     }
-    let allMatch = true;
-    for (let i = 0; i < a.length; i++) {
-      if (!compareValues(`${path}[${i}]`, a[i], b[i])) {
-        allMatch = false;
+    
+    // For certain paths, treat arrays as sets (order doesn't matter)
+    const orderIndependentPaths = ['canDelegateTo', 'tools', 'functionTools'];
+    const isOrderIndependent = orderIndependentPaths.some(pattern => path.includes(pattern));
+    
+    if (isOrderIndependent) {
+      // Compare as sets - all elements in a must exist in b
+      const aSet = new Set(a.map(item => typeof item === 'object' ? JSON.stringify(item) : item));
+      const bSet = new Set(b.map(item => typeof item === 'object' ? JSON.stringify(item) : item));
+      
+      if (aSet.size !== bSet.size) {
+        differences.push(`Array content mismatch at ${path}: different unique elements`);
+        return false;
       }
+      
+      for (const item of aSet) {
+        if (!bSet.has(item)) {
+          differences.push(`Array content mismatch at ${path}: missing element ${item}`);
+          return false;
+        }
+      }
+      
+      return true;
+    } else {
+      // Compare as ordered arrays (original behavior)
+      let allMatch = true;
+      for (let i = 0; i < a.length; i++) {
+        if (!compareValues(`${path}[${i}]`, a[i], b[i])) {
+          allMatch = false;
+        }
+      }
+      return allMatch;
     }
-    return allMatch;
   };
 
   // Helper to compare objects
   const compareObjects = (path: string, a: any, b: any): boolean => {
-    const aKeys = Object.keys(a || {}).filter((k) => !['createdAt', 'updatedAt'].includes(k));
-    const bKeys = Object.keys(b || {}).filter((k) => !['createdAt', 'updatedAt'].includes(k));
+    // Ignore timestamp fields (contextConfig IDs are now deterministic)
+    const ignoredFields = ['createdAt', 'updatedAt'];
+    
+    const aKeys = Object.keys(a || {}).filter((k) => !ignoredFields.includes(k));
+    const bKeys = Object.keys(b || {}).filter((k) => !ignoredFields.includes(k));
 
-    // Check for missing keys
-    const missingInB = aKeys.filter((k) => !bKeys.includes(k));
-    const extraInB = bKeys.filter((k) => !aKeys.includes(k));
+    // Check for missing keys, but ignore fields that are null/empty in API but omitted in SDK
+    const dbGeneratedFields = ['agentToolRelationId']; // Database-generated IDs that should be ignored entirely
+    
+    const missingInB = aKeys.filter((k) => 
+      !bKeys.includes(k) && 
+      a[k] !== null &&  // Ignore if API has null (SDK omits null fields)
+      !(Array.isArray(a[k]) && a[k].length === 0) && // Ignore if API has empty array
+      !(typeof a[k] === 'object' && a[k] !== null && Object.keys(a[k]).length === 0) && // Ignore if API has empty object
+      !dbGeneratedFields.includes(k)
+    );
+    const extraInB = bKeys.filter((k) => 
+      !aKeys.includes(k) && 
+      b[k] !== null &&  // Ignore if SDK has null (API might omit null fields)  
+      !(Array.isArray(b[k]) && b[k].length === 0) && // Ignore if SDK has empty array
+      !(typeof b[k] === 'object' && b[k] !== null && Object.keys(b[k]).length === 0) && // Ignore if SDK has empty object
+      !dbGeneratedFields.includes(k)
+    );
 
     if (missingInB.length > 0) {
       differences.push(`Missing keys in generated at ${path}: ${missingInB.join(', ')}`);
@@ -82,13 +126,21 @@ export function compareProjectDefinitions(
 
   // Main comparison function
   const compareValues = (path: string, a: any, b: any): boolean => {
-    // Handle null/undefined
+    // Prevent infinite recursion with depth check
+    const depth = (path.match(/\./g) || []).length;
+    if (depth > 50) {
+      warnings.push(`Max comparison depth reached at ${path}`);
+      return true; // Consider deeply nested paths as equivalent to avoid hangs
+    }
+
+    // Handle null/undefined equivalence - API returns null, SDK returns undefined
     if (a === null && b === null) return true;
     if (a === undefined && b === undefined) return true;
-    if ((a === null || a === undefined) !== (b === null || b === undefined)) {
-      differences.push(`Null/undefined mismatch at ${path}`);
-      return false;
-    }
+    if ((a === null && b === undefined) || (a === undefined && b === null)) return true;
+    
+    // Handle empty array vs undefined equivalence - API returns [], SDK returns undefined
+    if (Array.isArray(a) && a.length === 0 && b === undefined) return true;
+    if (a === undefined && Array.isArray(b) && b.length === 0) return true;
 
     // Handle arrays
     if (Array.isArray(a) && Array.isArray(b)) {

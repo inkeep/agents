@@ -10,7 +10,7 @@ import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { pullProjectCommand } from './commands/pull';
-import { pullV2Command } from './commands/pull-v2';
+import { pullV2Command } from './commands/pull-v2/index';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
 

@@ -85,16 +85,10 @@ export function ensureUniqueName(
  * Format a string value, handling multiline strings and escaping
  */
 export function formatString(value: string, quote: string): string {
-  if (!value) return `${quote}${quote}`;
+  if (!value) return '``';
   
-  // Use template literal for multiline strings or very long strings
-  if (value.includes('\n') || value.length > 100) {
-    return `\`${value.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\``;
-  }
-  
-  // Use regular quotes for short strings
-  const escaped = value.replace(new RegExp(quote, 'g'), '\\' + quote);
-  return `${quote}${escaped}${quote}`;
+  // Always use template literals - only escape backticks and template interpolation
+  return `\`${value.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\``;
 }
 
 /**

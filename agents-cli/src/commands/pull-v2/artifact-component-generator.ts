@@ -14,6 +14,109 @@ import {
 export { DEFAULT_CODE_STYLE, type CodeStyle };
 
 /**
+ * Generate imports needed for an artifact component
+ */
+export function generateArtifactComponentImports(
+  componentId: string,
+  componentData: any,
+  style: CodeStyle = DEFAULT_CODE_STYLE
+): string[] {
+  const q = style.quotes === 'single' ? "'" : '"';
+  const semi = style.semicolons ? ';' : '';
+  const imports: string[] = [];
+  
+  // Check if we need preview import
+  const needsPreviewImport = hasInPreviewFields(componentData.props || componentData.schema);
+  
+  if (needsPreviewImport) {
+    imports.push(`import { preview } from ${q}@inkeep/agents-core${q}${semi}`);
+  }
+  
+  imports.push(`import { artifactComponent } from ${q}@inkeep/agents-sdk${q}${semi}`);
+  
+  // Add zod import if we have schema/props
+  if (componentData.props || componentData.schema) {
+    imports.push(`import { z } from ${q}zod${q}${semi}`);
+  }
+  
+  return imports;
+}
+
+/**
+ * Generate export definition for an artifact component (without imports)
+ */
+export function generateArtifactComponentExport(
+  componentId: string,
+  componentData: any,
+  style: CodeStyle = DEFAULT_CODE_STYLE,
+  componentNameMap?: Map<string, { name: string; type: string }>
+): string {
+  const q = style.quotes === 'single' ? "'" : '"';
+  const indent = style.indentation;
+  const semi = style.semicolons ? ';' : '';
+  
+  const lines: string[] = [];
+  
+  // Use the globally registered name from componentNameMap (deterministic system)
+  const globalEntry = componentNameMap?.get(`artifactComponent:${componentId}`);
+  if (!globalEntry) {
+    throw new Error(`Artifact component ${componentId} not found in componentNameMap - this indicates a bug in the deterministic system`);
+  }
+  const componentVarName = globalEntry.name;
+  
+  // Export the artifact component
+  lines.push(`export const ${componentVarName} = artifactComponent({`);
+  lines.push(`${indent}id: ${q}${componentId}${q},`);
+  lines.push(`${indent}name: ${formatString(componentData.name || componentId, q)},`);
+  
+  if (componentData.description) {
+    lines.push(`${indent}description: ${formatString(componentData.description, q)},`);
+  }
+  
+  if (componentData.type) {
+    lines.push(`${indent}type: ${formatString(componentData.type, q)},`);
+  }
+  
+  if (componentData.template) {
+    lines.push(`${indent}template: ${formatString(componentData.template, q)},`);
+  }
+  
+  // Add schema/props (always include, use empty object if none provided)
+  const schema = componentData.props || componentData.schema;
+  if (schema && typeof schema === 'object' && (schema.type || schema.properties || schema.anyOf || schema.allOf)) {
+    const formattedSchema = formatArtifactSchema(schema, style, 1);
+    
+    if (formattedSchema.includes('\n')) {
+      // Multi-line schema - format properly with correct indentation
+      const schemaLines = formattedSchema.split('\n');
+      lines.push(`${indent}props: ${schemaLines[0]}`);
+      // For subsequent lines, add base indentation for the artifactComponent level
+      for (let i = 1; i < schemaLines.length; i++) {
+        lines.push(`${indent}${schemaLines[i]}`);
+      }
+      // Add comma after the last line
+      const lastIndex = lines.length - 1;
+      lines[lastIndex] = lines[lastIndex] + ',';
+    } else {
+      // Single-line schema
+      lines.push(`${indent}props: ${formattedSchema},`);
+    }
+  } else {
+    // No valid schema provided, use empty z.object
+    lines.push(`${indent}props: z.object({}),`);
+  }
+  
+  // Add config if available
+  if (componentData.config && typeof componentData.config === 'object') {
+    lines.push(`${indent}config: ${formatConfig(componentData.config, style, 1)}`);
+  }
+  
+  lines.push(`})${semi}`);
+  
+  return lines.join('\n');
+}
+
+/**
  * Generate an artifact component file from artifact component data
  */
 export function generateArtifactComponentFile(
