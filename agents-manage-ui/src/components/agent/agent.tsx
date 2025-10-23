@@ -893,14 +893,15 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const toolId = node.data.toolId as string;
-              const toolData = toolLookup[toolId];
+              const relationId = node.data.relationshipId as string | undefined;
+              const hasRelationWithSubagent =
+                !!relationId && Object.keys(agentToolConfigLookup[subAgentId]).includes(relationId);
               return {
                 ...node,
                 data: {
                   ...node.data,
                   isDelegating: node.id === subAgentId,
-                  isExecuting: toolData?.availableTools?.some((tool) => tool.name === toolName),
+                  isExecuting: hasRelationWithSubagent,
                 },
               };
             });
