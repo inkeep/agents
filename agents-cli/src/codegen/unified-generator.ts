@@ -1260,6 +1260,7 @@ export const ${envName} = registerEnvironmentSettings({
   credentials: {
     CREDENTIAL_KEY: credential({
       id: 'CREDENTIAL_ID',
+      name: 'CREDENTIAL_NAME',
       type: 'CREDENTIAL_TYPE', 
       credentialStoreId: 'CREDENTIAL_STORE_ID',
       retrievalParams: {

@@ -23,7 +23,7 @@ export interface CredentialStore {
   /**
    * Set a credential
    */
-  set(key: string, value: string): Promise<void>;
+  set(key: string, value: string, metadata?: Record<string, string>): Promise<void>;
 
   /**
    * Check if a credential exists

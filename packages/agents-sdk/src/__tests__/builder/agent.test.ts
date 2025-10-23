@@ -1303,6 +1303,7 @@ describe('Agent', () => {
 
       const credentialRef = {
         id: 'test-cred',
+        name: 'test-cred',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
         retrievalParams: {

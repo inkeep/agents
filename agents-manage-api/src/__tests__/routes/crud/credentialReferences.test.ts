@@ -112,6 +112,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     const cleanSuffix = suffix.toLowerCase().replace(/\s+/g, '-');
     return {
       id: `test-credential${cleanSuffix}-${timestamp}`,
+      name: `Test Credential${suffix}`,
       type: CredentialStoreType.nango,
       credentialStoreId: 'nango-store',
       retrievalParams: {
@@ -378,6 +379,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const minimalData = {
         id: `minimal-credential-${Date.now()}`,
+        name: 'Minimal Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
       };
@@ -702,6 +704,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
       const credentialData = {
         id: `undefined-metadata-credential-${Date.now()}`,
+        name: 'Undefined Metadata Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
         // retrievalParams omitted - should be set to null in database
@@ -786,6 +789,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential that uses mock store
       const credentialData = {
         id: `atomic-test-credential-${Date.now()}`,
+        name: 'Atomic Test Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
         retrievalParams: {
@@ -836,6 +840,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential that uses failing store
       const credentialData = {
         id: `failing-test-credential-${Date.now()}`,
+        name: 'Failing Test Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
         retrievalParams: {
@@ -877,6 +882,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential with non-existent store
       const credentialData = {
         id: `no-store-credential-${Date.now()}`,
+        name: 'No Store Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store', // Using valid store
         retrievalParams: {
@@ -917,6 +923,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create nango credential
       const credentialData = {
         id: `nango-lookup-credential-${Date.now()}`,
+        name: 'Nango Lookup Credential',
         type: CredentialStoreType.nango,
         credentialStoreId: 'nango-store',
         retrievalParams: {
@@ -962,6 +969,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create memory credential
       const credentialData = {
         id: `memory-lookup-credential-${Date.now()}`,
+        name: 'Memory Lookup Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-store',
         retrievalParams: {
@@ -1001,6 +1009,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       // Create credential
       const credentialData = {
         id: `order-test-credential-${Date.now()}`,
+        name: 'Order Test Credential',
         type: CredentialStoreType.memory,
         credentialStoreId: 'tracking-store',
         retrievalParams: {

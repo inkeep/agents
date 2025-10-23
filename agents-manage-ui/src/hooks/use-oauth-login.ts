@@ -6,6 +6,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
+import { generateId } from '@/lib/utils/id-utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
 import { useNangoConnect } from './use-nango-connect';
 
@@ -155,7 +156,8 @@ export function useOAuthLogin({
       });
 
       const newCredentialData = {
-        id: generateIdFromName(toolName),
+        id: generateId(),
+        name: `${toolName} OAuth Credential`,
         type: CredentialStoreType.nango,
         credentialStoreId: 'nango-default',
         retrievalParams: {

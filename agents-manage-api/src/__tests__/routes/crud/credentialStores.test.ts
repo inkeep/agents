@@ -238,7 +238,7 @@ describe('Credential Stores - CRUD Operations', () => {
       expect(new Date(data.data.createdAt)).toBeInstanceOf(Date);
 
       // Verify the store's set method was called with correct parameters
-      expect(stores[0].set).toHaveBeenCalledWith('test-key', 'test-value');
+      expect(stores[0].set).toHaveBeenCalledWith('test-key', 'test-value', {});
     });
 
     it('should return 404 when credential store is not found', async () => {

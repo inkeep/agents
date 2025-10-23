@@ -10,7 +10,31 @@ const logger = getLogger('nango-credential-store');
 const CredentialKeySchema = z.object({
   connectionId: z.string().min(1, 'connectionId must be a non-empty string'),
   providerConfigKey: z.string().min(1, 'providerConfigKey must be a non-empty string'),
+  integrationDisplayName: z.string().nullish(),
 });
+
+type CredentialKey = z.infer<typeof CredentialKeySchema>;
+
+/**
+ * Parse and validate a Nango credential key
+ * @param key - JSON string containing connectionId and providerConfigKey
+ * @returns Parsed credential key or null if invalid
+ */
+function parseCredentialKey(key: string): CredentialKey | null {
+  try {
+    const parsed = JSON.parse(key);
+    return CredentialKeySchema.parse(parsed);
+  } catch (error) {
+    logger.warn(
+      {
+        key: key.substring(0, 100),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      'Failed to parse credential key'
+    );
+    return null;
+  }
+}
 
 export interface NangoConfig {
   secretKey: string;
@@ -206,58 +230,16 @@ export class NangoCredentialStore implements CredentialStore {
   }
 
   /**
-   * Optimize OAuth token data to fit within Nango's 1024 character limit for apiKey field
-   * Strategy: Remove unnecessary fields
-   */
-  private optimizeOAuthTokenForNango(tokenData: string): string | undefined {
-    const parsed = JSON.parse(tokenData);
-
-    // Start with essential fields only (removes id_token, scope, etc.)
-    const essential = {
-      access_token: parsed.access_token,
-      token_type: parsed.token_type,
-      expires_in: parsed.expires_in,
-      refresh_token: parsed.refresh_token,
-    };
-
-    Object.keys(essential).forEach((key) => {
-      if (essential[key as keyof typeof essential] === undefined) {
-        delete essential[key as keyof typeof essential];
-      }
-    });
-
-    const result = JSON.stringify(essential);
-
-    if (result.length > 1024) {
-      logger.error(
-        {
-          originalLength: tokenData.length,
-          essentialLength: result.length,
-          accessTokenLength: parsed.access_token?.length || 0,
-          refreshTokenLength: parsed.refresh_token?.length || 0,
-        },
-        'OAuth token too large for Nango storage even after removing non-essential fields'
-      );
-
-      throw new Error(
-        `OAuth token (${result.length} chars) exceeds Nango's 1024 character limit. ` +
-          `Essential fields cannot be truncated without breaking functionality. ` +
-          `Consider using keychain storage instead of Nango for this provider.`
-      );
-    }
-
-    return result;
-  }
-
-  /**
    * Create an API key credential by setting up Nango integration and importing the connection
    */
   private async createNangoApiKeyConnection({
-    name,
+    uniqueKey,
+    displayName,
     apiKeyToSet,
     metadata,
   }: {
-    name: string;
+    uniqueKey: string;
+    displayName: string;
     apiKeyToSet: string;
     metadata: Record<string, string>;
   }): Promise<void> {
@@ -282,13 +264,13 @@ export class NangoCredentialStore implements CredentialStore {
       try {
         const response = await this.nangoClient.createIntegration({
           provider,
-          unique_key: name,
-          display_name: name,
+          unique_key: uniqueKey,
+          display_name: displayName,
         });
 
         integration = response.data;
       } catch (error: any) {
-        const existingIntegration = await this.fetchNangoIntegration(name);
+        const existingIntegration = await this.fetchNangoIntegration(uniqueKey);
         if (existingIntegration) {
           integration = existingIntegration;
         } else {
@@ -297,25 +279,19 @@ export class NangoCredentialStore implements CredentialStore {
       }
 
       if (!integration) {
-        throw new Error(`Integration '${name}' not found`);
+        throw new Error(`Integration '${uniqueKey}' not found`);
       }
 
       const importConnectionUrl = `${process.env.NANGO_SERVER_URL || 'https://api.nango.dev'}/connections`;
 
-      const optimizedApiKey = this.optimizeOAuthTokenForNango(apiKeyToSet);
-
-      if (!optimizedApiKey) {
-        throw new Error(`Failed to optimize OAuth token for Nango.`);
-      }
-
       const credentials: ApiKeyCredentials = {
         type: 'API_KEY',
-        apiKey: optimizedApiKey,
+        apiKey: apiKeyToSet,
       };
 
       const body = {
         provider_config_key: integration.unique_key,
-        connection_id: name,
+        connection_id: uniqueKey,
         metadata,
         credentials,
       };
@@ -339,12 +315,12 @@ export class NangoCredentialStore implements CredentialStore {
       logger.error(
         {
           error: error instanceof Error ? error.message : 'Unknown error',
-          name,
+          displayName,
         },
-        `Unexpected error creating API key credential '${name}'`
+        `Unexpected error creating API key credential '${displayName}'`
       );
       throw new Error(
-        `Failed to create API key credential '${name}': ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to create API key credential '${displayName}': ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
@@ -396,35 +372,12 @@ export class NangoCredentialStore implements CredentialStore {
    */
   async get(key: string): Promise<string | null> {
     try {
-      let parsedKey: unknown;
-      try {
-        parsedKey = JSON.parse(key);
-      } catch (parseError) {
-        logger.warn(
-          {
-            storeId: this.id,
-            key: key.substring(0, 50), // Log only first 100 chars to avoid log pollution
-            error: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
-          },
-          'Invalid JSON format in credential key'
-        );
+      const parsedKey = parseCredentialKey(key);
+      if (!parsedKey) {
         return null;
       }
 
-      const validationResult = CredentialKeySchema.safeParse(parsedKey);
-      if (!validationResult.success) {
-        logger.warn(
-          {
-            storeId: this.id,
-            key: key.substring(0, 100),
-            validationErrors: validationResult.error.issues,
-          },
-          'Invalid credential key structure'
-        );
-        return null;
-      }
-
-      const { connectionId, providerConfigKey } = validationResult.data;
+      const { connectionId, providerConfigKey } = parsedKey;
 
       const credentials = await this.fetchCredentialsFromNango({ connectionId, providerConfigKey });
 
@@ -448,13 +401,22 @@ export class NangoCredentialStore implements CredentialStore {
   }
 
   /**
-   * Set credentials - not supported for Nango (OAuth flow handles this)
+   * Set credentials - this is used to save bearer auth
+   * Key format: JSON string with connectionId and providerConfigKey
    */
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, metadata: Record<string, string> = {}): Promise<void> {
+    const parsedKey = parseCredentialKey(key);
+    if (!parsedKey) {
+      throw new Error(`Invalid credential key: ${key}`);
+    }
+
+    const { connectionId, providerConfigKey, integrationDisplayName } = parsedKey;
+
     await this.createNangoApiKeyConnection({
-      name: key,
+      uniqueKey: connectionId,
+      displayName: integrationDisplayName ?? providerConfigKey,
       apiKeyToSet: value,
-      metadata: {},
+      metadata,
     });
   }
 
@@ -482,35 +444,12 @@ export class NangoCredentialStore implements CredentialStore {
    */
   async delete(key: string): Promise<boolean> {
     try {
-      let parsedKey: unknown;
-      try {
-        parsedKey = JSON.parse(key);
-      } catch (parseError) {
-        logger.warn(
-          {
-            storeId: this.id,
-            key: key.substring(0, 50), // Log only first 100 chars to avoid log pollution
-            error: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
-          },
-          'Invalid JSON format in credential key'
-        );
+      const parsedKey = parseCredentialKey(key);
+      if (!parsedKey) {
         return false;
       }
 
-      const validationResult = CredentialKeySchema.safeParse(parsedKey);
-      if (!validationResult.success) {
-        logger.warn(
-          {
-            storeId: this.id,
-            key: key.substring(0, 100),
-            validationErrors: validationResult.error.issues,
-          },
-          'Invalid credential key structure'
-        );
-        return false;
-      }
-
-      const { connectionId, providerConfigKey } = validationResult.data;
+      const { connectionId, providerConfigKey } = parsedKey;
 
       await this.nangoClient.deleteConnection(providerConfigKey, connectionId);
       return true;

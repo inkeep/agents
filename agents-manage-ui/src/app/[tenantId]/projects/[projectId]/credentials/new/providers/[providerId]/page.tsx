@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/client-exports';
+import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import type { ApiProvider } from '@nangohq/types';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ import { useNangoProviders } from '@/hooks/use-nango-providers';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
+import { generateId } from '@/lib/utils/id-utils';
 
 function ProviderSetupPage({
   params,
@@ -39,11 +40,10 @@ function ProviderSetupPage({
         return;
       }
 
-      const credentialId = generateIdFromName(`${provider.name}-${event.payload.connectionId}`);
-
       try {
         await findOrCreateCredential(tenantId, projectId, {
-          id: credentialId,
+          id: generateId(),
+          name: provider.name,
           type: CredentialStoreType.nango,
           credentialStoreId: 'nango-default',
           retrievalParams: {

@@ -6,6 +6,7 @@ import { createEnvironmentSettings, registerEnvironmentSettings } from '../../en
 // Test fixtures and helpers
 const createMockCredential = (id: string, overrides = {}) => ({
   id,
+  name: id,
   type: CredentialStoreType.memory,
   credentialStoreId: 'memory-default',
   retrievalParams: { key: `${id.toUpperCase()}_KEY` },
