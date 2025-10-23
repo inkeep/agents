@@ -1,5 +1,18 @@
 # @inkeep/create-agents
 
+## 0.28.0
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- 96c499d: reject invalid chars in quickstart
+- 074e076: mcp evironment settings
+- Updated dependencies [74a4d0b]
+- Updated dependencies [b4e878d]
+- Updated dependencies [96c499d]
+- Updated dependencies [074e076]
+  - @inkeep/agents-core@0.28.0
+
 ## 0.27.0
 
 ### Minor Changes
