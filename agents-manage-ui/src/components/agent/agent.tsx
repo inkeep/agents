@@ -840,17 +840,27 @@ function Flow({
           break;
         }
         case 'delegation_returned': {
-          const { targetSubAgent } = data.details.data;
+          const { targetSubAgent, fromSubAgent } = data.details.data;
           setEdges((prevEdges) =>
             prevEdges.map((edge) => ({
               ...edge,
-              data: { ...edge.data, delegating: false },
+              data: {
+                ...edge.data,
+                delegating:
+                  edge.source === targetSubAgent && edge.target === fromSubAgent
+                    ? 'inverted'
+                    : false,
+              },
             }))
           );
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: node.id === targetSubAgent, isDelegating: false },
+              data: {
+                ...node.data,
+                isExecuting: false,
+                isDelegating: node.id === targetSubAgent || node.id === fromSubAgent,
+              },
             }))
           );
           break;
