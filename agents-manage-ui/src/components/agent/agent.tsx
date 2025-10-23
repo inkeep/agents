@@ -788,7 +788,25 @@ function Flow({
     externalAgentLookup,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore agentToolConfigLookup
   useEffect(() => {
+    function hasRelationWithSubAgent({
+      relationshipId,
+      subAgentId,
+    }: {
+      relationshipId: unknown;
+      subAgentId: string;
+    }): boolean {
+      if (typeof relationshipId !== 'string') {
+        return false;
+      }
+      const config = agentToolConfigLookup[subAgentId];
+      if (!config) {
+        return false;
+      }
+      return Object.keys(config).includes(relationshipId);
+    }
+
     const onDataOperation: EventListenerOrEventListenerObject = (event) => {
       // @ts-expect-error -- improve types
       const data = event.detail;
@@ -855,9 +873,6 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const toolId = node.data.toolId as string;
-              const toolData = toolLookup[toolId];
-
               return {
                 ...node,
                 data: {
@@ -865,7 +880,10 @@ function Flow({
                   isExecuting: false,
                   isDelegating:
                     node.data.id === subAgentId ||
-                    toolData?.availableTools?.some((tool) => tool.name === toolName),
+                    hasRelationWithSubAgent({
+                      relationshipId: node.data.relationshipId,
+                      subAgentId,
+                    }),
                 },
               };
             });
@@ -893,15 +911,15 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const relationId = node.data.relationshipId as string | undefined;
-              const hasRelationWithSubagent =
-                !!relationId && Object.keys(agentToolConfigLookup[subAgentId]).includes(relationId);
               return {
                 ...node,
                 data: {
                   ...node.data,
                   isDelegating: node.id === subAgentId,
-                  isExecuting: hasRelationWithSubagent,
+                  isExecuting: hasRelationWithSubAgent({
+                    subAgentId,
+                    relationshipId: node.data.relationshipId,
+                  }),
                 },
               };
             });
