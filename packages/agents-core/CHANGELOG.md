@@ -1,5 +1,14 @@
 # @inkeep/agents-core
 
+## 0.28.0
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- 074e076: mcp evironment settings
+
 ## 0.27.0
 
 ### Minor Changes
