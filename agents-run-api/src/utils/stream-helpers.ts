@@ -1,5 +1,9 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
-import { runtimeConfig } from '../env';
+import {
+  STREAM_BUFFER_MAX_SIZE_BYTES,
+  STREAM_TEXT_GAP_THRESHOLD_MS,
+  STREAM_MAX_LIFETIME_MS,
+} from '../constants/execution-limits';
 import { parsePartialJson } from 'ai';
 import type { ErrorEvent, OperationEvent } from './agent-operations';
 
@@ -249,17 +253,17 @@ export class VercelDataStreamHelper implements StreamHelper {
   private completedItems = new Set<number>(); // Track completed items
   private sessionId?: string;
 
-  private static readonly MAX_BUFFER_SIZE = runtimeConfig.STREAM_BUFFER_MAX_SIZE_BYTES;
+  private static readonly MAX_BUFFER_SIZE = STREAM_BUFFER_MAX_SIZE_BYTES;
   private isCompleted = false;
 
   private isTextStreaming: boolean = false;
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
 
   private lastTextEndTimestamp: number = 0;
-  private readonly TEXT_GAP_THRESHOLD = runtimeConfig.STREAM_TEXT_GAP_THRESHOLD_MS; // milliseconds - if gap between text sequences is less than this, queue operations
+  private readonly TEXT_GAP_THRESHOLD = STREAM_TEXT_GAP_THRESHOLD_MS; // milliseconds - if gap between text sequences is less than this, queue operations
 
   private connectionDropTimer?: ReturnType<typeof setTimeout>;
-  private readonly MAX_LIFETIME_MS = runtimeConfig.STREAM_MAX_LIFETIME_MS;
+  private readonly MAX_LIFETIME_MS = STREAM_MAX_LIFETIME_MS;
 
   constructor(private writer: VercelUIWriter) {
     this.connectionDropTimer = setTimeout(() => {

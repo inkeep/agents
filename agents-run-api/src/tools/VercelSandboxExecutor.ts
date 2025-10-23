@@ -4,7 +4,7 @@ import {
   FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
   FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
   FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
-} from '@inkeep/agents-core';
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
 import type { VercelSandboxConfig } from '../types/execution-context';
 import type { FunctionToolConfig } from './NativeSandboxExecutor';

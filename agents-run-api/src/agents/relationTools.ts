@@ -1,5 +1,4 @@
 import {
-  A2A_RETRY_STATUS_CODES,
   ContextResolver,
   type CredentialStoreReference,
   type CredentialStoreRegistry,
@@ -9,7 +8,12 @@ import {
   getCredentialReference,
   SPAN_KEYS,
 } from '@inkeep/agents-core';
-import { runtimeConfig } from '../env';
+import {
+  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_EXPONENT,
+  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+} from '../constants/execution-limits';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import z from 'zod';
@@ -22,6 +26,9 @@ import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
+
+// Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
+const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 
 const generateTransferToolDescription = (config: AgentConfig): string => {
   return `Hand off the conversation to agent ${config.id}.
@@ -225,10 +232,10 @@ export function createDelegateToAgentTool({
           retryConnectionErrors: true,
           statusCodes: [...A2A_RETRY_STATUS_CODES],
           backoff: {
-            initialInterval: runtimeConfig.DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
-            maxInterval: runtimeConfig.DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
-            exponent: runtimeConfig.DELEGATION_TOOL_BACKOFF_EXPONENT,
-            maxElapsedTime: runtimeConfig.DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+            initialInterval: DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+            maxInterval: DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+            exponent: DELEGATION_TOOL_BACKOFF_EXPONENT,
+            maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
       });

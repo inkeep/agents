@@ -1,5 +1,4 @@
 import {
-  AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS,
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
@@ -12,6 +11,7 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';

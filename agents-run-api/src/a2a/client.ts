@@ -21,11 +21,18 @@ import type {
   TaskQueryParams,
   TaskStatusUpdateEvent,
 } from '@inkeep/agents-core'; // Updated to use the consolidated schema
-import { A2A_RETRY_STATUS_CODES } from '@inkeep/agents-core';
-import { runtimeConfig } from '../env';
 import { getLogger } from '../logger';
+import {
+  A2A_BACKOFF_INITIAL_INTERVAL_MS,
+  A2A_BACKOFF_MAX_INTERVAL_MS,
+  A2A_BACKOFF_EXPONENT,
+  A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
+} from '../constants/execution-limits';
 
 const logger = getLogger('a2aClient');
+
+// Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
+const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 
 type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
 
@@ -51,10 +58,10 @@ export interface A2AClientOptions {
 }
 
 const DEFAULT_BACKOFF: BackoffStrategy = {
-  initialInterval: runtimeConfig.A2A_BACKOFF_INITIAL_INTERVAL_MS,
-  maxInterval: runtimeConfig.A2A_BACKOFF_MAX_INTERVAL_MS,
-  exponent: runtimeConfig.A2A_BACKOFF_EXPONENT,
-  maxElapsedTime: runtimeConfig.A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
+  initialInterval: A2A_BACKOFF_INITIAL_INTERVAL_MS,
+  maxInterval: A2A_BACKOFF_MAX_INTERVAL_MS,
+  exponent: A2A_BACKOFF_EXPONENT,
+  maxElapsedTime: A2A_BACKOFF_MAX_ELAPSED_TIME_MS,
 };
 
 const DEFAULT_RETRY_STATUS_CODES = [...A2A_RETRY_STATUS_CODES];

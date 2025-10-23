@@ -28,7 +28,14 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import { runtimeConfig } from '../env';
+import {
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
+  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+} from '../constants/execution-limits';
 import {
   generateObject,
   generateText,
@@ -82,10 +89,10 @@ export function hasToolCallWithPrefix(prefix: string) {
 const logger = getLogger('Agent');
 
 const CONSTANTS = {
-  MAX_GENERATION_STEPS: runtimeConfig.SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT,
-  PHASE_1_TIMEOUT_MS: runtimeConfig.LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: runtimeConfig.LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
-  PHASE_2_TIMEOUT_MS: runtimeConfig.LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
+  MAX_GENERATION_STEPS: 5, // Default from SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT
+  PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  NON_STREAMING_PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  PHASE_2_TIMEOUT_MS: LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } as const;
 
 function validateModel(modelString: string | undefined, modelType: string): string {
@@ -907,8 +914,8 @@ export class Agent {
               const defaultSandboxConfig: SandboxConfig = {
                 provider: 'native',
                 runtime: 'node22',
-                timeout: runtimeConfig.FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
-                vcpus: runtimeConfig.FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
+                timeout: FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+                vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
               const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
@@ -1792,23 +1799,23 @@ export class Agent {
           // Extract maxDuration from config and convert to milliseconds, or use defaults
           // Add upper bound validation to prevent extremely long timeouts
           const configuredTimeout = modelSettings.maxDuration
-            ? Math.min(modelSettings.maxDuration * 1000, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
+            ? Math.min(modelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
             : shouldStreamPhase1
               ? CONSTANTS.PHASE_1_TIMEOUT_MS
               : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
 
           // Ensure timeout doesn't exceed maximum
-          const timeoutMs = Math.min(configuredTimeout, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
+          const timeoutMs = Math.min(configuredTimeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
 
           if (
             modelSettings.maxDuration &&
-            modelSettings.maxDuration * 1000 > runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+            modelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
           ) {
             logger.warn(
               {
                 requestedTimeout: modelSettings.maxDuration * 1000,
                 appliedTimeout: timeoutMs,
-                maxAllowed: runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+                maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
               },
               'Requested timeout exceeded maximum allowed, capping to 10 minutes'
             );
@@ -2158,21 +2165,21 @@ ${output}${structureHintsFormatted}`;
 
               // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
               const configuredPhase2Timeout = structuredModelSettings.maxDuration
-                ? Math.min(structuredModelSettings.maxDuration * 1000, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
+                ? Math.min(structuredModelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
                 : CONSTANTS.PHASE_2_TIMEOUT_MS;
 
               // Ensure timeout doesn't exceed maximum
-              const phase2TimeoutMs = Math.min(configuredPhase2Timeout, runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
+              const phase2TimeoutMs = Math.min(configuredPhase2Timeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
 
               if (
                 structuredModelSettings.maxDuration &&
-                structuredModelSettings.maxDuration * 1000 > runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+                structuredModelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
               ) {
                 logger.warn(
                   {
                     requestedTimeout: structuredModelSettings.maxDuration * 1000,
                     appliedTimeout: phase2TimeoutMs,
-                    maxAllowed: runtimeConfig.LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+                    maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
                     phase: 'structured_generation',
                   },
                   'Phase 2 requested timeout exceeded maximum allowed, capping to 10 minutes'

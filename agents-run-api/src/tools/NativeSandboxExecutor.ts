@@ -58,8 +58,8 @@ import {
   FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
   FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
   FUNCTION_TOOL_SANDBOX_QUEUE_WAIT_TIMEOUT_MS,
-  getLogger,
-} from '@inkeep/agents-core';
+} from '../constants/execution-limits';
+import { getLogger } from '../logger';
 import type { SandboxConfig } from '../types/execution-context';
 import { createExecutionWrapper, parseExecutionResult } from './sandbox-utils';
 

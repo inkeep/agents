@@ -1,4 +1,8 @@
-import { runtimeConfig } from '../env';
+import {
+  STREAM_PARSER_MAX_SNAPSHOT_SIZE,
+  STREAM_PARSER_MAX_STREAMED_SIZE,
+  STREAM_PARSER_MAX_COLLECTED_PARTS,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
 import type { StreamHelper } from '../utils/stream-helpers';
@@ -31,9 +35,9 @@ export class IncrementalStreamParser {
   private subAgentId?: string;
   private allStreamedContent: StreamPart[] = [];
 
-  private static readonly MAX_SNAPSHOT_SIZE = runtimeConfig.STREAM_PARSER_MAX_SNAPSHOT_SIZE; // Max number of snapshots to keep
-  private static readonly MAX_STREAMED_SIZE = runtimeConfig.STREAM_PARSER_MAX_STREAMED_SIZE; // Max number of streamed component IDs to track
-  private static readonly MAX_COLLECTED_PARTS = runtimeConfig.STREAM_PARSER_MAX_COLLECTED_PARTS; // Max number of collected parts to prevent unbounded growth
+  private static readonly MAX_SNAPSHOT_SIZE = STREAM_PARSER_MAX_SNAPSHOT_SIZE; // Max number of snapshots to keep
+  private static readonly MAX_STREAMED_SIZE = STREAM_PARSER_MAX_STREAMED_SIZE; // Max number of streamed component IDs to track
+  private static readonly MAX_COLLECTED_PARTS = STREAM_PARSER_MAX_COLLECTED_PARTS; // Max number of collected parts to prevent unbounded growth
 
   constructor(
     streamHelper: StreamHelper,
