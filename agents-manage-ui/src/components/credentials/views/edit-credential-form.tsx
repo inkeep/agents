@@ -90,7 +90,7 @@ export function EditCredentialForm({
   const handleUpdateCredential = async (formData: EditCredentialFormData) => {
     try {
       await updateCredential(tenantId, projectId, credential.id, {
-        name: formData.name,
+        name: formData.name.trim(),
       });
 
       if (
