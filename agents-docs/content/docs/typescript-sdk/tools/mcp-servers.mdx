@@ -9,7 +9,7 @@ MCP tools connect to external servers that implement the MCP standard. This allo
 
 <Snippet file="mcp/intro-create-and-add.mdx" />
 
-### Registring an MCP Server
+### Registering an MCP Server
 
 ```typescript
 import { agent, mcpTool } from "@inkeep/agents-sdk";
@@ -109,3 +109,81 @@ const weatherAssistant = subAgent({
   canUse: () => [echoTool.with({ selectedTools: ["echo2"], headers: { "X-Custom-Header": "custom-value" } })],
 });
 ```
+
+## Environment-Aware MCP Servers
+
+You can also configure MCP servers to switch based on your environment. This is useful when you want to use different MCP servers configurations for development vs production.
+
+```typescript
+import { environmentMcpTool } from "@inkeep/agents-sdk";
+
+const echoTool = environmentMcpTool({
+  id: "echo-tool",
+  name: "Echo tool",
+  serverUrl: "https://mcp-for-next-js-seven-iota.vercel.app/mcp",
+});
+```
+
+You can also configure entire MCP tools to switch based on your environment. This is useful when you want to use different MCP servers or configurations for development vs production.
+
+### Basic Setup Example
+
+<Tabs>
+  <Tab title="Development Config">
+    ```typescript title="environments/development.env.ts"
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+    import { CredentialStoreType } from '@inkeep/agents-core';
+
+    export const development = registerEnvironmentSettings({
+      mcpServers: {
+        'inkeep-mcp': mcpTool({
+          id: 'my-inkeep-mcp',
+          name: 'Inkeep MCP',
+          description: 'Inkeep MCP for development',
+          serverUrl: 'http://localhost:3000/mcp',
+          transport: { type: 'streamable_http' },
+        })
+      },
+    });
+    ```
+  </Tab>
+
+  <Tab title="Production Config">
+    ```typescript title="environments/production.env.ts"
+    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+    import { CredentialStoreType } from '@inkeep/agents-core';
+
+    export const production = registerEnvironmentSettings({
+      mcpServers: {
+        'inkeep-mcp': mcpTool({
+          id: 'my-inkeep-mcp',
+          name: 'Inkeep MCP',
+          description: 'Inkeep MCP for production',
+          serverUrl: 'https://inkeep-mcp-prod.com/mcp',
+          credential: {
+            id: 'inkeep-mcp-credential',
+            type: CredentialStoreType.memory,
+            credentialStoreId: 'memory-default',
+            retrievalParams: {
+              key: 'INKEEP_MCP_KEY_PROD',
+            },
+          },
+        })
+      },
+    });
+    ```
+  </Tab>
+
+  <Tab title="Index File">
+    ```typescript title="environments/index.ts"
+    import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+    import { development } from './development.env';
+    import { production } from './production.env';
+
+    export const envSettings = createEnvironmentSettings({
+      development,
+      production,
+    });
+    ```
+  </Tab>
+</Tabs>
