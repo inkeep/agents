@@ -1,5 +1,4 @@
-import { CredentialStoreType, MCPTransportType } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { CredentialStoreType, generateId, MCPTransportType } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
@@ -11,7 +10,7 @@ describe('Tool-Credential Integration Tests', () => {
   // Helper to create a test credential
   const createTestCredential = async (tenantId: string) => {
     const credentialData = {
-      id: nanoid(),
+      id: generateId(),
       type: CredentialStoreType.nango,
       credentialStoreId: 'slack-oauth',
       retrievalParams: {
@@ -33,7 +32,7 @@ describe('Tool-Credential Integration Tests', () => {
   // Helper to create a test tool
   const createTestTool = async (tenantId: string, credentialReferenceId?: string | null) => {
     const toolData = {
-      id: nanoid(),
+      id: generateId(),
       name: 'Test MCP Tool',
       description: 'Test MCP tool for credential integration',
       config: {
@@ -267,7 +266,7 @@ describe('Tool-Credential Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       const toolData = {
-        id: nanoid(),
+        id: generateId(),
         name: 'Test Tool',
         config: {
           type: 'mcp',
@@ -294,7 +293,7 @@ describe('Tool-Credential Integration Tests', () => {
       await ensureTestProject(tenantId, projectId);
 
       const toolData = {
-        id: nanoid(),
+        id: generateId(),
         name: 'Test Tool',
         config: {
           type: 'mcp',

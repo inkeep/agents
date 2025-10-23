@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-manage-api',
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
@@ -22,17 +23,6 @@ export default defineConfig({
       ANTHROPIC_API_KEY: 'test-api-key',
       OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'error',
-    },
-    coverage: {
-      reporter: ['text', 'html', 'json'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.test.ts',
-        '**/*.test.js',
-        'src/__tests__/',
-        'coverage/',
-      ],
     },
   },
 });

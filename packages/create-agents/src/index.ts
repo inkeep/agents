@@ -11,9 +11,13 @@ program
   .option('--template <template>', 'Template to use')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--custom-project-id <custom-project-id>', 'Custom project id for experienced users who want an empty project directory')
+  .option(
+    '--custom-project-id <custom-project-id>',
+    'Custom project id for experienced users who want an empty project directory'
+  )
+  .option('--disable-git', 'Disable git initialization')
   .parse();
-  
+
 async function main() {
   const options = program.opts();
   const directoryName = program.args[0];
@@ -25,6 +29,7 @@ async function main() {
       anthropicKey: options.anthropicKey,
       customProjectId: options.customProjectId,
       template: options.template,
+      disableGit: options.disableGit,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

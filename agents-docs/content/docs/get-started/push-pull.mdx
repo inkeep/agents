@@ -27,7 +27,7 @@ cd src/projects
 Add the docs assistant agent using `inkeep add`. 
 
 ```bash
-inkeep add docs-assistant
+inkeep add --project docs-assistant
 ```
 
 Find the downloaded code in `src/projects/docs-assistant`.
@@ -41,7 +41,7 @@ Find the downloaded code in `src/projects/docs-assistant`.
 Navigate to your docs assistant project.
 
 ```bash
-cd src/projects/docs-assistant
+cd docs-assistant
 ```
 
 Use `inkeep push` to push the code to the Visual Builder.
@@ -60,33 +60,13 @@ Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a 
 
 ## Run `inkeep pull`
 
-Make some changes, like changing a prompt, and let's walk through `inkeep pull`. The `inkeep pull` command uses AI to sync your TypeScript files to the state of your Visual Builder.
+Make some changes, like changing a prompt, and let's walk through `inkeep pull`. 
 
-<Note>
-**Prerequisites:** The `inkeep pull` command uses AI to generate TypeScript files from your project configuration. You must have an API key from one of the supported LLM providers:
+### Requirements
 
-**Anthropic** (Claude Sonnet 4.5 with extended thinking):
-```bash
-export ANTHROPIC_API_KEY=your_api_key_here
-```
-Get your API key from the [Anthropic Console](https://console.anthropic.com/).
+The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
 
-**OpenAI** (GPT-4.1):
-```bash
-export OPENAI_API_KEY=your_api_key_here
-```
-Get your API key from [OpenAI Platform](https://platform.openai.com/).
-
-**Google** (Gemini models with thinking mode):
-```bash
-export GOOGLE_API_KEY=your_api_key_here
-```
-Get your API key from [Google AI Studio](https://ai.google.dev/).
-
-The pull command will automatically detect which provider to use based on which API key is available. If multiple keys are present, it prioritizes Anthropic → OpenAI → Google.
-
-Or add your preferred key to your `.env` file:
-```bash
+```txt .env
 # Choose one:
 ANTHROPIC_API_KEY=your_api_key_here
 # or
@@ -94,7 +74,17 @@ OPENAI_API_KEY=your_api_key_here
 # or
 GOOGLE_API_KEY=your_api_key_here
 ```
-</Note>
+
+The CLI prioritizes Anthropic → OpenAI → Google. 
+
+Here are the models used:
+
+| Provider   | Model(s)                        | Where to Get API Key                                    |
+|------------|---------------------------------|---------------------------------------------------------|
+| Anthropic  | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/)     |
+| OpenAI     | GPT-4.1                         | [OpenAI Platform](https://platform.openai.com/)         |
+| Google     | Gemini models (with thinking mode) | [Google AI Studio](https://ai.google.dev/)              |
+
 
 ### Step 1: Make an edit visually
 

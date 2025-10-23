@@ -1,16 +1,19 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { Check, CircleAlert } from 'lucide-react';
+import { Check, CircleAlert, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useNodeEditor } from '@/hooks/use-node-editor';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import {
   getCurrentHeadersForNode,
@@ -28,7 +31,11 @@ export function MCPServerNodeEditor({
   selectedNode,
   agentToolConfigLookup,
 }: MCPServerNodeEditorProps) {
+  const { deleteNode } = useNodeEditor({
+    selectedNodeId: selectedNode.id,
+  });
   const { updateNodeData } = useReactFlow();
+
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -300,7 +307,6 @@ export function MCPServerNodeEditor({
           value={headersInputValue}
           onChange={handleHeadersChange}
           placeholder='{"X-Your-Header": "your-value", "Content-Type": "application/json"}'
-          className=""
         />
       </div>
 
@@ -309,6 +315,13 @@ export function MCPServerNodeEditor({
       >
         Edit MCP Server
       </ExternalLink>
+      <Separator />
+      <div className="flex justify-end">
+        <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </div>
     </div>
   );
 }

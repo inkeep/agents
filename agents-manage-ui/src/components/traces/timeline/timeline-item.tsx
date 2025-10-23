@@ -11,7 +11,6 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { Bubble } from '@/components/traces/timeline/bubble';
@@ -24,14 +23,7 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-
-const JsonEditorWithCopy = dynamic(
-  () =>
-    import('@/components/traces/editors/json-editor-with-copy').then(
-      (mod) => mod.JsonEditorWithCopy
-    ),
-  { ssr: false } // ensures it only loads on the client side
-);
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -182,6 +174,13 @@ export function TimelineItem({
             </div>
           )}
 
+          {/* subagent badge for AI assistant message */}
+          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentName && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.subAgentName}</Badge>
+            </div>
+          )}
+
           {/* streamed text bubble */}
           {activity.type === 'ai_model_streamed_text' && activity.aiStreamTextContent && (
             <div className="space-y-2">
@@ -207,6 +206,15 @@ export function TimelineItem({
               {!isAiMessageCollapsed && (
                 <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
               )}
+            </div>
+          )}
+
+          {/* ai.telemetry.functionId badge for streamed text */}
+          {activity.type === 'ai_model_streamed_text' && activity.aiTelemetryFunctionId && (
+            <div className="mb-1">
+              <Badge variant="code" className="text-xs">
+                {activity.aiTelemetryFunctionId}
+              </Badge>
             </div>
           )}
 
@@ -241,6 +249,15 @@ export function TimelineItem({
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ai.telemetry.functionId badge for streamed object */}
+          {activity.type === 'ai_model_streamed_object' && activity.aiTelemetryFunctionId && (
+            <div className="mb-1">
+              <Badge variant="code" className="text-xs">
+                {activity.aiTelemetryFunctionId}
+              </Badge>
             </div>
           )}
 
@@ -294,7 +311,6 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
               <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
-
                 {/* Basic artifact info */}
                 <div className="space-y-1">
                   {activity.artifactType && TagRow('Type', activity.artifactType, 'emerald')}
@@ -332,6 +348,13 @@ export function TimelineItem({
           {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
             <div className="mb-1">
               <Badge variant="code">{activity.subAgentName}</Badge>
+            </div>
+          )}
+
+          {/* agent ID for agent generation */}
+          {activity.type === ACTIVITY_TYPES.AGENT_GENERATION && activity.subAgentId && (
+            <div className="mb-1">
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 

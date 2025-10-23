@@ -113,7 +113,7 @@ export function GenericAuthForm({
 
   const renderField = (field: FieldConfig) => {
     const isPrivateKey = field.key === 'private_key';
-    const label = `${field.label}${field.required ? ' *' : ''}`;
+    const label = field.label;
 
     if (field.component === 'textarea') {
       return (
@@ -122,6 +122,7 @@ export function GenericAuthForm({
             control={form.control}
             name={field.key}
             label={label}
+            isRequired={field.required}
             placeholder={field.placeholder}
             className={isPrivateKey ? 'font-mono text-sm min-h-[120px]' : 'min-h-[80px]'}
           />
@@ -136,6 +137,7 @@ export function GenericAuthForm({
           control={form.control}
           name={field.key}
           label={label}
+          isRequired={field.required}
           type={field.type}
           placeholder={field.placeholder}
           disabled={loading}
@@ -146,7 +148,7 @@ export function GenericAuthForm({
   };
 
   const renderSection = (section: FormSection, index: number) => (
-    <div key={index} className="space-y-4">
+    <div key={index} className="space-y-8">
       {section.title && (
         <div>
           <h3 className="text-lg font-medium">{section.title}</h3>
@@ -155,7 +157,6 @@ export function GenericAuthForm({
           )}
         </div>
       )}
-
       {section.fields.map(renderField)}
     </div>
   );
@@ -175,10 +176,10 @@ export function GenericAuthForm({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {formConfig.sections.map(renderSection)}
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3">
             <Button type="submit" disabled={loading}>
               {loading ? 'Creating Credential...' : 'Create Credential'}
             </Button>

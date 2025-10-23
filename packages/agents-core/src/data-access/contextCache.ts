@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { generateId } from '../utils/conversations';
 import { contextCache } from '../db/schema';
 import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
@@ -55,7 +55,7 @@ export const setCacheEntry =
   async (entry: ContextCacheInsert): Promise<ContextCacheSelect | null> => {
     try {
       const cacheData = {
-        id: nanoid(),
+        id: generateId(),
         tenantId: entry.tenantId,
         projectId: entry.projectId,
         conversationId: entry.conversationId,

@@ -60,7 +60,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
       TriggerComponent={
         <FilterTriggerComponent
           disabled={loading}
-          filterLabel={'Agent'}
+          filterLabel={selectedValue ? 'Agent' : 'All agents'}
           isRemovable={true}
           onDeleteFilter={() => {
             onSelect(undefined);

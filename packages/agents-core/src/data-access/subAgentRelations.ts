@@ -1,20 +1,13 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
-import {
-  externalAgents,
-  subAgentRelations,
-  subAgents,
-  subAgentToolRelations,
-  tools,
-} from '../db/schema';
+import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../db/schema';
 import type {
-  ExternalSubAgentRelationInsert,
   SubAgentRelationInsert,
   SubAgentRelationUpdate,
   SubAgentToolRelationUpdate,
 } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 
 export const getAgentRelationById =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
@@ -157,47 +150,9 @@ export const getSubAgentRelationsByTarget =
     };
   };
 
-export const getExternalAgentRelations =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    externalSubAgentId: string;
-    pagination?: PaginationConfig;
-  }) => {
-    const page = params.pagination?.page || 1;
-    const limit = Math.min(params.pagination?.limit || 10, 100);
-    const offset = (page - 1) * limit;
-
-    const whereClause = and(
-      eq(subAgentRelations.tenantId, params.scopes.tenantId),
-      eq(subAgentRelations.projectId, params.scopes.projectId),
-      eq(subAgentRelations.agentId, params.scopes.agentId),
-      eq(subAgentRelations.externalSubAgentId, params.externalSubAgentId)
-    );
-
-    const [data, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(subAgentRelations)
-        .where(whereClause)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(desc(subAgentRelations.createdAt)),
-      db.select({ count: count() }).from(subAgentRelations).where(whereClause),
-    ]);
-
-    const total = totalResult[0]?.count || 0;
-    const pages = Math.ceil(total / limit);
-
-    return {
-      data,
-      pagination: { page, limit, total, pages },
-    };
-  };
-
 export const getRelatedAgentsForAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
-    const internalRelations = await db
+    const data = await db
       .select({
         id: subAgents.id,
         name: subAgents.name,
@@ -224,40 +179,8 @@ export const getRelatedAgentsForAgent =
         )
       );
 
-    const externalRelations = await db
-      .select({
-        id: subAgentRelations.id,
-        relationType: subAgentRelations.relationType,
-        externalAgent: {
-          id: externalAgents.id,
-          name: externalAgents.name,
-          description: externalAgents.description,
-          baseUrl: externalAgents.baseUrl,
-        },
-      })
-      .from(subAgentRelations)
-      .innerJoin(
-        externalAgents,
-        and(
-          eq(subAgentRelations.externalSubAgentId, externalAgents.id),
-          eq(subAgentRelations.tenantId, externalAgents.tenantId),
-          eq(subAgentRelations.projectId, externalAgents.projectId),
-          eq(subAgentRelations.agentId, externalAgents.agentId)
-        )
-      )
-      .where(
-        and(
-          eq(subAgentRelations.tenantId, params.scopes.tenantId),
-          eq(subAgentRelations.projectId, params.scopes.projectId),
-          eq(subAgentRelations.agentId, params.scopes.agentId),
-          eq(subAgentRelations.sourceSubAgentId, params.subAgentId),
-          isNotNull(subAgentRelations.externalSubAgentId)
-        )
-      );
-
     return {
-      internalRelations,
-      externalRelations,
+      data,
     };
   };
 
@@ -265,13 +188,19 @@ export const createSubAgentRelation =
   (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
     const hasTargetAgent = params.targetSubAgentId != null;
     const hasExternalAgent = params.externalSubAgentId != null;
+    const hasTeamAgent = params.teamSubAgentId != null;
+    const count = [hasTargetAgent, hasExternalAgent, hasTeamAgent].filter(Boolean).length;
 
-    if (hasTargetAgent && hasExternalAgent) {
-      throw new Error('Cannot specify both targetSubAgentId and externalSubAgentId');
+    if (count > 1) {
+      throw new Error(
+        'Cannot specify more than one of targetSubAgentId, externalSubAgentId, or teamSubAgentId'
+      );
     }
 
-    if (!hasTargetAgent && !hasExternalAgent) {
-      throw new Error('Must specify either targetSubAgentId or externalSubAgentId');
+    if (count === 0) {
+      throw new Error(
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId'
+      );
     }
 
     const relation = await db
@@ -293,7 +222,6 @@ export const getAgentRelationByParams =
     scopes: AgentScopeConfig;
     sourceSubAgentId: string;
     targetSubAgentId?: string;
-    externalSubAgentId?: string;
     relationType: string;
   }) => {
     const whereConditions = [
@@ -306,10 +234,6 @@ export const getAgentRelationByParams =
 
     if (params.targetSubAgentId) {
       whereConditions.push(eq(subAgentRelations.targetSubAgentId, params.targetSubAgentId));
-    }
-
-    if (params.externalSubAgentId) {
-      whereConditions.push(eq(subAgentRelations.externalSubAgentId, params.externalSubAgentId));
     }
 
     return db.query.subAgentRelations.findFirst({
@@ -326,7 +250,6 @@ export const upsertSubAgentRelation =
       scopes: { tenantId: params.tenantId, projectId: params.projectId, agentId: params.agentId },
       sourceSubAgentId: params.sourceSubAgentId,
       targetSubAgentId: params.targetSubAgentId,
-      externalSubAgentId: params.externalSubAgentId,
       relationType: params.relationType ?? '',
     });
 
@@ -335,14 +258,6 @@ export const upsertSubAgentRelation =
     }
 
     return existing;
-  };
-
-export const createExternalAgentRelation =
-  (db: DatabaseClient) => async (params: ExternalSubAgentRelationInsert) => {
-    return await createSubAgentRelation(db)({
-      ...params,
-      targetSubAgentId: undefined,
-    });
   };
 
 export const updateAgentRelation =
@@ -414,7 +329,7 @@ export const createAgentToolRelation =
       headers?: Record<string, string> | null;
     };
   }) => {
-    const finalRelationId = params.relationId ?? nanoid();
+    const finalRelationId = params.relationId ?? generateId();
 
     const relation = await db
       .insert(subAgentToolRelations)
@@ -780,7 +695,7 @@ export const getAgentsForTool =
     };
   };
 
-export const validateInternalSubAgent =
+export const validateSubAgent =
   (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .select({ id: subAgents.id })
@@ -791,24 +706,6 @@ export const validateInternalSubAgent =
           eq(subAgents.projectId, params.scopes.projectId),
           eq(subAgents.agentId, params.scopes.agentId),
           eq(subAgents.id, params.scopes.subAgentId)
-        )
-      )
-      .limit(1);
-
-    return result.length > 0;
-  };
-
-export const validateExternalAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
-    const result = await db
-      .select({ id: externalAgents.id })
-      .from(externalAgents)
-      .where(
-        and(
-          eq(externalAgents.tenantId, params.scopes.tenantId),
-          eq(externalAgents.projectId, params.scopes.projectId),
-          eq(externalAgents.agentId, params.scopes.agentId),
-          eq(externalAgents.id, params.scopes.subAgentId)
         )
       )
       .limit(1);

@@ -1,6 +1,9 @@
 import type { Node } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -18,7 +21,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
-import { ExpandableTextArea } from './expandable-text-area';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
 
@@ -64,11 +67,19 @@ export function SubAgentNodeEditor({
   }>();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
+  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
-  const { updatePath, updateNestedPath, getFieldError, setFieldRef } = useNodeEditor({
+  const {
+    updatePath,
+    updateNestedPath,
+    getFieldError,
+    setFieldRef,
+    updateDefaultSubAgent,
+    deleteNode,
+  } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
@@ -132,19 +143,30 @@ export function SubAgentNodeEditor({
       />
 
       <div className="space-y-2">
-        <ExpandableTextArea
+        <ExpandablePromptEditor
           id="prompt"
-          value={selectedNode.data.prompt || ''}
+          value={selectedNode.data.prompt}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."
-          data-invalid={errorHelpers?.hasFieldError('prompt') ? '' : undefined}
-          className="w-full max-h-96 data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
+          error={getFieldError('prompt')}
           label="Prompt"
           isRequired
         />
-        {getFieldError('prompt') && (
-          <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
-        )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="is-default-sub-agent"
+            checked={isDefaultSubAgent}
+            onCheckedChange={(checked) => {
+              updateDefaultSubAgent(checked === true);
+            }}
+          />
+          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          The default sub agent is the initial entry point for conversations.
+        </p>
       </div>
       <Separator />
       <ModelSection
@@ -225,6 +247,17 @@ export function SubAgentNodeEditor({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
       />
+      {!isDefaultSubAgent && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

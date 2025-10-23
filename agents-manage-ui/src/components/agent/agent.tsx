@@ -2,11 +2,9 @@
 
 import {
   Background,
-  type Connection,
   ConnectionMode,
   Controls,
   type Edge,
-  type IsValidConnection,
   type Node,
   Panel,
   ReactFlow,
@@ -14,9 +12,8 @@ import {
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
-import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -38,6 +35,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
+import { generateId } from '@/lib/utils/id-utils';
 import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
@@ -48,9 +46,29 @@ export type AgentToolConfig = {
   headers?: Record<string, string>;
 };
 
+export type SubAgentExternalAgentConfig = {
+  externalAgentId: string;
+  headers?: Record<string, string>;
+};
+
+export type SubAgentTeamAgentConfig = {
+  agentId: string;
+  headers?: Record<string, string>;
+};
+
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
 
+// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentExternalAgentConfigLookup = Record<
+  string,
+  Record<string, SubAgentExternalAgentConfig>
+>;
+
+// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
+
+import type { ExternalAgent } from '@/lib/api/external-agents';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -61,6 +79,7 @@ import {
   NodeType,
   newNodeDefaults,
   nodeTypes,
+  teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
@@ -81,7 +100,10 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
+  externalAgentLookup?: Record<string, ExternalAgent>;
 }
+
+type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -89,6 +111,7 @@ function Flow({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
+  externalAgentLookup = {},
 }: AgentProps) {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
@@ -103,7 +126,7 @@ function Flow({
   const initialNodes = useMemo<Node[]>(
     () => [
       {
-        id: nanoid(),
+        id: generateId(),
         type: NodeType.SubAgent,
         position: { x: 0, y: 0 },
         data: { name: '', isDefault: true },
@@ -187,6 +210,51 @@ function Flow({
         });
         if (Object.keys(toolsMap).length > 0) {
           lookup[subAgentId] = toolsMap;
+        }
+      }
+    });
+    return lookup;
+  }, [agent?.subAgents]);
+
+  const subAgentExternalAgentConfigLookup = useMemo((): SubAgentExternalAgentConfigLookup => {
+    if (!agent?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
+    const lookup: SubAgentExternalAgentConfigLookup = {};
+    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
+      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
+        agentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
+          .forEach((delegate) => {
+            externalAgentConfigs[delegate.externalAgentId] = {
+              externalAgentId: delegate.externalAgentId,
+              headers: delegate.headers ?? undefined,
+            };
+          });
+        if (Object.keys(externalAgentConfigs).length > 0) {
+          lookup[subAgentId] = externalAgentConfigs;
+        }
+      }
+    });
+    return lookup;
+  }, [agent?.subAgents]);
+
+  const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
+    if (!agent?.subAgents) return {} as SubAgentTeamAgentConfigLookup;
+    const lookup: SubAgentTeamAgentConfigLookup = {};
+    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
+      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
+        const teamAgentConfigs: Record<string, SubAgentTeamAgentConfig> = {};
+        agentData.canDelegateTo
+          .filter((delegate) => typeof delegate === 'object' && 'agentId' in delegate)
+          .forEach((delegate) => {
+            // For team agents, the delegate is just the target agent ID string
+            teamAgentConfigs[delegate.agentId] = {
+              agentId: delegate.agentId,
+              headers: delegate.headers ?? undefined,
+            };
+          });
+        if (Object.keys(teamAgentConfigs).length > 0) {
+          lookup[subAgentId] = teamAgentConfigs;
         }
       }
     });
@@ -295,9 +363,11 @@ function Flow({
   }, []);
 
   // Auto-center agent when sidepane opens/closes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to trigger on isOpen changes
   useEffect(() => {
     // Delay to allow CSS transition to complete (300ms transition + 50ms buffer)
+    if (isOpen) {
+      return;
+    }
     const timer = setTimeout(() => {
       fitView({ maxZoom: 1, duration: 200 });
     }, 350);
@@ -317,7 +387,7 @@ function Flow({
   }, [showPlayground, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
-  const onConnectWrapped = useCallback((params: Connection) => {
+  const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
     markUnsaved();
     const isSelfLoop = params.source === params.target;
     const id = isSelfLoop ? `edge-self-${params.source}` : getEdgeId(params.source, params.target);
@@ -372,6 +442,23 @@ function Flow({
           },
         },
       };
+    } else if (
+      (sourceHandle === agentNodeSourceHandleId || sourceHandle === agentNodeTargetHandleId) &&
+      targetHandle === teamAgentNodeTargetHandleId
+    ) {
+      newEdge = {
+        ...newEdge,
+        type: EdgeType.A2ATeam,
+        selected: true,
+        data: {
+          relationships: {
+            transferTargetToSource: false,
+            transferSourceToTarget: false,
+            delegateTargetToSource: false,
+            delegateSourceToTarget: true,
+          },
+        },
+      };
     }
 
     // Update MCP node subAgentId when connecting agent to MCP tool
@@ -397,21 +484,24 @@ function Flow({
     });
   }, []);
 
-  const isValidConnection: IsValidConnection = useCallback(({ sourceHandle, targetHandle }) => {
-    // we don't want to allow connections between MCP nodes
-    if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
-      return false;
-    }
-    return true;
-  }, []);
+  const isValidConnection: ReactFlowProps['isValidConnection'] = useCallback(
+    ({ sourceHandle, targetHandle }) => {
+      // we don't want to allow connections between MCP nodes
+      if (sourceHandle === mcpNodeHandleId && targetHandle === mcpNodeHandleId) {
+        return false;
+      }
+      return true;
+    },
+    []
+  );
 
-  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver: ReactFlowProps['onDragOver'] = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+  const onDrop: ReactFlowProps['onDrop'] = useCallback(
+    (event) => {
       event.preventDefault();
       const node = event.dataTransfer.getData('application/reactflow');
       if (!node) {
@@ -422,7 +512,7 @@ function Flow({
         x: event.clientX,
         y: event.clientY,
       });
-      const nodeId = nanoid();
+      const nodeId = generateId();
       const newNode = {
         id: nodeId,
         type: nodeData.type,
@@ -564,7 +654,9 @@ function Flow({
       metadata,
       dataComponentLookup,
       artifactComponentLookup,
-      agentToolConfigLookup
+      agentToolConfigLookup,
+      subAgentExternalAgentConfigLookup,
+      subAgentTeamAgentConfigLookup
     );
 
     const functionToolNodeMap = new Map<string, string>();
@@ -691,7 +783,191 @@ function Flow({
     setErrors,
     agentToolConfigLookup,
     toolLookup,
+    subAgentExternalAgentConfigLookup,
+    subAgentTeamAgentConfigLookup,
+    externalAgentLookup,
   ]);
+
+  useEffect(() => {
+    const onDataOperation: EventListenerOrEventListenerObject = (event) => {
+      // @ts-expect-error -- improve types
+      const data = event.detail;
+
+      switch (data.type) {
+        case 'agent_initializing': {
+          // TODO
+          break;
+        }
+        case 'delegation_sent':
+        case 'transfer': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: {
+                ...edge.data,
+                delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+              },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: {
+                ...node.data,
+                isDelegating: node.id === fromSubAgent || node.id === targetSubAgent,
+              },
+            }))
+          );
+          break;
+        }
+        case 'delegation_returned': {
+          const { targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+            prevEdges.map((edge) => ({
+              ...edge,
+              data: { ...edge.data, delegating: false },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === targetSubAgent, isDelegating: false },
+            }))
+          );
+          break;
+        }
+        case 'tool_call': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return {
+                  ...edge,
+                  data: { ...edge.data, delegating: hasDots },
+                };
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isExecuting: false,
+                  isDelegating:
+                    node.data.id === subAgentId ||
+                    toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'tool_result': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+              prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+
+                return {
+                  ...edge,
+                  data: {
+                    ...edge.data,
+                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                  },
+                };
+              })
+            );
+            return prevNodes.map((node) => {
+              const toolId = node.data.toolId as string;
+              const toolData = toolLookup[toolId];
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  isDelegating: node.id === subAgentId,
+                  isExecuting: toolData?.availableTools?.some((tool) => tool.name === toolName),
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'completion': {
+          onCompletion();
+          break;
+        }
+        case 'agent_generate': {
+          const { subAgentId } = data.details;
+          setEdges((prevEdges) =>
+            prevEdges.map((node) => ({
+              ...node,
+              data: { ...node.data, delegating: false },
+            }))
+          );
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => ({
+              ...node,
+              data: { ...node.data, isExecuting: node.id === subAgentId, isDelegating: false },
+            }))
+          );
+          break;
+        }
+      }
+    };
+
+    const onCompletion = () => {
+      setEdges((prevEdges) =>
+        prevEdges.map((edge) => ({
+          ...edge,
+          data: { ...edge.data, delegating: false },
+        }))
+      );
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isExecuting: false, isDelegating: false },
+        }))
+      );
+    };
+
+    document.addEventListener('ikp-data-operation', onDataOperation);
+    document.addEventListener('ikp-aborted', onCompletion);
+    return () => {
+      document.removeEventListener('ikp-data-operation', onDataOperation);
+      document.removeEventListener('ikp-aborted', onCompletion);
+    };
+  }, [setEdges, toolLookup, setNodes]);
+
+  const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
+    (_, node) => {
+      if (isOpen) {
+        return;
+      }
+      setTimeout(() => {
+        fitView({
+          maxZoom: 1,
+          duration: 200,
+          nodes: [node],
+        });
+      }, 350);
+    },
+    [fitView, isOpen]
+  );
 
   return (
     <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
@@ -700,7 +976,9 @@ function Flow({
         <SelectedMarker />
         <ReactFlow
           defaultEdgeOptions={{
-            type: 'default',
+            // Built-in 'default' edges ignore the `data` prop.
+            // Use a custom edge type instead to access `data` in rendering.
+            type: 'custom',
           }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -719,13 +997,18 @@ function Flow({
           }}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
+          onNodeClick={onNodeClick}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
           <Panel position="top-left">
             <NodeLibrary />
           </Panel>
-          <Panel position="top-right">
+          <Panel
+            position="top-right"
+            // width of NodeLibrary
+            className="left-52"
+          >
             <Toolbar
               onSubmit={onSubmit}
               inPreviewDisabled={!agent?.id}
@@ -757,6 +1040,8 @@ function Flow({
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         agentToolConfigLookup={agentToolConfigLookup}
+        subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+        subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
         credentialLookup={credentialLookup}
       />
       {showPlayground && agent?.id && (
@@ -773,22 +1058,10 @@ function Flow({
   );
 }
 
-export function Agent({
-  agent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  toolLookup,
-  credentialLookup,
-}: AgentProps) {
+export function Agent(props: AgentProps) {
   return (
     <ReactFlowProvider>
-      <Flow
-        agent={agent}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-      />
+      <Flow {...props} />
     </ReactFlowProvider>
   );
 }

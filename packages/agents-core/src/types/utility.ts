@@ -262,4 +262,9 @@ export interface ExecutionContext {
   apiKeyId: string;
   /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
   subAgentId?: string;
+  /** Metadata for the execution context */
+  metadata?: {
+    teamDelegation?: boolean;
+    originAgentId?: string;
+  };
 }

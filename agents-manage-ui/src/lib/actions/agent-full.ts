@@ -13,14 +13,16 @@ import {
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
+  fetchTeamAgents as apiFetchTeamAgents,
   getFullAgent as apiGetFullAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
 import {
+  type Agent,
   type FullAgentDefinition,
   FullAgentDefinitionSchema,
-  type Agent,
 } from '../types/agent-full';
+import type { TeamAgent } from '../types/team-agents';
 
 /**
  * Result type for server actions - follows a consistent pattern
@@ -50,6 +52,28 @@ export async function getAllAgentsAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch agent',
+      code: 'unknown_error',
+    };
+  }
+}
+
+/**
+ * Fetch barebones metadata for all agents in a project to be used with team agent relations
+ */
+export async function fetchTeamAgentsAction(
+  tenantId: string,
+  projectId: string
+): Promise<ActionResult<TeamAgent[]>> {
+  try {
+    const response = await apiFetchTeamAgents(tenantId, projectId);
+    return {
+      success: true,
+      data: response,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch team agents',
       code: 'unknown_error',
     };
   }

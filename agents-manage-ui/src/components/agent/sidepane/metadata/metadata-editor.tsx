@@ -3,7 +3,7 @@
 import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
@@ -23,7 +23,7 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import { CollapsibleSettings } from '../collapsible-settings';
-import { ExpandableTextArea } from '../nodes/expandable-text-area';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { InputField, TextareaField } from '../nodes/form-fields';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
@@ -146,13 +146,12 @@ function MetadataEditor() {
         className="max-h-96"
       />
       <div className="space-y-2">
-        <ExpandableTextArea
+        <ExpandablePromptEditor
           id="agent-prompt"
           label="Agent prompt"
-          value={prompt || ''}
+          value={prompt}
           onChange={(value) => updateMetadata('prompt', value)}
           placeholder="System-level instructions for this agent..."
-          className="max-h-96"
         />
         <p className="text-xs text-muted-foreground">
           System-level prompt that defines the intended audience and overall goal of this agent.
@@ -459,7 +458,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="event-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.numEvents}
+                        checked={statusUpdates && 'numEvents' in statusUpdates}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -480,7 +479,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="time-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.timeInSeconds}
+                        checked={statusUpdates && 'timeInSeconds' in statusUpdates}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -499,7 +498,7 @@ function MetadataEditor() {
                   </div>
                 </div>
 
-                {statusUpdates?.numEvents && (
+                {statusUpdates && 'numEvents' in statusUpdates && (
                   <div className="space-y-2">
                     <Label htmlFor="num-events">Number of events</Label>
                     <Input
@@ -524,7 +523,7 @@ function MetadataEditor() {
                   </div>
                 )}
 
-                {statusUpdates?.timeInSeconds && (
+                {statusUpdates && 'timeInSeconds' in statusUpdates && (
                   <div className="space-y-2">
                     <Label htmlFor="time-in-seconds">Time interval (seconds)</Label>
                     <Input

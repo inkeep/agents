@@ -6,8 +6,15 @@ import { generateIdFromName } from './utils/generateIdFromName';
 const logger = getLogger('dataComponent');
 
 // Type for the config that can accept Zod schemas
-type DataComponentConfigWithZod = Omit<DataComponentType, 'tenantId' | 'projectId' | 'props'> & {
+type DataComponentConfigWithZod = Omit<
+  DataComponentType,
+  'tenantId' | 'projectId' | 'props' | 'render'
+> & {
   props?: Record<string, unknown> | z.ZodObject<any> | null;
+  render?: {
+    component: string;
+    mockData: Record<string, unknown>;
+  } | null;
 };
 
 export interface DataComponentInterface {
@@ -43,6 +50,7 @@ export class DataComponent implements DataComponentInterface {
       ...config,
       id: this.id,
       props: processedProps,
+      render: config.render || null,
     };
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     // tenantId and projectId will be set by setContext method
@@ -83,6 +91,10 @@ export class DataComponent implements DataComponentInterface {
     return this.config.props;
   }
 
+  getRender(): DataComponentType['render'] {
+    return this.config.render;
+  }
+
   // Public method to ensure data component exists in backend (with upsert behavior)
   async init(): Promise<void> {
     if (this.initialized) return;
@@ -118,6 +130,7 @@ export class DataComponent implements DataComponentInterface {
       name: this.config.name,
       description: this.config.description,
       props: this.config.props,
+      render: this.config.render,
     };
 
     logger.info({ dataComponentData }, 'dataComponentData for create/update');

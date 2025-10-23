@@ -21,6 +21,36 @@ icon: "TbInputSpark"
 
 To visually add the artifact component to the Agent, see the [Sub Agents](/visual-builder/sub-agents#adding-artifact-components) page for details.
 
+## Schema Requirements
+
+<Callout type="warning">
+**Critical**: Your artifact schema must match your tool's output structure. The system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+</Callout>
+
+```json
+// ❌ WRONG: Tool returns text, schema expects structured data
+// Tool output: { "result": { "content": [{ "text": "Weather: Sunny, 75°F" }] } }
+{
+  "type": "object", 
+  "properties": {
+    "temperature": { "type": "number" }, // ❌ Cannot extract number from text
+    "condition": { "type": "string" }     // ❌ Cannot extract condition from text
+  }
+}
+
+// ✅ CORRECT: Tool returns structured data matching schema
+// Tool output: { "result": { "temperature": 75, "condition": "Sunny" } }
+{
+  "type": "object",
+  "properties": {
+    "temperature": { "type": "number" },
+    "condition": { "type": "string" }
+  }
+}
+```
+
+Use OpenTelemetry traces to debug schema validation issues.
+
 ### Preview Fields
 
 Set `inPreview: true` on properties for immediate availability. These fields are:
@@ -37,16 +67,61 @@ For more details on how artifact data is streamed via the API, see [Data Artifac
 {
   "type": "object",
   "properties": {
-    "title": { "type": "string", "inPreview": true },
-    "url": { "type": "string", "inPreview": true },
-    "content": { "type": "array" }
-  }
+    "title": {
+      "description": "Title of the source document",
+      "type": "string",
+      "inPreview": true
+    },
+    "url": {
+      "description": "URL of the source document",
+      "type": "string",
+      "inPreview": true
+    },
+    "record_type": {
+      "description": "Type of record (documentation, blog, guide, etc.)",
+      "type": "string",
+      "inPreview": true
+    },
+    "content": {
+      "description": "Array of structured content blocks extracted from the document",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Type of content (text, image, video, etc.)",
+            "type": "string"
+          },
+          "text": {
+            "description": "The actual text content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "title",
+    "url",
+    "content",
+    "record_type"
+  ],
+  "additionalProperties": false
 }
 ```
 
-Citation artifacts with `title`, `url`, and `record_type` preview fields are auto-rendered by Inkeep's widget in two ways:
+Citation artifacts that are named `citation` and have `title` and `url` preview fields are auto-rendered by Inkeep's widget in two ways:
 - **Inline footnotes**: Numbered references [1], [2], etc. appear inline with the response text
 - **Interactive cards**: Source cards with title, URL, and content appear below the response for detailed exploration
+
+<Callout>
+**Important**: The artifact must have a name of `citation` in order to be auto-rendered by Inkeep's widget.
+</Callout>
 
 <img
   src="/images/citation-widget-example.png"

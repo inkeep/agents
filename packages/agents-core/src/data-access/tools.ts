@@ -1,5 +1,4 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { ContextResolver } from '../context';
 import type { CredentialStoreRegistry } from '../credential-stores';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
@@ -24,6 +23,7 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
 } from '../utils';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
 import { getCredentialReference } from './credentialReferences';
@@ -234,7 +234,6 @@ export const dbResultToMcpTool = async (
       error instanceof Error &&
       (await detectAuthenticationRequired({
         serverUrl: dbResult.config.mcp.server.url,
-        toolId: dbResult.id,
         error,
         logger,
       }));
@@ -381,7 +380,7 @@ export const addToolToAgent =
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
   }) => {
-    const id = nanoid();
+    const id = generateId();
     const now = new Date().toISOString();
 
     const [created] = await db

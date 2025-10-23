@@ -79,7 +79,7 @@ async function discoverMcpMetadata(
     }
 
     // RFC8414 - Authorization Server Metadata Discovery
-    const metadata = await discoverAuthorizationServerMetadata(authServerUrl);
+    const metadata = await discoverAuthorizationServerMetadata(authServerUrl.href);
     if (!metadata) {
       throw new Error('Failed to discover OAuth authorization server metadata');
     }
@@ -184,7 +184,11 @@ export async function initiateMcpOAuthFlow({
     };
   }
 
-  const resource = resourceMetadata?.resource ? new URL(resourceMetadata.resource) : undefined;
+  // Node's URL and global DOM URL are identical at runtime but have different TypeScript types
+  // The MCP SDK expects the DOM URL type, so we cast appropriately
+  const resource = resourceMetadata?.resource
+    ? (new globalThis.URL(resourceMetadata.resource) as unknown as URL)
+    : undefined;
 
   const authResult = await startAuthorization(mcpServerUrl, {
     metadata,
@@ -237,7 +241,9 @@ export async function exchangeMcpAuthorizationCode({
   resourceUrl?: string;
   logger?: PinoLogger;
 }): Promise<McpTokenExchangeResult> {
-  const resource = resourceUrl ? new URL(resourceUrl) : undefined;
+  // Node's URL and global DOM URL are identical at runtime but have different TypeScript types
+  // The MCP SDK expects the DOM URL type, so we cast appropriately
+  const resource = resourceUrl ? (new globalThis.URL(resourceUrl) as unknown as URL) : undefined;
 
   const tokens = await exchangeAuthorization(mcpServerUrl, {
     metadata,
@@ -273,27 +279,25 @@ export async function exchangeMcpAuthorizationCode({
  */
 export const detectAuthenticationRequired = async ({
   serverUrl,
-  toolId,
   error,
   logger,
 }: {
   serverUrl: string;
-  toolId: string;
   error?: Error;
   logger?: PinoLogger;
 }): Promise<boolean> => {
   try {
     const discoveryResult = await discoverMcpMetadata(serverUrl, logger);
     if (discoveryResult.success && discoveryResult.metadata) {
-      logger?.info({ toolId, serverUrl }, 'MCP OAuth support confirmed via metadata discovery');
+      logger?.info({ serverUrl }, 'MCP OAuth support confirmed via metadata discovery');
       return true;
     }
   } catch (discoveryError) {
-    logger?.debug({ toolId, discoveryError }, 'MCP OAuth metadata discovery failed');
+    logger?.debug({ discoveryError }, 'MCP OAuth metadata discovery failed');
   }
 
   logger?.debug(
-    { toolId, error: error?.message },
+    { error: error?.message },
     'No MCP OAuth authentication requirement detected'
   );
   return false;

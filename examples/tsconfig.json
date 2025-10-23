@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
+    "jsx": "react-jsx",
     "checkJs": false,
     "noEmit": true,
     "baseUrl": ".",
@@ -19,5 +20,5 @@
       "@inkeep/agents-cli/*": ["../cli/dist/*"]
     }
   },
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/ui/*.tsx"]
 }

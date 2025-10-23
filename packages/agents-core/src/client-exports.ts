@@ -142,6 +142,13 @@ export const DataComponentApiInsertSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   props: z.record(z.string(), z.unknown()),
+  render: z
+    .object({
+      component: z.string(),
+      mockData: z.record(z.string(), z.unknown()),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
@@ -172,15 +179,7 @@ export const AgentAgentApiInsertSchema = z.object({
 });
 
 export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([
-      FullAgentAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({
-        id: z.string(),
-      }),
-    ])
-  ),
+  subAgents: z.record(z.string(), z.union([FullAgentAgentInsertSchema])),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({

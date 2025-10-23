@@ -1136,9 +1136,9 @@ describe('Two-Pass Generation System', () => {
       props: { type: 'object', properties: { message: { type: 'string' } } },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      preview: {
-        code: 'console.log("Hello, World!");',
-        data: { message: 'Hello, World!' },
+      render: {
+        component: 'console.log("Hello, World!");',
+        mockData: { message: 'Hello, World!' },
       },
     };
 

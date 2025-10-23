@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
@@ -10,14 +10,17 @@ interface DeleteArtifactComponentConfirmationProps {
   artifactComponentId: string;
   artifactComponentName?: string;
   setIsOpen: (isOpen: boolean) => void;
+  redirectOnDelete?: boolean;
 }
 
 export function DeleteArtifactComponentConfirmation({
   artifactComponentId,
   artifactComponentName,
   setIsOpen,
+  redirectOnDelete = false,
 }: DeleteArtifactComponentConfirmationProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -30,6 +33,9 @@ export function DeleteArtifactComponentConfirmation({
       if (result.success) {
         setIsOpen(false);
         toast.success('Artifact deleted.');
+        if (redirectOnDelete) {
+          router.push(`/${tenantId}/projects/${projectId}/artifacts`);
+        }
       } else {
         toast.error(result.error);
       }

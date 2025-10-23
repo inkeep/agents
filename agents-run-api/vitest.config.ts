@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineProject } from 'vitest/config';
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: 'agents-run-api',
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
@@ -20,17 +21,6 @@ export default defineConfig({
       ENVIRONMENT: 'test',
       DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-key-for-tests',
-    },
-    coverage: {
-      reporter: ['text', 'html', 'json'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.test.ts',
-        '**/*.test.js',
-        'src/__tests__/',
-        'coverage/',
-      ],
     },
   },
 });

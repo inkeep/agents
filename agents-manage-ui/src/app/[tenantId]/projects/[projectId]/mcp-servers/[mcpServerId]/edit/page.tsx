@@ -8,11 +8,9 @@ import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
-interface EditMCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
-}
-
-async function EditMCPPage({ params }: EditMCPPageProps) {
+async function EditMCPPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/[mcpServerId]/edit'>) {
   const { mcpServerId, tenantId, projectId } = await params;
 
   // Fetch both in parallel with individual error handling
@@ -75,8 +73,6 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
   };
-
-  // MCPServerForm handles all the form logic
 
   return (
     <BodyTemplate

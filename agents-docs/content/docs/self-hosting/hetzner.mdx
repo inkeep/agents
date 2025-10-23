@@ -1,0 +1,145 @@
+---
+title: Deploy to Hetzner
+sidebarTitle: Hetzner
+description: Deploy to Hetzner with Docker Compose
+icon: "LuServerCog"
+---
+
+## Create a server
+
+- Create a server, recommended size is at least CPX32 (4 VCPUS, 8 GB RAM, >30 GB Storage)
+- Select Ubuntu 24.04 Image
+- Create an inbound firewall rule to allow TCP ports: 3000, 3002, 3003, 3050, 3051, and 3080. These are the ports exposed by the Inkeep services.
+
+## Install Docker Compose
+
+1. SSH into the server as root
+
+2. [Set up Docker's apt repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
+```bash
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+
+3. Install the Docker packages
+```bash
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+## Deploy SigNoz and Nango
+
+Clone this repo, which includes Docker files with SigNoz and Nango:
+```bash
+git clone https://github.com/inkeep/agents-optional-local-dev inkeep-external-services
+cd inkeep-external-services
+```
+
+Run this command to autogenerate a `.env` file:
+```bash
+cp .env.example .env && \
+  encryption_key=$(openssl rand -base64 32) && \
+  tmp_file=$(mktemp) && \
+  sed "s|<REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY>|$encryption_key|" .env > "$tmp_file" && \
+  mv "$tmp_file" .env && \
+  echo "Docker environment file created with auto-generated encryption key"
+```
+
+Nango requires a `NANGO_ENCRYPTION_KEY`. Once you create this, it cannot be edited.
+
+Here's an overview of the important environment variables when deploying to production. Make sure to replace all of these in the `.env` file.
+```bash
+NANGO_ENCRYPTION_KEY=<nango_encryption_key>
+
+# Replace these with your <vm_external_ip> in production!
+NANGO_SERVER_URL=http://<vm_external_ip>:3050
+NANGO_PUBLIC_CONNECT_URL=http://<vm_external_ip>:3051
+
+# Modify these in production environments!
+NANGO_DASHBOARD_USERNAME=admin@example.com
+NANGO_DASHBOARD_PASSWORD=adminADMIN!@12
+```
+
+Build and deploy SigNoz, Nango, OTEL Collector, and Jaeger:
+```bash
+docker compose up -d
+```
+This may take up to 5 minutes to start.
+
+### Retrieve your SigNoz and Nango API Keys
+
+To get your SigNoz API key `SIGNOZ_API_KEY`:
+- Open SigNoz in a browser at `http://<vm_external_ip>:3080`
+- Navigate to Settings → Account Settings → API Keys → New Key
+- Choose a role, Viewer is sufficient for observability
+- Set the expiration field to "No Expiry" to prevent the key from expiring
+
+To get your Nango secret key `NANGO_SECRET_KEY`:
+- Open Nango in a browser at `http://<vm_external_ip>:3050`
+- Nango auto-creates two environments, Prod and Dev. Select the one you will use.
+- Navigate to Environment Settings to find the secret key
+
+## Deploy the Inkeep Agent Framework
+
+From the root directory, create a new project directory for the Docker Compose setup for the Inkeep Agent Framework
+```bash
+mkdir inkeep && cd inkeep
+wget https://raw.githubusercontent.com/inkeep/agents/refs/heads/main/docker-compose.yml
+wget https://raw.githubusercontent.com/inkeep/agents/refs/heads/main/.env.docker.example
+```
+
+Generate a `.env` file from the example:
+```bash
+cp .env.docker.example .env
+```
+
+Here's an overview of the important environment variables when deploying to production. Make sure to replace all of these in the `.env` file.
+```bash
+# Change to "production" if deploying to production
+ENVIRONMENT=production
+
+# AI Provider Keys (you need at least one)
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+
+# Nango
+NANGO_SECRET_KEY=
+
+# SigNoz
+SIGNOZ_API_KEY=
+
+# Uncomment and set each of these with (openssl rand -hex 32)
+INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
+INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
+INKEEP_AGENTS_JWT_SIGNING_SECRET=
+
+# Uncomment and set these for the Manage UI at http://<vm_external_ip>:3000
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL=http://<vm_external_ip>:3002
+PUBLIC_INKEEP_AGENTS_RUN_API_URL=http://<vm_external_ip>:3003
+PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET=<copy INKEEP_AGENTS_RUN_API_BYPASS_SECRET>
+PUBLIC_NANGO_SERVER_URL=http://<vm_external_ip>:3050
+PUBLIC_NANGO_CONNECT_BASE_URL=http://<vm_external_ip>:3051
+PUBLIC_SIGNOZ_URL=http://<vm_external_ip>:3080
+
+# Uncomment and set these to access Manage UI at http://<vm_external_ip>:3000
+INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+```
+
+Run with Docker:
+```bash
+docker compose up -d
+```
+
+Then open `http://<vm_external_ip>:3000` in a browser!

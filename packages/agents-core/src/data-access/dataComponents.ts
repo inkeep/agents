@@ -1,5 +1,4 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
 import { dataComponents, subAgentDataComponents } from '../db/schema';
 import type {
@@ -10,8 +9,9 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../types/index';
-import { validatePreview } from '../validation/preview-validation';
+import { generateId } from '../utils/conversations';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
+import { validateRender } from '../validation/render-validation';
 
 /**
  * Get a data component by ID
@@ -119,17 +119,29 @@ export const createDataComponent =
       }
     }
 
-    if (params.preview !== undefined && params.preview !== null) {
-      const previewValidation = validatePreview(params.preview);
-      if (!previewValidation.isValid) {
-        const errorMessages = previewValidation.errors
-          .map((e) => `${e.field}: ${e.message}`)
-          .join(', ');
-        throw new Error(`Invalid preview: ${errorMessages}`);
+    if (params.render !== undefined && params.render !== null) {
+      if (
+        typeof params.render === 'object' &&
+        params.render !== null &&
+        'component' in params.render &&
+        'mockData' in params.render
+      ) {
+        const renderValidation = validateRender(
+          params.render as { component: string; mockData: Record<string, unknown> }
+        );
+        if (!renderValidation.isValid) {
+          const errorMessages = renderValidation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join(', ');
+          throw new Error(`Invalid render: ${errorMessages}`);
+        }
       }
     }
 
-    const dataComponent = await db.insert(dataComponents).values(params).returning();
+    const dataComponent = await db
+      .insert(dataComponents)
+      .values(params as any)
+      .returning();
 
     return dataComponent[0];
   };
@@ -154,13 +166,22 @@ export const updateDataComponent =
       }
     }
 
-    if (params.data.preview !== undefined && params.data.preview !== null) {
-      const previewValidation = validatePreview(params.data.preview);
-      if (!previewValidation.isValid) {
-        const errorMessages = previewValidation.errors
-          .map((e) => `${e.field}: ${e.message}`)
-          .join(', ');
-        throw new Error(`Invalid preview: ${errorMessages}`);
+    if (params.data.render !== undefined && params.data.render !== null) {
+      if (
+        typeof params.data.render === 'object' &&
+        params.data.render !== null &&
+        'component' in params.data.render &&
+        'mockData' in params.data.render
+      ) {
+        const renderValidation = validateRender(
+          params.data.render as { component: string; mockData: Record<string, unknown> }
+        );
+        if (!renderValidation.isValid) {
+          const errorMessages = renderValidation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join(', ');
+          throw new Error(`Invalid render: ${errorMessages}`);
+        }
       }
     }
 
@@ -171,7 +192,7 @@ export const updateDataComponent =
       .set({
         ...params.data,
         updatedAt: now,
-      })
+      } as any)
       .where(
         and(
           eq(dataComponents.tenantId, params.scopes.tenantId),
@@ -222,7 +243,7 @@ export const getDataComponentsForAgent =
         props: dataComponents.props,
         createdAt: dataComponents.createdAt,
         updatedAt: dataComponents.updatedAt,
-        preview: dataComponents.preview,
+        render: dataComponents.render,
       })
       .from(dataComponents)
       .innerJoin(
@@ -249,7 +270,7 @@ export const associateDataComponentWithAgent =
     const association = await db
       .insert(subAgentDataComponents)
       .values({
-        id: nanoid(),
+        id: generateId(),
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         agentId: params.scopes.agentId,

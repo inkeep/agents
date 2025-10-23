@@ -5,9 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function ProjectPage() {
-  const params = useParams();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const router = useRouter();
-  const { tenantId, projectId } = params as { tenantId: string; projectId: string };
 
   useEffect(() => {
     // Use client-side navigation instead of server-side redirect

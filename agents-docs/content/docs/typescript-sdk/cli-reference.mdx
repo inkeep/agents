@@ -269,6 +269,50 @@ inkeep pull --config ./custom-config/inkeep.config.ts
 
 The `inkeep pull` command currently uses a fixed model for LLM generation: `anthropic/claude-sonnet-4-20250514`.
 
+#### Validation Process
+
+The `inkeep pull` command includes a two-stage validation process to ensure generated TypeScript files accurately represent your backend configuration:
+
+**1. Basic File Verification**
+- Checks that all expected files exist (index.ts, agent files, tool files, component files)
+- Verifies file naming conventions match (kebab-case)
+- Ensures project export is present in index.ts
+
+**2. Round-Trip Validation** *(New in v0.24.0)*
+- Loads the generated TypeScript using the same logic as `inkeep push`
+- Serializes it back to JSON format
+- Compares the serialized JSON with the original backend data
+- Reports any differences found
+
+This round-trip validation ensures:
+- ✅ Generated TypeScript can be successfully loaded and imported
+- ✅ The serialization logic (TS → JSON) works correctly
+- ✅ Generated files will work with `inkeep push` without errors
+- ✅ No data loss or corruption during the pull process
+
+**Validation Output:**
+
+```bash
+✓ Basic file verification passed
+✓ Round-trip validation passed - generated TS matches backend data
+```
+
+**If validation fails:**
+
+The CLI will display specific differences between the generated and expected data:
+
+```bash
+✗ Round-trip validation failed
+
+❌ Round-trip validation errors:
+   The generated TypeScript does not serialize back to match the original backend data.
+  • Value mismatch at agents.my-agent.name: "Original Name" vs "Generated Name"
+  • Missing tool in generated: tool-id
+
+⚠️  This indicates an issue with LLM generation or schema mappings.
+The generated files may not work correctly with `inkeep push`.
+```
+
 **TypeScript generation fails:**
 
 - Ensure your network connectivity and API endpoints are correct
@@ -280,6 +324,7 @@ The `inkeep pull` command currently uses a fixed model for LLM generation: `anth
 - The generated TypeScript may have syntax errors or missing dependencies
 - Check the generated file manually for obvious issues
 - Try pulling as JSON first to verify the source data: `inkeep pull --json`
+- If round-trip validation fails, report the issue with the error details
 
 ### `inkeep list-agents`
 
@@ -422,29 +467,47 @@ inkeep config list
 
 ### `inkeep add`
 
-Pull a template project from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook/tree/main/template-projects).
+Pull a template project or MCP from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents-cookbook).
 
 ```bash
-inkeep add [template]
+inkeep add [options]
 ```
 
 **Options:**
 
+- `--project <name>` - Add a project template
+- `--mcp <name>` - Add an MCP template
 - `--target-path <path>` - Target path to add the template to
 - `--config <path>` - Path to configuration file
 
 **Examples:**
 
 ```bash
-# Add a template
-inkeep add event-planner
+# List available templates (both project and MCP)
+inkeep add
 
-# Add template to specific path
-inkeep add event-planner --target-path ./src/templates
+# Add a project template
+inkeep add --project event-planner
+
+# Add project template to specific path
+inkeep add --project event-planner --target-path ./examples
+
+# Add an MCP template (auto-detects apps/mcp/app directory)
+inkeep add --mcp zendesk
+
+# Add MCP template to specific path
+inkeep add --mcp zendesk --target-path ./apps/mcp/app
 
 # Using specific config file
-inkeep add event-planner --config ./my-config.ts
+inkeep add --project event-planner --config ./my-config.ts
 ```
+
+**Behavior:**
+
+- When adding an MCP template without `--target-path`, the CLI automatically searches for an `apps/mcp/app` directory in your project
+- If no app directory is found, you'll be prompted to confirm whether to add to the current directory
+- Project templates are added to the current directory or specified `--target-path`
+- Model configurations are automatically injected based on available API keys in your environment (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`)
 
 ### `inkeep update`
 
