@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { metadataImage } from '@/lib/metadata';
 import { generateOGImage } from './og';
+import { source } from '@/lib/source';
+import type { NextRequest } from 'next/server';
 
-const font = readFileSync('./src/app/docs-og/[...slug]/Inter-Regular.ttf');
-const fontSemiBold = readFileSync('./src/app/docs-og/[...slug]/Inter-SemiBold.ttf');
+const font = readFileSync('./src/app/api/docs-og/[...slug]/Inter-Regular.ttf');
+const fontSemiBold = readFileSync('./src/app/api/docs-og/[...slug]/Inter-SemiBold.ttf');
 
 function getSubheading(path: string) {
   const parts = path.split('/');
@@ -17,8 +18,11 @@ function getSubheading(path: string) {
   return secondToLastItem.replace(/-/g, ' ');
 }
 
-export const GET = metadataImage.createAPI((page) => {
-  const subHeading = getSubheading(page.file.path);
+export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[...slug]'>) => {
+  const { slug } = await ctx.params;
+  const page = source.getPage(slug.slice(0, -1));
+  if (!page) return;
+  const subHeading = getSubheading(page.url);
   return generateOGImage({
     title: page.data.title,
     description: page.data.description,
@@ -41,8 +45,4 @@ export const GET = metadataImage.createAPI((page) => {
       },
     ],
   });
-});
-
-export function generateStaticParams() {
-  return metadataImage.generateParams();
-}
+};

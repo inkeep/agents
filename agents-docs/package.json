@@ -17,6 +17,7 @@
     "validate-link": "node scripts/validate-link.mjs"
   },
   "dependencies": {
+    "@inkeep/agents-ui": "^0.14.25",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.6",
     "@radix-ui/react-collapsible": "^1.1.1",
@@ -28,10 +29,11 @@
     "@shikijs/langs": "^3.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fumadocs-core": "15.7.13",
-    "fumadocs-mdx": "11.10.1",
-    "fumadocs-openapi": "^9.4.0",
-    "fumadocs-ui": "15.7.13",
+    "fumadocs-core": "16.0.2",
+    "fumadocs-mdx": "13.0.0",
+    "fumadocs-openapi": "^9.6.2",
+    "fumadocs-typescript": "^4.0.12",
+    "fumadocs-ui": "16.0.2",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
     "mermaid": "^11.12.0",

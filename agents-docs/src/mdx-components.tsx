@@ -23,6 +23,9 @@ import {
 } from '@inkeep/docskit/mdx';
 import { APIPage } from 'fumadocs-openapi/ui';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { createGenerator } from 'fumadocs-typescript';
+import { AutoTypeTable } from 'fumadocs-typescript/ui';
+
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
 import { Mermaid } from '@/components/mdx/mermaid';
@@ -80,11 +83,14 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
   return <OriginalPre {...rest}>{children}</OriginalPre>;
 }
 
+const generator = createGenerator();
+
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
+    AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
     ...components,
     Accordions,
     Accordion,

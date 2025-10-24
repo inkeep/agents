@@ -9,6 +9,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { AppSidebar } from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { createMetadata } from '@/lib/metadata';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -53,6 +54,11 @@ const siteLd: WithContext<WebSite> = {
   alternateName: 'Inkeep Docs',
 };
 
+export const metadata = createMetadata({
+  title: siteLd.name as string,
+  description: orgLd.description as string,
+});
+
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${inter.className} antialiased`} suppressHydrationWarning>
@@ -75,7 +81,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                   'mx-(--fd-layout-offset)',
                   'md:[&_#nd-page_article]:pt-0! xl:[--fd-toc-width:286px] xl:[&_#nd-page_article]:px-8',
                   'md:[--fd-sidebar-width:268px] lg:[--fd-sidebar-width:286px]',
-                  'flex flex-1 flex-row pe-(--fd-layout-offset) max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!'
+                  'flex flex-1 flex-row max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!'
                 )}
               >
                 <AppSidebar />
