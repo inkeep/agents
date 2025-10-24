@@ -143,7 +143,6 @@ async function handleContextResolution({
 
         const resolvedContext = {
           ...contextResult.resolvedContext,
-          $now: new Date().toISOString(),
           $env: process.env,
         };
 

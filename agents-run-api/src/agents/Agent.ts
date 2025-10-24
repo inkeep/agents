@@ -1004,7 +1004,6 @@ export class Agent {
 
       const contextWithBuiltins = {
         ...result.resolvedContext,
-        $now: new Date().toISOString(),
         $env: process.env,
       };
 
