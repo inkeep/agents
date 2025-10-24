@@ -233,7 +233,7 @@ export function MCPServerForm({
                 { value: 'none', label: 'No Authentication' },
                 ...credentials.map((credential) => ({
                   value: credential.id,
-                  label: credential.id,
+                  label: credential.name,
                 })),
               ]}
             />

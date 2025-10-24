@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
@@ -158,13 +157,6 @@ export function MCPServerNodeEditor({
     }
   };
 
-  let provider = null;
-  try {
-    provider = toolData ? getToolTypeAndName(toolData).type : null;
-  } catch (error) {
-    console.error(error);
-  }
-
   return (
     <div className="space-y-8">
       {toolData?.imageUrl && (
@@ -172,7 +164,6 @@ export function MCPServerNodeEditor({
           <MCPToolImage
             imageUrl={toolData.imageUrl}
             name={toolData.name}
-            provider={provider || undefined}
             size={32}
             className="rounded-lg"
           />

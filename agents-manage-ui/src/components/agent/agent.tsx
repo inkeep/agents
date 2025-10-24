@@ -36,7 +36,6 @@ import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
 // Type for agent tool configuration lookup including both selection and headers
@@ -143,16 +142,12 @@ function Flow({
         if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
           const tool = toolLookup[node.data.toolId as string];
           if (tool) {
-            let provider = null;
-            provider = getToolTypeAndName(tool).type;
-
             return {
               ...node,
               data: {
                 ...node.data,
                 name: tool.name,
                 imageUrl: tool.imageUrl,
-                provider,
               },
             };
           }
