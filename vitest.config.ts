@@ -11,6 +11,7 @@ export default defineConfig({
       './agents-run-api',
       './packages/agents-core',
       './packages/agents-sdk',
+      './packages/ai-sdk-provider',
     ],
 
     // Root-level coverage configuration using the sophisticated coverage system

@@ -144,7 +144,6 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
       args: {
         model: this.modelId,
         messages: convertToInkeepChatMessages(options.prompt),
-        max_tokens: this.options.maxTokens,
         conversationId: this.options.conversationId,
         headers: this.options.headers,
         runConfig: this.options.runConfig,

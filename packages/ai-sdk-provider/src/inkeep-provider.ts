@@ -19,7 +19,7 @@ export function createInkeep(options: InkeepProviderSettings = {}): InkeepProvid
   const getBaseURL = (): string => {
     const baseURL = loadSetting({
       settingValue: options.baseURL,
-      environmentVariableName: 'INKEEP_BASE_URL',
+      environmentVariableName: 'INKEEP_AGENTS_RUN_API_URL',
       settingName: 'baseURL',
       description: 'Inkeep Agents API base URL',
     });
