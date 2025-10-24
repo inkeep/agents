@@ -10,7 +10,6 @@ export default {
             'get-started/quick-start',
             'get-started/push-pull',
             'get-started/traces',
-            'get-started/credentials',
           ],
         },
         'concepts',
