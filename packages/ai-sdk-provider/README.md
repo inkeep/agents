@@ -6,37 +6,53 @@ AI SDK provider for Inkeep Agent Framework. This package allows you to use Inkee
 
 ```bash
 npm install @inkeep/ai-sdk-provider
-# or
-pnpm add @inkeep/ai-sdk-provider
-# or
-yarn add @inkeep/ai-sdk-provider
+
 ```
 
 ## Usage
 
-### Basic Usage
+## Basic Usage
+
+### Text Generation
 
 ```typescript
-import { inkeep } from '@inkeep/ai-sdk-provider';
 import { generateText } from 'ai';
+import { createInkeep } from '@inkeep/ai-sdk-provider';
 
-const result = await generateText({
-  model: inkeep('agent-123'),
-  prompt: 'Hello, how can you help me?',
+const inkeep = createInkeep({
+  baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL, // Required
+  apiKey: <your-agent-api-key>, // Created in the Agents Dashboard
+  headers: { // Optional if you are developing locally and dont want to use an api key
+    'x-inkeep-agent-id': 'your-agent-id',
+    'x-inkeep-tenant-id': 'your-tenant-id',
+    'x-inkeep-project-id': 'your-project-id',
+  },
 });
 
-console.log(result.text);
+const { text } = await generateText({
+  model: inkeep('agent-123'),
+  prompt: 'What is the weather in NYC?',
+});
+
+console.log(text);
 ```
 
 ### Streaming Responses
 
 ```typescript
-import { inkeep } from '@inkeep/ai-sdk-provider';
 import { streamText } from 'ai';
+import { createInkeep } from '@inkeep/ai-sdk-provider';
+
+const inkeep = createInkeep({
+  baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL,
+  headers: {
+    'x-emit-operations': 'true', // Enable tool event streaming
+  },
+});
 
 const result = await streamText({
   model: inkeep('agent-123'),
-  prompt: 'Tell me about your capabilities',
+  prompt: 'Plan an event in NYC',
 });
 
 for await (const chunk of result.textStream) {
@@ -44,20 +60,23 @@ for await (const chunk of result.textStream) {
 }
 ```
 
-### Custom Configuration
+```typescript
+createInkeep({
+  baseURL: string,        // Required. Your agents-run-api URL
+  apiKey?: string,        // Optional. Bearer token for authentication
+  headers?: Record<string, string>, // Optional. Additional headers
+})
+```
+
+### Model Options
+
+Pass options when creating a provider instance:
 
 ```typescript
-import { createInkeep } from '@inkeep/ai-sdk-provider';
-
-const inkeep = createInkeep({
-  baseURL: 'https://your-agents-api.example.com',
-  apiKey: process.env.INKEEP_API_KEY,
-  headers: {
-    'X-Custom-Header': 'value',
-  },
+const provider = inkeep({
+  conversationId: 'conv-456',
+  headers: { 'user-id': 'user-789' },
 });
-
-const model = inkeep('agent-123');
 ```
 
 ### Additional Options
@@ -68,7 +87,6 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: inkeep('agent-123', {
-    maxTokens: 1000,
     conversationId: 'conv-123',
     headers: {
       'user-id': 'user-456',
@@ -84,24 +102,20 @@ const result = await generateText({
 
 When creating a custom provider with `createInkeep()`, you can configure:
 
-- `baseURL` - **Required.** The base URL of your Inkeep agents API (can also be set via `INKEEP_BASE_URL` environment variable)
+- `baseURL` - **Required.** The base URL of your Inkeep agents API (can also be set via `INKEEP_AGENTS_RUN_API_URL` environment variable)
 - `apiKey` - Your Inkeep API key (can also be set via `INKEEP_API_KEY` environment variable)
 - `headers` - Additional headers to include in requests
-- `fetch` - Custom fetch implementation
 
 ### Model Options
 
 When creating a model instance, you can configure:
 
-- `maxTokens` - Maximum tokens to generate
 - `conversationId` - Conversation ID for multi-turn conversations
 - `headers` - Additional headers for context (validated against agent's context config)
-- `runConfig` - Run configuration options
 
 ## Environment Variables
 
-- `INKEEP_BASE_URL` - **Required.** Base URL for the Inkeep agents API (unless provided via `baseURL` option)
-- `INKEEP_API_KEY` - Your Inkeep API key
+- `INKEEP_AGENTS_RUN_API_URL` - Base URL for the Inkeep agents API (unless provided via `baseURL` option)
 
 ## Features
 
@@ -114,7 +128,7 @@ When creating a model instance, you can configure:
 
 ## API Endpoint
 
-This provider communicates with the `/api/chat` endpoint of your Inkeep agents API.
+This provider communicates with the `/api/chat` endpoint of your Inkeep Agents Run API.
 
 - **Non-streaming** (`generateText`): Sends `stream: false` parameter - returns complete JSON response
 - **Streaming** (`streamText`): Sends `stream: true` parameter - returns Vercel AI SDK data stream
@@ -190,28 +204,3 @@ The provider emits the following AI SDK v2 stream events:
 Models are identified by agent ID in the format:
 - `agent-123` - Direct agent ID
 - `inkeep/agent-123` - With provider prefix (when used with custom factories)
-
-## TypeScript
-
-This package is written in TypeScript and includes full type definitions.
-
-```typescript
-import type {
-  InkeepProvider,
-  InkeepProviderSettings,
-  InkeepChatOptions,
-} from '@inkeep/ai-sdk-provider';
-```
-
-## Examples
-
-See the [examples directory](../../examples) for complete working examples.
-
-## License
-
-See LICENSE.md file for license information.
-
-## Links
-
-- [Inkeep Agent Framework Documentation](../../agents-docs)
-- [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs)

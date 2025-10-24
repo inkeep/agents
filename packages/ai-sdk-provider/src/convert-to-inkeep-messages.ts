@@ -23,10 +23,6 @@ export function convertToInkeepChatMessages(
               break;
             }
 
-            case 'image': {
-              throw new Error('Image content is not yet supported by Inkeep provider');
-            }
-
             case 'file': {
               throw new Error('File content is not yet supported by Inkeep provider');
             }
@@ -40,7 +36,7 @@ export function convertToInkeepChatMessages(
 
         messages.push({
           role: 'user',
-          content: contentParts.length === 1 ? contentParts[0].text ?? '' : contentParts,
+          content: contentParts.length === 1 ? (contentParts[0].text ?? '') : contentParts,
         });
         break;
       }
@@ -66,10 +62,25 @@ export function convertToInkeepChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.args),
+                  arguments: JSON.stringify(part.input),
                 },
               });
               break;
+            }
+
+            case 'file': {
+              throw new Error('File content is not yet supported by Inkeep provider');
+            }
+
+            case 'reasoning': {
+              // Reasoning parts can be treated as text content
+              text += part.text;
+              break;
+            }
+
+            case 'tool-result': {
+              // Tool results are handled separately in tool role messages
+              throw new Error('Tool result content should not appear in assistant messages');
             }
 
             default: {
@@ -91,7 +102,7 @@ export function convertToInkeepChatMessages(
         for (const toolResponse of content) {
           messages.push({
             role: 'tool',
-            content: JSON.stringify(toolResponse.result),
+            content: JSON.stringify(toolResponse.output),
             name: toolResponse.toolName,
           });
         }

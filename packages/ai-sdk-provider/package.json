@@ -17,9 +17,6 @@
     "build": "tsup",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "test:stream": "tsx test-stream.ts",
-    "test:generate": "tsx test-generate.ts",
-    "test:tools": "tsx test-tools.ts",
     "lint": "biome lint src",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
@@ -45,7 +42,6 @@
   "devDependencies": {
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^3.2.4",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
