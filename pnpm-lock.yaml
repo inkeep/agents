@@ -1054,6 +1054,37 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
 
+  packages/ai-sdk-provider:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@ai-sdk/provider-utils':
+        specifier: ^3.0.12
+        version: 3.0.14(zod@4.1.12)
+      '@inkeep/agents-core':
+        specifier: workspace:*
+        version: link:../agents-core
+      ai:
+        specifier: 5.0.11
+        version: 5.0.11(zod@4.1.12)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.24
+        version: 20.19.24
+      '@vitest/coverage-v8':
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
+      tsx:
+        specifier: ^4.20.6
+        version: 4.20.6
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
+
   packages/create-agents:
     dependencies:
       '@clack/prompts':
@@ -15095,7 +15126,7 @@ snapshots:
 
   '@types/bunyan@1.8.11':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/chai@5.2.3':
     dependencies:
@@ -15104,7 +15135,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/d3-array@3.2.2': {}
 
@@ -15270,17 +15301,17 @@ snapshots:
 
   '@types/memcached@2.2.10':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/ms@2.1.0': {}
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
       form-data: 4.0.4
 
   '@types/node@12.20.55': {}
@@ -15307,7 +15338,7 @@ snapshots:
 
   '@types/oracledb@6.5.2':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/pg-pool@2.0.6':
     dependencies:
@@ -15315,7 +15346,7 @@ snapshots:
 
   '@types/pg@8.15.5':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
@@ -15337,7 +15368,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/tmp@0.2.6': {}
 
@@ -15352,7 +15383,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
 
   '@types/yarnpkg__lockfile@1.1.9': {}
 
@@ -19618,7 +19649,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 22.18.13
+      '@types/node': 20.19.24
       long: 5.3.2
 
   proxy-addr@2.0.7:

@@ -22,7 +22,7 @@ import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { errorOp } from '../utils/agent-operations';
-import { createVercelStreamHelper } from '../utils/stream-helpers';
+import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -64,10 +64,13 @@ const chatDataStreamRoute = createRoute({
             ),
             id: z.string().optional(),
             conversationId: z.string().optional(),
+            stream: z.boolean().optional().describe('Whether to stream the response').default(true),
+            max_tokens: z.number().optional().describe('Maximum tokens to generate'),
             headers: z
               .record(z.string(), z.unknown())
               .optional()
               .describe('Headers data for template processing'),
+            runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
           }),
         },
       },
@@ -210,6 +213,51 @@ app.openapi(chatDataStreamRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
           'database.operation': 'insert',
+        });
+      }
+
+      const shouldStream = body.stream !== false;
+
+      if (!shouldStream) {
+        // Non-streaming response - collect full response and return as JSON
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
+        const bufferingHelper = createBufferingStreamHelper();
+
+        const executionHandler = new ExecutionHandler();
+        const result = await executionHandler.execute({
+          executionContext,
+          conversationId,
+          userMessage: userText,
+          initialAgentId: subAgentId,
+          requestId: `chat-${Date.now()}`,
+          sseHelper: bufferingHelper,
+          emitOperations,
+        });
+
+        const captured = bufferingHelper.getCapturedResponse();
+
+        return c.json({
+          id: `chat-${Date.now()}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: agentName,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: captured.hasError ? captured.errorMessage : captured.text,
+              },
+              finish_reason: result.success && !captured.hasError ? 'stop' : 'error',
+            },
+          ],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+          },
         });
       }
 
