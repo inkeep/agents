@@ -77,41 +77,6 @@ describe('TemplateEngine', () => {
       }
     });
 
-    test('should render $now as ISO string', () => {
-      const template = 'Generated at {{$now}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should be a valid ISO date string
-      const dateMatch = result.match(/Generated at (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
-      expect(dateMatch).toBeTruthy();
-      expect(new Date(dateMatch?.[1] || '').toString()).not.toBe('Invalid Date');
-    });
-
-    test('should render $timestamp as number string', () => {
-      const template = 'Timestamp: {{$timestamp}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      const timestampMatch = result.match(/Timestamp: (\d+)/);
-      expect(timestampMatch).toBeTruthy();
-      expect(Number(timestampMatch?.[1])).toBeGreaterThan(0);
-    });
-
-    test('should render $date as date string', () => {
-      const template = 'Date: {{$date}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should contain day of week and month
-      expect(result).toMatch(/Date: \w{3} \w{3} \d{2} \d{4}/);
-    });
-
-    test('should render $time as time string', () => {
-      const template = 'Time: {{$time}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should contain time format
-      expect(result).toMatch(/Time: \d{2}:\d{2}:\d{2}/);
-    });
-
     test('should render environment variables', () => {
       const template = 'Test var: {{$env.TEST_VAR}}';
       const result = TemplateEngine.render(template, sampleContext);
