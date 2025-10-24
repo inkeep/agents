@@ -332,6 +332,13 @@ describe('CredentialStuffer', () => {
     });
 
     test('should build MCP server config without credentials', async () => {
+      const contextWithIds: CredentialContext = {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'test-conversation',
+        contextConfigId: 'test-context-config',
+      };
+
       const toolConfig: MCPToolConfig = {
         id: 'test-tool-id',
         name: 'test-tool',
@@ -342,8 +349,11 @@ describe('CredentialStuffer', () => {
         headers: { 'Custom-Header': 'custom-value' },
       };
 
+      mockResolveHeaders.mockResolvedValue({});
+      mockTemplateRender.mockReturnValue('custom-value');
+
       const result = await credentialStuffer.buildMcpServerConfig(
-        mockContext,
+        contextWithIds,
         toolConfig,
         undefined
       );
@@ -352,10 +362,19 @@ describe('CredentialStuffer', () => {
         type: MCPTransportType.streamableHttp,
         url: 'https://api.example.com/mcp',
         headers: { 'Custom-Header': 'custom-value' },
+        activeTools: undefined,
+        selectedTools: undefined,
       });
     });
 
     test('should merge tool headers with Authorization from generic credentials', async () => {
+      const contextWithIds: CredentialContext = {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        conversationId: 'test-conversation',
+        contextConfigId: 'test-context-config',
+      };
+
       const toolConfig: MCPToolConfig = {
         id: 'test-tool-id',
         name: 'test-tool',
@@ -378,9 +397,11 @@ describe('CredentialStuffer', () => {
       };
 
       vi.mocked(mockMemoryStore.get).mockResolvedValue(JSON.stringify(mockCredentials));
+      mockResolveHeaders.mockResolvedValue({});
+      mockTemplateRender.mockReturnValue('tool-value');
 
       const result = await credentialStuffer.buildMcpServerConfig(
-        mockContext,
+        contextWithIds,
         toolConfig,
         storeReference
       );
@@ -392,6 +413,8 @@ describe('CredentialStuffer', () => {
           'Tool-Header': 'tool-value',
           Authorization: `Bearer ${JSON.stringify(mockCredentials)}`,
         },
+        activeTools: undefined,
+        selectedTools: undefined,
       });
     });
   });
@@ -486,13 +509,13 @@ describe('CredentialStuffer', () => {
 
       expect(mockTemplateRender).toHaveBeenCalledWith(
         'Bearer {{headers.authorization}}',
-        mockContext,
+        { headers: mockContext },
         { strict: true }
       );
 
       expect(mockTemplateRender).toHaveBeenCalledWith(
         '{{customField}}',
-        mockContext,
+        { headers: mockContext },
         { strict: true }
       );
 
@@ -587,7 +610,7 @@ describe('CredentialStuffer', () => {
 
       const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
-      expect(mockTemplateRender).toHaveBeenCalledWith('Bearer {{token}} {{secret}}', mockContext, {
+      expect(mockTemplateRender).toHaveBeenCalledWith('Bearer {{token}} {{secret}}', { headers: mockContext }, {
         strict: true,
       });
 
@@ -617,10 +640,10 @@ describe('CredentialStuffer', () => {
       const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
       expect(mockTemplateRender).toHaveBeenCalledTimes(2);
-      expect(mockTemplateRender).toHaveBeenCalledWith('application/json', mockContext, {
+      expect(mockTemplateRender).toHaveBeenCalledWith('application/json', { headers: mockContext }, {
         strict: true,
       });
-      expect(mockTemplateRender).toHaveBeenCalledWith('static-value', mockContext, {
+      expect(mockTemplateRender).toHaveBeenCalledWith('static-value', { headers: mockContext }, {
         strict: true,
       });
 

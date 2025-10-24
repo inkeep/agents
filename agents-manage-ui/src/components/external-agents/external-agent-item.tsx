@@ -25,7 +25,6 @@ import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { ProviderIcon } from '../icons/provider-icon';
 import { Badge } from '../ui/badge';
-import { CardTitle } from '../ui/card';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
@@ -130,16 +129,12 @@ export function ExternalAgentItem({
   return (
     <ItemCardRoot>
       <ItemCardHeader>
-        <ItemCardLink href={linkPath}>
-          <ItemCardTitle className="text-md">
-            <div className="flex items-center gap-3">
-              <ProviderIcon provider={externalAgent.name} size={24} className="flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-base truncate font-medium">
-                  {externalAgent.name}
-                </CardTitle>
-              </div>
-            </div>
+        <ItemCardLink href={linkPath} className="min-w-0">
+          <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
+            <ProviderIcon provider={externalAgent.name} size={24} className="flex-shrink-0" />
+            <span className="flex-1 min-w-0 text-base font-medium truncate">
+              {externalAgent.name}
+            </span>
           </ItemCardTitle>
         </ItemCardLink>
         <ExternalAgentDialogMenu

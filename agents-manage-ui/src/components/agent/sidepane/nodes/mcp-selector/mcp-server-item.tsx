@@ -34,7 +34,6 @@ export function MCPServerItem({ mcp, onClick }: MCPServerItemProps) {
         <MCPToolImage
           imageUrl={imageUrl}
           name={name}
-          provider={name}
           size={32}
           className="flex-shrink-0 mt-0.5"
         />

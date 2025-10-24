@@ -1,7 +1,6 @@
 'use client';
 
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
-import { CardTitle } from '@/components/ui/card';
 import {
   ItemCardContent,
   ItemCardHeader,
@@ -48,19 +47,16 @@ export function PrebuiltServerCard({
       onClick={handleClick}
     >
       <ItemCardHeader>
-        <ItemCardTitle className="text-md">
-          <div className="flex items-center gap-3">
-            <MCPToolImage
-              imageUrl={server.imageUrl}
-              name={server.name}
-              provider={server.name}
-              size={24}
-              className="mt-0.5 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base truncate font-medium">{server.name}</CardTitle>
-            </div>
-          </div>
+        <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
+          <MCPToolImage
+            imageUrl={server.imageUrl}
+            name={server.name}
+            size={24}
+            className="mt-0.5 flex-shrink-0"
+          />
+          <span className="flex-1 min-w-0 text-base font-medium truncate">
+            {server.name}
+          </span>
         </ItemCardTitle>
       </ItemCardHeader>
 
