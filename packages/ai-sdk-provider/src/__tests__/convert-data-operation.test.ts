@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import { convertDataOperationToToolEvent } from '../inkeep-chat-language-model';
 
-// We need to test the convertDataOperationToToolEvent function
-// Since it's not exported, we'll test it through the model's doStream method
-// For now, we'll create unit tests for the logic
-
+// Now we can test the actual convertDataOperationToToolEvent function directly
 describe('Data Operation Conversion', () => {
   describe('tool_call events', () => {
     it('should convert tool_call to tool-call stream part', () => {
@@ -22,18 +19,16 @@ describe('Data Operation Conversion', () => {
         },
       };
 
-      // Test the expected output structure
-      const expected: LanguageModelV2StreamPart = {
-        type: 'tool-call',
-        toolCallId: 'call-123',
-        toolName: 'search',
-        input: JSON.stringify({ query: 'test' }),
-      };
+      const result = convertDataOperationToToolEvent(opData);
 
-      expect(expected.type).toBe('tool-call');
-      expect(expected.toolCallId).toBe('call-123');
-      expect(expected.toolName).toBe('search');
-      expect(expected.input).toBe(JSON.stringify({ query: 'test' }));
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('tool-call');
+
+      if (result?.type === 'tool-call') {
+        expect(result.toolCallId).toBe('call-123');
+        expect(result.toolName).toBe('search');
+        expect(result.input).toBe(JSON.stringify({ query: 'test' }));
+      }
     });
   });
 
@@ -57,131 +52,147 @@ describe('Data Operation Conversion', () => {
         },
       };
 
-      // Test the expected output structure
-      const expected: LanguageModelV2StreamPart = {
-        type: 'tool-result',
-        toolCallId: 'call-123',
-        toolName: 'search',
-        result: {
-          content: [{ type: 'text', text: 'Search results' }],
-        },
-      };
+      const result = convertDataOperationToToolEvent(opData);
 
-      expect(expected.type).toBe('tool-result');
-      expect(expected.toolCallId).toBe('call-123');
-      expect(expected.toolName).toBe('search');
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('tool-result');
+
+      if (result?.type === 'tool-result') {
+        expect(result.toolCallId).toBe('call-123');
+        expect(result.toolName).toBe('search');
+        expect(result.result).toEqual({
+          content: [{ type: 'text', text: 'Search results' }],
+        });
+      }
     });
 
-    it('should handle tool_result with nested result structure', () => {
-      const outputData = {
-        result: {
-          content: [{ type: 'text', text: 'Test result' }],
+    it('should handle tool_result with direct output (no nested result)', () => {
+      const opData = {
+        type: 'tool_result',
+        label: 'Tool result: search',
+        details: {
+          timestamp: Date.now(),
+          subAgentId: 'agent-1',
+          data: {
+            toolName: 'search',
+            toolCallId: 'call-456',
+            output: { status: 'success', data: 'Direct result' },
+          },
         },
-        toolCallId: 'call-456',
       };
 
-      // The result should be extracted from output.result
-      const expectedResult = outputData.result;
+      const result = convertDataOperationToToolEvent(opData);
 
-      expect(expectedResult).toEqual({
-        content: [{ type: 'text', text: 'Test result' }],
-      });
+      expect(result).toBeDefined();
+
+      if (result?.type === 'tool-result') {
+        expect(result.result).toEqual({ status: 'success', data: 'Direct result' });
+      }
     });
   });
 
   describe('transfer events', () => {
     it('should convert transfer to tool-call stream part', () => {
-      const transferData = {
-        fromSubAgent: 'router-agent',
-        targetSubAgent: 'specialist-agent',
-        reason: 'Specialized task',
-        context: { taskId: '123' },
+      const opData = {
+        type: 'transfer',
+        label: 'Transfer to specialist',
+        details: {
+          timestamp: Date.now(),
+          subAgentId: 'router-agent',
+          data: {
+            fromSubAgent: 'router-agent',
+            targetSubAgent: 'specialist-agent',
+            reason: 'Specialized task',
+            context: { taskId: '123' },
+          },
+        },
       };
 
-      // Test the expected output structure
-      const expected: LanguageModelV2StreamPart = {
-        type: 'tool-call',
-        toolCallId: expect.stringContaining('transfer_'),
-        toolName: 'specialist-agent',
-        input: JSON.stringify({
+      const result = convertDataOperationToToolEvent(opData);
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('tool-call');
+
+      if (result?.type === 'tool-call') {
+        expect(result.toolCallId).toMatch(/^transfer_\d+$/);
+        expect(result.toolName).toBe('specialist-agent');
+        expect(JSON.parse(result.input as string)).toEqual({
           fromSubAgent: 'router-agent',
           reason: 'Specialized task',
           context: { taskId: '123' },
-        }),
-      };
-
-      expect(expected.type).toBe('tool-call');
-      expect(expected.toolName).toBe('specialist-agent');
-      expect(JSON.parse(expected.input as string)).toEqual({
-        fromSubAgent: 'router-agent',
-        reason: 'Specialized task',
-        context: { taskId: '123' },
-      });
+        });
+      }
     });
   });
 
   describe('delegation_sent events', () => {
     it('should convert delegation_sent to tool-call stream part', () => {
-      const delegationData = {
-        delegationId: 'del-123',
-        fromSubAgent: 'coordinator',
-        targetSubAgent: 'worker',
-        taskDescription: 'Complete the task',
-        context: { priority: 'high' },
+      const opData = {
+        type: 'delegation_sent',
+        label: 'Delegation sent',
+        details: {
+          timestamp: Date.now(),
+          subAgentId: 'coordinator',
+          data: {
+            delegationId: 'del-123',
+            fromSubAgent: 'coordinator',
+            targetSubAgent: 'worker',
+            taskDescription: 'Complete the task',
+            context: { priority: 'high' },
+          },
+        },
       };
 
-      // Test the expected output structure
-      const expected: LanguageModelV2StreamPart = {
-        type: 'tool-call',
-        toolCallId: 'del-123',
-        toolName: 'worker',
-        input: JSON.stringify({
+      const result = convertDataOperationToToolEvent(opData);
+
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('tool-call');
+
+      if (result?.type === 'tool-call') {
+        expect(result.toolCallId).toBe('del-123');
+        expect(result.toolName).toBe('worker');
+        expect(JSON.parse(result.input as string)).toEqual({
           fromSubAgent: 'coordinator',
           taskDescription: 'Complete the task',
           context: { priority: 'high' },
-        }),
-      };
-
-      expect(expected.type).toBe('tool-call');
-      expect(expected.toolCallId).toBe('del-123');
-      expect(expected.toolName).toBe('worker');
-      expect(JSON.parse(expected.input as string)).toEqual({
-        fromSubAgent: 'coordinator',
-        taskDescription: 'Complete the task',
-        context: { priority: 'high' },
-      });
+        });
+      }
     });
   });
 
   describe('delegation_returned events', () => {
     it('should convert delegation_returned to tool-result stream part', () => {
-      const returnedData = {
-        delegationId: 'del-123',
-        fromSubAgent: 'worker',
-        targetSubAgent: 'coordinator',
-        result: { status: 'completed', data: 'Task done' },
+      const opData = {
+        type: 'delegation_returned',
+        label: 'Delegation returned',
+        details: {
+          timestamp: Date.now(),
+          subAgentId: 'worker',
+          data: {
+            delegationId: 'del-123',
+            fromSubAgent: 'worker',
+            targetSubAgent: 'coordinator',
+            result: { status: 'completed', data: 'Task done' },
+          },
+        },
       };
 
-      // Test the expected output structure
-      const expected: LanguageModelV2StreamPart = {
-        type: 'tool-result',
-        toolCallId: 'del-123',
-        toolName: 'coordinator',
-        result: { status: 'completed', data: 'Task done' },
-      };
+      const result = convertDataOperationToToolEvent(opData);
 
-      expect(expected.type).toBe('tool-result');
-      expect(expected.toolCallId).toBe('del-123');
-      expect(expected.toolName).toBe('coordinator');
-      expect(expected.result).toEqual({ status: 'completed', data: 'Task done' });
+      expect(result).toBeDefined();
+      expect(result?.type).toBe('tool-result');
+
+      if (result?.type === 'tool-result') {
+        expect(result.toolCallId).toBe('del-123');
+        expect(result.toolName).toBe('coordinator');
+        expect(result.result).toEqual({ status: 'completed', data: 'Task done' });
+      }
     });
   });
 
   describe('Edge cases', () => {
     it('should handle null opData', () => {
-      const opData = null;
-      const result = opData;
-
+      const result = convertDataOperationToToolEvent(null);
       expect(result).toBeNull();
     });
 
@@ -195,18 +206,19 @@ describe('Data Operation Conversion', () => {
         },
       };
 
-      // Without type, should return null
-      expect(opData.type).toBeUndefined();
+      const result = convertDataOperationToToolEvent(opData);
+      expect(result).toBeNull();
     });
 
     it('should handle opData without details', () => {
       const opData = {
         type: 'tool_call',
         label: 'Tool call',
+        details: null,
       };
 
-      // Without details, should return null
-      expect(opData.details).toBeUndefined();
+      const result = convertDataOperationToToolEvent(opData);
+      expect(result).toBeNull();
     });
 
     it('should handle opData without data', () => {
@@ -219,8 +231,8 @@ describe('Data Operation Conversion', () => {
         },
       };
 
-      // Without data, should return null
-      expect(opData.details.data).toBeUndefined();
+      const result = convertDataOperationToToolEvent(opData);
+      expect(result).toBeNull();
     });
 
     it('should handle unknown event types', () => {
@@ -234,10 +246,27 @@ describe('Data Operation Conversion', () => {
         },
       };
 
-      // Unknown types should be ignored (return null)
-      expect(['tool_call', 'tool_result', 'transfer', 'delegation_sent', 'delegation_returned']).not.toContain(
-        opData.type
-      );
+      const result = convertDataOperationToToolEvent(opData);
+      expect(result).toBeNull();
+    });
+
+    it('should handle non-object opData', () => {
+      const result = convertDataOperationToToolEvent('not an object');
+      expect(result).toBeNull();
+    });
+
+    it('should handle opData with missing type property', () => {
+      const opData = {
+        label: 'Some event',
+        details: {
+          timestamp: Date.now(),
+          subAgentId: 'agent-1',
+          data: { some: 'data' },
+        },
+      };
+
+      const result = convertDataOperationToToolEvent(opData);
+      expect(result).toBeNull();
     });
   });
 });
