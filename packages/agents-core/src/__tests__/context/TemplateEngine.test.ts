@@ -204,10 +204,10 @@ describe('TemplateEngine', () => {
 
   describe('Variable Extraction', () => {
     test('should extract all variables from template', () => {
-      const template = 'Hello {{user.name}} from {{organization.name}} at {{$now}}!';
+      const template = 'Hello {{user.name}} from {{organization.name}}!';
       const preview = TemplateEngine.preview(template, sampleContext);
 
-      expect(preview.variables).toEqual(['user.name', 'organization.name', '$now']);
+      expect(preview.variables).toEqual(['user.name', 'organization.name']);
     });
 
     test('should remove duplicate variables', () => {

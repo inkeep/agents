@@ -133,7 +133,7 @@ export class TemplateEngine {
   }
 
   /**
-   * Process built-in variables like $now, $env, etc.
+   * Process built-in variables like $env, etc.
    */
   private static processBuiltinVariable(variable: string): string {
     // Check for environment variables like $env.NODE_ENV
