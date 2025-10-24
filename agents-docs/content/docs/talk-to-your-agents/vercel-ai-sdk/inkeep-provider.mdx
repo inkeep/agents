@@ -25,9 +25,9 @@ import { generateText } from 'ai';
 import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
-  baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL, // Required
-  apiKey: <your-agent-api-key>, // Created in the Agents Dashboard
-  headers: { // Optional if you are developing locally and dont want to use an api key
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL, // Required
+  apiKey: '<your-agent-api-key>', // Created in the Agents Dashboard
+  headers: { // Optional if you are developing locally and don't want to use an api key
     'x-inkeep-agent-id': 'your-agent-id',
     'x-inkeep-tenant-id': 'your-tenant-id',
     'x-inkeep-project-id': 'your-project-id',
@@ -49,7 +49,7 @@ import { streamText } from 'ai';
 import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
-  baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL,
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
   headers: {
     'x-emit-operations': 'true', // Enable tool event streaming
   },
@@ -94,7 +94,7 @@ To receive tool call and result events in your stream, include the `x-emit-opera
 
 ```typescript
 const inkeep = createInkeep({
-  baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL,
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
   headers: {
     'x-emit-operations': 'true',
   },
@@ -108,10 +108,10 @@ const result = await streamText({
 for await (const event of result.fullStream) {
   switch (event.type) {
     case 'tool-call':
-      console.log(`=' Calling: ${event.toolName}`);
+      console.log(`Calling: ${event.toolName}`);
       break;
     case 'tool-result':
-      console.log(` Result: ${event.toolName}`);
+      console.log(`Result: ${event.toolName}`);
       break;
   }
 }
