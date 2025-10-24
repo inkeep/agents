@@ -43,7 +43,7 @@ interface InkeepChatConfig {
  * - delegation_sent: Agent delegates a task to another agent (tool-call)
  * - delegation_returned: Delegated task completes and returns (tool-result)
  */
-function convertDataOperationToToolEvent(opData: any): LanguageModelV2StreamPart | null {
+export function convertDataOperationToToolEvent(opData: any): LanguageModelV2StreamPart | null {
   if (!opData || typeof opData !== 'object' || !('type' in opData)) {
     return null;
   }
