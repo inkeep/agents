@@ -61,10 +61,11 @@ export function createAgentCard({
  * @param internalRelations - Pre-computed internal relations
  * @param externalRelations - Pre-computed external relations
  */
-export function generateDescriptionWithTransfers(
+export function generateDescriptionWithSubAgentData(
   baseDescription: string,
   internalRelations: any[],
-  externalRelations: any[]
+  externalRelations: any[],
+  teamRelations: any[]
 ): string {
   // Filter relations by type
   const transfers = [...internalRelations.filter((rel) => rel.relationType === 'transfer')];
@@ -72,6 +73,7 @@ export function generateDescriptionWithTransfers(
   const delegates = [
     ...internalRelations.filter((rel) => rel.relationType === 'delegate'),
     ...externalRelations.map((data) => data.externalAgent),
+    ...teamRelations.map((data) => data.targetAgent),
   ];
 
   // If no relations, return base description
