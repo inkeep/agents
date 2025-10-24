@@ -18,7 +18,7 @@ import {
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { generateDescriptionWithSubAgentData } from '../data/agents';
+import { generateDescriptionWithRelationData } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
@@ -168,7 +168,7 @@ export const createTaskHandler = (
                 },
               });
 
-              const enhancedDescription = generateDescriptionWithSubAgentData(
+              const enhancedDescription = generateDescriptionWithRelationData(
                 relation.description || '',
                 relatedAgentRelations.data,
                 relatedAgentExternalAgentRelations.data,
@@ -230,7 +230,7 @@ export const createTaskHandler = (
                 },
               });
 
-              const enhancedDescription = generateDescriptionWithSubAgentData(
+              const enhancedDescription = generateDescriptionWithRelationData(
                 teamAgentWithDefault.description || '',
                 relatedAgentRelations.data,
                 relatedAgentExternalAgentRelations.data,

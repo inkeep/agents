@@ -61,7 +61,7 @@ export function createAgentCard({
  * @param internalRelations - Pre-computed internal relations
  * @param externalRelations - Pre-computed external relations
  */
-export function generateDescriptionWithSubAgentData(
+export function generateDescriptionWithRelationData(
   baseDescription: string,
   internalRelations: any[],
   externalRelations: any[],
