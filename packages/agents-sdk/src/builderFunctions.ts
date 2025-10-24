@@ -114,6 +114,7 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  * ```typescript
  * const apiCredential = credential({
  *   id: 'github-token',
+ *   name: 'GitHub Token',
  *   type: 'bearer',
  *   value: process.env.GITHUB_TOKEN
  * });
@@ -121,7 +122,15 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  */
 
 export function credential(config: CredentialReferenceApiInsert) {
-  return CredentialReferenceApiInsertSchema.parse(config);
+  try {
+    return CredentialReferenceApiInsertSchema.parse(config);
+  } catch (error) {
+    if (error instanceof Error) {
+      const credId = config.id || 'unknown';
+      throw new Error(`Invalid credential '${credId}': ${error.message}`);
+    }
+    throw error;
+  }
 } // ============================================================================
 // Tool Builders
 // ============================================================================
@@ -151,6 +160,7 @@ export function credential(config: CredentialReferenceApiInsert) {
  *   serverUrl: 'https://secure.example.com/mcp',
  *   credential: credential({
  *     id: 'api-key',
+ *     name: 'API Key',
  *     type: 'bearer',
  *     value: process.env.API_KEY
  *   })
@@ -303,6 +313,14 @@ export function statusComponent(config: StatusComponentConfig): StatusComponent 
   return new StatusComponent(config);
 }
 
+/**
+ * (deprecated in favor of mcpTool.with()) Creates an agent MCP configuration.
+ *
+ * Agent MCP configurations are used to configure the MCP server for an agent.
+ *
+ * @param config - Agent MCP configuration
+ * @returns An AgentMcpConfig instance
+ */
 export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
   return {
     server: config.server,

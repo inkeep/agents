@@ -2,7 +2,7 @@
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useCallback, useEffect, useRef } from 'react';
-import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -267,7 +267,7 @@ export function ChatWidget({
               {
                 get: (_, componentName) => {
                   const matchingComponent = Object.values(dataComponentLookup).find(
-                    (component) => component.name === componentName && !!component.preview?.code
+                    (component) => component.name === componentName && !!component.render?.component
                   );
 
                   if (!matchingComponent) {
@@ -277,7 +277,7 @@ export function ChatWidget({
                   const Component = function Component(props: any) {
                     return (
                       <DynamicComponentRenderer
-                        code={matchingComponent.preview?.code || ''}
+                        code={matchingComponent.render?.component || ''}
                         props={props || {}}
                       />
                     );

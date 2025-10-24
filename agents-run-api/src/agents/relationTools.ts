@@ -5,8 +5,11 @@ import {
   CredentialStuffer,
   createMessage,
   generateId,
+  generateServiceToken,
   getCredentialReference,
+  headers,
   SPAN_KEYS,
+  TemplateEngine,
 } from '@inkeep/agents-core';
 import {
   DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
@@ -169,10 +172,12 @@ export function createDelegateToAgentTool({
       }
 
       const isInternal = delegateConfig.type === 'internal';
+      const isExternal = delegateConfig.type === 'external';
+      const isTeam = delegateConfig.type === 'team';
 
       let resolvedHeaders: Record<string, string> = {};
 
-      if (!isInternal) {
+      if (isExternal) {
         if (
           (delegateConfig.config.credentialReferenceId || delegateConfig.config.headers) &&
           credentialStoreRegistry
@@ -215,6 +220,25 @@ export function createDelegateToAgentTool({
             headers: delegateConfig.config.headers || undefined,
           });
         }
+      } else if (isTeam) {
+        const contextResolver = new ContextResolver(
+          tenantId,
+          projectId,
+          dbClient,
+          credentialStoreRegistry
+        );
+        const context = await contextResolver.resolveHeaders(metadata.conversationId, contextId);
+
+        for (const [key, value] of Object.entries(headers)) {
+          resolvedHeaders[key] = TemplateEngine.render(value, context, { strict: true });
+        }
+
+        resolvedHeaders.Authorization = `Bearer ${await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: delegateConfig.config.id,
+        })}`;
       } else {
         resolvedHeaders = {
           Authorization: `Bearer ${metadata.apiKey}`,

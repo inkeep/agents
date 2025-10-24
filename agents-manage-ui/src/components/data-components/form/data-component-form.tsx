@@ -20,7 +20,7 @@ import {
 import type { DataComponent } from '@/lib/api/data-components';
 import { formatJsonField } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
-import { ComponentPreviewGenerator } from '../preview/component-preview-generator';
+import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
 import { type DataComponentFormData, dataComponentSchema } from './validation';
 
@@ -142,13 +142,13 @@ export function DataComponentForm({
           />
 
           {id && (
-            <ComponentPreviewGenerator
+            <ComponentRenderGenerator
               tenantId={tenantId}
               projectId={projectId}
               dataComponentId={id}
-              existingPreview={initialData?.preview || null}
-              onPreviewChanged={(preview) => {
-                form.setValue('preview', preview);
+              existingRender={initialData?.render || null}
+              onRenderChanged={(render) => {
+                form.setValue('render', render);
               }}
             />
           )}

@@ -898,8 +898,8 @@ REQUIREMENTS:
 2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
 3. CRITICAL: Use individual properties supported by mcpTool - do NOT use nested config object
 4. Extract configuration properties and map them to mcpTool's expected properties (serverUrl, transport, etc.)
-5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
-6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentCredential()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentCredential() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
 8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
 
@@ -911,7 +911,7 @@ export const inkeepFacts = mcpTool({
   id: 'inkeep_facts',
   name: 'inkeep_facts',
   serverUrl: 'https://mcp.inkeep.com/inkeep/mcp',
-  credential: envSettings.getEnvironmentSetting('inkeep_api_credential')
+  credential: envSettings.getEnvironmentCredential('inkeep_api_credential')
 });
 
 EXAMPLE WITH TRANSPORT CONFIG:
@@ -1628,8 +1628,8 @@ REQUIREMENTS FOR TOOL FILE:
 2. CRITICAL: Always include serverUrl property (required by SDK) extracted from config.mcp.server.url
 3. CRITICAL: Use individual properties supported by mcpTool - do NOT use nested config object
 4. Extract configuration properties and map them to mcpTool's expected properties (serverUrl, transport, etc.)
-5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentSetting()
-6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+5. CRITICAL: If credentialReferenceId exists in tool data, add it as a credential property using envSettings.getEnvironmentCredential()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentCredential() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 7. TRANSPORT CONFIG: If config.mcp.transport exists, extract it as a transport property (not nested in config)
 8. NO CONFIG OBJECT: mcpTool does not accept a 'config' property - use individual properties only
 `;
@@ -1641,8 +1641,8 @@ REQUIREMENTS FOR EXTERNAL AGENT FILE:
 1. Import externalAgent from '@inkeep/agents-sdk'
 2. Create the external agent using externalAgent()
 3. Export following naming convention rules (camelCase version of ID)
-5. CRITICAL: If credentialReferenceId exists in external agent data, add it as a credential property using envSettings.getEnvironmentSetting()
-6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentSetting() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
+5. CRITICAL: If credentialReferenceId exists in external agent data, add it as a credential property using envSettings.getEnvironmentCredential()
+6. Convert credentialReferenceId to credential key format by replacing hyphens with underscores for the getEnvironmentCredential() call (e.g., 'inkeep-api-credential' becomes 'inkeep_api_credential')
 `;
         break;
 

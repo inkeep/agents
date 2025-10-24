@@ -1,5 +1,38 @@
 # @inkeep/agents-core
 
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+## 0.28.0
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- 074e076: mcp evironment settings
+
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+
 ## 0.26.1
 
 ### Patch Changes

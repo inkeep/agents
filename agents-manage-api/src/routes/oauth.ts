@@ -16,7 +16,7 @@ import {
   type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
-  generateIdFromName,
+  generateId,
   getCredentialReferenceWithResources,
   getToolById,
   type ServerConfig,
@@ -373,7 +373,8 @@ app.openapi(
         try {
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
-            id: generateIdFromName(tool.name),
+            id: generateId(),
+            name: tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
             retrievalParams: {

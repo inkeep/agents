@@ -488,6 +488,7 @@ describe.skip('Tool Manager', () => {
         serverUrl: 'https://api.example.com',
         credential: {
           id: 'cred-123',
+          name: 'cred-123',
           type: 'memory' as const,
           credentialStoreId: 'store-123',
         },

@@ -1,10 +1,10 @@
 import type { NodeProps } from '@xyflow/react';
-import { Globe, Hammer } from 'lucide-react';
+import { Globe, Hammer, Users } from 'lucide-react';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 
 type PlaceholderNodeData = {
   name: string;
-  type: 'mcp-placeholder' | 'external-agent-placeholder';
+  type: 'mcp-placeholder' | 'external-agent-placeholder' | 'team-agent-placeholder';
 };
 
 export function PlaceholderNode(props: NodeProps & { data: PlaceholderNodeData }) {
@@ -19,6 +19,9 @@ export function PlaceholderNode(props: NodeProps & { data: PlaceholderNodeData }
         {data.type === 'mcp-placeholder' && <Hammer className="size-4 text-muted-foreground/65" />}
         {data.type === 'external-agent-placeholder' && (
           <Globe className="size-4 text-muted-foreground/65" />
+        )}
+        {data.type === 'team-agent-placeholder' && (
+          <Users className="size-4 text-muted-foreground/65" />
         )}
         <BaseNodeHeaderTitle className="text-muted-foreground">{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>

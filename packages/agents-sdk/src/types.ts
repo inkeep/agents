@@ -88,10 +88,17 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
-export type AllSubAgentInterface =
+export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
-  | ExternalAgentInterface;
+  | ExternalAgentInterface
+  | AgentInterface
+  | subAgentTeamAgentInterface;
+
+export type AllDelegateOutputInterface =
+  | SubAgentInterface
+  | subAgentExternalAgentInterface
+  | subAgentTeamAgentInterface;
 
 export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
@@ -99,7 +106,7 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
-  canDelegateTo?: () => AllSubAgentInterface[];
+  canDelegateTo?: () => AllDelegateInputInterface[];
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface
@@ -230,7 +237,7 @@ export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultSubAgent?: SubAgentInterface;
+  defaultSubAgent: SubAgentInterface;
   subAgents?: () => SubAgentInterface[];
   contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];
@@ -288,7 +295,7 @@ export interface SubAgentInterface {
   getInstructions(): string;
   getTools(): Record<string, AgentTool>;
   getTransfers(): SubAgentInterface[];
-  getDelegates(): AllSubAgentInterface[];
+  getDelegates(): AllDelegateOutputInterface[];
   getSubAgentDelegates(): SubAgentInterface[];
   getExternalAgentDelegates(): subAgentExternalAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
@@ -296,7 +303,7 @@ export interface SubAgentInterface {
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: SubAgentInterface[]): void;
-  addDelegate(...agents: AllSubAgentInterface[]): void;
+  addDelegate(...agents: AllDelegateInputInterface[]): void;
 }
 
 export interface ExternalAgentInterface {
@@ -308,12 +315,18 @@ export interface ExternalAgentInterface {
   getDescription(): string;
   getBaseUrl(): string;
   setContext?(tenantId: string, projectId: string): void;
+  with(options: { headers?: Record<string, string> }): subAgentExternalAgentInterface;
   getCredentialReferenceId(): string | undefined;
   getCredentialReference(): CredentialReferenceApiInsert | undefined;
 }
 
 export type subAgentExternalAgentInterface = {
   externalAgent: ExternalAgentInterface;
+  headers?: Record<string, string>;
+};
+
+export type subAgentTeamAgentInterface = {
+  agent: AgentInterface;
   headers?: Record<string, string>;
 };
 
@@ -331,6 +344,7 @@ export interface AgentInterface {
   getSubAgent(name: string): SubAgentInterface | undefined;
   getSubAgents(): SubAgentInterface[];
   toFullAgentDefinition(): Promise<FullAgentDefinition>;
+  with(options: { headers?: Record<string, string> }): subAgentTeamAgentInterface;
 }
 
 export interface BuilderToolConfig {

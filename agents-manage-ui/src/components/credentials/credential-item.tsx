@@ -96,11 +96,13 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
 
 export function CredentialItem({
   id,
+  name,
   createdAt,
   tenantId,
   projectId,
 }: {
   id: Credential['id'];
+  name: Credential['name'];
   createdAt: Credential['createdAt'];
   tenantId: string;
   projectId: string;
@@ -113,12 +115,12 @@ export function CredentialItem({
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-md">
             <div className="flex items-center gap-3 min-w-0">
-              <ProviderIcon provider={id} size={24} className="flex-shrink-0" />
-              <span className="truncate">{id}</span>
+              <ProviderIcon provider={name} size={24} className="flex-shrink-0" />
+              <span className="truncate">{name}</span>
             </div>
           </ItemCardTitle>
         </ItemCardLink>
-        <CredentialDialogMenu credentialId={id} credentialName={id} />
+        <CredentialDialogMenu credentialId={id} credentialName={name} />
       </ItemCardHeader>
       <ItemCardContent>
         {/* <ItemCardDescription hasContent={!!description} className="line-clamp-2">

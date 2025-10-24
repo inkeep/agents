@@ -147,9 +147,19 @@ export type ExternalAgentRelationConfig = {
   relationType: string;
 };
 
+export type TeamAgentRelationConfig = {
+  relationId: string;
+  id: string;
+  name: string;
+  description: string;
+  baseUrl: string;
+  headers?: Record<string, string> | null;
+};
+
 export type DelegateRelation =
   | { type: 'internal'; config: AgentConfig }
-  | { type: 'external'; config: ExternalAgentRelationConfig };
+  | { type: 'external'; config: ExternalAgentRelationConfig }
+  | { type: 'team'; config: TeamAgentRelationConfig };
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 

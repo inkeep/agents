@@ -13,13 +13,14 @@ import { FunctionTool } from './function-tool';
 import type {
   AgentConfig,
   AgentInterface,
-  AllSubAgentInterface,
+  AllDelegateInputInterface,
   GenerateOptions,
   MessageInput,
   ModelSettings,
   RunResult,
   StreamResponse,
   SubAgentInterface,
+  subAgentTeamAgentInterface,
 } from './types';
 
 const logger = getLogger('agent');
@@ -89,9 +90,14 @@ export class Agent implements AgentInterface {
     this.subAgents = resolveGetter(config.subAgents) || [];
     this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
-    // Add default agent to map
+    // Add default agent to map if not already present
     if (this.defaultSubAgent) {
-      this.subAgents.push(this.defaultSubAgent);
+      const isAlreadyPresent = this.subAgents.some(
+        (agent) => agent.getId() === this.defaultSubAgent?.getId()
+      );
+      if (!isAlreadyPresent) {
+        this.subAgents.push(this.defaultSubAgent);
+      }
       this.agentMap.set(this.defaultSubAgent.getId(), this.defaultSubAgent);
     }
 
@@ -273,9 +279,10 @@ export class Agent implements AgentInterface {
               externalAgentId: d.externalAgent.getId(),
               ...(d.headers && { headers: d.headers }),
             };
-          } else if (typeof d === 'object' && 'type' in d && d.type === 'external') {
+          } else if (typeof d === 'object' && 'agent' in d) {
             return {
-              externalAgentId: d.getId(),
+              agentId: d.agent.getId(),
+              ...(d.headers && { headers: d.headers }),
             };
           }
           return d.getId();
@@ -751,6 +758,13 @@ export class Agent implements AgentInterface {
     };
   }
 
+  with(options: { headers?: Record<string, string> }): subAgentTeamAgentInterface {
+    return {
+      agent: this,
+      headers: options.headers,
+    };
+  }
+
   /**
    * Validate the agent configuration
    */
@@ -816,7 +830,7 @@ export class Agent implements AgentInterface {
   /**
    * Type guard to check if an agent is an internal AgentInterface
    */
-  isInternalAgent(agent: AllSubAgentInterface): agent is SubAgentInterface {
+  isInternalAgent(agent: AllDelegateInputInterface): agent is SubAgentInterface {
     // Internal agents have getTransfers, getDelegates, and other AgentInterface methods
     // External agents only have basic identification methods
     return 'getTransfers' in agent && typeof (agent as any).getTransfers === 'function';

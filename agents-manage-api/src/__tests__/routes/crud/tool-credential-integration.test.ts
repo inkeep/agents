@@ -11,6 +11,7 @@ describe('Tool-Credential Integration Tests', () => {
   const createTestCredential = async (tenantId: string) => {
     const credentialData = {
       id: generateId(),
+      name: 'Test Credential',
       type: CredentialStoreType.nango,
       credentialStoreId: 'slack-oauth',
       retrievalParams: {

@@ -1,5 +1,72 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+### Patch Changes
+
+- Updated dependencies [38db07a]
+  - @inkeep/agents-core@0.29.0
+  - @inkeep/agents-manage-api@0.29.0
+  - @inkeep/agents-run-api@0.29.0
+
+## 0.28.0
+
+### Minor Changes
+
+- 8e3dfb1: zoom into section of graph where agent is selected
+- e63ba9e: replace `JSON`/`Prompt`/`Code` Codemirror editors with Monaco-editors
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- dbeddf1: fix for data animation, bug highlights unrelated MCP tools on invocation
+- bb4ea0e: - Fix errors in agent builder
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- c10ac33: fix: polling on activities cause chat widget to re-render every second
+- 074e076: mcp evironment settings
+- Updated dependencies [74a4d0b]
+- Updated dependencies [b4e878d]
+- Updated dependencies [96c499d]
+- Updated dependencies [074e076]
+  - @inkeep/agents-manage-api@0.28.0
+  - @inkeep/agents-run-api@0.28.0
+  - @inkeep/agents-core@0.28.0
+
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+- Updated dependencies [4a2af4c]
+- Updated dependencies [0a6df6e]
+- Updated dependencies [a423b57]
+  - @inkeep/agents-core@0.27.0
+  - @inkeep/agents-run-api@0.27.0
+  - @inkeep/agents-manage-api@0.27.0
+
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- c1c55b5: Tighten up form styles, styles for component generation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+  - @inkeep/agents-core@0.26.2
+  - @inkeep/agents-manage-api@0.26.2
+  - @inkeep/agents-run-api@0.26.2
+
 ## 0.26.1
 
 ### Patch Changes

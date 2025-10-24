@@ -434,7 +434,9 @@ describe('Agent Relations Data Access', () => {
         createSubAgentRelation(db)({
           ...relationData,
         })
-      ).rejects.toThrow('Must specify either targetSubAgentId or externalSubAgentId');
+      ).rejects.toThrow(
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId'
+      );
     });
   });
 

@@ -4,7 +4,7 @@ import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';

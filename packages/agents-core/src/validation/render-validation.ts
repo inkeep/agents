@@ -1,8 +1,8 @@
 /**
- * Validation utilities for component preview code
+ * Validation utilities for component render code
  */
 
-export interface PreviewValidationResult {
+export interface RenderValidationResult {
   isValid: boolean;
   errors: Array<{
     field: string;
@@ -53,92 +53,85 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
 const ALLOWED_IMPORTS = ['lucide-react'];
 
 /**
- * Validates component preview code and data
+ * Validates component render code and data
  */
-export function validatePreview(preview: {
-  code: string;
-  data: Record<string, unknown>;
-}): PreviewValidationResult {
+export function validateRender(render: {
+  component: string;
+  mockData: Record<string, unknown>;
+}): RenderValidationResult {
   const errors: Array<{ field: string; message: string }> = [];
 
-  // Validate code exists
-  if (!preview.code || typeof preview.code !== 'string') {
+  // Validate component exists
+  if (!render.component || typeof render.component !== 'string') {
     return {
       isValid: false,
-      errors: [{ field: 'preview.code', message: 'Code must be a non-empty string' }],
+      errors: [{ field: 'render.component', message: 'Component must be a non-empty string' }],
     };
   }
 
-  // Validate data exists
-  if (!preview.data || typeof preview.data !== 'object') {
+  // Validate mockData exists
+  if (!render.mockData || typeof render.mockData !== 'object') {
     return {
       isValid: false,
-      errors: [{ field: 'preview.data', message: 'Data must be an object' }],
+      errors: [{ field: 'render.mockData', message: 'MockData must be an object' }],
     };
   }
 
-  // Check code size
-  if (preview.code.length > MAX_CODE_SIZE) {
+  // Check component size
+  if (render.component.length > MAX_CODE_SIZE) {
     errors.push({
-      field: 'preview.code',
-      message: `Code size exceeds maximum allowed (${MAX_CODE_SIZE} characters)`,
+      field: 'render.component',
+      message: `Component size exceeds maximum allowed (${MAX_CODE_SIZE} characters)`,
     });
   }
 
-  // Check data size
-  const dataString = JSON.stringify(preview.data);
+  // Check mockData size
+  const dataString = JSON.stringify(render.mockData);
   if (dataString.length > MAX_DATA_SIZE) {
     errors.push({
-      field: 'preview.data',
-      message: `Data size exceeds maximum allowed (${MAX_DATA_SIZE} characters)`,
+      field: 'render.mockData',
+      message: `MockData size exceeds maximum allowed (${MAX_DATA_SIZE} characters)`,
     });
   }
 
   // Check for dangerous patterns
   for (const { pattern, message } of DANGEROUS_PATTERNS) {
-    if (pattern.test(preview.code)) {
+    if (pattern.test(render.component)) {
       errors.push({
-        field: 'preview.code',
-        message: `Code contains potentially dangerous pattern: ${message}`,
+        field: 'render.component',
+        message: `Component contains potentially dangerous pattern: ${message}`,
       });
     }
   }
 
   // Validate imports
-  const importMatches = preview.code.matchAll(/import\s+.*?\s+from\s+['"]([^'"]+)['"]/g);
+  const importMatches = render.component.matchAll(/import\s+.*?\s+from\s+['"]([^'"]+)['"]/g);
   for (const match of importMatches) {
     const importPath = match[1];
-    if (!ALLOWED_IMPORTS.includes(importPath)) {
+    // Allow local imports
+    if (!ALLOWED_IMPORTS.includes(importPath) && !importPath.startsWith('.')) {
       errors.push({
-        field: 'preview.code',
+        field: 'render.component',
         message: `Import from "${importPath}" is not allowed. Only imports from ${ALLOWED_IMPORTS.join(', ')} are permitted`,
       });
     }
   }
 
   // Basic JSX validation - must have a function declaration
-  const hasFunctionDeclaration = /function\s+\w+\s*\(/.test(preview.code);
+  const hasFunctionDeclaration = /function\s+\w+\s*\(/.test(render.component);
   if (!hasFunctionDeclaration) {
     errors.push({
-      field: 'preview.code',
-      message: 'Code must contain a function declaration',
+      field: 'render.component',
+      message: 'Component must contain a function declaration',
     });
   }
 
   // Check for return statement
-  const hasReturn = /return\s*\(?\s*</.test(preview.code);
+  const hasReturn = /return\s*\(?\s*</.test(render.component);
   if (!hasReturn) {
     errors.push({
-      field: 'preview.code',
+      field: 'render.component',
       message: 'Component function must have a return statement with JSX',
-    });
-  }
-
-  // Check for export statements (should not have any)
-  if (/\bexport\s+(default\s+)?/i.test(preview.code)) {
-    errors.push({
-      field: 'preview.code',
-      message: 'Code should not contain export statements',
     });
   }
 

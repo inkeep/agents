@@ -343,12 +343,24 @@ export const createFullProjectServerSide =
           'Creating project agent'
         );
 
+        // Phase 1: Create all agents without sub-agents to avoid circular dependency issues
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 1: Creating agents without sub-agents'
+        );
+
         const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
+            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project (phase 1)');
 
-            const agentDataWithProjectResources = {
+            // Create agent without sub-agents
+            const agentDataWithoutSubAgents = {
               ...agentData,
+              subAgents: {}, // No sub-agents in phase 1
+              defaultSubAgentId: undefined, // Clear defaultSubAgentId since no sub-agents exist yet
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
@@ -359,14 +371,17 @@ export const createFullProjectServerSide =
             };
             await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              agentDataWithProjectResources
+              agentDataWithoutSubAgents
             );
 
-            logger.info({ projectId: typed.id, agentId }, 'Agent created successfully in project');
+            logger.info(
+              { projectId: typed.id, agentId },
+              'Agent created successfully in project (phase 1)'
+            );
           } catch (error) {
             logger.error(
               { projectId: typed.id, agentId, error },
-              'Failed to create agent in project'
+              'Failed to create agent in project (phase 1)'
             );
             throw error;
           }
@@ -378,7 +393,55 @@ export const createFullProjectServerSide =
             projectId: typed.id,
             agentCount: Object.keys(typed.agents).length,
           },
-          'All project agent created successfully'
+          'Phase 1 complete: All agents created without sub-agents'
+        );
+
+        // Phase 2: Add all sub-agents with their relationships
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2: Adding sub-agents with relationships'
+        );
+
+        const updatePromises = Object.entries(typed.agents)
+          .filter(([_, agentData]) => Object.keys(agentData.subAgents).length > 0)
+          .map(async ([agentId, agentData]) => {
+            try {
+              logger.info({ projectId: typed.id, agentId }, 'Adding sub-agents (phase 2)');
+
+              // Add all sub-agents with their relationships
+              const updateData = {
+                ...agentData,
+                subAgents: agentData.subAgents, // Include all sub-agents with their relationships
+              };
+
+              await updateFullAgentServerSide(db, logger)(
+                { tenantId, projectId: typed.id },
+                updateData as any
+              );
+
+              logger.info(
+                { projectId: typed.id, agentId },
+                'Sub-agents added successfully (phase 2)'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, agentId, error },
+                'Failed to add sub-agents (phase 2)'
+              );
+              throw error;
+            }
+          });
+
+        await Promise.all(updatePromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2 complete: All sub-agents added successfully'
         );
       }
 
@@ -932,6 +995,7 @@ export const getFullProject =
             name: component.name,
             description: component.description,
             props: component.props,
+            render: component.render,
           };
         }
         logger.info(

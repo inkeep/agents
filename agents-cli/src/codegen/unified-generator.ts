@@ -788,7 +788,7 @@ const weatherSubAgent = subAgent({
   prompt: \`You are a helpful assistant.
 When users ask about weather, use your tools.
 Always be clear and concise.\`,  // Template literal for multi-line
-  canUse: () => [tool1, tool2],  // FUNCTION returning array
+  canUse: () => [tool1, tool2.with({ selectedTools: ['tool-id'] })],  // FUNCTION returning array
   canDelegateTo: () => [otherAgent],  // FUNCTION returning array
   dataComponents: () => [component1]  // FUNCTION returning array
 });
@@ -813,6 +813,48 @@ canUse: [tool1, tool2],  // NO - must be a function
 subAgents: [weatherSubAgent],  // NO - must be a function
 statusComponents: [{ type: '...', ... }],  // NO - import from files
 
+METHOD CHAINING (CRITICAL):
+- Use .with() to add options to an agent or external agent when headers are present in the subAgentTeamAgentRelation or subAgentExternalAgentRelation
+
+✅ CORRECT:
+import { subAgent } from '@inkeep/agents-sdk';
+import { events } from '../data-components/events';
+import { eventEvaluator } from './event-evaluator';
+import { getCoordinatesAgent } from './get-coordinates-agent';
+
+
+export const eventPlanningCoordinator = subAgent({
+  id: 'event-planning-coordinator',
+  name: 'Event planning coordinator',
+  description: \`Responsible for routing between the coordinates agent and weather forecast agent\`,
+  prompt: \`You are a helpful assistant. When the user asks about event planning in a given location\`,
+  canDelegateTo: () => [
+    getCoordinatesAgent,
+    eventEvaluator.with({ headers: { authorization: 'my-api-key' } }),
+  ],
+  dataComponents: () => [events],
+});
+
+❌ WRONG:
+export const eventPlanningCoordinator = subAgent({
+  id: 'event-planning-coordinator',
+  name: 'Event planning coordinator',
+  description: \`Responsible for routing between the coordinates agent and weather forecast agent\`,
+  prompt: \`You are a helpful assistant. When the user asks about event planning in a given location\`,
+    canDelegateTo: () => [
+    getCoordinatesAgent,
+    {
+      externalAgent: eventEvaluator,
+      headers: {
+        authorization: 'my-api-key',
+      },
+    },
+  ],
+  dataComponents: () => [events],
+});
+
+
+
 Generate ONLY the TypeScript code without markdown.`;
 }
 
@@ -836,13 +878,13 @@ REQUIREMENTS:
 1. Import mcpTool or functionTool from '@inkeep/agents-sdk'
 2. Use exact variable name from registry
 3. Include serverUrl property if MCP tool
-4. For tools with credentials, import envSettings and use envSettings.getEnvironmentSetting('credential_key')
+4. For tools with credentials, import envSettings and use envSettings.getEnvironmentCredential('credential_key')
 5. CRITICAL: Transport must be an OBJECT format: transport: { type: 'streamable_http' } NOT a string
 
 CREDENTIAL HANDLING (CRITICAL):
 If the tool data includes credential information, you MUST:
 1. Import { envSettings } from '../environments'
-2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the tool definition
+2. Use credential: envSettings.getEnvironmentCredential('credential_key') in the tool definition
 3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
 
 Example for tool with credential:
@@ -854,7 +896,7 @@ export const toolName = mcpTool({
   id: 'tool-id',
   name: 'Tool Name',
   serverUrl: 'https://example.com/mcp',
-  credential: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+  credential: envSettings.getEnvironmentCredential('linear_api'), // underscore format
   transport: { type: 'streamable_http' }
 });
 \`\`\`
@@ -889,7 +931,7 @@ REQUIREMENTS:
 CREDENTIAL HANDLING (CRITICAL):
 If the external agent data includes credential information, you MUST:
 1. Import { envSettings } from '../environments/index'
-2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the external agent definition
+2. Use credential: envSettings.getEnvironmentCredential('credential_key') in the external agent definition
 3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
 
   Example for external agent with credential:
@@ -901,7 +943,7 @@ If the external agent data includes credential information, you MUST:
     id: 'external-helper',
     name: 'External Helper',
     url: 'https://api.example.com/agent',
-    credentialReference: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+    credentialReference: envSettings.getEnvironmentCredential('linear_api'), // underscore format
   });
   \`\`\`
 
@@ -1218,6 +1260,7 @@ export const ${envName} = registerEnvironmentSettings({
   credentials: {
     CREDENTIAL_KEY: credential({
       id: 'CREDENTIAL_ID',
+      name: 'CREDENTIAL_NAME',
       type: 'CREDENTIAL_TYPE', 
       credentialStoreId: 'CREDENTIAL_STORE_ID',
       retrievalParams: {

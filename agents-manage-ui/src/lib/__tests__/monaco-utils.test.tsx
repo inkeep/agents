@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor';
-import { getOrCreateModel, addDecorations } from '@/lib/monaco-utils';
-import '@/lib/setup-monaco-workers';
+import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
+import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
   null: null,
@@ -28,9 +28,10 @@ describe('Monaco-Editor Functionality', () => {
     document.body.append(container);
 
     model = getOrCreateModel({
+      monaco,
       uri: 'test.json',
       value: JSON.stringify(obj, null, 2),
-    });
+    }).model;
 
     // Create Monaco editor
     editor = monaco.editor.create(container, {
@@ -39,17 +40,24 @@ describe('Monaco-Editor Functionality', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     editor?.dispose();
     model?.dispose();
     container?.remove();
+
+    // Wait for any pending operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
     // Wait for Monaco workers to initialize
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { promise, resolve } = Promise.withResolvers();
+    requestAnimationFrame(resolve);
+    await promise;
 
-    expect(monaco.editor.tokenize(model.getValue(), 'json')).toMatchInlineSnapshot(`
+    const modelValue = model.getValue();
+    expect(modelValue).toBe(JSON.stringify(obj, null, 2));
+    expect(monaco.editor.tokenize(modelValue, 'json')).toMatchInlineSnapshot(`
       [
         [
           Token {
@@ -454,51 +462,73 @@ describe('Monaco-Editor Functionality', () => {
       ]
     `);
 
-    expect(model.getValue()).toMatchInlineSnapshot(`
-      "{
-        "null": null,
-        "number": 1,
-        "boolean": false,
-        "array": [
-          true,
-          {
-            "foo": "bar"
-          },
-          [
-            2,
-            "baz"
-          ]
-        ],
-        "string": "hello",
-        "emptyString": ""
-      }"
-    `);
+    const { decorations } = addDecorations({
+      monaco,
+      editorInstance: editor,
+      content: modelValue,
+    });
 
-    const { decorations, decorationCollection } = addDecorations(editor, model.getValue());
+    /**
+     * Add decorations to a string content using actual decoration positions
+     * This function modifies the string content to show where decorations would be inserted
+     */
+    function addDecorationsToString(content: string, addedContent = '❌'): string {
+      const lines = content.split('\n');
+      const modifiedLines: string[] = [];
 
-    // Verify that decorations were created (we have 9 primitive values: null, 1, false, true, "bar", 2, "baz", "hello", "")
-    expect(decorations).toHaveLength(9);
+      // Sort decorations by line number and column (descending) to avoid offset issues
+      const sortedDecorations = decorations
+        .map((pos, index) => ({ ...pos, originalIndex: index }))
+        .sort(({ range: a }, { range: b }) => {
+          if (a.startLineNumber !== b.startLineNumber) {
+            return b.startLineNumber - a.startLineNumber;
+          }
+          return b.startColumn - a.startColumn;
+        });
 
-    // Verify the decorations are applied to the editor
-    const appliedDecorations = decorationCollection.getRanges();
-    expect(appliedDecorations).toHaveLength(9);
+      // Process each line
+      for (let [lineIndex, modifiedLine] of lines.entries()) {
+        const lineNumber = lineIndex + 1;
 
-    // Verify that the decorations are positioned correctly
-    // Based on the debug output, we have decorations on these lines:
-    const decorationPositions = appliedDecorations.map((range) => ({
-      startLineNumber: range.startLineNumber,
-      startColumn: range.startColumn,
-    }));
+        // Find decorations for this line
+        const lineDecorations = sortedDecorations.filter(
+          (decoration) => decoration.range.startLineNumber === lineNumber
+        );
 
-    // Verify we have decorations on the expected lines (based on actual token positions)
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 2)).toBe(true); // "null": null
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 3)).toBe(true); // "number": 1
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 4)).toBe(true); // "boolean": false
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 6)).toBe(true); // true
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 8)).toBe(true); // "foo": "bar"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 11)).toBe(true); // 2
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 12)).toBe(true); // "baz"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 15)).toBe(true); // "string": "hello"
-    expect(decorationPositions.some((pos) => pos.startLineNumber === 16)).toBe(true); // "emptyString": ""
+        // Apply decorations to this line (from right to left to maintain positions)
+        for (const decoration of lineDecorations) {
+          const insertPosition = decoration.range.startColumn;
+
+          // Insert the decoration at the specified position
+          modifiedLine =
+            modifiedLine.slice(0, insertPosition) +
+            addedContent +
+            modifiedLine.slice(insertPosition);
+        }
+
+        modifiedLines.push(modifiedLine);
+      }
+
+      return modifiedLines.join('\n');
+    }
+
+    const expectedContentWithDecorations = `{
+  "null": null,❌
+  "number": 1,❌
+  "boolean": false,❌
+  "array": [
+    true,❌
+    {
+      "foo": "bar"❌
+    },
+    [
+      2,❌
+      "baz"❌
+    ]
+  ],
+  "string": "hello",❌
+  "emptyString": ""❌
+}`;
+    expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });
 });

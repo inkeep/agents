@@ -36,6 +36,7 @@ import {
   subAgentExternalAgentRelations,
   subAgentRelations,
   subAgents,
+  subAgentTeamAgentRelations,
   subAgentToolRelations,
   taskRelations,
   tasks,
@@ -172,6 +173,7 @@ export const SubAgentRelationInsertSchema = createInsertSchema(subAgentRelations
   sourceSubAgentId: resourceIdSchema,
   targetSubAgentId: resourceIdSchema.optional(),
   externalSubAgentId: resourceIdSchema.optional(),
+  teamSubAgentId: resourceIdSchema.optional(),
 });
 export const SubAgentRelationUpdateSchema = SubAgentRelationInsertSchema.partial();
 
@@ -188,11 +190,14 @@ export const SubAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
     (data) => {
       const hasTarget = data.targetSubAgentId != null;
       const hasExternal = data.externalSubAgentId != null;
-      return hasTarget !== hasExternal; // XOR - exactly one must be true
+      const hasTeam = data.teamSubAgentId != null;
+      const count = [hasTarget, hasExternal, hasTeam].filter(Boolean).length;
+      return count === 1; // Exactly one must be true
     },
     {
-      message: 'Must specify exactly one of targetSubAgentId or externalSubAgentId',
-      path: ['targetSubAgentId', 'externalSubAgentId'],
+      message:
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId',
+      path: ['targetSubAgentId', 'externalSubAgentId', 'teamSubAgentId'],
     }
   )
   .openapi('SubAgentRelationCreate');
@@ -207,17 +212,19 @@ export const SubAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
     (data) => {
       const hasTarget = data.targetSubAgentId != null;
       const hasExternal = data.externalSubAgentId != null;
+      const hasTeam = data.teamSubAgentId != null;
+      const count = [hasTarget, hasExternal, hasTeam].filter(Boolean).length;
 
-      if (!hasTarget && !hasExternal) {
-        return true;
+      if (count === 0) {
+        return true; // No relationship specified - valid for updates
       }
 
-      return hasTarget !== hasExternal; // XOR - exactly one must be true
+      return count === 1; // Exactly one must be true
     },
     {
       message:
-        'Must specify exactly one of targetSubAgentId or externalSubAgentId when updating sub-agent relationships',
-      path: ['targetSubAgentId', 'externalSubAgentId'],
+        'Must specify exactly one of targetSubAgentId, externalSubAgentId, or teamSubAgentId when updating sub-agent relationships',
+      path: ['targetSubAgentId', 'externalSubAgentId', 'teamSubAgentId'],
     }
   )
   .openapi('SubAgentRelationUpdate');
@@ -226,6 +233,7 @@ export const SubAgentRelationQuerySchema = z.object({
   sourceSubAgentId: z.string().optional(),
   targetSubAgentId: z.string().optional(),
   externalSubAgentId: z.string().optional(),
+  teamSubAgentId: z.string().optional(),
 });
 
 export const ExternalSubAgentRelationInsertSchema = createInsertSchema(subAgentRelations).extend({
@@ -528,6 +536,7 @@ export const CredentialReferenceSelectSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
   projectId: z.string(),
+  name: z.string(),
   type: z.string(),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
@@ -744,6 +753,32 @@ export const SubAgentExternalAgentRelationApiUpdateSchema = createAgentScopedApi
   SubAgentExternalAgentRelationUpdateSchema
 ).openapi('SubAgentExternalAgentRelationUpdate');
 
+// Sub-Agent Team Agent Relation Schemas
+export const SubAgentTeamAgentRelationSelectSchema = createSelectSchema(subAgentTeamAgentRelations);
+export const SubAgentTeamAgentRelationInsertSchema = createInsertSchema(
+  subAgentTeamAgentRelations
+).extend({
+  id: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  targetAgentId: resourceIdSchema,
+  headers: z.record(z.string(), z.string()).nullish(),
+});
+
+export const SubAgentTeamAgentRelationUpdateSchema =
+  SubAgentTeamAgentRelationInsertSchema.partial();
+
+export const SubAgentTeamAgentRelationApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentTeamAgentRelationSelectSchema
+).openapi('SubAgentTeamAgentRelation');
+export const SubAgentTeamAgentRelationApiInsertSchema = createAgentScopedApiInsertSchema(
+  SubAgentTeamAgentRelationInsertSchema
+)
+  .omit({ id: true, subAgentId: true })
+  .openapi('SubAgentTeamAgentRelationCreate');
+export const SubAgentTeamAgentRelationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  SubAgentTeamAgentRelationUpdateSchema
+).openapi('SubAgentTeamAgentRelationUpdate');
+
 export const LedgerArtifactSelectSchema = createSelectSchema(ledgerArtifacts);
 export const LedgerArtifactInsertSchema = createInsertSchema(ledgerArtifacts);
 export const LedgerArtifactUpdateSchema = LedgerArtifactInsertSchema.partial();
@@ -797,6 +832,18 @@ export const canDelegateToExternalAgentSchema = z.object({
   headers: z.record(z.string(), z.string()).nullish(),
 });
 
+export const canDelegateToTeamAgentSchema = z.object({
+  agentId: z.string(),
+  subAgentTeamAgentRelationId: z.string().optional(),
+  headers: z.record(z.string(), z.string()).nullish(),
+});
+
+export const TeamAgentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+});
+
 export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
@@ -808,6 +855,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
       z.union([
         z.string(), // Internal subAgent ID
         canDelegateToExternalAgentSchema, // External agent with headers
+        canDelegateToTeamAgentSchema, // Team agent with headers
       ])
     )
     .optional(),
@@ -817,6 +865,7 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
   tools: z.record(z.string(), ToolApiInsertSchema).optional(), // MCP tools (project-scoped)
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(), // External agents (project-scoped)
+  teamAgents: z.record(z.string(), TeamAgentSchema).optional(), // Team agents contain basic metadata for the agent to be delegated to
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(), // Function tools (agent-scoped)
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(), // Get function code for function tools
   contextConfig: z.optional(ContextConfigApiInsertSchema),
