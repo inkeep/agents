@@ -16,7 +16,6 @@ export default {
         'concepts',
       ],
     },
-
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
@@ -30,7 +29,17 @@ export default {
             'typescript-sdk/tools/mcp-servers',
             'typescript-sdk/tools/create-mcp-servers',
             'typescript-sdk/tools/function-tools',
-            'typescript-sdk/tools/credentials',
+            {
+              group: 'Credentials',
+              icon: 'LuKey',
+              pages: [
+                'typescript-sdk/credentials/overview',
+                'typescript-sdk/credentials/nango',
+                'typescript-sdk/credentials/keychain',
+                'typescript-sdk/credentials/environment-variables',
+                'typescript-sdk/credentials/env-aware-credentials',
+              ],
+            },
           ],
         },
         'typescript-sdk/headers',
