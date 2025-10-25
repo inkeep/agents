@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.2
+
+### Patch Changes
+
+- b499ce6: - Make agents plural in breadcrumbs ans agents page
+  - @inkeep/agents-manage-api@0.29.2
+  - @inkeep/agents-run-api@0.29.2
+  - @inkeep/agents-core@0.29.2
+
 ## 0.29.1
 
 ### Patch Changes
