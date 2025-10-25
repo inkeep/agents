@@ -1,5 +1,16 @@
 # @inkeep/agents-sdk
 
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 65f4b1a: remove builtin time variables from context
+- Updated dependencies [f2ac869]
+- Updated dependencies [37e50a6]
+- Updated dependencies [65f4b1a]
+  - @inkeep/agents-core@0.29.1
+
 ## 0.29.0
 
 ### Minor Changes
