@@ -1,5 +1,21 @@
 import { z } from '@hono/zod-openapi';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_PAGINATION_DEFAULT_LIMIT,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
 import {
   agents,
   apiKeys,
@@ -36,8 +52,16 @@ import {
 
 export const StopWhenSchema = z
   .object({
-    transferCountIs: z.number().min(1).max(100).optional(),
-    stepCountIs: z.number().min(1).max(1000).optional(),
+    transferCountIs: z
+      .number()
+      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+      .optional(),
+    stepCountIs: z
+      .number()
+      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
+      .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
+      .optional(),
   })
   .openapi('StopWhen');
 
@@ -622,7 +646,7 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
-    timeout: z.number().min(0).optional().default(10000).optional(),
+    timeout: z.number().min(0).optional().default(DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT).optional(),
   })
   .openapi('FetchConfig');
 
@@ -780,9 +804,15 @@ export const StatusComponentSchema = z
 export const StatusUpdateSchema = z
   .object({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(100).optional(),
-    timeInSeconds: z.number().min(1).max(600).optional(),
-    prompt: z.string().max(2000, 'Custom prompt cannot exceed 2000 characters').optional(),
+    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    prompt: z
+      .string()
+      .max(
+        VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+        `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
+      )
+      .optional(),
     statusComponents: z.array(StatusComponentSchema).optional(),
   })
   .openapi('StatusUpdate');
@@ -842,13 +872,23 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
-  prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
+  prompt: z
+    .string()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .optional(),
 });
 
 export const PaginationSchema = z
   .object({
     page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(100).default(10),
+    limit: z
+      .coerce.number()
+      .min(1)
+      .max(VALIDATION_PAGINATION_MAX_LIMIT)
+      .default(VALIDATION_PAGINATION_DEFAULT_LIMIT),
     total: z.number(),
     pages: z.number(),
   })
@@ -1156,5 +1196,9 @@ export const TenantProjectAgentSubAgentIdParamsSchema =
 
 export const PaginationQueryParamsSchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(10),
+  limit: z
+    .coerce.number()
+    .min(1)
+    .max(VALIDATION_PAGINATION_MAX_LIMIT)
+    .default(VALIDATION_PAGINATION_DEFAULT_LIMIT),
 });

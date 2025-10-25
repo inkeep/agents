@@ -1,4 +1,8 @@
 import { generateId } from '@inkeep/agents-core';
+import {
+  VALIDATION_PAGINATION_DEFAULT_LIMIT,
+  VALIDATION_PAGINATION_MAX_LIMIT,
+} from '@inkeep/agents-core/constants/schema-validation';
 import { describe, expect, it } from 'vitest';
 import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
@@ -168,7 +172,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.pagination).toMatchObject({
         page: 1,
-        limit: 10,
+        limit: VALIDATION_PAGINATION_DEFAULT_LIMIT,
       });
     });
 
