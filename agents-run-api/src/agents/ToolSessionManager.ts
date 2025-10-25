@@ -32,7 +32,6 @@ export interface ToolSession {
 export class ToolSessionManager {
   private static instance: ToolSessionManager;
   private sessions: Map<string, ToolSession> = new Map();
-  private readonly SESSION_TIMEOUT = SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS;
 
   private constructor() {
     // Cleanup expired sessions every minute
@@ -208,7 +207,7 @@ export class ToolSessionManager {
     const expiredSessions: string[] = [];
 
     for (const [sessionId, session] of this.sessions.entries()) {
-      if (now - session.createdAt > this.SESSION_TIMEOUT) {
+      if (now - session.createdAt > SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS) {
         expiredSessions.push(sessionId);
       }
     }

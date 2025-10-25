@@ -18,10 +18,6 @@ import {
   TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
-import {
-  VALIDATION_PAGINATION_DEFAULT_LIMIT,
-  VALIDATION_PAGINATION_MAX_LIMIT,
-} from '@inkeep/agents-core/constants/schema-validation';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -52,10 +48,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
-    const limit = Math.min(
-      Number(c.req.query('limit')) || VALIDATION_PAGINATION_DEFAULT_LIMIT,
-      VALIDATION_PAGINATION_MAX_LIMIT
-    );
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     const result = await listContextConfigsPaginated(dbClient)({
       scopes: { tenantId, projectId, agentId },

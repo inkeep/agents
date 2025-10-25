@@ -260,15 +260,13 @@ export class VercelDataStreamHelper implements StreamHelper {
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
 
   private lastTextEndTimestamp: number = 0;
-  private readonly TEXT_GAP_THRESHOLD = STREAM_TEXT_GAP_THRESHOLD_MS; // milliseconds - if gap between text sequences is less than this, queue operations
 
   private connectionDropTimer?: ReturnType<typeof setTimeout>;
-  private readonly MAX_LIFETIME_MS = STREAM_MAX_LIFETIME_MS;
 
   constructor(private writer: VercelUIWriter) {
     this.connectionDropTimer = setTimeout(() => {
       this.forceCleanup('Connection lifetime exceeded');
-    }, this.MAX_LIFETIME_MS);
+    }, STREAM_MAX_LIFETIME_MS);
   }
 
   setSessionId(sessionId: string): void {
@@ -341,7 +339,7 @@ export class VercelDataStreamHelper implements StreamHelper {
         ? startTime - this.lastTextEndTimestamp
         : Number.MAX_SAFE_INTEGER;
 
-    if (gapFromLastSequence >= this.TEXT_GAP_THRESHOLD) {
+    if (gapFromLastSequence >= STREAM_TEXT_GAP_THRESHOLD_MS) {
       await this.flushQueuedOperations();
     }
 
@@ -385,7 +383,7 @@ export class VercelDataStreamHelper implements StreamHelper {
       const gapFromLastTextEnd =
         this.lastTextEndTimestamp > 0 ? now - this.lastTextEndTimestamp : Number.MAX_SAFE_INTEGER;
 
-      if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+      if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
         this.writer.write({
           type: `${type}`,
           data,
@@ -584,7 +582,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     // ALWAYS queue operation if:
     // 1. Text is currently streaming, OR
     // 2. We're within the gap threshold from last text-end (more text might be coming)
-    if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+    if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
       this.queuedEvents.push({ type: 'data-summary', event: summary });
       return;
     }
@@ -612,7 +610,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     // ALWAYS queue operation if:
     // 1. Text is currently streaming, OR
     // 2. We're within the gap threshold from last text-end (more text might be coming)
-    if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+    if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
       this.queuedEvents.push({ type: 'data-operation', event: operation });
       return;
     }

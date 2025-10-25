@@ -36,8 +36,6 @@ export class VercelSandboxExecutor {
   private static instance: VercelSandboxExecutor;
   private config: VercelSandboxConfig;
   private sandboxPool: Map<string, CachedSandbox> = new Map();
-  private readonly POOL_TTL = FUNCTION_TOOL_SANDBOX_POOL_TTL_MS;
-  private readonly MAX_USE_COUNT = FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor(config: VercelSandboxConfig) {
@@ -87,14 +85,14 @@ export class VercelSandboxExecutor {
     const age = now - cached.createdAt;
 
     // Check if sandbox is still valid
-    if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
+    if (age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS || cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
       logger.debug(
         {
           dependencyHash,
           age,
           useCount: cached.useCount,
-          ttl: this.POOL_TTL,
-          maxUseCount: this.MAX_USE_COUNT,
+          ttl: FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
+          maxUseCount: FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
         },
         'Sandbox expired, will create new one'
       );
@@ -175,7 +173,7 @@ export class VercelSandboxExecutor {
 
         for (const [hash, cached] of this.sandboxPool.entries()) {
           const age = now - cached.createdAt;
-          if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
+          if (age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS || cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
             toRemove.push(hash);
           }
         }

@@ -9,7 +9,7 @@
  * The constants/schema-validation/index.ts file validates these overrides at startup.
  * If not set, constants use the default values defined below.
  *
- * Example: AGENTS_VALIDATION_PAGINATION_MAX_LIMIT=200
+ * Example: AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS=10000
  * ============================================================================= */
 
 /**
@@ -34,10 +34,6 @@ export const schemaValidationDefaults = {
   // Prompt Validation Limits
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS: 2_000,
   VALIDATION_AGENT_PROMPT_MAX_CHARS: 5_000,
-
-  // Pagination Limits
-  VALIDATION_PAGINATION_MAX_LIMIT: 100,
-  VALIDATION_PAGINATION_DEFAULT_LIMIT: 50,
 
   // Data Component Fetching
   DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT: 10_000, // 10 seconds

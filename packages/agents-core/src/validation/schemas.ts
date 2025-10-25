@@ -12,8 +12,6 @@ const {
   SUB_AGENT_TURN_GENERATION_STEPS_MAX,
   SUB_AGENT_TURN_GENERATION_STEPS_MIN,
   VALIDATION_AGENT_PROMPT_MAX_CHARS,
-  VALIDATION_PAGINATION_DEFAULT_LIMIT,
-  VALIDATION_PAGINATION_MAX_LIMIT,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 import {
@@ -884,11 +882,7 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
 export const PaginationSchema = z
   .object({
     page: z.coerce.number().min(1).default(1),
-    limit: z
-      .coerce.number()
-      .min(1)
-      .max(VALIDATION_PAGINATION_MAX_LIMIT)
-      .default(VALIDATION_PAGINATION_DEFAULT_LIMIT),
+    limit: z.coerce.number().min(1).max(100).default(10),
     total: z.number(),
     pages: z.number(),
   })
@@ -1199,6 +1193,6 @@ export const PaginationQueryParamsSchema = z.object({
   limit: z
     .coerce.number()
     .min(1)
-    .max(VALIDATION_PAGINATION_MAX_LIMIT)
-    .default(VALIDATION_PAGINATION_DEFAULT_LIMIT),
+    .max(100)
+    .default(10),
 });

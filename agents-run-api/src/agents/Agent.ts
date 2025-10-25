@@ -88,13 +88,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-const CONSTANTS = {
-  MAX_GENERATION_STEPS: 5, // Default from SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT
-  PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
-  PHASE_2_TIMEOUT_MS: LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
-} as const;
-
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -247,10 +240,10 @@ export class Agent {
 
   /**
    * Get the maximum number of generation steps for this agent
-   * Uses agent's stopWhen.stepCountIs config or defaults to CONSTANTS.MAX_GENERATION_STEPS
+   * Uses agent's stopWhen.stepCountIs config or defaults to 5
    */
   private getMaxGenerationSteps(): number {
-    return this.config.stopWhen?.stepCountIs ?? CONSTANTS.MAX_GENERATION_STEPS;
+    return this.config.stopWhen?.stepCountIs ?? 5;
   }
 
   /**
@@ -1811,8 +1804,8 @@ export class Agent {
           const configuredTimeout = modelSettings.maxDuration
             ? Math.min(modelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
             : shouldStreamPhase1
-              ? CONSTANTS.PHASE_1_TIMEOUT_MS
-              : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
+              ? LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING
+              : LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING;
 
           // Ensure timeout doesn't exceed maximum
           const timeoutMs = Math.min(configuredTimeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
@@ -2176,7 +2169,7 @@ ${output}${structureHintsFormatted}`;
               // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
               const configuredPhase2Timeout = structuredModelSettings.maxDuration
                 ? Math.min(structuredModelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
-                : CONSTANTS.PHASE_2_TIMEOUT_MS;
+                : LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS;
 
               // Ensure timeout doesn't exceed maximum
               const phase2TimeoutMs = Math.min(configuredPhase2Timeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
