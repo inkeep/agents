@@ -69,7 +69,7 @@ async function AgentPage({
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` },
+        { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
         { label: agent.data.name },
       ]}
     >

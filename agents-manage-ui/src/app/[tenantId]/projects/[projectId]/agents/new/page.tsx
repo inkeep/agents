@@ -44,7 +44,7 @@ async function NewAgentPage({ params }: PageProps<'/[tenantId]/projects/[project
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` },
+        { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
         { label: 'New Agent' },
       ]}
     >
