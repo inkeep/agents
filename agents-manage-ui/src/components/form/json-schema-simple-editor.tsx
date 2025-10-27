@@ -1,112 +1,20 @@
 import { withTheme } from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
-import type { UiSchema } from '@rjsf/utils';
+import { englishStringTranslator, TranslatableString, type UiSchema } from '@rjsf/utils';
 import type { RJSFSchema } from '@rjsf/utils';
 import { Theme as ShadcnTheme } from '@rjsf/shadcn';
 import type { SimpleJsonSchema } from './json-schema-simple-utils';
 import { createEmptySimpleJsonSchema } from './json-schema-simple-utils';
+import ArrayFieldItemTemplate from './ArrayFieldItemTemplate';
 
 const Form = withTheme(ShadcnTheme);
 
-const SIMPLE_SCHEMA: RJSFSchema = {
-  type: 'object',
-  properties: {
-    title: {
-      type: 'string',
-      title: 'Name',
-    },
-    description: {
-      type: 'string',
-      title: 'Description',
-    },
-    properties: {
-      type: 'array',
-      title: 'Properties',
-      items: {
-        $ref: '#/$defs/property',
-      },
-    },
-  },
-  $defs: {
-    property: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'string',
-          title: 'Name',
-        },
-        title: {
-          type: 'string',
-          title: 'Label',
-        },
-        description: {
-          type: 'string',
-          title: 'Description',
-        },
-        type: {
-          type: 'string',
-          title: 'Type',
-          enum: ['string', 'number', 'integer', 'boolean', 'object', 'array'],
-          default: 'string',
-        },
-        required: {
-          type: 'boolean',
-          title: 'Required',
-          default: true,
-        },
-        properties: {
-          type: 'array',
-          title: 'Nested Properties',
-          items: {
-            $ref: '#/$defs/property',
-          },
-        },
-        items: {
-          title: 'Array Item Definition',
-          $ref: '#/$defs/property',
-        },
-      },
-      required: ['name', 'type'],
-      default: {
-        type: 'string',
-        required: true,
-      },
-    },
-  },
-};
-
-const SIMPLE_UI_SCHEMA: UiSchema = {
-  properties: {
-    'ui:options': {
-      orderable: true,
-    },
-    items: {
-      'ui:options': {
-        orderable: true,
-      },
-    },
-  },
-  description: {
-    'ui:widget': 'textarea',
-    'ui:options': {
-      rows: 2,
-    },
-  },
-  'ui:submitButtonOptions': {
-    norender: true,
-  },
-};
-
 const buildTemplates = () => {
-  const baseTemplates = ShadcnTheme?.templates ?? {};
-  const baseButtonTemplates = baseTemplates.ButtonTemplates ?? {};
+  const baseTemplates = ShadcnTheme.templates;
 
   return {
     ...baseTemplates,
-    ButtonTemplates: {
-      ...baseButtonTemplates,
-      SubmitButton: () => null,
-    },
+    ArrayFieldItemTemplate,
   };
 };
 
@@ -130,7 +38,7 @@ function buildForm(obj: RJSFSchema) {
 const MY_SCHEMA: RJSFSchema = {
   type: 'array',
   items: {
-    type: '',
+    oneOf: [{ $ref: '#/$defs/string' }, { $ref: '#/$defs/number' }, { $ref: '#/$defs/boolean' }],
   },
   $defs: {
     name: {
@@ -148,10 +56,8 @@ const MY_SCHEMA: RJSFSchema = {
     },
     string: {
       type: 'object',
+      title: 'STR',
       properties: {
-        type: {
-          $ref: '#/$defs/type',
-        },
         name: {
           $ref: '#/$defs/name',
         },
@@ -162,10 +68,8 @@ const MY_SCHEMA: RJSFSchema = {
     },
     number: {
       type: 'object',
+      title: 'NUM',
       properties: {
-        type: {
-          $ref: '#/$defs/type',
-        },
         name: {
           $ref: '#/$defs/name',
         },
@@ -176,10 +80,8 @@ const MY_SCHEMA: RJSFSchema = {
     },
     boolean: {
       type: 'object',
+      title: 'BOOL',
       properties: {
-        type: {
-          $ref: '#/$defs/type',
-        },
         name: {
           $ref: '#/$defs/name',
         },
@@ -187,6 +89,22 @@ const MY_SCHEMA: RJSFSchema = {
           $ref: '#/$defs/description',
         },
       },
+    },
+  },
+};
+
+const SIMPLE_UI_SCHEMA: UiSchema = {
+  'ui:globalOptions': {
+    label: false,
+    orderable: false,
+  },
+  items: {
+    'ui:order': ['description', '*'],
+    name: {
+      'ui:placeholder': 'Property name',
+    },
+    description: {
+      'ui:placeholder': 'Add description',
     },
   },
 };
@@ -212,6 +130,14 @@ export function JsonSchemaSimpleEditor({
       disabled={disabled}
       readonly={readOnly}
       focusOnFirstError={false}
+      translateString={(stringToTranslate, params) => {
+        switch (stringToTranslate) {
+          case TranslatableString.AddItemButton: {
+            return 'Add property';
+          }
+        }
+        return englishStringTranslator(stringToTranslate, params); // Fallback to the default english
+      }}
       onChange={(event) => {
         // onChange(event.formData ?? createEmptySimpleJsonSchema());
       }}

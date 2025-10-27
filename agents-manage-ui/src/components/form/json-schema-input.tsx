@@ -14,7 +14,7 @@ import {
 } from './json-schema-simple-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableHead, TableHeader } from '@/components/ui/table';
+import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -65,11 +65,14 @@ export function JsonSchemaInput<T extends FieldValues>({
           <TabsContent value="simple">
             <Table>
               <TableHeader>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Value</TableHead>
+                </TableRow>
               </TableHeader>
             </Table>
+            <br />
             <SimpleTabContent
               fieldValue={field.value}
               onFieldChange={field.onChange}
