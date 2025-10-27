@@ -24,17 +24,13 @@ export default function ArrayFieldItemTemplate<
     uiOptions
   );
   return (
-    <div>
-      <div className="mb-2 flex flex-row flex-wrap items-center">
-        <div className="grow shrink">{children}</div>
-        <div className="flex items-end justify-end p-0.5">
-          {hasToolbar && (
-            <div className="flex gap-2">
-              <ArrayFieldItemButtonsTemplate {...buttonsProps} />
-            </div>
-          )}
+    <div className="mb-2 flex flex-row flex-wrap items-center gap-2">
+      <div className="grow shrink">{children}</div>
+      {hasToolbar && (
+        <div className="flex gap-2">
+          <ArrayFieldItemButtonsTemplate {...buttonsProps} />
         </div>
-      </div>
+      )}
     </div>
   );
 }
