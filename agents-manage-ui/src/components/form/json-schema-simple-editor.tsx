@@ -6,6 +6,7 @@ import { Theme as ShadcnTheme } from '@rjsf/shadcn';
 import type { SimpleJsonSchema } from './json-schema-simple-utils';
 import { createEmptySimpleJsonSchema } from './json-schema-simple-utils';
 import ArrayFieldItemTemplate from './ArrayFieldItemTemplate';
+import FieldTemplate from './FieldTemplate';
 
 const Form = withTheme(ShadcnTheme);
 
@@ -14,6 +15,7 @@ const buildTemplates = () => {
 
   return {
     ...baseTemplates,
+    FieldTemplate,
     ArrayFieldItemTemplate,
   };
 };
@@ -35,7 +37,7 @@ function buildForm(obj: RJSFSchema) {
   }
 }
 
-const MY_SCHEMA: RJSFSchema = {
+const SIMPLE_SCHEMA: RJSFSchema = {
   type: 'array',
   items: {
     oneOf: [{ $ref: '#/$defs/string' }, { $ref: '#/$defs/number' }, { $ref: '#/$defs/boolean' }],
@@ -122,9 +124,10 @@ export function JsonSchemaSimpleEditor({
       schema={SIMPLE_SCHEMA}
       uiSchema={SIMPLE_UI_SCHEMA}
       templates={CUSTOM_TEMPLATES}
-      formData={formData}
+      // formData={value}
+      // tagName="div"
       validator={validator}
-      liveValidate
+      // liveValidate
       noHtml5Validate
       showErrorList={false}
       disabled={disabled}
