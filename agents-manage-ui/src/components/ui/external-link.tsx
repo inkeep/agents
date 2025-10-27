@@ -24,7 +24,7 @@ export function ExternalLink({
       {children}
       <ArrowUpRight
         className={cn(
-          'size-3.5 text-muted-foreground/60 group-hover/link:text-primary',
+          'size-3.5 text-muted-foreground opacity-60 group-hover/link:text-primary',
           iconClassName
         )}
       />
