@@ -3,6 +3,7 @@
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormFieldWrapper } from './form-field-wrapper';
 import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -34,14 +35,27 @@ export function JsonSchemaInput<T extends FieldValues>({
       isRequired={isRequired}
     >
       {(field) => (
-        <StandaloneJsonEditor
-          placeholder={placeholder}
-          {...field}
-          value={field.value || ''} // can be `null`
-          onChange={field.onChange}
-          readOnly={readOnly}
-          disabled={disabled}
-        />
+        <Tabs>
+          <TabsList className="absolute -top-2 right-0 h-auto">
+            <TabsTrigger value="simple" className="py-0.5">
+              Simple
+            </TabsTrigger>
+            <TabsTrigger value="advanced" className="py-0.5">
+              Advanced
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="simple">simple</TabsContent>
+          <TabsContent value="advanced">
+            <StandaloneJsonEditor
+              placeholder={placeholder}
+              {...field}
+              value={field.value || ''} // can be `null`
+              onChange={field.onChange}
+              readOnly={readOnly}
+              disabled={disabled}
+            />
+          </TabsContent>
+        </Tabs>
       )}
     </FormFieldWrapper>
   );
