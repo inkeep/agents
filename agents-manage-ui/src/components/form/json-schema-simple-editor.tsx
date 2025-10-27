@@ -119,6 +119,78 @@ interface JsonSchemaSimpleEditorProps {
   readOnly?: boolean;
 }
 
+function buildForm(obj: RJSFSchema) {
+  switch (obj.type) {
+    case 'object': {
+      return <div>object</div>;
+    }
+  }
+}
+
+const MY_SCHEMA: RJSFSchema = {
+  type: 'array',
+  items: {
+    type: '',
+  },
+  $defs: {
+    name: {
+      type: 'string',
+      title: 'Name of the field',
+    },
+    description: {
+      type: 'string',
+      title: 'Description of the field',
+    },
+    // === === === === === ===
+    type: {
+      type: 'string',
+      enum: ['string', 'number', 'boolean', 'enum', 'object', 'array'],
+    },
+    string: {
+      type: 'object',
+      properties: {
+        type: {
+          $ref: '#/$defs/type',
+        },
+        name: {
+          $ref: '#/$defs/name',
+        },
+        description: {
+          $ref: '#/$defs/description',
+        },
+      },
+    },
+    number: {
+      type: 'object',
+      properties: {
+        type: {
+          $ref: '#/$defs/type',
+        },
+        name: {
+          $ref: '#/$defs/name',
+        },
+        description: {
+          $ref: '#/$defs/description',
+        },
+      },
+    },
+    boolean: {
+      type: 'object',
+      properties: {
+        type: {
+          $ref: '#/$defs/type',
+        },
+        name: {
+          $ref: '#/$defs/name',
+        },
+        description: {
+          $ref: '#/$defs/description',
+        },
+      },
+    },
+  },
+};
+
 export function JsonSchemaSimpleEditor({
   value,
   onChange,
