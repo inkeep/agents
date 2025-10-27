@@ -57,7 +57,7 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(zod@4.1.12)
       '@ai-sdk/google':
-        specifier: ^2.0.0
+        specifier: ^2.0.14
         version: 2.0.23(zod@4.1.12)
       '@ai-sdk/openai':
         specifier: 2.0.11
@@ -393,6 +393,18 @@ importers:
 
   agents-manage-ui:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 2.0.2
+        version: 2.0.2(zod@4.1.12)
+      '@ai-sdk/gateway':
+        specifier: ^1.0.23
+        version: 1.0.41(zod@4.1.12)
+      '@ai-sdk/google':
+        specifier: ^2.0.14
+        version: 2.0.23(zod@4.1.12)
+      '@ai-sdk/openai':
+        specifier: 2.0.11
+        version: 2.0.11(zod@4.1.12)
       '@ai-sdk/react':
         specifier: 2.0.11
         version: 2.0.11(react@19.1.1)(zod@4.1.12)
@@ -423,6 +435,9 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.5
         version: 0.69.5
+      '@openrouter/ai-sdk-provider':
+        specifier: ^1.2.0
+        version: 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -477,6 +492,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.8.2
         version: 12.9.0(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      ai:
+        specifier: ^5.0.11
+        version: 5.0.11(zod@4.1.12)
       axios:
         specifier: ^1.11.0
         version: 1.12.2
@@ -1089,12 +1107,6 @@ packages:
     peerDependencies:
       zod: ^4.1.11
 
-  '@ai-sdk/gateway@1.0.34':
-    resolution: {integrity: sha512-Vc/4fGlAW2uGmz6DnbRB9b7kdkbk4DQYNDYNdr/NHJxoaLsdNF3CE8i172rZ47+jEU2hGibcn5yivbgvjMi8Ig==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^4.1.11
-
   '@ai-sdk/gateway@1.0.41':
     resolution: {integrity: sha512-9X67ATsz3tv6EZZXEBuMlF/wfAXXSvRE6kearB4wqR7qCDFS028wgsgJhxz5DArS53S2i0Mv12hjMlpiJmF/Vg==}
     engines: {node: '>=18'}
@@ -1103,12 +1115,6 @@ packages:
 
   '@ai-sdk/gateway@1.0.5':
     resolution: {integrity: sha512-GOhxiHm2nfuS618Ia13AWxEIhCsj5+tFaw6sjSO7pvMZT03QgFAJyX4xBYj+3i3mfIvw+yJOvyhVu1fI+pAHQA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^4.1.11
-
-  '@ai-sdk/google@2.0.17':
-    resolution: {integrity: sha512-6LyuUrCZuiULg0rUV+kT4T2jG19oUntudorI4ttv1ARkSbwl8A39ue3rA487aDDy6fUScdbGFiV5Yv/o4gidVA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^4.1.11
@@ -1139,12 +1145,6 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.1':
     resolution: {integrity: sha512-/iP1sKc6UdJgGH98OCly7sWJKv+J9G47PnTjIj40IJMUQKwDrUMyf7zOOfRtPwSuNifYhSoJQ4s1WltI65gJ/g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^4.1.11
-
-  '@ai-sdk/provider-utils@3.0.10':
-    resolution: {integrity: sha512-T1gZ76gEIwffep6MWI0QNy9jgoybUHE7TRaHB5k54K8mF91ciGFlbtCGxDYhMH3nCRergKwYFIDeFF0hJSIQHQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^4.1.11
@@ -10116,13 +10116,6 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.1(zod@4.1.12)
       zod: 4.1.12
 
-  '@ai-sdk/gateway@1.0.34(zod@4.1.12)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.10(zod@4.1.12)
-      '@vercel/oidc': 3.0.2
-      zod: 4.1.12
-
   '@ai-sdk/gateway@1.0.41(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -10134,12 +10127,6 @@ snapshots:
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.2(zod@4.1.12)
-      zod: 4.1.12
-
-  '@ai-sdk/google@2.0.17(zod@4.1.12)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.10(zod@4.1.12)
       zod: 4.1.12
 
   '@ai-sdk/google@2.0.23(zod@4.1.12)':
@@ -10174,13 +10161,6 @@ snapshots:
       eventsource-parser: 3.0.6
       zod: 4.1.12
       zod-to-json-schema: 3.24.6(zod@4.1.12)
-
-  '@ai-sdk/provider-utils@3.0.10(zod@4.1.12)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 4.1.12
 
   '@ai-sdk/provider-utils@3.0.12(zod@4.1.12)':
     dependencies:
@@ -11388,8 +11368,8 @@ snapshots:
   '@inkeep/agents-run-api@0.15.0(@libsql/client@0.15.15)(@types/pg@8.15.5)(react@19.1.1)':
     dependencies:
       '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
-      '@ai-sdk/gateway': 1.0.34(zod@4.1.12)
-      '@ai-sdk/google': 2.0.17(zod@4.1.12)
+      '@ai-sdk/gateway': 1.0.41(zod@4.1.12)
+      '@ai-sdk/google': 2.0.23(zod@4.1.12)
       '@ai-sdk/openai': 2.0.11(zod@4.1.12)
       '@ai-sdk/react': 2.0.11(react@19.1.1)(zod@4.1.12)
       '@hono/node-server': 1.19.5(hono@4.9.10)
