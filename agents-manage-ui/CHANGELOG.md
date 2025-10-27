@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- 0bfcd17: fix external link icon and arrow right icon to prevent color overflow
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+  - @inkeep/agents-manage-api@0.29.4
+  - @inkeep/agents-run-api@0.29.4
+
 ## 0.29.3
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+
 ## 0.29.3
 
 ### Patch Changes
