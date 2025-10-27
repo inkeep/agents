@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+
 ## 0.29.2
 
 ## 0.29.1
