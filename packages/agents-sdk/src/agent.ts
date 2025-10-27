@@ -346,6 +346,7 @@ export class Agent implements AgentInterface {
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
       statusUpdates: processedStatusUpdates,
+      stopWhen: this.stopWhen,
       prompt: this.prompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
