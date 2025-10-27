@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+
 ## 0.29.0
 
 ### Minor Changes

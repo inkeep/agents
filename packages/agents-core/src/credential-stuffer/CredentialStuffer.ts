@@ -63,10 +63,7 @@ export interface CredentialResolverInput {
  * Interface for context resolver (optional)
  */
 export interface ContextResolverInterface {
-  resolveHeaders(
-    conversationId: string,
-    contextConfigId: string
-  ): Promise<Record<string, unknown>>;
+  resolveHeaders(conversationId: string, contextConfigId: string): Promise<Record<string, unknown>>;
 }
 
 /**
@@ -168,8 +165,7 @@ export class CredentialStuffer {
             metadata: {},
           };
         }
-      } catch {
-      }
+      } catch {}
     }
 
     return {
@@ -209,7 +205,7 @@ export class CredentialStuffer {
       return null;
     }
 
-    const context = await this.contextResolver.resolveHeaders(
+    const headersContext = await this.contextResolver.resolveHeaders(
       conversationId,
       contextConfigId
     );
@@ -218,7 +214,7 @@ export class CredentialStuffer {
     for (const [key, value] of Object.entries(headers)) {
       resolvedHeaders[key] = TemplateEngine.render(
         value,
-        context,
+        { headers: headersContext },
         { strict: true }
       );
     }
@@ -280,29 +276,12 @@ export class CredentialStuffer {
       });
     }
 
-    const baseConfig = {
+    return {
       type: tool.transport?.type || MCPTransportType.streamableHttp,
       url: tool.serverUrl,
       activeTools: tool.activeTools,
       selectedTools,
+      headers: credentialHeaders,
     };
-
-    if (
-      baseConfig.type === MCPTransportType.streamableHttp ||
-      baseConfig.type === MCPTransportType.sse
-    ) {
-      const httpConfig = {
-        ...baseConfig,
-        url: tool.serverUrl,
-        headers: {
-          ...tool.headers,
-          ...credentialHeaders,
-        },
-      };
-
-      return httpConfig;
-    }
-
-    return baseConfig;
   }
 }

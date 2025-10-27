@@ -21,6 +21,7 @@ const {
   getArtifactComponentsForAgentMock,
   getExternalAgentsForSubAgentMock,
   getTeamAgentsForSubAgentMock,
+  getAgentWithDefaultSubAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
 } = vi.hoisted(() => {
@@ -168,6 +169,7 @@ const {
       data: [
         {
           id: 'team-relation-1',
+          targetAgentId: 'team-agent-1',
           targetAgent: {
             id: 'team-agent-1',
             name: 'Team Agent 1',
@@ -177,6 +179,27 @@ const {
         },
       ],
       pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    })
+  );
+
+  const getAgentWithDefaultSubAgentMock = vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      id: 'team-agent-1',
+      name: 'Team Agent 1',
+      description: 'A team agent for delegation',
+      defaultSubAgent: {
+        id: 'team-agent-1-default',
+        name: 'Team Agent 1 Default',
+        description: 'Default sub agent for team agent 1',
+        prompt: 'You are a helpful team agent',
+        conversationHistoryConfig: {
+          mode: 'full',
+          limit: 10,
+        },
+        models: null,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
     })
   );
 
@@ -208,6 +231,7 @@ const {
     getArtifactComponentsForAgentMock,
     getExternalAgentsForSubAgentMock,
     getTeamAgentsForSubAgentMock,
+    getAgentWithDefaultSubAgentMock,
     getProjectMock,
     dbResultToMcpToolMock,
   };
@@ -221,6 +245,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getAgentAgent: getAgentAgentMock,
   getAgentAgentById: getAgentAgentByIdMock,
   getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
+  getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
   getTracer: vi.fn().mockReturnValue({
     startSpan: vi.fn().mockReturnValue({
       setAttributes: vi.fn(),
@@ -714,6 +739,127 @@ describe('generateTaskHandler', () => {
           subAgentId: 'test-agent',
         },
       });
+    });
+
+    it('should enhance team relations with default sub agent data', async () => {
+      // Clear all mocks first
+      vi.clearAllMocks();
+
+      // Mock the initial team relations call (first call)
+      getTeamAgentsForSubAgentMock.mockReturnValueOnce(
+        vi.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'team-relation-1',
+              targetAgentId: 'team-agent-1',
+              targetAgent: {
+                id: 'team-agent-1',
+                name: 'Team Agent 1',
+                description: 'A team agent for delegation',
+              },
+              headers: { 'X-Custom-Header': 'team-value' },
+            },
+          ],
+          pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+        })
+      );
+
+      // Mock the default sub agent for the team agent
+      getAgentWithDefaultSubAgentMock.mockReturnValueOnce(
+        vi.fn().mockResolvedValue({
+          id: 'team-agent-1',
+          name: 'Team Agent 1',
+          description: 'A team agent for delegation',
+          defaultSubAgent: {
+            id: 'team-agent-1-default',
+            name: 'Team Agent 1 Default',
+            description: 'Default sub agent for team agent 1',
+            prompt: 'You are a helpful team agent',
+            conversationHistoryConfig: {
+              mode: 'full',
+              limit: 10,
+            },
+            models: null,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        })
+      );
+
+      // Mock related agents for the default sub agent (second call)
+      getRelatedAgentsForAgentMock.mockReturnValueOnce(
+        vi.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'related-agent-1',
+              name: 'Related Agent 1',
+              description: 'A related agent',
+              relationType: 'delegate',
+            },
+          ],
+        })
+      );
+
+      // Mock external agents for the default sub agent (second call)
+      getExternalAgentsForSubAgentMock.mockReturnValueOnce(
+        vi.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'external-relation-1',
+              externalAgent: {
+                id: 'external-agent-1',
+                name: 'External Agent 1',
+                description: 'An external agent',
+              },
+            },
+          ],
+        })
+      );
+
+      // Mock team agents for the default sub agent (second call)
+      getTeamAgentsForSubAgentMock.mockReturnValueOnce(
+        vi.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'team-relation-2',
+              targetAgentId: 'team-agent-2',
+              targetAgent: {
+                id: 'team-agent-2',
+                name: 'Team Agent 2',
+                description: 'Another team agent',
+              },
+            },
+          ],
+        })
+      );
+
+      const taskHandler = createTaskHandler(mockConfig);
+
+      const task: A2ATask = {
+        id: 'task-123',
+        input: {
+          parts: [{ kind: 'text', text: 'Test with enhanced team relations' }],
+        },
+      };
+
+      await taskHandler(task);
+
+      // Verify that getAgentWithDefaultSubAgent was called for the team agent
+      expect(getAgentWithDefaultSubAgentMock).toHaveBeenCalledWith(expect.anything());
+
+      // Verify that the Agent constructor received enhanced team relations
+      expect(lastAgentConstructorArgs).toBeDefined();
+      expect(lastAgentConstructorArgs.delegateRelations).toBeDefined();
+
+      const teamDelegateRelation = lastAgentConstructorArgs.delegateRelations.find(
+        (rel: any) => rel.type === 'team'
+      );
+      expect(teamDelegateRelation).toBeDefined();
+      expect(teamDelegateRelation.config.id).toBe('team-agent-1');
+      expect(teamDelegateRelation.config.name).toBe('Team Agent 1');
+      // The description should be enhanced with related agents information
+      expect(teamDelegateRelation.config.description).toContain('A team agent for delegation');
+      expect(teamDelegateRelation.config.description).toContain('Can delegate to:');
     });
   });
 

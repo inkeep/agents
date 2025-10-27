@@ -8,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { MCPTool } from '@/lib/types/tools';
 import { cn } from '@/lib/utils';
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
@@ -110,13 +109,6 @@ export function ViewMCPServerDetails({
     return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
   };
 
-  let provider: string | undefined;
-  try {
-    provider = getToolTypeAndName(tool).type;
-  } catch (error) {
-    console.error(error);
-  }
-
   return (
     <div className="max-w-2xl mx-auto py-4 space-y-8">
       {/* Header */}
@@ -125,7 +117,6 @@ export function ViewMCPServerDetails({
           <MCPToolImage
             imageUrl={tool.imageUrl}
             name={tool.name}
-            provider={provider}
             size={48}
             className="rounded-lg"
           />

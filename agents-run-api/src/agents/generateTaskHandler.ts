@@ -4,6 +4,7 @@ import {
   dbResultToMcpTool,
   generateId,
   getAgentById,
+  getAgentWithDefaultSubAgent,
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getExternalAgentsForSubAgent,
@@ -17,7 +18,7 @@ import {
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { generateDescriptionWithTransfers } from '../data/agents';
+import { generateDescriptionWithRelationData } from '../data/agents';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
@@ -158,16 +159,97 @@ export const createTaskHandler = (
                   subAgentId: relation.id,
                 },
               });
+              const relatedAgentTeamAgentRelations = await getTeamAgentsForSubAgent(dbClient)({
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: config.agentId,
+                  subAgentId: relation.id,
+                },
+              });
 
-              const enhancedDescription = generateDescriptionWithTransfers(
+              const enhancedDescription = generateDescriptionWithRelationData(
                 relation.description || '',
                 relatedAgentRelations.data,
-                relatedAgentExternalAgentRelations.data
+                relatedAgentExternalAgentRelations.data,
+                relatedAgentTeamAgentRelations.data
               );
               return { ...relation, description: enhancedDescription };
             }
           } catch (error) {
             logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
+          }
+          return relation;
+        })
+      );
+
+      const enhancedTeamRelations = await Promise.all(
+        teamRelations.data.map(async (relation) => {
+          try {
+            // Get the default sub agent for the team agent
+            const teamAgentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
+              scopes: {
+                tenantId: config.tenantId,
+                projectId: config.projectId,
+                agentId: relation.targetAgentId,
+              },
+            });
+
+            if (teamAgentWithDefault?.defaultSubAgent) {
+              const defaultSubAgent = teamAgentWithDefault.defaultSubAgent;
+
+              // Get related agents for the default sub agent
+              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: relation.targetAgentId,
+                },
+                subAgentId: defaultSubAgent.id,
+              });
+
+              // Get external agents for the default sub agent
+              const relatedAgentExternalAgentRelations = await getExternalAgentsForSubAgent(
+                dbClient
+              )({
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: relation.targetAgentId,
+                  subAgentId: defaultSubAgent.id,
+                },
+              });
+
+              // Get team agents for the default sub agent
+              const relatedAgentTeamAgentRelations = await getTeamAgentsForSubAgent(dbClient)({
+                scopes: {
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: relation.targetAgentId,
+                  subAgentId: defaultSubAgent.id,
+                },
+              });
+
+              const enhancedDescription = generateDescriptionWithRelationData(
+                teamAgentWithDefault.description || '',
+                relatedAgentRelations.data,
+                relatedAgentExternalAgentRelations.data,
+                relatedAgentTeamAgentRelations.data
+              );
+
+              return {
+                ...relation,
+                targetAgent: {
+                  ...relation.targetAgent,
+                  description: enhancedDescription,
+                },
+              };
+            }
+          } catch (error) {
+            logger.warn(
+              { targetAgentId: relation.targetAgentId, error },
+              'Failed to enhance team agent description'
+            );
           }
           return relation;
         })
@@ -261,7 +343,7 @@ export const createTaskHandler = (
                 relationType: 'delegate',
               },
             })),
-            ...teamRelations.data.map((relation) => ({
+            ...enhancedTeamRelations.map((relation) => ({
               type: 'team' as const,
               config: {
                 id: relation.targetAgent.id,

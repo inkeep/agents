@@ -1,6 +1,5 @@
 'use client';
 
-import { Hammer } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -9,31 +8,16 @@ import { ProviderIcon } from '../icons/provider-icon';
 interface MCPToolImageProps {
   imageUrl?: string;
   name: string;
-  provider?: string;
   size?: number;
   className?: string;
 }
 
-export function MCPToolImage({
-  imageUrl,
-  name,
-  provider,
-  size = 24,
-  className,
-}: MCPToolImageProps) {
+export function MCPToolImage({ imageUrl, name, size = 24, className }: MCPToolImageProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
   if (!imageUrl || imageError) {
-    if (provider) {
-      return <ProviderIcon provider={provider} size={size} className={className} />;
-    }
-    return (
-      <Hammer
-        className={cn('text-muted-foreground', className)}
-        style={{ width: size, height: size }}
-      />
-    );
+    return <ProviderIcon provider={name} size={size} className={className} />;
   }
 
   // Handle base64 images
@@ -56,8 +40,8 @@ export function MCPToolImage({
       className={cn('relative flex items-center justify-center', className)}
       style={{ width: size, height: size }}
     >
-      {imageLoading && provider && (
-        <ProviderIcon provider={provider} size={size} className="absolute inset-0" />
+      {imageLoading && (
+        <ProviderIcon provider={name} size={size} className="absolute inset-0" />
       )}
       <Image
         src={imageUrl}

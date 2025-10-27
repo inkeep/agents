@@ -702,7 +702,7 @@ export class Agent {
         storeReference,
         selectedTools
       );
-    } else if (tool.headers && this.credentialStuffer) {
+    } else if (this.credentialStuffer) {
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -1005,7 +1005,6 @@ export class Agent {
 
       const contextWithBuiltins = {
         ...result.resolvedContext,
-        $now: new Date().toISOString(),
         $env: process.env,
       };
 

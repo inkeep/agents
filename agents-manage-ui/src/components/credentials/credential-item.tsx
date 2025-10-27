@@ -112,12 +112,10 @@ export function CredentialItem({
   return (
     <ItemCardRoot>
       <ItemCardHeader>
-        <ItemCardLink href={linkPath}>
-          <ItemCardTitle className="text-md">
-            <div className="flex items-center gap-3 min-w-0">
-              <ProviderIcon provider={name} size={24} className="flex-shrink-0" />
-              <span className="truncate">{name}</span>
-            </div>
+        <ItemCardLink href={linkPath} className="min-w-0">
+          <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
+            <ProviderIcon provider={name} size={24} className="flex-shrink-0" />
+            <span className="flex-1 min-w-0 truncate">{name}</span>
           </ItemCardTitle>
         </ItemCardLink>
         <CredentialDialogMenu credentialId={id} credentialName={name} />

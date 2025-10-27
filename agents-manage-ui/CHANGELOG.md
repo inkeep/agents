@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.2
+
+### Patch Changes
+
+- b499ce6: - Make agents plural in breadcrumbs ans agents page
+  - @inkeep/agents-manage-api@0.29.2
+  - @inkeep/agents-run-api@0.29.2
+  - @inkeep/agents-core@0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+- Updated dependencies [f2ac869]
+- Updated dependencies [37e50a6]
+- Updated dependencies [65f4b1a]
+  - @inkeep/agents-core@0.29.1
+  - @inkeep/agents-manage-api@0.29.1
+  - @inkeep/agents-run-api@0.29.1
+
 ## 0.29.0
 
 ### Minor Changes
