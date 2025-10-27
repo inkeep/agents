@@ -141,10 +141,8 @@ export function JsonSchemaSimpleEditor({
       readonly={readOnly}
       focusOnFirstError={false}
       onChange={(event) => {
-        onChange(event.formData ?? createEmptySimpleJsonSchema());
+        // onChange(event.formData ?? createEmptySimpleJsonSchema());
       }}
-    >
-      <></>
-    </Form>
+    />
   );
 }
