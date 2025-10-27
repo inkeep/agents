@@ -67,6 +67,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@rjsf/core": "6.0.0-beta.22",
     "@rjsf/shadcn": "6.0.0-beta.22",
+    "@rjsf/utils": "6.0.0-beta.22",
     "@rjsf/validator-ajv8": "6.0.0-beta.22",
     "@sinclair/typebox": "^0.34.40",
     "@types/dagre": "^0.7.53",
