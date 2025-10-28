@@ -143,6 +143,7 @@ export const JsonSchemaBuilder: FC = () => {
 
   return (
     <>
+      <p>Properties</p>
       <Table>
         <TableHeader>
           <TableRow>

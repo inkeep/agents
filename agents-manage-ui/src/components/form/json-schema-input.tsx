@@ -18,10 +18,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
+import { SquarePenIcon } from 'lucide-react';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -73,20 +76,30 @@ export function JsonSchemaInput<T extends FieldValues>({
                   Simple Edit
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="!max-w-4xl">
                 <DialogHeader>
                   <DialogTitle>Structured output (JSON)</DialogTitle>
                   <DialogDescription>
                     The model will generate a JSON object that matches this schema.
                   </DialogDescription>
-                  <p>Properties</p>
-                  <SimpleTabContent
-                    fieldValue={field.value}
-                    onFieldChange={field.onChange}
-                    disabled={disabled}
-                    readOnly={readOnly}
-                  />
+                  <JsonSchemaBuilder />
+                  {/*<SimpleTabContent*/}
+                  {/*  fieldValue={field.value}*/}
+                  {/*  onFieldChange={field.onChange}*/}
+                  {/*  disabled={disabled}*/}
+                  {/*  readOnly={readOnly}*/}
+                  {/*/>*/}
                 </DialogHeader>
+                <DialogFooter>
+                  <Button variant="secondary">
+                    <SquarePenIcon />
+                    Generate
+                  </Button>
+                  <Button className="ml-auto" variant="secondary">
+                    Close
+                  </Button>
+                  <Button>Update</Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           }
