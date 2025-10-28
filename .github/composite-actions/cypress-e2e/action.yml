@@ -55,6 +55,7 @@ runs:
         TURBO_TELEMETRY_DISABLED: 1
         TURBO_CACHE_DIR: .turbo
         NODE_OPTIONS: --max-old-space-size=4096
+        ENVIRONMENT: test
 
     # Wait for services to be ready
     - name: Wait for Backend API Server
