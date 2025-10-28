@@ -190,12 +190,10 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
   }
 
   // Reinstall to create the symlinks
-  const result = await execa('pnpm', ['install', '--no-frozen-lockfile'], {
+  await execa('pnpm', ['install', '--no-frozen-lockfile'], {
     cwd: projectDir,
     env: { ...process.env, FORCE_COLOR: '0' },
   });
-
-  console.log('result', result.stdout);
 }
 
 /**

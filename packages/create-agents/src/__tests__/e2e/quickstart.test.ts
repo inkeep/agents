@@ -66,7 +66,7 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
 
     // Start dev servers in background
-    const devProcess = execa('pnpm', ['dev'], {
+    const devProcess = execa('pnpm', ['dev:all'], {
       cwd: projectDir,
       env: { ...process.env, FORCE_COLOR: '0' },
     });
@@ -103,7 +103,7 @@ describe('create-agents quickstart e2e', () => {
     await linkLocalPackages(projectDir, monorepoRoot);
 
     // Start dev servers with local packages
-    const devProcess = execa('pnpm', ['dev'], {
+    const devProcess = execa('pnpm', ['dev:all'], {
       cwd: projectDir,
       env: { ...process.env, FORCE_COLOR: '0' },
     });
