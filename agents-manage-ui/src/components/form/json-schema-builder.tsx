@@ -132,14 +132,14 @@ const TagsInput: FC = () => {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+    <div className="ms-6 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
       {tags.map((tag) => (
         <Badge
           key={tag}
           variant="secondary"
           className="flex items-center gap-1 rounded-full px-2 py-1"
         >
-          <span>{tag}</span>
+          {tag}
           <button
             type="button"
             onClick={() => removeTag(tag)}
@@ -149,12 +149,12 @@ const TagsInput: FC = () => {
           </button>
         </Badge>
       ))}
-      <Input
+      <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="flex-1 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-        placeholder="Type and press Enter..."
+        placeholder="Type possible values and press enter"
+        className="grow outline-none"
       />
     </div>
   );
