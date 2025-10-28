@@ -1,0 +1,95 @@
+---
+title: Add Sidebar Chat to React
+sidebarTitle: Sidebar Chat
+description: Integrate Inkeep's sidebar chat component into your React application for seamless agent conversations.
+icon: "LuPanelLeft"
+---
+
+The SidebarChat widget provides a slide-out panel interface for conversing with your agents. It can be positioned on either side of your application and supports both manual triggering and automatic element triggers.
+
+## Quick Start
+
+<Steps>
+  <Step>
+    Add the below `<script>` tag to the `<head>` or `<body>` of your website.
+
+    ```html
+    <script
+        type="module"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.14/dist/embed.js"
+        defer
+
+> </script>
+
+    ```
+
+  </Step>
+  <Step>
+    Define an element in your page that will be the "container" for the embedded chat.
+
+    ```html
+    <div style="display: flex; flex-direction: row; height: 100vh; max-height: 100vh; padding: 0; margin: 0; overflow: hidden;">
+      <div style="display: flex; flex-direction: column; height: 100vh; max-height: 100vh; padding: 0; margin: 0; overflow-y: auto; flex: 1;">
+        <!-- your app content here -->
+      </div>
+      <!-- the sidebar chat will be inserted into this div -->
+      <div id="sidebar-chat"></div>
+    </div>
+    ```
+
+  </Step>
+  <Step>
+    Add a button element that will trigger the sidebar chat and give it the data attribute data-inkeep-sidebar-chat-trigger. You can also use your own custom attribute if you prefer, just be sure to pass it to the triggerSelector prop.
+
+    ```html
+    <div style="display: flex; flex-direction: row; height: 100vh; max-height: 100vh; padding: 0; margin: 0; overflow: hidden;">
+      <div style="display: flex; flex-direction: column; height: 100vh; max-height: 100vh; padding: 0; margin: 0; overflow-y: auto; flex: 1;">
+        <!-- your app content here -->
+        <button data-inkeep-sidebar-chat-trigger="">Toggle Sidebar Chat</button>
+      </div>
+      <!-- the sidebar chat will be inserted into this div -->
+      <div id="ikp-sidebar-chat-target"></div>
+    </div>
+    ```
+
+  </Step>
+  <Step>
+    Insert the EmbeddedChat widget by using the `Inkeep.EmbeddedChat()` function.
+
+    ```ts
+    <script type="module">
+      const config = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.INKEEP_API_KEY, // Your API key
+        },
+      };
+
+      // Initialize the widget
+      const widget = Inkeep.SidebarChat("#ikp-sidebar-chat-target", config);
+    </script>
+    ```
+
+  </Step>
+</Steps>
+
+## Config
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepEmbeddedChatProps"
+/>
+
+### Base Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepBaseSettings"
+/>
+
+### AI Chat Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepAIChatSettings"
+/>

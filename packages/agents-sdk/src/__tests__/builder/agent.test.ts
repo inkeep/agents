@@ -528,6 +528,9 @@ describe('Agent', () => {
         name: 'Test Agent',
         description: 'Test description',
         defaultSubAgent,
+        stopWhen: {
+          transferCountIs: 10,
+        },
         subAgents: () => [supportAgent],
       });
 
@@ -557,6 +560,9 @@ describe('Agent', () => {
             name: 'Support Agent',
             type: 'internal',
           },
+        },
+        stopWhen: {
+          transferCountIs: 10,
         },
       });
     });

@@ -2,7 +2,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "ESNext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ESNext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -12,11 +16,15 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "paths": {
-      "@/.source": ["./.source/index.ts"],
-      "@/*": ["./src/*"]
+      "@/.source": [
+        ".source"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
     },
     "plugins": [
       {
@@ -31,7 +39,10 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "content/docs/talk-to-your-agents/a2a.mdx",
-    "content/docs/talk-to-your-agents/mcp-server.mdx"
+    "content/docs/talk-to-your-agents/mcp-server.mdx",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

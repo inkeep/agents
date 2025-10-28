@@ -179,7 +179,7 @@ export function ChatWidget({
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
-            onEvent: (event: InkeepCallbackEvent) => {
+            onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
@@ -256,7 +256,7 @@ export function ChatWidget({
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId,
+              'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,

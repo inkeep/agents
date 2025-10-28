@@ -91,7 +91,7 @@ export function ItemCardFooter({ footerText }: { footerText: string }) {
     <div className="relative flex items-center justify-between">
       <div className="flex items-center text-xs text-muted-foreground">{footerText}</div>
       <div className="opacity-0 group-hover:opacity-60 transform translate-x-1 group-hover:translate-x-0 transition-all duration-300">
-        <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
+        <ArrowRight className="w-4 h-4 text-muted-foreground opacity-60" />
       </div>
     </div>
   );

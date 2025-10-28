@@ -1,5 +1,28 @@
 # @inkeep/create-agents
 
+## 0.29.5
+
+### Patch Changes
+
+- Updated dependencies [767d466]
+  - @inkeep/agents-core@0.29.5
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+- Updated dependencies [d26c5a4]
+  - @inkeep/agents-core@0.29.3
+
 ## 0.29.2
 
 ### Patch Changes

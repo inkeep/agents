@@ -25,22 +25,33 @@ A no-code canvas so any team can create and own the Agents they care about.
 A code-first framework so engineering teams can build with the tools they expect.
 
    ```typescript
-   import { agent, subAgent } from "@inkeep/agents-sdk";
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { lookupOrderTool } from "../tools/lookup-order";
+import { processRefundTool } from "../tools/process-refund";
 
-   const helloAgent = subAgent({
-     id: "hello-agent",
-     name: "Hello Agent",
-     description: "Says hello",
-     prompt: 'Only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
-   });
+const orderInquiryAgent = subAgent({
+    id: "order-inquiry",
+    name: "Order Inquiry Agent",
+    description: "Handles questions about order status, shipping, and tracking",
+    prompt: "You are a helpful customer service agent specializing in order inquiries. Help customers track their orders, provide shipping updates, and answer questions about delivery times. Always be professional and empathetic.",
+    canUse: () => [lookupOrderTool],
+});
 
-   export const basicAgent = agent({
-     id: "basic-agent",
-     name: "Basic Agent",
-     description: "A basic agent that just says hello",
-     defaultSubAgent: helloAgent,
-     subAgents: () => [helloAgent],
-   });
+const returnsAgent = subAgent({
+    id: "returns-refunds",
+    name: "Returns & Refunds Agent",
+    description: "Processes return requests and handles refund inquiries",
+    prompt: "You handle returns and refunds. Guide customers through the return process, explain refund policies, and help resolve any issues with returns. Be understanding and solution-oriented.",
+    canUse: () => [processRefundTool],
+});
+
+export const customerSupportAgent = agent({
+    id: "customer-support",
+    name: "Customer Support Agent",
+    description: "Main customer support agent that routes to specialized agents",
+    defaultSubAgent: orderInquiryAgent,
+    subAgents: () => [orderInquiryAgent, returnsAgent],
+});
    ```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Agents in either format and switch or collaborate with others at any time.

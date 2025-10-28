@@ -1,5 +1,23 @@
 # @inkeep/agents-core
 
+## 0.29.5
+
+### Patch Changes
+
+- 767d466: Allow react imports in component render
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+
 ## 0.29.2
 
 ## 0.29.1
