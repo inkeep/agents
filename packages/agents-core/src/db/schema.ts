@@ -748,6 +748,7 @@ export const evalTestSuiteConfig = sqliteTable(
   {
     ...tenantScoped,
     ...uiProperties,
+    
     modelConfig: blob('model_config', { mode: 'json' }).$type<ModelSettings>(),
     runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', 
     ...timestamps,
@@ -764,6 +765,7 @@ export const evalTestSuiteRun = sqliteTable(
     name: text('name').notNull(),
     description: text('description').notNull(),
     datasetId: text('dataset_id').notNull(),
+    agentId: text('agent_id').notNull(),
     testSuiteConfigId: text('test_suite_config_id').notNull(),
     status: text('status').$type<'pending'|'running'|'done'|'failed'>().notNull(),
     ...timestamps,
@@ -774,6 +776,11 @@ export const evalTestSuiteRun = sqliteTable(
       columns: [table.datasetId],
       foreignColumns: [dataset.id],
       name: 'eval_test_suite_run_dataset_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.agentId],
+      foreignColumns: [agents.id],
+      name: 'eval_test_suite_run_agent_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.testSuiteConfigId],
@@ -990,6 +997,7 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
+  evalTestSuiteRuns: many(evalTestSuiteRun),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -1291,6 +1299,10 @@ export const evalTestSuiteRunRelations = relations(evalTestSuiteRun, ({ one, man
   dataset: one(dataset, {
     fields: [evalTestSuiteRun.datasetId],
     references: [dataset.id],
+  }),
+  agent: one(agents, {
+    fields: [evalTestSuiteRun.agentId],
+    references: [agents.id],
   }),
   testSuiteConfig: one(evalTestSuiteConfig, {
     fields: [evalTestSuiteRun.testSuiteConfigId],
