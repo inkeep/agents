@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC, type ReactNode, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from 'lucide-react';
-import { StringIcon, NumberIcon } from './icons';
+import { StringIcon, NumberIcon, BooleanIcon, EnumIcon } from './icons';
 
 const Types = {
   string: 'str',
@@ -46,6 +46,8 @@ function renderProperty(type: TypeValues) {
 
   switch (type) {
     case 'num':
+    case 'bool':
+    case 'enum':
     case 'str': {
       return (
         <div className="flex gap-2 items-center">
@@ -66,15 +68,27 @@ function renderIcon(type: TypeValues) {
       return <StringIcon className="shrink-0 text-green-500" />;
     case 'num':
       return <NumberIcon className="shrink-0 text-blue-500" />;
+    case 'bool':
+      return <BooleanIcon className="shrink-0 text-orange-500" />;
+    case 'enum':
+      return <EnumIcon className="shrink-0 text-yellow-500" />;
   }
 }
 
 export const JsonSchemaBuilder: FC = () => {
+  const [properties, setProperties] = useState<ReactNode[]>([]);
+  const handleAddProperty = useCallback(() => {
+    setProperties((prev) => [...prev, renderProperty('str')]);
+  }, []);
+
   return (
     <>
       {renderProperty('str')}
       {renderProperty('num')}
-      <Button variant="secondary" size="sm" className="self-start">
+      {renderProperty('bool')}
+      {renderProperty('enum')}
+      {properties}
+      <Button onClick={handleAddProperty} variant="secondary" size="sm" className="self-start">
         <PlusIcon />
         Add property
       </Button>
