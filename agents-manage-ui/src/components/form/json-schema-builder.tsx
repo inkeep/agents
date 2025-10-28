@@ -1,4 +1,4 @@
-import { type FC, type ReactNode, useCallback, useState } from 'react';
+import { type ComponentProps, type FC, type ReactNode, useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -12,6 +12,7 @@ import { PlusIcon, TrashIcon, X } from 'lucide-react';
 import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon } from './icons';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 const Types = {
   string: 'str',
@@ -44,7 +45,7 @@ const SelectType: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
 const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
   const inputs = (
     <>
-      {renderIcon(defaultType)}
+      <PropertyIcon type={defaultType} />
       <Input placeholder="Property name" />
       <SelectType defaultType={defaultType} />
       <Input placeholder="Add description" />
@@ -89,20 +90,29 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
   }
 };
 
-function renderIcon(type: TypeValues) {
-  switch (type) {
-    case 'str':
-      return <StringIcon className="shrink-0 text-green-500" />;
-    case 'num':
-      return <NumberIcon className="shrink-0 text-blue-500" />;
-    case 'bool':
-      return <BooleanIcon className="shrink-0 text-orange-500" />;
-    case 'enum':
-      return <EnumIcon className="shrink-0 text-yellow-500" />;
-    case 'arr':
-      return <ArrayIcon className="shrink-0 text-pink-500" />;
+const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
+  str: StringIcon,
+  num: NumberIcon,
+  bool: BooleanIcon,
+  enum: EnumIcon,
+  arr: ArrayIcon,
+};
+
+const ClassToUse: Record<string, string> = {
+  str: 'text-green-500',
+  num: 'text-blue-500',
+  bool: 'text-orange-500',
+  enum: 'text-yellow-500',
+  arr: 'text-pink-500',
+};
+
+const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
+  const Icon = IconToUse[type];
+  if (!Icon) {
+    throw new Error(`Unsupported type "${type}"`);
   }
-}
+  return <Icon className={cn('shrink-0', ClassToUse[type])} />;
+};
 
 export const JsonSchemaBuilder: FC = () => {
   const [properties, setProperties] = useState<ReactNode[]>([]);
