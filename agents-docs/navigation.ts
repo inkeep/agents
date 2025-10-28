@@ -17,29 +17,43 @@ export default {
       ],
     },
     {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'MCP Server Setup Guide',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/how-to-create-mcp-servers/overview',
+            'tutorials/how-to-create-mcp-servers/prebuilt-provider-hosted-mcps',
+            'tutorials/how-to-create-mcp-servers/prebuilt-composio-mcps',
+            'tutorials/how-to-create-mcp-servers/inkeep',
+          ],
+        },      
+      ],
+    },
+    {
       group: 'Typescript SDK',
       icon: 'LuCode',
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/agent-relationships',
         {
-          group: 'Tools and MCPs',
+          group: 'Tools',
           icon: 'LuHammer',
           pages: [
-            'typescript-sdk/tools/mcp-servers',
-            'typescript-sdk/tools/create-mcp-servers',
+            'typescript-sdk/tools/mcp-tools',
             'typescript-sdk/tools/function-tools',
-            {
-              group: 'Credentials',
-              icon: 'LuKey',
-              pages: [
-                'typescript-sdk/credentials/overview',
-                'typescript-sdk/credentials/nango',
-                'typescript-sdk/credentials/keychain',
-                'typescript-sdk/credentials/environment-variables',
-                'typescript-sdk/credentials/env-aware-credentials',
-              ],
-            },
+          ],
+        },
+        {
+          group: 'Credentials',
+          icon: 'LuKey',
+          pages: [
+            'typescript-sdk/credentials/overview',
+            'typescript-sdk/credentials/nango',
+            'typescript-sdk/credentials/keychain',
+            'typescript-sdk/credentials/environment-variables',
+            'typescript-sdk/credentials/env-aware-credentials',
           ],
         },
         'typescript-sdk/headers',

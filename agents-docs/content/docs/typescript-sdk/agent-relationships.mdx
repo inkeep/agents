@@ -165,6 +165,7 @@ External agent delegation is used to delegate a task to an [external agent](/typ
 
 ```typescript
 import { myExternalAgent } from "./external-agents/external-agent-example";
+
 const mathSupervisor = subAgent({
   id: "supervisor",
   prompt: "Delegate to the external agent to calculate the answer to the question",
