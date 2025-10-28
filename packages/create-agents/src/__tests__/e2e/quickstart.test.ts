@@ -24,11 +24,6 @@ describe('create-agents quickstart e2e', () => {
     projectDir = path.join(testDir, workspaceName);
   });
 
-  afterEach(async () => {
-    // Clean up the test directory
-    await cleanupDir(testDir);
-  });
-
   it('should work with published packages', async () => {
     // Run the CLI with all options (non-interactive mode)
     const result = await runCreateAgentsCLI(

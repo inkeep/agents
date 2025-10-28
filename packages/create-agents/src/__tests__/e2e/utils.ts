@@ -76,11 +76,31 @@ export async function createTempDir(prefix = 'create-agents-e2e-'): Promise<stri
 }
 
 /**
- * Clean up a test directory
+ * Clean up a test directory with retries
  */
 export async function cleanupDir(dir: string): Promise<void> {
-  if (await fs.pathExists(dir)) {
-    await fs.remove(dir);
+  if (!(await fs.pathExists(dir))) {
+    return;
+  }
+
+  try {
+    // Try multiple times with delays (common in CI)
+    for (let i = 0; i < 3; i++) {
+      try {
+        await fs.remove(dir);
+        return;
+      } catch (error: any) {
+        if (i === 2) throw error; // Last attempt, throw the error
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s before retry
+      }
+    }
+  } catch (error: any) {
+    // If still failing, try force removal
+    if (error.code === 'ENOTEMPTY' || error.code === 'EBUSY') {
+      await execa('rm', ['-rf', dir], { shell: true }).catch(() => {
+        console.warn(`Failed to clean up ${dir}`);
+      });
+    }
   }
 }
 
@@ -170,7 +190,7 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
   }
 
   // Reinstall to create the symlinks
-  const result = await execa('pnpm', ['install'], {
+  const result = await execa('pnpm', ['install', '--no-frozen-lockfile'], {
     cwd: projectDir,
     env: { ...process.env, FORCE_COLOR: '0' },
   });

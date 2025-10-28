@@ -5,8 +5,8 @@ export default defineProject({
     name: 'create-agents',
     globals: true,
     environment: 'node',
-    testTimeout: 60000, // 1 minute for unit tests
-    hookTimeout: 30000, // 30 seconds for setup/teardown
+    testTimeout: 600000, // 10 minutes for e2e tests (can be overridden per-test)
+    hookTimeout: 60000, // 1 minute for setup/teardown
     env: {
       ENVIRONMENT: 'test',
     },
