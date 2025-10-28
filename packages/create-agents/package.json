@@ -20,6 +20,9 @@
     "format": "biome format --write .",
     "test": "vitest --run --passWithNoTests",
     "test:watch": "vitest",
+    "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/e2e/**",
+    "test:e2e": "vitest --run src/__tests__/e2e",
+    "test:e2e:watch": "vitest src/__tests__/e2e",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -38,18 +41,21 @@
   "author": "Inkeep <support@inkeep.com>",
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.67.0",
+    "@browserbasehq/stagehand": "^2.5.2",
     "@clack/prompts": "^0.11.0",
     "@inkeep/agents-core": "workspace:*",
     "commander": "^12.0.0",
     "degit": "^2.8.4",
+    "drizzle-kit": "^0.31.5",
     "fs-extra": "^11.0.0",
-    "picocolors": "^1.0.0",
-    "drizzle-kit": "^0.31.5"
+    "picocolors": "^1.0.0"
   },
   "devDependencies": {
     "@types/degit": "^2.8.6",
     "@types/fs-extra": "^11.0.0",
     "@types/node": "^20.12.0",
+    "execa": "^9.6.0",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^3.2.4"
