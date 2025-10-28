@@ -5,24 +5,23 @@ import type { RJSFSchema } from '@rjsf/utils';
 import { Theme as ShadcnTheme } from '@rjsf/shadcn';
 import type { SimpleJsonSchema } from './json-schema-simple-utils';
 import { createEmptySimpleJsonSchema } from './json-schema-simple-utils';
-import ArrayFieldItemTemplate from './rjsf/ArrayFieldItemTemplate';
-import MultiSchemaFieldTemplate from './rjsf/MultiSchemaFieldTemplate';
-import BaseInputTemplate from './rjsf/BaseInputTemplate';
+import { ArrayFieldItemTemplate } from './rjsf/ArrayFieldItemTemplate';
+import { MultiSchemaFieldTemplate } from './rjsf/MultiSchemaFieldTemplate';
+import { BaseInputTemplate } from './rjsf/BaseInputTemplate';
+import { ObjectFieldTemplate } from './rjsf/ObjectFieldTemplate';
 
-const Form = withTheme(ShadcnTheme);
-
-const buildTemplates = () => {
-  const baseTemplates = ShadcnTheme.templates;
-
-  return {
-    ...baseTemplates,
+const Form = withTheme({
+  widgets: {
+    ...ShadcnTheme.widgets,
+  },
+  templates: {
+    ...ShadcnTheme.templates,
     MultiSchemaFieldTemplate,
     ArrayFieldItemTemplate,
     BaseInputTemplate,
-  };
-};
-
-const CUSTOM_TEMPLATES = buildTemplates();
+    ObjectFieldTemplate,
+  },
+});
 
 interface JsonSchemaSimpleEditorProps {
   value: SimpleJsonSchema | undefined;
@@ -125,7 +124,6 @@ export function JsonSchemaSimpleEditor({
     <Form<SimpleJsonSchema>
       schema={SIMPLE_SCHEMA}
       uiSchema={SIMPLE_UI_SCHEMA}
-      templates={CUSTOM_TEMPLATES}
       // formData={value}
       // tagName="div"
       validator={validator}

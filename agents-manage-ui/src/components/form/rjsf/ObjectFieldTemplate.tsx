@@ -2,12 +2,12 @@ import {
   buttonId,
   canExpand,
   descriptionId,
-  FormContextType,
+  type FormContextType,
   getTemplate,
   getUiOptions,
-  ObjectFieldTemplateProps,
-  RJSFSchema,
-  StrictRJSFSchema,
+  type ObjectFieldTemplateProps,
+  type RJSFSchema,
+  type StrictRJSFSchema,
   titleId,
 } from '@rjsf/utils';
 
@@ -17,7 +17,7 @@ import {
  *
  * @param props - The `ObjectFieldTemplateProps` for this component
  */
-export default function ObjectFieldTemplate<
+export function ObjectFieldTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any,
@@ -37,11 +37,15 @@ export default function ObjectFieldTemplate<
   registry,
 }: ObjectFieldTemplateProps<T, S, F>) {
   const uiOptions = getUiOptions<T, S, F>(uiSchema);
-  const TitleFieldTemplate = getTemplate<'TitleFieldTemplate', T, S, F>('TitleFieldTemplate', registry, uiOptions);
+  const TitleFieldTemplate = getTemplate<'TitleFieldTemplate', T, S, F>(
+    'TitleFieldTemplate',
+    registry,
+    uiOptions
+  );
   const DescriptionFieldTemplate = getTemplate<'DescriptionFieldTemplate', T, S, F>(
     'DescriptionFieldTemplate',
     registry,
-    uiOptions,
+    uiOptions
   );
   const showOptionalDataControlInTitle = !readonly && !disabled;
   // Button templates are not overridden in the uiSchema
@@ -70,11 +74,11 @@ export default function ObjectFieldTemplate<
           registry={registry}
         />
       )}
-      <div className='flex flex-col gap-2'>
+      <div className="flex flex-col gap-2">
         {!showOptionalDataControlInTitle ? optionalDataControl : undefined}
         {properties.map((element: any, index: number) => (
           <div key={index} className={`${element.hidden ? 'hidden' : ''} flex`}>
-            <div className='w-full'>{element.content}</div>
+            <div className="w-full">{element.content}</div>
           </div>
         ))}
         {canExpand(schema, uiSchema, formData) ? (
@@ -82,7 +86,7 @@ export default function ObjectFieldTemplate<
             id={buttonId(fieldPathId, 'add')}
             onClick={onAddProperty}
             disabled={disabled || readonly}
-            className='rjsf-object-property-expand'
+            className="rjsf-object-property-expand"
             uiSchema={uiSchema}
             registry={registry}
           />

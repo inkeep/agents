@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
  *
  * @param props - The `WidgetProps` for this template
  */
-export default function BaseInputTemplate<
+export function BaseInputTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any,

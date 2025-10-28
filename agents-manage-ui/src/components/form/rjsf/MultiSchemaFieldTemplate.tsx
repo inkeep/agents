@@ -5,7 +5,7 @@ import type {
   StrictRJSFSchema,
 } from '@rjsf/utils';
 
-export default function MultiSchemaFieldTemplate<
+export function MultiSchemaFieldTemplate<
   T = any,
   S extends StrictRJSFSchema = RJSFSchema,
   F extends FormContextType = any,
