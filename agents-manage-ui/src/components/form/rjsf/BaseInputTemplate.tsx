@@ -10,6 +10,7 @@ import {
 import type { ChangeEvent, FocusEvent } from 'react';
 
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 /** The `BaseInputTemplate` is the template to use to render the basic `<input>` component for the `core` theme.
  * It is used as the template for rendering many of the <input> based widgets that differ by `type` and callbacks only.
@@ -53,7 +54,7 @@ export default function BaseInputTemplate<
     onFocus(id, target && target.value);
 
   return (
-    <div className="p-0.5">
+    <>
       <Input
         id={id}
         name={htmlName || id}
@@ -89,6 +90,6 @@ export default function BaseInputTemplate<
             })}
         </datalist>
       ) : null}
-    </div>
+    </>
   );
 }
