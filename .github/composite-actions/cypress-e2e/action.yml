@@ -25,85 +25,25 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
-    - run: pnpm setup-dev
-      shell: bash
-    - run: "pnpm db:migrate"
-      shell: bash
+#    - run: "pnpm db:migrate"
+#      shell: bash
 
-    # Start the backend API server
     - name: Start Backend API Server
       shell: bash
-      run: |
-        pnpm --filter @inkeep/agents-manage-api dev &
-        echo $! > backend.pid
-      env:
-        TURBO_TELEMETRY_DISABLED: 1
-        TURBO_CACHE_DIR: .turbo
-        ENVIRONMENT: test
-        OPENAI_API_KEY: ${{ env.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
-        ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-        DB_FILE_NAME: test.db
-        NODE_OPTIONS: --max-old-space-size=4096
+      run: pnpm dev:api
 
-    # Start the frontend development server
-    - name: Start Frontend Development Server
+    - name: Build Dashboard
       shell: bash
-      run: |
-        pnpm --filter @inkeep/agents-manage-ui dev &
-        echo $! > frontend.pid
-      env:
-        TURBO_TELEMETRY_DISABLED: 1
-        TURBO_CACHE_DIR: .turbo
-        NODE_OPTIONS: --max-old-space-size=4096
-        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
-
-    # Wait for services to be ready
-    - name: Wait for Backend API Server
-      shell: bash
-      run: |
-        echo "Waiting for backend API server to be ready..."
-        timeout 60 bash -c 'until curl -f http://localhost:3002/health 2>/dev/null; do sleep 2; done'
-        echo "Backend API server is ready!"
+      run: pnpm --filter @inkeep/agents-manage-ui build
 
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
 
-    - name: Wait for Frontend Development Server
-      shell: bash
-      run: |
-        echo "Waiting for frontend development server to be ready..."
-        timeout 60 bash -c 'until curl -f http://localhost:3000 2>/dev/null; do sleep 2; done'
-        echo "Frontend development server is ready!"
-
-    # Run Cypress e2e tests
     - name: Run Cypress E2E Tests
       shell: bash
       run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
-      env:
-        TURBO_TELEMETRY_DISABLED: 1
-        TURBO_CACHE_DIR: .turbo
-        NODE_OPTIONS: --max-old-space-size=4096
-        CI: true
 
-    # Cleanup: Stop the services
-    - name: Stop Services
-      if: always()
-      shell: bash
-      run: |
-        echo "Stopping services..."
-        if [ -f backend.pid ]; then
-          kill $(cat backend.pid) 2>/dev/null || true
-          rm -f backend.pid
-        fi
-        if [ -f frontend.pid ]; then
-          kill $(cat frontend.pid) 2>/dev/null || true
-          rm -f frontend.pid
-        fi
-        # Kill any remaining Node.js processes
-        pkill -f "pnpm.*dev" 2>/dev/null || true
-
-    # Upload Cypress screenshots and videos on failure
     - name: Upload Cypress Screenshots
       if: failure()
       uses: actions/upload-artifact@v4
@@ -120,7 +60,6 @@ runs:
         path: agents-manage-ui/cypress/videos
         retention-days: 7
 
-    # Create summary report
     - name: Create E2E Test Summary
       if: always()
       shell: bash

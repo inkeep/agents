@@ -40,7 +40,8 @@
     "test": "vitest --run",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open",
-    "test:e2e:ci": "cypress run --headless"
+    "test:e2e:run": "cypress run --headless",
+    "test:e2e:ci": "start-server-and-test start http-get://localhost:3000/default/projects test:e2e:run"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.2",
@@ -110,6 +111,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "start-server-and-test": "^2.1.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
