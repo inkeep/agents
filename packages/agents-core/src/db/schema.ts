@@ -698,7 +698,6 @@ export const datasetItem = sqliteTable(
   {
     id: text('id').notNull(),
     datasetId: text('dataset_id').notNull(),
-    agentId: text('agent_id'), 
     input: blob('input', { mode: 'json' }).$type<{
       messages: Array<{ role: string; content: MessageContent }>;
       headers?: Record<string, string>;
@@ -1058,7 +1057,6 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
     fields: [conversations.activeSubAgentId],
     references: [subAgents.id],
   }),
-  datasetItems: many(datasetItem),
   evalResults: many(evalResult),
 }));
 
