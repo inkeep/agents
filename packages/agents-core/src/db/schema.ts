@@ -227,7 +227,7 @@ export const tasks = sqliteTable(
   {
     ...subAgentScoped,
     contextId: text('context_id').notNull(),
-    status: text('status').$type<'pending'|'running'|'done'|'failed'>().notNull(),
+    status: text('status').notNull(),
     metadata: blob('metadata', { mode: 'json' }).$type<TaskMetadataConfig>(),
     ...timestamps,
   },
