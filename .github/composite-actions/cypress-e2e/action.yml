@@ -25,8 +25,8 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
-#    - run: "pnpm db:migrate"
-#      shell: bash
+    - run: pnpm setup-dev
+      shell: bash
 
     - name: Start Backend API Server
       shell: bash
@@ -39,8 +39,6 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
-      env:
-        DB_FILE_NAME: test.db
 
     - name: Run Cypress E2E Tests
       shell: bash
