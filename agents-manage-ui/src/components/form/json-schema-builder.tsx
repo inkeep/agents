@@ -14,6 +14,7 @@ import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon } from './icon
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const Types = {
   string: 'str',
@@ -135,6 +136,15 @@ export const JsonSchemaBuilder: FC = () => {
 
   return (
     <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[43%]">Name</TableHead>
+            <TableHead className="w-1/10">Type</TableHead>
+            <TableHead>Description</TableHead>
+          </TableRow>
+        </TableHeader>
+      </Table>
       <Property defaultType="str" />
       <Property defaultType="num" />
       <Property defaultType="bool" />
