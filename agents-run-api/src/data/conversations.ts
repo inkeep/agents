@@ -1,6 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
@@ -23,7 +24,7 @@ export function createDefaultConversationHistoryConfig(
     limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
     includeInternal: true,
     messageTypes: ['chat'],
-    maxOutputTokens: 4000,
+    maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   };
 }
 

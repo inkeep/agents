@@ -23,4 +23,7 @@ export const executionLimitsSharedDefaults = {
   MCP_TOOL_MAX_RECONNECTION_DELAY_MS: 30_000, // 30 seconds
   MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS: 1_000, // 1 second
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR: 1.5,
+
+  // Conversation History (used by both manage-api and run-api for conversation context management)
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: 4_000, // Maximum tokens for conversation history context
 } as const;
