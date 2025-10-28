@@ -37,11 +37,4 @@ export const schemaValidationDefaults = {
 
   // Data Component Fetching
   DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT: 10_000, // 10 seconds
-
-  // MCP Tool Execution (needed by mcp-client.ts in agents-core)
-  MCP_TOOL_CONNECTION_TIMEOUT_MS: 3_000, // 3 seconds
-  MCP_TOOL_MAX_RETRIES: 3,
-  MCP_TOOL_MAX_RECONNECTION_DELAY_MS: 30_000, // 30 seconds
-  MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS: 1_000, // 1 second
-  MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR: 1.5,
 } as const;
