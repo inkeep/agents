@@ -16,10 +16,10 @@ const Form = withTheme({
   },
   templates: {
     ...ShadcnTheme.templates,
-    MultiSchemaFieldTemplate,
-    ArrayFieldItemTemplate,
-    BaseInputTemplate,
-    ObjectFieldTemplate,
+    // MultiSchemaFieldTemplate,
+    // ArrayFieldItemTemplate,
+    // BaseInputTemplate,
+    // ObjectFieldTemplate,
   },
 });
 

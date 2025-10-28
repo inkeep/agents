@@ -12,9 +12,16 @@ import {
   isSimpleJsonSchemaEmpty,
   type SimpleJsonSchema,
 } from './json-schema-simple-utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -47,51 +54,43 @@ export function JsonSchemaInput<T extends FieldValues>({
       isRequired={isRequired}
     >
       {(field) => (
-        <Tabs
-          defaultValue="simple"
-          value={activeTab}
-          onValueChange={(value) => {
-            setActiveTab(value as 'simple' | 'advanced');
-          }}
-        >
-          <TabsList className="absolute -top-2 right-0 h-auto space-x-1">
-            <TabsTrigger value="simple" className="py-0.5">
-              Simple
-            </TabsTrigger>
-            <TabsTrigger value="advanced" className="py-0.5">
-              Advanced
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="simple">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Value</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-            <br />
-            <SimpleTabContent
-              fieldValue={field.value}
-              onFieldChange={field.onChange}
-              disabled={disabled}
-              readOnly={readOnly}
-              switchToAdvanced={() => setActiveTab('advanced')}
-            />
-          </TabsContent>
-          <TabsContent value="advanced">
-            <StandaloneJsonEditor
-              placeholder={placeholder}
-              {...field}
-              value={field.value || ''} // can be `null`
-              onChange={field.onChange}
-              readOnly={readOnly}
-              disabled={disabled}
-            />
-          </TabsContent>
-        </Tabs>
+        <StandaloneJsonEditor
+          placeholder={placeholder}
+          {...field}
+          value={field.value || ''} // can be `null`
+          onChange={field.onChange}
+          readOnly={readOnly}
+          disabled={disabled}
+          actions={
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+                >
+                  Simple Edit
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Structured output (JSON)</DialogTitle>
+                  <DialogDescription>
+                    The model will generate a JSON object that matches this schema.
+                  </DialogDescription>
+                  <p>Properties</p>
+                  <SimpleTabContent
+                    fieldValue={field.value}
+                    onFieldChange={field.onChange}
+                    disabled={disabled}
+                    readOnly={readOnly}
+                  />
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          }
+        />
       )}
     </FormFieldWrapper>
   );
@@ -102,7 +101,6 @@ interface SimpleTabContentProps {
   onFieldChange: (value: string) => void;
   disabled?: boolean;
   readOnly?: boolean;
-  switchToAdvanced: () => void;
 }
 
 const SimpleTabContent = ({
@@ -110,7 +108,6 @@ const SimpleTabContent = ({
   onFieldChange,
   disabled,
   readOnly,
-  switchToAdvanced,
 }: SimpleTabContentProps) => {
   const [simpleState, setSimpleState] = useState<SimpleJsonSchema>(() =>
     createEmptySimpleJsonSchema()
@@ -159,11 +156,7 @@ const SimpleTabContent = ({
           <AlertTitle>Some schema features require Advanced mode</AlertTitle>
           <AlertDescription>
             {simpleError}{' '}
-            <button
-              className="font-medium underline underline-offset-4"
-              type="button"
-              onClick={switchToAdvanced}
-            >
+            <button className="font-medium underline underline-offset-4" type="button">
               Open Advanced editor
             </button>
             .

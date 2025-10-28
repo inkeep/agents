@@ -74,24 +74,22 @@ export function ObjectFieldTemplate<
           registry={registry}
         />
       )}
-      <div className="flex flex-col gap-2">
-        {!showOptionalDataControlInTitle ? optionalDataControl : undefined}
-        {properties.map((element: any, index: number) => (
-          <div key={index} className={`${element.hidden ? 'hidden' : ''} flex`}>
-            <div className="w-full">{element.content}</div>
-          </div>
-        ))}
-        {canExpand(schema, uiSchema, formData) ? (
-          <AddButton
-            id={buttonId(fieldPathId, 'add')}
-            onClick={onAddProperty}
-            disabled={disabled || readonly}
-            className="rjsf-object-property-expand"
-            uiSchema={uiSchema}
-            registry={registry}
-          />
-        ) : null}
-      </div>
+      {!showOptionalDataControlInTitle ? optionalDataControl : undefined}
+      {properties.map((element, index) => (
+        <div key={index} className={element.hidden ? 'hidden' : ''}>
+          {element.content}
+        </div>
+      ))}
+      {canExpand(schema, uiSchema, formData) ? (
+        <AddButton
+          id={buttonId(fieldPathId, 'add')}
+          onClick={onAddProperty}
+          disabled={disabled || readonly}
+          className="rjsf-object-property-expand"
+          uiSchema={uiSchema}
+          registry={registry}
+        />
+      ) : null}
     </>
   );
 }
