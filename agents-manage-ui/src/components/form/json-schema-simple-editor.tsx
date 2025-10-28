@@ -7,6 +7,7 @@ import type { SimpleJsonSchema } from './json-schema-simple-utils';
 import { createEmptySimpleJsonSchema } from './json-schema-simple-utils';
 import ArrayFieldItemTemplate from './rjsf/ArrayFieldItemTemplate';
 import MultiSchemaFieldTemplate from './rjsf/MultiSchemaFieldTemplate';
+import BaseInputTemplate from './rjsf/BaseInputTemplate';
 
 const Form = withTheme(ShadcnTheme);
 
@@ -17,6 +18,7 @@ const buildTemplates = () => {
     ...baseTemplates,
     MultiSchemaFieldTemplate,
     ArrayFieldItemTemplate,
+    BaseInputTemplate,
   };
 };
 
