@@ -24,9 +24,9 @@ const Types = {
 
 type TypeValues = (typeof Types)[keyof typeof Types];
 
-const SelectType: FC<{ type: TypeValues }> = ({ type }) => {
+const SelectType: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
   return (
-    <Select defaultValue={type}>
+    <Select defaultValue={defaultType}>
       <SelectTrigger>
         <SelectValue />
       </SelectTrigger>
@@ -41,12 +41,12 @@ const SelectType: FC<{ type: TypeValues }> = ({ type }) => {
   );
 };
 
-function renderProperty(type: TypeValues) {
+const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
   const inputs = (
     <>
-      {renderIcon(type)}
+      {renderIcon(defaultType)}
       <Input placeholder="Property name" />
-      <SelectType type={type} />
+      <SelectType defaultType={defaultType} />
       <Input placeholder="Add description" />
       <Tooltip>
         <TooltipTrigger asChild>
@@ -59,7 +59,7 @@ function renderProperty(type: TypeValues) {
     </>
   );
 
-  switch (type) {
+  switch (defaultType) {
     case 'num':
     case 'bool':
     case 'str': {
@@ -78,16 +78,16 @@ function renderProperty(type: TypeValues) {
           <div className="flex gap-2 items-center">{inputs}</div>
           <div className="flex gap-2 items-center me-8 ms-6">
             <span className="shrink-0 md:text-sm">Array items</span>
-            <SelectType type="str" />
+            <SelectType defaultType="str" />
             <Input placeholder="Add description" />
           </div>
         </>
       );
     default: {
-      throw new TypeError(`Unsupported type ${type}`);
+      throw new TypeError(`Unsupported type ${defaultType}`);
     }
   }
-}
+};
 
 function renderIcon(type: TypeValues) {
   switch (type) {
@@ -107,16 +107,16 @@ function renderIcon(type: TypeValues) {
 export const JsonSchemaBuilder: FC = () => {
   const [properties, setProperties] = useState<ReactNode[]>([]);
   const handleAddProperty = useCallback(() => {
-    setProperties((prev) => [...prev, renderProperty('str')]);
+    setProperties((prev) => [...prev, <Property defaultType="str" />]);
   }, []);
 
   return (
     <>
-      {renderProperty('str')}
-      {renderProperty('num')}
-      {renderProperty('bool')}
-      {renderProperty('enum')}
-      {renderProperty('arr')}
+      <Property defaultType="str" />
+      <Property defaultType="num" />
+      <Property defaultType="bool" />
+      <Property defaultType="enum" />
+      <Property defaultType="arr" />
       {properties}
       <Button onClick={handleAddProperty} variant="secondary" size="sm" className="self-start">
         <PlusIcon />
