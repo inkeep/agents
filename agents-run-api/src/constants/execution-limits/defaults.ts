@@ -19,6 +19,7 @@
 export const executionLimitsDefaults = {
   // Agent Execution Loop
   AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS: 3,
+  AGENT_EXECUTION_MAX_GENERATION_STEPS: 5,
 
   // LLM Generation Timeouts
   LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING: 270_000, // 4.5 minutes

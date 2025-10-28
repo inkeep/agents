@@ -168,6 +168,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.pagination).toMatchObject({
         page: 1,
+        limit: 10,
       });
     });
 

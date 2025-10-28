@@ -1,9 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
-
-// Destructure defaults for use in schemas
-const {
+import {
   AGENT_EXECUTION_TRANSFER_COUNT_MAX,
   AGENT_EXECUTION_TRANSFER_COUNT_MIN,
   DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT,
@@ -13,7 +10,7 @@ const {
   SUB_AGENT_TURN_GENERATION_STEPS_MIN,
   VALIDATION_AGENT_PROMPT_MAX_CHARS,
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
-} = schemaValidationDefaults;
+} from '../constants/schema-validation';
 import {
   agents,
   apiKeys,

@@ -186,10 +186,10 @@ describe('Project CRUD Routes - Integration Tests', () => {
         const body2 = await res2.json();
         expect(body2.pagination.limit).toBe(100);
       } else {
-        // Original test - backend caps at max limit
+        // Original test - backend caps at 100
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.pagination.limit).toBe(100);
+        expect(body.pagination.limit).toBe(100); // Should be capped at 100
       }
     });
 
@@ -202,7 +202,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.pagination.page).toBe(1); // Default page
-      expect(body.pagination.limit).toBe(10);
+      expect(body.pagination.limit).toBe(10); // Default limit
     });
   });
 

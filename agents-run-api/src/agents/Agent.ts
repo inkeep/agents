@@ -29,6 +29,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
+  AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
   FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
   LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
@@ -240,10 +241,10 @@ export class Agent {
 
   /**
    * Get the maximum number of generation steps for this agent
-   * Uses agent's stopWhen.stepCountIs config or defaults to 5
+   * Uses agent's stopWhen.stepCountIs config or defaults to AGENT_EXECUTION_MAX_GENERATION_STEPS
    */
   private getMaxGenerationSteps(): number {
-    return this.config.stopWhen?.stepCountIs ?? 5;
+    return this.config.stopWhen?.stepCountIs ?? AGENT_EXECUTION_MAX_GENERATION_STEPS;
   }
 
   /**
