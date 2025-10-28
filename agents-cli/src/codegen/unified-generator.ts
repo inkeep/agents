@@ -878,13 +878,13 @@ REQUIREMENTS:
 1. Import mcpTool or functionTool from '@inkeep/agents-sdk'
 2. Use exact variable name from registry
 3. Include serverUrl property if MCP tool
-4. For tools with credentials, import envSettings and use envSettings.getEnvironmentSetting('credential_key')
+4. For tools with credentials, import envSettings and use envSettings.getEnvironmentCredential('credential_key')
 5. CRITICAL: Transport must be an OBJECT format: transport: { type: 'streamable_http' } NOT a string
 
 CREDENTIAL HANDLING (CRITICAL):
 If the tool data includes credential information, you MUST:
 1. Import { envSettings } from '../environments'
-2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the tool definition
+2. Use credential: envSettings.getEnvironmentCredential('credential_key') in the tool definition
 3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
 
 Example for tool with credential:
@@ -896,7 +896,7 @@ export const toolName = mcpTool({
   id: 'tool-id',
   name: 'Tool Name',
   serverUrl: 'https://example.com/mcp',
-  credential: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+  credential: envSettings.getEnvironmentCredential('linear_api'), // underscore format
   transport: { type: 'streamable_http' }
 });
 \`\`\`
@@ -931,7 +931,7 @@ REQUIREMENTS:
 CREDENTIAL HANDLING (CRITICAL):
 If the external agent data includes credential information, you MUST:
 1. Import { envSettings } from '../environments/index'
-2. Use credential: envSettings.getEnvironmentSetting('credential_key') in the external agent definition
+2. Use credential: envSettings.getEnvironmentCredential('credential_key') in the external agent definition
 3. Convert credential IDs to underscore format (e.g., 'linear-api' -> 'linear_api')
 
   Example for external agent with credential:
@@ -943,7 +943,7 @@ If the external agent data includes credential information, you MUST:
     id: 'external-helper',
     name: 'External Helper',
     url: 'https://api.example.com/agent',
-    credentialReference: envSettings.getEnvironmentSetting('linear_api'), // underscore format
+    credentialReference: envSettings.getEnvironmentCredential('linear_api'), // underscore format
   });
   \`\`\`
 
@@ -1260,6 +1260,7 @@ export const ${envName} = registerEnvironmentSettings({
   credentials: {
     CREDENTIAL_KEY: credential({
       id: 'CREDENTIAL_ID',
+      name: 'CREDENTIAL_NAME',
       type: 'CREDENTIAL_TYPE', 
       credentialStoreId: 'CREDENTIAL_STORE_ID',
       retrievalParams: {

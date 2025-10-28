@@ -113,8 +113,9 @@ export class KeyChainStore implements CredentialStore {
 
   /**
    * Set a credential in the keychain
+   * @param metadata - Optional metadata (ignored by keychain store)
    */
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, _metadata?: Record<string, string>): Promise<void> {
     await this.initializationPromise;
 
     if (!this.keytarAvailable || !this.keytar) {

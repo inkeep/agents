@@ -114,6 +114,7 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  * ```typescript
  * const apiCredential = credential({
  *   id: 'github-token',
+ *   name: 'GitHub Token',
  *   type: 'bearer',
  *   value: process.env.GITHUB_TOKEN
  * });
@@ -121,7 +122,15 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  */
 
 export function credential(config: CredentialReferenceApiInsert) {
-  return CredentialReferenceApiInsertSchema.parse(config);
+  try {
+    return CredentialReferenceApiInsertSchema.parse(config);
+  } catch (error) {
+    if (error instanceof Error) {
+      const credId = config.id || 'unknown';
+      throw new Error(`Invalid credential '${credId}': ${error.message}`);
+    }
+    throw error;
+  }
 } // ============================================================================
 // Tool Builders
 // ============================================================================
@@ -151,6 +160,7 @@ export function credential(config: CredentialReferenceApiInsert) {
  *   serverUrl: 'https://secure.example.com/mcp',
  *   credential: credential({
  *     id: 'api-key',
+ *     name: 'API Key',
  *     type: 'bearer',
  *     value: process.env.API_KEY
  *   })

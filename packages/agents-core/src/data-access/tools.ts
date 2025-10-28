@@ -240,11 +240,11 @@ export const dbResultToMcpTool = async (
 
     status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
 
+    const errorMessage = error instanceof Error ? error.message : 'Tool discovery failed';
+
     lastErrorComputed = toolNeedsAuth
-      ? 'Authentication required - OAuth login needed'
-      : error instanceof Error
-        ? error.message
-        : 'Tool discovery failed';
+      ? `Authentication required - OAuth login needed. ${errorMessage}`
+      : errorMessage;
   }
 
   const now = new Date().toISOString();

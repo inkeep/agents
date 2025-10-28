@@ -3,11 +3,11 @@ import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { cn } from '@/lib/utils';
 import { getCurrentSelectedToolsForNode } from '@/lib/utils/orphaned-tools-detector';
 import { type MCPNodeData, mcpNodeHandleId } from '../configuration/node-types';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
-import { cn } from '@/lib/utils';
 
 const TOOLS_SHOWN_LIMIT = 4;
 
@@ -87,14 +87,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       )}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">
-          <MCPToolImage
-            imageUrl={imageUrl}
-            name={name}
-            provider={provider || undefined}
-            size={24}
-            className="flex-shrink-0"
-          />
-          <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
+        <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
+        <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
       <BaseNodeContent>
         {toolBadges.map((label, index) => (

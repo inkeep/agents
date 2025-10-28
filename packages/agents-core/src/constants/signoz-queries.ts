@@ -174,8 +174,6 @@ export const QUERY_DEFAULTS = {
   DISABLED: false,
   HAVING: [],
   LEGEND: '',
-  LIMIT_NULL: null,
-  LIMIT_ZERO: 0,
-  LIMIT_1000: 1000,
+  LIMIT_UNLIMITED: 10000000000,
   EMPTY_GROUP_BY: [],
 } as const;

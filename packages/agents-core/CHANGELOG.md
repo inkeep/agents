@@ -1,5 +1,54 @@
 # @inkeep/agents-core
 
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+
+## 0.29.5
+
+### Patch Changes
+
+- 767d466: Allow react imports in component render
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+
+## 0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+## 0.28.0
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- 074e076: mcp evironment settings
+
 ## 0.27.0
 
 ### Minor Changes

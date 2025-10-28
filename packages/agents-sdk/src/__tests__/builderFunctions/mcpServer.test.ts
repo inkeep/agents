@@ -72,6 +72,7 @@ describe('mcpServer builder function', () => {
   it('should handle credentials in config', () => {
     const testCredential = {
       id: 'test-credential',
+      name: 'test-credential',
       credentialStoreId: 'test-store',
       type: 'memory' as const,
       value: 'token123',

@@ -19,7 +19,7 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
   }
 
   return {
-    name: credential.id,
+    name: credential.name,
     metadata: connectionMetadata,
   };
 }

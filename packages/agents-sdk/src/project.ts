@@ -566,6 +566,7 @@ export class Project implements ProjectInterface {
             if (!credentialReferencesObject[credential.id]) {
               credentialReferencesObject[credential.id] = {
                 id: credential.id,
+                name: credential.name,
                 type: credential.type,
                 credentialStoreId: credential.credentialStoreId,
                 retrievalParams: credential.retrievalParams,
@@ -715,6 +716,7 @@ export class Project implements ProjectInterface {
                     if (!credentialReferencesObject[credential.id]) {
                       credentialReferencesObject[credential.id] = {
                         id: credential.id,
+                        name: credential.name,
                         type: credential.type,
                         credentialStoreId: credential.credentialStoreId,
                         retrievalParams: credential.retrievalParams,
@@ -829,6 +831,7 @@ export class Project implements ProjectInterface {
               if (!credentialReferencesObject[credential.id]) {
                 credentialReferencesObject[credential.id] = {
                   id: credential.id,
+                  name: credential.name,
                   type: credential.type,
                   credentialStoreId: credential.credentialStoreId,
                   retrievalParams: credential.retrievalParams,

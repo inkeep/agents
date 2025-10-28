@@ -29,6 +29,7 @@ const CredentialStoreListResponseSchema = z.object({
 const CreateCredentialInStoreRequestSchema = z.object({
   key: z.string().describe('The credential key'),
   value: z.string().describe('The credential value'),
+  metadata: z.record(z.string(), z.string()).nullish().describe('The metadata for the credential'),
 });
 
 const CreateCredentialInStoreResponseSchema = z.object({
@@ -118,7 +119,7 @@ app.openapi(
   }),
   async (c) => {
     const { id: storeId } = c.req.param();
-    const { key, value } = await c.req.json();
+    const { key, value, metadata } = await c.req.json();
     const credentialStores = c.get('credentialStores');
 
     // Find the specific credential store
@@ -140,7 +141,7 @@ app.openapi(
       }
 
       // Set the credential in the store
-      await store.set(key, value);
+      await store.set(key, value, metadata ?? {});
 
       return c.json({
         data: {

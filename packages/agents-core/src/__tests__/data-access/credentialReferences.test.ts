@@ -410,6 +410,7 @@ describe('Credential References Data Access', () => {
   describe('createCredentialReference', () => {
     it('should create a new credential reference', async () => {
       const credentialData: CredentialReferenceInsert = {
+        name: 'Test Credential',
         tenantId: testTenantId,
         projectId: testProjectId,
         id: testCredentialId,
@@ -448,6 +449,7 @@ describe('Credential References Data Access', () => {
 
     it('should handle credential reference with null retrievalParams', async () => {
       const credentialData: CredentialReferenceInsert = {
+        name: 'Test Credential',
         tenantId: testTenantId,
         projectId: testProjectId,
         id: testCredentialId,

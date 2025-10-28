@@ -663,6 +663,7 @@ export const credentialReferences = sqliteTable(
   'credential_references',
   {
     ...projectScoped,
+    name: text('name').notNull(),
     type: text('type').notNull(),
     credentialStoreId: text('credential_store_id').notNull(),
     retrievalParams: blob('retrieval_params', { mode: 'json' }).$type<Record<string, unknown>>(),
