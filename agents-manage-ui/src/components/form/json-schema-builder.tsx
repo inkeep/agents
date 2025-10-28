@@ -8,9 +8,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, X } from 'lucide-react';
-import { StringIcon, NumberIcon, BooleanIcon, EnumIcon } from './icons';
+import { PlusIcon, TrashIcon, X } from 'lucide-react';
+import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon } from './icons';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Types = {
   string: 'str',
@@ -23,47 +24,63 @@ const Types = {
 
 type TypeValues = (typeof Types)[keyof typeof Types];
 
+const SelectType: FC<{ type: TypeValues }> = ({ type }) => {
+  return (
+    <Select defaultValue={type}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.values(Types).map((agent) => (
+          <SelectItem key={agent} value={agent}>
+            {agent.toUpperCase()}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
 function renderProperty(type: TypeValues) {
   const inputs = (
     <>
+      {renderIcon(type)}
       <Input placeholder="Property name" />
-      <Select defaultValue={type}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {['str', 'num', 'bool', 'enum', 'obj', 'arr'].map((agent) => (
-            <SelectItem key={agent} value={agent}>
-              {agent.toUpperCase()}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SelectType type={type} />
       <Input placeholder="Add description" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button size="icon-sm" variant="ghost">
+            <TrashIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Remove property</TooltipContent>
+      </Tooltip>
     </>
   );
-
-  const icon = renderIcon(type);
 
   switch (type) {
     case 'num':
     case 'bool':
     case 'str': {
-      return (
-        <div className="flex gap-2 items-center">
-          {icon}
-          {inputs}
-        </div>
-      );
+      return <div className="flex gap-2 items-center">{inputs}</div>;
     }
     case 'enum':
       return (
         <>
-          <div className="flex gap-2 items-center">
-            {icon}
-            {inputs}
-          </div>
+          <div className="flex gap-2 items-center">{inputs}</div>
           <TagsInput />
+        </>
+      );
+    case 'arr':
+      return (
+        <>
+          <div className="flex gap-2 items-center">{inputs}</div>
+          <div className="flex gap-2 items-center me-8 ms-6">
+            <span className="shrink-0 md:text-sm">Array items</span>
+            <SelectType type="str" />
+            <Input placeholder="Add description" />
+          </div>
         </>
       );
     default: {
@@ -82,6 +99,8 @@ function renderIcon(type: TypeValues) {
       return <BooleanIcon className="shrink-0 text-orange-500" />;
     case 'enum':
       return <EnumIcon className="shrink-0 text-yellow-500" />;
+    case 'arr':
+      return <ArrayIcon className="shrink-0 text-pink-500" />;
   }
 }
 
@@ -97,6 +116,7 @@ export const JsonSchemaBuilder: FC = () => {
       {renderProperty('num')}
       {renderProperty('bool')}
       {renderProperty('enum')}
+      {renderProperty('arr')}
       {properties}
       <Button onClick={handleAddProperty} variant="secondary" size="sm" className="self-start">
         <PlusIcon />
@@ -132,7 +152,7 @@ const TagsInput: FC = () => {
   };
 
   return (
-    <div className="ms-6 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
+    <div className="ms-6 me-8 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
       {tags.map((tag) => (
         <Badge
           key={tag}
