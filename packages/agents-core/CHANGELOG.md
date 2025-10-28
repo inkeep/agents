@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+
 ## 0.29.5
 
 ### Patch Changes
