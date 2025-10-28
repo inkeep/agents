@@ -55,7 +55,7 @@ runs:
         TURBO_TELEMETRY_DISABLED: 1
         TURBO_CACHE_DIR: .turbo
         NODE_OPTIONS: --max-old-space-size=4096
-        ENVIRONMENT: test
+        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
 
     # Wait for services to be ready
     - name: Wait for Backend API Server
