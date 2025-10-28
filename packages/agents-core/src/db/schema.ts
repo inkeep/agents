@@ -748,7 +748,6 @@ export const evalTestSuiteConfig = sqliteTable(
   {
     ...tenantScoped,
     ...uiProperties,
-    
     modelConfig: blob('model_config', { mode: 'json' }).$type<ModelSettings>(),
     runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', 
     ...timestamps,
@@ -767,7 +766,7 @@ export const evalTestSuiteRun = sqliteTable(
     datasetId: text('dataset_id').notNull(),
     agentId: text('agent_id').notNull(),
     testSuiteConfigId: text('test_suite_config_id').notNull(),
-    status: text('status').$type<'pending'|'running'|'done'|'failed'>().notNull(),
+    status: text('status').$type<'pending'|'done'|'failed'>().notNull(),
     ...timestamps,
   },
   (table) => [
@@ -820,7 +819,7 @@ export const evalResult = sqliteTable(
     suiteRunId: text('suite_run_id'),
     datasetItemId: text('dataset_item_id'),
     conversationId: text('conversation_id').notNull(),
-    status: text('status').$type<'pending'|'running'|'done'|'failed'>().notNull(),
+    status: text('status').$type<'pending'|'done'|'failed'>().notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     reasoning: text('reasoning'),
     metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
