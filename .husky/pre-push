@@ -5,7 +5,7 @@
 # It runs a single optimized turbo command (pnpm check:husky) that:
 #   - Builds once (cached and reused by all tasks)
 #   - Runs lint, typecheck, and test in parallel after build
-#   - Matches the exact CI pipeline behavior
+#   - Then runs create-agents E2E tests
 #
 # Usage:
 #   Normal push:                      git push
@@ -13,14 +13,25 @@
 #
 # For more information, see CONTRIBUTING.md
 
-echo "🚀 Running pre-push checks (matching CI pipeline)..."
-echo "   Using 'pnpm check:husky' - builds once, then runs lint, typecheck, and test in parallel"
+echo "🚀 Running pre-push checks..."
+echo "   Step 1: pnpm check:husky (build, lint, typecheck, unit tests)"
 
-# Run the unified check command that matches CI pipeline exactly
+# Run the unified check command
 if ! pnpm check:husky; then
   echo "❌ Pre-push checks failed. Fix the issues above before pushing."
-  echo "   Run 'pnpm check:husky' locally to reproduce the CI checks."
+  echo "   Run 'pnpm check:husky' locally to reproduce."
   exit 1
 fi
 
-echo "✅ All pre-push checks passed!"
+echo ""
+echo "   Step 2: Running create-agents E2E tests..."
+
+# Run create-agents E2E tests
+if ! pnpm --filter @inkeep/create-agents test:e2e; then
+  echo "❌ create-agents E2E tests failed. Fix the issues above before pushing."
+  echo "   Run 'pnpm --filter @inkeep/create-agents test:e2e' locally to reproduce."
+  exit 1
+fi
+
+echo ""
+echo "✅ All pre-push checks passed (including E2E tests)!"
