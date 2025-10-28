@@ -15,6 +15,7 @@ runs:
   using: 'composite'
   steps:
     - name: Generate JWT signing secret
+      shell: bash
       run: echo "INKEEP_AGENTS_JWT_SIGNING_SECRET=$(openssl rand -hex 32)" >> $GITHUB_ENV
 
     - name: Setup Cypress cache
