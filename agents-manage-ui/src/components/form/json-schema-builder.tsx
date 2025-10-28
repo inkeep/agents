@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from 'lucide-react';
-import { StringIcon } from './icons';
+import { StringIcon, NumberIcon } from './icons';
 
 const Types = {
   string: 'str',
@@ -20,11 +20,13 @@ const Types = {
   object: 'arr',
 };
 
-function renderProperty(type: keyof typeof Types) {
+type TypeValues = (typeof Types)[keyof typeof Types];
+
+function renderProperty(type: TypeValues) {
   const inputs = (
     <>
       <Input placeholder="Property name" />
-      <Select defaultValue="str">
+      <Select defaultValue={type}>
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
@@ -43,27 +45,35 @@ function renderProperty(type: keyof typeof Types) {
   const icon = renderIcon(type);
 
   switch (type) {
-    case 'string':
+    case 'num':
+    case 'str': {
       return (
         <div className="flex gap-2 items-center">
           {icon}
           {inputs}
         </div>
       );
+    }
+    default: {
+      throw new TypeError(`Unsupported type ${type}`);
+    }
   }
 }
 
-function renderIcon(type: keyof typeof Types) {
+function renderIcon(type: TypeValues) {
   switch (type) {
-    case 'string':
+    case 'str':
       return <StringIcon className="shrink-0 text-green-500" />;
+    case 'num':
+      return <NumberIcon className="shrink-0 text-blue-500" />;
   }
 }
 
 export const JsonSchemaBuilder: FC = () => {
   return (
     <>
-      {renderProperty('string')}
+      {renderProperty('str')}
+      {renderProperty('num')}
       <Button variant="secondary" size="sm" className="self-start">
         <PlusIcon />
         Add property
