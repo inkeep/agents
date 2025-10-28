@@ -13,8 +13,6 @@ inputs:
 
 runs:
   using: 'composite'
-  env:
-    INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
   steps:
     - name: Setup Cypress cache
       uses: actions/cache@v4
