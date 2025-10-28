@@ -13,6 +13,8 @@ inputs:
 
 runs:
   using: 'composite'
+  env:
+    INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
   steps:
     - name: Setup Cypress cache
       uses: actions/cache@v4
@@ -31,8 +33,6 @@ runs:
     - name: Start Backend API Server
       shell: bash
       run: npx turbo dev --filter='@inkeep/agents-manage-api' &
-      env:
-        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
 
     - name: Build Dashboard
       shell: bash
@@ -41,8 +41,6 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
-      env:
-        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
 
     - name: Run Cypress E2E Tests
       shell: bash
