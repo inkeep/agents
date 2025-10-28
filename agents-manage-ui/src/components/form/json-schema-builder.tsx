@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, TrashIcon, X } from 'lucide-react';
-import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon } from './icons';
+import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon, ObjectIcon } from './icons';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -73,15 +73,20 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
     case 'str': {
       return <div className="flex gap-2 items-center">{inputs}</div>;
     }
-    case 'enum':
+    case 'enum': {
       return (
         <>
           <div className="flex gap-2 items-center">{inputs}</div>
           <TagsInput />
         </>
       );
-    case 'arr':
+    }
+    case 'arr': {
       return <PropertyArray>{inputs}</PropertyArray>;
+    }
+    case 'obj': {
+      return <div className="flex gap-2 items-center">{inputs}</div>;
+    }
     default: {
       throw new TypeError(`Unsupported type ${type}`);
     }
@@ -110,6 +115,7 @@ const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
   bool: BooleanIcon,
   enum: EnumIcon,
   arr: ArrayIcon,
+  obj: ObjectIcon,
 };
 
 const ClassToUse: Record<string, string> = {
@@ -118,6 +124,7 @@ const ClassToUse: Record<string, string> = {
   bool: 'text-orange-500',
   enum: 'text-yellow-500',
   arr: 'text-pink-500',
+  obj: 'text-purple-500',
 };
 
 const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
@@ -150,6 +157,7 @@ export const JsonSchemaBuilder: FC = () => {
       <Property defaultType="bool" />
       <Property defaultType="enum" />
       <Property defaultType="arr" />
+      <Property defaultType="obj" />
       {properties}
       <Button onClick={handleAddProperty} variant="secondary" size="sm" className="self-start">
         <PlusIcon />
