@@ -5,8 +5,8 @@ import type { RJSFSchema } from '@rjsf/utils';
 import { Theme as ShadcnTheme } from '@rjsf/shadcn';
 import type { SimpleJsonSchema } from './json-schema-simple-utils';
 import { createEmptySimpleJsonSchema } from './json-schema-simple-utils';
-import ArrayFieldItemTemplate from './ArrayFieldItemTemplate';
-import FieldTemplate from './FieldTemplate';
+import ArrayFieldItemTemplate from './rjsf/ArrayFieldItemTemplate';
+import MultiSchemaFieldTemplate from './rjsf/MultiSchemaFieldTemplate';
 
 const Form = withTheme(ShadcnTheme);
 
@@ -15,7 +15,7 @@ const buildTemplates = () => {
 
   return {
     ...baseTemplates,
-    FieldTemplate,
+    MultiSchemaFieldTemplate,
     ArrayFieldItemTemplate,
   };
 };
