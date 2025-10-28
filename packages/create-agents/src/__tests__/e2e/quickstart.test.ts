@@ -1,8 +1,7 @@
 import path from 'node:path';
 import { execa } from 'execa';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  cleanupDir,
   createTempDir,
   linkLocalPackages,
   runCommand,
