@@ -39,6 +39,8 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
+      env:
+        DB_FILE_NAME: test.db
 
     - name: Run Cypress E2E Tests
       shell: bash
