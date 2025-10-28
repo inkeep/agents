@@ -1,11 +1,5 @@
-import {
-  type ComponentProps,
-  type Dispatch,
-  type FC,
-  type ReactNode,
-  useCallback,
-  useState,
-} from 'react';
+import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -86,20 +80,27 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
         </>
       );
     case 'arr':
-      return (
-        <>
-          <div className="flex gap-2 items-center">{inputs}</div>
-          <div className="flex gap-2 items-center me-8 ms-6">
-            <span className="shrink-0 md:text-sm">Array items</span>
-            <SelectType value="str" onValueChange={setType} />
-            <Input placeholder="Add description" />
-          </div>
-        </>
-      );
+      return <PropertyArray>{inputs}</PropertyArray>;
     default: {
       throw new TypeError(`Unsupported type ${type}`);
     }
   }
+};
+
+const PropertyArray: FC<{ children: ReactNode }> = ({ children }) => {
+  const [type, setType] = useState<TypeValues>('str');
+
+  return (
+    <>
+      <div className="flex gap-2 items-center">{children}</div>
+      <div className="flex gap-2 items-center me-8 ms-6">
+        <PropertyIcon type={type} />
+        <span className="shrink-0 md:text-sm">Array items</span>
+        <SelectType value={type} onValueChange={setType} />
+        <Input placeholder="Add description" />
+      </div>
+    </>
+  );
 };
 
 const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
