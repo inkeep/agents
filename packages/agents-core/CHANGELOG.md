@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.29.5
+
+### Patch Changes
+
+- 767d466: Allow react imports in component render
+
 ## 0.29.4
 
 ### Patch Changes
