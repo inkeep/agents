@@ -117,10 +117,26 @@ export default {
           group: 'Chat Components',
           icon: 'LuBlocks',
           pages: [
-            'talk-to-your-agents/react/chat-button',
-            'talk-to-your-agents/react/custom-trigger',
-            'talk-to-your-agents/react/side-bar-chat',
-            'talk-to-your-agents/react/embedded-chat',
+            {
+              group: 'React',
+              icon: 'brand/ReactIcon',
+              pages: [
+                'talk-to-your-agents/react/chat-button',
+                'talk-to-your-agents/react/custom-trigger',
+                'talk-to-your-agents/react/side-bar-chat',
+                'talk-to-your-agents/react/embedded-chat',
+              ],
+            },
+            {
+              group: 'JavaScript',
+              icon: 'brand/JavascriptIcon',
+              pages: [
+                'talk-to-your-agents/javascript/chat-button',
+                'talk-to-your-agents/javascript/custom-trigger',
+                'talk-to-your-agents/javascript/side-bar-chat',
+                'talk-to-your-agents/javascript/embedded-chat',
+              ],
+            },
           ],
         },
         {
