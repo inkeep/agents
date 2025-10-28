@@ -226,14 +226,14 @@ describe('Validation Schemas', () => {
     it('should validate pagination object with defaults', () => {
       const pagination = {
         total: 100,
-        pages: 2,
+        pages: 10,
       };
 
       const result = PaginationSchema.parse(pagination);
       expect(result.page).toBe(1); // default
       expect(result.limit).toBe(10); // default
       expect(result.total).toBe(100);
-      expect(result.pages).toBe(2);
+      expect(result.pages).toBe(10);
     });
 
     it('should validate pagination object with custom values', () => {
