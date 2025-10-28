@@ -30,11 +30,11 @@ runs:
 
     - name: Start Backend API Server
       shell: bash
-      run: turbo dev --filter='@inkeep/agents-manage-api' &
+      run: npx turbo dev --filter='@inkeep/agents-manage-api' &
 
     - name: Build Dashboard
       shell: bash
-      run: turbo build --filter='@inkeep/agents-manage-ui'
+      run: npx turbo build --filter='@inkeep/agents-manage-ui'
 
     - name: Push Weather Example Project
       shell: bash
