@@ -1,4 +1,11 @@
-import { type ComponentProps, type FC, type ReactNode, useCallback, useState } from 'react';
+import {
+  type ComponentProps,
+  type Dispatch,
+  type FC,
+  type ReactNode,
+  useCallback,
+  useState,
+} from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -25,9 +32,12 @@ const Types = {
 
 type TypeValues = (typeof Types)[keyof typeof Types];
 
-const SelectType: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
+const SelectType: FC<{ value: TypeValues; onValueChange: Dispatch<'string'> }> = ({
+  value,
+  onValueChange,
+}) => {
   return (
-    <Select defaultValue={defaultType}>
+    <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger>
         <SelectValue />
       </SelectTrigger>
@@ -43,11 +53,13 @@ const SelectType: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
 };
 
 const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
+  const [type, setType] = useState<TypeValues>(defaultType);
+
   const inputs = (
     <>
-      <PropertyIcon type={defaultType} />
+      <PropertyIcon type={type} />
       <Input placeholder="Property name" />
-      <SelectType defaultType={defaultType} />
+      <SelectType value={type} onValueChange={setType} />
       <Input placeholder="Add description" />
       <Tooltip>
         <TooltipTrigger asChild>
@@ -60,7 +72,7 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
     </>
   );
 
-  switch (defaultType) {
+  switch (type) {
     case 'num':
     case 'bool':
     case 'str': {
@@ -79,13 +91,13 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
           <div className="flex gap-2 items-center">{inputs}</div>
           <div className="flex gap-2 items-center me-8 ms-6">
             <span className="shrink-0 md:text-sm">Array items</span>
-            <SelectType defaultType="str" />
+            <SelectType value="str" onValueChange={setType} />
             <Input placeholder="Add description" />
           </div>
         </>
       );
     default: {
-      throw new TypeError(`Unsupported type ${defaultType}`);
+      throw new TypeError(`Unsupported type ${type}`);
     }
   }
 };
