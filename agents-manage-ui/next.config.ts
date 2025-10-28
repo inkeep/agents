@@ -15,7 +15,14 @@ if (process.env.NODE_ENV !== 'production') {
 const nextConfig: NextConfig = {
   output: 'standalone',
   // Enable Turbopack for faster builds
-  turbopack: {},
+  turbopack: {
+    rules: {
+      './**/icons/*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
   eslint: {
     // Disable ESLint during builds on Vercel to avoid deployment failures
     ignoreDuringBuilds: true,
