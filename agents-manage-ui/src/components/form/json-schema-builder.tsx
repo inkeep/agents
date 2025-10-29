@@ -15,31 +15,33 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Types = {
   string: 'str',
   number: 'num',
   boolean: 'bool',
   enum: 'enum',
-  array: 'obj',
-  object: 'arr',
+  array: 'arr',
+  object: 'obj',
 };
 
 type TypeValues = (typeof Types)[keyof typeof Types];
 
-const SelectType: FC<{ value: TypeValues; onValueChange: Dispatch<'string'> }> = ({
-  value,
-  onValueChange,
-}) => {
+const SelectType: FC<{
+  value: TypeValues;
+  onValueChange: Dispatch<'string'>;
+  className?: string;
+}> = ({ value, onValueChange, className }) => {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger>
+      <SelectTrigger className={className}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {Object.values(Types).map((agent) => (
-          <SelectItem key={agent} value={agent}>
-            {agent.toUpperCase()}
+        {Object.entries(Types).map(([k, v]) => (
+          <SelectItem key={k} value={v}>
+            {k}
           </SelectItem>
         ))}
       </SelectContent>
@@ -53,9 +55,15 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
   const inputs = (
     <>
       <PropertyIcon type={type} />
+      <SelectType value={type} onValueChange={setType} className="w-57" />
       <Input placeholder="Property name" />
-      <SelectType value={type} onValueChange={setType} />
       <Input placeholder="Add description" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Checkbox />
+        </TooltipTrigger>
+        <TooltipContent>Mark this field as required</TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button size="icon-sm" variant="ghost">
@@ -85,7 +93,21 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
       return <PropertyArray>{inputs}</PropertyArray>;
     }
     case 'obj': {
-      return <div className="flex gap-2 items-center">{inputs}</div>;
+      return (
+        <>
+          <div className="flex gap-2 items-center">{inputs}</div>
+          <Button
+            onClick={() => {}}
+            variant="secondary"
+            size="sm"
+            className="self-start"
+            style={{ marginLeft: 24 }}
+          >
+            <PlusIcon />
+            Add property
+          </Button>
+        </>
+      );
     }
     default: {
       throw new TypeError(`Unsupported type ${type}`);
@@ -99,7 +121,7 @@ const PropertyArray: FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <>
       <div className="flex gap-2 items-center">{children}</div>
-      <div className="flex gap-2 items-center me-8 ms-6">
+      <div className="flex gap-2 items-center me-8 ms-7.5">
         <PropertyIcon type={type} />
         <span className="shrink-0 md:text-sm">Array items</span>
         <SelectType value={type} onValueChange={setType} />
@@ -147,9 +169,10 @@ export const JsonSchemaBuilder: FC = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[43%]">Name</TableHead>
-            <TableHead className="w-1/10">Type</TableHead>
-            <TableHead>Description</TableHead>
+            <TableHead className="w-[15%] text-center">Type</TableHead>
+            <TableHead className="w-[42%] text-center">Name</TableHead>
+            <TableHead className="text-center">Description</TableHead>
+            <TableHead className="w-px text-right">Required</TableHead>
           </TableRow>
         </TableHeader>
       </Table>
@@ -194,7 +217,7 @@ const TagsInput: FC = () => {
   };
 
   return (
-    <div className="ms-6 me-8 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
+    <div className="ms-33.5 me-13.5 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
       {tags.map((tag) => (
         <Badge
           key={tag}
