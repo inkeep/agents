@@ -6,7 +6,7 @@ icon: "LuMousePointerClick"
 
 ## Overview
 
-Custom triggers give you complete control over how users open Inkeep modals in your JavaScript application. Instead of using pre-built widgets like `Inkeep.ChatButton()`, you can create your own UI elements that match your design system while maintaining full functionality.
+Custom triggers give you complete control over how users open Inkeep modals in your JavaScript application. Instead of using pre-built widgets like `Inkeep.SearchBar()`, you can create your own UI elements that match your design system while maintaining full functionality.
 
 ## Quick Start
 
@@ -36,7 +36,7 @@ Custom triggers give you complete control over how users open Inkeep modals in y
       aiChatSettings: {
         aiAssistantName: "Keepie",
       },
-      modalSettings: {
+      openSettings: {
         onOpenChange: handleOpenChange,
       },
     };
@@ -45,12 +45,12 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     const modalChat = Inkeep.ModalChat(config);
 
     function handleOpenChange(newOpen) {
-      modalChat.update({ modalSettings: { isOpen: newOpen } });
+      modalChat.update({ openSettings: { isOpen: newOpen } });
     }
 
     // trigger
     document.querySelector("#chat-button").addEventListener("click", () => {
-      modalChat.update({ modalSettings: { isOpen: true } });
+      modalChat.update({ openSettings: { isOpen: true } });
     });
 
     // Access chat methods
@@ -81,7 +81,7 @@ Custom triggers give you complete control over how users open Inkeep modals in y
   name="InkeepAIChatSettings"
 />
 
-### Modal Settings
+### Open Settings
 
 <AutoTypeTable
   path="./content/docs/talk-to-your-agents/types.ts"
