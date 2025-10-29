@@ -28,9 +28,6 @@ runs:
     - run: pnpm setup-dev
       shell: bash
 
-    - run: pnpm db:migrate
-      shell: bash
-
     - name: Start Backend API Server
       shell: bash
       run: npx turbo dev --filter='@inkeep/agents-manage-api' & # & means run in job background

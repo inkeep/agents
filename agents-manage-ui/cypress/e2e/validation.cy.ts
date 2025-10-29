@@ -13,7 +13,9 @@ describe('Validation', () => {
     cy.contains('Save').should('exist');
 
     // Trigger Cmd+S to save
-    cy.get('body').type('{cmd+s}');
+    const isMac = Cypress.platform === 'darwin';
+    const saveShortcut = isMac ? '{cmd+s}' : '{ctrl+s}';
+    cy.get('body').type(saveShortcut);
 
     // Check for validation errors
     cy.contains('Validation Errors (1)').should('exist');
