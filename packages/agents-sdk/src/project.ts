@@ -710,7 +710,7 @@ export class Project implements ProjectInterface {
                 // Extract inline credential from tool if present
                 if ('credential' in mcpTool.config && mcpTool.config.credential) {
                   const credential = mcpTool.config.credential;
-                  if (credential && credential.id && credential.__type !== 'credential-ref') {
+                  if (credential?.id && credential.__type !== 'credential-ref') {
                     // Add credential to project-level credentials if not already present
                     if (!credentialReferencesObject[credential.id]) {
                       credentialReferencesObject[credential.id] = {
@@ -953,6 +953,8 @@ export class Project implements ProjectInterface {
       stopWhen: this.stopWhen,
       agents: agentsObject,
       tools: toolsObject,
+      functionTools:
+        Object.keys(functionToolsObject).length > 0 ? functionToolsObject : undefined,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,

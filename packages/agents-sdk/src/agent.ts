@@ -272,6 +272,7 @@ export class Agent implements AgentInterface {
         description: subAgent.config.description || `Agent ${subAgent.getName()}`,
         prompt: subAgent.getInstructions(),
         models: subAgent.config.models,
+        stopWhen: subAgent.config.stopWhen,
         canTransferTo: transfers.map((h) => h.getId()),
         canDelegateTo: delegates.map((d) => {
           if (typeof d === 'object' && 'externalAgent' in d) {
@@ -356,6 +357,8 @@ export class Agent implements AgentInterface {
                     server: {
                       url: mcpTool.config.serverUrl,
                     },
+                    transport: mcpTool.config.transport,
+                    activeTools: mcpTool.config.activeTools,
                   },
                 },
                 credentialReferenceId: null,
@@ -376,10 +379,11 @@ export class Agent implements AgentInterface {
       contextConfig: this.contextConfig?.toObject(),
       // Include tools used by subAgents at agent level (MCP tools only)
       ...(Object.keys(agentToolsObject).length > 0 && { tools: agentToolsObject }),
-      // NOTE: functionTools/functions stay at PROJECT level only
-      // ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
-      // ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
+      // Include function tools at agent level
+      ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
+      ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
+      stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
       createdAt: new Date().toISOString(),

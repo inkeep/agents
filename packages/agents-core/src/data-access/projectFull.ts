@@ -4,6 +4,7 @@
  * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
+import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
@@ -22,6 +23,8 @@ import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
+import { listFunctions } from './functions';
+import { functionTools, functions } from '../db/schema';
 
 const defaultLogger = getLogger('projectFull');
 
@@ -1059,6 +1062,46 @@ export const getFullProject =
         );
       }
 
+      const projectFunctions: Record<string, any> = {};
+      try {
+        // Get all function tools with their associated function data by joining the tables
+        const functionToolsWithFunctions = await db
+          .select({
+            functionToolId: functionTools.id,
+            functionToolName: functionTools.name,
+            functionToolDescription: functionTools.description,
+            functionId: functions.id,
+            inputSchema: functions.inputSchema,
+            executeCode: functions.executeCode,
+            dependencies: functions.dependencies,
+          })
+          .from(functionTools)
+          .innerJoin(functions, eq(functionTools.functionId, functions.id))
+          .where(
+            and(
+              eq(functionTools.tenantId, tenantId),
+              eq(functionTools.projectId, projectId)
+            )
+          );
+
+        for (const item of functionToolsWithFunctions) {
+          projectFunctions[item.functionToolId] = {
+            id: item.functionId,
+            name: item.functionToolName,
+            description: item.functionToolDescription,
+            inputSchema: item.inputSchema,
+            executeCode: item.executeCode,
+            dependencies: item.dependencies,
+          };
+        }
+        logger.info(
+          { tenantId, projectId, functionCount: Object.keys(projectFunctions).length },
+          'Function tools with function data retrieved for project'
+        );
+      } catch (error) {
+        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve function tools for project');
+      }
+
       const agents: Record<string, any> = {};
 
       if (agentList.length > 0) {
@@ -1108,6 +1151,7 @@ export const getFullProject =
         stopWhen: project.stopWhen || undefined,
         agents,
         tools: projectTools,
+        functions: projectFunctions,
         externalAgents: projectExternalAgents,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,
