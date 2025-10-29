@@ -8,6 +8,44 @@ import { jsonSchemaToZod } from 'json-schema-to-zod';
  * then restores them after LLM generation.
  */
 
+/**
+ * Convert JSON schema to Zod while preserving inPreview metadata for artifact components
+ */
+function convertJsonSchemaToZodWithInPreview(schema: any): string {
+  if (!schema || typeof schema !== 'object') {
+    return 'z.unknown()';
+  }
+
+  // Handle object schemas with inPreview properties
+  if (schema.type === 'object' && schema.properties) {
+    const lines: string[] = ['z.object({'];
+    
+    for (const [key, prop] of Object.entries(schema.properties) as [string, any][]) {
+      // Convert the property without inPreview first
+      const propCopy = { ...prop };
+      delete propCopy.inPreview;
+      const baseZodType = jsonSchemaToZod(propCopy);
+      
+      // Wrap with preview() if this property has inPreview: true
+      const finalZodType = prop.inPreview === true ? `preview(${baseZodType})` : baseZodType;
+      
+      lines.push(`  ${key}: ${finalZodType},`);
+    }
+    
+    lines.push('})');
+    
+    // Add strict() if additionalProperties is false
+    if (schema.additionalProperties === false) {
+      lines[lines.length - 1] += '.strict()';
+    }
+    
+    return lines.join('\n');
+  }
+
+  // Fallback to regular conversion for non-object schemas
+  return jsonSchemaToZod(schema);
+}
+
 export interface PlaceholderResult {
   processedData: any;
   replacements: Record<string, string>;
@@ -216,11 +254,10 @@ function processObject(obj: any, tracker: PlaceholderTracker, path: string = '',
         return obj;
       }
       
-      console.log(`🔄 Converting JSON schema to Zod at path: ${path}`);
-      console.log(`📋 Schema object:`, JSON.stringify(obj, null, 2));
-      
-      const zodSchema = jsonSchemaToZod(obj);
-      console.log(`✅ Successfully converted schema at path: ${path}`);
+      // Use inPreview-aware conversion for artifact components only
+      const zodSchema = (path === 'props' && context?.fileType === 'artifactComponent') 
+        ? convertJsonSchemaToZodWithInPreview(obj)
+        : jsonSchemaToZod(obj);
       return zodSchema;
     } catch (error) {
       console.error(`❌ Error converting JSON schema to Zod schema at path: ${path}`);

@@ -1,28 +1,50 @@
 /**
  * Hybrid generator - combines deterministic generation with LLM integration
- * 
+ *
  * This approach generates components deterministically (fast, reliable) and then
  * uses LLM to intelligently integrate them into existing files with proper formatting.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { generateText } from 'ai';
-import { createModel } from '../pull.llm-generate';
-import { createPlaceholders, restorePlaceholders, calculateTokenSavings } from '../pull.placeholder-system';
 import chalk from 'chalk';
-
+import { createModel } from '../pull.llm-generate';
+import {
+  calculateTokenSavings,
+  createPlaceholders,
+  restorePlaceholders,
+} from '../pull.placeholder-system';
+import { generateAgentExport, generateAgentFile, generateAgentImports } from './agent-generator';
+import {
+  generateArtifactComponentExport,
+  generateArtifactComponentFile,
+  generateArtifactComponentImports,
+} from './artifact-component-generator';
+import {
+  generateDataComponentExport,
+  generateDataComponentFile,
+  generateDataComponentImports,
+} from './data-component-generator';
+import { type CodeStyle, DEFAULT_CODE_STYLE } from './generator-utils';
+import {
+  generateStatusComponentExport,
+  generateStatusComponentFile,
+  generateStatusComponentImports,
+} from './status-component-generator';
+import { extractTokenUsage, tokenTracker } from './token-tracker';
 // Import deterministic generators
-import { generateToolImports, generateToolExport } from './tool-generator';
-import { generateAgentImports, generateAgentExport, generateAgentFile } from './agent-generator';
-import { generateDataComponentImports, generateDataComponentExport, generateDataComponentFile } from './data-component-generator';
-import { generateArtifactComponentImports, generateArtifactComponentExport, generateArtifactComponentFile } from './artifact-component-generator';
-import { generateStatusComponentImports, generateStatusComponentExport, generateStatusComponentFile } from './status-component-generator';
-import { DEFAULT_CODE_STYLE, type CodeStyle } from './generator-utils';
+import { generateToolExport, generateToolImports } from './tool-generator';
 
 interface ComponentParts {
   imports: string[];
   exportDefinition: string;
-  componentType: 'tool' | 'dataComponent' | 'artifactComponent' | 'statusComponent' | 'agent' | 'environment';
+  componentType:
+    | 'tool'
+    | 'dataComponent'
+    | 'artifactComponent'
+    | 'statusComponent'
+    | 'agent'
+    | 'environment';
   componentId: string;
   placeholderReplacements?: Record<string, string>;
 }
@@ -46,23 +68,20 @@ export function generateComponentParts(
   style: CodeStyle = DEFAULT_CODE_STYLE,
   project?: any,
   componentNameMap?: Map<string, { name: string; type: string }>,
-  usePlaceholders: boolean = true
+  usePlaceholders: boolean = true,
+  isInline: boolean = false
 ): ComponentParts {
   // Only create placeholders if requested (for LLM integration)
   // For deterministic generation, use the original data directly
   let processedComponentData: any;
   let replacements: Record<string, string> = {};
-  
+
   if (usePlaceholders) {
     // Apply placeholders to the component data BEFORE generating TypeScript code
     // This replaces long strings (like prompts) with placeholders, but preserves the data structure
     const result = createPlaceholders(componentData, { fileType: componentType });
     processedComponentData = result.processedData;
     replacements = result.replacements;
-    
-    if (Object.keys(replacements).length > 0) {
-      console.log(`    📦 Created ${Object.keys(replacements).length} placeholders for ${componentType} ${componentId}`);
-    }
   } else {
     // Use original data directly for deterministic generation
     processedComponentData = componentData;
@@ -74,37 +93,76 @@ export function generateComponentParts(
   switch (componentType) {
     case 'tool':
       imports = generateToolImports(componentId, processedComponentData, style);
-      exportDefinition = generateToolExport(componentId, processedComponentData, style, componentNameMap);
+      exportDefinition = generateToolExport(
+        componentId,
+        processedComponentData,
+        style,
+        componentNameMap,
+        isInline
+      );
       break;
-      
+
     case 'dataComponent':
       imports = generateDataComponentImports(componentId, processedComponentData, style);
-      exportDefinition = generateDataComponentExport(componentId, processedComponentData, style, componentNameMap);
+      exportDefinition = generateDataComponentExport(
+        componentId,
+        processedComponentData,
+        style,
+        componentNameMap
+      );
       break;
-      
+
     case 'artifactComponent':
       imports = generateArtifactComponentImports(componentId, processedComponentData, style);
-      exportDefinition = generateArtifactComponentExport(componentId, processedComponentData, style, componentNameMap);
+      exportDefinition = generateArtifactComponentExport(
+        componentId,
+        processedComponentData,
+        style,
+        componentNameMap
+      );
       break;
-      
+
     case 'statusComponent':
       imports = generateStatusComponentImports(componentId, processedComponentData, style);
-      exportDefinition = generateStatusComponentExport(componentId, processedComponentData, style, componentNameMap);
+      exportDefinition = generateStatusComponentExport(
+        componentId,
+        processedComponentData,
+        style,
+        componentNameMap
+      );
       break;
-      
+
     case 'agent':
       if (project && componentNameMap) {
-        imports = generateAgentImports(componentId, processedComponentData, project, style, componentNameMap);
-        exportDefinition = generateAgentExport(componentId, processedComponentData, project, style, componentNameMap);
+        imports = generateAgentImports(
+          componentId,
+          processedComponentData,
+          project,
+          style,
+          componentNameMap
+        );
+        exportDefinition = generateAgentExport(
+          componentId,
+          processedComponentData,
+          project,
+          style,
+          componentNameMap
+        );
       } else {
         // Fallback to full file generation and extraction
-        const agentFile = generateAgentFile(componentId, processedComponentData, project || {}, style, componentNameMap || new Map());
+        const agentFile = generateAgentFile(
+          componentId,
+          processedComponentData,
+          project || {},
+          style,
+          componentNameMap || new Map()
+        );
         const agentParts = extractImportsAndExport(agentFile);
         imports = agentParts.imports;
         exportDefinition = agentParts.exportDefinition;
       }
       break;
-      
+
     default:
       throw new Error(`Unsupported component type: ${componentType}`);
   }
@@ -114,14 +172,17 @@ export function generateComponentParts(
     exportDefinition,
     componentType,
     componentId,
-    placeholderReplacements: replacements // Store replacements so we can restore them later
+    placeholderReplacements: replacements, // Store replacements so we can restore them later
   };
 }
 
 /**
  * Extract imports and export from a generated file (temporary helper)
  */
-function extractImportsAndExport(fileContent: string): { imports: string[]; exportDefinition: string } {
+function extractImportsAndExport(fileContent: string): {
+  imports: string[];
+  exportDefinition: string;
+} {
   const lines = fileContent.split('\n');
   const imports: string[] = [];
   const exportLines: string[] = [];
@@ -146,7 +207,7 @@ function extractImportsAndExport(fileContent: string): { imports: string[]; expo
 
   return {
     imports,
-    exportDefinition: exportLines.join('\n')
+    exportDefinition: exportLines.join('\n'),
   };
 }
 
@@ -159,15 +220,9 @@ export async function integrateComponentsIntoFile(
   const { filePath, existingContent, componentsToAdd, componentsToModify, debug } = request;
 
   try {
-    // ALWAYS show what's being sent to LLM for debugging
-    console.log(chalk.cyan(`\n🤖 LLM INTEGRATION DEBUG for ${filePath}:`));
-    console.log(chalk.gray(`📡 Model: ${process.env.INKEEP_LLM_MODEL || 'default'}`));
-    console.log(chalk.cyan(`📝 Components to ADD: ${componentsToAdd.map(c => `${c.componentId} (${c.componentType})`).join(', ') || 'none'}`));
-    console.log(chalk.yellow(`🔄 Components to MODIFY: ${componentsToModify.map(c => `${c.componentId} (${c.componentType})`).join(', ') || 'none'}`));
-
     // Collect all placeholder replacements from components BEFORE creating integration data
     const allReplacements: Record<string, string> = {};
-    [...componentsToAdd, ...componentsToModify].forEach(comp => {
+    [...componentsToAdd, ...componentsToModify].forEach((comp) => {
       if (comp.placeholderReplacements) {
         Object.assign(allReplacements, comp.placeholderReplacements);
       }
@@ -204,59 +259,53 @@ export async function integrateComponentsIntoFile(
     const startTime = Date.now();
     const model = createModel({
       model: process.env.INKEEP_LLM_MODEL,
-      apiKey: process.env.INKEEP_LLM_API_KEY,
     });
 
     const { generateText } = await import('ai');
-    
+
     // Build prompt with concrete code instructions instead of JSON
     const prompt = promptTemplate
       .replace('{{EXISTING_CONTENT}}', existingContent)
       .replace('{{ADD_INSTRUCTIONS}}', addInstructions)
       .replace('{{MODIFY_INSTRUCTIONS}}', modifyInstructions);
-    
-    console.log(chalk.magenta(`\n📋 CUSTOM PLACEHOLDER PROMPT (clean TypeScript structure):`));
-    console.log(chalk.gray('=' + '='.repeat(120)));
-    console.log(prompt);
-    console.log(chalk.gray('=' + '='.repeat(120)));
-    console.log(chalk.magenta(`📏 Prompt length: ${prompt.length} characters`));
-    console.log(chalk.magenta(`🔗 Placeholders to restore: ${Object.keys(allReplacements).length}`));
-    
-    const { text: generatedContent } = await generateText({
+
+    const response = await generateText({
       model,
       prompt,
       temperature: 0.1, // Low temperature for consistent code
       maxOutputTokens: 16000, // Large enough for complex files
       abortSignal: AbortSignal.timeout(60000), // 60 second timeout
     });
-    
+
     const duration = Date.now() - startTime;
-    if (debug) {
-      console.log(chalk.gray(`    ⚡ LLM integration completed in ${duration}ms`));
+    const generatedContent = response.text;
+
+    // Track token usage
+    const usage = extractTokenUsage(response);
+    if (usage) {
+      tokenTracker.recordCall('hybrid-integration', usage, duration);
     }
 
     // Restore placeholders using our custom system
-    const restoredContent = Object.keys(allReplacements).length > 0 
-      ? restorePlaceholders(generatedContent, allReplacements)
-      : generatedContent;
-    
-    console.log(chalk.gray(`    🔄 Restored ${Object.keys(allReplacements).length} placeholders in generated content`));
+    const restoredContent =
+      Object.keys(allReplacements).length > 0
+        ? restorePlaceholders(generatedContent, allReplacements)
+        : generatedContent;
 
     // Clean the generated content
     const cleanedContent = cleanGeneratedCode(restoredContent);
-    
-    // Write back to file
-    writeFileSync(filePath, cleanedContent, 'utf-8');
+
+    // Don't write to file - let temp validation system handle file writing
+    // This prevents overwriting real files before validation
 
     return {
       success: true,
-      updatedContent: cleanedContent
+      updatedContent: cleanedContent,
     };
-
   } catch (error: any) {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -275,22 +324,25 @@ EXISTING FILE CONTENT:
 {{MODIFY_INSTRUCTIONS}}
 
 INTEGRATION INSTRUCTIONS:
-1. **Follow the specific instructions above**: Add new components where specified, replace existing components where specified
-2. **Use the provided code exactly**: The component definitions were generated deterministically - use them EXACTLY as provided (do not modify the code)
-3. **Match existing file style**: Format the integrated code to match the existing file's coding style (spacing, indentation, organization)
-4. **Smart import management**: Merge import statements intelligently (no duplicates, maintain organization)
-5. **Preserve everything else**: Keep all existing components that aren't being replaced, preserve comments and formatting
+1. **Minimal surgical changes**: Only modify what's specifically requested - preserve existing code structure, ordering, and style
+2. **Git-friendly diffs**: Make targeted changes that result in clean, minimal git diffs that clearly show what functionality changed
+3. **Preserve existing code organization**: Keep the same import order, component order, and spacing patterns as the existing file
+4. **Smart import management**: Merge import statements intelligently (no duplicates, maintain alphabetical order within groups)
+5. **Use the provided code exactly**: The new/modified components were generated deterministically - use them EXACTLY as provided
+6. **Maintain consistent formatting**: Match existing indentation, quote style, semicolon usage, and line spacing
+7. **Clean Zod schemas**: When working with Zod schemas, use clean patterns like \`\`\`.nullable()\`\`\` instead of \`\`\`z.union([z.string(), z.null()])\`\`\`
 
 CRITICAL RULES:
-- DO NOT modify any existing components unless specifically instructed to replace them
-- DO NOT rewrite or improve the provided component code
-- DO NOT change variable names, logic, or structure of the provided components
-- Only add or replace components as specifically instructed
+- DO NOT reorder existing components unless necessary for functionality
+- DO NOT reformat existing code that isn't being modified
+- DO NOT change variable names, imports, or structure of existing components
+- DO NOT add unnecessary whitespace changes
+- ONLY modify the specific components mentioned in the instructions
+- PRESERVE all comments, existing formatting, and code style patterns
 
 OUTPUT FORMAT:
 Return ONLY the complete updated TypeScript file content (no markdown, no explanations).`;
 }
-
 
 /**
  * Clean generated code (same as existing pull command)
@@ -299,15 +351,15 @@ function cleanGeneratedCode(generatedCode: string): string {
   // Remove markdown code block wrapping
   let cleaned = generatedCode.replace(/^```(?:typescript|ts)?\s*\n/gm, '');
   cleaned = cleaned.replace(/\n```\s*$/gm, '');
-  
+
   // Remove leading/trailing whitespace but preserve internal formatting
   cleaned = cleaned.trim();
-  
+
   // Ensure file ends with newline
   if (!cleaned.endsWith('\n')) {
     cleaned += '\n';
   }
-  
+
   return cleaned;
 }
 
@@ -328,63 +380,56 @@ export async function batchIntegrateComponents(
 
   for (const request of fileIntegrations) {
     let result: { success: boolean; updatedContent?: string; error?: string };
-    
+
     // For new files with no existing content, use pure deterministic generation
-    if (!request.existingContent && request.componentsToAdd.length > 0 && request.componentsToModify.length === 0) {
+    if (
+      !request.existingContent &&
+      request.componentsToAdd.length > 0 &&
+      request.componentsToModify.length === 0
+    ) {
       try {
         // Collect all placeholder replacements from components
         const allReplacements: Record<string, string> = {};
-        request.componentsToAdd.forEach(comp => {
+        request.componentsToAdd.forEach((comp) => {
           if (comp.placeholderReplacements) {
             Object.assign(allReplacements, comp.placeholderReplacements);
           }
         });
 
         // Generate file content deterministically (with placeholders)
-        const imports = Array.from(new Set(request.componentsToAdd.flatMap(c => c.imports)));
-        const exports = request.componentsToAdd.map(c => c.exportDefinition);
+        const imports = Array.from(new Set(request.componentsToAdd.flatMap((c) => c.imports)));
+        const exports = request.componentsToAdd.map((c) => c.exportDefinition);
         const fileContentWithPlaceholders = [...imports, '', ...exports].join('\n') + '\n';
-        
-        // Restore placeholders to get the final content (don't escape for template literals)
-        const finalContent = Object.keys(allReplacements).length > 0 
-          ? restorePlaceholders(fileContentWithPlaceholders, allReplacements, false)
-          : fileContentWithPlaceholders;
-        
-        if (debug && Object.keys(allReplacements).length > 0) {
-          console.log(chalk.gray(`    🔄 Restored ${Object.keys(allReplacements).length} placeholders in deterministic content`));
-        }
-        
-        // Write the restored content to file
-        writeFileSync(request.filePath, finalContent, 'utf-8');
-        
+
+        // Restore placeholders to get the final content
+        const finalContent =
+          Object.keys(allReplacements).length > 0
+            ? restorePlaceholders(fileContentWithPlaceholders, allReplacements)
+            : fileContentWithPlaceholders;
+
+        // Don't write to file - let temp validation system handle file writing
+        // This prevents overwriting real files before validation
+
         result = { success: true, updatedContent: finalContent };
-        
-        if (debug) {
-          console.log(chalk.green(`    ✓ Generated new file deterministically: ${request.filePath}`));
-        }
       } catch (error: any) {
         result = { success: false, error: error.message };
       }
     } else {
       // For existing files or complex cases, use LLM integration
       result = await integrateComponentsIntoFile({ ...request, debug });
-      
-      if (debug && result.success) {
-        console.log(chalk.green(`    ✓ Integrated components into ${request.filePath}`));
-      }
     }
-    
+
     results.push({
       filePath: request.filePath,
       success: result.success,
-      error: result.error
+      error: result.error,
     });
 
     if (result.success) {
       successful++;
     } else {
       failed++;
-      console.log(chalk.red(`    ✗ Failed to process ${request.filePath}: ${result.error}`));
+      console.error(chalk.red(`Failed to process ${request.filePath}: ${result.error}`));
     }
   }
 

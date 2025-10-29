@@ -10,6 +10,7 @@ import {
   type ComponentType 
 } from './generator-utils';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import chalk from 'chalk';
 
 // Re-export for backwards compatibility with tests
 export { DEFAULT_CODE_STYLE, type CodeStyle };
@@ -68,17 +69,13 @@ export function generateIndexFile(
   }
   
   // Add models configuration
-  if (project.models) {
+  if (project.models && project.models !== null) {
     lines.push(`${indent}models: ${formatObject(project.models, style, 1)},`);
   }
   
-  // Only add stopWhen if explicitly defined in the project
-  if (project.stopWhen !== undefined) {
-    if (project.stopWhen === null) {
-      lines.push(`${indent}stopWhen: null,`);
-    } else {
-      lines.push(`${indent}stopWhen: ${JSON.stringify(project.stopWhen)},`);
-    }
+  // Add stopWhen if present (omit if null or undefined)
+  if (project.stopWhen && project.stopWhen !== null) {
+    lines.push(`${indent}stopWhen: ${JSON.stringify(project.stopWhen)},`);
   }
   
   // Add agents array (should be a function that returns an array)
@@ -182,5 +179,7 @@ function toAgentVariableName(id: string): string {
  * Convert ID to kebab-case file name
  */
 function toFileName(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  // Preserve original casing to match how files are actually saved
+  // Just clean up any invalid characters, but keep the original case
+  return id.replace(/[^a-zA-Z0-9\-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }

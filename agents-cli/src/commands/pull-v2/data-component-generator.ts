@@ -146,6 +146,15 @@ export function generateDataComponentFile(
  * Examples: 'weather-forecast' -> 'weatherForecast'
  */
 function toDataComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toDataComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack
+    });
+    throw new Error(`toDataComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`);
+  }
+  
   // For data components, use camelCase conversion instead of underscores
   return id
     .toLowerCase()

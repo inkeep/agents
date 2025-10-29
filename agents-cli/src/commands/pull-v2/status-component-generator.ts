@@ -2,12 +2,12 @@
  * Deterministic status component generator - creates TypeScript status component files from status component data
  */
 
-import { 
-  type CodeStyle, 
-  DEFAULT_CODE_STYLE, 
-  toVariableName, 
+import {
+  type CodeStyle,
+  DEFAULT_CODE_STYLE,
   formatString,
-  formatZodSchema 
+  formatZodSchema,
+  toVariableName,
 } from './generator-utils';
 
 // Re-export for backwards compatibility with tests
@@ -24,15 +24,15 @@ export function generateStatusComponentImports(
   const q = style.quotes === 'single' ? "'" : '"';
   const semi = style.semicolons ? ';' : '';
   const imports: string[] = [];
-  
+
   // Always import statusComponent
   imports.push(`import { statusComponent } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  
+
   // Add zod import if we have a detailsSchema
   if (componentData.detailsSchema) {
     imports.push(`import { z } from ${q}zod${q}${semi}`);
   }
-  
+
   return imports;
 }
 
@@ -48,27 +48,29 @@ export function generateStatusComponentExport(
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
-  
+
   const lines: string[] = [];
-  
+
   // Use the globally registered name from componentNameMap (deterministic system)
   const globalEntry = componentNameMap?.get(`statusComponent:${componentId}`);
   if (!globalEntry) {
-    throw new Error(`Status component ${componentId} not found in componentNameMap - this indicates a bug in the deterministic system`);
+    throw new Error(
+      `Status component ${componentId} not found in componentNameMap - this indicates a bug in the deterministic system`
+    );
   }
   const componentVarName = globalEntry.name;
-  
+
   // Export the status component
   lines.push(`export const ${componentVarName} = statusComponent({`);
-  
+
   // Use type field as the identifier (like 'tool_summary')
   const typeField = componentData.type || componentId;
   lines.push(`${indent}type: ${q}${typeField}${q},`);
-  
+
   if (componentData.description) {
     lines.push(`${indent}description: ${formatString(componentData.description, q)},`);
   }
-  
+
   // Add detailsSchema if available
   if (componentData.detailsSchema) {
     let zodSchemaString: string;
@@ -81,9 +83,9 @@ export function generateStatusComponentExport(
     }
     lines.push(`${indent}detailsSchema: ${zodSchemaString}`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -93,35 +95,37 @@ export function generateStatusComponentExport(
 export function generateStatusComponentFile(
   componentId: string,
   componentData: any,
-  style: CodeStyle = DEFAULT_CODE_STYLE
+  style: CodeStyle = DEFAULT_CODE_STYLE,
+  componentNameMap?: Map<string, { name: string; type: string }>
 ): string {
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
-  
+
   const lines: string[] = [];
-  
+
   // Import statements
   lines.push(`import { statusComponent } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  
+
   // Add zod import if we have a detailsSchema
   if (componentData.detailsSchema) {
     lines.push(`import { z } from ${q}zod${q}${semi}`);
   }
-  
+
   lines.push('');
-  
-  // Generate variable name (convert to camelCase for status components)
-  const componentVarName = toStatusComponentVariableName(componentId);
-  
+
+  // Generate variable name (use componentNameMap for deterministic naming)
+  const globalEntry = componentNameMap?.get(`statusComponent:${componentId}`);
+  const componentVarName = globalEntry?.name || toStatusComponentVariableName(componentId);
+
   // Export the status component
   lines.push(`export const ${componentVarName} = statusComponent({`);
   lines.push(`${indent}type: ${q}${componentData.type || componentId}${q},`);
-  
+
   if (componentData.description) {
     lines.push(`${indent}description: ${formatString(componentData.description, q)},`);
   }
-  
+
   // Add detailsSchema if available
   if (componentData.detailsSchema) {
     let zodSchemaString: string;
@@ -134,9 +138,9 @@ export function generateStatusComponentFile(
     }
     lines.push(`${indent}detailsSchema: ${zodSchemaString}`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n') + '\n';
 }
 
@@ -144,7 +148,18 @@ export function generateStatusComponentFile(
  * Convert status component ID to camelCase variable name (like the examples)
  * Examples: 'progress-update' -> 'progressUpdate'
  */
-function toStatusComponentVariableName(id: string): string {
+export function toStatusComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toStatusComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toStatusComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   // For status components, use camelCase conversion instead of underscores
   return id
     .toLowerCase()

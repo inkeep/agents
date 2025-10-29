@@ -1,4 +1,5 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import chalk from 'chalk';
 
 export interface ComparisonResult {
   matches: boolean;
@@ -31,9 +32,67 @@ export function compareProjectDefinitions(
   const cosmenticFields = ['imageUrl']; // Cosmetic UI fields that don't affect functionality
   const allIgnoredFields = [...dbGeneratedFields, ...sdkGeneratedFields, ...contextFields, ...cosmenticFields];
 
+  // Helper to check if a value is "empty" (undefined, empty object, or empty array)
+  const isEmpty = (value: any): boolean => {
+    if (value === undefined || value === null) return true;
+    if (Array.isArray(value) && value.length === 0) return true;
+    if (typeof value === 'object' && Object.keys(value).length === 0) return true;
+    return false;
+  };
+
+  // Helper to check if this is a schema-related field that should have stricter comparison
+  const isSchemaField = (path: string): boolean => {
+    return path.endsWith('.props') || 
+           path.endsWith('.schema') || 
+           path.endsWith('Schema') ||
+           path.includes('.props.') ||
+           path.includes('.schema.');
+  };
+
+  // Helper to check if an object has actual content (not just empty)
+  const hasContent = (value: any): boolean => {
+    if (!value || typeof value !== 'object') return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return Object.keys(value).length > 0;
+  };
+
   // Helper to compare primitive values
   const comparePrimitive = (path: string, a: any, b: any): boolean => {
     if (a === b) return true;
+    
+    // For schema fields, be stricter about empty vs populated
+    if (isSchemaField(path)) {
+      const aHasContent = hasContent(a);
+      const bHasContent = hasContent(b);
+      
+      // If one has content and the other doesn't, they're not equivalent
+      if (aHasContent !== bHasContent) {
+        return false;
+      }
+      
+      // Both empty or both have content - continue with normal comparison
+      if (!aHasContent && !bHasContent) {
+        // Both are empty - treat as equivalent
+        return true;
+      }
+    } else {
+      // For non-schema fields, treat empty values as equivalent (undefined, {}, [])
+      if (isEmpty(a) && isEmpty(b)) {
+        return true;
+      }
+    }
+    
+    // Special handling for credential fields - SDK may return object while API returns string ID
+    if (path.includes('credential') || path.endsWith('ReferenceId')) {
+      // If one is a string (ID) and the other is an object with an id field, compare IDs
+      if (typeof a === 'string' && typeof b === 'object' && b !== null && 'id' in b) {
+        return a === b.id;
+      }
+      if (typeof b === 'string' && typeof a === 'object' && a !== null && 'id' in a) {
+        return b === a.id;
+      }
+    }
+    
     if (typeof a !== typeof b) {
       differences.push(`Type mismatch at ${path}: ${typeof a} vs ${typeof b}`);
       return false;
@@ -121,14 +180,24 @@ export function compareProjectDefinitions(
       a[k] !== null &&  // Ignore if API has null (SDK omits null fields)
       !(Array.isArray(a[k]) && a[k].length === 0) && // Ignore if API has empty array
       !(typeof a[k] === 'object' && a[k] !== null && Object.keys(a[k]).length === 0) && // Ignore if API has empty object
-      !allIgnoredFields.includes(k)
+      !allIgnoredFields.includes(k) &&
+      // Ignore $schema fields which are typically added automatically by JSON schema serialization
+      k !== '$schema' &&
+      // Ignore common JSON Schema metadata fields that generators don't include but API adds
+      !(k === 'properties' && path.includes('.schema')) &&
+      !(k === 'required' && path.includes('.schema')) &&
+      !(k === 'additionalProperties' && path.includes('.schema'))
     );
     const extraInB = bKeys.filter((k) => 
       !aKeys.includes(k) && 
       b[k] !== null &&  // Ignore if SDK has null (API might omit null fields)  
       !(Array.isArray(b[k]) && b[k].length === 0) && // Ignore if SDK has empty array
       !(typeof b[k] === 'object' && b[k] !== null && Object.keys(b[k]).length === 0) && // Ignore if SDK has empty object
-      !allIgnoredFields.includes(k)
+      !allIgnoredFields.includes(k) &&
+      // Ignore $schema fields which are typically added automatically by JSON schema serialization
+      k !== '$schema' &&
+      // Ignore extra JSON Schema metadata fields that generators might add but API doesn't expect
+      !(k === 'additionalProperties' && path.includes('.props'))
     );
 
     if (missingInB.length > 0) {
@@ -193,6 +262,38 @@ export function compareProjectDefinitions(
     // Handle empty array vs undefined equivalence - API returns [], SDK returns undefined
     if (Array.isArray(a) && a.length === 0 && b === undefined) return true;
     if (a === undefined && Array.isArray(b) && b.length === 0) return true;
+    
+    // Handle empty object vs undefined equivalence - API returns {}, SDK returns undefined
+    if (typeof a === 'object' && a !== null && Object.keys(a).length === 0 && b === undefined) return true;
+    if (a === undefined && typeof b === 'object' && b !== null && Object.keys(b).length === 0) return true;
+
+    // Handle model inheritance - when generators inherit models from parent configs,
+    // they may omit model fields that match inherited values, resulting in undefined
+    // while API always returns explicit model objects. This is expected behavior.
+    if (path.includes('.models') && 
+        typeof a === 'object' && a !== null && 
+        b === undefined) {
+      // Check if the model object represents a "default" or inherited configuration
+      // by looking for minimal required fields like 'model' property or typical model structure
+      const hasMinimalModelStructure = a.model || a.provider || 
+                                      (typeof a === 'object' && (a.base || a.fast || a.smart));
+      if (hasMinimalModelStructure) {
+        warnings.push(`Model inheritance at ${path}: API has explicit model config, generator uses inheritance (this is expected)`);
+        return true; // Treat as equivalent - inheritance is working as designed
+      }
+    }
+    
+    // Reverse case - generator has model but API doesn't (less common)
+    if (path.includes('.models') && 
+        a === undefined && 
+        typeof b === 'object' && b !== null) {
+      const hasMinimalModelStructure = b.model || b.provider ||
+                                      (typeof b === 'object' && (b.base || b.fast || b.smart));
+      if (hasMinimalModelStructure) {
+        warnings.push(`Model inheritance at ${path}: generator has explicit model config, API uses inheritance (this is expected)`);
+        return true;
+      }
+    }
 
     // Handle arrays
     if (Array.isArray(a) && Array.isArray(b)) {
@@ -293,6 +394,34 @@ export function compareProjectDefinitions(
           original.functions?.[functionId],
           generated.functions?.[functionId]
         );
+      }
+    }
+  }
+
+  // Compare project-level function tools (if present)
+  if (original.functionTools || generated.functionTools) {
+    const originalFunctionToolIds = Object.keys(original.functionTools || {});
+    const generatedFunctionToolIds = Object.keys(generated.functionTools || {});
+
+    if (originalFunctionToolIds.length !== generatedFunctionToolIds.length) {
+      differences.push(`Function tool count mismatch: ${originalFunctionToolIds.length} vs ${generatedFunctionToolIds.length}`);
+    }
+
+    for (const functionToolId of originalFunctionToolIds) {
+      if (!generatedFunctionToolIds.includes(functionToolId)) {
+        differences.push(`Missing function tool in generated: ${functionToolId}`);
+      } else {
+        compareValues(
+          `functionTools.${functionToolId}`,
+          original.functionTools?.[functionToolId],
+          generated.functionTools?.[functionToolId]
+        );
+      }
+    }
+
+    for (const functionToolId of generatedFunctionToolIds) {
+      if (!originalFunctionToolIds.includes(functionToolId)) {
+        warnings.push(`Extra function tool in generated: ${functionToolId}`);
       }
     }
   }

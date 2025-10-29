@@ -15,15 +15,19 @@ import {
 export { DEFAULT_CODE_STYLE, type CodeStyle };
 
 /**
- * Convert tool ID to variable name (keep original format for weird IDs, camelCase for normal ones)
+ * Convert tool ID to variable name (consistent camelCase conversion)
  */
 function toToolVariableName(id: string): string {
-  // For weird tool IDs like 'fUI2riwrBVJ6MepT8rjx0', keep as-is if already valid
-  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(id)) {
-    return id;
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toToolVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack
+    });
+    throw new Error(`toToolVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`);
   }
-
-  // For normal tool IDs like 'test-tool', convert to camelCase like other components
+  
+  // Always convert to camelCase like other components for consistency
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -109,9 +113,26 @@ function generateMcpToolExport(
   }
 
   // Add transport configuration if available
+  // Based on API structure: config.mcp: { server: {...}, transport: {...} }
+  
+  let transport = null;
   if (toolData.config?.mcp?.transport) {
-    const transport = toolData.config.mcp.transport;
+    transport = toolData.config.mcp.transport;
+  } else if (toolData.mcpConfig?.transport) {
+    transport = toolData.mcpConfig.transport;
+  } else if (toolData.transport) {
+    transport = toolData.transport;
+  }
+
+  if (transport) {
     lines.push(`${indent}transport: ${formatObject(transport, style, 1)},`);
+  }
+
+  // Add credential if credentialReferenceId exists
+  if (toolData.credentialReferenceId) {
+    // Convert credential ID to underscore format (e.g., 'inkeep-api-credential' -> 'inkeep_api_credential')
+    const credentialKey = toolData.credentialReferenceId.replace(/-/g, '_');
+    lines.push(`${indent}credential: envSettings.getEnvironmentCredential(${formatString(credentialKey, q)}),`);
   }
 
   // Remove trailing comma from the last property line (but not from lines that don't have properties)
@@ -147,6 +168,11 @@ function generateFunctionTool(toolId: string, toolData: any, style: CodeStyle): 
     lines.push(`import { z } from ${q}zod${q}${semi}`);
   }
 
+  // Add envSettings import if tool has credentials
+  if (toolData.credentialReferenceId) {
+    lines.push(`import { envSettings } from ${q}../environments${q}${semi}`);
+  }
+
   lines.push('');
 
   // Generate variable name
@@ -174,6 +200,13 @@ function generateFunctionTool(toolId: string, toolData: any, style: CodeStyle): 
   // Add dependencies if available
   if (toolData.dependencies) {
     lines.push(`${indent}dependencies: ${formatObject(toolData.dependencies, style, 1)},`);
+  }
+
+  // Add credential if credentialReferenceId exists
+  if (toolData.credentialReferenceId) {
+    // Convert credential ID to underscore format (e.g., 'inkeep-api-credential' -> 'inkeep_api_credential')
+    const credentialKey = toolData.credentialReferenceId.replace(/-/g, '_');
+    lines.push(`${indent}credential: envSettings.getEnvironmentCredential(${formatString(credentialKey, q)}),`);
   }
 
   // Remove trailing comma from the last property line
@@ -235,6 +268,11 @@ export function generateToolImports(toolId: string, toolData: any, style: CodeSt
   } else {
     // Fallback to mcpTool
     imports.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
+  }
+
+  // Add envSettings import if tool has credentials
+  if (toolData.credentialReferenceId) {
+    imports.push(`import { envSettings } from ${q}../environments${q}${semi}`);
   }
 
   return imports;

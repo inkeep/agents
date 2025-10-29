@@ -1,6 +1,6 @@
 /**
  * LLM-assisted code updates for pull-v2
- * 
+ *
  * Uses proven LLM instruction patterns from existing pull command for intelligent
  * integration of remote changes into existing local code while preserving formatting,
  * comments, and local customizations.
@@ -8,14 +8,25 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
-import chalk from 'chalk';
 import { generateText } from 'ai';
+import chalk from 'chalk';
 import { createModel } from '../pull.llm-generate';
-import { createPlaceholders, restorePlaceholders, calculateTokenSavings } from '../pull.placeholder-system';
+import {
+  calculateTokenSavings,
+  createPlaceholders,
+  restorePlaceholders,
+} from '../pull.placeholder-system';
+import { extractTokenUsage, tokenTracker } from './token-tracker';
 
 interface UpdateContext {
-  componentType: 'agent' | 'tool' | 'dataComponent' | 'artifactComponent' | 'statusComponent' | 'project' | 'environment';
+  componentType:
+    | 'agent'
+    | 'tool'
+    | 'dataComponent'
+    | 'artifactComponent'
+    | 'statusComponent'
+    | 'project'
+    | 'environment';
   componentId: string;
   filePath: string;
   currentContent: string;
@@ -73,16 +84,28 @@ export async function updateModifiedComponentWithLLM(
   debug: boolean = false
 ): Promise<LLMUpdateResult> {
   const filePath = getComponentFilePath(componentType, componentId, projectDir);
-  
+
   if (debug) {
-    console.log(chalk.gray(`  Updating ${componentType}: ${componentId}`));
-    console.log(chalk.gray(`    File: ${filePath}`));
-    console.log(chalk.gray(`    Changes: ${changes.length} detected`));
+    console.log(chalk.blue(`\n🤖 LLM Update - ${componentType}:${componentId}`));
+    console.log(chalk.gray(`   File: ${filePath}`));
+    console.log(chalk.gray(`   Changes: ${changes.length} detected`));
+    if (changes.length > 0) {
+      for (const change of changes.slice(0, 5)) {
+        console.log(chalk.gray(`     • ${change}`));
+      }
+      if (changes.length > 5) {
+        console.log(chalk.gray(`     ... and ${changes.length - 5} more`));
+      }
+    }
   }
 
   try {
     const currentContent = readFileSync(filePath, 'utf-8');
-    
+
+    if (debug) {
+      console.log(chalk.gray(`   Current file size: ${currentContent.length} characters`));
+    }
+
     const context: UpdateContext = {
       componentType,
       componentId,
@@ -90,69 +113,125 @@ export async function updateModifiedComponentWithLLM(
       currentContent,
       remoteData,
       localData,
-      changes
+      changes,
     };
 
     // Generate component-specific prompt using existing proven patterns
-    const prompt = generateUpdatePrompt(context, debug);
-    
     if (debug) {
-      console.log(chalk.gray(`    LLM prompt generated (${prompt.length} chars)`));
+      console.log(chalk.gray('   Generating LLM prompt...'));
+    }
+    const prompt = generateUpdatePrompt(context, debug);
+
+    if (debug) {
+      console.log(chalk.gray(`   Prompt size: ${prompt.length} characters`));
     }
 
     // Call LLM with same settings as existing pull command
+    if (debug) {
+      console.log(chalk.gray('   Calling LLM for code update...'));
+    }
+
     const model = createModel({
       model: process.env.INKEEP_LLM_MODEL,
-      apiKey: process.env.INKEEP_LLM_API_KEY,
     });
 
-    const { text: generatedContent } = await generateText({
+    const startTime = Date.now();
+    const response = await generateText({
       model,
       prompt,
       temperature: 0.1, // Low temperature for consistent code generation
       maxOutputTokens: getMaxTokensForComponent(componentType),
       abortSignal: AbortSignal.timeout(60000), // 60 second timeout
     });
+    const duration = Date.now() - startTime;
+
+    if (debug) {
+      console.log(chalk.gray(`   LLM response received in ${duration}ms`));
+    }
+
+    // Track token usage
+    const usage = extractTokenUsage(response);
+    if (usage) {
+      tokenTracker.recordCall(`update-${componentType}`, usage, duration);
+      if (debug) {
+        console.log(
+          chalk.gray(`   Tokens: ${usage.inputTokens} input, ${usage.outputTokens} output`)
+        );
+      }
+    }
+
+    const generatedContent = response.text;
+
+    if (debug) {
+      console.log(chalk.gray(`   Generated content size: ${generatedContent.length} characters`));
+    }
 
     // Restore placeholders in generated content
     const placeholderReplacements = (context as any).placeholderReplacements || {};
-    const restoredContent = Object.keys(placeholderReplacements).length > 0 
-      ? restorePlaceholders(generatedContent, placeholderReplacements)
-      : generatedContent;
-    
+    const restoredContent =
+      Object.keys(placeholderReplacements).length > 0
+        ? restorePlaceholders(generatedContent, placeholderReplacements)
+        : generatedContent;
+
     if (debug && Object.keys(placeholderReplacements).length > 0) {
-      console.log(chalk.gray(`    🔄 Restored ${Object.keys(placeholderReplacements).length} placeholders in generated content`));
+      console.log(
+        chalk.gray(`   Restored ${Object.keys(placeholderReplacements).length} placeholders`)
+      );
     }
 
     // Clean and validate the generated content
+    if (debug) {
+      console.log(chalk.gray('   Validating generated content...'));
+    }
+
     const cleanedContent = cleanGeneratedCode(restoredContent);
     const validation = validateUpdatedContent(cleanedContent, context);
-    
+
     if (!validation.isValid) {
+      if (debug) {
+        console.log(chalk.red('   ✗ Validation failed:'));
+        for (const error of validation.errors) {
+          console.log(chalk.red(`     - ${error}`));
+        }
+      }
       return {
         success: false,
         error: `Validation failed: ${validation.errors.join(', ')}`,
         preservedElements: [],
-        appliedChanges: []
+        appliedChanges: [],
       };
+    }
+
+    if (debug) {
+      console.log(chalk.gray('   ✓ Validation passed'));
+      if (validation.preserved.length > 0) {
+        console.log(chalk.gray(`   Preserved: ${validation.preserved.join(', ')}`));
+      }
     }
 
     // Write updated content back to file
     writeFileSync(filePath, cleanedContent, 'utf-8');
-    
+
+    if (debug) {
+      console.log(chalk.green(`   ✓ File updated successfully`));
+    }
+
     return {
       success: true,
       updatedContent: cleanedContent,
       preservedElements: validation.preserved,
-      appliedChanges: extractAppliedChanges(currentContent, cleanedContent, changes)
+      appliedChanges: extractAppliedChanges(currentContent, cleanedContent, changes),
     };
-
   } catch (error: any) {
+    console.log(chalk.red(`   ✗ Error updating ${componentType}:${componentId}: ${error.message}`));
+    if (debug && error.stack) {
+      console.log(chalk.red(`   Stack trace: ${error.stack}`));
+    }
     return {
       success: false,
       error: error.message,
       preservedElements: [],
-      appliedChanges: []
+      appliedChanges: [],
     };
   }
 }
@@ -162,23 +241,21 @@ export async function updateModifiedComponentWithLLM(
  * Integrates placeholder system to reduce prompt size and avoid reproducing long content
  */
 function generateUpdatePrompt(context: UpdateContext, debug: boolean = false): string {
-  const { componentType, componentId, currentContent, remoteData, changes } = context;
-  
+  const { componentType, currentContent, remoteData, changes } = context;
+
   // Create placeholders for long strings in remote data to reduce prompt size
   const placeholderResult = createPlaceholders(remoteData, { fileType: componentType });
   const processedRemoteData = placeholderResult.processedData;
   const replacements = placeholderResult.replacements;
-  
-  // Always log placeholder usage for visibility
-  const savings = calculateTokenSavings(remoteData, processedRemoteData);
-  if (Object.keys(replacements).length > 0) {
-    console.log(chalk.gray(`    📦 Placeholders: ${Object.keys(replacements).length} created, ${savings.savings} chars saved (${savings.savingsPercentage.toFixed(1)}%)`));
-  } else {
-    console.log(chalk.gray(`    📦 Placeholders: none created (strings < 50 chars, ${savings.originalSize} total chars)`));
+
+  const savingsResult = calculateTokenSavings(remoteData, processedRemoteData);
+
+  if (debug && savingsResult.savings > 0) {
+    console.log(chalk.gray(`   Placeholder savings: ~${savingsResult.savings} tokens`));
   }
-  
+
   const componentSpecificInstructions = getComponentSpecificInstructions(componentType);
-  
+
   const prompt = `You are an expert TypeScript developer. You must make MINIMAL changes to an existing TypeScript file. Your job is to update ONLY the specific values that have changed, while preserving EVERYTHING else exactly as it is.
 
 EXISTING FILE CONTENT:
@@ -192,7 +269,7 @@ ${JSON.stringify(processedRemoteData, null, 2)}
 \`\`\`
 
 DETECTED CHANGES:
-${changes.map(change => `- ${change}`).join('\n')}
+${changes.map((change) => `- ${change}`).join('\n')}
 
 ${NAMING_CONVENTION_RULES}
 
@@ -219,7 +296,7 @@ CRITICAL: Generate ONLY the raw TypeScript code. Do NOT wrap it in markdown code
 
   // Store replacements in context for restoration later
   (context as any).placeholderReplacements = replacements;
-  
+
   return prompt;
 }
 
@@ -366,15 +443,15 @@ function cleanGeneratedCode(generatedCode: string): string {
   // Remove markdown code block wrapping
   let cleaned = generatedCode.replace(/^```(?:typescript|ts)?\s*\n/gm, '');
   cleaned = cleaned.replace(/\n```\s*$/gm, '');
-  
+
   // Remove leading/trailing whitespace but preserve internal formatting
   cleaned = cleaned.trim();
-  
+
   // Ensure file ends with newline
   if (!cleaned.endsWith('\n')) {
     cleaned += '\n';
   }
-  
+
   return cleaned;
 }
 
@@ -386,8 +463,11 @@ function getComponentFilePath(
   componentId: string,
   projectDir: string
 ): string {
-  const fileName = componentId.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  
+  const fileName = componentId
+    .replace(/[^a-zA-Z0-9\-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
   switch (componentType) {
     case 'agent':
       return join(projectDir, 'agents', `${fileName}.ts`);
@@ -417,51 +497,54 @@ function validateUpdatedContent(
 ): { isValid: boolean; errors: string[]; preserved: string[] } {
   const errors: string[] = [];
   const preserved: string[] = [];
-  
+
   // Basic syntax validation
   if (!updatedContent.trim()) {
     errors.push('Updated content is empty');
     return { isValid: false, errors, preserved };
   }
-  
+
   // Check for TypeScript syntax basics
   if (!updatedContent.includes('export ')) {
     errors.push('Missing export statement');
   }
-  
+
   // Check that imports are preserved/improved
   const originalImports = extractImports(context.currentContent);
   const updatedImports = extractImports(updatedContent);
-  
+
   if (originalImports.length > 0 && updatedImports.length >= originalImports.length) {
     preserved.push('import statements');
   } else if (updatedImports.length < originalImports.length) {
     errors.push('Some import statements were removed');
   }
-  
+
   // Check that comments are mostly preserved
   const originalComments = extractComments(context.currentContent);
   const updatedComments = extractComments(updatedContent);
-  
-  if (originalComments.length > 0 && updatedComments.length >= Math.floor(originalComments.length * 0.7)) {
+
+  if (
+    originalComments.length > 0 &&
+    updatedComments.length >= Math.floor(originalComments.length * 0.7)
+  ) {
     preserved.push('comments and documentation');
   }
-  
+
   // Check for basic TypeScript validity
   const hasBasicTSStructure = updatedContent.includes('{') && updatedContent.includes('}');
   if (!hasBasicTSStructure) {
     errors.push('Updated content lacks basic TypeScript structure');
   }
-  
+
   // Check for alphabetically sorted imports (Biome compliance)
   if (areImportsSorted(updatedImports)) {
     preserved.push('alphabetically sorted imports (Biome compliance)');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    preserved
+    preserved,
   };
 }
 
@@ -470,7 +553,7 @@ function validateUpdatedContent(
  */
 function areImportsSorted(imports: string[]): boolean {
   if (imports.length <= 1) return true;
-  
+
   const sorted = [...imports].sort();
   return JSON.stringify(imports) === JSON.stringify(sorted);
 }
@@ -484,18 +567,18 @@ function extractAppliedChanges(
   detectedChanges: string[]
 ): string[] {
   const applied: string[] = [];
-  
+
   if (originalContent !== updatedContent) {
     applied.push(`File updated with ${detectedChanges.length} detected changes`);
-    
+
     // Simple analysis of what changed
     const originalLines = originalContent.split('\n');
     const updatedLines = updatedContent.split('\n');
-    
+
     let linesChanged = 0;
     let linesAdded = 0;
     let linesRemoved = 0;
-    
+
     for (let i = 0; i < Math.max(originalLines.length, updatedLines.length); i++) {
       if (i >= originalLines.length) {
         linesAdded++;
@@ -505,12 +588,12 @@ function extractAppliedChanges(
         linesChanged++;
       }
     }
-    
+
     if (linesChanged > 0) applied.push(`${linesChanged} lines modified`);
     if (linesAdded > 0) applied.push(`${linesAdded} lines added`);
     if (linesRemoved > 0) applied.push(`${linesRemoved} lines removed`);
   }
-  
+
   return applied;
 }
 
@@ -527,15 +610,15 @@ function extractImports(content: string): string[] {
  */
 function extractComments(content: string): string[] {
   const comments: string[] = [];
-  
+
   // Single line comments
   const singleLineComments = content.match(/\/\/.*$/gm) || [];
   comments.push(...singleLineComments);
-  
+
   // Multi-line comments
   const multiLineComments = content.match(/\/\*[\s\S]*?\*\//g) || [];
   comments.push(...multiLineComments);
-  
+
   return comments;
 }
 
@@ -544,7 +627,14 @@ function extractComments(content: string): string[] {
  */
 export async function batchUpdateModifiedComponents(
   modifications: Array<{
-    componentType: 'agent' | 'tool' | 'dataComponent' | 'artifactComponent' | 'statusComponent' | 'project' | 'environment';
+    componentType:
+      | 'agent'
+      | 'tool'
+      | 'dataComponent'
+      | 'artifactComponent'
+      | 'statusComponent'
+      | 'project'
+      | 'environment';
     componentId: string;
     remoteData: any;
     localData: any;
@@ -560,8 +650,22 @@ export async function batchUpdateModifiedComponents(
   const results: LLMUpdateResult[] = [];
   let successful = 0;
   let failed = 0;
-  
-  for (const mod of modifications) {
+
+  if (debug) {
+    console.log(chalk.blue(`\n📦 Batch Update - Processing ${modifications.length} components`));
+  }
+
+  for (let i = 0; i < modifications.length; i++) {
+    const mod = modifications[i];
+
+    if (debug) {
+      console.log(
+        chalk.gray(
+          `\n[${i + 1}/${modifications.length}] Processing ${mod.componentType}:${mod.componentId}...`
+        )
+      );
+    }
+
     const result = await updateModifiedComponentWithLLM(
       mod.componentType,
       mod.componentId,
@@ -571,25 +675,27 @@ export async function batchUpdateModifiedComponents(
       mod.changes,
       debug
     );
-    
+
     results.push(result);
-    
+
     if (result.success) {
       successful++;
-      if (debug) {
+      if (!debug) {
         console.log(chalk.green(`    ✓ ${mod.componentType}:${mod.componentId} updated`));
-        if (result.preservedElements.length > 0) {
-          console.log(chalk.gray(`      Preserved: ${result.preservedElements.join(', ')}`));
-        }
-        if (result.appliedChanges.length > 0) {
-          console.log(chalk.gray(`      Applied: ${result.appliedChanges.join(', ')}`));
-        }
       }
     } else {
       failed++;
-      console.log(chalk.red(`    ✗ ${mod.componentType}:${mod.componentId} failed: ${result.error}`));
+      console.log(
+        chalk.red(`    ✗ ${mod.componentType}:${mod.componentId} failed: ${result.error}`)
+      );
     }
   }
-  
+
+  if (debug) {
+    console.log(chalk.blue(`\n📊 Batch Update Complete`));
+    console.log(chalk.gray(`   Successful: ${successful}`));
+    console.log(chalk.gray(`   Failed: ${failed}`));
+  }
+
   return { successful, failed, results };
 }

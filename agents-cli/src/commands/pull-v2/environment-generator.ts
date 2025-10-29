@@ -2,6 +2,7 @@
  * Deterministic environment generator - creates TypeScript environment files from FullProjectDefinition
  */
 
+import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { 
   type CodeStyle, 
   DEFAULT_CODE_STYLE, 
@@ -10,6 +11,86 @@ import {
 
 // Re-export for backwards compatibility with tests
 export { DEFAULT_CODE_STYLE, type CodeStyle };
+
+/**
+ * Extract all credential references from a project
+ * Scans tools, agents, and explicit credentialReferences to find all used credentials
+ */
+export function extractAllCredentialReferences(projectData: FullProjectDefinition): Record<string, any> {
+  const allCredentials: Record<string, any> = {};
+  
+  // Start with explicit credential references from the project
+  if (projectData.credentialReferences) {
+    for (const [credId, credData] of Object.entries(projectData.credentialReferences)) {
+      allCredentials[credId] = credData;
+    }
+  }
+  
+  // Extract credentials from tools
+  if (projectData.tools) {
+    for (const [toolId, toolData] of Object.entries(projectData.tools)) {
+      if ((toolData as any).credentialReferenceId) {
+        const credId = (toolData as any).credentialReferenceId;
+        if (!allCredentials[credId]) {
+          // Create a minimal credential reference if not already defined
+          allCredentials[credId] = {
+            id: credId,
+            type: 'keychain',
+            description: `Credential for ${toolId}`,
+            retrievalParams: {
+              key: credId.replace(/[^a-zA-Z0-9]/g, '_')
+            }
+          };
+        }
+      }
+    }
+  }
+  
+  // Extract credentials from functionTools
+  if (projectData.functionTools) {
+    for (const [toolId, toolData] of Object.entries(projectData.functionTools)) {
+      if ((toolData as any).credentialReferenceId) {
+        const credId = (toolData as any).credentialReferenceId;
+        if (!allCredentials[credId]) {
+          allCredentials[credId] = {
+            id: credId,
+            type: 'keychain',
+            description: `Credential for ${toolId}`,
+            retrievalParams: {
+              key: credId.replace(/[^a-zA-Z0-9]/g, '_')
+            }
+          };
+        }
+      }
+    }
+  }
+  
+  // Extract credentials from agents' contextConfig
+  if (projectData.agents) {
+    for (const [agentId, agentData] of Object.entries(projectData.agents)) {
+      const contextConfig = (agentData as any).contextConfig;
+      if (contextConfig?.contextVariables) {
+        for (const [varName, contextVar] of Object.entries(contextConfig.contextVariables)) {
+          if ((contextVar as any).credentialReferenceId) {
+            const credId = (contextVar as any).credentialReferenceId;
+            if (!allCredentials[credId]) {
+              allCredentials[credId] = {
+                id: credId,
+                type: 'keychain',
+                description: `Credential for ${agentId} context variable ${varName}`,
+                retrievalParams: {
+                  key: credId.replace(/[^a-zA-Z0-9]/g, '_')
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return allCredentials;
+}
 
 /**
  * Generate environment files for a specific environment (e.g., 'development', 'production')
@@ -22,10 +103,12 @@ export function generateEnvironmentFiles(
   const indexFile = generateEnvironmentIndex(targetEnvironment, style);
   const environmentFile = generateEnvironmentFile(targetEnvironment, credentialReferences, style);
   const environmentFileName = `${targetEnvironment}.env.ts`;
+  const dotEnvFile = generateDotEnvFile(credentialReferences);
   
   return { 
     'index.ts': indexFile, 
-    [environmentFileName]: environmentFile
+    [environmentFileName]: environmentFile,
+    '../.env': dotEnvFile  // Generate .env in project root (parent of environments/)
   };
 }
 
@@ -148,6 +231,37 @@ function credentialIdToEnvVar(credId: string): string {
     .replace(/[^A-Z0-9]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
+}
+
+/**
+ * Generate .env file with placeholder values
+ * This allows the project to load immediately without configuration errors
+ */
+export function generateDotEnvFile(
+  credentialReferences: Record<string, any>
+): string {
+  const lines: string[] = [];
+  
+  lines.push('# Environment variables for Inkeep Agents');
+  lines.push('# Replace these placeholder values with your actual credentials');
+  lines.push('');
+  
+  if (Object.keys(credentialReferences).length === 0) {
+    lines.push('# No credentials required for this project');
+    return lines.join('\n') + '\n';
+  }
+  
+  // Add credentials with placeholder values
+  for (const [credId, credData] of Object.entries(credentialReferences)) {
+    const retrievalKey = credData.retrievalParams?.key || credId.replace(/[^a-zA-Z0-9]/g, '_');
+    const description = credData.description ? ` - ${credData.description}` : '';
+    
+    lines.push(`# ${credId}${description}`);
+    lines.push(`${retrievalKey}=placeholder-${credId}-replace-with-real-value`);
+    lines.push('');
+  }
+  
+  return lines.join('\n');
 }
 
 /**

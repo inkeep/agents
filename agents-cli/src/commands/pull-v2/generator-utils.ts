@@ -26,17 +26,40 @@ export const DEFAULT_CODE_STYLE: CodeStyle = {
  * Handles edge cases like 'fUI2riwrBVJ6MepT8rjx0' and converts 'inkeep-rag-mcp' to 'inkeepRagMcp'
  */
 export function toVariableName(id: string): string {
+  // Add null/undefined check with detailed debugging
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack
+    });
+    throw new Error(`toVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`);
+  }
+  
   // If it's already a valid variable name, use it as-is
   if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(id)) {
     return id;
   }
-  
-  // For normal IDs like 'inkeep-rag-mcp', convert to camelCase
-  return id
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
+
+  // Add debugging for the toLowerCase call that might be failing
+  try {
+    // For normal IDs like 'inkeep-rag-mcp', convert to camelCase
+    return id
+      .toLowerCase()
+      .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .replace(/^[0-9]/, '_$&');
+  } catch (error: any) {
+    console.error('🔍 toLowerCase() failed in toVariableName:', {
+      id,
+      type: typeof id,
+      value: id,
+      stringified: JSON.stringify(id),
+      error: error.message,
+      stack: new Error().stack
+    });
+    throw new Error(`toLowerCase failed on "${id}" (${typeof id}): ${error.message}`);
+  }
 }
 
 /**

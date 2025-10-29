@@ -2,21 +2,62 @@
  * Deterministic agent generator - creates TypeScript agent files from FullProjectDefinition
  */
 
-import { 
-  type CodeStyle, 
-  DEFAULT_CODE_STYLE, 
-  toVariableName, 
-  formatString,
-  formatObject,
-  formatZodSchema,
-  formatStringWithTemplates,
-  ensureUniqueName,
-  type ComponentType
-} from './generator-utils';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import {
+  type CodeStyle,
+  type ComponentType,
+  DEFAULT_CODE_STYLE,
+  ensureUniqueName,
+  formatObject,
+  formatString,
+  formatStringWithTemplates,
+  formatZodSchema,
+  toVariableName,
+} from './generator-utils';
 
 // Re-export for backwards compatibility with tests
 export { DEFAULT_CODE_STYLE, type CodeStyle };
+
+/**
+ * Topologically sort subAgents to avoid forward references in canDelegateTo
+ */
+function topologicalSortSubAgents(subAgents: Record<string, any>): string[] {
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const result: string[] = [];
+
+  function visit(subAgentId: string) {
+    if (visiting.has(subAgentId)) {
+      // Circular dependency detected - just continue to avoid infinite loop
+      return;
+    }
+    if (visited.has(subAgentId)) {
+      return;
+    }
+
+    visiting.add(subAgentId);
+
+    const subAgentData = subAgents[subAgentId];
+    if (subAgentData?.canDelegateTo) {
+      for (const delegateId of subAgentData.canDelegateTo) {
+        if (subAgents[delegateId]) {
+          visit(delegateId);
+        }
+      }
+    }
+
+    visiting.delete(subAgentId);
+    visited.add(subAgentId);
+    result.push(subAgentId);
+  }
+
+  // Visit all subAgents
+  for (const subAgentId of Object.keys(subAgents)) {
+    visit(subAgentId);
+  }
+
+  return result;
+}
 
 /**
  * Generate imports needed for an agent
@@ -31,40 +72,48 @@ export function generateAgentImports(
   const q = style.quotes === 'single' ? "'" : '"';
   const semi = style.semicolons ? ';' : '';
   const imports: string[] = [];
-  
+
   // Always import SDK
   const sdkImports = ['agent', 'subAgent'];
-  
+
   // Check if we need contextConfig imports from agents-core
   const agentsCoreImports: string[] = [];
   if (agentData.contextConfig) {
     agentsCoreImports.push('contextConfig');
     // Check if contextConfig uses headers or fetchDefinition
-    if (agentData.contextConfig.headers || hasHeadersTemplateVariables(agentData.contextConfig)) {
+    // API provides headersSchema directly
+    if (agentData.contextConfig.headersSchema) {
       agentsCoreImports.push('headers');
     }
     if (agentData.contextConfig.contextVariables) {
       agentsCoreImports.push('fetchDefinition');
     }
   }
-  
+
   // Add SDK imports
   imports.push(`import { ${sdkImports.join(', ')} } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  
+
   // Add agents-core imports if needed
   if (agentsCoreImports.length > 0) {
-    imports.push(`import { ${agentsCoreImports.join(', ')} } from ${q}@inkeep/agents-core${q}${semi}`);
+    imports.push(
+      `import { ${agentsCoreImports.join(', ')} } from ${q}@inkeep/agents-core${q}${semi}`
+    );
   }
-  
+
   // Add zod import if needed
   if (needsZodImport(agentData)) {
     imports.push(`import { z } from ${q}zod${q}${semi}`);
   }
-  
+
+  // Add envSettings import if needed
+  if (needsEnvSettingsImport(agentData)) {
+    imports.push(`import { envSettings } from ${q}../environments${q}${semi}`);
+  }
+
   // Add component imports (tools, data components, etc.)
   const componentImports = generateComponentImports(agentData, componentNameMap, q, semi);
   imports.push(...componentImports);
-  
+
   return imports;
 }
 
@@ -81,19 +130,19 @@ export function generateAgentExport(
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
-  
+
   const lines: string[] = [];
-  
+
   // Generate contextConfig-related variables if present
   if (agentData.contextConfig) {
     lines.push(...generateContextConfigVariables(agentData.contextConfig, style));
     lines.push('');
   }
-  
+
   // Generate separate variables for all subAgents using global names
   const subAgentVariables: string[] = [];
   const subAgentVarNames = new Map<string, string>();
-  
+
   // Get subAgent variable names from global registry (they should have been registered)
   if (agentData.subAgents) {
     for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
@@ -101,57 +150,72 @@ export function generateAgentExport(
       const subAgentVarName = globalEntry?.name || toSubAgentVariableName(subAgentId);
       subAgentVarNames.set(subAgentId, subAgentVarName);
     }
-    
-    // Generate the actual subAgent code using global variable names
-    for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+
+    // Sort subAgents by dependencies to avoid forward references
+    const sortedSubAgentIds = topologicalSortSubAgents(agentData.subAgents);
+
+    // Generate the actual subAgent code using global variable names in dependency order
+    for (const subAgentId of sortedSubAgentIds) {
+      const subAgentData = agentData.subAgents[subAgentId];
       const subAgentVarName = subAgentVarNames.get(subAgentId)!;
-      const subAgentCode = generateSubAgentVariable(subAgentData as any, subAgentVarName, agentData, project, style, subAgentVarNames);
+      const subAgentCode = generateSubAgentVariable(
+        subAgentData as any,
+        subAgentVarName,
+        agentData,
+        project,
+        style,
+        subAgentVarNames,
+        componentNameMap
+      );
       subAgentVariables.push(subAgentCode);
     }
   }
-  
+
   // Add all subAgent variables
   for (const subAgentVar of subAgentVariables) {
     lines.push(subAgentVar);
     lines.push('');
   }
-  
+
   // Get agent variable name from global registry
   const globalEntry = componentNameMap.get(`agent:${agentId}`);
   const agentVarName = globalEntry?.name || toAgentVariableName(agentId);
-  
+
   // Export the agent
   lines.push(`export const ${agentVarName} = agent({`);
   lines.push(`${indent}id: ${q}${agentId}${q},`);
   lines.push(`${indent}name: ${formatString(agentData.name || agentId, q)},`);
-  
+
   if (agentData.description) {
     lines.push(`${indent}description: ${formatString(agentData.description, q)},`);
   }
-  
+
   if (agentData.prompt) {
     lines.push(`${indent}prompt: ${formatString(agentData.prompt, q)},`);
   }
-  
+
   // Add contextConfig if available (reference to generated variable)
   if (agentData.contextConfig) {
     const contextConfigVarName = generateContextConfigVariableName(agentData.contextConfig);
     lines.push(`${indent}contextConfig: ${contextConfigVarName},`);
   }
-  
+
   // Add models with only the model types that differ from project-level
   if (agentData.models && project.models) {
     const modelsToInclude: any = {};
-    
+
     for (const [modelType, modelConfig] of Object.entries(agentData.models)) {
       const projectModelConfig = (project.models as any)[modelType];
-      
+
       // Include if the model type doesn't exist in project or is different
-      if (!projectModelConfig || JSON.stringify(modelConfig) !== JSON.stringify(projectModelConfig)) {
+      if (
+        !projectModelConfig ||
+        JSON.stringify(modelConfig) !== JSON.stringify(projectModelConfig)
+      ) {
         modelsToInclude[modelType] = modelConfig;
       }
     }
-    
+
     if (Object.keys(modelsToInclude).length > 0) {
       lines.push(`${indent}models: ${formatObject(modelsToInclude, style, 1)},`);
     }
@@ -159,44 +223,46 @@ export function generateAgentExport(
     // Include all models if project has no models defined
     lines.push(`${indent}models: ${formatObject(agentData.models, style, 1)},`);
   }
-  
+
   // Only add stopWhen for agents if it differs from project-level inheritance
   if (agentData.stopWhen !== undefined && agentData.stopWhen !== null) {
     const agentStopWhen: any = {};
     if (agentData.stopWhen.transferCountIs !== undefined) {
       agentStopWhen.transferCountIs = agentData.stopWhen.transferCountIs;
     }
-    
+
     // Only include if different from project-level stopWhen
     const projectTransferCount = project.stopWhen?.transferCountIs;
-    const shouldInclude = Object.keys(agentStopWhen).length > 0 && 
-      (projectTransferCount === undefined || agentStopWhen.transferCountIs !== projectTransferCount);
-    
+    const shouldInclude =
+      Object.keys(agentStopWhen).length > 0 &&
+      (projectTransferCount === undefined ||
+        agentStopWhen.transferCountIs !== projectTransferCount);
+
     if (shouldInclude) {
       lines.push(`${indent}stopWhen: ${JSON.stringify(agentStopWhen)},`);
     }
   }
-  
+
   if (agentData.statusUpdates) {
     const statusUpdates = agentData.statusUpdates;
     lines.push(`${indent}statusUpdates: {`);
-    
+
     if (statusUpdates.enabled !== undefined) {
       lines.push(`${indent}${style.indentation}enabled: ${statusUpdates.enabled},`);
     }
-    
+
     if (statusUpdates.prompt) {
       lines.push(`${indent}${style.indentation}prompt: ${formatString(statusUpdates.prompt, q)},`);
     }
-    
+
     if (statusUpdates.numEvents !== undefined) {
       lines.push(`${indent}${style.indentation}numEvents: ${statusUpdates.numEvents},`);
     }
-    
+
     if (statusUpdates.timeInSeconds !== undefined) {
       lines.push(`${indent}${style.indentation}timeInSeconds: ${statusUpdates.timeInSeconds},`);
     }
-    
+
     if (statusUpdates.statusComponents && statusUpdates.statusComponents.length > 0) {
       lines.push(`${indent}${style.indentation}statusComponents: [`);
       for (const statusComp of statusUpdates.statusComponents) {
@@ -205,16 +271,43 @@ export function generateAgentExport(
       }
       lines.push(`${indent}${style.indentation}],`);
     }
-    
+
     lines.push(`${indent}},`);
   }
-  
+
   // Add default sub-agent reference
   if (agentData.defaultSubAgentId && subAgentVarNames.has(agentData.defaultSubAgentId)) {
     const defaultSubAgentVarName = subAgentVarNames.get(agentData.defaultSubAgentId);
     lines.push(`${indent}defaultSubAgent: ${defaultSubAgentVarName},`);
   }
-  
+
+  // Add teamAgents relationship if present
+  if (agentData.teamAgents && agentData.teamAgents.length > 0) {
+    lines.push(`${indent}teamAgents: () => [`);
+    for (const teamAgentRef of agentData.teamAgents) {
+      // Handle both string IDs and objects with externalAgentId/agentId
+      if (typeof teamAgentRef === 'string') {
+        const globalEntry = componentNameMap.get(`agent:${teamAgentRef}`);
+        const teamAgentVarName = globalEntry?.name || toAgentVariableName(teamAgentRef);
+        lines.push(`${indent}${style.indentation}${teamAgentVarName},`);
+      } else if (teamAgentRef.externalAgentId || teamAgentRef.agentId) {
+        const agentId = teamAgentRef.externalAgentId || teamAgentRef.agentId;
+        const globalEntry = componentNameMap.get(`agent:${agentId}`);
+        const teamAgentVarName = globalEntry?.name || toAgentVariableName(agentId);
+        
+        // Check if headers are present
+        if (teamAgentRef.headers && typeof teamAgentRef.headers === 'object') {
+          lines.push(`${indent}${style.indentation}${teamAgentVarName}.with({`);
+          lines.push(`${indent}${style.indentation}${style.indentation}headers: ${formatObject(teamAgentRef.headers, style, 3)},`);
+          lines.push(`${indent}${style.indentation}}),`);
+        } else {
+          lines.push(`${indent}${style.indentation}${teamAgentVarName},`);
+        }
+      }
+    }
+    lines.push(`${indent}],`);
+  }
+
   // Add subAgents array with all subAgents
   if (subAgentVarNames.size > 0) {
     lines.push(`${indent}subAgents: () => [`);
@@ -223,9 +316,9 @@ export function generateAgentExport(
     }
     lines.push(`${indent}],`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -234,12 +327,30 @@ export function generateAgentExport(
  */
 function needsZodImport(agentData: any): boolean {
   // Check if we need zod for schemas
-  if (agentData.contextConfig?.headers?.schema || 
-      agentData.contextConfig?.contextVariables ||
-      hasHeadersTemplateVariables(agentData.contextConfig)) {
+  if (
+    agentData.contextConfig?.headers?.schema ||
+    agentData.contextConfig?.contextVariables ||
+    hasHeadersTemplateVariables(agentData.contextConfig)
+  ) {
     return true;
   }
-  
+
+  return false;
+}
+
+/**
+ * Check if we need envSettings import for the agent
+ */
+function needsEnvSettingsImport(agentData: any): boolean {
+  // Check if any contextVariables have credentials
+  if (agentData.contextConfig?.contextVariables) {
+    for (const contextVar of Object.values(agentData.contextConfig.contextVariables)) {
+      if ((contextVar as any).credentialReferenceId) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -247,36 +358,38 @@ function needsZodImport(agentData: any): boolean {
  * Generate component imports for an agent
  */
 function generateComponentImports(
-  agentData: any, 
-  componentNameMap: Map<string, { name: string; type: ComponentType }>,
+  agentData: any,
+  componentNameMap: Map<string, { name: string; type: ComponentType; importPath?: string }>,
   q: string,
   semi: string
 ): string[] {
   const imports: string[] = [];
-  
+
   // Collect all imports needed for an agent file
-  const { toolImports, dataComponentImports, artifactComponentImports, statusComponentImports } = collectAllImports(agentData, {} as FullProjectDefinition, componentNameMap);
-  
-  // Add tool imports
-  for (const toolImport of toolImports) {
-    imports.push(`import { ${toolImport.varName} } from ${q}../tools/${toolImport.fileName}${q}${semi}`);
-  }
-  
-  // Add data component imports  
-  for (const dcImport of dataComponentImports) {
-    imports.push(`import { ${dcImport.varName} } from ${q}../data-components/${dcImport.fileName}${q}${semi}`);
-  }
-  
-  // Add artifact component imports
-  for (const acImport of artifactComponentImports) {
-    imports.push(`import { ${acImport.varName} } from ${q}../artifact-components/${acImport.fileName}${q}${semi}`);
-  }
-  
-  // Add status component imports
-  for (const scImport of statusComponentImports) {
-    imports.push(`import { ${scImport.varName} } from ${q}../status-components/${scImport.fileName}${q}${semi}`);
-  }
-  
+  const { toolImports, dataComponentImports, artifactComponentImports, statusComponentImports } =
+    collectAllImports(agentData, {} as FullProjectDefinition, componentNameMap);
+
+  // Helper function to add component imports using componentNameMap
+  const addComponentImports = (componentImports: any[], componentType: string) => {
+    for (const componentImport of componentImports) {
+      const globalEntry = componentNameMap.get(`${componentType}:${componentImport.id}`);
+      if (globalEntry?.importPath) {
+        // Component exists elsewhere - use the exact import path from componentNameMap
+        imports.push(
+          `import { ${globalEntry.name} } from ${q}${globalEntry.importPath}${q}${semi}`
+        );
+      }
+      // If no importPath, component is in the same file (no import needed)
+      // If no globalEntry, component doesn't exist in the project (skip import)
+    }
+  };
+
+  // Add imports for all component types
+  addComponentImports(toolImports, 'tool');
+  addComponentImports(dataComponentImports, 'dataComponent');
+  addComponentImports(artifactComponentImports, 'artifactComponent');
+  addComponentImports(statusComponentImports, 'statusComponent');
+
   return imports;
 }
 
@@ -293,20 +406,21 @@ export function generateAgentFile(
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
-  
+
   const lines: string[] = [];
-  
+
   // ALL IMPORTS AT TOP OF FILE
-  
+
   // Always import SDK and potential context imports
   const sdkImports = ['agent', 'subAgent'];
-  
+
   // Check if we need contextConfig imports from agents-core
   const agentsCoreImports: string[] = [];
   if (agentData.contextConfig) {
     agentsCoreImports.push('contextConfig');
     // Check if contextConfig uses headers or fetchDefinition
-    if (agentData.contextConfig.headers || hasHeadersTemplateVariables(agentData.contextConfig)) {
+    // API provides headersSchema directly
+    if (agentData.contextConfig.headersSchema) {
       agentsCoreImports.push('headers');
     }
     if (agentData.contextConfig.contextVariables) {
@@ -319,61 +433,79 @@ export function generateAgentFile(
       }
     }
   }
-  
+
   // Check if we need zod for schemas
   let needsZodImport = false;
-  if (agentData.contextConfig?.headers?.schema || 
-      agentData.contextConfig?.contextVariables ||
-      hasHeadersTemplateVariables(agentData.contextConfig)) {
+  if (
+    agentData.contextConfig?.headers?.schema ||
+    agentData.contextConfig?.contextVariables ||
+    hasHeadersTemplateVariables(agentData.contextConfig)
+  ) {
     needsZodImport = true;
   }
-  
+
   // Add agents-core imports if needed
   if (agentsCoreImports.length > 0) {
-    lines.push(`import { ${agentsCoreImports.join(', ')} } from ${q}@inkeep/agents-core${q}${semi}`);
+    lines.push(
+      `import { ${agentsCoreImports.join(', ')} } from ${q}@inkeep/agents-core${q}${semi}`
+    );
   }
-  
+
   lines.push(`import { ${sdkImports.join(', ')} } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  
+
   if (needsZodImport) {
     lines.push(`import { z } from ${q}zod${q}${semi}`);
   }
-  
+
+  // Add envSettings import if needed
+  if (needsEnvSettingsImport(agentData)) {
+    lines.push(`import { envSettings } from ${q}../environments${q}${semi}`);
+  }
+
   // Collect and add all component imports
-  const { toolImports, dataComponentImports, artifactComponentImports, statusComponentImports } = collectAllImports(agentData, project, componentNameMap);
-  
+  const { toolImports, dataComponentImports, artifactComponentImports, statusComponentImports } =
+    collectAllImports(agentData, project, componentNameMap);
+
   // Add tool imports
   for (const toolImport of toolImports) {
-    lines.push(`import { ${toolImport.varName} } from ${q}../tools/${toolImport.fileName}${q}${semi}`);
+    lines.push(
+      `import { ${toolImport.varName} } from ${q}../tools/${toolImport.fileName}${q}${semi}`
+    );
   }
-  
-  // Add data component imports  
+
+  // Add data component imports
   for (const dcImport of dataComponentImports) {
-    lines.push(`import { ${dcImport.varName} } from ${q}../data-components/${dcImport.fileName}${q}${semi}`);
+    lines.push(
+      `import { ${dcImport.varName} } from ${q}../data-components/${dcImport.fileName}${q}${semi}`
+    );
   }
-  
+
   // Add artifact component imports
   for (const acImport of artifactComponentImports) {
-    lines.push(`import { ${acImport.varName} } from ${q}../artifact-components/${acImport.fileName}${q}${semi}`);
+    lines.push(
+      `import { ${acImport.varName} } from ${q}../artifact-components/${acImport.fileName}${q}${semi}`
+    );
   }
-  
+
   // Add status component imports
   for (const scImport of statusComponentImports) {
-    lines.push(`import { ${scImport.varName} } from ${q}../status-components/${scImport.fileName}${q}${semi}`);
+    lines.push(
+      `import { ${scImport.varName} } from ${q}../status-components/${scImport.fileName}${q}${semi}`
+    );
   }
-  
+
   lines.push('');
-  
+
   // Generate contextConfig-related variables if present
   if (agentData.contextConfig) {
     lines.push(...generateContextConfigVariables(agentData.contextConfig, style));
     lines.push('');
   }
-  
+
   // Generate separate variables for all subAgents using global names
   const subAgentVariables: string[] = [];
   const subAgentVarNames = new Map<string, string>();
-  
+
   // Get subAgent variable names from global registry (they should have been registered)
   if (agentData.subAgents) {
     for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
@@ -381,57 +513,72 @@ export function generateAgentFile(
       const subAgentVarName = globalEntry?.name || toSubAgentVariableName(subAgentId);
       subAgentVarNames.set(subAgentId, subAgentVarName);
     }
-    
-    // Generate the actual subAgent code using global variable names
-    for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+
+    // Sort subAgents by dependencies to avoid forward references
+    const sortedSubAgentIds = topologicalSortSubAgents(agentData.subAgents);
+
+    // Generate the actual subAgent code using global variable names in dependency order
+    for (const subAgentId of sortedSubAgentIds) {
+      const subAgentData = agentData.subAgents[subAgentId];
       const subAgentVarName = subAgentVarNames.get(subAgentId)!;
-      const subAgentCode = generateSubAgentVariable(subAgentData as any, subAgentVarName, agentData, project, style, subAgentVarNames);
+      const subAgentCode = generateSubAgentVariable(
+        subAgentData as any,
+        subAgentVarName,
+        agentData,
+        project,
+        style,
+        subAgentVarNames,
+        componentNameMap
+      );
       subAgentVariables.push(subAgentCode);
     }
   }
-  
+
   // Add all subAgent variables
   for (const subAgentVar of subAgentVariables) {
     lines.push(subAgentVar);
     lines.push('');
   }
-  
+
   // Get agent variable name from global registry
   const globalEntry = componentNameMap.get(`agent:${agentId}`);
   const agentVarName = globalEntry?.name || toAgentVariableName(agentId);
-  
+
   // Export the agent
   lines.push(`export const ${agentVarName} = agent({`);
   lines.push(`${indent}id: ${q}${agentId}${q},`);
   lines.push(`${indent}name: ${formatString(agentData.name || agentId, q)},`);
-  
+
   if (agentData.description) {
     lines.push(`${indent}description: ${formatString(agentData.description, q)},`);
   }
-  
+
   if (agentData.prompt) {
     lines.push(`${indent}prompt: ${formatString(agentData.prompt, q)},`);
   }
-  
+
   // Add contextConfig if available (reference to generated variable)
   if (agentData.contextConfig) {
     const contextConfigVarName = generateContextConfigVariableName(agentData.contextConfig);
     lines.push(`${indent}contextConfig: ${contextConfigVarName},`);
   }
-  
+
   // Add models with only the model types that differ from project-level
   if (agentData.models && project.models) {
     const modelsToInclude: any = {};
-    
+
     for (const [modelType, modelConfig] of Object.entries(agentData.models)) {
       const projectModelConfig = (project.models as any)[modelType];
-      
+
       // Include if the model type doesn't exist in project or is different
-      if (!projectModelConfig || JSON.stringify(modelConfig) !== JSON.stringify(projectModelConfig)) {
+      if (
+        !projectModelConfig ||
+        JSON.stringify(modelConfig) !== JSON.stringify(projectModelConfig)
+      ) {
         modelsToInclude[modelType] = modelConfig;
       }
     }
-    
+
     if (Object.keys(modelsToInclude).length > 0) {
       lines.push(`${indent}models: ${formatObject(modelsToInclude, style, 1)},`);
     }
@@ -439,44 +586,46 @@ export function generateAgentFile(
     // Include all models if project has no models defined
     lines.push(`${indent}models: ${formatObject(agentData.models, style, 1)},`);
   }
-  
+
   // Only add stopWhen for agents if it differs from project-level inheritance
   if (agentData.stopWhen !== undefined && agentData.stopWhen !== null) {
     const agentStopWhen: any = {};
     if (agentData.stopWhen.transferCountIs !== undefined) {
       agentStopWhen.transferCountIs = agentData.stopWhen.transferCountIs;
     }
-    
+
     // Only include if different from project-level stopWhen
     const projectTransferCount = project.stopWhen?.transferCountIs;
-    const shouldInclude = Object.keys(agentStopWhen).length > 0 && 
-      (projectTransferCount === undefined || agentStopWhen.transferCountIs !== projectTransferCount);
-    
+    const shouldInclude =
+      Object.keys(agentStopWhen).length > 0 &&
+      (projectTransferCount === undefined ||
+        agentStopWhen.transferCountIs !== projectTransferCount);
+
     if (shouldInclude) {
       lines.push(`${indent}stopWhen: ${JSON.stringify(agentStopWhen)},`);
     }
   }
-  
+
   if (agentData.statusUpdates) {
     const statusUpdates = agentData.statusUpdates;
     lines.push(`${indent}statusUpdates: {`);
-    
+
     if (statusUpdates.enabled !== undefined) {
       lines.push(`${indent}${style.indentation}enabled: ${statusUpdates.enabled},`);
     }
-    
+
     if (statusUpdates.prompt) {
       lines.push(`${indent}${style.indentation}prompt: ${formatString(statusUpdates.prompt, q)},`);
     }
-    
+
     if (statusUpdates.numEvents !== undefined) {
       lines.push(`${indent}${style.indentation}numEvents: ${statusUpdates.numEvents},`);
     }
-    
+
     if (statusUpdates.timeInSeconds !== undefined) {
       lines.push(`${indent}${style.indentation}timeInSeconds: ${statusUpdates.timeInSeconds},`);
     }
-    
+
     if (statusUpdates.statusComponents && statusUpdates.statusComponents.length > 0) {
       lines.push(`${indent}${style.indentation}statusComponents: [`);
       for (const statusComp of statusUpdates.statusComponents) {
@@ -485,16 +634,16 @@ export function generateAgentFile(
       }
       lines.push(`${indent}${style.indentation}],`);
     }
-    
+
     lines.push(`${indent}},`);
   }
-  
+
   // Add default sub-agent reference
   if (agentData.defaultSubAgentId && subAgentVarNames.has(agentData.defaultSubAgentId)) {
     const defaultSubAgentVarName = subAgentVarNames.get(agentData.defaultSubAgentId);
     lines.push(`${indent}defaultSubAgent: ${defaultSubAgentVarName},`);
   }
-  
+
   // Add subAgents array with all subAgents
   if (subAgentVarNames.size > 0) {
     lines.push(`${indent}subAgents: () => [`);
@@ -503,9 +652,9 @@ export function generateAgentFile(
     }
     lines.push(`${indent}],`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n') + '\n';
 }
 
@@ -518,40 +667,41 @@ function generateSubAgentVariable(
   parentAgentData: any,
   project: FullProjectDefinition,
   style: CodeStyle,
-  subAgentVarNames: Map<string, string>
+  subAgentVarNames: Map<string, string>,
+  componentNameMap: Map<string, { name: string; type: ComponentType }> = new Map()
 ): string {
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
-  
+
   const lines: string[] = [];
-  
+
   lines.push(`const ${varName} = subAgent({`);
   lines.push(`${indent}id: ${q}${subAgentData.id}${q},`);
   lines.push(`${indent}name: ${formatString(subAgentData.name || subAgentData.id, q)},`);
-  
+
   if (subAgentData.description) {
     lines.push(`${indent}description: ${formatString(subAgentData.description, q)},`);
   }
-  
+
   if (subAgentData.prompt) {
     lines.push(`${indent}prompt: ${formatString(subAgentData.prompt, q)},`);
   }
-  
+
   // Add contextConfig if available
   if (subAgentData.contextConfig) {
     lines.push(`${indent}contextConfig: ${formatObject(subAgentData.contextConfig, style, 1)},`);
   }
-  
+
   // Add models with only the model types that differ from parent agent or project inheritance
   if (subAgentData.models) {
     const modelsToInclude: any = {};
-    
+
     for (const [modelType, modelConfig] of Object.entries(subAgentData.models)) {
       // Check parent agent first, then project as fallback
       const parentAgentModelConfig = parentAgentData.models?.[modelType];
       const projectModelConfig = project.models?.[modelType];
-      
+
       let inheritedConfig = null;
       if (parentAgentModelConfig) {
         // Inherit from parent agent if it has this model type
@@ -560,61 +710,70 @@ function generateSubAgentVariable(
         // Fall back to project model if parent agent doesn't have it
         inheritedConfig = projectModelConfig;
       }
-      
+
       // Include if different from inherited config or no inheritance available
       if (!inheritedConfig || JSON.stringify(modelConfig) !== JSON.stringify(inheritedConfig)) {
         modelsToInclude[modelType] = modelConfig;
       }
     }
-    
+
     if (Object.keys(modelsToInclude).length > 0) {
       lines.push(`${indent}models: ${formatObject(modelsToInclude, style, 1)},`);
     }
   }
-  
+
   // Only add stopWhen for subAgents if stepCountIs differs from project-level inheritance
   if (subAgentData.stopWhen !== undefined && subAgentData.stopWhen !== null) {
     const subAgentStopWhen: any = {};
     if (subAgentData.stopWhen.stepCountIs !== undefined) {
       subAgentStopWhen.stepCountIs = subAgentData.stopWhen.stepCountIs;
     }
-    
+
     // Only include if different from project-level stepCountIs
     const projectStepCount = project.stopWhen?.stepCountIs;
-    const shouldInclude = Object.keys(subAgentStopWhen).length > 0 && 
+    const shouldInclude =
+      Object.keys(subAgentStopWhen).length > 0 &&
       (projectStepCount === undefined || subAgentStopWhen.stepCountIs !== projectStepCount);
-    
+
     if (shouldInclude) {
       lines.push(`${indent}stopWhen: ${JSON.stringify(subAgentStopWhen)},`);
     }
   }
-  
+
   // Handle tools (canUse)
   if (subAgentData.canUse && subAgentData.canUse.length > 0) {
     lines.push(`${indent}canUse: () => [`);
     for (const toolRef of subAgentData.canUse) {
       if (typeof toolRef === 'string') {
-        // Simple tool reference
-        const toolVarName = toToolVariableName(toolRef);
+        // Simple tool reference - use componentNameMap for correct variable name
+        const globalEntry = componentNameMap.get(`tool:${toolRef}`);
+        const toolVarName = globalEntry?.name || toToolVariableName(toolRef);
         lines.push(`${indent}${style.indentation}${toolVarName},`);
       } else {
         // Tool with configuration (.with() format)
         const toolId = toolRef.toolId || toolRef.id;
-        const toolVarName = toToolVariableName(toolId);
-        
-        if (toolRef.selectedTools || toolRef.headers) {
+        const globalEntry = componentNameMap.get(`tool:${toolId}`);
+        const toolVarName = globalEntry?.name || toToolVariableName(toolId);
+
+        if (toolRef.toolSelection || toolRef.headers) {
           // Generate .with() configuration
           lines.push(`${indent}${style.indentation}${toolVarName}.with({`);
-          
-          if (toolRef.selectedTools && toolRef.selectedTools.length > 0) {
-            const selectedToolsStr = toolRef.selectedTools.map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`).join(', ');
-            lines.push(`${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`);
+
+          if (toolRef.toolSelection && toolRef.toolSelection.length > 0) {
+            const selectedToolsStr = toolRef.toolSelection
+              .map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`)
+              .join(', ');
+            lines.push(
+              `${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`
+            );
           }
-          
+
           if (toolRef.headers && typeof toolRef.headers === 'object') {
-            lines.push(`${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`);
+            lines.push(
+              `${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`
+            );
           }
-          
+
           lines.push(`${indent}${style.indentation}}),`);
         } else {
           // Simple tool reference even though it's an object
@@ -624,7 +783,7 @@ function generateSubAgentVariable(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle data components
   if (subAgentData.dataComponents && subAgentData.dataComponents.length > 0) {
     lines.push(`${indent}dataComponents: () => [`);
@@ -634,7 +793,7 @@ function generateSubAgentVariable(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle artifact components
   if (subAgentData.artifactComponents && subAgentData.artifactComponents.length > 0) {
     lines.push(`${indent}artifactComponents: () => [`);
@@ -644,19 +803,20 @@ function generateSubAgentVariable(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle delegation (canDelegateTo) - reference other subAgent variables
   if (subAgentData.canDelegateTo && subAgentData.canDelegateTo.length > 0) {
     lines.push(`${indent}canDelegateTo: () => [`);
     for (const delegateId of subAgentData.canDelegateTo) {
-      const delegateVarName = subAgentVarNames.get(delegateId) || toSubAgentVariableName(delegateId);
+      const delegateVarName =
+        subAgentVarNames.get(delegateId) || toSubAgentVariableName(delegateId);
       lines.push(`${indent}${style.indentation}${delegateVarName},`);
     }
     lines.push(`${indent}],`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -673,35 +833,35 @@ function generateSubAgent(
   const q = style.quotes === 'single' ? "'" : '"';
   const baseIndent = style.indentation.repeat(indentLevel);
   const indent = style.indentation.repeat(indentLevel + 1);
-  
+
   const lines: string[] = [];
-  
+
   lines.push(`subAgent({`);
   lines.push(`${indent}id: ${q}${subAgentData.id}${q},`);
   lines.push(`${indent}name: ${formatString(subAgentData.name || subAgentData.id, q)},`);
-  
+
   if (subAgentData.description) {
     lines.push(`${indent}description: ${formatString(subAgentData.description, q)},`);
   }
-  
+
   if (subAgentData.prompt) {
     lines.push(`${indent}prompt: ${formatString(subAgentData.prompt, q)},`);
   }
-  
+
   // Add contextConfig if available
   if (subAgentData.contextConfig) {
     lines.push(`${indent}contextConfig: ${formatObject(subAgentData.contextConfig, style, 1)},`);
   }
-  
+
   // Add models with only the model types that differ from parent agent or project inheritance
   if (subAgentData.models) {
     const modelsToInclude: any = {};
-    
+
     for (const [modelType, modelConfig] of Object.entries(subAgentData.models)) {
       // Check parent agent first, then project as fallback
       const parentAgentModelConfig = parentAgentData.models?.[modelType];
       const projectModelConfig = project.models?.[modelType];
-      
+
       let inheritedConfig = null;
       if (parentAgentModelConfig) {
         // Inherit from parent agent if it has this model type
@@ -710,61 +870,70 @@ function generateSubAgent(
         // Fall back to project model if parent agent doesn't have it
         inheritedConfig = projectModelConfig;
       }
-      
+
       // Include if different from inherited config or no inheritance available
       if (!inheritedConfig || JSON.stringify(modelConfig) !== JSON.stringify(inheritedConfig)) {
         modelsToInclude[modelType] = modelConfig;
       }
     }
-    
+
     if (Object.keys(modelsToInclude).length > 0) {
       lines.push(`${indent}models: ${formatObject(modelsToInclude, style, 1)},`);
     }
   }
-  
+
   // Only add stopWhen for subAgents if stepCountIs differs from project-level inheritance
   if (subAgentData.stopWhen !== undefined && subAgentData.stopWhen !== null) {
     const subAgentStopWhen: any = {};
     if (subAgentData.stopWhen.stepCountIs !== undefined) {
       subAgentStopWhen.stepCountIs = subAgentData.stopWhen.stepCountIs;
     }
-    
+
     // Only include if different from project-level stepCountIs
     const projectStepCount = project.stopWhen?.stepCountIs;
-    const shouldInclude = Object.keys(subAgentStopWhen).length > 0 && 
+    const shouldInclude =
+      Object.keys(subAgentStopWhen).length > 0 &&
       (projectStepCount === undefined || subAgentStopWhen.stepCountIs !== projectStepCount);
-    
+
     if (shouldInclude) {
       lines.push(`${indent}stopWhen: ${JSON.stringify(subAgentStopWhen)},`);
     }
   }
-  
+
   // Handle tools (canUse)
   if (subAgentData.canUse && subAgentData.canUse.length > 0) {
     lines.push(`${indent}canUse: () => [`);
     for (const toolRef of subAgentData.canUse) {
       if (typeof toolRef === 'string') {
-        // Simple tool reference
-        const toolVarName = toToolVariableName(toolRef);
+        // Simple tool reference - use componentNameMap for correct variable name
+        const globalEntry = componentNameMap.get(`tool:${toolRef}`);
+        const toolVarName = globalEntry?.name || toToolVariableName(toolRef);
         lines.push(`${indent}${style.indentation}${toolVarName},`);
       } else {
         // Tool with configuration (.with() format)
         const toolId = toolRef.toolId || toolRef.id;
-        const toolVarName = toToolVariableName(toolId);
-        
-        if (toolRef.selectedTools || toolRef.headers) {
+        const globalEntry = componentNameMap.get(`tool:${toolId}`);
+        const toolVarName = globalEntry?.name || toToolVariableName(toolId);
+
+        if (toolRef.toolSelection || toolRef.headers) {
           // Generate .with() configuration
           lines.push(`${indent}${style.indentation}${toolVarName}.with({`);
-          
-          if (toolRef.selectedTools && toolRef.selectedTools.length > 0) {
-            const selectedToolsStr = toolRef.selectedTools.map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`).join(', ');
-            lines.push(`${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`);
+
+          if (toolRef.toolSelection && toolRef.toolSelection.length > 0) {
+            const selectedToolsStr = toolRef.toolSelection
+              .map((t: string) => `${formatString(t, style.quotes === 'single' ? "'" : '"')}`)
+              .join(', ');
+            lines.push(
+              `${indent}${style.indentation}${style.indentation}selectedTools: [${selectedToolsStr}],`
+            );
           }
-          
+
           if (toolRef.headers && typeof toolRef.headers === 'object') {
-            lines.push(`${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`);
+            lines.push(
+              `${indent}${style.indentation}${style.indentation}headers: ${formatObject(toolRef.headers, style, indentLevel + 2)},`
+            );
           }
-          
+
           lines.push(`${indent}${style.indentation}}),`);
         } else {
           // Simple tool reference even though it's an object
@@ -774,7 +943,7 @@ function generateSubAgent(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle data components
   if (subAgentData.dataComponents && subAgentData.dataComponents.length > 0) {
     lines.push(`${indent}dataComponents: () => [`);
@@ -784,7 +953,7 @@ function generateSubAgent(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle artifact components
   if (subAgentData.artifactComponents && subAgentData.artifactComponents.length > 0) {
     lines.push(`${indent}artifactComponents: () => [`);
@@ -794,7 +963,7 @@ function generateSubAgent(
     }
     lines.push(`${indent}],`);
   }
-  
+
   // Handle delegation (canDelegateTo)
   if (subAgentData.canDelegateTo && subAgentData.canDelegateTo.length > 0) {
     lines.push(`${indent}canDelegateTo: () => [`);
@@ -802,27 +971,37 @@ function generateSubAgent(
       // Find the delegate sub-agent
       const delegateData = findSubAgentById(delegateId, parentAgentData, project);
       if (delegateData) {
-        const nestedSubAgent = generateSubAgent(delegateData, parentAgentData, project, style, indentLevel + 2);
+        const nestedSubAgent = generateSubAgent(
+          delegateData,
+          parentAgentData,
+          project,
+          style,
+          indentLevel + 2
+        );
         lines.push(`${indent}${style.indentation}${nestedSubAgent},`);
       }
     }
     lines.push(`${indent}]`);
   }
-  
+
   lines.push(`${baseIndent}})`);
-  
+
   return lines.join('\n');
 }
 
 /**
  * Collect all imports needed for an agent file
  */
-function collectAllImports(agentData: any, project: FullProjectDefinition, componentNameMap: Map<string, { name: string; type: ComponentType }>) {
+function collectAllImports(
+  agentData: any,
+  project: FullProjectDefinition,
+  componentNameMap: Map<string, { name: string; type: ComponentType }>
+) {
   const toolIds = new Set<string>();
   const dataComponentIds = new Set<string>();
   const artifactComponentIds = new Set<string>();
   const statusComponentIds = new Set<string>();
-  
+
   // Collect status components from agent-level statusUpdates
   if (agentData.statusUpdates?.statusComponents) {
     for (const statusComp of agentData.statusUpdates.statusComponents) {
@@ -832,7 +1011,7 @@ function collectAllImports(agentData: any, project: FullProjectDefinition, compo
       }
     }
   }
-  
+
   // Recursively collect from all sub-agents
   function collectFromSubAgent(subAgent: any) {
     if (subAgent.canUse) {
@@ -841,19 +1020,19 @@ function collectAllImports(agentData: any, project: FullProjectDefinition, compo
         toolIds.add(toolId);
       }
     }
-    
+
     if (subAgent.dataComponents) {
       for (const dcId of subAgent.dataComponents) {
         dataComponentIds.add(dcId);
       }
     }
-    
+
     if (subAgent.artifactComponents) {
       for (const acId of subAgent.artifactComponents) {
         artifactComponentIds.add(acId);
       }
     }
-    
+
     // Recursively handle delegated sub-agents
     if (subAgent.canDelegateTo) {
       for (const delegateId of subAgent.canDelegateTo) {
@@ -864,47 +1043,47 @@ function collectAllImports(agentData: any, project: FullProjectDefinition, compo
       }
     }
   }
-  
+
   // Collect from all sub-agents in this agent
   if (agentData.subAgents) {
     for (const subAgent of Object.values(agentData.subAgents)) {
       collectFromSubAgent(subAgent);
     }
   }
-  
+
   return {
-    toolImports: Array.from(toolIds).map(toolId => {
+    toolImports: Array.from(toolIds).map((toolId) => {
       const globalEntry = componentNameMap.get(`tool:${toolId}`);
       return {
         id: toolId,
         varName: globalEntry?.name || toToolVariableName(toolId),
-        fileName: toFileName(toolId)
+        fileName: toFileName(toolId),
       };
     }),
-    dataComponentImports: Array.from(dataComponentIds).map(dcId => {
+    dataComponentImports: Array.from(dataComponentIds).map((dcId) => {
       const globalEntry = componentNameMap.get(`dataComponent:${dcId}`);
       return {
         id: dcId,
         varName: globalEntry?.name || toDataComponentVariableName(dcId),
-        fileName: toFileName(dcId)
+        fileName: toFileName(dcId),
       };
     }),
-    artifactComponentImports: Array.from(artifactComponentIds).map(acId => {
+    artifactComponentImports: Array.from(artifactComponentIds).map((acId) => {
       const globalEntry = componentNameMap.get(`artifactComponent:${acId}`);
       return {
         id: acId,
         varName: globalEntry?.name || toArtifactComponentVariableName(acId),
-        fileName: toFileName(acId)
+        fileName: toFileName(acId),
       };
     }),
-    statusComponentImports: Array.from(statusComponentIds).map(scId => {
+    statusComponentImports: Array.from(statusComponentIds).map((scId) => {
       const globalEntry = componentNameMap.get(`statusComponent:${scId}`);
       return {
         id: scId,
         varName: globalEntry?.name || toStatusComponentVariableName(scId),
-        fileName: toFileName(scId)
+        fileName: toFileName(scId),
       };
-    })
+    }),
   };
 }
 
@@ -916,14 +1095,14 @@ function findSubAgentById(subAgentId: string, agentData: any, project: FullProje
   if (agentData.subAgents?.[subAgentId]) {
     return agentData.subAgents[subAgentId];
   }
-  
+
   // Then check in other agents in the project
   for (const agent of Object.values(project.agents || {})) {
     if ((agent as any).subAgents?.[subAgentId]) {
       return (agent as any).subAgents[subAgentId];
     }
   }
-  
+
   return null;
 }
 
@@ -931,6 +1110,17 @@ function findSubAgentById(subAgentId: string, agentData: any, project: FullProje
  * Convert agent ID to camelCase variable name
  */
 function toAgentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toAgentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toAgentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -942,6 +1132,17 @@ function toAgentVariableName(id: string): string {
  * Convert subAgent ID to camelCase variable name
  */
 function toSubAgentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toSubAgentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toSubAgentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -953,11 +1154,20 @@ function toSubAgentVariableName(id: string): string {
  * Convert tool ID to variable name (keep original format for weird IDs, camelCase for normal ones)
  */
 function toToolVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toToolVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(`toToolVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`);
+  }
+
   // For weird tool IDs like 'fUI2riwrBVJ6MepT8rjx0', keep as-is if already valid
   if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(id)) {
     return id;
   }
-  
+
   // For normal tool IDs like 'test-tool', convert to camelCase like other components
   return id
     .toLowerCase()
@@ -970,6 +1180,17 @@ function toToolVariableName(id: string): string {
  * Convert data component ID to camelCase variable name
  */
 function toDataComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toDataComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toDataComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -981,6 +1202,17 @@ function toDataComponentVariableName(id: string): string {
  * Convert artifact component ID to camelCase variable name
  */
 function toArtifactComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toArtifactComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toArtifactComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -992,6 +1224,17 @@ function toArtifactComponentVariableName(id: string): string {
  * Convert status component ID to camelCase variable name
  */
 function toStatusComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toStatusComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack,
+    });
+    throw new Error(
+      `toStatusComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`
+    );
+  }
+
   return id
     .toLowerCase()
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
@@ -1003,7 +1246,12 @@ function toStatusComponentVariableName(id: string): string {
  * Convert ID to kebab-case file name
  */
 function toFileName(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  // Preserve original casing to match how files are actually saved
+  // Just clean up any invalid characters, but keep the original case
+  return id
+    .replace(/[^a-zA-Z0-9\-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 /**
@@ -1014,21 +1262,26 @@ function generateContextConfigVariables(contextConfig: any, style: CodeStyle): s
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
   const lines: string[] = [];
-  
-  // Check if we need to generate a headers variable (either explicit or because of {{headers.}} usage)
-  const needsHeaders = contextConfig.headers || hasHeadersTemplateVariables(contextConfig);
-  
+
+  // Check if we need to generate a headers variable (API provides headersSchema directly)
+  const needsHeaders = contextConfig.headersSchema;
+
   if (needsHeaders) {
     const headersVarName = generateHeadersVariableName(contextConfig);
     lines.push(`const ${headersVarName} = headers({`);
-    if (contextConfig.headers?.schema) {
+    if (contextConfig.headersSchema) {
       let zodSchemaString: string;
-      if (typeof contextConfig.headers.schema === 'string') {
+      if (typeof contextConfig.headersSchema === 'string') {
         // Schema is already a Zod string (converted by placeholder system)
-        zodSchemaString = contextConfig.headers.schema;
+        zodSchemaString = contextConfig.headersSchema;
       } else {
         // Schema is a JSON schema object, convert it
-        zodSchemaString = formatZodSchema(contextConfig.headers.schema, style, 1);
+        console.log(
+          `🔍 DEBUG: Original headers JSON schema from API:`,
+          JSON.stringify(contextConfig.headersSchema, null, 2)
+        );
+        zodSchemaString = formatZodSchema(contextConfig.headersSchema, style, 1);
+        console.log(`🔍 DEBUG: Converted to Zod string:`, zodSchemaString);
       }
       lines.push(`${indent}schema: ${zodSchemaString},`);
     } else {
@@ -1040,10 +1293,11 @@ function generateContextConfigVariables(contextConfig: any, style: CodeStyle): s
       }
       lines.push(`${indent}}).loose(),`);
     }
+
     lines.push(`})${semi}`);
     lines.push('');
   }
-  
+
   // Generate fetchDefinition variables for each contextVariable
   if (contextConfig.contextVariables) {
     for (const [varName, contextVar] of Object.entries(contextConfig.contextVariables)) {
@@ -1053,21 +1307,21 @@ function generateContextConfigVariables(contextConfig: any, style: CodeStyle): s
       }
     }
   }
-  
+
   // Generate the main contextConfig variable
   const contextConfigVarName = generateContextConfigVariableName(contextConfig);
   lines.push(`const ${contextConfigVarName} = contextConfig({`);
-  
+
   // Include the existing ID to make it deterministic
   if (contextConfig.id) {
     lines.push(`${indent}id: '${contextConfig.id}',`);
   }
-  
+
   if (needsHeaders) {
     const headersVarName = generateHeadersVariableName(contextConfig);
     lines.push(`${indent}headers: ${headersVarName},`);
   }
-  
+
   if (contextConfig.contextVariables) {
     lines.push(`${indent}contextVariables: {`);
     for (const [varName, contextVar] of Object.entries(contextConfig.contextVariables)) {
@@ -1078,23 +1332,27 @@ function generateContextConfigVariables(contextConfig: any, style: CodeStyle): s
     }
     lines.push(`${indent}},`);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines;
 }
 
 /**
  * Generate a fetchDefinition variable
  */
-function generateFetchDefinitionVariable(varName: string, contextVar: any, style: CodeStyle): string[] {
+function generateFetchDefinitionVariable(
+  varName: string,
+  contextVar: any,
+  style: CodeStyle
+): string[] {
   const q = style.quotes === 'single' ? "'" : '"';
   const indent = style.indentation;
   const semi = style.semicolons ? ';' : '';
   const lines: string[] = [];
-  
+
   const fetchVarName = generateFetchDefinitionVariableName(varName);
-  
+
   // Add schema export if responseSchema is present
   if (contextVar.responseSchema) {
     const schemaVarName = `${varName}Schema`;
@@ -1109,26 +1367,39 @@ function generateFetchDefinitionVariable(varName: string, contextVar: any, style
     lines.push(`export const ${schemaVarName} = ${zodSchemaString}${semi}`);
     lines.push('');
   }
-  
+
   lines.push(`export const ${fetchVarName} = fetchDefinition({`);
   lines.push(`${indent}id: ${formatString(contextVar.id || varName, q)},`);
   lines.push(`${indent}name: ${formatString(contextVar.name || varName, q)},`);
   lines.push(`${indent}trigger: ${formatString(contextVar.trigger || 'initialization', q)},`);
   // Pass the headers variable name context for template conversion
-  const headersVarName = generateHeadersVariableName({ contextVariables: { [varName]: contextVar } });
-  lines.push(`${indent}fetchConfig: ${formatObjectWithHeadersContext(contextVar.fetchConfig, style, 1, headersVarName)},`);
-  
+  const headersVarName = generateHeadersVariableName({
+    contextVariables: { [varName]: contextVar },
+  });
+  lines.push(
+    `${indent}fetchConfig: ${formatObjectWithHeadersContext(contextVar.fetchConfig, style, 1, headersVarName)},`
+  );
+
   if (contextVar.responseSchema) {
     const schemaVarName = `${varName}Schema`;
     lines.push(`${indent}responseSchema: ${schemaVarName},`);
   }
-  
+
   if (contextVar.defaultValue !== undefined) {
     lines.push(`${indent}defaultValue: ${formatString(contextVar.defaultValue, q)},`);
   }
-  
+
+  // Add credential if credentialReferenceId exists
+  if (contextVar.credentialReferenceId) {
+    // Convert credential ID to underscore format (e.g., 'api-key-credential' -> 'api_key_credential')
+    const credentialKey = contextVar.credentialReferenceId.replace(/-/g, '_');
+    lines.push(
+      `${indent}credential: envSettings.getEnvironmentCredential(${formatString(credentialKey, q)}),`
+    );
+  }
+
   lines.push(`})${semi}`);
-  
+
   return lines;
 }
 
@@ -1145,7 +1416,7 @@ function generateContextConfigVariableName(contextConfig: any): string {
       return toVariableName(firstName + 'Context');
     }
   }
-  
+
   // Fallback to a generic name that doesn't conflict with the function
   return 'agentContext';
 }
@@ -1162,7 +1433,7 @@ function generateHeadersVariableName(contextConfig: any): string {
       return toVariableName(firstName + 'Headers');
     }
   }
-  
+
   return 'requestContext';
 }
 
@@ -1188,27 +1459,34 @@ function extractHeadersTemplateVariables(contextConfig: any): string[] {
   const jsonString = JSON.stringify(contextConfig);
   const pattern = /\{\{headers\.(\w+)\}\}/g;
   const matches = [...jsonString.matchAll(pattern)];
-  const uniqueVars = new Set(matches.map(match => match[1]));
+  const uniqueVars = new Set(matches.map((match) => match[1]));
   return Array.from(uniqueVars);
 }
 
 /**
  * Format object with headers context for template variable conversion
  */
-function formatObjectWithHeadersContext(obj: any, style: CodeStyle, indentLevel: number, headersVarName: string): string {
+function formatObjectWithHeadersContext(
+  obj: any,
+  style: CodeStyle,
+  indentLevel: number,
+  headersVarName: string
+): string {
   const baseIndent = style.indentation.repeat(indentLevel);
   const indent = style.indentation.repeat(indentLevel + 1);
   const q = style.quotes === 'single' ? "'" : '"';
-  
+
   if (typeof obj !== 'object' || obj === null) {
     return JSON.stringify(obj);
   }
-  
+
   if (Array.isArray(obj)) {
     const lines: string[] = ['['];
     for (const item of obj) {
       if (typeof item === 'object') {
-        lines.push(`${indent}${formatObjectWithHeadersContext(item, style, indentLevel + 1, headersVarName)},`);
+        lines.push(
+          `${indent}${formatObjectWithHeadersContext(item, style, indentLevel + 1, headersVarName)},`
+        );
       } else {
         lines.push(`${indent}${JSON.stringify(item)},`);
       }
@@ -1216,14 +1494,16 @@ function formatObjectWithHeadersContext(obj: any, style: CodeStyle, indentLevel:
     lines.push(`${baseIndent}]`);
     return lines.join('\n');
   }
-  
+
   const lines: string[] = ['{'];
   for (const [key, value] of Object.entries(obj)) {
     // Quote keys that contain special characters or are not valid identifiers
     const formattedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `${q}${key}${q}`;
-    
+
     if (typeof value === 'object' && value !== null) {
-      lines.push(`${indent}${formattedKey}: ${formatObjectWithHeadersContext(value, style, indentLevel + 1, headersVarName)},`);
+      lines.push(
+        `${indent}${formattedKey}: ${formatObjectWithHeadersContext(value, style, indentLevel + 1, headersVarName)},`
+      );
     } else if (typeof value === 'string') {
       // Use the passed headers variable name for template conversion
       const templateString = formatStringWithTemplates(value, q, headersVarName);
@@ -1233,6 +1513,6 @@ function formatObjectWithHeadersContext(obj: any, style: CodeStyle, indentLevel:
     }
   }
   lines.push(`${baseIndent}}`);
-  
+
   return lines.join('\n');
 }

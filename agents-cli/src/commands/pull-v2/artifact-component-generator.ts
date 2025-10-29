@@ -243,6 +243,15 @@ function hasInPreviewFields(schema: any): boolean {
  * Examples: 'document-template' -> 'documentTemplate'
  */
 function toArtifactComponentVariableName(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.error('🔍 toArtifactComponentVariableName called with invalid value:', {
+      value: id,
+      type: typeof id,
+      stack: new Error().stack
+    });
+    throw new Error(`toArtifactComponentVariableName: expected string, got ${typeof id}: ${JSON.stringify(id)}`);
+  }
+  
   // For artifact components, use camelCase conversion instead of underscores
   return id
     .toLowerCase()
@@ -268,7 +277,10 @@ function formatArtifactSchema(schema: any, style: CodeStyle, indentLevel: number
     
     for (const [key, prop] of Object.entries(schema.properties) as [string, any][]) {
       // Get the base Zod type using json-schema-to-zod converter
-      const baseZodType = formatZodSchema(prop, style, 0);
+      // Create a clean copy without inPreview for the converter
+      const propCopy = { ...prop };
+      delete propCopy.inPreview;
+      const baseZodType = formatZodSchema(propCopy, style, 0);
       
       // Wrap with preview() if this property has inPreview: true
       const finalZodType = prop.inPreview === true ? `preview(${baseZodType})` : baseZodType;
