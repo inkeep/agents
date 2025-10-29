@@ -41,11 +41,17 @@ The runtime environment limits are defined as TypeScript constants in the `@inke
 - Used in Zod schemas to validate agent configuration requests
 - Examples: Transfer count limits, generation step limits, prompt character limits
 
-**2. Runtime Execution Constants** (`packages/agents-core/src/constants/execution-limits-shared/defaults.ts`)
+**2. Runtime Execution Constants - Shared** (`packages/agents-core/src/constants/execution-limits-shared/defaults.ts`)
 - Define **internal runtime behavior** limits
 - Control infrastructure-level timeouts, retries, and constraints
 - Shared across both manage-api and run-api services
 - Examples: MCP connection timeouts, conversation history token limits
+
+**3. Runtime Execution Constants - Run-API** (`packages/agents-run-api/src/constants/execution-limits/defaults.ts`)
+- Define **run-api specific runtime behavior** limits
+- Control execution engine timeouts, retries, and resource constraints
+- Only used by the run-api service (not shared with manage-api)
+- Examples: LLM generation timeouts, function tool sandbox limits, streaming buffer sizes
 
 Each constant includes detailed inline documentation explaining its purpose, behavior, and impact on the runtime. **The TypeScript constant files are the source of truth** for default values and available overrides—not `.env.example`.
 
@@ -132,11 +138,12 @@ Set environment variables in your platform's environment configuration UI.
 
 ## All Available Configuration Variables
 
-All runtime configuration variables are defined as TypeScript constants in the `@inkeep/agents-core` package. To explore available overrides and their detailed documentation:
+All runtime configuration variables are defined as TypeScript constants. To explore available overrides and their detailed documentation:
 
 1. **View the constant files** (source of truth):
    - Schema validation constants: `packages/agents-core/src/constants/schema-validation/defaults.ts`
-   - Runtime execution constants: `packages/agents-core/src/constants/execution-limits-shared/defaults.ts`
+   - Runtime execution constants (shared): `packages/agents-core/src/constants/execution-limits-shared/defaults.ts`
+   - Runtime execution constants (run-api): `packages/agents-run-api/src/constants/execution-limits/defaults.ts`
 2. Each constant includes inline documentation explaining its purpose, behavior, and impact
 3. Convert constant names to environment variables by prefixing with `AGENTS_`
 
@@ -151,11 +158,11 @@ The runtime configuration is organized into functional categories:
 - **Prompt Validation**: Character limits for agent and sub-agent system prompts
 - **Context Fetchers**: HTTP timeouts for external data fetching (CRM lookups, API calls)
 
-**Runtime Execution Constants** (infrastructure-level limits):
+**Runtime Execution Constants - Shared** (infrastructure-level limits):
 - **MCP Tool Connection & Retry**: Connection timeouts and exponential backoff for MCP tools
 - **Conversation History**: Token limits for conversation context windows
 
-**Additional Runtime Settings** (defined elsewhere in the codebase):
+**Runtime Execution Constants - Run-API** (run-api service-specific limits):
 - **LLM Generation Timeouts**: Timeout behavior for AI model calls
 - **Function Tool Sandbox**: Execution limits for function tools in isolated sandboxes
 - **Delegation & A2A**: Inter-agent communication settings
