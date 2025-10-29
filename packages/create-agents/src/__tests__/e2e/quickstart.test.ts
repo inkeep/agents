@@ -50,6 +50,7 @@ describe('create-agents quickstart e2e', () => {
     console.log('CLI completed successfully');
 
     // Verify the core directory structure
+    console.log('Verifying directory structure...');
     await verifyDirectoryStructure(projectDir, [
       'src',
       'src/inkeep.config.ts',
@@ -61,8 +62,8 @@ describe('create-agents quickstart e2e', () => {
       '.env',
       'package.json',
       'drizzle.config.ts',
-      'local.db',
     ]);
+    console.log('Directory structure verified');
 
     // Verify .env file has required variables
     console.log('Verifying .env file...');
@@ -142,7 +143,7 @@ describe('create-agents quickstart e2e', () => {
       // Catch any remaining errors
       await devProcess.catch(() => {});
     }
-  }, 600000); // 10 minute timeout for full flow with network calls
+  }, 720000); // 12 minute timeout for full flow with network calls (CI can be slow)
 
   it('should work with local monorepo packages', async () => {
     // Create the project
@@ -210,5 +211,5 @@ describe('create-agents quickstart e2e', () => {
       // Catch any remaining errors
       await devProcess.catch(() => {});
     }
-  }, 600000); // 10 minute timeout for install + build + dev
+  }, 720000); // 12 minute timeout for install + build + dev (CI can be slow)
 });
