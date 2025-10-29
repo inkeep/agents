@@ -283,7 +283,7 @@ export async function deleteFullProjectViaAPI(
   );
 }
 
-function parseError(errorText: string): string | void {
+export function parseError(errorText: string): string | void {
   try {
     const errorJson = JSON.parse(errorText);
     if (errorJson.error) {
