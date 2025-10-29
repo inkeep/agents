@@ -13,7 +13,6 @@
     "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build",
     "dev": "turbo dev --filter='!@inkeep/create-agents'",
-    "dev:api": "turbo dev --filter='@inkeep/agents-manage-api'",
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test",
