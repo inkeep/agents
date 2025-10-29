@@ -14,6 +14,7 @@ describe('Validation', () => {
 
     // Trigger Cmd+S to save
     const isMac = Cypress.platform === 'darwin';
+    console.log(111, { isMac });
     const saveShortcut = isMac ? '{cmd+s}' : '{ctrl+s}';
     cy.get('body').type(saveShortcut);
 
