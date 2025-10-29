@@ -54,7 +54,6 @@ const envSchema = z.object({
 
 const parseEnv = () => {
   try {
-    console.log(111, process.env);
     const parsedEnv = envSchema.parse(process.env);
     return parsedEnv;
   } catch (error) {
