@@ -31,6 +31,33 @@ When an agent executes:
 2. Falls back to runtime environment defaults
 3. Cannot exceed runtime environment maximums
 
+### Understanding the Constants Architecture
+
+The runtime environment limits are defined as TypeScript constants in the `@inkeep/agents-core` package. These constants are organized into two categories based on their purpose:
+
+**1. Schema Validation Constants** (`packages/agents-core/src/constants/schema-validation/defaults.ts`)
+- Define **API-level validation limits** (min, max, default values)
+- Control what values users can configure via the manage-api
+- Used in Zod schemas to validate agent configuration requests
+- Examples: Transfer count limits, generation step limits, prompt character limits
+
+**2. Runtime Execution Constants** (`packages/agents-core/src/constants/execution-limits-shared/defaults.ts`)
+- Define **internal runtime behavior** limits
+- Control infrastructure-level timeouts, retries, and constraints
+- Shared across both manage-api and run-api services
+- Examples: MCP connection timeouts, conversation history token limits
+
+Each constant includes detailed inline documentation explaining its purpose, behavior, and impact on the runtime. **The TypeScript constant files are the source of truth** for default values and available overrides—not `.env.example`.
+
+All constants can be overridden via environment variables prefixed with `AGENTS_`. For example:
+```bash
+# Override a schema validation constant
+AGENTS_AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT=50
+
+# Override a runtime execution constant
+AGENTS_MCP_TOOL_CONNECTION_TIMEOUT_MS=5000
+```
+
 ## Use Case: Long-Running Orchestration Agents
 
 For agents that orchestrate complex workflows (like coding agents that run for hours), you'll want to increase various limits and timeouts.
@@ -105,25 +132,36 @@ Set environment variables in your platform's environment configuration UI.
 
 ## All Available Configuration Variables
 
-All runtime configuration variables are defined with their defaults in the repository's `.env.example` file. These serve as the source of truth for available overrides.
+All runtime configuration variables are defined as TypeScript constants in the `@inkeep/agents-core` package. To explore available overrides and their detailed documentation:
+
+1. **View the constant files** (source of truth):
+   - Schema validation constants: `packages/agents-core/src/constants/schema-validation/defaults.ts`
+   - Runtime execution constants: `packages/agents-core/src/constants/execution-limits-shared/defaults.ts`
+2. Each constant includes inline documentation explaining its purpose, behavior, and impact
+3. Convert constant names to environment variables by prefixing with `AGENTS_`
 
 ### Configuration Categories
 
-The runtime configuration is organized into categories:
+The runtime configuration is organized into functional categories:
 
-- **Agent Execution Loop**: Controls transfers between sub-agents and error handling
-- **Sub-Agent Turn Execution**: LLM generation steps within a single activation
+**Schema Validation Constants** (API-level limits):
+- **Agent Execution Transfer Count**: Limits transfers between sub-agents in a turn
+- **Sub-Agent Turn Generation Steps**: LLM generation steps within a single sub-agent activation
+- **Status Update Thresholds**: Event and time-based triggers for status updates
+- **Prompt Validation**: Character limits for agent and sub-agent system prompts
+- **Context Fetchers**: HTTP timeouts for external data fetching (CRM lookups, API calls)
+
+**Runtime Execution Constants** (infrastructure-level limits):
+- **MCP Tool Connection & Retry**: Connection timeouts and exponential backoff for MCP tools
+- **Conversation History**: Token limits for conversation context windows
+
+**Additional Runtime Settings** (defined elsewhere in the codebase):
 - **LLM Generation Timeouts**: Timeout behavior for AI model calls
-- **Function Tool Sandbox**: Limits for function tools in isolated sandboxes
-- **MCP Tools**: Timeout and connection settings for MCP tools
+- **Function Tool Sandbox**: Execution limits for function tools in isolated sandboxes
 - **Delegation & A2A**: Inter-agent communication settings
 - **Artifact Processing**: UI component generation with retry mechanisms
 - **Session Management**: Tool result caching and cleanup
-- **Status Updates & Streaming**: Frequency and batching of updates
-- **Stream Buffers**: Memory limits for streaming responses
-- **Validation Limits**: Hard limits enforced at API layer
-- **Data Components**: External data fetching timeouts
-- **Conversation History**: Message retrieval limits
+- **Streaming**: Frequency, batching, and lifetime limits for streams
 
 ## Related Documentation
 
