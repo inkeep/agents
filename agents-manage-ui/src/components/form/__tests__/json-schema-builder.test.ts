@@ -1,4 +1,7 @@
-const JSONSchema = {
+import { convertJsonSchemaToFields } from '@/components/form/json-schema-builder';
+import type { RJSFSchema } from '@rjsf/utils';
+
+const JSONSchema: RJSFSchema = {
   type: 'object',
   properties: {
     activities: {
@@ -52,3 +55,10 @@ const JSONSchema = {
   required: ['activities'],
   additionalProperties: false,
 };
+
+describe('convertJsonSchemaToFields', () => {
+  it('should converts json schema to fields', () => {
+    const schema = convertJsonSchemaToFields(JSONSchema);
+    expect(schema).toMatchInlineSnapshot(`[]`);
+  });
+});

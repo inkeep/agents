@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { RJSFSchema } from '@rjsf/utils';
 
 const Types = {
   string: 'str',
@@ -269,12 +270,25 @@ interface FieldEnum extends NameAndDescription {
   values: string[];
 }
 interface FieldArray extends NameAndDescription {
-  type: 'enum';
+  type: 'array';
   items: AllFields[];
 }
 interface FieldObject extends NameAndDescription {
-  type: 'enum';
+  type: 'object';
   properties: AllFields[];
 }
 
-export function convertJsonSchemaToFields(schema: object): AllFields[] {}
+export function convertJsonSchemaToFields(schema: RJSFSchema): AllFields[] {
+  if (schema.type === 'object') {
+    if (!Array.isArray(schema.properties)) {
+      return [];
+    }
+    return Object.entries(schema.properties).map(([name, prop]) => convertJsonSchemaToFields(prop));
+  }
+  if (schema.type === 'array') {
+    if (!Array.isArray(schema.items)) {
+      return [];
+    }
+    return convertJsonSchemaToFields(schema.items);
+  }
+}
