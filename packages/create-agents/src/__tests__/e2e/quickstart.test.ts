@@ -33,6 +33,7 @@ describe('create-agents quickstart e2e', () => {
 
   it('should work with published packages', async () => {
     // Run the CLI with all options (non-interactive mode)
+    console.log('Running CLI with options:');
     const result = await runCreateAgentsCLI(
       [
         workspaceName,
@@ -42,9 +43,10 @@ describe('create-agents quickstart e2e', () => {
       ],
       testDir
     );
-
     // Verify the CLI completed successfully
     expect(result.exitCode).toBe(0);
+
+    console.log('CLI completed successfully');
 
     // Verify the core directory structure
     await verifyDirectoryStructure(projectDir, [
@@ -74,17 +76,20 @@ describe('create-agents quickstart e2e', () => {
     // Verify inkeep.config.ts was created
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
 
+    console.log('Starting dev servers');
     // Start dev servers in background
     const devProcess = execa('pnpm', ['dev:all'], {
       cwd: projectDir,
       env: { ...process.env, FORCE_COLOR: '0' },
     });
 
+    console.log('Waiting for servers to be ready');
     try {
       // Wait for servers to be ready
       await waitForServerReady(`${manageApiUrl}/health`, 60000);
       await waitForServerReady(`${runApiUrl}/health`, 60000);
 
+      console.log('Pushing project');
       const pushResult = await runCommand(
         'pnpm',
         [
@@ -101,6 +106,7 @@ describe('create-agents quickstart e2e', () => {
 
       expect(pushResult.exitCode).toBe(0);
 
+      console.log('Testing API requests');
       // Test API requests
       const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
 
@@ -108,6 +114,7 @@ describe('create-agents quickstart e2e', () => {
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
     } finally {
+      console.log('Killing dev process');
       // Always kill the dev process
       devProcess.kill('SIGTERM');
       await devProcess.catch(() => {}); // Ignore kill errors
