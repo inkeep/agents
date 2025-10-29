@@ -14,7 +14,7 @@
     "test": "echo 'No tests configured for chat-widget'"
   },
   "dependencies": {
-    "@inkeep/agents-ui": "^0.14.25",
+    "@inkeep/agents-ui": "^0.15.0",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

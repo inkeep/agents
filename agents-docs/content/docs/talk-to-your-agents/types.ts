@@ -1,15 +1,17 @@
 export type {
-    InkeepChatButtonProps,
-    InkeepModalChatProps,
-    InkeepSidebarChatProps,
-    InkeepEmbeddedChatProps,
-  } from '@inkeep/agents-ui';
-  
-  export type {
-    InkeepBaseSettings,
-    InkeepModalSettings,
-    InkeepAIChatSettings,
-    InkeepSearchSettings,
-    ColorModeProviderProps,
-  } from '@inkeep/agents-ui/types';
-  
+  InkeepChatButtonProps,
+  InkeepEmbeddedChatProps,
+  InkeepModalChatProps,
+  InkeepSidebarChatProps,
+} from '@inkeep/agents-ui';
+
+export type {
+  ColorModeProviderProps,
+  InkeepAIChatSettings,
+  InkeepBaseSettings,
+  InkeepSearchSettings,
+  OpenSettingsChatButton,
+  OpenSettingsModal,
+  OpenSettingsSearchBar,
+  OpenSettingsSidebar,
+} from '@inkeep/agents-ui/types';
