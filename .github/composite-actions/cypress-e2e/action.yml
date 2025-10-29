@@ -28,13 +28,11 @@ runs:
     - run: pnpm setup-dev
       shell: bash
 
-    - name: Generate JWT signing secret
-      shell: bash
-      run: echo "INKEEP_AGENTS_JWT_SIGNING_SECRET=$(openssl rand -hex 32)" >> $GITHUB_ENV
-
     - name: Start Backend API Server
       shell: bash
       run: npx turbo dev --filter='@inkeep/agents-manage-api' &
+      env:
+        INKEEP_AGENTS_JWT_SIGNING_SECRET: 22ffd51a7207291646251d518ea91df044a20a81a7e75c5b71e5e5e83da6055c
 
     - name: Build Dashboard
       shell: bash
@@ -43,6 +41,8 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
+      env:
+        INKEEP_AGENTS_JWT_SIGNING_SECRET: 22ffd51a7207291646251d518ea91df044a20a81a7e75c5b71e5e5e83da6055c
 
     - name: Run Cypress E2E Tests
       shell: bash
