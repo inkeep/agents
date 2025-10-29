@@ -25,15 +25,17 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
+#    - run: pnpm db:migrate
+#      shell: bash
+
 #    - run: pnpm setup-dev
 #      shell: bash
 
     - name: Start Backend API Server
       shell: bash
-      run: npx turbo dev --filter='@inkeep/agents-manage-api' &
+      run: pnpm --filter @inkeep/agents-manage-api dev &
       env:
-        INKEEP_AGENTS_JWT_SIGNING_SECRET: 22ffd51a7207291646251d518ea91df044a20a81a7e75c5b71e5e5e83da6055c
-        ENVIRONMENT: test
+        DB_FILE_NAME: file:../local.db
 
     - name: Build Dashboard
       shell: bash
@@ -42,9 +44,6 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
-      env:
-        INKEEP_AGENTS_JWT_SIGNING_SECRET: 22ffd51a7207291646251d518ea91df044a20a81a7e75c5b71e5e5e83da6055c
-        ENVIRONMENT: test
 
     - name: Run Cypress E2E Tests
       shell: bash
