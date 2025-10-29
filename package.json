@@ -86,6 +86,7 @@
     "node": ">=22.0.0"
   },
   "pnpm": {
+    "// esbuild": "we pin it for Cypruss",
     "overrides": {
       "esbuild": "0.25.9",
       "zod": "^4.1.11"

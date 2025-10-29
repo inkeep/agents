@@ -9,10 +9,7 @@ describe('Validation', () => {
     // Click create graph button
     cy.contains('Create agent').click();
 
-    // Wait for app to initialize
-    cy.contains('Save').should('exist');
-
-    // Trigger Cmd+S to save
+    // Wait for app to initialize and click to save
     cy.contains('Save').click();
 
     // Check for validation errors

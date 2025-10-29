@@ -121,7 +121,7 @@
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/web-worker": "3.1.4",
-    "cypress": "^15.4.0",
+    "cypress": "^15.5.0",
     "jsdom": "^26.1.0",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
