@@ -193,6 +193,9 @@ main code:not(pre code) {
   word-break: inherit !important;
 }
 
-.auto-types div[data-state] button {
+.type-table {
+  @apply gap-1;
+}
+.type-table div[data-state] button {
   @apply flex gap-2;
 }

@@ -24,7 +24,7 @@ import {
 import { APIPage } from 'fumadocs-openapi/ui';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { createGenerator } from 'fumadocs-typescript';
-import { AutoTypeTable } from 'fumadocs-typescript/ui';
+import { AutoTypeTable } from '@/components/mdx/auto-type-table';
 
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
@@ -90,11 +90,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
-    AutoTypeTable: (props) => (
-      <div className="auto-types contents">
-        <AutoTypeTable {...props} generator={generator} />
-      </div>
-    ),
+    AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
     ...components,
     Accordions,
     Accordion,
