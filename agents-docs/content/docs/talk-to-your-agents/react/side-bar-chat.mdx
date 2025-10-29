@@ -46,8 +46,10 @@ pnpm add @inkeep/agents-ui
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
         position: "right",
-        isOpen: isOpen,
-        onOpenChange: setIsOpen,
+        openSettings: {
+          isOpen: isOpen,
+          onOpenChange: setIsOpen,
+        },
       };
 
       return (
@@ -125,8 +127,10 @@ pnpm add @inkeep/agents-ui
           },
         },
         position: "right",
-        isOpen: isOpen,
-        onOpenChange: setIsOpen,
+        openSettings: {
+          isOpen: isOpen,
+          onOpenChange: setIsOpen,
+        },
       };
 
       return (
@@ -208,4 +212,11 @@ pnpm add @inkeep/agents-ui
 <AutoTypeTable
   path="./content/docs/talk-to-your-agents/types.ts"
   name="InkeepAIChatSettings"
+/>
+
+### Open Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="OpenSettingsSidebar"
 />
