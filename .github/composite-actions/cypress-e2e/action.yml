@@ -25,10 +25,10 @@ runs:
       shell: bash
       run: cd agents-manage-ui && npx cypress install
 
-#    - run: pnpm db:migrate
-#      shell: bash
-
     - run: pnpm setup-dev
+      shell: bash
+
+    - run: pnpm db:migrate
       shell: bash
 
     - name: Start Backend API Server
