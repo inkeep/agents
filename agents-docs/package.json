@@ -47,7 +47,7 @@
     "remark-emoji": "^5.0.1",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.0",
-    "remark-mdx-snippets": "^0.1.1",
+    "remark-mdx-snippets": "^0.2.0",
     "remark-rehype": "^11.1.2",
     "remark-source-code": "^0.0.3",
     "shiki": "^3.3.0",
