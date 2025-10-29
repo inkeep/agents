@@ -6,7 +6,7 @@ import { schemaValidationDefaults } from '../constants/schema-validation/default
 const {
   AGENT_EXECUTION_TRANSFER_COUNT_MAX,
   AGENT_EXECUTION_TRANSFER_COUNT_MIN,
-  DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
   STATUS_UPDATE_MAX_INTERVAL_SECONDS,
   STATUS_UPDATE_MAX_NUM_EVENTS,
   SUB_AGENT_TURN_GENERATION_STEPS_MAX,
@@ -644,7 +644,7 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
-    timeout: z.number().min(0).optional().default(DATA_COMPONENT_FETCH_TIMEOUT_MS_DEFAULT).optional(),
+    timeout: z.number().min(0).optional().default(CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT).optional(),
   })
   .openapi('FetchConfig');
 
