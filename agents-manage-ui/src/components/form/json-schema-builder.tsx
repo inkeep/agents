@@ -244,3 +244,37 @@ const TagsInput: FC = () => {
     </div>
   );
 };
+
+interface NameAndDescription {
+  name: string;
+  description?: string;
+}
+
+type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
+
+interface FieldString extends NameAndDescription {
+  type: 'string';
+}
+
+interface FieldNumber extends NameAndDescription {
+  type: 'number';
+}
+
+interface FieldBoolean extends NameAndDescription {
+  type: 'boolean';
+}
+
+interface FieldEnum extends NameAndDescription {
+  type: 'enum';
+  values: string[];
+}
+interface FieldArray extends NameAndDescription {
+  type: 'enum';
+  items: AllFields[];
+}
+interface FieldObject extends NameAndDescription {
+  type: 'enum';
+  properties: AllFields[];
+}
+
+export function convertJsonSchemaToFields(schema: object): AllFields[] {}
