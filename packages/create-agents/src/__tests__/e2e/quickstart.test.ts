@@ -87,6 +87,8 @@ describe('create-agents quickstart e2e', () => {
     const devProcess = execa('pnpm', ['dev:all'], {
       cwd: projectDir,
       env: { ...process.env, FORCE_COLOR: '0' },
+      cleanup: true, // Ensure child processes are cleaned up
+      detached: false, // Keep attached to allow proper cleanup
     });
 
     console.log('Waiting for servers to be ready');
@@ -121,27 +123,30 @@ describe('create-agents quickstart e2e', () => {
       expect(data.data.id).toBe(projectId);
     } finally {
       console.log('Killing dev process');
-      // Try graceful shutdown first, then force kill
+
+      // Kill the process and wait for it to die
       try {
         devProcess.kill('SIGTERM');
-        // Give it 2 seconds to shut down gracefully
-        await Promise.race([devProcess, new Promise((resolve) => setTimeout(resolve, 2000))]);
       } catch {
-        // Process might have already exited
+        // Might already be dead
       }
 
-      // Force kill if still running
+      // Give it 2 seconds to shut down gracefully, then force kill
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       try {
         devProcess.kill('SIGKILL');
       } catch {
-        // Already dead
+        // Already dead or couldn't kill
       }
 
-      // Wait for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Wait for the process to be fully cleaned up (with timeout)
+      await Promise.race([
+        devProcess.catch(() => {}), // Wait for process to exit
+        new Promise((resolve) => setTimeout(resolve, 5000)), // Or timeout after 5s
+      ]);
 
-      // Catch any remaining errors
-      await devProcess.catch(() => {});
+      console.log('Dev process cleanup complete');
     }
   }, 720000); // 12 minute timeout for full flow with network calls (CI can be slow)
 
@@ -162,6 +167,8 @@ describe('create-agents quickstart e2e', () => {
     const devProcess = execa('pnpm', ['dev:all'], {
       cwd: projectDir,
       env: { ...process.env, FORCE_COLOR: '0' },
+      cleanup: true, // Ensure child processes are cleaned up
+      detached: false, // Keep attached to allow proper cleanup
     });
 
     try {
@@ -189,27 +196,31 @@ describe('create-agents quickstart e2e', () => {
       const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
       expect(response.status).toBe(200);
     } finally {
-      // Try graceful shutdown first, then force kill
+      console.log('Killing dev process');
+
+      // Kill the process and wait for it to die
       try {
         devProcess.kill('SIGTERM');
-        // Give it 2 seconds to shut down gracefully
-        await Promise.race([devProcess, new Promise((resolve) => setTimeout(resolve, 2000))]);
       } catch {
-        // Process might have already exited
+        // Might already be dead
       }
 
-      // Force kill if still running
+      // Give it 2 seconds to shut down gracefully, then force kill
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       try {
         devProcess.kill('SIGKILL');
       } catch {
-        // Already dead
+        // Already dead or couldn't kill
       }
 
-      // Wait for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Wait for the process to be fully cleaned up (with timeout)
+      await Promise.race([
+        devProcess.catch(() => {}), // Wait for process to exit
+        new Promise((resolve) => setTimeout(resolve, 5000)), // Or timeout after 5s
+      ]);
 
-      // Catch any remaining errors
-      await devProcess.catch(() => {});
+      console.log('Dev process cleanup complete');
     }
   }, 720000); // 12 minute timeout for install + build + dev (CI can be slow)
 });
