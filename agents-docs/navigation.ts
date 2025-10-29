@@ -151,6 +151,13 @@ export default {
                 'talk-to-your-agents/javascript/embedded-chat',
               ],
             },
+            {
+              group: "Customization",
+              icon: "LuBrush",
+              pages: [
+                'ui-components/customization/styling',
+              ]
+            }
           ],
         },
         {
