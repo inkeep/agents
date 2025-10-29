@@ -1,0 +1,433 @@
+---
+title: Style Components
+description: Customize the appearance of Inkeep's components.
+keywords: UI styling, component customization, visual customization, theme configuration, CSS customization, design customization, UI appearance, style configuration, component theming, visual design, UI customization, component styling
+icon: "LuPalette"
+---
+
+The style configuration provides comprehensive settings for customizing the appearance of Inkeep widgets. This includes theming, typography, spacing, and component-specific styles.
+
+## Theme Configuration
+
+The theme configuration is defined through the `UserTheme` interface which extends `Partial<IkpTheme>`. This allows for deep customization of the widget's appearance.
+
+```typescript
+import { type InkeepBaseSettings } from "@inkeep/cxkit-types";
+
+const baseSettings: InkeepBaseSettings = {
+  theme: {
+    // Basic color customization
+    primaryColors: {
+      primary: "#26D6FF",
+      secondary: "#6366F1",
+    },
+
+    // Syntax highlighter themes
+    syntaxHighlighter: {
+      lightTheme: themes.github,
+      darkTheme: themes.dracula,
+    },
+
+    // Custom styles injection
+    styles: [
+      {
+        key: "google-fonts",
+        type: "link",
+        value:
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap",
+      },
+      {
+        key: "custom-theme",
+        type: "style",
+        value: `
+          .ikp-ai-chat-message {
+            border-radius: 8px;
+            padding: 12px;
+          }
+          [data-theme='dark'] .ikp-ai-chat-message {
+            background: #2D3748;
+          }
+        `,
+      },
+    ],
+
+    // CSS variables container class name
+    varsClassName: "ikp-variables",
+
+    // Disable loading the default font for the widgets
+    disableLoadingDefaultFont: true,
+  },
+};
+```
+
+### Theme Properties
+
+#### Primary Colors
+
+The `primaryColors` property allows you to define the color variations used throughout the widget. It accepts the following color options:
+
+```typescript
+primaryColors: {
+  textBold?: string         // Bold text color
+  textSubtle?: string       // Subtle text color
+  lighter?: string          // Lightest shade
+  light?: string           // Light shade
+  lightSubtle?: string     // Subtle light shade
+  medium?: string          // Medium shade
+  mediumSubtle?: string    // Subtle medium shade
+  strong?: string          // Strong shade
+  stronger?: string        // Stronger shade
+  textColorOnPrimary?: string     // Text color on primary background
+}
+```
+
+All colors should be provided as valid CSS color values (hex, rgb, hsl, etc). Each property is optional, allowing you to customize only the specific color variations you need.
+
+#### Syntax Highlighter Theme
+
+The `syntaxHighlighter` property lets you configure different themes for code blocks in light and dark modes.
+
+By default, the Prism syntax highlighting theme we use is [oneLight](https://github.com/FormidableLabs/prism-react-renderer/blob/master/packages/prism-react-renderer/src/themes/oneLight.ts) in light mode and [vsDark](https://github.com/FormidableLabs/prism-react-renderer/blob/master/packages/prism-react-renderer/src/themes/vsDark.ts) in dark mode. To use a different theme, you can provide it in the theme.syntaxHighlighter prop.
+
+```typescript
+syntaxHighlighter: {
+  lightTheme: themes.github,  // Theme for light mode
+  darkTheme: themes.dracula   // Theme for dark mode
+}
+```
+
+You can use published Prism themes or [create your own](https://github.com/PrismJS/prism-themes).
+
+#### Custom Styles
+
+The `styles` property allows injection of custom styles through two methods:
+
+1. External Resources (type: 'link'):
+
+```typescript
+{
+  key: 'google-fonts',
+  type: 'link',
+  value: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'
+}
+```
+
+2. Inline CSS (type: 'style'):
+
+```typescript
+{
+  key: 'custom-theme',
+  type: 'style',
+  value: `
+    .ikp-ai-chat-message {
+      border-radius: 8px;
+      padding: 12px;
+    }
+  `
+}
+```
+
+Each style entry requires:
+
+- `key`: A unique identifier to prevent duplicates and enable updates
+- `type`: Either 'link' for external resources or 'style' for inline CSS
+- `value`: The style content (URL for links or CSS code for styles)
+
+#### Variables Class Name
+
+The `varsClassName` property specifies the class name for the container that holds CSS variables:
+
+```typescript
+varsClassName: "ikp-variables"; // Default value
+```
+
+This class is added to a wrapper div that provides theming context.
+
+## Color Mode Configuration
+
+The color mode configuration allows you to control how the widget handles light and dark modes. This is configured through the `colorMode` property in the base settings:
+
+```typescript
+const baseSettings: InkeepBaseSettings = {
+  colorMode: {
+    // Force a specific color mode
+    forcedColorMode?: string,
+
+    // Enable system color mode detection
+    enableSystem?: boolean,
+
+    // Sync with external element
+    sync?: {
+      // Element to watch for color mode changes
+      target: HTMLElement | string,
+
+      // Attributes to monitor
+      attributes: string[],
+
+      // Function to determine dark mode
+      isDarkMode: (attributes: Record<string, string | null>) => boolean,
+
+      // Optional callback for color mode changes
+      onChange?: (colorMode: string) => void
+    }
+  }
+}
+```
+
+### Color Mode Properties
+
+#### Forced Color Mode
+
+Use `forcedColorMode` to explicitly set the color mode for the current page:
+
+```typescript
+colorMode: {
+  forcedColorMode: "dark"; // Forces dark mode
+}
+```
+
+#### System Color Mode
+
+Enable `enableSystem` to automatically switch between dark and light modes based on the user's system preferences:
+
+```typescript
+colorMode: {
+  enableSystem: true; // Follows system preference
+}
+```
+
+#### Color Mode Sync
+
+The `sync` property allows you to synchronize the widget's color mode with your application's theme:
+
+```typescript
+colorMode: {
+  sync: {
+    // Watch the document root for theme changes
+    target: document.documentElement,
+
+    // Monitor the data-theme attribute
+    attributes: ['data-theme'],
+
+    // Determine dark mode based on attribute value
+    isDarkMode: (attrs) => attrs['data-theme'] === 'dark',
+
+    // Optional: Handle color mode changes
+    onChange: (mode) => console.log(`Color mode changed to: ${mode}`)
+  }
+}
+```
+
+Common sync configurations:
+
+1. **Data Attribute Sync**:
+
+```typescript
+{
+  target: document.documentElement,
+  attributes: ['data-theme'],
+  isDarkMode: (attrs) => attrs['data-theme'] === 'dark'
+}
+```
+
+2. **Class-based Sync**:
+
+```typescript
+{
+  target: document.documentElement,
+  attributes: ['class'],
+  isDarkMode: (attrs) => attrs['class']?.includes('dark-mode')
+}
+```
+
+## Using CSS Variables
+
+Inkeep provides a set of CSS variables that you can use to customize the widget's appearance. These variables are prefixed with `--ikp-` and are available within the scope of the widget.
+
+### Basic Usage
+
+You can use Inkeep CSS variables within your stylesheets to customize elements. For example:
+
+```css
+.ikp-chat-button__button {
+  background: var(--ikp-colors-inkeep-primary-medium);
+}
+```
+
+### Dark Mode Styling
+
+To apply specific styles for dark mode, use the `[data-theme='dark']` attribute selector:
+
+```css
+[data-theme="dark"] .ikp-chat-button__button {
+  background: #353e52;
+}
+```
+
+## Customizing Icons
+
+### AI Assistant Avatar
+
+The AI assistant avatar can be customized through the `aiChatSettings` using the `aiAssistantAvatar` property:
+
+it's either a string URL or an object to specify light and dark mode avatars:
+
+```typescript
+aiAssistantAvatar: {
+  light: string;
+  dark?: string;
+}
+```
+
+### User Avatar
+
+The user avatar can be customized using the `userAvatar` property in the `aiChatSettings`.
+
+```typescript
+import { type InkeepAIChatSettings } from "@inkeep/cxkit-react";
+
+export const aiChatSettings: InkeepAIChatSettings = {
+  aiAssistantAvatar: "http://example.com/assistant-avatar.png",
+  userAvatar: "http://example.com/user-avatar.png",
+  // ...rest of aiChatSettings
+};
+```
+
+### Custom Icons
+
+You can customize various icons throughout the widget by providing a `customIcons` dictionary in the `baseSettings`. Each icon can be either a built-in icon or a custom SVG/image.
+
+#### Available Icons
+
+| Icon Name           | Description                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| search              | Search icon in search bar                                                                    |
+| thumbsUp            | Thumbs up icon                                                                               |
+| thumbsDown          | Thumbs down icon                                                                             |
+| messageCopy         | Copy message icon                                                                            |
+| codeCopy            | Copy code icon in code header                                                                |
+| openLinkInNewTab    | Used on hover in chat citations and search results (when `shouldOpenLinksInNewTab` is true)  |
+| openLinkInSameTab   | Used on hover in chat citations and search results (when `shouldOpenLinksInNewTab` is false) |
+| breadcrumbSeparator | Breadcrumb separator icon                                                                    |
+| switchToSearch      | Switch to search icon                                                                        |
+| switchToChat        | Switch to chat icon                                                                          |
+| chatSubmit          | Chat submit icon                                                                             |
+| close               | Close icon                                                                                   |
+| info                | Info icon next to the disclaimer and chat mode toggle                                        |
+| command             | Command icon in search bar                                                                   |
+
+#### Example Configuration
+
+```typescript
+import { type InkeepBaseSettings } from "@inkeep/cxkit-react";
+
+export const baseSettings: InkeepBaseSettings = {
+  customIcons: {
+    // Using a built-in icon
+    search: {
+      builtIn: "IoSearch",
+    },
+
+    // Using custom SVG/image URLs
+    thumbsUp: {
+      custom: "/path/to/thumbs-up.svg",
+    },
+    thumbsDown: {
+      custom: "/path/to/thumbs-down.svg",
+    },
+    messageCopy: {
+      custom: "/path/to/message-copy.svg",
+    },
+    codeCopy: {
+      custom: "/path/to/code-copy.svg",
+    },
+    openLinkInNewTab: {
+      custom: "path/to/open-link-in-new-tab.svg",
+    },
+    openLinkInSameTab: {
+      custom: "path/to/open-link-in-same-tab.svg",
+    },
+    breadcrumbSeparator: {
+      custom: "path/to/breadcrumb-separator.svg",
+    },
+    switchToSearch: {
+      custom: "/path/to/switch-to-search.svg",
+    },
+    switchToChat: {
+      custom: "/path/to/switch-to-chat.svg",
+    },
+    chatSubmit: {
+      custom: "/path/to/chat-submit.svg",
+    },
+    close: {
+      custom: "/path/to/close.svg",
+    },
+    info: {
+      custom: "/path/to/info.svg",
+    },
+    command: {
+      custom: "/path/to/command.svg",
+    },
+  },
+  // ...rest of baseSettings
+};
+```
+
+> If the url for a `custom` icon is a `.svg` file it will be rendered as an `<svg>`, all other file types will be rendered using an `<img>` tag.
+
+## Default Theme
+
+The default theme includes these core settings:
+
+### Typography
+
+```typescript
+fontFamily: {
+  heading: "'Space Grotesk', system-ui, sans-serif",
+  body: "'Inter', system-ui, sans-serif",
+  mono: "'Fira Code', monospace",
+},
+fontSize: {
+  '3xs': '0.45rem',
+  '2xs': '0.625rem',
+  xs: '0.75rem',
+  sm: '0.875rem',
+  md: '1rem',
+  lg: '1.125rem',
+  xl: '1.25rem',
+  '2xl': '1.5rem',
+  '3xl': '1.875rem',
+  '4xl': '2.25rem',
+  '5xl': '3rem',
+  '6xl': '3.75rem',
+  '7xl': '4.5rem',
+  '8xl': '6rem',
+  '9xl': '8rem',
+}
+```
+
+### Z-Index
+
+```typescript
+zIndex: {
+  hide: -1,
+  auto: 'auto',
+  base: 0,
+  docked: 10,
+  dropdown: 1000,
+  sticky: 1100,
+  banner: 1200,
+  overlay: 1300,
+  modal: 1400,
+  popover: 1500,
+  skipLink: 1600,
+  toast: 1700,
+  tooltip: 1800,
+}
+```
+
+## Component Class Names
+
+All component class names are prefixed with `ikp-`. Here's the complete list of available class names:
+
+<Snippet file="generated/style-classnames.mdx" />

@@ -1,5 +1,24 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.7
+
+### Patch Changes
+
+- Updated dependencies [a4cf6d8]
+  - @inkeep/agents-manage-api@0.29.7
+  - @inkeep/agents-run-api@0.29.7
+  - @inkeep/agents-core@0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+- Updated dependencies [6c52cc6]
+  - @inkeep/agents-core@0.29.6
+  - @inkeep/agents-run-api@0.29.6
+  - @inkeep/agents-manage-api@0.29.6
+
 ## 0.29.5
 
 ### Patch Changes
