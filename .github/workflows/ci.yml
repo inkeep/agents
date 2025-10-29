@@ -78,6 +78,7 @@ jobs:
         id: ci-check
         run: |
           # Run all checks in parallel using Turborepo's dependency graph
+          # This will build once and cache, then run lint, typecheck, and test in parallel
           pnpm check
         env:
           TURBO_TELEMETRY_DISABLED: 1
