@@ -33,7 +33,7 @@ runs:
 
     - name: Start Backend API Server
       shell: bash
-      run: pnpm --filter @inkeep/agents-manage-api dev &
+      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run in job background
       env:
         DB_FILE_NAME: file:../local.db
 
