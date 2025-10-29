@@ -8,7 +8,7 @@ export default defineProject({
     testTimeout: 600000, // 10 minutes for e2e tests (can be overridden per-test)
     hookTimeout: 60000, // 1 minute for setup/teardown
     env: {
-      ENVIRONMENT: 'test',
+      ENVIRONMENT: 'development',
     },
 
     // E2E tests need sequential execution to avoid filesystem/process conflicts

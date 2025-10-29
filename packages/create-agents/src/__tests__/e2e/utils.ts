@@ -1,7 +1,10 @@
 import os from 'node:os';
-import path from 'node:path';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execa } from 'execa';
 import fs from 'fs-extra';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Run the create-agents CLI with the given arguments

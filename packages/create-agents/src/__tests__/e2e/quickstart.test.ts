@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { execa } from 'execa';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  cleanupDir,
   createTempDir,
   linkLocalPackages,
   runCommand,
@@ -10,6 +11,9 @@ import {
   verifyFile,
   waitForServerReady,
 } from './utils';
+
+const manageApiUrl = 'http://localhost:3002';
+const runApiUrl = 'http://localhost:3003';
 
 describe('create-agents quickstart e2e', () => {
   let testDir: string;
@@ -21,6 +25,10 @@ describe('create-agents quickstart e2e', () => {
     // Create a temporary directory for each test
     testDir = await createTempDir();
     projectDir = path.join(testDir, workspaceName);
+  });
+
+  afterEach(async () => {
+    await cleanupDir(testDir);
   });
 
   it('should work with published packages', async () => {
@@ -50,6 +58,7 @@ describe('create-agents quickstart e2e', () => {
       '.env',
       'package.json',
       'drizzle.config.ts',
+      'local.db',
     ]);
 
     // Verify .env file has required variables
@@ -73,12 +82,28 @@ describe('create-agents quickstart e2e', () => {
 
     try {
       // Wait for servers to be ready
-      await waitForServerReady('http://localhost:3002/health', 60000);
-      await waitForServerReady('http://localhost:3003/health', 60000);
+      await waitForServerReady(`${manageApiUrl}/health`, 60000);
+      await waitForServerReady(`${runApiUrl}/health`, 60000);
+
+      const pushResult = await runCommand(
+        'pnpm',
+        [
+          'inkeep',
+          'push',
+          '--project',
+          `src/projects/${projectId}`,
+          '--config',
+          'src/inkeep.config.ts',
+        ],
+        projectDir,
+        30000
+      );
+
+      expect(pushResult.exitCode).toBe(0);
 
       // Test API requests
-      const response = await fetch(`http://localhost:3002/tenants/default/projects/${projectId}`);
-      expect(response.status).toBe(200);
+      const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
+
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
@@ -110,8 +135,8 @@ describe('create-agents quickstart e2e', () => {
 
     try {
       // Wait for servers to be ready
-      await waitForServerReady('http://localhost:3002/health', 60000);
-      await waitForServerReady('http://localhost:3003/health', 60000);
+      await waitForServerReady(`${manageApiUrl}/health`, 60000);
+      await waitForServerReady(`${runApiUrl}/health`, 60000);
 
       const pushResult = await runCommand(
         'pnpm',
@@ -130,7 +155,7 @@ describe('create-agents quickstart e2e', () => {
       expect(pushResult.exitCode).toBe(0);
 
       // Test that the project works with local packages
-      const response = await fetch(`http://localhost:3002/tenants/default/projects/${projectId}`);
+      const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
       expect(response.status).toBe(200);
     } finally {
       devProcess.kill('SIGTERM');

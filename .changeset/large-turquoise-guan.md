@@ -8,4 +8,4 @@
 "@inkeep/create-agents": patch
 ---
 
-drop core env jwt secret length requirement
+Update quickstart port check
