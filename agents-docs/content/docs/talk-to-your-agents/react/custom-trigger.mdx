@@ -44,7 +44,7 @@ pnpm add @inkeep/agents-ui
           agentUrl: "https://your-api.example.com/api/chat",
           apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
         },
-        modalSettings: {
+        openSettings: {
           isOpen: isModalOpen,
           onOpenChange: setIsModalOpen,
         },
@@ -93,7 +93,7 @@ pnpm add @inkeep/agents-ui
             "x-inkeep-agent-id": "your-agent-id",
           },
         },
-        modalSettings: {
+        openSettings: {
           isOpen: isModalOpen,
           onOpenChange: setIsModalOpen,
         },
@@ -137,9 +137,9 @@ pnpm add @inkeep/agents-ui
   name="InkeepAIChatSettings"
 />
 
-### Modal Settings
+### Open Settings
 
 <AutoTypeTable
   path="./content/docs/talk-to-your-agents/types.ts"
-  name="InkeepModalSettings"
+  name="OpenSettingsModal"
 />
