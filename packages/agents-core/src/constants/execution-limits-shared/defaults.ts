@@ -32,8 +32,11 @@ export const executionLimitsSharedDefaults = {
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR: 1.5,
 
   // Conversation History Context Window
-  // Maximum number of tokens from previous conversation messages to include in the LLM prompt.
-  // Prevents excessive token usage while maintaining relevant conversation context.
+  // CONVERSATION_HISTORY_DEFAULT_LIMIT: Default number of recent messages to retrieve from conversation history.
+  // Used when fetching conversation context for status updates and other operations.
+  CONVERSATION_HISTORY_DEFAULT_LIMIT: 50,
+  // CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: Maximum number of tokens from previous conversation messages
+  // to include in the LLM prompt. Prevents excessive token usage while maintaining relevant conversation context.
   // Messages exceeding this limit are truncated from the beginning of the conversation.
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: 4_000,
 } as const;

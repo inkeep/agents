@@ -7,7 +7,11 @@ import type {
   SummaryEvent,
   TransferData,
 } from '@inkeep/agents-core';
-import { getSubAgentById } from '@inkeep/agents-core';
+import {
+  getSubAgentById,
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+} from '@inkeep/agents-core';
 import {
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
   STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
@@ -899,8 +903,8 @@ export class AgentSession {
                 projectId: this.projectId,
                 conversationId: this.sessionId,
                 options: {
-                  limit: 10, // Get recent conversation context
-                  maxOutputTokens: 2000,
+                  limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
+                  maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
                 },
                 filters: {},
               });
