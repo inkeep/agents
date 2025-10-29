@@ -30,7 +30,7 @@ runs:
 
     - name: Start Backend API Server
       shell: bash
-      run: npx turbo dev --filter='@inkeep/agents-manage-api' & # & means run in job background
+      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run in job background
 
     - name: Build Dashboard
       shell: bash
