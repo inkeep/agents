@@ -234,7 +234,7 @@ export async function introspectGenerate(
         for (const [agentId, agentData] of Object.entries(project.agents)) {
           if (agentData.subAgents) {
             // Find the context config data for this agent using agent-based ID
-            const contextConfigData = agentData.contextConfig ? findContextConfigData(project, `${agentId}Context`) : undefined;
+            const contextConfigData = agentData.contextConfig?.id ? findContextConfigData(project, agentData.contextConfig.id) : undefined;
             
             for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
               const subAgentFile = join(paths.agentsDir, 'sub-agents', `${subAgentId}.ts`);
@@ -258,7 +258,7 @@ export async function introspectGenerate(
         const agentFile = join(paths.agentsDir, `${agentId}.ts`);
         
         // Find the context config data for this agent using agent-based ID
-        const contextConfigData = agentData.contextConfig ? findContextConfigData(project, `${agentId}Context`) : undefined;
+        const contextConfigData = agentData.contextConfig?.id ? findContextConfigData(project, agentData.contextConfig.id) : undefined;
         
         // Pass project models for comparison with agent models
         const agentContent = generateAgentFile(agentId, agentData, style, registry, contextConfigData, project.models);
@@ -310,9 +310,8 @@ function findContextConfigData(project: FullProjectDefinition, contextId: string
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.contextConfig) {
-        // Check if this contextConfig matches the agent-based ID pattern
-        const agentBasedId = `${agentId}Context`;
-        if (agentBasedId === contextId) {
+        // Check if this contextConfig matches by its actual ID
+        if (agentData.contextConfig.id === contextId) {
           return agentData.contextConfig;
         }
       }

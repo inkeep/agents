@@ -16,7 +16,7 @@ import {
   generateFileContent,
   shouldInclude
 } from '../utils/generator-utils';
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 
 /**
  * Generate Project Definition using project() builder function
@@ -89,37 +89,37 @@ export function generateProjectDefinition(
   
   // Agents array - function that returns agents
   if (shouldInclude(projectData.agents)) {
-    const agentsArray = registry ? registry.formatReferencesForCode(projectData.agents, style, 2) : '[]';
+    const agentsArray = registry ? registry.formatReferencesForCode(projectData.agents, 'agent', style, 2) : '[]';
     lines.push(`${indentation}agents: () => ${agentsArray},`);
   }
   
   // Tools array - project-level tools (MCP tools)
   if (shouldInclude(projectData.tools)) {
-    const toolsArray = registry ? registry.formatReferencesForCode(projectData.tools, style, 2) : '[]';
+    const toolsArray = registry ? registry.formatReferencesForCode(projectData.tools, 'tool', style, 2) : '[]';
     lines.push(`${indentation}tools: () => ${toolsArray},`);
   }
   
   // External agents array - project-level external agents
   if (shouldInclude(projectData.externalAgents)) {
-    const externalAgentsArray = registry ? registry.formatReferencesForCode(projectData.externalAgents, style, 2) : '[]';
+    const externalAgentsArray = registry ? registry.formatReferencesForCode(projectData.externalAgents, 'externalAgent', style, 2) : '[]';
     lines.push(`${indentation}externalAgents: () => ${externalAgentsArray},`);
   }
   
   // Data components array - project-level data components
   if (shouldInclude(projectData.dataComponents)) {
-    const dataComponentsArray = registry ? registry.formatReferencesForCode(projectData.dataComponents, style, 2) : '[]';
+    const dataComponentsArray = registry ? registry.formatReferencesForCode(projectData.dataComponents, 'dataComponent', style, 2) : '[]';
     lines.push(`${indentation}dataComponents: () => ${dataComponentsArray},`);
   }
   
   // Artifact components array - project-level artifact components
   if (shouldInclude(projectData.artifactComponents)) {
-    const artifactComponentsArray = registry ? registry.formatReferencesForCode(projectData.artifactComponents, style, 2) : '[]';
+    const artifactComponentsArray = registry ? registry.formatReferencesForCode(projectData.artifactComponents, 'artifactComponent', style, 2) : '[]';
     lines.push(`${indentation}artifactComponents: () => ${artifactComponentsArray},`);
   }
   
   // Credential references array - project-level credentials
   if (shouldInclude(projectData.credentialReferences)) {
-    const credentialReferencesArray = registry ? registry.formatReferencesForCode(projectData.credentialReferences, style, 2) : '[]';
+    const credentialReferencesArray = registry ? registry.formatReferencesForCode(projectData.credentialReferences, 'credential', style, 2) : '[]';
     lines.push(`${indentation}credentialReferences: () => ${credentialReferencesArray},`);
   }
   
@@ -149,35 +149,98 @@ export function generateProjectImports(
   if (registry) {
     const currentFilePath = 'index.ts';
     
-    // Collect all component IDs being referenced
-    const referencedIds: string[] = [];
+    // Build typed component references based on project data structure  
+    const referencedComponents: Array<{id: string, type: ComponentType}> = [];
     
-    // Extract IDs from all reference arrays
-    const referenceArrays = [
-      projectData.agents,
-      projectData.tools,
-      projectData.externalAgents,
-      projectData.dataComponents,
-      projectData.artifactComponents,
-      projectData.credentialReferences
-    ];
+    // agents references - handle both array and object formats
+    if (projectData.agents) {
+      let agentIds: string[] = [];
+      if (Array.isArray(projectData.agents)) {
+        agentIds = projectData.agents;
+      } else if (typeof projectData.agents === 'object') {
+        agentIds = Object.keys(projectData.agents);
+      }
+      for (const agentId of agentIds) {
+        referencedComponents.push({id: agentId, type: 'agent'});
+      }
+    }
     
-    for (const refArray of referenceArrays) {
-      if (Array.isArray(refArray)) {
-        for (const ref of refArray) {
-          if (typeof ref === 'string') {
-            referencedIds.push(ref);
-          } else if (typeof ref === 'object' && ref) {
-            if (ref.id) referencedIds.push(ref.id);
-            else if (ref.type) referencedIds.push(ref.type);
-          }
+    // tools references - handle both array and object formats
+    if (projectData.tools) {
+      let toolIds: string[] = [];
+      if (Array.isArray(projectData.tools)) {
+        toolIds = projectData.tools;
+      } else if (typeof projectData.tools === 'object') {
+        toolIds = Object.keys(projectData.tools);
+      }
+      for (const toolId of toolIds) {
+        // Determine the actual component type by checking what's in the registry
+        let componentType: ComponentType = 'tool';
+        if (registry && registry.get(toolId, 'functionTool')) {
+          componentType = 'functionTool';
+        } else if (registry && registry.get(toolId, 'tool')) {
+          componentType = 'tool';
         }
+        
+        referencedComponents.push({id: toolId, type: componentType});
+      }
+    }
+    
+    // externalAgents references - handle both array and object formats
+    if (projectData.externalAgents) {
+      let extAgentIds: string[] = [];
+      if (Array.isArray(projectData.externalAgents)) {
+        extAgentIds = projectData.externalAgents;
+      } else if (typeof projectData.externalAgents === 'object') {
+        extAgentIds = Object.keys(projectData.externalAgents);
+      }
+      for (const extAgentId of extAgentIds) {
+        referencedComponents.push({id: extAgentId, type: 'externalAgent'});
+      }
+    }
+    
+    // dataComponents references - handle both array and object formats
+    if (projectData.dataComponents) {
+      let dataCompIds: string[] = [];
+      if (Array.isArray(projectData.dataComponents)) {
+        dataCompIds = projectData.dataComponents;
+      } else if (typeof projectData.dataComponents === 'object') {
+        dataCompIds = Object.keys(projectData.dataComponents);
+      }
+      for (const dataCompId of dataCompIds) {
+        referencedComponents.push({id: dataCompId, type: 'dataComponent'});
+      }
+    }
+    
+    // artifactComponents references - handle both array and object formats
+    if (projectData.artifactComponents) {
+      let artifactCompIds: string[] = [];
+      if (Array.isArray(projectData.artifactComponents)) {
+        artifactCompIds = projectData.artifactComponents;
+      } else if (typeof projectData.artifactComponents === 'object') {
+        artifactCompIds = Object.keys(projectData.artifactComponents);
+      }
+      for (const artifactCompId of artifactCompIds) {
+        referencedComponents.push({id: artifactCompId, type: 'artifactComponent'});
+      }
+    }
+    
+    // credentialReferences - handle both array and object formats
+    if (projectData.credentialReferences) {
+      let credIds: string[] = [];
+      if (Array.isArray(projectData.credentialReferences)) {
+        credIds = projectData.credentialReferences;
+      } else if (typeof projectData.credentialReferences === 'object') {
+        credIds = Object.keys(projectData.credentialReferences);
+      }
+      for (const credId of credIds) {
+        referencedComponents.push({id: credId, type: 'credential'});
       }
     }
     
     // Get import statements for all referenced components
-    if (referencedIds.length > 0) {
-      const componentImports = registry.getImportsForFile(currentFilePath, referencedIds);
+    if (referencedComponents.length > 0) {
+      const componentImports = registry.getImportsForFile(currentFilePath, referencedComponents);
       imports.push(...componentImports);
     }
   }

@@ -23,6 +23,7 @@ import { generateSubAgentFile } from './components/sub-agent-generator';
 import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
 import type { ProjectComparison } from './project-comparator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
+import { findSubAgentWithParent } from './utils/component-registry';
 
 interface ComponentUpdateResult {
   componentId: string;
@@ -207,8 +208,14 @@ function generateUpdatedComponentContent(
   switch (componentType) {
     case 'agents':
       return generateAgentFile(componentId, componentData, defaultStyle, localRegistry);
-    case 'subAgents':
-      return generateSubAgentFile(componentId, componentData, defaultStyle, localRegistry);
+    case 'subAgents': {
+      // Find parent agent info for contextConfig handling
+      const parentInfo = findSubAgentWithParent(remoteProject, componentId);
+      const parentAgentId = parentInfo?.parentAgentId;
+      const contextConfigData = parentInfo?.contextConfigData;
+      
+      return generateSubAgentFile(componentId, componentData, defaultStyle, localRegistry, parentAgentId, contextConfigData);
+    }
     case 'tools':
       return generateMcpToolFile(componentId, componentData, defaultStyle, localRegistry);
     case 'functionTools':
@@ -276,6 +283,7 @@ export async function updateModifiedComponents(
       allModifiedComponents.push({ type: componentType, id: componentId });
     }
   }
+  
 
   if (allModifiedComponents.length === 0) {
     return results;
@@ -288,11 +296,18 @@ export async function updateModifiedComponents(
   >();
 
   for (const { type: componentType, id: componentId } of allModifiedComponents) {
-    const localComponent = localRegistry.get(componentId);
-    if (localComponent) {
-      const filePath = localComponent.filePath.startsWith('/')
-        ? localComponent.filePath
-        : `${projectRoot}/${localComponent.filePath}`;
+    // TEMPORARY: Try both plural and singular to understand the issue
+    const localComponent = localRegistry.get(componentId, componentType as any);
+    const singularType = componentType.slice(0, -1);
+    const localComponentSingular = localRegistry.get(componentId, singularType as any);
+    
+    
+    const actualComponent = localComponent || localComponentSingular;
+    
+    if (actualComponent) {
+      const filePath = actualComponent.filePath.startsWith('/')
+        ? actualComponent.filePath
+        : `${projectRoot}/${actualComponent.filePath}`;
 
       if (!componentsByFile.has(filePath)) {
         componentsByFile.set(filePath, []);
@@ -300,7 +315,7 @@ export async function updateModifiedComponents(
       componentsByFile.get(filePath)!.push({
         type: componentType,
         id: componentId,
-        registryInfo: localComponent,
+        registryInfo: actualComponent,
       });
     }
   }
@@ -329,32 +344,13 @@ export async function updateModifiedComponents(
 
         // Handle nested component types that don't exist as top-level collections
         if (componentType === 'contextConfigs') {
-          // ContextConfig belongs to an agent - find the agent and use its contextConfig
-          // Since we're processing components in the same file, look for agents being processed
-          const agentComponents = fileComponents.filter((comp) => comp.type === 'agents');
-          let agentId: string | undefined;
-
-          if (agentComponents.length > 0) {
-            // Use the first agent's contextConfig (typically only one agent per file)
-            agentId = agentComponents[0].id;
-            const agentData = (remoteProject.agents || {})[agentId];
-            if (agentData && agentData.contextConfig) {
+          // Find the contextConfig by its ID across all agents
+          for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
+            if (agentData.contextConfig && agentData.contextConfig.id === componentId) {
               componentData = agentData.contextConfig;
               // Store agent ID for generator
               componentData._agentId = agentId;
-            }
-          }
-
-          // Fallback: if no agent found in same file, use any contextConfig (for single-contextConfig projects)
-          if (!componentData) {
-            for (const [foundAgentId, agentData] of Object.entries(remoteProject.agents || {})) {
-              const contextConfig = (agentData as any).contextConfig;
-              if (contextConfig) {
-                componentData = contextConfig;
-                // Store agent ID for generator
-                componentData._agentId = foundAgentId;
-                break;
-              }
+              break;
             }
           }
         } else if (componentType === 'fetchDefinitions') {

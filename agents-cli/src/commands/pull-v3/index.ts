@@ -20,6 +20,7 @@ import { loadConfig } from '../../utils/config';
 import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
+import { extractSubAgents } from './utils/component-registry';
 
 export interface PullV3Options {
   project?: string;
@@ -114,6 +115,80 @@ function createProjectStructure(
   });
 
   return paths;
+}
+
+/**
+ * Enrich canDelegateTo references with component type information
+ */
+export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, debug: boolean = false): void {
+  if (debug) {
+    console.log(chalk.gray('🔧 Enriching canDelegateTo with type information...'));
+  }
+
+  // Get all available component IDs by type
+  const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
+  const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
+  const externalAgentIds = new Set(project.externalAgents ? Object.keys(project.externalAgents) : []);
+
+  if (debug) {
+    console.log(chalk.gray(`   Available agents: ${Array.from(agentIds).join(', ') || 'none'}`));
+    console.log(chalk.gray(`   Available subAgents: ${Array.from(subAgentIds).join(', ') || 'none'}`));
+    console.log(chalk.gray(`   Available externalAgents: ${Array.from(externalAgentIds).join(', ') || 'none'}`));
+  }
+
+  // Function to enrich a canDelegateTo array
+  const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
+    if (!Array.isArray(canDelegateTo)) return;
+
+    for (let i = 0; i < canDelegateTo.length; i++) {
+      const item = canDelegateTo[i];
+      
+      // Skip if it's already an object (already has type info)
+      if (typeof item !== 'string') continue;
+
+      const id = item as string;
+      let enrichedItem: any = null;
+
+      // Determine component type based on which collection contains this ID
+      if (agentIds.has(id)) {
+        enrichedItem = { agentId: id };
+      } else if (subAgentIds.has(id)) {
+        enrichedItem = { subAgentId: id };
+      } else if (externalAgentIds.has(id)) {
+        enrichedItem = { externalAgentId: id };
+      } else {
+        if (debug) {
+          console.log(chalk.yellow(`   Warning: canDelegateTo reference "${id}" in ${context} not found in any component collection`));
+        }
+        continue; // Leave as string if we can't determine the type
+      }
+
+      if (debug && enrichedItem) {
+        console.log(chalk.gray(`   Enriched "${id}" in ${context} -> ${JSON.stringify(enrichedItem)}`));
+      }
+
+      // Replace the string with the enriched object
+      canDelegateTo[i] = enrichedItem;
+    }
+  };
+
+  // Process all agents
+  if (project.agents) {
+    for (const [agentId, agentData] of Object.entries(project.agents)) {
+      if (agentData.canDelegateTo) {
+        enrichCanDelegateToArray(agentData.canDelegateTo, `agent:${agentId}`);
+      }
+
+      // Process subAgents within agents
+      if (agentData.subAgents) {
+        for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+          if (subAgentData.canDelegateTo) {
+            enrichCanDelegateToArray(subAgentData.canDelegateTo, `subAgent:${subAgentId}`);
+          }
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -308,6 +383,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       }
     }
     
+    // Enrich canDelegateTo references with component type information
+    enrichCanDelegateToWithTypes(remoteProject, options.debug);
+    
     s.message('Project data fetched');
 
     if (options.json) {
@@ -355,10 +433,12 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
     s.message('Component registry built');
+    
 
     // Step 7: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
     const comparison = await compareProjects(localProject, remoteProject, localRegistry, options.debug);
+    
     
     if (!comparison.hasChanges && !options.force) {
       s.stop();
@@ -414,6 +494,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 10: Apply modified components to temp directory
     const modifiedCount = Object.values(comparison.componentChanges)
       .reduce((sum, changes) => sum + changes.modified.length, 0);
+    
     
     if (modifiedCount > 0) {
       s.start('Applying modified components to temp directory...');

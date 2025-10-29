@@ -163,7 +163,16 @@ export function generateContextConfigDefinition(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
   
-  const contextVarName = agentId ? `${toCamelCase(agentId)}Context` : (registry?.getVariableName(contextId) || toCamelCase(contextId));
+  const contextVarName = (() => {
+    if (!registry) {
+      throw new Error('Registry is required for context config variable name generation');
+    }
+    const varName = registry.getVariableName(contextId, 'contextConfig');
+    if (!varName) {
+      throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
+    }
+    return varName;
+  })();
   const lines: string[] = [];
   
   lines.push(`const ${contextVarName} = contextConfig({`);
@@ -296,7 +305,16 @@ export function generateContextConfigFile(
   definitions.push(contextDefinition);
   
   // Export the main context config, headersSchema, and any fetch definitions
-  const contextVarName = agentId ? `${toCamelCase(agentId)}Context` : (registry?.getVariableName(contextId) || toCamelCase(contextId));
+  const contextVarName = (() => {
+    if (!registry) {
+      throw new Error('Registry is required for context config variable name generation');
+    }
+    const varName = registry.getVariableName(contextId, 'contextConfig');
+    if (!varName) {
+      throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
+    }
+    return varName;
+  })();
   const exports: string[] = [contextVarName];
   
   if (contextData.headersSchema) {

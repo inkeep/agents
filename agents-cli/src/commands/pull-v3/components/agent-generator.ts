@@ -5,7 +5,7 @@
  * Top-level agents are the main entry points that handle statusUpdates with statusComponents
  */
 
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
   DEFAULT_STYLE,
@@ -70,7 +70,7 @@ function formatStatusUpdates(
     if (statusComponentIds.length > 0) {
       lines.push(`${indent}${indentation}statusComponents: [`);
       for (const statusCompId of statusComponentIds) {
-        const statusCompVar = registry?.getVariableName(statusCompId);
+        const statusCompVar = registry?.getVariableName(statusCompId, 'statusComponent');
         lines.push(`${indent}${indentation}${indentation}${statusCompVar || 'undefined'}.config,`);
       }
       lines.push(`${indent}${indentation}],`);
@@ -79,19 +79,22 @@ function formatStatusUpdates(
 
   // prompt - for status updates, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (statusUpdatesConfig.prompt) {
-    const contextConfigId = `${agentId}Context`;
-    const contextVarName = registry?.getVariableName(contextConfigId);
-    
     if (
       hasTemplateVariables(statusUpdatesConfig.prompt) &&
       contextConfigData &&
       agentId &&
-      registry &&
-      contextVarName
+      registry
     ) {
+      const contextConfigId = contextConfigData.id;
+      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
+      
+      if (!contextVarName) {
+        throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
+      }
+      
       const headersVarName = 'headersSchema';
       lines.push(
-        `${indent}${indentation}prompt: ${formatPromptWithContext(statusUpdatesConfig.prompt, contextVarName, headersVarName, contextConfigData || {}, q, true)},`
+        `${indent}${indentation}prompt: ${formatPromptWithContext(statusUpdatesConfig.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
       );
     } else {
       lines.push(
@@ -182,7 +185,16 @@ export function generateAgentDefinition(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
 
-  const agentVarName = toCamelCase(agentId);
+  let agentVarName = toCamelCase(agentId);
+  
+  // Use registry to get collision-safe variable name if available
+  if (registry) {
+    const registryVarName = registry.getVariableName(agentId, 'agent');
+    if (registryVarName) {
+      agentVarName = registryVarName;
+    }
+  }
+  
   const lines: string[] = [];
 
   lines.push(`export const ${agentVarName} = agent({`);
@@ -202,10 +214,14 @@ export function generateAgentDefinition(
 
   // Prompt - main agent prompt, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
-    const contextConfigId = `${agentId}Context`;
-    const contextVarName = registry?.getVariableName(contextConfigId);
-    
-    if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry && contextVarName) {
+    if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry) {
+      const contextConfigId = contextConfigData.id;
+      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
+      
+      if (!contextVarName) {
+        throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
+      }
+      
       const headersVarName = 'headersSchema';
       lines.push(
         `${indentation}prompt: ${formatPromptWithContext(agentData.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -256,8 +272,17 @@ export function generateAgentDefinition(
   }
 
   // defaultSubAgent - reference to the default sub-agent
-  if (agentData.defaultSubAgentId && registry) {
-    const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId);
+  if (agentData.defaultSubAgentId) {
+    if (!registry) {
+      throw new Error('Registry is required for defaultSubAgent generation');
+    }
+    
+    const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId, 'subAgent');
+    
+    if (!defaultSubAgentVar) {
+      throw new Error(`Failed to resolve variable name for default sub-agent: ${agentData.defaultSubAgentId}`);
+    }
+    
     lines.push(`${indentation}defaultSubAgent: ${defaultSubAgentVar},`);
   }
 
@@ -265,12 +290,20 @@ export function generateAgentDefinition(
   if (
     agentData.subAgents &&
     typeof agentData.subAgents === 'object' &&
-    Object.keys(agentData.subAgents).length > 0 &&
-    registry
+    Object.keys(agentData.subAgents).length > 0
   ) {
+    if (!registry) {
+      throw new Error('Registry is required for subAgents generation');
+    }
+    
     // subAgents is an object with IDs as keys, extract the keys
     const subAgentIds = Object.keys(agentData.subAgents);
-    const subAgentsArray = registry.formatReferencesForCode(subAgentIds, style, 2);
+    const subAgentsArray = registry.formatReferencesForCode(subAgentIds, 'subAgent', style, 2);
+    
+    if (!subAgentsArray) {
+      throw new Error(`Failed to resolve variable names for sub-agents: ${subAgentIds.join(', ')}`);
+    }
+    
     lines.push(`${indentation}subAgents: () => ${subAgentsArray},`);
   }
 
@@ -347,13 +380,13 @@ export function generateAgentImports(
   if (registry) {
     const currentFilePath = `agents/${agentId}.ts`;
 
-    // Collect all component IDs being referenced
-    const referencedIds: string[] = [];
+    // Collect all component references with their types
+    const referencedComponents: Array<{id: string, type: ComponentType}> = [];
 
     // Sub-agent references (subAgents is an object with IDs as keys)
     if (agentData.subAgents && typeof agentData.subAgents === 'object') {
       const subAgentIds = Object.keys(agentData.subAgents);
-      referencedIds.push(...subAgentIds);
+      referencedComponents.push(...subAgentIds.map(id => ({id, type: 'subAgent' as ComponentType})));
     }
 
     // Status component references
@@ -364,28 +397,28 @@ export function generateAgentImports(
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
         if (typeof comp === 'string') {
-          referencedIds.push(comp);
+          referencedComponents.push({id: comp, type: 'statusComponent'});
         } else if (typeof comp === 'object' && comp) {
           const statusId = comp.id || comp.type || comp.name;
-          if (statusId) referencedIds.push(statusId);
+          if (statusId) referencedComponents.push({id: statusId, type: 'statusComponent'});
         }
       }
     }
 
     // Context config reference
     if (agentData.contextConfig) {
-      // Always use agent-based contextConfig ID pattern
-      const contextConfigId = `${agentId}Context`;
-      referencedIds.push(contextConfigId);
+      // Use actual contextConfig.id
+      const contextConfigId = agentData.contextConfig.id;
+      referencedComponents.push({id: contextConfigId, type: 'contextConfig'});
     }
 
     // Default sub-agent reference
     if (agentData.defaultSubAgentId) {
-      referencedIds.push(agentData.defaultSubAgentId);
+      referencedComponents.push({id: agentData.defaultSubAgentId, type: 'subAgent'});
     }
 
     // Get import statements for all referenced components
-    const componentImports = registry.getImportsForFile(currentFilePath, referencedIds);
+    const componentImports = registry.getImportsForFile(currentFilePath, referencedComponents);
     imports.push(...componentImports);
   }
 

@@ -94,7 +94,7 @@ export function generateMcpToolDefinition(
   // Optional credential reference - extract from credentialReferenceId
   const credentialId = toolData.credentialReferenceId;
   if (credentialId && registry) {
-    const validKey = registry.getVariableName(credentialId);
+    const validKey = registry.getVariableName(credentialId, 'credential');
     lines.push(`${indentation}credential: envSettings.getEnvironmentSetting(${formatString(validKey, q)}),`);
   }
   

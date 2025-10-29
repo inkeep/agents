@@ -127,15 +127,24 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       }
     }
     
-    // Process 'name' pattern (mainly for functionTools)
+    // Process 'name' pattern (only for functionTools)
     while ((match = exportedNamePattern.exec(content)) !== null) {
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
       
       const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType) {
+      // Only use 'name' field for functionTool components
+      if (componentType && componentType === 'functionTool') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
+        
+        // DEBUG: Log what we're finding
+        if (debug && componentId === 'calculate-bmi') {
+          console.log(`📋 DEBUG: Found functionTool in ${filePath}`);
+          console.log(`  - variableName: ${variableName}`);
+          console.log(`  - componentId: ${componentId}`);
+          console.log(`  - functionName: ${functionName}`);
+        }
         
         components.push({
           id: componentId,
@@ -190,14 +199,15 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       }
     }
     
-    // Process separate declaration patterns with 'name' field
+    // Process separate declaration patterns with 'name' field (only for functionTools)
     while ((match = declaredNamePattern.exec(content)) !== null) {
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
       
       const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && exportedVariables.has(variableName)) {
+      // Only use 'name' field for functionTool components
+      if (componentType && componentType === 'functionTool' && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -259,7 +269,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const componentId = match[3];
       
       const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && !exportedVariables.has(variableName)) {
+      // Only use 'name' field for functionTool components
+      if (componentType && componentType === 'functionTool' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -297,44 +308,27 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
         });
       }
       
-      // Also look for 'name' field for function tools (handle multi-line)
-      const inlineNamePattern = new RegExp(`(?<!(?:export\\s+)?const\\s+\\w+\\s*=\\s*)\\b${funcName}\\s*\\(\\s*\\{[^}]*?name:\\s*['"\`]([^'"\`]+)['"\`]`, 'gs');
-      
-      while ((inlineMatch = inlineNamePattern.exec(content)) !== null) {
-        const componentId = inlineMatch[1];
-        const componentType = COMPONENT_TYPE_MAP[funcName];
-        const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
+      // Also look for 'name' field for function tools only (handle multi-line)
+      if (funcName === 'functionTool') {
+        const inlineNamePattern = new RegExp(`(?<!(?:export\\s+)?const\\s+\\w+\\s*=\\s*)\\b${funcName}\\s*\\(\\s*\\{[^}]*?name:\\s*['"\`]([^'"\`]+)['"\`]`, 'gs');
         
-        components.push({
-          id: componentId,
-          type: componentType,
-          filePath: relativePath,
-          variableName: undefined, // No variable name for inline
-          startLine: lineNumber,
-          isInline: true
-        });
+        while ((inlineMatch = inlineNamePattern.exec(content)) !== null) {
+          const componentId = inlineMatch[1];
+          const componentType = COMPONENT_TYPE_MAP[funcName];
+          const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
+          
+          components.push({
+            id: componentId,
+            type: componentType,
+            filePath: relativePath,
+            variableName: undefined, // No variable name for inline
+            startLine: lineNumber,
+            isInline: true
+          });
+        }
       }
     }
 
-    // Special case: contextConfig doesn't have id field, but we need to track it for agent generation
-    const contextConfigPattern = /(?:^|\n)\s*const\s+(\w+)\s*=\s*contextConfig\s*\(/g;
-    let contextMatch;
-    while ((contextMatch = contextConfigPattern.exec(content)) !== null) {
-      const variableName = contextMatch[1];
-      const lineNumber = content.substring(0, contextMatch.index).split('\n').length;
-      
-      // Use variable name as component ID for now, we'll map it to agent later
-      const componentId = variableName;
-      
-      components.push({
-        id: componentId,
-        type: 'contextConfig',
-        filePath: relativePath,
-        variableName,
-        startLine: lineNumber,
-        isInline: !exportedVariables.has(variableName)
-      });
-    }
 
   } catch (error) {
     console.warn(`Failed to parse file ${filePath}: ${error}`);
@@ -418,18 +412,32 @@ export function buildComponentRegistryFromParsing(
     byType: {} as Record<string, number>
   };
   
-  const registeredIds = new Set<string>();
+  const registeredTypeIds = new Set<string>(); // Use type:id instead of just id
   
   for (const component of allComponents) {
+    const typeId = `${component.type}:${component.id}`;
+    
     // Skip if already registered (prevents duplicates from multiple pattern matches)
-    if (registeredIds.has(component.id)) {
+    if (registeredTypeIds.has(typeId)) {
       continue;
     }
     
-    registeredIds.add(component.id);
+    
+    registeredTypeIds.add(typeId);
     
     if (component.variableName) {
       // Component has an actual variable name (declared with const/export const), use it
+      
+      // DEBUG: Log registration for calculate-bmi
+      if (debug && component.id === 'calculate-bmi') {
+        console.log(`📋 DEBUG: Registering found component:`);
+        console.log(`  - id: ${component.id}`);
+        console.log(`  - type: ${component.type}`);
+        console.log(`  - variableName: ${component.variableName}`);
+        console.log(`  - filePath: ${component.filePath}`);
+        console.log(`  - isInline: ${component.isInline}`);
+      }
+      
       registry.register(
         component.id,
         component.type,

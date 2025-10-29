@@ -14,7 +14,7 @@ import {
   generateImport,
   generateFileContent
 } from '../utils/generator-utils';
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 
 /**
  * Generate External Agent Definition using externalAgent() builder function
@@ -29,7 +29,16 @@ export function generateExternalAgentDefinition(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
   
-  const agentVarName = toCamelCase(agentId);
+  let agentVarName = toCamelCase(agentId);
+  
+  // Use registry to get collision-safe variable name if available
+  if (registry) {
+    const registryVarName = registry.getVariableName(agentId, 'externalAgent');
+    if (registryVarName) {
+      agentVarName = registryVarName;
+    }
+  }
+  
   const lines: string[] = [];
   
   lines.push(`export const ${agentVarName} = externalAgent({`);
@@ -58,9 +67,18 @@ export function generateExternalAgentDefinition(
   
   // Optional credential reference
   if (agentData.credentialReference) {
-    if (typeof agentData.credentialReference === 'string' && registry) {
+    if (typeof agentData.credentialReference === 'string') {
+      if (!registry) {
+        throw new Error('Registry is required for credentialReference generation');
+      }
+      
       // Reference to a credential variable - use registry
-      const credentialVar = registry.getVariableName(agentData.credentialReference);
+      const credentialVar = registry.getVariableName(agentData.credentialReference, 'credential');
+      
+      if (!credentialVar) {
+        throw new Error(`Failed to resolve variable name for credential reference: ${agentData.credentialReference}`);
+      }
+      
       lines.push(`${indentation}credentialReference: ${credentialVar},`);
     } else if (typeof agentData.credentialReference === 'object') {
       // Inline credential reference object
@@ -108,9 +126,13 @@ export function generateExternalAgentImports(
   imports.push(generateImport(['externalAgent'], '@inkeep/agents-sdk', style));
   
   // Generate imports for referenced components if registry is available
-  if (registry && agentData.credentialReference && typeof agentData.credentialReference === 'string') {
+  if (agentData.credentialReference && typeof agentData.credentialReference === 'string') {
+    if (!registry) {
+      throw new Error('Registry is required for credential reference imports');
+    }
+    
     const currentFilePath = `external-agents/${agentId}.ts`;
-    const credentialRefs = [agentData.credentialReference];
+    const credentialRefs = [{id: agentData.credentialReference, type: 'credential' as ComponentType}];
     
     // Get import statements for referenced credentials
     const componentImports = registry.getImportsForFile(currentFilePath, credentialRefs);

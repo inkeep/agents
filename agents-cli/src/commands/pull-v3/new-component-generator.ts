@@ -20,6 +20,7 @@ import { generateStatusComponentFile } from './components/status-component-gener
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import type { ProjectComparison } from './project-comparator';
 import type { ComponentRegistry, ComponentType } from './utils/component-registry';
+import { findSubAgentWithParent } from './utils/component-registry';
 import { toCamelCase } from './utils/generator-utils';
 
 interface ProjectPaths {
@@ -123,11 +124,21 @@ function generateComponentContent(
     semicolons: true,
   };
 
+
   switch (componentType) {
     case 'agents':
       return generateAgentFile(componentId, componentData, defaultStyle, componentRegistry);
-    case 'subAgents':
-      return generateSubAgentFile(componentId, componentData, defaultStyle, componentRegistry);
+    case 'subAgents': {
+      // Extract parent info for contextConfig handling
+      const parentAgentId = componentData._parentAgentId;
+      const contextConfigData = componentData._contextConfigData;
+      // Remove temporary fields
+      const cleanComponentData = { ...componentData };
+      delete cleanComponentData._parentAgentId;
+      delete cleanComponentData._contextConfigData;
+      
+      return generateSubAgentFile(componentId, cleanComponentData, defaultStyle, componentRegistry, parentAgentId, contextConfigData);
+    }
     case 'tools':
       return generateMcpToolFile(componentId, componentData, defaultStyle, componentRegistry);
     case 'dataComponents':
@@ -225,7 +236,7 @@ export async function createNewComponents(
 
     for (const componentId of addedComponents) {
       // Check if component already exists locally
-      const existsLocally = localRegistry.get(componentId);
+      const existsLocally = localRegistry.get(componentId, componentType as any);
       if (existsLocally) continue;
 
       // Register the component with its expected file path and variable name  
@@ -306,8 +317,16 @@ export async function createNewComponents(
             componentData = functionToolData;
           }
         } else if (componentType === 'subAgents') {
-          // Sub-agents are nested within agents
-          componentData = findSubAgentData(remoteProject, componentId);
+          // Sub-agents are nested within agents - get with parent info for contextConfig
+          const subAgentInfo = findSubAgentWithParent(remoteProject, componentId);
+          if (subAgentInfo) {
+            componentData = subAgentInfo.subAgentData;
+            // Store parent info for generator
+            componentData._parentAgentId = subAgentInfo.parentAgentId;
+            componentData._contextConfigData = subAgentInfo.contextConfigData;
+          } else {
+            componentData = null;
+          }
         } else if (componentType === 'environments') {
           // Environments are generated programmatically based on environment name
           componentData = {
@@ -358,7 +377,7 @@ export async function createNewComponents(
         writeFileSync(filePath, content, 'utf8');
 
         // Get the variable name that was already registered
-        const registryEntry = localRegistry.get(componentId);
+        const registryEntry = localRegistry.get(componentId, componentType as any);
         const variableName = registryEntry?.name || generateVariableName(componentId);
 
         results.push({
@@ -458,12 +477,7 @@ function findContextConfigData(project: FullProjectDefinition, contextId: string
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.contextConfig) {
-        // Check if this contextConfig matches the agent-based ID pattern
-        const agentBasedId = `${agentId}Context`;
-        if (agentBasedId === contextId) {
-          return { contextConfig: agentData.contextConfig, agentId };
-        }
-        // Also check for direct ID match
+        // Check if this contextConfig matches by its actual ID
         if (agentData.contextConfig.id === contextId) {
           return { contextConfig: agentData.contextConfig, agentId };
         }
@@ -486,3 +500,4 @@ function findSubAgentData(project: FullProjectDefinition, subAgentId: string): a
   }
   return undefined;
 }
+

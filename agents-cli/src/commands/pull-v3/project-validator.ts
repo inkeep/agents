@@ -10,6 +10,7 @@ import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
+import { enrichCanDelegateToWithTypes } from './index';
 
 /**
  * Compile TypeScript project in a directory
@@ -166,6 +167,9 @@ async function validateProjectEquivalence(
       }),
     ]);
     
+    // Apply the same canDelegateTo enrichment to temp project for fair comparison
+    enrichCanDelegateToWithTypes(tempProjectDefinition, false);
+    
     // Use existing project comparator instead of custom logic
     console.log(chalk.cyan(`   📊 Project Structure Comparison:`));
     
@@ -184,7 +188,8 @@ async function validateProjectEquivalence(
     } else {
       console.log(chalk.yellow(`      🔄 Found differences:`));
       
-      // Show component changes summary
+      
+      // Show component changes summary with detailed differences
       for (const [componentType, changes] of Object.entries(comparison.componentChanges)) {
         const totalChanges = changes.added.length + changes.modified.length + changes.deleted.length;
         if (totalChanges > 0) {
@@ -194,6 +199,34 @@ async function validateProjectEquivalence(
           }
           if (changes.modified.length > 0) {
             console.log(chalk.yellow(`           📝 Modified: ${changes.modified.join(', ')}`));
+            
+            // Show specific differences for modified components
+            for (const modifiedId of changes.modified) {
+              if (comparison.rawDifferences && comparison.rawDifferences.length > 0) {
+                const componentChanges = comparison.rawDifferences.filter(diff => 
+                  diff.path.includes(`${componentType}.${modifiedId}.`) || 
+                  diff.path.includes(`${componentType}[${modifiedId}]`) ||
+                  diff.path === `${componentType}.${modifiedId}`
+                );
+                
+                if (componentChanges.length > 0) {
+                  console.log(chalk.gray(`              ${modifiedId} differences:`));
+                  for (const diff of componentChanges.slice(0, 5)) { // Show max 5 differences per component
+                    console.log(chalk.gray(`                • Path: ${diff.path}`));
+                    console.log(chalk.gray(`                  Type: ${diff.type}`));
+                    if (diff.left !== undefined) {
+                      console.log(chalk.red(`                  - Remote: ${JSON.stringify(diff.left)}`));
+                    }
+                    if (diff.right !== undefined) {
+                      console.log(chalk.green(`                  + Generated: ${JSON.stringify(diff.right)}`));
+                    }
+                  }
+                  if (componentChanges.length > 5) {
+                    console.log(chalk.gray(`                ... and ${componentChanges.length - 5} more differences`));
+                  }
+                }
+              }
+            }
           }
           if (changes.deleted.length > 0) {
             console.log(chalk.red(`           ➖ Deleted: ${changes.deleted.join(', ')}`));

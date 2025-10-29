@@ -36,6 +36,7 @@ export interface ComponentInfo {
 
 export class ComponentRegistry {
   private components = new Map<string, ComponentInfo>();
+  private componentsByTypeAndId = new Map<string, ComponentInfo>(); // Type-aware lookup
   private usedNames = new Set<string>(); // Global name registry for uniqueness
 
   /**
@@ -48,15 +49,26 @@ export class ComponentRegistry {
     exportName?: string,
     isInline: boolean = false
   ): ComponentInfo {
+    const typeKey = `${type}:${id}`;
+    
+    
+    // Check if this component already exists - if so, return the existing one
+    const existing = this.componentsByTypeAndId.get(typeKey);
+    if (existing) {
+      return existing;
+    }
+    
     let name: string;
     let actualExportName: string;
     
+    // If exportName is provided (real discovered name), use it directly
+    // Otherwise, generate and ensure uniqueness for assumed names
     if (exportName) {
-      // If we have an actual variable name (exported or declared), use it directly
+      // Real export name discovered from file - use it as-is
       name = exportName;
       actualExportName = exportName;
     } else {
-      // For truly inline components (no variable name), generate a unique name from ID
+      // No real export name - generate unique name with prefixes if needed
       const baseName = this.toCamelCase(id);
       const uniqueName = this.ensureUniqueName(baseName, type);
       name = uniqueName;
@@ -73,7 +85,10 @@ export class ComponentRegistry {
       isInline
     };
     
+    // Store with both ID-only key (for backward compatibility) and type+ID key (for collision handling)
     this.components.set(id, info);
+    this.componentsByTypeAndId.set(typeKey, info);
+    
     this.usedNames.add(name);
     if (actualExportName && actualExportName !== name) {
       this.usedNames.add(actualExportName);
@@ -83,35 +98,54 @@ export class ComponentRegistry {
   }
 
   /**
-   * Get component info by ID
+   * Get component info by ID and type
    */
-  get(id: string): ComponentInfo | undefined {
-    return this.components.get(id);
+  get(id: string, type: ComponentType): ComponentInfo | undefined {
+    const typeKey = `${type}:${id}`;
+    return this.componentsByTypeAndId.get(typeKey);
   }
 
   /**
-   * Get unique variable name for a component
+   * Get component info by variable name (since variable names are globally unique)
    */
-  getVariableName(id: string): string | undefined {
-    return this.components.get(id)?.name;
+  getByVariableName(variableName: string): ComponentInfo | undefined {
+    for (const component of this.componentsByTypeAndId.values()) {
+      if (component.name === variableName) {
+        return component;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get unique variable name for a component by ID and type
+   */
+  getVariableName(id: string, type: ComponentType): string | undefined {
+    const typeKey = `${type}:${id}`;
+    const result = this.componentsByTypeAndId.get(typeKey)?.name;
+    
+    
+    return result;
   }
 
   /**
    * Get import statement for a component
    */
-  getImportStatement(fromFilePath: string, componentId: string): string | undefined {
-    const component = this.get(componentId);
+  getImportStatement(fromFilePath: string, componentId: string, componentType: ComponentType): string | undefined {
+    const component = this.get(componentId, componentType);
     if (!component) return undefined;
 
     const relativePath = this.calculateRelativeImport(fromFilePath, component.filePath);
-    return `import { ${component.exportName} } from '${relativePath}';`;
+    const importStmt = `import { ${component.exportName} } from '${relativePath}';`;
+    return importStmt;
   }
 
   /**
    * Format an array of references for code generation
    */
   formatReferencesForCode(
-    references: any[], 
+    references: any[],
+    componentType: ComponentType,
     style: { quotes: 'single' | 'double'; indentation: string }, 
     indentLevel: number
   ): string {
@@ -119,8 +153,21 @@ export class ComponentRegistry {
       return '[]';
     }
 
-    const variableNames = this.extractVariableNames(references);
+    const variableNames: string[] = [];
     
+    for (const ref of references) {
+      const id = this.extractIdFromReference(ref);
+      if (id) {
+        const component = this.get(id, componentType);
+        if (component) {
+          variableNames.push(component.name);
+        } else {
+          console.warn(`ComponentRegistry: Component not found: ${id} (type: ${componentType})`);
+          variableNames.push(this.toCamelCase(id));
+        }
+      }
+    }
+
     if (variableNames.length === 0) {
       return '[]';
     }
@@ -146,12 +193,12 @@ export class ComponentRegistry {
   /**
    * Get all import statements needed for a file
    */
-  getImportsForFile(fromFilePath: string, referencedIds: string[]): string[] {
+  getImportsForFile(fromFilePath: string, referencedComponents: Array<{id: string, type: ComponentType}>): string[] {
     const imports: string[] = [];
     const seenImports = new Set<string>(); // Deduplicate imports
     
-    for (const id of referencedIds) {
-      const importStatement = this.getImportStatement(fromFilePath, id);
+    for (const {id, type} of referencedComponents) {
+      const importStatement = this.getImportStatement(fromFilePath, id, type);
       if (importStatement && !seenImports.has(importStatement)) {
         imports.push(importStatement);
         seenImports.add(importStatement);
@@ -161,28 +208,6 @@ export class ComponentRegistry {
     return imports;
   }
 
-  /**
-   * Extract component IDs from references and get their variable names
-   */
-  private extractVariableNames(references: any[]): string[] {
-    const variableNames: string[] = [];
-    
-    for (const ref of references) {
-      const id = this.extractIdFromReference(ref);
-      if (id) {
-        const component = this.get(id);
-        if (component) {
-          variableNames.push(component.name);
-        } else {
-          // Fallback to camelCase if not found in registry
-          console.warn(`ComponentRegistry: Component not found: ${id}`);
-          variableNames.push(this.toCamelCase(id));
-        }
-      }
-    }
-    
-    return variableNames;
-  }
 
   /**
    * Get all component IDs referenced in arrays for import generation
@@ -371,10 +396,23 @@ export function registerAllComponents(
     }
   }
 
-  // Register function tools
+  // Register function tools - prevent double registration
+  const processedFunctionIds = new Set<string>();
+  
+  // Register functions first (they take priority)
   if (project.functions) {
     for (const funcId of Object.keys(project.functions)) {
       registry.register(funcId, 'functionTool', `tools/functions/${funcId}.ts`);
+      processedFunctionIds.add(funcId);
+    }
+  }
+
+  // Register functionTools (only if not already registered)
+  if (project.functionTools) {
+    for (const funcToolId of Object.keys(project.functionTools)) {
+      if (!processedFunctionIds.has(funcToolId)) {
+        registry.register(funcToolId, 'functionTool', `tools/functions/${funcToolId}.ts`);
+      }
     }
   }
 
@@ -470,7 +508,7 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
 /**
  * Extract sub-agents from project agents
  */
-function extractSubAgents(project: FullProjectDefinition): Record<string, any> {
+export function extractSubAgents(project: FullProjectDefinition): Record<string, any> {
   const subAgents: Record<string, any> = {};
   
   if (project.agents) {
@@ -495,12 +533,37 @@ function extractContextConfigs(project: FullProjectDefinition): Record<string, a
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.contextConfig) {
-        // Always use agent-based key for consistent registry lookup
-        const contextConfigKey = `${agentId}Context`;
-        contextConfigs[contextConfigKey] = agentData.contextConfig;
+        // Use the actual contextConfig.id (now required)
+        const contextConfigId = agentData.contextConfig.id;
+        if (contextConfigId) {
+          contextConfigs[contextConfigId] = agentData.contextConfig;
+        } else {
+          console.warn(`contextConfig for agent ${agentId} is missing required 'id' field`);
+        }
       }
     }
   }
   
   return contextConfigs;
+}
+
+/**
+ * Find sub-agent data with parent agent info for contextConfig resolution
+ */
+export function findSubAgentWithParent(project: FullProjectDefinition, subAgentId: string): {subAgentData: any, parentAgentId: string, contextConfigData?: any} | undefined {
+  if (project.agents) {
+    for (const [agentId, agentData] of Object.entries(project.agents)) {
+      if (agentData.subAgents && agentData.subAgents[subAgentId]) {
+        // Get contextConfig data if parent agent has one with an ID
+        const contextConfigData = agentData.contextConfig?.id ? agentData.contextConfig : undefined;
+        
+        return {
+          subAgentData: agentData.subAgents[subAgentId],
+          parentAgentId: agentId,
+          contextConfigData
+        };
+      }
+    }
+  }
+  return undefined;
 }

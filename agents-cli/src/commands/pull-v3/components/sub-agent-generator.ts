@@ -5,7 +5,7 @@
  * Sub-agents are the individual agents within an agent graph that handle specific tasks
  */
 
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
   DEFAULT_STYLE,
@@ -79,7 +79,16 @@ export function generateSubAgentDefinition(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
 
-  const agentVarName = toCamelCase(agentId);
+  let agentVarName = toCamelCase(agentId);
+  
+  // Use registry to get collision-safe variable name if available
+  if (registry) {
+    const registryVarName = registry.getVariableName(agentId, 'subAgent');
+    if (registryVarName) {
+      agentVarName = registryVarName;
+    }
+  }
+  
   const lines: string[] = [];
 
   lines.push(`export const ${agentVarName} = subAgent({`);
@@ -99,9 +108,13 @@ export function generateSubAgentDefinition(
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
-    const contextVarName = registry?.getVariableName(`${parentAgentId}Context`);
-    
-    if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData && contextVarName) {
+    if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
+      const contextVarName = registry.getVariableName(contextConfigData.id, 'contextConfig');
+      
+      if (!contextVarName) {
+        throw new Error(`Failed to resolve context config variable name for: ${contextConfigData.id}`);
+      }
+      
       const headersVarName = 'headersSchema';
       lines.push(
         `${indentation}prompt: ${formatPromptWithContext(agentData.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -156,13 +169,22 @@ export function generateSubAgentDefinition(
     
     const toolReferences: string[] = [];
     
+    if (!registry) {
+      throw new Error('Registry is required for canUse generation');
+    }
+    
     for (const toolRelation of agentData.canUse) {
       // Extract toolId from the relation object
       const toolId = toolRelation.toolId;
-      const toolVarName = registry?.getVariableName(toolId);
+      
+      // Try both 'tool' (MCP tools) and 'functionTool' (inline function tools) types
+      let toolVarName = registry.getVariableName(toolId, 'tool');
+      if (!toolVarName) {
+        toolVarName = registry.getVariableName(toolId, 'functionTool');
+      }
       
       if (!toolVarName) {
-        continue; // Skip if registry is undefined or tool not found
+        throw new Error(`Failed to resolve variable name for tool: ${toolId} (tried both 'tool' and 'functionTool' types)`);
       }
       
       // Check if this tool has configuration (toolSelection or headers)
@@ -215,32 +237,47 @@ export function generateSubAgentDefinition(
     Array.isArray(agentData.canDelegateTo) &&
     agentData.canDelegateTo.length > 0
   ) {
+    if (!registry) {
+      throw new Error('Registry is required for canDelegateTo generation');
+    }
+    
     const delegateReferences: string[] = [];
     
     for (const delegateRelation of agentData.canDelegateTo) {
       
-      // Extract target ID from different possible structures
+      // Extract target ID and determine component type from relation structure
       let targetAgentId: string | undefined;
+      let targetType: ComponentType;
       let hasHeaders = false;
       
-      if (typeof delegateRelation === 'string') {
-        // Simple string reference
-        targetAgentId = delegateRelation;
-        hasHeaders = false;
-      } else if (delegateRelation && typeof delegateRelation === 'object') {
-        // Object with either agentId or externalAgentId
-        targetAgentId = delegateRelation.agentId || delegateRelation.externalAgentId;
+      if (delegateRelation && typeof delegateRelation === 'object') {
         hasHeaders = delegateRelation.headers && Object.keys(delegateRelation.headers).length > 0;
+        
+        if (delegateRelation.externalAgentId) {
+          targetAgentId = delegateRelation.externalAgentId;
+          targetType = 'externalAgent';
+        } else if (delegateRelation.agentId) {
+          targetAgentId = delegateRelation.agentId;
+          targetType = 'agent';
+        } else if (delegateRelation.subAgentId) {
+          targetAgentId = delegateRelation.subAgentId;
+          targetType = 'subAgent';
+        } else {
+          throw new Error(`Delegate relation missing agentId, subAgentId, or externalAgentId: ${JSON.stringify(delegateRelation)}`);
+        }
+      } else {
+        throw new Error(`Invalid delegate relation format: ${JSON.stringify(delegateRelation)}`);
       }
       
       if (!targetAgentId) {
-        continue; // Skip if no valid target ID found
+        throw new Error(`Failed to extract target agent ID from delegate relation: ${JSON.stringify(delegateRelation)}`);
       }
       
-      const agentVarName = registry?.getVariableName(targetAgentId);
+      // Get the variable name for the specific component type
+      const agentVarName = registry.getVariableName(targetAgentId, targetType);
       
       if (!agentVarName) {
-        continue; // Skip if registry is undefined or agent not found
+        throw new Error(`Failed to resolve variable name for delegate ${targetType}: ${targetAgentId}`);
       }
       
       if (hasHeaders) {
@@ -273,10 +310,18 @@ export function generateSubAgentDefinition(
   if (
     agentData.canTransferTo &&
     Array.isArray(agentData.canTransferTo) &&
-    agentData.canTransferTo.length > 0 &&
-    registry
+    agentData.canTransferTo.length > 0
   ) {
-    const transferArray = registry.formatReferencesForCode(agentData.canTransferTo, style, 2);
+    if (!registry) {
+      throw new Error('Registry is required for canTransferTo generation');
+    }
+    
+    const transferArray = registry.formatReferencesForCode(agentData.canTransferTo, 'subAgent', style, 2);
+    
+    if (!transferArray) {
+      throw new Error(`Failed to resolve variable names for canTransferTo agents: ${agentData.canTransferTo.join(', ')}`);
+    }
+    
     lines.push(`${indentation}canTransferTo: () => ${transferArray},`);
   }
 
@@ -284,14 +329,23 @@ export function generateSubAgentDefinition(
   if (
     agentData.dataComponents &&
     Array.isArray(agentData.dataComponents) &&
-    agentData.dataComponents.length > 0 &&
-    registry
+    agentData.dataComponents.length > 0
   ) {
+    if (!registry) {
+      throw new Error('Registry is required for dataComponents generation');
+    }
+    
     const dataComponentsArray = registry.formatReferencesForCode(
       agentData.dataComponents,
+      'dataComponent',
       style,
       2
     );
+    
+    if (!dataComponentsArray) {
+      throw new Error(`Failed to resolve variable names for data components: ${agentData.dataComponents.join(', ')}`);
+    }
+    
     lines.push(`${indentation}dataComponents: () => ${dataComponentsArray},`);
   }
 
@@ -299,14 +353,23 @@ export function generateSubAgentDefinition(
   if (
     agentData.artifactComponents &&
     Array.isArray(agentData.artifactComponents) &&
-    agentData.artifactComponents.length > 0 &&
-    registry
+    agentData.artifactComponents.length > 0
   ) {
+    if (!registry) {
+      throw new Error('Registry is required for artifactComponents generation');
+    }
+    
     const artifactComponentsArray = registry.formatReferencesForCode(
       agentData.artifactComponents,
+      'artifactComponent',
       style,
       2
     );
+    
+    if (!artifactComponentsArray) {
+      throw new Error(`Failed to resolve variable names for artifact components: ${agentData.artifactComponents.join(', ')}`);
+    }
+    
     lines.push(`${indentation}artifactComponents: () => ${artifactComponentsArray},`);
   }
 
@@ -345,9 +408,9 @@ export function generateSubAgentImports(
 
   // Import context config or headers if prompt has template variables
   if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
-    const contextConfigId = `${parentAgentId}Context`;
+    const contextConfigId = contextConfigData.id;
     const currentFilePath = `agents/sub-agents/${agentId}.ts`;
-    const importStatement = registry.getImportStatement(currentFilePath, contextConfigId);
+    const importStatement = registry.getImportStatement(currentFilePath, contextConfigId, 'contextConfig');
     if (importStatement) {
       imports.push(importStatement);
     }
@@ -357,20 +420,82 @@ export function generateSubAgentImports(
   if (registry) {
     const currentFilePath = `agents/sub-agents/${agentId}.ts`;
 
-    // Let the ComponentRegistry extract all component IDs from reference arrays
-    const referenceArrays = [
-      agentData.canUse,
-      agentData.canDelegateTo,
-      agentData.canTransferTo,
-      agentData.dataComponents,
-      agentData.artifactComponents,
-    ];
+    // Build typed component references based on sub-agent data structure
+    const referencedComponents: Array<{id: string, type: ComponentType}> = [];
 
-    const referencedIds = registry.getReferencedComponentIds(referenceArrays);
+    // canUse references can be tools or functionTools
+    if (Array.isArray(agentData.canUse)) {
+      for (const toolRelation of agentData.canUse) {
+        const toolId = toolRelation.toolId;
+        if (toolId) {
+          // Determine the actual component type by checking what's in the registry
+          let componentType: ComponentType = 'tool';
+          if (registry.get(toolId, 'functionTool')) {
+            componentType = 'functionTool';
+          } else if (registry.get(toolId, 'tool')) {
+            componentType = 'tool';
+          }
+          
+          referencedComponents.push({id: toolId, type: componentType});
+        }
+      }
+    }
+
+    // canDelegateTo references (now enriched with type information)
+    if (Array.isArray(agentData.canDelegateTo)) {
+      for (const delegateRelation of agentData.canDelegateTo) {
+        let targetId: string | undefined;
+        let targetType: ComponentType = 'agent'; // default
+
+        if (delegateRelation && typeof delegateRelation === 'object') {
+          if (delegateRelation.externalAgentId) {
+            targetId = delegateRelation.externalAgentId;
+            targetType = 'externalAgent';
+          } else if (delegateRelation.agentId) {
+            targetId = delegateRelation.agentId;
+            targetType = 'agent';
+          } else if (delegateRelation.subAgentId) {
+            targetId = delegateRelation.subAgentId;
+            targetType = 'subAgent';
+          }
+        }
+
+        if (targetId) {
+          referencedComponents.push({id: targetId, type: targetType});
+        }
+      }
+    }
+
+    // canTransferTo references
+    if (Array.isArray(agentData.canTransferTo)) {
+      for (const transferId of agentData.canTransferTo) {
+        if (typeof transferId === 'string') {
+          referencedComponents.push({id: transferId, type: 'subAgent'});
+        }
+      }
+    }
+
+    // dataComponents references  
+    if (Array.isArray(agentData.dataComponents)) {
+      for (const dataCompId of agentData.dataComponents) {
+        if (typeof dataCompId === 'string') {
+          referencedComponents.push({id: dataCompId, type: 'dataComponent'});
+        }
+      }
+    }
+
+    // artifactComponents references
+    if (Array.isArray(agentData.artifactComponents)) {
+      for (const artifactCompId of agentData.artifactComponents) {
+        if (typeof artifactCompId === 'string') {
+          referencedComponents.push({id: artifactCompId, type: 'artifactComponent'});
+        }
+      }
+    }
 
     // Get import statements for all referenced components
-    if (referencedIds.length > 0) {
-      const componentImports = registry.getImportsForFile(currentFilePath, referencedIds);
+    if (referencedComponents.length > 0) {
+      const componentImports = registry.getImportsForFile(currentFilePath, referencedComponents);
       imports.push(...componentImports);
     }
   }

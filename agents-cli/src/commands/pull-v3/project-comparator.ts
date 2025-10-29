@@ -192,7 +192,11 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
   if (project.agents) {
     Object.entries(project.agents).forEach(([agentId, agentData]) => {
       if (agentData.contextConfig) {
-        const contextConfigId = `${agentId}Context`; // Use agent-based ID pattern
+        const contextConfigId = agentData.contextConfig.id; // Use actual contextConfig.id
+        if (!contextConfigId) {
+          console.warn(`contextConfig for agent ${agentId} is missing required id field`);
+          return; // Skip this contextConfig if no ID
+        }
         changes.push({
           componentType: 'contextConfig',
           componentId: contextConfigId,
@@ -805,12 +809,25 @@ function getDetailedFieldChanges(
     for (const key of allKeys) {
       const fieldPath = basePath ? `${basePath}.${key}` : key;
       
+      
       // Check if this field path should be ignored
-      const shouldIgnore = ignoredFields.some(ignored => 
-        fieldPath === ignored || fieldPath.includes(ignored) || key === ignored
-      );
+      const shouldIgnore = ignoredFields.some(ignored => {
+        // Exact field path match (e.g., "contextConfig.id")
+        if (fieldPath === ignored) return true;
+        
+        // Exact key match (e.g., "status", "createdAt")
+        if (key === ignored) return true;
+        
+        // For nested paths, check if we're at that exact path
+        if (ignored.includes('.') && fieldPath === ignored) return true;
+        
+        return false;
+      });
       
       if (shouldIgnore) {
+        if (basePath === '' && key === 'statusUpdates') {
+          console.log(`   ⚠️ statusUpdates field is being IGNORED due to ignored fields check`);
+        }
         continue; // Skip this field
       }
       
@@ -839,7 +856,8 @@ function getDetailedFieldChanges(
         }
       } else {
         // Both exist, compare recursively
-        changes.push(...getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1));
+        const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
+        changes.push(...recursiveChanges);
       }
     }
     return changes;
@@ -1179,19 +1197,11 @@ function compareContextConfigs(
     const localContextConfig = localAgent?.contextConfig;
     const remoteContextConfig = remoteAgent?.contextConfig;
     
-    // Find the actual contextConfig component ID from the registry
-    let contextId = `${agentId}Context`; // fallback synthetic ID
-    
-    if (localRegistry && localContextConfig) {
-      // Look for contextConfig components in the registry
-      const contextConfigComponents = localRegistry.getAllComponents()
-        .filter(comp => comp.type === 'contextConfig');
-      
-      if (contextConfigComponents.length > 0) {
-        // For now, use the first contextConfig found
-        // TODO: In the future, we could match by agent relationship more precisely
-        contextId = contextConfigComponents[0].id;
-      }
+    // Use the actual contextConfig.id (now required)
+    const contextId = localContextConfig?.id || remoteContextConfig?.id;
+    if (!contextId) {
+      console.warn(`contextConfig for agent ${agentId} is missing required id field`);
+      return; // Skip if no valid contextId
     }
     
     if (!localContextConfig && remoteContextConfig) {
