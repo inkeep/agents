@@ -1064,7 +1064,6 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
     fields: [conversations.activeSubAgentId],
     references: [subAgents.id],
   }),
-  evalResults: many(evalResult),
 }));
 
 export const messagesRelations = relations(messages, ({ one, many }) => ({
@@ -1341,6 +1340,7 @@ export const evalResultRelations = relations(evalResult, ({ one }) => ({
   conversation: one(conversations, {
     fields: [evalResult.conversationId],
     references: [conversations.id],
+    relationName: 'conversationEvalResults',
   }),
   evaluator: one(evaluator, {
     fields: [evalResult.evaluatorId],
@@ -1353,5 +1353,11 @@ export const evalResultRelations = relations(evalResult, ({ one }) => ({
   evalTestSuiteRun: one(evalTestSuiteRun, {
     fields: [evalResult.suiteRunId],
     references: [evalTestSuiteRun.id],
+  }),
+}));
+
+export const conversationsEvalRelations = relations(conversations, ({ many }) => ({
+  evalResults: many(evalResult, {
+    relationName: 'conversationEvalResults',
   }),
 }));
