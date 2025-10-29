@@ -192,3 +192,7 @@ main code:not(pre code) {
 .shiki span {
   word-break: inherit !important;
 }
+
+.auto-types div[data-state] button {
+  @apply flex gap-2;
+}

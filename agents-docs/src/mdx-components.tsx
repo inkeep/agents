@@ -90,7 +90,11 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
-    AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
+    AutoTypeTable: (props) => (
+      <div className="auto-types contents">
+        <AutoTypeTable {...props} generator={generator} />
+      </div>
+    ),
     ...components,
     Accordions,
     Accordion,
