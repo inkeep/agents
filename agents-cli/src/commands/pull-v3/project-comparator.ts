@@ -34,6 +34,7 @@ export interface ProjectComparison {
   rawDifferences: string[]; // the raw difference strings from compareProjectDefinitions
   componentChanges: {
     agents: { added: string[]; modified: string[]; deleted: string[] };
+    subAgents: { added: string[]; modified: string[]; deleted: string[] };
     tools: { added: string[]; modified: string[]; deleted: string[] };
     functionTools: { added: string[]; modified: string[]; deleted: string[] };
     dataComponents: { added: string[]; modified: string[]; deleted: string[] };
@@ -51,6 +52,7 @@ export interface ProjectComparison {
 
 type ComponentType = 
   | 'agent' 
+  | 'subAgent'
   | 'tool' 
   | 'functionTool' 
   | 'dataComponent' 
@@ -1241,7 +1243,7 @@ function compareFetchDefinitions(
   
   // Helper to extract fetchDefinitions from contextConfig
   const extractFetchDefinitions = (contextConfig: any) => {
-    const fetchDefs = [];
+    const fetchDefs: any[] = [];
     if (contextConfig && typeof contextConfig === 'object' && contextConfig.contextVariables) {
       Object.values(contextConfig.contextVariables).forEach((variable: any) => {
         if (variable && typeof variable === 'object' && variable.id && variable.fetchConfig) {

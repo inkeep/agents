@@ -79,18 +79,19 @@ function formatStatusUpdates(
 
   // prompt - for status updates, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (statusUpdatesConfig.prompt) {
+    const contextConfigId = `${agentId}Context`;
+    const contextVarName = registry?.getVariableName(contextConfigId);
+    
     if (
       hasTemplateVariables(statusUpdatesConfig.prompt) &&
       contextConfigData &&
       agentId &&
-      registry
+      registry &&
+      contextVarName
     ) {
-      // Always use agent-based contextConfig ID pattern
-      const contextConfigId = `${agentId}Context`;
-      const contextVarName = registry.getVariableName(contextConfigId);
       const headersVarName = 'headersSchema';
       lines.push(
-        `${indent}${indentation}prompt: ${formatPromptWithContext(statusUpdatesConfig.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
+        `${indent}${indentation}prompt: ${formatPromptWithContext(statusUpdatesConfig.prompt, contextVarName, headersVarName, contextConfigData || {}, q, true)},`
       );
     } else {
       lines.push(
@@ -201,10 +202,10 @@ export function generateAgentDefinition(
 
   // Prompt - main agent prompt, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
-    if (hasTemplateVariables(agentData.prompt) && contextConfigData) {
-      // Always use agent-based contextConfig ID pattern
-      const contextConfigId = `${agentId}Context`;
-      const contextVarName = registry.getVariableName(contextConfigId);
+    const contextConfigId = `${agentId}Context`;
+    const contextVarName = registry?.getVariableName(contextConfigId);
+    
+    if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry && contextVarName) {
       const headersVarName = 'headersSchema';
       lines.push(
         `${indentation}prompt: ${formatPromptWithContext(agentData.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -255,7 +256,7 @@ export function generateAgentDefinition(
   }
 
   // defaultSubAgent - reference to the default sub-agent
-  if (agentData.defaultSubAgentId) {
+  if (agentData.defaultSubAgentId && registry) {
     const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId);
     lines.push(`${indentation}defaultSubAgent: ${defaultSubAgentVar},`);
   }
@@ -264,7 +265,8 @@ export function generateAgentDefinition(
   if (
     agentData.subAgents &&
     typeof agentData.subAgents === 'object' &&
-    Object.keys(agentData.subAgents).length > 0
+    Object.keys(agentData.subAgents).length > 0 &&
+    registry
   ) {
     // subAgents is an object with IDs as keys, extract the keys
     const subAgentIds = Object.keys(agentData.subAgents);

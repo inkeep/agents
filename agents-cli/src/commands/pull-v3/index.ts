@@ -328,7 +328,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
       
       s.start('Generating all files deterministically...');
-      await introspectGenerate(remoteProject, paths, options.env || 'development', options.debug);
+      await introspectGenerate(remoteProject, paths, options.env || 'development', options.debug || false);
       s.stop('All files generated');
       
       console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));

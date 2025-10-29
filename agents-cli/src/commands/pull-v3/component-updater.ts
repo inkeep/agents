@@ -225,7 +225,7 @@ function generateUpdatedComponentContent(
     case 'externalAgents':
       return generateExternalAgentFile(componentId, componentData, defaultStyle, localRegistry);
     case 'credentials':
-      return generateCredentialFile(componentId, componentData, defaultStyle, localRegistry);
+      return generateCredentialFile(componentId, componentData, defaultStyle);
     case 'contextConfigs': {
       // Extract agent ID if stored in componentData
       const agentId = componentData._agentId;

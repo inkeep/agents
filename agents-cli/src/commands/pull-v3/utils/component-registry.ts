@@ -443,7 +443,7 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
             statusId = statusComp;
           } else if (typeof statusComp === 'object' && statusComp) {
             // Object with id, type, or name field
-            statusId = statusComp.id || statusComp.type || statusComp.name;
+            statusId = statusComp.type;
           } else {
             continue;
           }
@@ -451,12 +451,12 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
           if (statusId && !statusComponents[statusId]) {
             // Use the actual status component data instead of creating dummy data
             statusComponents[statusId] = {
+              // Include any other properties from the actual data first
+              ...statusComp,
               id: statusId,
               type: statusComp.type || statusId,
               description: statusComp.description || `Status component for ${statusId}`,
               detailsSchema: statusComp.detailsSchema,
-              // Include any other properties from the actual data
-              ...statusComp
             };
           }
         }

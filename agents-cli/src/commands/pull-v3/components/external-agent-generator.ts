@@ -58,7 +58,7 @@ export function generateExternalAgentDefinition(
   
   // Optional credential reference
   if (agentData.credentialReference) {
-    if (typeof agentData.credentialReference === 'string') {
+    if (typeof agentData.credentialReference === 'string' && registry) {
       // Reference to a credential variable - use registry
       const credentialVar = registry.getVariableName(agentData.credentialReference);
       lines.push(`${indentation}credentialReference: ${credentialVar},`);

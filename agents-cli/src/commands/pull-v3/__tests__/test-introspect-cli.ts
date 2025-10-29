@@ -22,16 +22,22 @@ const testProject: FullProjectDefinition = {
   models: {
     base: { 
       model: 'gpt-4o-mini', 
-      temperature: 0.7,
-      maxTokens: 4096
+      providerOptions: {
+        temperature: 0.7,
+        maxTokens: 4096
+      }
     },
     structuredOutput: { 
       model: 'gpt-4o', 
-      temperature: 0.3 
+      providerOptions: {
+        temperature: 0.3 
+      }
     },
     summarizer: { 
       model: 'gpt-4o-mini',
-      temperature: 0.5
+      providerOptions: {
+        temperature: 0.5
+      }
     }
   },
   
@@ -43,13 +49,13 @@ const testProject: FullProjectDefinition = {
   credentialReferences: {
     'zendesk-api': {
       id: 'zendesk-api',
-      type: 'bearer',
+      type: 'nango',
       credentialStoreId: 'main-vault',
       retrievalParams: { token: 'ZENDESK_API_TOKEN' }
     },
     'slack-bot': {
       id: 'slack-bot',
-      type: 'oauth',
+      type: 'keychain',
       credentialStoreId: 'main-vault',
       retrievalParams: { 
         clientId: 'SLACK_CLIENT_ID',
@@ -58,7 +64,7 @@ const testProject: FullProjectDefinition = {
     },
     'database-conn': {
       id: 'database-conn',
-      type: 'basic',
+      type: 'memory',
       credentialStoreId: 'secure-vault',
       retrievalParams: {
         username: 'DB_USERNAME',
@@ -70,8 +76,6 @@ const testProject: FullProjectDefinition = {
   functions: {
     'sentiment-analyzer': {
       id: 'sentiment-analyzer',
-      name: 'Sentiment Analyzer',
-      description: 'Analyze customer message sentiment and urgency level',
       inputSchema: {
         type: 'object',
         properties: {
@@ -84,7 +88,7 @@ const testProject: FullProjectDefinition = {
         'natural': '^6.0.0',
         'lodash': '^4.17.21'
       },
-      execute: `async ({ message, customerTier = 'basic' }) => {
+      executeCode: `async ({ message, customerTier = 'basic' }) => {
         // Sentiment analysis logic here
         const sentiment = Math.random() > 0.5 ? 'positive' : 'negative';
         const urgency = customerTier === 'enterprise' ? 'high' : 'medium';
@@ -93,8 +97,6 @@ const testProject: FullProjectDefinition = {
     },
     'priority-calculator': {
       id: 'priority-calculator',
-      name: 'Priority Calculator',
-      description: 'Calculate ticket priority based on multiple factors',
       inputSchema: {
         type: 'object',
         properties: {
@@ -105,7 +107,7 @@ const testProject: FullProjectDefinition = {
         },
         required: ['customerTier', 'issueType']
       },
-      execute: `async (params) => {
+      executeCode: `async (params) => {
         // Priority calculation logic
         let priority = 'medium';
         if (params.customerTier === 'enterprise' && params.sentiment === 'negative') {
@@ -276,12 +278,13 @@ const testProject: FullProjectDefinition = {
       id: 'primary-support',
       name: 'Primary Support Agent',
       description: 'Main customer support agent with comprehensive capabilities and intelligent routing',
-      defaultSubAgent: 'intake-specialist',
+      defaultSubAgentId: 'intake-specialist',
       
       subAgents: {
         'intake-specialist': {
           id: 'intake-specialist',
           name: 'Customer Intake Specialist',
+          type: 'internal',
           description: 'Initial customer interaction and request classification',
           prompt: `You are a friendly and professional Customer Intake Specialist. Your role is to:
 1. Greet customers warmly and gather initial information
@@ -290,7 +293,7 @@ const testProject: FullProjectDefinition = {
 4. Route to appropriate specialist or handle simple requests directly
 
 Always maintain a helpful and empathetic tone.`,
-          canUse: ['sentiment-analyzer', 'knowledge-base'],
+          canUse: [{ toolId: 'sentiment-analyzer' }, { toolId: 'knowledge-base' }],
           dataComponents: ['customer-profile'],
           artifactComponents: ['ticket-summary']
         },
@@ -298,6 +301,7 @@ Always maintain a helpful and empathetic tone.`,
         'technical-specialist': {
           id: 'technical-specialist', 
           name: 'Technical Support Specialist',
+          type: 'internal',
           description: 'Advanced technical issue resolution and troubleshooting',
           prompt: `You are an expert Technical Support Specialist with deep product knowledge. Your responsibilities:
 1. Diagnose complex technical issues
@@ -306,7 +310,7 @@ Always maintain a helpful and empathetic tone.`,
 4. Document solutions for the knowledge base
 
 Use technical language appropriate to the customer's expertise level.`,
-          canUse: ['zendesk-integration', 'knowledge-base', 'priority-calculator'],
+          canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'knowledge-base' }, { toolId: 'priority-calculator' }],
           canDelegateTo: ['escalation-specialist'],
           dataComponents: ['ticket-context', 'resolution-data'],
           artifactComponents: ['ticket-summary'],
@@ -317,7 +321,8 @@ Use technical language appropriate to the customer's expertise level.`,
         
         'billing-specialist': {
           id: 'billing-specialist',
-          name: 'Billing Support Specialist', 
+          name: 'Billing Support Specialist',
+          type: 'internal', 
           description: 'Specialized billing and account management support',
           prompt: `You are a Billing Support Specialist focused on account and payment issues. Handle:
 1. Billing inquiries and disputes
@@ -326,7 +331,7 @@ Use technical language appropriate to the customer's expertise level.`,
 4. Refund requests within policy
 
 Always verify customer identity before discussing account details.`,
-          canUse: ['zendesk-integration', 'priority-calculator'],
+          canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'priority-calculator' }],
           canDelegateTo: ['billing-system'],
           dataComponents: ['customer-profile', 'ticket-context']
         },
@@ -334,6 +339,7 @@ Always verify customer identity before discussing account details.`,
         'escalation-specialist': {
           id: 'escalation-specialist',
           name: 'Escalation Specialist',
+          type: 'internal',
           description: 'Handle escalated issues and complex customer situations',
           prompt: `You are an experienced Escalation Specialist for high-priority and complex issues. Your expertise includes:
 1. De-escalating frustrated customers
@@ -342,7 +348,7 @@ Always verify customer identity before discussing account details.`,
 4. Ensuring proper follow-up and resolution
 
 Prioritize customer satisfaction and swift resolution.`,
-          canUse: ['zendesk-integration', 'slack-notifier', 'priority-calculator'],
+          canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'slack-notifier' }, { toolId: 'priority-calculator' }],
           canTransferTo: ['legacy-crm'],
           dataComponents: ['customer-profile', 'ticket-context', 'resolution-data'],
           artifactComponents: ['escalation-report'],
@@ -353,7 +359,6 @@ Prioritize customer satisfaction and swift resolution.`,
       },
       
       contextConfig: {
-        headers: 'supportHeaders',
         headersSchema: {
           type: 'object',
           properties: {
@@ -414,7 +419,7 @@ Prioritize customer satisfaction and swift resolution.`,
       statusUpdates: {
         numEvents: 5,
         timeInSeconds: 20,
-        statusComponents: ['tool-summary', 'progress-tracker', 'customer-satisfaction'],
+        statusComponents: [{ type: 'tool-summary' }, { type: 'progress-tracker' }, { type: 'customer-satisfaction' }],
         prompt: 'Provide regular updates on ticket progress, tool usage, and customer interaction quality. Include next steps and any blockers.'
       },
       

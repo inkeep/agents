@@ -10,6 +10,7 @@ import { join, dirname } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { ComponentRegistry, registerAllComponents } from './utils/component-registry';
+import { DEFAULT_STYLE } from './utils/generator-utils';
 
 // Import all component generators
 import { generateProjectFile } from './components/project-generator';
@@ -69,11 +70,7 @@ export async function introspectGenerate(
   }
 
   const generatedFiles: string[] = [];
-  const style = options.codeStyle || {
-    quotes: 'single' as const,
-    semicolons: true,
-    indentation: '  '
-  };
+  const style = { ...DEFAULT_STYLE, ...options.codeStyle };
 
   // Note: Context configs will be extracted by registerAllComponents() and available in registry
   
@@ -337,7 +334,7 @@ function findStatusComponentData(project: FullProjectDefinition, statusId: strin
           if (typeof statusComp === 'string') {
             compId = statusComp;
           } else if (typeof statusComp === 'object' && statusComp) {
-            compId = statusComp.id || statusComp.type || statusComp.name;
+            compId = statusComp.type;
           }
           
           if (compId === statusId) {

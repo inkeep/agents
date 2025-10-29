@@ -99,8 +99,9 @@ export function generateSubAgentDefinition(
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
-    if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
-      const contextVarName = registry.getVariableName(`${parentAgentId}Context`);
+    const contextVarName = registry?.getVariableName(`${parentAgentId}Context`);
+    
+    if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData && contextVarName) {
       const headersVarName = 'headersSchema';
       lines.push(
         `${indentation}prompt: ${formatPromptWithContext(agentData.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -160,6 +161,10 @@ export function generateSubAgentDefinition(
       const toolId = toolRelation.toolId;
       const toolVarName = registry?.getVariableName(toolId);
       
+      if (!toolVarName) {
+        continue; // Skip if registry is undefined or tool not found
+      }
+      
       // Check if this tool has configuration (toolSelection or headers)
       const hasToolSelection = toolRelation.toolSelection && toolRelation.toolSelection.length > 0;
       const hasHeaders = toolRelation.headers && Object.keys(toolRelation.headers).length > 0;
@@ -215,7 +220,7 @@ export function generateSubAgentDefinition(
     for (const delegateRelation of agentData.canDelegateTo) {
       
       // Extract target ID from different possible structures
-      let targetAgentId: string;
+      let targetAgentId: string | undefined;
       let hasHeaders = false;
       
       if (typeof delegateRelation === 'string') {
@@ -228,7 +233,15 @@ export function generateSubAgentDefinition(
         hasHeaders = delegateRelation.headers && Object.keys(delegateRelation.headers).length > 0;
       }
       
+      if (!targetAgentId) {
+        continue; // Skip if no valid target ID found
+      }
+      
       const agentVarName = registry?.getVariableName(targetAgentId);
+      
+      if (!agentVarName) {
+        continue; // Skip if registry is undefined or agent not found
+      }
       
       if (hasHeaders) {
         // Generate .with() configuration for headers
@@ -260,7 +273,8 @@ export function generateSubAgentDefinition(
   if (
     agentData.canTransferTo &&
     Array.isArray(agentData.canTransferTo) &&
-    agentData.canTransferTo.length > 0
+    agentData.canTransferTo.length > 0 &&
+    registry
   ) {
     const transferArray = registry.formatReferencesForCode(agentData.canTransferTo, style, 2);
     lines.push(`${indentation}canTransferTo: () => ${transferArray},`);
@@ -270,7 +284,8 @@ export function generateSubAgentDefinition(
   if (
     agentData.dataComponents &&
     Array.isArray(agentData.dataComponents) &&
-    agentData.dataComponents.length > 0
+    agentData.dataComponents.length > 0 &&
+    registry
   ) {
     const dataComponentsArray = registry.formatReferencesForCode(
       agentData.dataComponents,
@@ -284,7 +299,8 @@ export function generateSubAgentDefinition(
   if (
     agentData.artifactComponents &&
     Array.isArray(agentData.artifactComponents) &&
-    agentData.artifactComponents.length > 0
+    agentData.artifactComponents.length > 0 &&
+    registry
   ) {
     const artifactComponentsArray = registry.formatReferencesForCode(
       agentData.artifactComponents,

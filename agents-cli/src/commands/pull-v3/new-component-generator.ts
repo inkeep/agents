@@ -144,7 +144,7 @@ function generateComponentContent(
     case 'functionTools':
       return generateFunctionToolFile(componentId, componentData, defaultStyle);
     case 'credentials':
-      return generateCredentialFile(componentId, componentData, defaultStyle, componentRegistry);
+      return generateCredentialFile(componentId, componentData, defaultStyle);
     case 'contextConfigs': {
       // Extract agent ID if stored in componentData
       const agentId = componentData._agentId;
@@ -298,7 +298,7 @@ export async function createNewComponents(
           let functionToolData = remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
           
           // If functionTool has a functionId reference, merge with the actual function data
-          if (functionToolData && functionToolData.functionId && remoteProject.functions?.[functionToolData.functionId]) {
+          if (functionToolData && 'functionId' in functionToolData && functionToolData.functionId && remoteProject.functions?.[functionToolData.functionId]) {
             const functionData = remoteProject.functions[functionToolData.functionId];
             // Merge function data into functionTool data
             componentData = { ...functionToolData, ...functionData };
@@ -436,7 +436,7 @@ function findStatusComponentData(project: FullProjectDefinition, statusId: strin
           if (typeof statusComp === 'string') {
             compId = statusComp;
           } else if (typeof statusComp === 'object' && statusComp) {
-            compId = statusComp.id || statusComp.type || statusComp.name;
+            compId = statusComp.type;
           }
           
           if (compId === statusId) {
