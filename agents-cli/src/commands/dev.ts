@@ -2,11 +2,34 @@ import { fork } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import * as p from '@clack/prompts';
+import open from 'open';
 
 const require = createRequire(import.meta.url);
+
+async function waitForServer(host: string, port: number, maxAttempts = 60): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const response = await fetch(`http://${host}:${port}`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000),
+      });
+      if (response.ok) {
+        const text = await response.text();
+        if (text && text.length > 0 && text.includes('<!DOCTYPE html>')) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return true;
+        }
+      }
+    } catch {
+      // Server not ready yet, wait and retry
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return false;
+}
 
 export interface DevOptions {
   port: number;
@@ -15,6 +38,7 @@ export interface DevOptions {
   outputDir: string;
   path: boolean;
   export: boolean;
+  openBrowser: boolean;
 }
 
 function resolveWebRuntime(isRoot = false) {
@@ -39,7 +63,11 @@ function resolveWebRuntime(isRoot = false) {
   }
 }
 
-function startWebApp({ port, host }: Pick<DevOptions, 'port' | 'host'>) {
+async function startWebApp({
+  port,
+  host,
+  openBrowser,
+}: Pick<DevOptions, 'port' | 'host' | 'openBrowser'>) {
   console.log('');
   const s = p.spinner();
   s.start('Starting dashboard server...');
@@ -72,6 +100,17 @@ function startWebApp({ port, host }: Pick<DevOptions, 'port' | 'host'>) {
     console.log('');
     console.log(chalk.gray('Press Ctrl+C to stop the server'));
     console.log('');
+
+    if (openBrowser) {
+      console.log(chalk.gray('Waiting for server to be ready...'));
+      const isReady = await waitForServer(host, port);
+      if (isReady) {
+        await open(`http://${host}:${port}`);
+      } else {
+        console.log(chalk.yellow('⚠️  Server did not respond in time, skipping browser open'));
+        console.log(chalk.gray(`   You can manually open: http://${host}:${port}`));
+      }
+    }
 
     // Handle process termination
     process.on('SIGINT', () => {
@@ -290,7 +329,7 @@ This project can be deployed to any platform that supports Next.js:
 }
 
 export async function devCommand(options: DevOptions) {
-  const { port, host, build, outputDir, path, export: exportFlag } = options;
+  const { port, host, build, outputDir, path, export: exportFlag, openBrowser } = options;
 
   if (path) {
     const rt = resolveWebRuntime(true);
@@ -309,5 +348,5 @@ export async function devCommand(options: DevOptions) {
     return;
   }
 
-  await startWebApp({ port, host });
+  await startWebApp({ port, host, openBrowser });
 }
