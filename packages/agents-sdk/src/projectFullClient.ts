@@ -55,19 +55,9 @@ export async function createFullProjectViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to create project: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ??
+      `Failed to create project: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -141,19 +131,9 @@ export async function updateFullProjectViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to update project: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ??
+      `Failed to update project: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -221,19 +201,8 @@ export async function getFullProjectViaAPI(
     }
 
     const errorText = await response.text();
-    let errorMessage = `Failed to get project: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ?? `Failed to get project: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -291,19 +260,9 @@ export async function deleteFullProjectViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to delete project: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ??
+      `Failed to delete project: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -322,4 +281,19 @@ export async function deleteFullProjectViaAPI(
     },
     'Successfully deleted project via API'
   );
+}
+
+function parseError(errorText: string): string | void {
+  try {
+    const errorJson = JSON.parse(errorText);
+    if (errorJson.error) {
+      const { error } = errorJson;
+      return error?.message ?? error;
+    }
+  } catch {
+    // Use the text as-is if not JSON
+    if (errorText) {
+      return errorText;
+    }
+  }
 }
