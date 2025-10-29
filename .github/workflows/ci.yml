@@ -71,24 +71,24 @@ jobs:
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Run all CI checks in parallel with Turborepo
-#      - name: Run CI checks
-#        id: ci-check
-#        run: |
-#          # Run all checks in parallel using Turborepo's dependency graph
-#          # This will build once and cache, then run lint, typecheck, and test in parallel
-#          pnpm check
-#        env:
-#          TURBO_TELEMETRY_DISABLED: 1
-#          TURBO_CACHE_DIR: .turbo
-#          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-#          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-#          ENVIRONMENT: test
-#          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
-#          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-#          DB_FILE_NAME: test.db
-#          NODE_OPTIONS: --max-old-space-size=4096
-#          CI: true
-#          HUSKY: 0
+      - name: Run CI checks
+        id: ci-check
+        run: |
+          # Run all checks in parallel using Turborepo's dependency graph
+          # This will build once and cache, then run lint, typecheck, and test in parallel
+          pnpm check
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          DB_FILE_NAME: test.db
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI: true
+          HUSKY: 0
 
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
