@@ -36,6 +36,7 @@ runs:
       run: pnpm --filter @inkeep/agents-manage-api dev & # & means run in job background
       env:
         DB_FILE_NAME: file:../local.db
+        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
 
     - name: Build Dashboard
       shell: bash
@@ -44,6 +45,8 @@ runs:
     - name: Push Weather Example Project
       shell: bash
       run: cd examples && npx inkeep push --project weather-project
+      env:
+        INKEEP_AGENTS_JWT_SIGNING_SECRET: "01234567890123456789012345678901"
 
     - name: Run Cypress E2E Tests
       shell: bash
