@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.9
+
+### Patch Changes
+
+- cd5b846: - Update agents-ui to latest, update docs to reflect renaming of modalSettings to openSettings"
+  - @inkeep/agents-manage-api@0.29.9
+  - @inkeep/agents-run-api@0.29.9
+  - @inkeep/agents-core@0.29.9
+
 ## 0.29.8
 
 ### Patch Changes
