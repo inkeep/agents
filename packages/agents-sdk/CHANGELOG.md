@@ -1,5 +1,12 @@
 # @inkeep/agents-sdk
 
+## 0.29.8
+
+### Patch Changes
+
+- 30519fc: cli: fix `error: "[object Object]"`
+  - @inkeep/agents-core@0.29.8
+
 ## 0.29.7
 
 ### Patch Changes
