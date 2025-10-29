@@ -1,8 +1,12 @@
 /* =============================================================================
- * Execution Limit Constants
+ * Run-API Execution Limit Constants
  *
- * These constants control agent runtime behavior during execution.
+ * These constants control run-api specific runtime behavior during agent execution.
  * They are used as defaults when user configuration is null/undefined.
+ *
+ * Note: Constants used by both run-api and manage-api are defined in:
+ * - @inkeep/agents-core/constants/schema-validation (API-level validation limits)
+ * - @inkeep/agents-core/constants/execution-limits-shared (shared runtime limits)
  *
  * Environment Variable Overrides:
  * All constants can be overridden via environment variables prefixed with AGENTS_.
@@ -13,7 +17,7 @@
  * ============================================================================= */
 
 /**
- * Execution limit default constants that control runtime behavior.
+ * Run-API specific execution limit constants that control runtime behavior.
  * These are used as defaults when user configuration is null/undefined.
  */
 export const executionLimitsDefaults = {
@@ -37,12 +41,9 @@ export const executionLimitsDefaults = {
   FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS: 60_000, // 1 minute
 
   // MCP Tool Execution
+  // Note: MCP connection/retry constants are defined in @inkeep/agents-core/constants/execution-limits-shared
+  // and used by the MCP client. Only run-api specific MCP timeout is defined here.
   MCP_TOOL_REQUEST_TIMEOUT_MS_DEFAULT: 60_000, // 60 seconds
-  MCP_TOOL_CONNECTION_TIMEOUT_MS: 3_000, // 3 seconds
-  MCP_TOOL_MAX_RETRIES: 3,
-  MCP_TOOL_MAX_RECONNECTION_DELAY_MS: 30_000, // 30 seconds
-  MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS: 1_000, // 1 second
-  MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR: 1.5,
 
   // Delegation Tool Execution
   DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS: 100,
