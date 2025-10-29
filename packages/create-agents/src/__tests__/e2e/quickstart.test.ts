@@ -34,6 +34,7 @@ describe('create-agents quickstart e2e', () => {
   it('should work with published packages', async () => {
     // Run the CLI with all options (non-interactive mode)
     console.log('Running CLI with options:');
+    console.log(`Working directory: ${testDir}`);
     const result = await runCreateAgentsCLI(
       [
         workspaceName,
@@ -64,6 +65,7 @@ describe('create-agents quickstart e2e', () => {
     ]);
 
     // Verify .env file has required variables
+    console.log('Verifying .env file...');
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /OPENAI_API_KEY=test-openai-key/,
@@ -72,9 +74,12 @@ describe('create-agents quickstart e2e', () => {
       /INKEEP_AGENTS_RUN_API_URL="http:\/\/localhost:3003"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
     ]);
+    console.log('.env file verified');
 
     // Verify inkeep.config.ts was created
+    console.log('Verifying inkeep.config.ts...');
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
+    console.log('inkeep.config.ts verified');
 
     console.log('Starting dev servers');
     // Start dev servers in background
@@ -115,9 +120,27 @@ describe('create-agents quickstart e2e', () => {
       expect(data.data.id).toBe(projectId);
     } finally {
       console.log('Killing dev process');
-      // Always kill the dev process
-      devProcess.kill('SIGTERM');
-      await devProcess.catch(() => {}); // Ignore kill errors
+      // Try graceful shutdown first, then force kill
+      try {
+        devProcess.kill('SIGTERM');
+        // Give it 2 seconds to shut down gracefully
+        await Promise.race([devProcess, new Promise((resolve) => setTimeout(resolve, 2000))]);
+      } catch {
+        // Process might have already exited
+      }
+
+      // Force kill if still running
+      try {
+        devProcess.kill('SIGKILL');
+      } catch {
+        // Already dead
+      }
+
+      // Wait for cleanup
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Catch any remaining errors
+      await devProcess.catch(() => {});
     }
   }, 600000); // 10 minute timeout for full flow with network calls
 
@@ -165,7 +188,26 @@ describe('create-agents quickstart e2e', () => {
       const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
       expect(response.status).toBe(200);
     } finally {
-      devProcess.kill('SIGTERM');
+      // Try graceful shutdown first, then force kill
+      try {
+        devProcess.kill('SIGTERM');
+        // Give it 2 seconds to shut down gracefully
+        await Promise.race([devProcess, new Promise((resolve) => setTimeout(resolve, 2000))]);
+      } catch {
+        // Process might have already exited
+      }
+
+      // Force kill if still running
+      try {
+        devProcess.kill('SIGKILL');
+      } catch {
+        // Already dead
+      }
+
+      // Wait for cleanup
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Catch any remaining errors
       await devProcess.catch(() => {});
     }
   }, 600000); // 10 minute timeout for install + build + dev
