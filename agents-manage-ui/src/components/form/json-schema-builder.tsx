@@ -280,15 +280,24 @@ interface FieldObject extends NameAndDescription {
 
 export function convertJsonSchemaToFields(schema: RJSFSchema): AllFields[] {
   if (schema.type === 'object') {
-    if (!Array.isArray(schema.properties)) {
-      return [];
+    if (schema && typeof schema.properties === 'object') {
+      return Object.entries(schema.properties).map(([name, prop]) =>
+        convertJsonSchemaToFields(prop)
+      );
     }
-    return Object.entries(schema.properties).map(([name, prop]) => convertJsonSchemaToFields(prop));
+    return [];
   }
   if (schema.type === 'array') {
-    if (!Array.isArray(schema.items)) {
-      return [];
+    if (schema && typeof schema.items === 'object') {
+      return convertJsonSchemaToFields(schema.items);
     }
-    return convertJsonSchemaToFields(schema.items);
+    return [];
   }
+  if (schema.type === 'string') {
+    return {
+      type: schema.type,
+      description: schema.description,
+    };
+  }
+  console.log(schema);
 }

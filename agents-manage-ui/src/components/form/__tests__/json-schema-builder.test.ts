@@ -59,6 +59,41 @@ const JSONSchema: RJSFSchema = {
 describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
     const schema = convertJsonSchemaToFields(JSONSchema);
-    expect(schema).toMatchInlineSnapshot(`[]`);
+    expect(schema).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "description": "The main title of the event or activity category",
+            "type": "string",
+          },
+          {
+            "description": "The type of event",
+            "type": "string",
+          },
+          {
+            "description": "A brief description of the event",
+            "type": "string",
+          },
+          [
+            {
+              "description": undefined,
+              "type": "string",
+            },
+            {
+              "description": undefined,
+              "type": "string",
+            },
+            {
+              "description": undefined,
+              "type": "string",
+            },
+          ],
+          {
+            "description": undefined,
+            "type": "string",
+          },
+        ],
+      ]
+    `);
   });
 });
