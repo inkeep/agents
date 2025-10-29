@@ -101,7 +101,6 @@ jobs:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          DB_FILE_NAME: test.db
 
       # Create summary report
       - name: Create CI Summary
