@@ -30,7 +30,7 @@ runs:
 
     - name: Start Backend API Server
       shell: bash
-      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run in job background
+      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run job in background
 
     - name: Build Dashboard
       shell: bash
