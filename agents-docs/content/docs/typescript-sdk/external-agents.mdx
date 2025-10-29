@@ -76,6 +76,7 @@ Configure authentication by providing a [credential reference](/typescript-sdk/t
 ```typescript
 const myExternalAgent = externalAgent({
   // Required
+  id: "external-support-agent",
   name: "External Support Agent", // Human-readable agent name
   description: "External AI agent for specialized support", // Agent's purpose
   baseUrl: "https://api.example.com/agents/support", // A2A endpoint URL

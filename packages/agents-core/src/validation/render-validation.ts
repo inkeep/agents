@@ -50,7 +50,7 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
 ];
 
 // Only allow imports from lucide-react
-const ALLOWED_IMPORTS = ['lucide-react'];
+const ALLOWED_IMPORTS = ['lucide-react', 'react'];
 
 /**
  * Validates component render code and data

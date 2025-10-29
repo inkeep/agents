@@ -1,5 +1,53 @@
 # @inkeep/agents-cli
 
+## 0.29.7
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.29.7
+- @inkeep/agents-core@0.29.7
+- @inkeep/agents-sdk@0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+- Updated dependencies [6c52cc6]
+  - @inkeep/agents-core@0.29.6
+  - @inkeep/agents-manage-ui@0.29.6
+  - @inkeep/agents-sdk@0.29.6
+
+## 0.29.5
+
+### Patch Changes
+
+- Updated dependencies [767d466]
+  - @inkeep/agents-core@0.29.5
+  - @inkeep/agents-manage-ui@0.29.5
+  - @inkeep/agents-sdk@0.29.5
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- Updated dependencies [533fa81]
+- Updated dependencies [0bfcd17]
+  - @inkeep/agents-core@0.29.4
+  - @inkeep/agents-manage-ui@0.29.4
+  - @inkeep/agents-sdk@0.29.4
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+- Updated dependencies [d26c5a4]
+  - @inkeep/agents-core@0.29.3
+  - @inkeep/agents-manage-ui@0.29.3
+  - @inkeep/agents-sdk@0.29.3
+
 ## 0.29.2
 
 ### Patch Changes

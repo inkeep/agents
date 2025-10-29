@@ -10,8 +10,7 @@ const processor = remark().use(remarkMdx).use(mdxSnippet).use(remarkSourceCode).
 
 export async function getLLMText(page: InferPageType<typeof source>) {
   const processed = await processor.process({
-    path: page.data._file.absolutePath,
-    value: page.data.content,
+    value: await page.data.getText('raw'),
   });
 
   return `# ${page.data.title}

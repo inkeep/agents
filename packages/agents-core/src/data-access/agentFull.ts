@@ -1086,18 +1086,22 @@ export const updateFullAgentServerSide =
 
       // Delete orphaned subAgentExternalAgentRelations
       // Collect all incoming external agent relationships
-      const incomingExternalAgentRelationIds = new Set<string>();
-      const incomingTeamAgentRelationIds = new Set<string>();
-      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+      const incomingExternalAgentRelationIds = new Map<string, string>();
+      const incomingTeamAgentRelationIds = new Map<string, string>();
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (agentData.canDelegateTo && Array.isArray(agentData.canDelegateTo)) {
           for (const delegateItem of agentData.canDelegateTo) {
             if (typeof delegateItem === 'object') {
               if ('externalAgentId' in delegateItem) {
-                incomingExternalAgentRelationIds.add(
+                incomingExternalAgentRelationIds.set(
+                  subAgentId,
                   delegateItem.subAgentExternalAgentRelationId ?? ''
                 );
               } else if ('agentId' in delegateItem) {
-                incomingTeamAgentRelationIds.add(delegateItem.subAgentTeamAgentRelationId ?? '');
+                incomingTeamAgentRelationIds.set(
+                  subAgentId,
+                  delegateItem.subAgentTeamAgentRelationId ?? ''
+                );
               }
             }
           }
@@ -1111,7 +1115,7 @@ export const updateFullAgentServerSide =
 
       let deletedExternalAgentRelationCount = 0;
       for (const relation of existingExternalAgentRelations) {
-        if (!incomingExternalAgentRelationIds.has(relation.id)) {
+        if (!incomingExternalAgentRelationIds.get(relation.subAgentId)?.includes(relation.id)) {
           try {
             await deleteSubAgentExternalAgentRelation(db)({
               scopes: {
@@ -1145,7 +1149,7 @@ export const updateFullAgentServerSide =
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
       for (const relation of existingTeamAgentRelations) {
-        if (!incomingTeamAgentRelationIds.has(relation.id)) {
+        if (!incomingTeamAgentRelationIds.get(relation.subAgentId)?.includes(relation.id)) {
           try {
             await deleteSubAgentTeamAgentRelation(db)({
               scopes: {
@@ -1489,6 +1493,7 @@ export const updateFullAgentServerSide =
                 })()
               );
             } else if ('agentId' in targetItem) {
+              logger.info({ subAgentId, targetItem }, 'Processing team agent delegation');
               // Team agent delegation
               subAgentTeamAgentRelationPromises.push(
                 (async () => {
@@ -1531,6 +1536,14 @@ export const updateFullAgentServerSide =
           subAgentExternalAgentRelationPromisesCount: subAgentExternalAgentRelationPromises.length,
         },
         'All sub-agent external agent relations updated'
+      );
+
+      await Promise.all(subAgentTeamAgentRelationPromises);
+      logger.info(
+        {
+          subAgentTeamAgentRelationPromisesCount: subAgentTeamAgentRelationPromises.length,
+        },
+        'All sub-agent team agent relations updated'
       );
 
       // Retrieve and return the updated agent

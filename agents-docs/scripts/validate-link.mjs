@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { getTableOfContents } from 'fumadocs-core/server';
+import { getTableOfContents } from 'fumadocs-core/content/toc';
 import { getSlugs, parseFilePath } from 'fumadocs-core/source';
 import { printErrors, readFiles, scanURLs, validateFiles } from 'next-validate-link';
 
