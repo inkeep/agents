@@ -23,7 +23,6 @@ import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
-import { listFunctions } from './functions';
 import { functionTools, functions } from '../db/schema';
 
 const defaultLogger = getLogger('projectFull');
