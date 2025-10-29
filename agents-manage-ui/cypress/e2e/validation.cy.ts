@@ -13,7 +13,7 @@ describe('Validation', () => {
     cy.contains('Save').should('exist');
 
     // Trigger Cmd+S to save
-    cy.contains('Save').click;
+    cy.contains('Save').click();
 
     // Check for validation errors
     cy.contains('Validation Errors (1)').should('exist');
