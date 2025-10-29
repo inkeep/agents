@@ -15,6 +15,19 @@ import chalk from 'chalk';
 import { createTargetedTypeScriptPlaceholders, restoreTargetedTypeScriptPlaceholders } from './targeted-typescript-placeholders';
 
 /**
+ * Strip code fences from LLM response if present
+ */
+function stripCodeFences(content: string): string {
+  // Remove opening code fence with optional language specifier
+  content = content.replace(/^```(?:typescript|ts|javascript|js)?\s*\n?/i, '');
+  
+  // Remove closing code fence
+  content = content.replace(/\n?```\s*$/i, '');
+  
+  return content;
+}
+
+/**
  * Estimate tokens in text (rough approximation: 1 token ≈ 4 characters)
  */
 function estimateTokens(text: string): number {
@@ -120,6 +133,9 @@ Return only the merged TypeScript code without any explanation or markdown forma
     });
 
     let mergedContent = result.text.trim();
+    
+    // Strip code fences if the LLM wrapped the response in code blocks
+    mergedContent = stripCodeFences(mergedContent);
     
     // Estimate completion tokens and calculate costs
     const estimatedCompletionTokens = estimateTokens(mergedContent);
