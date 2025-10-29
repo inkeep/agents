@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.29.7
+
+### Patch Changes
+
+- a4cf6d8: Port error logging
+  - @inkeep/agents-core@0.29.7
+
 ## 0.29.6
 
 ### Patch Changes
