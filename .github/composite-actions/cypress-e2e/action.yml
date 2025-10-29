@@ -1,5 +1,5 @@
 name: 'Cypress E2E Tests'
-description: 'Run Cypress end-to-end tests with backend and frontend services'
+description: 'Run Cypress end-to-end tests with API and Dashboard'
 
 inputs:
   node-version:
@@ -59,22 +59,3 @@ runs:
         name: cypress-videos
         path: agents-manage-ui/cypress/videos
         retention-days: 7
-
-    - name: Create E2E Test Summary
-      if: always()
-      shell: bash
-      run: |
-        echo "## Cypress E2E Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        if [ "${{ job.status }}" == "success" ]; then
-          echo "✅ **All Cypress E2E tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The validation test completed without errors." >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Cypress E2E tests failed**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "One or more E2E tests failed. Review the logs above for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Screenshots and videos have been uploaded as artifacts for debugging." >> $GITHUB_STEP_SUMMARY
-        fi
