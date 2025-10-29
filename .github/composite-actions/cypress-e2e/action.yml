@@ -28,8 +28,8 @@ runs:
 #    - run: pnpm db:migrate
 #      shell: bash
 
-#    - run: pnpm setup-dev
-#      shell: bash
+    - run: pnpm setup-dev
+      shell: bash
 
     - name: Start Backend API Server
       shell: bash
