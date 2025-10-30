@@ -4,55 +4,57 @@ import type { RJSFSchema } from '@rjsf/utils';
 const JSONSchema: RJSFSchema = {
   type: 'object',
   properties: {
-    activities: {
-      description: 'The list of activities',
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          title: {
-            description: 'The main title of the event or activity category',
-            type: 'string',
-          },
-          category: {
-            description: 'The type of event',
-            type: 'string',
-            enum: ['Festival', 'Fitness', 'Outdoor Activity', 'Market', 'Tour', 'Other'],
-          },
-          description: {
-            description: 'A brief description of the event',
-            type: 'string',
-          },
-          details: {
-            description: 'Specific details like dates, time, and location',
-            type: 'object',
-            properties: {
-              dates: {
-                type: 'string',
-              },
-              time: {
-                type: 'string',
-              },
-              location: {
-                type: 'string',
-              },
-            },
-            additionalProperties: false,
-          },
-          subItems: {
-            description: 'A list of sub-points or examples, like different parks for hiking',
-            type: 'array',
-            items: {
+    nested: {
+      description: 'nested object',
+      type: 'object',
+      properties: {
+        nested2: {
+          description: 'another nested object',
+          type: 'object',
+          properties: {
+            string: {
+              description: 'string description',
               type: 'string',
             },
+            number: {
+              description: 'number description',
+              type: 'number',
+            },
+            integer: {
+              description: 'integer description',
+              type: 'integer',
+            },
+            boolean: {
+              description: 'boolean description',
+              type: 'boolean',
+            },
+            enum: {
+              description: 'enum description',
+              type: 'string',
+              enum: ['foo', 'bar', 'baz'],
+            },
+            array: {
+              description: 'array description',
+              type: 'array',
+              items: {
+                description: 'array item description',
+                type: 'object',
+                properties: {
+                  prop: {
+                    description: 'array string item description',
+                    type: 'string',
+                  },
+                },
+              },
+            },
           },
+          additionalProperties: false,
+          required: ['string', 'integer', 'enum'],
         },
-        required: ['title', 'category', 'description'],
-        additionalProperties: false,
       },
     },
   },
-  required: ['activities'],
+  required: ['nested'],
   additionalProperties: false,
 };
 
@@ -63,64 +65,64 @@ describe('convertJsonSchemaToFields', () => {
       {
         "properties": [
           {
-            "description": "The list of activities",
-            "items": {
-              "properties": [
-                {
-                  "description": "The main title of the event or activity category",
-                  "name": "title",
-                  "type": "string",
-                },
-                {
-                  "description": "The type of event",
-                  "name": "category",
-                  "type": "enum",
-                  "values": [
-                    "Festival",
-                    "Fitness",
-                    "Outdoor Activity",
-                    "Market",
-                    "Tour",
-                    "Other",
-                  ],
-                },
-                {
-                  "description": "A brief description of the event",
-                  "name": "description",
-                  "type": "string",
-                },
-                {
-                  "description": "Specific details like dates, time, and location",
-                  "name": "details",
-                  "properties": [
-                    {
-                      "name": "dates",
-                      "type": "string",
-                    },
-                    {
-                      "name": "time",
-                      "type": "string",
-                    },
-                    {
-                      "name": "location",
-                      "type": "string",
-                    },
-                  ],
-                  "type": "object",
-                },
-                {
-                  "description": "A list of sub-points or examples, like different parks for hiking",
-                  "items": {
+            "description": "nested object",
+            "name": "nested",
+            "properties": [
+              {
+                "description": "another nested object",
+                "name": "nested2",
+                "properties": [
+                  {
+                    "description": "string description",
+                    "name": "string",
                     "type": "string",
                   },
-                  "name": "subItems",
-                  "type": "array",
-                },
-              ],
-              "type": "object",
-            },
-            "name": "activities",
-            "type": "array",
+                  {
+                    "description": "number description",
+                    "name": "number",
+                    "type": "number",
+                  },
+                  {
+                    "description": "integer description",
+                    "name": "integer",
+                    "type": "number",
+                  },
+                  {
+                    "description": "boolean description",
+                    "name": "boolean",
+                    "type": "boolean",
+                  },
+                  {
+                    "description": "enum description",
+                    "name": "enum",
+                    "type": "enum",
+                    "values": [
+                      "foo",
+                      "bar",
+                      "baz",
+                    ],
+                  },
+                  {
+                    "description": "array description",
+                    "items": {
+                      "description": "array item description",
+                      "properties": [
+                        {
+                          "description": "array string item description",
+                          "name": "prop",
+                          "type": "string",
+                        },
+                      ],
+                      "type": "object",
+                    },
+                    "name": "array",
+                    "type": "array",
+                  },
+                ],
+                "type": "object",
+              },
+            ],
+            "type": "object",
           },
         ],
         "type": "object",

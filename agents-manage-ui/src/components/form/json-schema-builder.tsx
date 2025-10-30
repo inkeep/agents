@@ -247,7 +247,7 @@ const TagsInput: FC = () => {
 };
 
 interface NameAndDescription {
-  name: string;
+  name?: string;
   description?: string;
 }
 
@@ -271,7 +271,7 @@ interface FieldEnum extends NameAndDescription {
 }
 interface FieldArray extends NameAndDescription {
   type: 'array';
-  items: AllFields;
+  items?: AllFields;
 }
 interface FieldObject extends NameAndDescription {
   type: 'object';
@@ -286,7 +286,7 @@ export function convertJsonSchemaToFields(schema: RJSFSchema, name?: string): Al
       ...(name && { name }),
       ...(description && { description }),
       type: 'enum',
-      values: schema.enum,
+      values: schema.enum.map(String),
     };
   }
 
@@ -319,7 +319,6 @@ export function convertJsonSchemaToFields(schema: RJSFSchema, name?: string): Al
       ...(name && { name }),
       ...(description && { description }),
       type: 'array',
-      items: {},
     };
   }
 
