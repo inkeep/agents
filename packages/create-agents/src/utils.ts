@@ -432,17 +432,18 @@ async function isPortAvailable(port: number): Promise<boolean> {
   const net = await import('node:net');
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once('error', () => {
-      resolve(false);
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // Only treat EADDRINUSE as "port in use", other errors might be transient
+      resolve(err.code === 'EADDRINUSE' ? false : true);
     });
     server.once('listening', () => {
-      server.close();
-      resolve(true);
+      server.close(() => {
+        resolve(true);
+      });
     });
-    server.listen(port);
+    server.listen(port, 'localhost');
   });
 }
-
 /**
  * Display port conflict error and exit
  */
@@ -483,6 +484,25 @@ async function checkPortsAvailability(): Promise<void> {
   }
 }
 
+/**
+ * Wait for a server to be ready by polling a health endpoint
+ */
+async function waitForServerReady(url: string, timeout: number): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Server not ready yet, continue polling
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
+  }
+  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
+}
+
 async function setupProjectInDatabase(config: FileConfig) {
   // Proactively check if ports are available BEFORE starting servers
   await checkPortsAvailability();
@@ -496,8 +516,6 @@ async function setupProjectInDatabase(config: FileConfig) {
     shell: true,
     windowsHide: true,
   });
-
-  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   // Track if port errors occur during startup (as a safety fallback)
   const portErrors = { runApi: false, manageApi: false };
@@ -527,8 +545,17 @@ async function setupProjectInDatabase(config: FileConfig) {
 
   devProcess.stdout.on('data', checkForPortErrors);
 
-  // Give servers time to start
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  // Wait for servers to be ready
+  try {
+    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
+    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
+  } catch (error) {
+    // If servers don't start, we'll still try push but it will likely fail
+    console.warn(
+      'Warning: Servers may not be fully ready:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
 
   // Check if any port errors occurred during startup
   if (portErrors.runApi || portErrors.manageApi) {
