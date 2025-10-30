@@ -19,7 +19,12 @@ In a simple Agent, there may be only one Sub Agent with a few tools available to
 **Tools** are actions that a Sub Agent can take, like looking up information or performing a task on apps and APIs.
 
 In Inkeep, tools can be added to Sub Agents as:
-- **MCP Servers**: A common way to connect to external services and APIs. Many SaaS providers provide out-of-the-box MCP Servers, but you can also create your own and register them with their associated **Credentials** on Inkeep for Agents to use.
+- **MCP Servers**: Connect to external services and APIs via the Model Context Protocol. You can:
+  - Use **Native MCP servers** provided directly by SaaS vendors (Atlassian, Linear, Notion, etc.)
+  - Access **Composio's platform** for 10,000+ pre-built integrations
+  - **Build Custom servers** for your own APIs and business logic
+
+  Register any of these with their associated **Credentials** for your Agents to use.
 - **Function Tools**: Custom JavaScript functions that Agents can execute directly without the need for standing up an MCP server. 
 
 Typically, you want a Sub Agent to handle narrow, well-defined tasks. As a general rule of thumb, keep Sub Agents to be using 5-7 related tools at a time.
