@@ -96,12 +96,12 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template and activities-planner template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/create-agents-template',
+        'https://github.com/inkeep/agents/create-agents-template',
         expect.any(String),
         undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/activities-planner',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
         'src/projects/activities-planner',
         expect.arrayContaining([
           expect.objectContaining({
@@ -153,12 +153,12 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template and the specified template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/create-agents-template',
+        'https://github.com/inkeep/agents/create-agents-template',
         expect.any(String),
         undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/chatbot',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
         'src/projects/chatbot',
         expect.arrayContaining([
           expect.objectContaining({
@@ -234,7 +234,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template but NOT project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/create-agents-template',
+        'https://github.com/inkeep/agents/create-agents-template',
         expect.any(String),
         undefined
       );
@@ -276,7 +276,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should only clone base template, not project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/create-agents-template',
+        'https://github.com/inkeep/agents/create-agents-template',
         expect.any(String),
         undefined
       );
@@ -319,7 +319,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/my-complex-template',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         'src/projects/my-complex-template',
         expect.arrayContaining([
           expect.objectContaining({

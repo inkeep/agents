@@ -35,10 +35,9 @@ const DIRECTORY_VALIDATION = {
   },
 };
 
-const agentsTemplateRepo = 'https://github.com/inkeep/agents/packages/create-agents-template';
+const agentsTemplateRepo = 'https://github.com/inkeep/agents/create-agents-template';
 
-const projectTemplateRepo =
-  'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects';
+const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/template-projects';
 const execAsync = promisify(exec);
 
 const manageApiPort = '3002';

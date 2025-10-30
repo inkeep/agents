@@ -326,7 +326,7 @@ export async function getAvailableTemplates(
     );
   } else {
     const response = await fetch(
-      `https://api.github.com/repos/inkeep/agents/packages/agents-cookbook/contents/${templatePath}`
+      `https://api.github.com/repos/inkeep/agents/agents-cookbook/contents/${templatePath}`
     );
     const contents = await response.json();
 

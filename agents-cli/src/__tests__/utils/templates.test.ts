@@ -42,14 +42,12 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         './target-path'
       );
 
       expect(fs.mkdir).toHaveBeenCalledWith('./target-path', { recursive: true });
-      expect(degit).toHaveBeenCalledWith(
-        'inkeep/agents/packages/agents-cookbook/template-projects/weather'
-      );
+      expect(degit).toHaveBeenCalledWith('inkeep/agents/agents-cookbook/template-projects/weather');
       expect(mockEmitter.clone).toHaveBeenCalledWith('./target-path');
     });
 
@@ -66,7 +64,7 @@ describe('Template Utils', () => {
       mockEmitter.clone.mockResolvedValue(undefined);
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         './deep/nested/path'
       );
 
@@ -78,7 +76,7 @@ describe('Template Utils', () => {
 
       await expect(
         cloneTemplate(
-          'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/nonexistent',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/nonexistent',
           './target'
         )
       ).rejects.toThrow('process.exit called');
@@ -91,7 +89,7 @@ describe('Template Utils', () => {
 
       await expect(
         cloneTemplate(
-          'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
           './restricted-path'
         )
       ).rejects.toThrow('Permission denied');
@@ -128,7 +126,7 @@ describe('Template Utils', () => {
 
         await expect(
           cloneTemplate(
-            'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/test',
+            'https://github.com/inkeep/agents/agents-cookbook/template-projects/test',
             './target'
           )
         ).rejects.toThrow('process.exit called');
@@ -161,7 +159,7 @@ describe('Template Utils', () => {
       const templates = await getAvailableTemplates('template-projects', undefined);
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/inkeep/agents/packages/agents-cookbook/contents/template-projects'
+        'https://api.github.com/repos/inkeep/agents/agents-cookbook/contents/template-projects'
       );
       expect(templates).toEqual(['weather', 'chatbot', 'data-analysis']);
     });
@@ -214,7 +212,7 @@ describe('Template Utils', () => {
       expect(templates).toContain('weather');
 
       await cloneTemplate(
-        'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         './weather-project'
       );
 
@@ -228,15 +226,15 @@ describe('Template Utils', () => {
 
       const clonePromises = [
         cloneTemplate(
-          'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
           './weather1'
         ),
         cloneTemplate(
-          'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/chatbot',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
           './chatbot1'
         ),
         cloneTemplate(
-          'https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/weather',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
           './weather2'
         ),
       ];

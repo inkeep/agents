@@ -33,11 +33,8 @@ describe('create-agents quickstart e2e', () => {
 
   it('should work e2e', async () => {
     const monorepoRoot = path.join(__dirname, '../../../../../');
-    const createAgentsPrefix = path.join(monorepoRoot, 'packages/create-agents-template');
-    const projectTemplatesPrefix = path.join(
-      monorepoRoot,
-      'packages/agents-cookbook/template-projects'
-    );
+    const createAgentsPrefix = path.join(monorepoRoot, 'create-agents-template');
+    const projectTemplatesPrefix = path.join(monorepoRoot, 'agents-cookbook/template-projects');
     // Run the CLI with all options (non-interactive mode)
     console.log('Running CLI with options:');
     console.log(`Working directory: ${testDir}`);

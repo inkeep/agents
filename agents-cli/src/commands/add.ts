@@ -171,7 +171,7 @@ export async function addProjectTemplate(
       const fullTemplatePath = path.join(localPrefix, 'template-projects', template);
       await cloneTemplateLocal(fullTemplatePath, templateDir, contentReplacements);
     } else {
-      const fullTemplatePath = `https://github.com/inkeep/agents/packages/agents-cookbook/template-projects/${template}`;
+      const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-projects/${template}`;
       await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
     }
     s.stop(`Template "${template}" added to ${templateDir}`);
@@ -202,7 +202,7 @@ export async function addMcpTemplate(
     const fullTemplatePath = path.join(localPrefix, 'template-mcps', template);
     await cloneTemplateLocal(fullTemplatePath, targetPath);
   } else {
-    const fullTemplatePath = `https://github.com/inkeep/agents/packages/agents-cookbook/template-mcps/${template}`;
+    const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-mcps/${template}`;
     await cloneTemplate(fullTemplatePath, targetPath);
   }
   spinner.stop(`MCP template "${template}" added to ${targetPath}`);
