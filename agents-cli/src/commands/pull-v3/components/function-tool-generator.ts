@@ -122,8 +122,9 @@ export function generateFunctionToolDefinition(
   }
   
   // Execute function - this is the actual JavaScript code
-  if (toolData.executeCode) {
-    const executeFunc = formatExecuteFunction(toolData.executeCode, indentation);
+  const executeCode = toolData.executeCode || toolData.execute;
+  if (executeCode) {
+    const executeFunc = formatExecuteFunction(executeCode, indentation);
     lines.push(`${indentation}execute: ${executeFunc},`);
   } else {
     // Provide a default implementation

@@ -9,6 +9,11 @@ import {
   generateMcpToolFile
 } from '../mcp-tool-generator';
 
+// Mock envSettings for tests
+const envSettings = {
+  getEnvironmentCredential: (key: string) => `mock-credential-${key}`
+};
+
 describe('MCP Tool Generator', () => {
   const testToolData = {
     name: 'Weather',
@@ -21,7 +26,7 @@ describe('MCP Tool Generator', () => {
     name: 'Stripe',
     description: 'Stripe payment processing integration',
     serverUrl: 'https://stripe-mcp-hazel.vercel.app/mcp',
-    credential: "envSettings.getEnvironmentSetting('stripe_api_key')"
+    credential: envSettings.getEnvironmentCredential('stripe_api_key')
   };
 
   describe('generateMcpToolImports', () => {
@@ -32,12 +37,11 @@ describe('MCP Tool Generator', () => {
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
-    it('should add environment settings import when needed', () => {
+    it('should not add environment settings import for direct credential references', () => {
       const imports = generateMcpToolImports('stripe-mcp', testToolWithCredential);
       
-      expect(imports).toHaveLength(2);
+      expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
-      expect(imports[1]).toBe("import { envSettings } from '../environments';");
     });
 
     it('should handle different code styles', () => {
@@ -84,17 +88,19 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain("name: 'my-mcp-tool',");
     });
 
-    it('should provide default serverUrl when not provided', () => {
+    it('should generate basic definition without serverUrl when not provided', () => {
       const definition = generateMcpToolDefinition('no-server', { name: 'No Server Tool' });
       
       expect(definition).toContain("export const noServer = mcpTool({");
-      expect(definition).toContain("serverUrl: 'https://example.com/mcp', // TODO: Set correct server URL");
+      expect(definition).toContain("id: 'no-server',");
+      expect(definition).toContain("name: 'No Server Tool'");
+      expect(definition).not.toContain("serverUrl:");
     });
 
-    it('should handle credential as string reference', () => {
+    it('should handle credential as direct reference', () => {
       const definition = generateMcpToolDefinition('stripe-mcp', testToolWithCredential);
       
-      expect(definition).toContain("credential: envSettings.getEnvironmentSetting('stripe_api_key')");
+      expect(definition).toContain("credential: mock-credential-stripe_api_key");
     });
 
     it('should handle credential as object', () => {
@@ -112,25 +118,14 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain('credential: {"type":"api_key","value":"my-api-key"}');
     });
 
-    it('should handle envSettings field', () => {
-      const toolWithEnvSettings = {
-        name: 'Env Tool',
-        serverUrl: 'https://env.example.com/mcp',
-        envSettings: "envSettings.getEnvironmentSetting('my_key')"
-      };
-
-      const definition = generateMcpToolDefinition('env-tool', toolWithEnvSettings);
-      
-      expect(definition).toContain("credential: envSettings.getEnvironmentSetting('my_key')");
-    });
 
     it('should handle tools with minimal data', () => {
       const definition = generateMcpToolDefinition('minimal', {});
       
       expect(definition).toContain("export const minimal = mcpTool({");
       expect(definition).toContain("id: 'minimal',");
-      expect(definition).toContain("name: 'minimal',");
-      expect(definition).toContain("serverUrl: 'https://example.com/mcp', // TODO: Set correct server URL");
+      expect(definition).toContain("name: 'minimal'");
+      expect(definition).not.toContain("serverUrl:");
       expect(definition).not.toContain("description:");
       expect(definition).not.toContain("imageUrl:");
       expect(definition).not.toContain("credential:");
@@ -176,12 +171,13 @@ describe('MCP Tool Generator', () => {
       expect(file.endsWith('\n')).toBe(true);
     });
 
-    it('should generate complete file with environment imports', () => {
+    it('should generate complete file with direct credential', () => {
       const file = generateMcpToolFile('stripe-mcp', testToolWithCredential);
       
       expect(file).toContain("import { mcpTool } from '@inkeep/agents-sdk';");
-      expect(file).toContain("import { envSettings } from '../environments';");
+      expect(file).not.toContain("import { envSettings }");
       expect(file).toContain("export const stripeMcp = mcpTool({");
+      expect(file).toContain("credential: mock-credential-stripe_api_key");
     });
   });
 
@@ -221,8 +217,8 @@ describe('MCP Tool Generator', () => {
     it('should generate code for MCP tool with credential that compiles', () => {
       const file = generateMcpToolFile('stripe-mcp', testToolWithCredential);
       
-      // Should include environment import
-      expect(file).toContain("import { envSettings }");
+      // Should not include environment import for direct credentials
+      expect(file).not.toContain("import { envSettings }");
       expect(file).toContain("import { mcpTool }");
       
       // Test compilation with mocked envSettings
@@ -231,11 +227,9 @@ describe('MCP Tool Generator', () => {
       
       const moduleCode = `
         const mcpTool = (config) => config;
-        const envSettings = {
-          getEnvironmentSetting: (key) => ({ type: 'env', key })
-        };
+        const mockCredentialStripeApiKey = "test-credential-value";
         
-        ${definitionWithoutExport}
+        ${definitionWithoutExport.replace('mock-credential-stripe_api_key', 'mockCredentialStripeApiKey')}
         
         return stripeMcp;
       `;
@@ -272,7 +266,7 @@ describe('MCP Tool Generator', () => {
 
       expect(result.id).toBe('minimal-mcp');
       expect(result.name).toBe('minimal-mcp'); // Uses ID as fallback
-      expect(result.serverUrl).toBe('https://example.com/mcp'); // Default URL
+      expect(result.serverUrl).toBeUndefined(); // No default URL
     });
   });
 
@@ -282,8 +276,8 @@ describe('MCP Tool Generator', () => {
       
       expect(definition).toContain("export const empty = mcpTool({");
       expect(definition).toContain("id: 'empty',");
-      expect(definition).toContain("name: 'empty',");
-      expect(definition).toContain("serverUrl: 'https://example.com/mcp', // TODO: Set correct server URL");
+      expect(definition).toContain("name: 'empty'");
+      expect(definition).not.toContain("serverUrl:");
     });
 
     it('should handle special characters in tool ID', () => {

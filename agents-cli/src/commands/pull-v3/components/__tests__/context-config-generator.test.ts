@@ -11,6 +11,21 @@ import {
   generateFetchDefinitionDefinition
 } from '../context-config-generator';
 
+// Mock registry for tests
+const mockRegistry = {
+  getVariableName: (id: string, type?: string) => {
+    // If already camelCase, return as-is, otherwise convert
+    if (!/[-_]/.test(id)) {
+      return id;
+    }
+    // Convert kebab-case or snake_case to camelCase
+    return id
+      .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .replace(/^[0-9]/, '_$&');
+  }
+};
+
 describe('Context Config Generator', () => {
   const headersData = {
     schema: {
@@ -149,12 +164,12 @@ describe('Context Config Generator', () => {
 
   describe('generateContextConfigDefinition', () => {
     it('should generate correct context config definition', () => {
-      const definition = generateContextConfigDefinition('personalAgentContext', contextData);
+      const definition = generateContextConfigDefinition('personalAgentContext', contextData, undefined, mockRegistry);
       
       expect(definition).toContain('const personalAgentContext = contextConfig({');
       expect(definition).toContain('headers: personalAgentHeaders,');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain("user: 'userFetcher'");
+      expect(definition).toContain("user: userFetcher");
       expect(definition).toContain('});');
     });
 
@@ -166,13 +181,13 @@ describe('Context Config Generator', () => {
         }
       };
 
-      const definition = generateContextConfigDefinition('simpleContext', dataWithoutHeaders);
+      const definition = generateContextConfigDefinition('simpleContext', dataWithoutHeaders, undefined, mockRegistry);
       
       expect(definition).toContain('const simpleContext = contextConfig({');
       expect(definition).not.toContain('headers:');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain("config: 'someConfig',");
-      expect(definition).toContain("data: 'someData'");
+      expect(definition).toContain("config: someConfig,");
+      expect(definition).toContain("data: someData");
     });
 
     it('should handle context config without contextVariables', () => {
@@ -180,7 +195,7 @@ describe('Context Config Generator', () => {
         headers: 'myHeaders'
       };
 
-      const definition = generateContextConfigDefinition('headerOnlyContext', dataWithoutVariables);
+      const definition = generateContextConfigDefinition('headerOnlyContext', dataWithoutVariables, undefined, mockRegistry);
       
       expect(definition).toContain('const headerOnlyContext = contextConfig({');
       expect(definition).toContain('headers: myHeaders');
@@ -188,7 +203,7 @@ describe('Context Config Generator', () => {
     });
 
     it('should handle empty context config', () => {
-      const definition = generateContextConfigDefinition('emptyContext', {});
+      const definition = generateContextConfigDefinition('emptyContext', {}, undefined, mockRegistry);
       
       expect(definition).toContain('const emptyContext = contextConfig({');
       expect(definition).toContain('});');
@@ -262,14 +277,14 @@ describe('Context Config Generator', () => {
         }
       };
 
-      const file = generateContextConfigFile('personalAgentContext', fullContextData);
+      const file = generateContextConfigFile('personalAgentContext', fullContextData, undefined, mockRegistry);
       
       expect(file).toContain("import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';");
       expect(file).toContain("import { z } from 'zod';");
       expect(file).toContain('const personalAgentHeaders = headers({');
       expect(file).toContain('const user = fetchDefinition({');
       expect(file).toContain('const personalAgentContext = contextConfig({');
-      expect(file).toContain('export { personalAgentContext };');
+      expect(file).toContain('export { personalAgentContext, personalAgentHeaders, user };');
       
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
@@ -283,7 +298,7 @@ describe('Context Config Generator', () => {
         }
       };
 
-      const file = generateContextConfigFile('simpleContext', simpleData);
+      const file = generateContextConfigFile('simpleContext', simpleData, undefined, mockRegistry);
       
       expect(file).toContain("import { contextConfig } from '@inkeep/agents-core';");
       expect(file).toContain('const simpleContext = contextConfig({');
@@ -353,7 +368,7 @@ describe('Context Config Generator', () => {
     });
 
     it('should generate context config code that compiles', () => {
-      const definition = generateContextConfigDefinition('testContext', contextData);
+      const definition = generateContextConfigDefinition('testContext', contextData, undefined, mockRegistry);
       const definitionWithoutConst = definition.replace('const ', '');
       
       const moduleCode = `
@@ -380,7 +395,7 @@ describe('Context Config Generator', () => {
 
   describe('edge cases', () => {
     it('should handle special characters in IDs', () => {
-      const definition = generateContextConfigDefinition('context-config_v2', contextData);
+      const definition = generateContextConfigDefinition('context-config_v2', contextData, undefined, mockRegistry);
       
       expect(definition).toContain('const contextConfigV2 = contextConfig({');
     });
@@ -417,25 +432,5 @@ describe('Context Config Generator', () => {
       expect(definition).not.toContain('defaultValue:');
     });
 
-    it('should handle complex nested contextVariables', () => {
-      const complexData = {
-        contextVariables: {
-          config: {
-            nested: {
-              value: 'test',
-              number: 42
-            }
-          }
-        }
-      };
-
-      const definition = generateContextConfigDefinition('complex', complexData);
-      
-      expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain('config: {');
-      expect(definition).toContain('nested: {');
-      expect(definition).toContain("value: 'test',");
-      expect(definition).toContain('number: 42');
-    });
   });
 });

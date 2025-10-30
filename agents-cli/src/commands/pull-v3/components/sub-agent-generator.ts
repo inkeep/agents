@@ -250,7 +250,12 @@ export function generateSubAgentDefinition(
       let targetType: ComponentType;
       let hasHeaders = false;
       
-      if (delegateRelation && typeof delegateRelation === 'object') {
+      if (typeof delegateRelation === 'string') {
+        // Simple string format - treat as subAgent by default
+        targetAgentId = delegateRelation;
+        targetType = 'subAgent';
+        hasHeaders = false;
+      } else if (delegateRelation && typeof delegateRelation === 'object') {
         hasHeaders = delegateRelation.headers && Object.keys(delegateRelation.headers).length > 0;
         
         if (delegateRelation.externalAgentId) {

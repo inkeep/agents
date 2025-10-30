@@ -797,6 +797,12 @@ function getDetailedFieldChanges(
   
   // Handle arrays - all arrays are order-independent by default
   if (Array.isArray(oldObj) && Array.isArray(newObj)) {
+    // Special handling for canDelegateTo arrays - normalize enriched vs non-enriched forms
+    if (basePath.endsWith('canDelegateTo')) {
+      const normalizedOld = normalizeCanDelegateTo(oldObj);
+      const normalizedNew = normalizeCanDelegateTo(newObj);
+      return compareArraysAsSet(basePath, normalizedOld, normalizedNew, depth);
+    }
     return compareArraysAsSet(basePath, oldObj, newObj, depth);
   }
   
@@ -1322,4 +1328,21 @@ function compareFetchDefinitions(
   });
   
   return changes;
+}
+
+/**
+ * Normalize canDelegateTo array to handle enriched vs non-enriched forms
+ * Converts both [{subAgentId: "id"}] and ["id"] to the same normalized form
+ */
+function normalizeCanDelegateTo(canDelegateTo: any[]): string[] {
+  return canDelegateTo.map(item => {
+    if (typeof item === 'string') {
+      return item;
+    }
+    if (typeof item === 'object' && item !== null) {
+      // Extract the ID from enriched objects
+      return item.subAgentId || item.agentId || item.externalAgentId || String(item);
+    }
+    return String(item);
+  });
 }

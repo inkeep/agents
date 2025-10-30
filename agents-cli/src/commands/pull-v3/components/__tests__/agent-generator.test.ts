@@ -9,6 +9,53 @@ import {
   generateAgentFile
 } from '../agent-generator';
 
+// Mock registry for tests
+const mockRegistry = {
+  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+    if (!refs || refs.length === 0) return '[]';
+    
+    // Convert refs to proper variable names
+    const variableRefs = refs.map(ref => {
+      if (typeof ref === 'string') {
+        // Convert to camelCase if needed
+        if (!/[-_]/.test(ref)) {
+          return ref;
+        }
+        return ref
+          .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .replace(/^[0-9]/, '_$&');
+      }
+      return ref;
+    });
+    
+    if (variableRefs.length === 1) return `[${variableRefs[0]}]`;
+    
+    const indentStr = '  '.repeat(indent);
+    const items = variableRefs.map(ref => `${indentStr}${ref}`).join(',\n');
+    return `[\n${items}\n${indentStr.slice(2)}]`;
+  },
+  getVariableName: (id: string, type?: string) => {
+    // If already camelCase, return as-is, otherwise convert
+    if (!/[-_]/.test(id)) {
+      return id;
+    }
+    // Convert kebab-case or snake_case to camelCase
+    return id
+      .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .replace(/^[0-9]/, '_$&');
+  },
+  getImportsForFile: (filePath: string, components: any[]) => {
+    // Mock implementation returns empty array
+    return [];
+  },
+  getAllComponents: () => {
+    // Mock implementation returns empty array
+    return [];
+  }
+};
+
 describe('Agent Generator', () => {
   const basicAgentData = {
     name: 'Personal Assistant Agent',
@@ -56,7 +103,7 @@ describe('Agent Generator', () => {
 
   describe('generateAgentDefinition', () => {
     it('should generate basic agent definition', () => {
-      const definition = generateAgentDefinition('personal-agent', basicAgentData);
+      const definition = generateAgentDefinition('personal-agent', basicAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('export const personalAgent = agent({');
       expect(definition).toContain("id: 'personal-agent',");
@@ -72,7 +119,7 @@ describe('Agent Generator', () => {
     });
 
     it('should generate agent with status updates', () => {
-      const definition = generateAgentDefinition('complex-agent', complexAgentData);
+      const definition = generateAgentDefinition('complex-agent', complexAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('export const complexAgent = agent({');
       expect(definition).toContain('statusUpdates: {');
@@ -87,7 +134,7 @@ describe('Agent Generator', () => {
     });
 
     it('should generate agent with stopWhen configuration', () => {
-      const definition = generateAgentDefinition('transfer-limited-agent', complexAgentData);
+      const definition = generateAgentDefinition('transfer-limited-agent', complexAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers in one conversation');
@@ -100,7 +147,7 @@ describe('Agent Generator', () => {
         subAgents: ['onlyAgent']
       };
       
-      const definition = generateAgentDefinition('single-agent', singleSubAgentData);
+      const definition = generateAgentDefinition('single-agent', singleSubAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('subAgents: () => [onlyAgent]');
       expect(definition).not.toContain('subAgents: () => [\n'); // Single line format
@@ -111,7 +158,7 @@ describe('Agent Generator', () => {
         name: 'Minimal Agent'
       };
       
-      const definition = generateAgentDefinition('minimal-agent', minimalData);
+      const definition = generateAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
       
       expect(definition).toContain('export const minimalAgent = agent({');
       expect(definition).toContain("id: 'minimal-agent',");
@@ -127,14 +174,14 @@ describe('Agent Generator', () => {
     it('should use agent ID as name fallback', () => {
       const noNameData = {};
       
-      const definition = generateAgentDefinition('fallback-agent', noNameData);
+      const definition = generateAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
       
       expect(definition).toContain("id: 'fallback-agent',");
       expect(definition).toContain("name: 'fallback-agent'");
     });
 
     it('should handle camelCase conversion for agent variable names', () => {
-      const definition = generateAgentDefinition('my-complex-agent_v2', basicAgentData);
+      const definition = generateAgentDefinition('my-complex-agent_v2', basicAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('export const myComplexAgentV2 = agent({');
     });
@@ -151,7 +198,7 @@ describe('Agent Generator', () => {
         }
       };
       
-      const definition = generateAgentDefinition('multiline-agent', multilineData);
+      const definition = generateAgentDefinition('multiline-agent', multilineData, undefined, mockRegistry);
       
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('prompt: `This is a very long prompt');
@@ -163,7 +210,7 @@ describe('Agent Generator', () => {
         quotes: 'double',
         semicolons: false,
         indentation: '    '
-      });
+      }, mockRegistry);
       
       expect(definition).toContain('export const styledAgent = agent({');
       expect(definition).toContain('id: "styled-agent",'); // Double quotes
@@ -183,7 +230,7 @@ describe('Agent Generator', () => {
         }
       };
       
-      const definition = generateAgentDefinition('empty-status-agent', emptyStatusData);
+      const definition = generateAgentDefinition('empty-status-agent', emptyStatusData, undefined, mockRegistry);
       
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 3,');
@@ -201,7 +248,7 @@ describe('Agent Generator', () => {
         }
       };
       
-      const definition = generateAgentDefinition('partial-status-agent', partialStatusData);
+      const definition = generateAgentDefinition('partial-status-agent', partialStatusData, undefined, mockRegistry);
       
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 5,');
@@ -218,7 +265,7 @@ describe('Agent Generator', () => {
         }
       };
       
-      const definition = generateAgentDefinition('no-transfer-agent', noTransferCountData);
+      const definition = generateAgentDefinition('no-transfer-agent', noTransferCountData, undefined, mockRegistry);
       
       expect(definition).not.toContain('stopWhen:');
     });
@@ -226,7 +273,7 @@ describe('Agent Generator', () => {
 
   describe('generateAgentFile', () => {
     it('should generate complete agent file', () => {
-      const file = generateAgentFile('personal-agent', basicAgentData);
+      const file = generateAgentFile('personal-agent', basicAgentData, undefined, mockRegistry);
       
       expect(file).toContain("import { agent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const personalAgent = agent({');
@@ -238,7 +285,7 @@ describe('Agent Generator', () => {
     });
 
     it('should generate complex agent file with all features', () => {
-      const file = generateAgentFile('complex-agent', complexAgentData);
+      const file = generateAgentFile('complex-agent', complexAgentData, undefined, mockRegistry);
       
       expect(file).toContain("import { agent } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const complexAgent = agent({');
@@ -254,7 +301,7 @@ describe('Agent Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate agent code that compiles', () => {
-      const definition = generateAgentDefinition('test-agent', basicAgentData);
+      const definition = generateAgentDefinition('test-agent', basicAgentData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const testAgent', 'const result');
       
       const moduleCode = `
@@ -280,7 +327,7 @@ describe('Agent Generator', () => {
     });
 
     it('should generate complex agent code that compiles', () => {
-      const definition = generateAgentDefinition('complex-test-agent', complexAgentData);
+      const definition = generateAgentDefinition('complex-test-agent', complexAgentData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const complexTestAgent', 'const result');
       
       const moduleCode = `
@@ -315,7 +362,7 @@ describe('Agent Generator', () => {
 
     it('should generate minimal agent code that compiles', () => {
       const minimalData = { name: 'Minimal Test Agent' };
-      const definition = generateAgentDefinition('minimal-test-agent', minimalData);
+      const definition = generateAgentDefinition('minimal-test-agent', minimalData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const minimalTestAgent', 'const result');
       
       const moduleCode = `
@@ -339,14 +386,14 @@ describe('Agent Generator', () => {
 
   describe('edge cases', () => {
     it('should handle special characters in agent IDs', () => {
-      const definition = generateAgentDefinition('agent-v2_final', basicAgentData);
+      const definition = generateAgentDefinition('agent-v2_final', basicAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('export const agentV2Final = agent({');
       expect(definition).toContain("id: 'agent-v2_final',");
     });
 
     it('should handle agent ID starting with numbers', () => {
-      const definition = generateAgentDefinition('2nd-generation-agent', basicAgentData);
+      const definition = generateAgentDefinition('2nd-generation-agent', basicAgentData, undefined, mockRegistry);
       
       expect(definition).toContain('export const _2ndGenerationAgent = agent({');
       expect(definition).toContain("id: '2nd-generation-agent',");
@@ -359,7 +406,7 @@ describe('Agent Generator', () => {
         defaultSubAgent: 'assistant'
       };
       
-      const definition = generateAgentDefinition('empty-strings-agent', emptyStringData);
+      const definition = generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
       
       expect(definition).toContain("name: '',");
       expect(definition).toContain("description: '',");
@@ -375,7 +422,7 @@ describe('Agent Generator', () => {
         contextConfig: undefined
       };
       
-      const definition = generateAgentDefinition('null-values-agent', nullData);
+      const definition = generateAgentDefinition('null-values-agent', nullData, undefined, mockRegistry);
       
       expect(definition).toContain("name: 'Test Agent'");
       expect(definition).not.toContain('description:');
@@ -390,7 +437,7 @@ describe('Agent Generator', () => {
         subAgents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6']
       };
       
-      const definition = generateAgentDefinition('many-sub-agents', manySubAgentsData);
+      const definition = generateAgentDefinition('many-sub-agents', manySubAgentsData, undefined, mockRegistry);
       
       expect(definition).toContain('subAgents: () => [');
       expect(definition).toContain('  agent1,');

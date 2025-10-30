@@ -9,6 +9,25 @@ import {
   generateExternalAgentFile
 } from '../external-agent-generator';
 
+// Mock registry for tests
+const mockRegistry = {
+  getVariableName: (id: string, type?: string) => {
+    // If already camelCase, return as-is, otherwise convert
+    if (!/[-_]/.test(id)) {
+      return id;
+    }
+    // Convert kebab-case or snake_case to camelCase
+    return id
+      .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .replace(/^[0-9]/, '_$&');
+  },
+  getImportsForFile: (filePath: string, components: any[]) => {
+    // Mock implementation returns empty array
+    return [];
+  }
+};
+
 describe('External Agent Generator', () => {
   const basicExternalAgentData = {
     name: 'Weather API Agent',
@@ -77,7 +96,7 @@ describe('External Agent Generator', () => {
         credentialReference: 'myCredentials'
       };
       
-      const definition = generateExternalAgentDefinition('cred-ref-agent', dataWithCredRef);
+      const definition = generateExternalAgentDefinition('cred-ref-agent', dataWithCredRef, undefined, mockRegistry);
       
       expect(definition).toContain('export const credRefAgent = externalAgent({');
       expect(definition).toContain('credentialReference: myCredentials');

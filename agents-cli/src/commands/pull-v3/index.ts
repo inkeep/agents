@@ -174,11 +174,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, deb
 
   // Process all agents
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.canDelegateTo) {
-        enrichCanDelegateToArray(agentData.canDelegateTo, `agent:${agentId}`);
-      }
-
+    for (const [_, agentData] of Object.entries(project.agents)) {
       // Process subAgents within agents
       if (agentData.subAgents) {
         for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {

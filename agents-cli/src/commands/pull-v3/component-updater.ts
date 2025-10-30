@@ -535,6 +535,50 @@ export async function updateModifiedComponents(
   const actualChanges = successful.filter((r) => r.oldContent?.trim() !== r.newContent?.trim());
 
   console.log(chalk.yellow(`\n📋 Analyzed ${actualChanges.length} components with changes`));
+  
+  // Log details of each changed component with field-level changes
+  if (actualChanges.length > 0) {
+    actualChanges.forEach((change) => {
+      console.log(chalk.blue(`   🔄 ${change.componentType}:${change.componentId} in ${change.filePath}`));
+      
+      // Debug: log available changes in comparison
+      if (debug) {
+        console.log(chalk.gray(`      🔍 Available comparison changes: ${comparison.changes.length}`));
+        comparison.changes.forEach((c, i) => {
+          console.log(chalk.gray(`        ${i}: ${c.componentType}:${c.componentId} (${c.changeType})`));
+        });
+      }
+      
+      // Find the corresponding change from the comparison data to show what fields changed
+      // Note: comparison uses singular forms (e.g. 'subAgent') but updater uses plural forms (e.g. 'subAgents')
+      const normalizedCompType = change.componentType === 'subAgents' ? 'subAgent' : 
+                                  change.componentType === 'agents' ? 'agent' : 
+                                  change.componentType;
+      const componentChanges = comparison.changes.filter(c => 
+        c.componentId === change.componentId && c.componentType === normalizedCompType
+      );
+      
+      if (debug) {
+        console.log(chalk.gray(`      🔍 Matching changes found: ${componentChanges.length}`));
+      }
+      
+      componentChanges.forEach((compChange) => {
+        if (compChange.changedFields && compChange.changedFields.length > 0) {
+          compChange.changedFields.forEach((fieldChange) => {
+            const changeSymbol = fieldChange.changeType === 'added' ? '➕' : 
+                                fieldChange.changeType === 'deleted' ? '➖' : '🔄';
+            console.log(chalk.gray(`      ${changeSymbol} ${fieldChange.field}: ${fieldChange.description || fieldChange.changeType}`));
+          });
+        } else if (debug) {
+          console.log(chalk.gray(`      🔍 No changedFields data available for this change`));
+        }
+        if (compChange.summary) {
+          console.log(chalk.gray(`      📝 ${compChange.summary}`));
+        }
+      });
+    });
+  }
+  
   if (successful.length > actualChanges.length) {
     console.log(
       chalk.gray(`   ⚪ ${successful.length - actualChanges.length} components had no changes`)

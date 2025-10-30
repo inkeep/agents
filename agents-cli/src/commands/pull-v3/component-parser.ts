@@ -138,13 +138,6 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       if (componentType && componentType === 'functionTool') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
-        // DEBUG: Log what we're finding
-        if (debug && componentId === 'calculate-bmi') {
-          console.log(`📋 DEBUG: Found functionTool in ${filePath}`);
-          console.log(`  - variableName: ${variableName}`);
-          console.log(`  - componentId: ${componentId}`);
-          console.log(`  - functionName: ${functionName}`);
-        }
         
         components.push({
           id: componentId,
@@ -428,15 +421,6 @@ export function buildComponentRegistryFromParsing(
     if (component.variableName) {
       // Component has an actual variable name (declared with const/export const), use it
       
-      // DEBUG: Log registration for calculate-bmi
-      if (debug && component.id === 'calculate-bmi') {
-        console.log(`📋 DEBUG: Registering found component:`);
-        console.log(`  - id: ${component.id}`);
-        console.log(`  - type: ${component.type}`);
-        console.log(`  - variableName: ${component.variableName}`);
-        console.log(`  - filePath: ${component.filePath}`);
-        console.log(`  - isInline: ${component.isInline}`);
-      }
       
       registry.register(
         component.id,

@@ -185,6 +185,8 @@ export function generateContextConfigDefinition(
   // headers - reference to headers variable
   if (contextData.headersSchema) {
     lines.push(`${indentation}headers: headersSchema,`);
+  } else if (contextData.headers) {
+    lines.push(`${indentation}headers: ${contextData.headers},`);
   }
   
   // contextVariables - reference to fetch definition variables
@@ -192,8 +194,11 @@ export function generateContextConfigDefinition(
     const contextVarLines = [`${indentation}contextVariables: {`];
     
     for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
-      if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
-        // Reference the fetchDefinition variable instead of duplicating its data
+      if (typeof varData === 'string') {
+        // String reference - output as variable name
+        contextVarLines.push(`${indentation}  ${varName}: ${varData},`);
+      } else if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
+        // Object with fetch config - reference the variable name
         contextVarLines.push(`${indentation}  ${varName},`);
       }
     }
@@ -285,8 +290,8 @@ export function generateContextConfigFile(
   const definitions: string[] = [];
   
   // Generate headers if present
-  if (contextData.headersSchema) {
-    const headersDefinition = generateHeadersDefinition('headersSchema', { schema: contextData.headersSchema }, style);
+  if (contextData.headersSchema && typeof contextData.headers === 'string') {
+    const headersDefinition = generateHeadersDefinition(contextData.headers, { schema: contextData.headersSchema }, style);
     definitions.push(headersDefinition);
   }
   
@@ -317,8 +322,8 @@ export function generateContextConfigFile(
   })();
   const exports: string[] = [contextVarName];
   
-  if (contextData.headersSchema) {
-    exports.push('headersSchema');
+  if (contextData.headersSchema && typeof contextData.headers === 'string') {
+    exports.push(contextData.headers);
   }
   
   // Also export any fetch definition variables

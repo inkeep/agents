@@ -9,6 +9,18 @@ import {
   generateProjectFile
 } from '../project-generator';
 
+// Mock registry for tests
+const mockRegistry = {
+  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+    if (!refs || refs.length === 0) return '[]';
+    if (refs.length === 1) return `[${refs[0]}]`;
+    
+    const indentStr = '  '.repeat(indent);
+    const items = refs.map(ref => `${indentStr}${ref}`).join(',\n');
+    return `[\n${items}\n${indentStr.slice(2)}]`;
+  }
+};
+
 describe('Project Generator', () => {
   const basicProjectData = {
     name: 'Customer Support System',
@@ -62,7 +74,7 @@ describe('Project Generator', () => {
 
   describe('generateProjectDefinition', () => {
     it('should generate basic project definition', () => {
-      const definition = generateProjectDefinition('customer-support-project', basicProjectData);
+      const definition = generateProjectDefinition('customer-support-project', basicProjectData, undefined, mockRegistry);
       
       expect(definition).toContain('export const customerSupportProject = project({');
       expect(definition).toContain("id: 'customer-support-project',");
@@ -79,7 +91,7 @@ describe('Project Generator', () => {
     });
 
     it('should generate complex project with all features', () => {
-      const definition = generateProjectDefinition('enterprise-platform', complexProjectData);
+      const definition = generateProjectDefinition('enterprise-platform', complexProjectData, undefined, mockRegistry);
       
       expect(definition).toContain('export const enterprisePlatform = project({');
       expect(definition).toContain('stopWhen: {');
@@ -105,14 +117,14 @@ describe('Project Generator', () => {
         agents: ['onlyAgent']
       };
       
-      const definition = generateProjectDefinition('single-agent-project', singleItemData);
+      const definition = generateProjectDefinition('single-agent-project', singleItemData, undefined, mockRegistry);
       
       expect(definition).toContain('agents: () => [onlyAgent]');
       expect(definition).not.toContain('agents: () => [\n'); // Single line format
     });
 
     it('should handle multiple items in multi-line format', () => {
-      const definition = generateProjectDefinition('multi-item-project', complexProjectData);
+      const definition = generateProjectDefinition('multi-item-project', complexProjectData, undefined, mockRegistry);
       
       expect(definition).toContain('agents: () => [');
       expect(definition).toContain('  primaryAgent,');
@@ -287,7 +299,7 @@ describe('Project Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate project code that compiles', () => {
-      const definition = generateProjectDefinition('test-project', basicProjectData);
+      const definition = generateProjectDefinition('test-project', basicProjectData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
       
       const moduleCode = `
@@ -317,7 +329,7 @@ describe('Project Generator', () => {
     });
 
     it('should generate complex project code that compiles', () => {
-      const definition = generateProjectDefinition('complex-test-project', complexProjectData);
+      const definition = generateProjectDefinition('complex-test-project', complexProjectData, undefined, mockRegistry);
       const definitionWithoutExport = definition.replace('export const ', 'const ');
       
       const moduleCode = `
@@ -434,7 +446,7 @@ describe('Project Generator', () => {
         agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6']
       };
       
-      const definition = generateProjectDefinition('many-agents-project', manyAgentsData);
+      const definition = generateProjectDefinition('many-agents-project', manyAgentsData, undefined, mockRegistry);
       
       expect(definition).toContain('agents: () => [');
       expect(definition).toContain('  agent1,');
@@ -450,7 +462,7 @@ describe('Project Generator', () => {
         tools: ['stringTool']
       };
       
-      const definition = generateProjectDefinition('mixed-types-project', mixedData);
+      const definition = generateProjectDefinition('mixed-types-project', mixedData, undefined, mockRegistry);
       
       expect(definition).toContain('agents: () => [stringAgent]');
       expect(definition).toContain('tools: () => [stringTool]');

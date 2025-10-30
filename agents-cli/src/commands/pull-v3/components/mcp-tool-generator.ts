@@ -91,16 +91,20 @@ export function generateMcpToolDefinition(
     lines.push(formattedHeaders + ',');
   }
   
-  // Optional credential reference - extract from credentialReferenceId
-  const credentialId = toolData.credentialReferenceId;
-  if (credentialId && registry) {
-    const validKey = registry.getVariableName(credentialId, 'credential');
-    lines.push(`${indentation}credential: envSettings.getEnvironmentSetting(${formatString(validKey, q)}),`);
-  }
-  
-  // Optional environment settings reference (alternative to credential)
-  if (toolData.envSettings && !toolData.credential) {
-    lines.push(`${indentation}credential: ${toolData.envSettings},`);
+  // Handle credentials - support direct references and credential IDs
+  if (toolData.credential) {
+    // Direct credential reference (e.g., envSettings.getEnvironmentCredential('key'))
+    if (typeof toolData.credential === 'object') {
+      const credentialStr = JSON.stringify(toolData.credential);
+      lines.push(`${indentation}credential: ${credentialStr},`);
+    } else {
+      // Assume it's a direct reference that should be output as-is
+      lines.push(`${indentation}credential: ${toolData.credential},`);
+    }
+  } else if (toolData.credentialReferenceId && registry) {
+    // Generate credential reference via registry
+    const validKey = registry.getVariableName(toolData.credentialReferenceId, 'credential');
+    lines.push(`${indentation}credential: envSettings.getEnvironmentCredential(${formatString(validKey, q)}),`);
   }
   
   // Remove trailing comma from last line
@@ -129,7 +133,7 @@ export function generateMcpToolImports(
   // Always import mcpTool from SDK
   imports.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
   
-  // Add environment settings import if credential is present
+  // Add environment settings import if using credential references
   if (toolData.credentialReferenceId) {
     imports.push(`import { envSettings } from ${q}../environments${q}${semi}`);
   }

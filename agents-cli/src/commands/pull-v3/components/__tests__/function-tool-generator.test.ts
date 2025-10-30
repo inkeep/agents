@@ -21,7 +21,7 @@ describe('Function Tool Generator', () => {
       },
       required: ['weight', 'height'],
     },
-    execute: `async ({ weight, height }) => {
+    executeCode: `async ({ weight, height }) => {
   const bmi = weight / (height * height);
   let category = 'Normal';
   if (bmi < 18.5) category = 'Underweight';
@@ -154,7 +154,7 @@ describe('Function Tool Generator', () => {
       
       const toolData = {
         name: 'multiply-tool',
-        execute: simpleExecute
+        executeCode: simpleExecute
       };
 
       const definition = generateFunctionToolDefinition('multiply', toolData);
@@ -167,7 +167,7 @@ describe('Function Tool Generator', () => {
     it('should handle execute as simple code block', () => {
       const toolData = {
         name: 'simple-tool',
-        execute: 'return { message: "Hello World" };'
+        executeCode: 'return { message: "Hello World" };'
       };
 
       const definition = generateFunctionToolDefinition('simple', toolData);
@@ -300,7 +300,7 @@ describe('Function Tool Generator', () => {
       const simpleData = {
         name: 'simple-greeting',
         description: 'A simple greeting function tool',
-        execute: 'async ({ name }) => { return { message: `Hello ${name || "World"}!` }; }'
+        executeCode: 'async ({ name }) => { return { message: `Hello ${name ? name : "World"}!` }; }'
       };
       
       const file = generateFunctionToolFile('simple-greeting', simpleData);
@@ -396,7 +396,7 @@ describe('Function Tool Generator', () => {
     it('should handle malformed execute function gracefully', () => {
       const toolData = {
         name: 'bad-execute-tool',
-        execute: 'not a valid function'
+        executeCode: 'not a valid function'
       };
 
       const definition = generateFunctionToolDefinition('bad-execute', toolData);
