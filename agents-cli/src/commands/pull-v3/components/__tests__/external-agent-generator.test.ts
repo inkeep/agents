@@ -103,32 +103,25 @@ describe('External Agent Generator', () => {
       expect(definition).not.toContain('credentialReference: {');
     });
 
-    it('should handle external agent without optional fields', () => {
+    it('should throw error for missing required fields', () => {
       const minimalData = {
         baseUrl: 'https://api.example.com/agent'
       };
       
-      const definition = generateExternalAgentDefinition('minimal-agent', minimalData);
-      
-      expect(definition).toContain('export const minimalAgent = externalAgent({');
-      expect(definition).toContain("id: 'minimal-agent',");
-      expect(definition).toContain("name: 'minimal-agent',"); // Uses ID as fallback
-      expect(definition).toContain("description: 'External agent minimal-agent',"); // Default description
-      expect(definition).toContain("baseUrl: 'https://api.example.com/agent'");
-      expect(definition).not.toContain('credentialReference:');
+      expect(() => {
+        generateExternalAgentDefinition('minimal-agent', minimalData);
+      }).toThrow('Missing required fields for external agent \'minimal-agent\': name, description');
     });
 
-    it('should use agent ID as name fallback', () => {
+    it('should throw error for missing name only', () => {
       const noNameData = {
         description: 'Test external agent',
         baseUrl: 'https://api.example.com/test'
       };
       
-      const definition = generateExternalAgentDefinition('fallback-agent', noNameData);
-      
-      expect(definition).toContain("id: 'fallback-agent',");
-      expect(definition).toContain("name: 'fallback-agent',");
-      expect(definition).toContain("description: 'Test external agent',");
+      expect(() => {
+        generateExternalAgentDefinition('fallback-agent', noNameData);
+      }).toThrow('Missing required fields for external agent \'fallback-agent\': name');
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -178,20 +171,16 @@ describe('External Agent Generator', () => {
       expect(definition).toContain("baseUrl: 'https://api.example.com/empty'");
     });
 
-    it('should handle null and undefined values gracefully', () => {
+    it('should throw error for null required values', () => {
       const nullData = {
         name: 'Test External Agent',
         description: null,
-        baseUrl: undefined,
-        credentialReference: undefined
+        baseUrl: 'https://api.example.com/test'
       };
       
-      const definition = generateExternalAgentDefinition('null-values-agent', nullData);
-      
-      expect(definition).toContain("name: 'Test External Agent',");
-      expect(definition).toContain("description: 'External agent null-values-agent'"); // Uses default, no comma on last line
-      expect(definition).not.toContain('baseUrl:'); // Undefined baseUrl is omitted
-      expect(definition).not.toContain('credentialReference:');
+      expect(() => {
+        generateExternalAgentDefinition('null-values-agent', nullData);
+      }).toThrow('Missing required fields for external agent \'null-values-agent\': description');
     });
 
     it('should handle partial credential reference objects', () => {
@@ -292,29 +281,12 @@ describe('External Agent Generator', () => {
       expect(result.credentialReference.description).toBe('API credentials for weather service');
     });
 
-    it('should generate minimal external agent code that compiles', () => {
+    it('should throw error when trying to generate minimal external agent without required fields', () => {
       const minimalData = { baseUrl: 'https://api.minimal.com/agent' };
-      const definition = generateExternalAgentDefinition('minimal-test-external-agent', minimalData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
       
-      const moduleCode = `
-        const externalAgent = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimalTestExternalAgent;
-      `;
-      
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-      
-      expect(result).toBeDefined();
-      expect(result.id).toBe('minimal-test-external-agent');
-      expect(result.name).toBe('minimal-test-external-agent');
-      expect(result.description).toBe('External agent minimal-test-external-agent');
-      expect(result.baseUrl).toBe('https://api.minimal.com/agent');
+        generateExternalAgentDefinition('minimal-test-external-agent', minimalData);
+      }).toThrow('Missing required fields for external agent \'minimal-test-external-agent\': name, description');
     });
   });
 
@@ -365,6 +337,34 @@ describe('External Agent Generator', () => {
       const definition = generateExternalAgentDefinition('special-url-agent', specialUrlData);
       
       expect(definition).toContain("baseUrl: 'https://api.example.com/v1/agents/special?param=value&other=123'");
+    });
+
+    it('should throw error for empty external agent data', () => {
+      expect(() => {
+        generateExternalAgentDefinition('empty-agent', {});
+      }).toThrow('Missing required fields for external agent \'empty-agent\': name, description, baseUrl');
+    });
+
+    it('should throw error for missing description only', () => {
+      const missingDescData = {
+        name: 'Test Agent',
+        baseUrl: 'https://api.example.com/test'
+      };
+      
+      expect(() => {
+        generateExternalAgentDefinition('missing-desc-agent', missingDescData);
+      }).toThrow('Missing required fields for external agent \'missing-desc-agent\': description');
+    });
+
+    it('should throw error for missing baseUrl only', () => {
+      const missingUrlData = {
+        name: 'Test Agent',
+        description: 'Test description'
+      };
+      
+      expect(() => {
+        generateExternalAgentDefinition('missing-url-agent', missingUrlData);
+      }).toThrow('Missing required fields for external agent \'missing-url-agent\': baseUrl');
     });
   });
 });

@@ -65,32 +65,27 @@ describe('Function Tool Generator', () => {
     it('should handle tool ID to camelCase conversion', () => {
       const definition = generateFunctionToolDefinition('email-sender-tool', { 
         name: 'email-sender',
-        description: 'Send emails' 
+        description: 'Send emails',
+        executeCode: 'return { sent: true };'
       });
       
       expect(definition).toContain("export const emailSenderTool = functionTool({");
       expect(definition).toContain("name: 'email-sender',");
     });
 
-    it('should use tool ID as name fallback when name not provided', () => {
-      const definition = generateFunctionToolDefinition('my-tool', { 
-        description: 'Tool without explicit name' 
-      });
-      
-      expect(definition).toContain("export const myTool = functionTool({");
-      expect(definition).toContain("name: 'my-tool',");
+    it('should throw error for missing name', () => {
+      expect(() => {
+        generateFunctionToolDefinition('my-tool', { 
+          description: 'Tool without explicit name',
+          executeCode: 'return {};'
+        });
+      }).toThrow('Missing required fields for function tool \'my-tool\': name');
     });
 
-    it('should handle tools with only name', () => {
-      const definition = generateFunctionToolDefinition('minimal', { name: 'minimal-tool' });
-      
-      expect(definition).toContain("export const minimal = functionTool({");
-      expect(definition).toContain("name: 'minimal-tool'");
-      expect(definition).not.toContain("description:");
-      expect(definition).not.toContain("inputSchema:");
-      // Should have default execute function
-      expect(definition).toContain("execute: async ({}) => {");
-      expect(definition).toContain("// TODO: Implement function logic");
+    it('should throw error for missing executeCode/execute', () => {
+      expect(() => {
+        generateFunctionToolDefinition('minimal', { name: 'minimal-tool' });
+      }).toThrow('Missing required fields for function tool \'minimal\': executeCode');
     });
 
     it('should handle schema field (alternative to inputSchema)', () => {
@@ -102,7 +97,8 @@ describe('Function Tool Generator', () => {
           properties: {
             value: { type: 'string', description: 'Input value' }
           }
-        }
+        },
+        executeCode: 'return { result: "test" };'
       };
 
       const definition = generateFunctionToolDefinition('test', dataWithSchema);
@@ -126,7 +122,8 @@ describe('Function Tool Generator', () => {
           properties: { 
             schema: { type: 'string', description: 'Schema field' } 
           }
-        }
+        },
+        executeCode: 'return { success: true };'
       };
 
       const definition = generateFunctionToolDefinition('test', dataWithBoth);
@@ -139,7 +136,8 @@ describe('Function Tool Generator', () => {
       const longDescription = 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the function tool';
       const dataWithLongDesc = {
         name: 'detailed-tool',
-        description: longDescription
+        description: longDescription,
+        executeCode: 'return { processed: true };'
       };
 
       const definition = generateFunctionToolDefinition('test', dataWithLongDesc);

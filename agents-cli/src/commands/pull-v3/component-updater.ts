@@ -296,6 +296,7 @@ export async function updateModifiedComponents(
   >();
 
   for (const { type: componentType, id: componentId } of allModifiedComponents) {
+    // Handle function -> functionTool mapping: functions are implementation details of functionTools
     let actualComponentType = componentType;
     if (componentType === 'functions') {
       actualComponentType = 'functionTools';
@@ -305,7 +306,6 @@ export async function updateModifiedComponents(
     const singularType = actualComponentType.slice(0, -1);
     const localComponentSingular = localRegistry.get(componentId, singularType as any);    
     const actualComponent = localComponent || localComponentSingular;
-    
     if (actualComponent) {
       const filePath = actualComponent.filePath.startsWith('/')
         ? actualComponent.filePath
@@ -341,7 +341,6 @@ export async function updateModifiedComponents(
       }> = [];
 
       for (const { type: componentType, id: componentId } of fileComponents) {
-        console.log(`DEBUG: Component type: ${componentType}, Component id: ${componentId}`);
         // Get the updated component data from remote project
         let componentData: any = null;
 
@@ -389,10 +388,10 @@ export async function updateModifiedComponents(
                 }
               }
             }
-        }
-        // } else if (componentType === 'credentials') {
-        //   // Credentials are in credentialReferences
-        //   componentData = remoteProject.credentialReferences?.[componentId];
+          }
+        } else if (componentType === 'credentials') {
+          // Credentials are in credentialReferences
+          componentData = remoteProject.credentialReferences?.[componentId];
         } else {
           // Standard top-level component lookup
           const remoteComponents = (remoteProject as any)[componentType] || {};

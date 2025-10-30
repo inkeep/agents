@@ -12,6 +12,7 @@ import {
 describe('Credential Generator', () => {
   const testCredentialData = {
     id: 'inkeep-api-key',
+    name: 'Inkeep API Key',
     type: 'memory',
     credentialStoreId: 'memory-default',
     description: 'API key for Inkeep search and context services',
@@ -22,6 +23,7 @@ describe('Credential Generator', () => {
 
   const envCredentialData = {
     id: 'database-url',
+    name: 'Database URL',
     type: 'env',
     credentialStoreId: 'env-production',
     description: 'Database connection URL for production environment',
@@ -33,6 +35,7 @@ describe('Credential Generator', () => {
 
   const keychainCredentialData = {
     id: 'slack-token',
+    name: 'Slack Token',
     type: 'keychain',
     credentialStoreId: 'keychain-main',
     description: 'Slack bot token stored in OS keychain',
@@ -77,6 +80,7 @@ describe('Credential Generator', () => {
 
     it('should handle credential ID to camelCase conversion', () => {
       const definition = generateCredentialDefinition('database-connection-url', { 
+        name: 'Database Connection URL',
         type: 'env',
         credentialStoreId: 'env-default'
       });
@@ -85,24 +89,37 @@ describe('Credential Generator', () => {
       expect(definition).toContain("id: 'database-connection-url',");
     });
 
-    it('should provide default type when not specified', () => {
+    it('should handle credential with all required fields', () => {
       const definition = generateCredentialDefinition('my-credential', { 
+        name: 'My Credential',
+        type: 'memory',
         credentialStoreId: 'memory-default'
       });
       
       expect(definition).toContain("export const myCredential = credential({");
-      expect(definition).toContain("type: 'memory',"); // Default type
+      expect(definition).toContain("type: 'memory',");
     });
 
-    it('should provide default credentialStoreId when not specified', () => {
-      const definition = generateCredentialDefinition('env-cred', { type: 'env' });
+    it('should handle different credential store types', () => {
+      const envDef = generateCredentialDefinition('env-cred', { 
+        name: 'Env Cred',
+        type: 'env',
+        credentialStoreId: 'env-default'
+      });
+      expect(envDef).toContain("credentialStoreId: 'env-default',");
       
-      expect(definition).toContain("credentialStoreId: 'env-default',");
-      
-      const keychainDef = generateCredentialDefinition('keychain-cred', { type: 'keychain' });
+      const keychainDef = generateCredentialDefinition('keychain-cred', { 
+        name: 'Keychain Cred',
+        type: 'keychain',
+        credentialStoreId: 'keychain-default'
+      });
       expect(keychainDef).toContain("credentialStoreId: 'keychain-default',");
       
-      const memoryDef = generateCredentialDefinition('memory-cred', { type: 'memory' });
+      const memoryDef = generateCredentialDefinition('memory-cred', { 
+        name: 'Memory Cred',
+        type: 'memory',
+        credentialStoreId: 'memory-default'
+      });
       expect(memoryDef).toContain("credentialStoreId: 'memory-default',");
     });
 
@@ -130,6 +147,7 @@ describe('Credential Generator', () => {
 
     it('should provide default retrieval params when not specified', () => {
       const definition = generateCredentialDefinition('openai-api-key', { 
+        name: 'OpenAI API Key',
         type: 'memory',
         credentialStoreId: 'memory-default'
       });
@@ -138,21 +156,16 @@ describe('Credential Generator', () => {
       expect(definition).toContain("'key': 'OPENAI_API_KEY'"); // Auto-generated from ID
     });
 
-    it('should handle credentials with minimal data', () => {
-      const definition = generateCredentialDefinition('minimal', {});
-      
-      expect(definition).toContain("export const minimal = credential({");
-      expect(definition).toContain("id: 'minimal',");
-      expect(definition).toContain("type: 'memory',"); // Default type
-      expect(definition).toContain("credentialStoreId: 'memory-default',"); // Default store
-      expect(definition).toContain("retrievalParams: {");
-      expect(definition).toContain("'key': 'MINIMAL'"); // Auto-generated key
-      expect(definition).not.toContain("description:");
+    it('should throw error for missing required fields', () => {
+      expect(() => {
+        generateCredentialDefinition('minimal', {});
+      }).toThrow('Missing required fields for credential \'minimal\': name, type, credentialStoreId');
     });
 
     it('should handle multiline descriptions', () => {
       const longDescription = 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings and contains detailed information about the credential';
       const dataWithLongDesc = {
+        name: 'Long Description Credential',
         type: 'env',
         credentialStoreId: 'env-production',
         description: longDescription
@@ -165,6 +178,7 @@ describe('Credential Generator', () => {
 
     it('should handle nested retrieval params', () => {
       const complexCredential = {
+        name: 'Complex Credential',
         type: 'keychain',
         credentialStoreId: 'keychain-main',
         retrievalParams: {
@@ -189,6 +203,7 @@ describe('Credential Generator', () => {
 
     it('should handle different data types in retrieval params', () => {
       const mixedParamsCredential = {
+        name: 'Mixed Params Credential',
         type: 'env',
         credentialStoreId: 'env-default',
         retrievalParams: {
@@ -310,43 +325,23 @@ describe('Credential Generator', () => {
       expect(result.retrievalParams.account).toBe('my-workspace');
     });
 
-    it('should generate code for minimal credential with defaults that compiles', () => {
-      const definition = generateCredentialDefinition('minimal-cred', {});
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const credential = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimalCred;
-      `;
-
-      let result;
+    it('should throw error for minimal credential with missing fields', () => {
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('minimal-cred');
-      expect(result.type).toBe('memory'); // Default type
-      expect(result.credentialStoreId).toBe('memory-default'); // Default store
-      expect(result.retrievalParams.key).toBe('MINIMAL_CRED'); // Auto-generated
+        generateCredentialDefinition('minimal-cred', {});
+      }).toThrow('Missing required fields for credential \'minimal-cred\': name, type, credentialStoreId');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty credential data', () => {
-      const definition = generateCredentialDefinition('empty', {});
-      
-      expect(definition).toContain("export const empty = credential({");
-      expect(definition).toContain("id: 'empty',");
-      expect(definition).toContain("type: 'memory',");
-      expect(definition).toContain("credentialStoreId: 'memory-default',");
-      expect(definition).toContain("'key': 'EMPTY'");
+    it('should throw error for empty credential data', () => {
+      expect(() => {
+        generateCredentialDefinition('empty', {});
+      }).toThrow('Missing required fields for credential \'empty\': name, type, credentialStoreId');
     });
 
     it('should handle special characters in credential ID', () => {
       const definition = generateCredentialDefinition('api-key_v2', { 
+        name: 'API Key V2',
         type: 'env',
         credentialStoreId: 'env-default'
       });
@@ -357,6 +352,7 @@ describe('Credential Generator', () => {
 
     it('should handle credential ID starting with number', () => {
       const definition = generateCredentialDefinition('2023-api-key', { 
+        name: '2023 API Key',
         type: 'memory',
         credentialStoreId: 'memory-default'
       });
@@ -366,6 +362,7 @@ describe('Credential Generator', () => {
 
     it('should handle null and undefined values gracefully', () => {
       const credentialData = {
+        name: 'Null Test Credential',
         type: 'env',
         credentialStoreId: 'env-default',
         description: null,
@@ -385,6 +382,7 @@ describe('Credential Generator', () => {
 
     it('should handle empty retrieval params object', () => {
       const credentialData = {
+        name: 'Empty Params Credential',
         type: 'memory',
         credentialStoreId: 'memory-default',
         retrievalParams: {}

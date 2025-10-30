@@ -314,7 +314,7 @@ Always maintain a helpful and empathetic tone.`,
 
 Use technical language appropriate to the customer's expertise level.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'knowledge-base' }, { toolId: 'priority-calculator' }],
-          canDelegateTo: [{ subAgentId: 'escalation-specialist' }],
+          canDelegateTo: ['escalation-specialist'],
           dataComponents: ['ticket-context', 'resolution-data'],
           artifactComponents: ['ticket-summary'],
           stopWhen: {
@@ -352,7 +352,7 @@ Always verify customer identity before discussing account details.`,
 
 Prioritize customer satisfaction and swift resolution.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'slack-notifier' }, { toolId: 'priority-calculator' }],
-          canTransferTo: [{ externalAgentId: 'legacy-crm' }],
+          canTransferTo: ['legacy-crm'],
           dataComponents: ['customer-profile', 'ticket-context', 'resolution-data'],
           artifactComponents: ['escalation-report'],
           stopWhen: {

@@ -105,25 +105,22 @@ describe('Data Component Generator', () => {
     });
 
     it('should handle component ID to camelCase conversion', () => {
-      const definition = generateDataComponentDefinition('user-profile-data', { name: 'Profile' });
+      const definition = generateDataComponentDefinition('user-profile-data', { name: 'Profile', description: 'User profile data' });
       
       expect(definition).toContain("export const userProfileData = dataComponent({");
       expect(definition).toContain("id: 'user-profile-data',");
     });
 
-    it('should handle components with only id', () => {
-      const definition = generateDataComponentDefinition('minimal', {});
-      
-      expect(definition).toContain("export const minimal = dataComponent({");
-      expect(definition).toContain("id: 'minimal'");
-      expect(definition).not.toContain("name:");
-      expect(definition).not.toContain("description:");
-      expect(definition).not.toContain("props:");
+    it('should throw error for missing required fields', () => {
+      expect(() => {
+        generateDataComponentDefinition('minimal', {});
+      }).toThrow('Missing required fields for data component \'minimal\': name, description');
     });
 
     it('should handle schema field (alternative to props)', () => {
       const dataWithSchema = {
         name: 'Test',
+        description: 'Test component with schema',
         schema: {
           type: 'object',
           properties: {
@@ -141,6 +138,7 @@ describe('Data Component Generator', () => {
     it('should prefer props over schema when both exist', () => {
       const dataWithBoth = {
         name: 'Test',
+        description: 'Test component with both props and schema',
         props: {
           type: 'object',
           properties: { prop: { type: 'string' } }
@@ -386,23 +384,35 @@ describe('Data Component Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty component data', () => {
-      const definition = generateDataComponentDefinition('empty', {});
-      
-      expect(definition).toBe("export const empty = dataComponent({\n  id: 'empty'\n});");
+    it('should throw error for empty component data', () => {
+      expect(() => {
+        generateDataComponentDefinition('empty', {});
+      }).toThrow('Missing required fields for data component \'empty\': name, description');
     });
 
     it('should handle special characters in component ID', () => {
-      const definition = generateDataComponentDefinition('user-data_2023', { name: 'User Data' });
+      const definition = generateDataComponentDefinition('user-data_2023', { name: 'User Data', description: 'Data for user' });
       
       expect(definition).toContain("export const userData2023 = dataComponent({");
       expect(definition).toContain("id: 'user-data_2023',");
     });
 
     it('should handle component ID starting with number', () => {
-      const definition = generateDataComponentDefinition('2023-data', { name: 'Data' });
+      const definition = generateDataComponentDefinition('2023-data', { name: 'Data', description: 'Data for 2023' });
       
       expect(definition).toContain("export const _2023Data = dataComponent({");
+    });
+
+    it('should throw error for missing name only', () => {
+      expect(() => {
+        generateDataComponentDefinition('missing-name', { description: 'Test description' });
+      }).toThrow('Missing required fields for data component \'missing-name\': name');
+    });
+
+    it('should throw error for missing description only', () => {
+      expect(() => {
+        generateDataComponentDefinition('missing-desc', { name: 'Test Name' });
+      }).toThrow('Missing required fields for data component \'missing-desc\': description');
     });
   });
 });

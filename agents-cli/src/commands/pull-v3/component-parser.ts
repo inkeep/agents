@@ -137,9 +137,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       // Only use 'name' field for functionTool components
       if (componentType && componentType === 'functionTool') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
-        
-        console.log(`DEBUG: ✅ Registering FUNCTION TOOL: ${componentId} (${variableName}) in ${relativePath}:${lineNumber}`);
-        
+                
         components.push({
           id: componentId,
           type: componentType,
@@ -265,9 +263,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       // Only use 'name' field for functionTool components
       if (componentType && componentType === 'functionTool' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
-        
-        console.log(`DEBUG: ✅ Registering NON-EXPORTED FUNCTION TOOL: ${componentId} (${variableName}) in ${relativePath}:${lineNumber}`);
-        
+                
         components.push({
           id: componentId,
           type: componentType,
@@ -324,6 +320,39 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       }
     }
 
+    // Pattern: Environment-based credentials within registerEnvironmentSettings
+    // export const development = registerEnvironmentSettings({
+    //   credentials: {
+    //     stripe_api_key: {
+    //       id: 'stripe-api-key',
+    //       name: 'Stripe API Keys',
+    //       ...
+    //     }
+    //   }
+    // });
+    const envCredentialsPattern = /registerEnvironmentSettings\s*\(\s*\{[^}]*?credentials:\s*\{([^}]+?)\}/gs;
+    let envMatch;
+    while ((envMatch = envCredentialsPattern.exec(content)) !== null) {
+      const credentialsBlock = envMatch[1];
+      
+      // Extract individual credentials from the credentials block
+      const credentialPattern = /(\w+):\s*\{[^}]*?id:\s*['"`]([^'"`]+)['"`]/g;
+      let credMatch;
+      while ((credMatch = credentialPattern.exec(credentialsBlock)) !== null) {
+        const credentialKey = credMatch[1]; // e.g., "stripe_api_key"
+        const credentialId = credMatch[2];  // e.g., "stripe-api-key"
+        const lineNumber = content.substring(0, envMatch.index).split('\n').length;
+        
+        components.push({
+          id: credentialId,
+          type: 'credential',
+          filePath: relativePath,
+          variableName: credentialKey, // Use the key name as variable name
+          startLine: lineNumber,
+          isInline: true // It's nested within environment settings
+        });
+      }
+    }
 
   } catch (error) {
     console.warn(`Failed to parse file ${filePath}: ${error}`);

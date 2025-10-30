@@ -123,7 +123,7 @@ export function generateFetchDefinitionDefinition(
   
   // fetchConfig - handle template variables in URLs and headers
   if (fetchData.fetchConfig) {
-    const processedFetchConfig = processFetchConfigTemplates(fetchData.fetchConfig, headersVarName);
+    const processedFetchConfig = processFetchConfigTemplates(fetchData.fetchConfig, headersVarName || 'headers');
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
   
@@ -314,7 +314,7 @@ export function generateContextConfigFile(
       headersVarName = `${toCamelCase(contextId)}Headers`;
     }
     
-    const headersDefinition = generateHeadersDefinition(headersVarName, { schema: contextData.headersSchema }, style);
+    const headersDefinition = generateHeadersDefinition(headersVarName || 'headers', { schema: contextData.headersSchema }, style);
     definitions.push(headersDefinition);
   }
   
