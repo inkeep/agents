@@ -65,7 +65,7 @@ export function JsonSchemaInput<T extends FieldValues>({
           readOnly={readOnly}
           disabled={disabled}
           actions={
-            <Dialog>
+            <Dialog defaultOpen>
               <DialogTrigger asChild>
                 <Button
                   type="button"

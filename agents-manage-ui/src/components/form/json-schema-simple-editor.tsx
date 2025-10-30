@@ -10,18 +10,7 @@ import { MultiSchemaFieldTemplate } from './rjsf/MultiSchemaFieldTemplate';
 import { BaseInputTemplate } from './rjsf/BaseInputTemplate';
 import { ObjectFieldTemplate } from './rjsf/ObjectFieldTemplate';
 
-const Form = withTheme({
-  widgets: {
-    ...ShadcnTheme.widgets,
-  },
-  templates: {
-    ...ShadcnTheme.templates,
-    // MultiSchemaFieldTemplate,
-    // ArrayFieldItemTemplate,
-    // BaseInputTemplate,
-    // ObjectFieldTemplate,
-  },
-});
+const Form = withTheme(ShadcnTheme);
 
 interface JsonSchemaSimpleEditorProps {
   value: SimpleJsonSchema | undefined;
@@ -40,8 +29,14 @@ function buildForm(obj: RJSFSchema) {
 
 const SIMPLE_SCHEMA: RJSFSchema = {
   type: 'array',
+  title: 'properties',
   items: {
-    oneOf: [{ $ref: '#/$defs/string' }, { $ref: '#/$defs/number' }, { $ref: '#/$defs/boolean' }],
+    oneOf: [
+      { $ref: '#/$defs/string' },
+      { $ref: '#/$defs/number' },
+      { $ref: '#/$defs/boolean' },
+      { $ref: '#/$defs/enum' },
+    ],
   },
   $defs: {
     name: {
@@ -59,7 +54,7 @@ const SIMPLE_SCHEMA: RJSFSchema = {
     },
     string: {
       type: 'object',
-      title: 'STR',
+      title: 'string',
       properties: {
         name: {
           $ref: '#/$defs/name',
@@ -71,7 +66,7 @@ const SIMPLE_SCHEMA: RJSFSchema = {
     },
     number: {
       type: 'object',
-      title: 'NUM',
+      title: 'number',
       properties: {
         name: {
           $ref: '#/$defs/name',
@@ -83,13 +78,34 @@ const SIMPLE_SCHEMA: RJSFSchema = {
     },
     boolean: {
       type: 'object',
-      title: 'BOOL',
+      title: 'boolean',
       properties: {
         name: {
           $ref: '#/$defs/name',
         },
         description: {
           $ref: '#/$defs/description',
+        },
+      },
+    },
+    enum: {
+      type: 'object',
+      title: 'enum',
+      properties: {
+        name: {
+          $ref: '#/$defs/name',
+        },
+        description: {
+          $ref: '#/$defs/description',
+        },
+        multiSelect: {
+          type: 'array',
+          items: {
+            type: 'string',
+            // enum: ['foo', 'bar'],
+          },
+          uniqueItems: true,
+          minItems: 1,
         },
       },
     },
@@ -102,12 +118,19 @@ const SIMPLE_UI_SCHEMA: UiSchema = {
     orderable: false,
   },
   items: {
-    'ui:order': ['description', '*'],
     name: {
       'ui:placeholder': 'Property name',
     },
     description: {
       'ui:placeholder': 'Add description',
+    },
+    multiSelect: {
+      'ui:widget': 'select',
+      'ui:options': {
+        multiple: true,
+      },
+      'ui:help': 'Select 2-3 frameworks',
+      'ui:placeholder': 'Select frameworks (required)',
     },
   },
 };
@@ -118,7 +141,8 @@ export function JsonSchemaSimpleEditor({
   disabled,
   readOnly,
 }: JsonSchemaSimpleEditorProps) {
-  const formData = value ?? createEmptySimpleJsonSchema();
+  // const formData = value ?? createEmptySimpleJsonSchema();
+  // console.log({ formData, value });
 
   return (
     <Form<SimpleJsonSchema>
