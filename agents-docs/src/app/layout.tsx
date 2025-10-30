@@ -8,8 +8,8 @@ import { Navbar } from '@/components/navbar';
 import { JsonLd } from '@/components/seo/json-ld';
 import { AppSidebar } from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
 import { createMetadata } from '@/lib/metadata';
+import { cn } from '@/lib/utils';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -38,7 +38,7 @@ const orgLd: WithContext<Organization> = {
     },
   ],
   sameAs: [
-    'https://x.com/inkeep_ai',
+    'https://x.com/inkeep',
     'https://www.linkedin.com/company/inkeep',
     'https://github.com/inkeep',
     'https://www.crunchbase.com/organization/inkeep',
