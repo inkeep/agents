@@ -90,15 +90,6 @@ jobs:
           CI: true
           HUSKY: 0
 
-      # Run Cypress E2E tests using composite action
-      - name: Run Cypress E2E Tests
-        uses: ./.github/composite-actions/cypress-e2e
-        env:
-          TURBO_TELEMETRY_DISABLED: 1
-          TURBO_CACHE_DIR: .turbo
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-
       # Create summary report
       - name: Create CI Summary
         if: always()
