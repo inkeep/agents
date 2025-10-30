@@ -385,7 +385,6 @@ export class Agent implements AgentInterface {
       models: this.models,
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
-      stopWhen: this.stopWhen,
       prompt: this.prompt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
