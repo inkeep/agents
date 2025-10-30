@@ -61,14 +61,10 @@ describe('convertJsonSchemaToFields', () => {
     const schema = convertJsonSchemaToFields(JSONSchema);
     expect(schema).toMatchInlineSnapshot(`
       {
-        "description": undefined,
-        "name": "",
         "properties": [
           {
             "description": "The list of activities",
             "items": {
-              "description": undefined,
-              "name": "",
               "properties": [
                 {
                   "description": "The main title of the event or activity category",
@@ -98,17 +94,14 @@ describe('convertJsonSchemaToFields', () => {
                   "name": "details",
                   "properties": [
                     {
-                      "description": undefined,
                       "name": "dates",
                       "type": "string",
                     },
                     {
-                      "description": undefined,
                       "name": "time",
                       "type": "string",
                     },
                     {
-                      "description": undefined,
                       "name": "location",
                       "type": "string",
                     },
@@ -118,8 +111,6 @@ describe('convertJsonSchemaToFields', () => {
                 {
                   "description": "A list of sub-points or examples, like different parks for hiking",
                   "items": {
-                    "description": undefined,
-                    "name": "",
                     "type": "string",
                   },
                   "name": "subItems",
