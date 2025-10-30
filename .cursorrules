@@ -55,7 +55,7 @@ This is the Inkeep Agent Framework - a multi-agent AI system with A2A (Agent-to-
 - `/agent-builder/src/app/` - Next.js pages and routing
 - `/docs/` - Public documentation site (Next.js/Fumadocs)
 - `/docs-legacy/` - Legacy internal documentation
-- `/examples/` - Reference implementations
+- `/agents-cookbook/` - Reference implementations
 
 ### Development Commands
 ```bash
