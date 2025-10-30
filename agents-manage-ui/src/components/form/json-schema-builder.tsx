@@ -20,12 +20,12 @@ import type { JSONSchema7 } from 'json-schema';
 import { JSONSchemaFixture } from '@/components/form/__tests__/json-schema-fixture';
 
 const Types = {
-  string: 'str',
-  number: 'num',
-  boolean: 'bool',
+  string: 'string',
+  number: 'number',
+  boolean: 'boolean',
   enum: 'enum',
-  array: 'arr',
-  object: 'obj',
+  array: 'array',
+  object: 'object',
 };
 
 type TypeValues = (typeof Types)[keyof typeof Types];
@@ -134,21 +134,21 @@ const PropertyArray: FC<{ children: ReactNode }> = ({ children }) => {
 };
 
 const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
-  str: StringIcon,
-  num: NumberIcon,
-  bool: BooleanIcon,
+  string: StringIcon,
+  number: NumberIcon,
+  boolean: BooleanIcon,
   enum: EnumIcon,
-  arr: ArrayIcon,
-  obj: ObjectIcon,
+  array: ArrayIcon,
+  object: ObjectIcon,
 };
 
 const ClassToUse: Record<string, string> = {
-  str: 'text-green-500',
-  num: 'text-blue-500',
-  bool: 'text-orange-500',
+  string: 'text-green-500',
+  number: 'text-blue-500',
+  boolean: 'text-orange-500',
   enum: 'text-yellow-500',
-  arr: 'text-pink-500',
-  obj: 'text-purple-500',
+  array: 'text-pink-500',
+  object: 'text-purple-500',
 };
 
 const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
