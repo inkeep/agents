@@ -49,12 +49,14 @@ const testProject: FullProjectDefinition = {
   credentialReferences: {
     'zendesk-api': {
       id: 'zendesk-api',
+      name: 'Zendesk API Credentials',
       type: 'nango',
       credentialStoreId: 'main-vault',
       retrievalParams: { token: 'ZENDESK_API_TOKEN' }
     },
     'slack-bot': {
       id: 'slack-bot',
+      name: 'Slack Bot Credentials',
       type: 'keychain',
       credentialStoreId: 'main-vault',
       retrievalParams: { 
@@ -64,6 +66,7 @@ const testProject: FullProjectDefinition = {
     },
     'database-conn': {
       id: 'database-conn',
+      name: 'Database Connection',
       type: 'memory',
       credentialStoreId: 'secure-vault',
       retrievalParams: {
