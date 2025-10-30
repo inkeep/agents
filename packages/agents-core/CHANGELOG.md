@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.29.10
+
+### Patch Changes
+
+- 0663c46: open browser flag
+
 ## 0.29.9
 
 ## 0.29.8

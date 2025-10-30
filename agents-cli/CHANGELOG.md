@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.29.10
+
+### Patch Changes
+
+- 0663c46: open browser flag
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+  - @inkeep/agents-manage-ui@0.29.10
+  - @inkeep/agents-sdk@0.29.10
+
 ## 0.29.9
 
 ### Patch Changes
