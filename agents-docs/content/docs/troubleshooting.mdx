@@ -73,6 +73,20 @@ If your agent stops mid-conversation, it may have hit a configured stopWhen limi
 
 See [Configuring StopWhen](/typescript-sdk/agent-settings#configuring-stopwhen) for more details.
 
+## Check service logs (local development)
+
+When running `pnpm dev` from your [quickstart workspace](/quick-start/start-development), you will see an interactive terminal interface. This interface allows you to inspect the logs of each [running service](/quick-start/start-development#service-ports). You can navigate between services using the up and down arrow keys.
+
+![Service logs in local development](/images/agents-quickstart-pnpm-dev.png)
+
+- The `service-info` tab displays the health of each running service. 
+- The `manage-api` tab contains logs for all database operations. This is useful primarily for debugging issues with [`inkeep push`](/typescript-sdk/push-pull-workflows).
+- The `run-api` tab contains logs for all agent execution and tool calls. This is useful for debugging issues with your agent's behavior.
+- The `mcp` tab contains logs for your [custom MCP servers](/tutorials/how-to-create-mcp-servers/inkeep).
+- The `dashboard` tab displays logs for the [Visual Builder](/visual-builder/overview) dashboard.
+
+To terminate the running services, click on the `Processes` box and press `q`.
+
 ## Common Configuration Issues
 
 ### General Configuration Issues
