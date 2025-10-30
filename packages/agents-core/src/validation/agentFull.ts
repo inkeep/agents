@@ -105,7 +105,7 @@ export function validateArtifactComponentReferences(
 }
 
 /**
- * Validates agent relationships (transfer and delegation targets exist)
+ * Validates agent relationships (transfer and delegation targets exist, and there is no circular delegation)
  */
 export function validateAgentRelationships(agentData: FullAgentDefinition): void {
   const errors: string[] = [];
@@ -135,6 +135,19 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
             errors.push(
               `Agent '${subAgentId}' has delegation target '${targetItem}' that doesn't exist in agent`
             );
+          }
+
+          const targetAgent = agentData.subAgents[targetItem];
+          if (targetAgent && targetAgent.canDelegateTo && Array.isArray(targetAgent.canDelegateTo)) {
+            const delegatesBackToSource = targetAgent.canDelegateTo.some((item) => {
+              return typeof item === 'string' && item === subAgentId;
+            });
+
+            if (delegatesBackToSource) {
+              errors.push(
+                `Circular delegation detected: Agent '${subAgentId}' delegates to '${targetItem}' which delegates back to '${subAgentId}'. Two-way delegation is not allowed.`
+              );
+            }
           }
         }
       }

@@ -1,12 +1,9 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
-import { Spline, Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
+import { Spline } from 'lucide-react';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
@@ -15,21 +12,27 @@ type RelationshipOptionProps = {
   label: string | React.ReactNode;
   onCheckedChange: (id: string, checked: boolean) => void;
   checked: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
-function RelationshipOption({ id, label, onCheckedChange, checked }: RelationshipOptionProps) {
+function RelationshipOption({ id, label, onCheckedChange, checked, disabled, disabledReason }: RelationshipOptionProps) {
   return (
     <div className="flex items-start gap-3">
       <Checkbox
         id={id}
         onCheckedChange={(checked) => onCheckedChange(id, checked as boolean)}
         checked={checked}
+        disabled={disabled}
         className="mt-[5px]"
       />
       <div className="grid gap-2">
-        <Label htmlFor={id} className="font-normal">
+        <Label htmlFor={id} className={`font-normal ${disabled ? 'text-muted-foreground' : ''}`}>
           {label}
         </Label>
+        {disabled && disabledReason && (
+          <p className="text-xs text-muted-foreground">{disabledReason}</p>
+        )}
       </div>
     </div>
   );
@@ -39,7 +42,7 @@ type RelationshipSectionProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
-  options: Array<{ id: string; label: string | React.ReactNode }>;
+  options: Array<{ id: string; label: string | React.ReactNode; disabled?: boolean; disabledReason?: string }>;
   onCheckedChange: (id: string, checked: boolean) => void;
   checkedValues: A2AEdgeData['relationships'];
 };
@@ -68,6 +71,8 @@ function RelationshipSection({
           label={option.label}
           onCheckedChange={onCheckedChange}
           checked={checkedValues?.[option.id as keyof A2AEdgeData['relationships']] || false}
+          disabled={option.disabled}
+          disabledReason={option.disabledReason}
         />
       ))}
     </div>
@@ -79,12 +84,7 @@ interface EdgeEditorProps {
 }
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
-  const { updateEdgeData, setEdges, deleteElements } = useReactFlow();
-
-  const deleteEdge = useCallback(() => {
-    deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id, deleteElements]);
-
+  const { updateEdgeData, setEdges } = useReactFlow();
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
   const { markUnsaved } = useAgentActions();
@@ -111,10 +111,27 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         ...updates,
       };
     } else {
-      newRelationships = {
-        ...(selectedEdge.data?.relationships as A2AEdgeData['relationships']),
-        [id]: checked,
-      };
+      const currentRelationships = selectedEdge.data?.relationships as A2AEdgeData['relationships'];
+      
+      // Prevent two-way delegation: if enabling a delegation, automatically disable the reverse
+      if (checked && id === 'delegateSourceToTarget' && currentRelationships?.delegateTargetToSource) {
+        newRelationships = {
+          ...currentRelationships,
+          delegateSourceToTarget: true,
+          delegateTargetToSource: false,
+        };
+      } else if (checked && id === 'delegateTargetToSource' && currentRelationships?.delegateSourceToTarget) {
+        newRelationships = {
+          ...currentRelationships,
+          delegateSourceToTarget: false,
+          delegateTargetToSource: true,
+        };
+      } else {
+        newRelationships = {
+          ...currentRelationships,
+          [id]: checked,
+        };
+      }
     }
 
     const hasAnyRelationship =
@@ -186,6 +203,10 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         },
       ];
 
+  const currentRelationships = selectedEdge.data?.relationships as A2AEdgeData['relationships'];
+  const hasSourceToTargetDelegate = currentRelationships?.delegateSourceToTarget;
+  const hasTargetToSourceDelegate = currentRelationships?.delegateTargetToSource;
+
   const delegateOptions = isSelfLoop
     ? [
         {
@@ -214,6 +235,8 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
               </Badge>
             </div>
           ),
+          disabled: hasTargetToSourceDelegate,
+          disabledReason: hasTargetToSourceDelegate ? 'Two-way delegation is not allowed. Uncheck the reverse delegation first.' : undefined,
         },
         {
           id: 'delegateTargetToSource',
@@ -228,6 +251,8 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
               </Badge>
             </div>
           ),
+          disabled: hasSourceToTargetDelegate,
+          disabledReason: hasSourceToTargetDelegate ? 'Two-way delegation is not allowed. Uncheck the reverse delegation first.' : undefined,
         },
       ];
 
@@ -250,13 +275,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         onCheckedChange={handleCheckboxChange}
         checkedValues={selectedEdge.data?.relationships as A2AEdgeData['relationships']}
       />
-      <Separator />
-      <div className="flex justify-end">
-        <Button variant="destructive-outline" size="sm" onClick={deleteEdge}>
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-      </div>
     </div>
   );
 }
