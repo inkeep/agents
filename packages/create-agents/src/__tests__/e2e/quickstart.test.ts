@@ -32,6 +32,12 @@ describe('create-agents quickstart e2e', () => {
   });
 
   it('should work e2e', async () => {
+    const monorepoRoot = path.join(__dirname, '../../../../../');
+    const createAgentsPrefix = path.join(monorepoRoot, 'packages/create-agents-template');
+    const projectTemplatesPrefix = path.join(
+      monorepoRoot,
+      'packages/agents-cookbook/template-projects'
+    );
     // Run the CLI with all options (non-interactive mode)
     console.log('Running CLI with options:');
     console.log(`Working directory: ${testDir}`);
@@ -41,6 +47,10 @@ describe('create-agents quickstart e2e', () => {
         '--openai-key',
         'test-openai-key',
         '--disable-git', // Skip git init for faster tests
+        '--local-agents-prefix',
+        createAgentsPrefix,
+        '--local-templates-prefix',
+        projectTemplatesPrefix,
       ],
       testDir
     );
@@ -149,7 +159,6 @@ describe('create-agents quickstart e2e', () => {
       expect(data.data.id).toBe(projectId);
 
       // Link to local monorepo packages
-      const monorepoRoot = path.join(__dirname, '../../../../../'); // Go up to repo root
       await linkLocalPackages(projectDir, monorepoRoot);
 
       const pushResultLocal = await runCommand(

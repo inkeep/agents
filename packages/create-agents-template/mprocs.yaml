@@ -1,0 +1,17 @@
+procs:
+  service-info: 
+    shell: "node scripts/show-services.js --watch"
+    dependencies:
+      - manage-api
+      - run-api
+      - mcp
+  manage-api:
+    shell: "pnpm dev"
+    cwd: "apps/manage-api"
+  run-api:
+    shell: "pnpm dev"
+    cwd: "apps/run-api"
+  mcp:
+    shell: "node scripts/start-mcp-conditionally.js"
+  dashboard:
+    shell: "inkeep dev --open-browser"
