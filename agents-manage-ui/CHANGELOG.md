@@ -1,5 +1,23 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.11
+
+### Patch Changes
+
+- 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+- 69c303e: fix validation errors for Sub Agents and setup Cypress e2e tests
+- Updated dependencies [dba5a31]
+- Updated dependencies [b0817aa]
+  - @inkeep/agents-core@0.29.11
+  - @inkeep/agents-manage-api@0.29.11
+  - @inkeep/agents-run-api@0.29.11
+
 ## 0.29.10
 
 ### Patch Changes

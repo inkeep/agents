@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.29.11
+
+### Patch Changes
+
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
 ## 0.29.10
 
 ### Patch Changes
