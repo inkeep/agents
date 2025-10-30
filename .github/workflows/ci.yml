@@ -117,3 +117,64 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
+
+  create-agents-e2e:
+    runs-on: ubuntu-latest
+    name: Create Agents E2E Tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-create-agents-e2e-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-create-agents-e2e-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+
+      - name: Build create-agents
+        run: pnpm --filter @inkeep/create-agents build
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+      - name: Run create-agents E2E tests
+        run: pnpm --filter @inkeep/create-agents test:e2e
