@@ -384,15 +384,19 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 }
 
 async function createInkeepConfig(config: FileConfig) {
-  const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-  const config = defineConfig({
-    tenantId: "${config.tenantId}",
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
-  });
-      
-  export default config;`;
+    const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
+    
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+  },
+});
+    
+export default config;`;
   await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
