@@ -2,6 +2,7 @@
   "name": "agents-cookbook-templates",
   "version": "1.0.0",
   "description": "Template projects for the agents cookbook",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "start:weather": "tsx weather-project/index.ts",
