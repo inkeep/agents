@@ -51,8 +51,17 @@ const mockRegistry = {
     return [];
   },
   getAllComponents: () => {
-    // Mock implementation returns empty array
-    return [];
+    // Mock implementation returns contextConfig component
+    return [
+      {
+        id: 'personalAgentContext',
+        name: 'personalAgentContext',
+        type: 'contextConfig',
+        filePath: 'context-configs/personalAgentContext.ts',
+        exportName: 'personalAgentContext',
+        isInline: false
+      }
+    ];
   }
 };
 
@@ -60,24 +69,34 @@ describe('Agent Generator', () => {
   const basicAgentData = {
     name: 'Personal Assistant Agent',
     description: 'A personalized AI assistant for managing tasks and information',
-    defaultSubAgent: 'personalAssistant',
-    subAgents: ['personalAssistant', 'coordinatesAgent'],
-    contextConfig: 'personalAgentContext'
+    defaultSubAgentId: 'personalAssistant',
+    subAgents: {
+      'personalAssistant': { id: 'personalAssistant' },
+      'coordinatesAgent': { id: 'coordinatesAgent' }
+    },
+    contextConfig: { id: 'personalAgentContext' }
   };
 
   const complexAgentData = {
     name: 'Complex Personal Agent',
     description: 'A complex agent with status updates and transfer limits',
-    defaultSubAgent: 'mainAssistant',
-    subAgents: ['mainAssistant', 'helperAgent', 'coordinatorAgent'],
-    contextConfig: 'complexAgentContext',
+    defaultSubAgentId: 'mainAssistant',
+    subAgents: {
+      'mainAssistant': { id: 'mainAssistant' },
+      'helperAgent': { id: 'helperAgent' },
+      'coordinatorAgent': { id: 'coordinatorAgent' }
+    },
+    contextConfig: { id: 'complexAgentContext' },
     stopWhen: {
       transferCountIs: 5
     },
     statusUpdates: {
       numEvents: 3,
       timeInSeconds: 15,
-      statusComponents: ['toolSummary.config', 'progressUpdate.config'],
+      statusComponents: [
+        { type: 'toolSummary' },
+        { type: 'progressUpdate' }
+      ],
       prompt: 'Provide status updates on task progress and tool usage'
     }
   };
@@ -127,10 +146,9 @@ describe('Agent Generator', () => {
       expect(definition).toContain('timeInSeconds: 15,');
       expect(definition).toContain('statusComponents: [');
       expect(definition).toContain('toolSummary.config,');
-      expect(definition).toContain('progressUpdate.config');
+      expect(definition).toContain('progressUpdate.config,');
       expect(definition).toContain("prompt: 'Provide status updates on task progress and tool usage'");
       expect(definition).toContain('},');
-      expect(definition).not.toContain('progressUpdate.config,'); // No trailing comma
     });
 
     it('should generate agent with stopWhen configuration', () => {
@@ -144,7 +162,9 @@ describe('Agent Generator', () => {
     it('should handle single sub-agent', () => {
       const singleSubAgentData = {
         ...basicAgentData,
-        subAgents: ['onlyAgent']
+        subAgents: {
+          'onlyAgent': { id: 'onlyAgent' }
+        }
       };
       
       const definition = generateAgentDefinition('single-agent', singleSubAgentData, undefined, mockRegistry);
@@ -244,7 +264,7 @@ describe('Agent Generator', () => {
         name: 'Partial Status Agent',
         statusUpdates: {
           numEvents: 5,
-          statusComponents: ['summary.config']
+          statusComponents: [{ type: 'summary' }]
         }
       };
       
@@ -252,7 +272,7 @@ describe('Agent Generator', () => {
       
       expect(definition).toContain('statusUpdates: {');
       expect(definition).toContain('numEvents: 5,');
-      expect(definition).toContain('statusComponents: [summary.config]');
+      expect(definition).toContain('statusComponents: [\n      summary.config,\n    ]');
       expect(definition).not.toContain('timeInSeconds:');
       expect(definition).not.toContain('prompt:');
     });
@@ -335,7 +355,7 @@ describe('Agent Generator', () => {
         const mainAssistant = { type: 'subAgent' };
         const helperAgent = { type: 'subAgent' };
         const coordinatorAgent = { type: 'subAgent' };
-        const complexAgentContext = { type: 'contextConfig' };
+        const personalAgentContext = { type: 'contextConfig' };
         const toolSummary = { config: 'toolSummaryConfig' };
         const progressUpdate = { config: 'progressUpdateConfig' };
         
@@ -403,7 +423,7 @@ describe('Agent Generator', () => {
       const emptyStringData = {
         name: '',
         description: '',
-        defaultSubAgent: 'assistant'
+        defaultSubAgentId: 'assistant'
       };
       
       const definition = generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
@@ -417,7 +437,7 @@ describe('Agent Generator', () => {
       const nullData = {
         name: 'Test Agent',
         description: null,
-        defaultSubAgent: undefined,
+        defaultSubAgentId: undefined,
         subAgents: null,
         contextConfig: undefined
       };
@@ -434,7 +454,14 @@ describe('Agent Generator', () => {
     it('should handle large number of subAgents with proper formatting', () => {
       const manySubAgentsData = {
         name: 'Many SubAgents Agent',
-        subAgents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6']
+        subAgents: {
+          'agent1': { id: 'agent1' },
+          'agent2': { id: 'agent2' },
+          'agent3': { id: 'agent3' },
+          'agent4': { id: 'agent4' },
+          'agent5': { id: 'agent5' },
+          'agent6': { id: 'agent6' }
+        }
       };
       
       const definition = generateAgentDefinition('many-sub-agents', manySubAgentsData, undefined, mockRegistry);

@@ -54,18 +54,18 @@ export const myData = dataComponent({
 
     expect(components).toHaveLength(3);
     
-    const agent = registry.get('my-agent-id');
+    const agent = registry.get('my-agent-id', 'agent');
     expect(agent).toBeDefined();
     expect(agent?.type).toBe('agent');
     expect(agent?.name).toBe('myAgent');
     expect(agent?.filePath).toBe('index.ts');
 
-    const tool = registry.get('my-tool-id');
+    const tool = registry.get('my-tool-id', 'tool');
     expect(tool).toBeDefined();
     expect(tool?.type).toBe('tool');
     expect(tool?.name).toBe('myTool');
 
-    const data = registry.get('my-data-id');
+    const data = registry.get('my-data-id', 'dataComponent');
     expect(data).toBeDefined();
     expect(data?.type).toBe('dataComponent');
     expect(data?.name).toBe('myData');
@@ -105,22 +105,22 @@ export const mainAgent = agent({
     expect(components).toHaveLength(4); // 1 exported + 3 inline
 
     // Check exported component
-    const mainAgent = registry.get('main-agent');
+    const mainAgent = registry.get('main-agent', 'agent');
     expect(mainAgent).toBeDefined();
     expect(mainAgent?.name).toBe('mainAgent');
 
     // Check inline components
-    const sub1 = registry.get('sub-agent-1');
+    const sub1 = registry.get('sub-agent-1', 'subAgent');
     expect(sub1).toBeDefined();
     expect(sub1?.type).toBe('subAgent');
     expect(sub1?.name).toBe('subAgent1'); // Generated variable name
 
-    const sub2 = registry.get('sub-agent-2');
+    const sub2 = registry.get('sub-agent-2', 'subAgent');
     expect(sub2).toBeDefined();
     expect(sub2?.type).toBe('subAgent');
     expect(sub2?.name).toBe('subAgent2');
 
-    const inlineData = registry.get('inline-data');
+    const inlineData = registry.get('inline-data', 'dataComponent');
     expect(inlineData).toBeDefined();
     expect(inlineData?.type).toBe('dataComponent');
     expect(inlineData?.name).toBe('inlineData');
@@ -157,13 +157,13 @@ export const tool1 = tool({
 
     expect(components).toHaveLength(3);
 
-    const project = registry.get('test-project');
+    const project = registry.get('test-project', 'project');
     expect(project?.filePath).toBe('index.ts');
 
-    const agent = registry.get('agent-1');
+    const agent = registry.get('agent-1', 'agent');
     expect(agent?.filePath).toBe('agents/agent1.ts');
 
-    const tool = registry.get('tool-1');
+    const tool = registry.get('tool-1', 'tool');
     expect(tool?.filePath).toBe('tools/tool1.ts');
   });
 
@@ -222,10 +222,10 @@ const agent1 = agent({
 
     const registry = buildComponentRegistryFromParsing(testDir);
     
-    const kebab = registry.get('kebab-case-tool');
+    const kebab = registry.get('kebab-case-tool', 'tool');
     expect(kebab?.name).toBe('kebabTool');
 
-    const snake = registry.get('snake_case_data');
+    const snake = registry.get('snake_case_data', 'dataComponent');
     expect(snake?.name).toBe('snakeCaseData'); // Should convert to camelCase
   });
 });
