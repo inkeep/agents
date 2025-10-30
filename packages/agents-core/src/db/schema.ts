@@ -845,7 +845,8 @@ export const evalResult = sqliteTable(
   ]
 );
 
-export const conversationEvaluationConfig = sqliteTable(
+export const 
+conversationEvaluationConfig = sqliteTable(
   'conversation_evaluation_config',
   {
     ...tenantScoped,
