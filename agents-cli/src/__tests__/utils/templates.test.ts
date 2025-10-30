@@ -159,7 +159,7 @@ describe('Template Utils', () => {
       const templates = await getAvailableTemplates('template-projects', undefined);
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/inkeep/agents/agents-cookbook/contents/template-projects'
+        'https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects'
       );
       expect(templates).toEqual(['weather', 'chatbot', 'data-analysis']);
     });

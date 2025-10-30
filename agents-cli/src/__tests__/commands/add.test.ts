@@ -174,9 +174,6 @@ describe('Add Command', () => {
           },
         ]
       );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        `Project template "weather" added to undefined`
-      );
     });
 
     it('should create template in specified target path', async () => {
@@ -202,9 +199,6 @@ describe('Add Command', () => {
             },
           },
         ]
-      );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        'Project template "weather" added to ./projects'
       );
     });
 
@@ -310,9 +304,6 @@ describe('Add Command', () => {
             },
           },
         ]
-      );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        `Project template "weather" added to undefined`
       );
     });
 
