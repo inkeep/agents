@@ -91,6 +91,18 @@ ${componentList}
 5. **Keep variable names**: Preserve original variable names and declarations
 6. **Preserve non-component code**: Keep any non-component logic, comments, or utilities
 7. **Please leave all imports at the top of the file.** Don't use .js imports, use .ts imports instead. (import example from './example')
+8. **Format JavaScript functions for maximum readability**:
+   - When you see compressed/minified function code like \`async({params})=>{...code...}\`, expand and prettify it
+   - Add proper line breaks, spacing, and indentation to make the function readable
+   - Ensure all braces \`{}\`, parentheses \`()\`, and syntax are properly balanced and valid
+   - Format the function code following TypeScript/JavaScript best practices
+   - Make sure the final code is compilable and syntactically correct
+   - Example: \`async({a,b})=>{return a+b}\` should become:
+     \`\`\`
+     async ({ a, b }) => {
+       return a + b;
+     }
+     \`\`\`
 
 ## OLD Content:
 \`\`\`typescript
@@ -109,6 +121,8 @@ Provide the merged TypeScript file that:
 - Maintains consistent code style
 - Uses improved schemas where beneficial
 - Preserves all imports, exports, and other code
+- **Formats all function code beautifully with proper spacing, line breaks, and indentation**
+- **Ensures all syntax is valid and compilable TypeScript/JavaScript**
 - Start the code immidiately with the first line of the file, skip any backticks or other formatting announcing that it is a code block or typescript file.
 - Please follow biomes.dev code style.
 

@@ -25,6 +25,25 @@ export function generateExternalAgentDefinition(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
 ): string {
+  // Validate required parameters
+  if (!agentId || typeof agentId !== 'string') {
+    throw new Error('agentId is required and must be a string');
+  }
+  
+  if (!agentData || typeof agentData !== 'object') {
+    throw new Error(`agentData is required for external agent '${agentId}'`);
+  }
+  
+  // Validate required external agent fields
+  const requiredFields = ['name', 'description', 'baseUrl'];
+  const missingFields = requiredFields.filter(field => 
+    !agentData[field] || agentData[field] === null || agentData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for external agent '${agentId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';

@@ -328,12 +328,16 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         }
         if (agentData.functions) {
           remoteProject.functions = remoteProject.functions || {};
-          // Only hoist agent functions if project-level functions don't already exist (to preserve name/description)
-          Object.entries(agentData.functions).forEach(([funcId, funcData]) => {
+          // Only hoist agent functions if project-level functions don't already exist (clean function data)
+          Object.entries(agentData.functions).forEach(([funcId, funcData]: [string, any]) => {
             if (!remoteProject.functions[funcId]) {
-              remoteProject.functions[funcId] = funcData;
-            } else if (options.debug) {
-              console.log(chalk.gray(`   Skipping hoist of function ${funcId} - project-level version already exists with complete data`));
+              // Clean function data - remove functionTool metadata that shouldn't be in functions collection
+              remoteProject.functions[funcId] = {
+                id: funcData.id,
+                inputSchema: funcData.inputSchema,
+                executeCode: funcData.executeCode,
+                dependencies: funcData.dependencies
+              };
             }
           });
           if (options.debug) {

@@ -65,14 +65,24 @@ function formatExecuteFunction(executeCode: string, indentation: string): string
     return `async ({}) => {\n${indentation}  // TODO: Implement function logic\n${indentation}  return {};\n${indentation}}`;
   }
   
-  // If it's already a function, return as-is with proper indentation
-  if (executeCode.trim().startsWith('async') || executeCode.trim().startsWith('function') || executeCode.trim().startsWith('({')) {
+  const trimmedCode = executeCode.trim();
+  
+  // Check if it's already properly formatted (contains newlines)
+  if (trimmedCode.includes('\n')) {
     // Split by lines and add proper indentation
-    const lines = executeCode.trim().split('\n');
+    const lines = trimmedCode.split('\n');
     return lines.map((line, index) => {
       if (index === 0) return line; // First line already has proper position
       return indentation + line;
     }).join('\n');
+  }
+  
+  // For minified/compressed code, we need to format it properly
+  // If it's a complete function (starts with async or function), use it as-is but format
+  if (trimmedCode.startsWith('async') || trimmedCode.startsWith('function')) {
+    // This is likely compressed - just return it as a single line
+    // The code formatter (Biome) will handle the proper formatting
+    return trimmedCode;
   }
   
   // If it's just code, wrap it in an async function
@@ -87,6 +97,25 @@ export function generateFunctionToolDefinition(
   toolData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
+  // Validate required parameters
+  if (!toolId || typeof toolId !== 'string') {
+    throw new Error('toolId is required and must be a string');
+  }
+  
+  if (!toolData || typeof toolData !== 'object') {
+    throw new Error(`toolData is required for function tool '${toolId}'`);
+  }
+  
+  // Validate required function tool fields
+  const requiredFields = ['name', 'inputSchema', 'executeCode'];
+  const missingFields = requiredFields.filter(field => 
+    !toolData[field] || toolData[field] === null || toolData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for function tool '${toolId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -96,13 +125,8 @@ export function generateFunctionToolDefinition(
   
   lines.push(`export const ${toolVarName} = functionTool({`);
   
-  // Name is required for function tools
-  if (toolData.name) {
-    lines.push(`${indentation}name: ${formatString(toolData.name, q)},`);
-  } else {
-    // Use tool ID as fallback name
-    lines.push(`${indentation}name: ${formatString(toolId, q)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(toolData.name, q)},`);
   
   if (toolData.description) {
     lines.push(`${indentation}description: ${formatString(toolData.description, q, true)},`);
@@ -141,7 +165,8 @@ export function generateFunctionToolDefinition(
   
   lines.push(`})${semi}`);
   
-  return lines.join('\n');
+  const result = lines.join('\n');
+  return result;
 }
 
 /**

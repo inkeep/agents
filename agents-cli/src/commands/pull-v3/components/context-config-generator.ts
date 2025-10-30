@@ -96,7 +96,8 @@ export function generateHeadersDefinition(
 export function generateFetchDefinitionDefinition(
   fetchId: string,
   fetchData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  headersVarName?: string
 ): string {
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
@@ -122,7 +123,7 @@ export function generateFetchDefinitionDefinition(
   
   // fetchConfig - handle template variables in URLs and headers
   if (fetchData.fetchConfig) {
-    const processedFetchConfig = processFetchConfigTemplates(fetchData.fetchConfig, 'headersSchema');
+    const processedFetchConfig = processFetchConfigTemplates(fetchData.fetchConfig, headersVarName);
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
   
@@ -157,8 +158,21 @@ export function generateContextConfigDefinition(
   contextData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry: ComponentRegistry,
-  agentId?: string
+  agentId?: string,
+  headersVarName?: string
 ): string {
+  // Validate required parameters
+  if (!contextId || typeof contextId !== 'string') {
+    throw new Error('contextId is required and must be a string');
+  }
+  
+  if (!contextData || typeof contextData !== 'object') {
+    throw new Error(`contextData is required for context config '${contextId}'`);
+  }
+  
+  // Context configs can be minimal - no specific required fields beyond the parameters
+  // The contextConfig() builder can work with just an id or be completely empty
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -183,8 +197,8 @@ export function generateContextConfigDefinition(
   }
 
   // headers - reference to headers variable
-  if (contextData.headersSchema) {
-    lines.push(`${indentation}headers: headersSchema,`);
+  if (headersVarName) {
+    lines.push(`${indentation}headers: ${headersVarName},`);
   } else if (contextData.headers) {
     lines.push(`${indentation}headers: ${contextData.headers},`);
   }
@@ -290,8 +304,17 @@ export function generateContextConfigFile(
   const definitions: string[] = [];
   
   // Generate headers if present
-  if (contextData.headersSchema && typeof contextData.headers === 'string') {
-    const headersDefinition = generateHeadersDefinition(contextData.headers, { schema: contextData.headersSchema }, style);
+  let headersVarName: string | undefined;
+  if (contextData.headersSchema) {
+    if (typeof contextData.headers === 'string') {
+      // Use explicit headers ID
+      headersVarName = contextData.headers;
+    } else {
+      // Auto-generate headers variable name from context ID
+      headersVarName = `${toCamelCase(contextId)}Headers`;
+    }
+    
+    const headersDefinition = generateHeadersDefinition(headersVarName, { schema: contextData.headersSchema }, style);
     definitions.push(headersDefinition);
   }
   
@@ -299,14 +322,14 @@ export function generateContextConfigFile(
   if (contextData.contextVariables) {
     for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
       if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
-        const fetchDefinition = generateFetchDefinitionDefinition(varName, varData, style);
+        const fetchDefinition = generateFetchDefinitionDefinition(varName, varData, style, headersVarName);
         definitions.push(fetchDefinition);
       }
     }
   }
   
   // Generate main context config
-  const contextDefinition = generateContextConfigDefinition(contextId, contextData, style, registry!, agentId);
+  const contextDefinition = generateContextConfigDefinition(contextId, contextData, style, registry!, agentId, headersVarName);
   definitions.push(contextDefinition);
   
   // Export the main context config, headersSchema, and any fetch definitions
@@ -322,8 +345,8 @@ export function generateContextConfigFile(
   })();
   const exports: string[] = [contextVarName];
   
-  if (contextData.headersSchema && typeof contextData.headers === 'string') {
-    exports.push(contextData.headers);
+  if (headersVarName) {
+    exports.push(headersVarName);
   }
   
   // Also export any fetch definition variables

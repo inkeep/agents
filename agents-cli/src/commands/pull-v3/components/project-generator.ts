@@ -27,6 +27,30 @@ export function generateProjectDefinition(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
 ): string {
+  // Validate required parameters
+  if (!projectId || typeof projectId !== 'string') {
+    throw new Error('projectId is required and must be a string');
+  }
+  
+  if (!projectData || typeof projectData !== 'object') {
+    throw new Error(`projectData is required for project '${projectId}'`);
+  }
+  
+  // Validate required project fields
+  const requiredFields = ['name', 'models'];
+  const missingFields = requiredFields.filter(field => 
+    !projectData[field] || projectData[field] === null || projectData[field] === undefined
+  );
+  
+  // Additional validation for models.base
+  if (!projectData.models?.base) {
+    missingFields.push('models.base');
+  }
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for project '${projectId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -36,14 +60,7 @@ export function generateProjectDefinition(
   
   lines.push(`export const ${projectVarName} = project({`);
   lines.push(`${indentation}id: ${formatString(projectId, q)},`);
-  
-  // Name is required
-  if (projectData.name !== undefined && projectData.name !== null) {
-    lines.push(`${indentation}name: ${formatString(projectData.name, q)},`);
-  } else {
-    // Use project ID as fallback name
-    lines.push(`${indentation}name: ${formatString(projectId, q)},`);
-  }
+  lines.push(`${indentation}name: ${formatString(projectData.name, q)},`);
   
   // Description is optional
   if (shouldInclude(projectData.description)) {

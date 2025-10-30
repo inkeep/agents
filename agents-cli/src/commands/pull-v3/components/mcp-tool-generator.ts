@@ -48,6 +48,31 @@ export function generateMcpToolDefinition(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: any
 ): string {
+  // Validate required parameters
+  if (!toolId || typeof toolId !== 'string') {
+    throw new Error('toolId is required and must be a string');
+  }
+  
+  if (!toolData || typeof toolData !== 'object') {
+    throw new Error(`toolData is required for MCP tool '${toolId}'`);
+  }
+  
+  // Validate required MCP tool fields - check both possible locations for serverUrl
+  const requiredFields = ['name'];
+  const serverUrl = toolData.config?.mcp?.server?.url || toolData.serverUrl;
+  
+  const missingFields = requiredFields.filter(field => 
+    !toolData[field] || toolData[field] === null || toolData[field] === undefined
+  );
+  
+  if (!serverUrl) {
+    missingFields.push('serverUrl (from config.mcp.server.url or serverUrl)');
+  }
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for MCP tool '${toolId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -58,19 +83,11 @@ export function generateMcpToolDefinition(
   lines.push(`export const ${toolVarName} = mcpTool({`);
   lines.push(`${indentation}id: ${formatString(toolId, q)},`);
   
-  // Name is required for MCP tools
-  if (toolData.name) {
-    lines.push(`${indentation}name: ${formatString(toolData.name, q)},`);
-  } else {
-    // Use tool ID as fallback name
-    lines.push(`${indentation}name: ${formatString(toolId, q)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(toolData.name, q)},`);
   
-  // Server URL - extract from config.mcp.server.url
-  const serverUrl = toolData.config?.mcp?.server?.url || toolData.serverUrl;
-  if (serverUrl) {
-    lines.push(`${indentation}serverUrl: ${formatString(serverUrl, q)},`);
-  }
+  // Server URL - we already validated this exists above
+  lines.push(`${indentation}serverUrl: ${formatString(serverUrl, q)},`);
   
   if (toolData.description) {
     lines.push(`${indentation}description: ${formatString(toolData.description, q, true)},`);

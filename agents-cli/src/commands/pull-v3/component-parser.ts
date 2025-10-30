@@ -138,6 +138,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       if (componentType && componentType === 'functionTool') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
+        console.log(`DEBUG: ✅ Registering FUNCTION TOOL: ${componentId} (${variableName}) in ${relativePath}:${lineNumber}`);
         
         components.push({
           id: componentId,
@@ -244,7 +245,6 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const componentType = COMPONENT_TYPE_MAP[functionName];
       if (componentType && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
-        
         components.push({
           id: componentId,
           type: componentType,
@@ -265,6 +265,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       // Only use 'name' field for functionTool components
       if (componentType && componentType === 'functionTool' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
+        
+        console.log(`DEBUG: ✅ Registering NON-EXPORTED FUNCTION TOOL: ${componentId} (${variableName}) in ${relativePath}:${lineNumber}`);
         
         components.push({
           id: componentId,

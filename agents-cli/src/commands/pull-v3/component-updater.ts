@@ -296,12 +296,14 @@ export async function updateModifiedComponents(
   >();
 
   for (const { type: componentType, id: componentId } of allModifiedComponents) {
-    // TEMPORARY: Try both plural and singular to understand the issue
-    const localComponent = localRegistry.get(componentId, componentType as any);
-    const singularType = componentType.slice(0, -1);
-    const localComponentSingular = localRegistry.get(componentId, singularType as any);
+    let actualComponentType = componentType;
+    if (componentType === 'functions') {
+      actualComponentType = 'functionTools';
+    }
     
-    
+    const localComponent = localRegistry.get(componentId, actualComponentType as any);
+    const singularType = actualComponentType.slice(0, -1);
+    const localComponentSingular = localRegistry.get(componentId, singularType as any);    
     const actualComponent = localComponent || localComponentSingular;
     
     if (actualComponent) {
@@ -339,6 +341,7 @@ export async function updateModifiedComponents(
       }> = [];
 
       for (const { type: componentType, id: componentId } of fileComponents) {
+        console.log(`DEBUG: Component type: ${componentType}, Component id: ${componentId}`);
         // Get the updated component data from remote project
         let componentData: any = null;
 
@@ -375,6 +378,21 @@ export async function updateModifiedComponents(
               break;
             }
           }
+        } else if (componentType === 'statusComponents') {
+          // StatusComponents are nested within agents - find the statusComponent by ID
+          for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
+            if (agentData.statusUpdates?.statusComponents && agentData.statusUpdates.statusComponents) {
+              for (const statusComp of agentData.statusUpdates.statusComponents) {
+                if (statusComp['type'] === componentId) {
+                  componentData = statusComp;
+                  break;
+                }
+              }
+            }
+        }
+        // } else if (componentType === 'credentials') {
+        //   // Credentials are in credentialReferences
+        //   componentData = remoteProject.credentialReferences?.[componentId];
         } else {
           // Standard top-level component lookup
           const remoteComponents = (remoteProject as any)[componentType] || {};
@@ -551,9 +569,10 @@ export async function updateModifiedComponents(
       
       // Find the corresponding change from the comparison data to show what fields changed
       // Note: comparison uses singular forms (e.g. 'subAgent') but updater uses plural forms (e.g. 'subAgents')
-      const normalizedCompType = change.componentType === 'subAgents' ? 'subAgent' : 
-                                  change.componentType === 'agents' ? 'agent' : 
-                                  change.componentType;
+      // Convert plural component types (used by updater) to singular forms (used by comparator)
+      const normalizedCompType = change.componentType.endsWith('s') && change.componentType !== 'headers' 
+                                  ? change.componentType.slice(0, -1)  // Remove 's' from plural forms
+                                  : change.componentType;
       const componentChanges = comparison.changes.filter(c => 
         c.componentId === change.componentId && c.componentType === normalizedCompType
       );

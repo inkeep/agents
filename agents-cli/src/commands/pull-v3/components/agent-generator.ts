@@ -181,6 +181,25 @@ export function generateAgentDefinition(
   contextConfigData?: any,
   projectModels?: any
 ): string {
+  // Validate required parameters
+  if (!agentId || typeof agentId !== 'string') {
+    throw new Error('agentId is required and must be a string');
+  }
+  
+  if (!agentData || typeof agentData !== 'object') {
+    throw new Error(`agentData is required for agent '${agentId}'`);
+  }
+  
+  // Validate required agent fields
+  const requiredFields = ['name', 'defaultSubAgentId', 'subAgents'];
+  const missingFields = requiredFields.filter(field => 
+    !agentData[field] || agentData[field] === null || agentData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for agent '${agentId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -200,13 +219,8 @@ export function generateAgentDefinition(
   lines.push(`export const ${agentVarName} = agent({`);
   lines.push(`${indentation}id: ${formatString(agentId, q)},`);
 
-  // Name is required
-  if (agentData.name !== undefined && agentData.name !== null) {
-    lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
-  } else {
-    // Use agent ID as fallback name
-    lines.push(`${indentation}name: ${formatString(agentId, q)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
 
   if (agentData.description !== undefined && agentData.description !== null) {
     lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);

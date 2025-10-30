@@ -314,7 +314,7 @@ Always maintain a helpful and empathetic tone.`,
 
 Use technical language appropriate to the customer's expertise level.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'knowledge-base' }, { toolId: 'priority-calculator' }],
-          canDelegateTo: ['escalation-specialist'],
+          canDelegateTo: [{ subAgentId: 'escalation-specialist' }],
           dataComponents: ['ticket-context', 'resolution-data'],
           artifactComponents: ['ticket-summary'],
           stopWhen: {
@@ -335,7 +335,7 @@ Use technical language appropriate to the customer's expertise level.`,
 
 Always verify customer identity before discussing account details.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'priority-calculator' }],
-          canDelegateTo: ['billing-system'],
+          canDelegateTo: [{ externalAgentId: 'billing-system' }],
           dataComponents: ['customer-profile', 'ticket-context']
         },
         
@@ -352,7 +352,7 @@ Always verify customer identity before discussing account details.`,
 
 Prioritize customer satisfaction and swift resolution.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'slack-notifier' }, { toolId: 'priority-calculator' }],
-          canTransferTo: ['legacy-crm'],
+          canTransferTo: [{ externalAgentId: 'legacy-crm' }],
           dataComponents: ['customer-profile', 'ticket-context', 'resolution-data'],
           artifactComponents: ['escalation-report'],
           stopWhen: {
@@ -362,6 +362,7 @@ Prioritize customer satisfaction and swift resolution.`,
       },
       
       contextConfig: {
+        id: 'primary-support-context',
         headersSchema: {
           type: 'object',
           properties: {
@@ -469,6 +470,8 @@ async function main() {
       { path: 'index.ts', description: 'Main project file' },
       { path: 'environments/development.ts', description: 'Environment settings' },
       { path: 'credentials/zendesk-api.ts', description: 'Zendesk credentials' },
+      { path: 'credentials/slack-bot.ts', description: 'Slack Bot credentials' },
+      { path: 'credentials/database-conn.ts', description: 'Database Connection credentials' },
       { path: 'tools/zendesk-integration.ts', description: 'Zendesk MCP tool' },
       { path: 'tools/functions/sentiment-analyzer.ts', description: 'Sentiment analysis function' },
       { path: 'data-components/customer-profile.ts', description: 'Customer profile data' },

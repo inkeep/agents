@@ -37,6 +37,7 @@ export interface ProjectComparison {
     subAgents: { added: string[]; modified: string[]; deleted: string[] };
     tools: { added: string[]; modified: string[]; deleted: string[] };
     functionTools: { added: string[]; modified: string[]; deleted: string[] };
+    functions: { added: string[]; modified: string[]; deleted: string[] };
     dataComponents: { added: string[]; modified: string[]; deleted: string[] };
     artifactComponents: { added: string[]; modified: string[]; deleted: string[] };
     statusComponents: { added: string[]; modified: string[]; deleted: string[] };
@@ -54,7 +55,8 @@ type ComponentType =
   | 'agent' 
   | 'subAgent'
   | 'tool' 
-  | 'functionTool' 
+  | 'functionTool'
+  | 'function'
   | 'dataComponent' 
   | 'artifactComponent' 
   | 'statusComponent' 
@@ -90,6 +92,7 @@ export async function compareProjects(
 
   if (debug) {
     console.log(chalk.gray(`   Found ${changes.length} changes`));
+    console.log(chalk.gray(`   Changes: ${JSON.stringify(changes, null, 2)}`));
   }
 
   return {
@@ -136,6 +139,17 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
       changes.push({
         componentType: 'functionTool',
         componentId: toolId,
+        changeType: 'added',
+      });
+    });
+  }
+
+  // Add all functions (execution code for function tools)
+  if (project.functions) {
+    Object.keys(project.functions).forEach(funcId => {
+      changes.push({
+        componentType: 'function',
+        componentId: funcId,
         changeType: 'added',
       });
     });
@@ -256,10 +270,17 @@ function compareComponentsDirectly(
   changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
   changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}, debug));
   changes.push(...compareFunctionTools(localProject.functionTools || {}, remoteProject.functionTools || {}, debug));
+  changes.push(...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug));
   changes.push(...compareDataComponents(localProject.dataComponents || {}, remoteProject.dataComponents || {}, debug));
   changes.push(...compareArtifactComponents(localProject.artifactComponents || {}, remoteProject.artifactComponents || {}, debug));
   changes.push(...compareCredentials(localProject.credentialReferences || {}, remoteProject.credentialReferences || {}, debug));
-  
+
+  changes.push(...compareExternalAgents(localProject.externalAgents || {}, remoteProject.externalAgents || {}, debug));
+  // Extract status components from agents for comparison
+  const localStatusComponents = extractStatusComponentsFromProject(localProject);
+  const remoteStatusComponents = extractStatusComponentsFromProject(remoteProject);
+  changes.push(...compareStatusComponents(localStatusComponents, remoteStatusComponents, debug));
+
   // Compare contextConfig and fetchDefinition components separately
   changes.push(...compareContextConfigs(localProject, remoteProject, localRegistry, debug));
   changes.push(...compareFetchDefinitions(localProject, remoteProject, debug));
@@ -449,6 +470,41 @@ function compareFunctionTools(
 }
 
 /**
+ * Compare functions between local and remote
+ */
+function compareFunctions(
+  localFunctions: Record<string, any>,
+  remoteFunctions: Record<string, any>,
+  debug: boolean
+): ComponentChange[] {
+  // Clean functions data by removing metadata fields that belong to functionTools
+  const cleanLocalFunctions: Record<string, any> = {};
+  const cleanRemoteFunctions: Record<string, any> = {};
+  
+  // Clean local functions
+  for (const [id, func] of Object.entries(localFunctions)) {
+    cleanLocalFunctions[id] = {
+      id: func.id,
+      inputSchema: func.inputSchema,
+      executeCode: func.executeCode,
+      dependencies: func.dependencies
+    };
+  }
+  
+  // Clean remote functions
+  for (const [id, func] of Object.entries(remoteFunctions)) {
+    cleanRemoteFunctions[id] = {
+      id: func.id,
+      inputSchema: func.inputSchema,
+      executeCode: func.executeCode,
+      dependencies: func.dependencies
+    };
+  }
+
+  return compareComponentMaps('function', cleanLocalFunctions, cleanRemoteFunctions, debug);
+}
+
+/**
  * Compare data components between local and remote
  */
 function compareDataComponents(
@@ -479,6 +535,28 @@ function compareCredentials(
   debug: boolean
 ): ComponentChange[] {
   return compareComponentMaps('credential', localCredentials, remoteCredentials, debug);
+}
+
+/**
+ * Compare external agents between local and remote
+ */
+function compareExternalAgents(
+  localExternalAgents: Record<string, any>,
+  remoteExternalAgents: Record<string, any>,
+  debug: boolean
+): ComponentChange[] {
+  return compareComponentMaps('externalAgent', localExternalAgents, remoteExternalAgents, debug);
+}
+
+/**
+ * Compare status components between local and remote
+ */
+function compareStatusComponents(
+  localStatusComponents: Record<string, any>,
+  remoteStatusComponents: Record<string, any>,
+  debug: boolean
+): ComponentChange[] {
+  return compareComponentMaps('statusComponent', localStatusComponents, remoteStatusComponents, debug);
 }
 
 /**
@@ -518,9 +596,7 @@ function generateModelsChangeSummary(fieldChanges: FieldChange[]): string {
   
   fieldChanges.forEach(change => {
     const field = change.field;
-    if (field.includes('smart')) modelTypes.push('smart model');
-    else if (field.includes('fast')) modelTypes.push('fast model');
-    else if (field.includes('base')) modelTypes.push('base model');
+    if (field.includes('base')) modelTypes.push('base model');
     else if (field.includes('structuredOutput')) modelTypes.push('structured output model');
     else if (field.includes('model')) modelTypes.push('model configuration');
   });
@@ -740,6 +816,8 @@ function getDetailedFieldChanges(
     'subAgentToolRelationId',
     'agentExternalAgentRelationId',
     'teamAgentRelationId',
+    '_agentId',
+    'teamAgents',
     // SDK-generated metadata
     'type', 
     // Runtime context fields
@@ -1046,6 +1124,29 @@ function extractStatusComponentIds(project: FullProjectDefinition): string[] {
 }
 
 /**
+ * Extract actual status component data from agents for comparison
+ */
+function extractStatusComponentsFromProject(project: FullProjectDefinition): Record<string, any> {
+  const statusComponents: Record<string, any> = {};
+  
+  if (!project.agents) {
+    return statusComponents;
+  }
+  
+  for (const [_, agentData] of Object.entries(project.agents)) {
+    if ((agentData as any).statusUpdates?.statusComponents) {
+      for (const statusComp of (agentData as any).statusUpdates.statusComponents) {
+        const statusCompId = statusComp.type || statusComp.id;
+        if (statusCompId) {
+          statusComponents[statusCompId] = statusComp;
+        }
+      }
+    }
+  }  
+  return statusComponents;
+}
+
+/**
  * Group changes by component type for easier processing
  */
 function groupChangesByType(changes: ComponentChange[]): ProjectComparison['componentChanges'] {
@@ -1057,6 +1158,7 @@ function groupChangesByType(changes: ComponentChange[]): ProjectComparison['comp
     'subAgent': 'subAgents',
     'tool': 'tools', 
     'functionTool': 'functionTools',
+    'function': 'functions',
     'dataComponent': 'dataComponents',
     'artifactComponent': 'artifactComponents',
     'statusComponent': 'statusComponents',
@@ -1089,6 +1191,7 @@ function createEmptyComponentChanges(): ProjectComparison['componentChanges'] {
     subAgents: { added: [], modified: [], deleted: [] },
     tools: { added: [], modified: [], deleted: [] },
     functionTools: { added: [], modified: [], deleted: [] },
+    functions: { added: [], modified: [], deleted: [] },
     dataComponents: { added: [], modified: [], deleted: [] },
     artifactComponents: { added: [], modified: [], deleted: [] },
     statusComponents: { added: [], modified: [], deleted: [] },

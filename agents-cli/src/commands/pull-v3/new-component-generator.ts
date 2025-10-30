@@ -216,8 +216,8 @@ export async function createNewComponents(
     'credentials',
     'environments', 
     'contextConfigs',  // Can be created early - just config objects
+    'functionTools',   // Create functionTools before functions to avoid conflicts
     'functions',
-    'functionTools',
     'tools',
     'dataComponents',
     'artifactComponents', 
@@ -304,6 +304,9 @@ export async function createNewComponents(
             // Store agent ID for later use in generation
             componentData._agentId = contextResult.agentId;
           }
+        } else if (componentType === 'functions') {
+          // Functions are in the functions collection
+          componentData = remoteProject.functions?.[componentId];
         } else if (componentType === 'functionTools') {
           // Function tools might be in functions or functionTools
           let functionToolData = remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
@@ -311,8 +314,8 @@ export async function createNewComponents(
           // If functionTool has a functionId reference, merge with the actual function data
           if (functionToolData && 'functionId' in functionToolData && functionToolData.functionId && remoteProject.functions?.[functionToolData.functionId]) {
             const functionData = remoteProject.functions[functionToolData.functionId];
-            // Merge function data into functionTool data
-            componentData = { ...functionToolData, ...functionData };
+            // Merge function data into functionTool data, but preserve functionTool metadata
+            componentData = { ...functionData, ...functionToolData };
           } else {
             componentData = functionToolData;
           }

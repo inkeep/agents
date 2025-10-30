@@ -123,6 +123,25 @@ export function generateArtifactComponentDefinition(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
+  // Validate required parameters
+  if (!componentId || typeof componentId !== 'string') {
+    throw new Error('componentId is required and must be a string');
+  }
+  
+  if (!componentData || typeof componentData !== 'object') {
+    throw new Error(`componentData is required for artifact component '${componentId}'`);
+  }
+  
+  // Validate required artifact component fields
+  const requiredFields = ['name', 'description', 'props'];
+  const missingFields = requiredFields.filter(field => 
+    !componentData[field] || componentData[field] === null || componentData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for artifact component '${componentId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -133,13 +152,9 @@ export function generateArtifactComponentDefinition(
   lines.push(`export const ${componentVarName} = artifactComponent({`);
   lines.push(`${indentation}id: ${formatString(componentId, q)},`);
   
-  if (componentData.name) {
-    lines.push(`${indentation}name: ${formatString(componentData.name, q)},`);
-  }
-  
-  if (componentData.description) {
-    lines.push(`${indentation}description: ${formatString(componentData.description, q, true)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(componentData.name, q)},`);
+  lines.push(`${indentation}description: ${formatString(componentData.description, q, true)},`);
   
   // Props schema (convert from JSON schema to zod with preview() wrappers)
   // Artifact components use either `props` or `schema` field from componentData

@@ -75,6 +75,25 @@ export function generateSubAgentDefinition(
   contextConfigData?: any,
   parentModels?: any
 ): string {
+  // Validate required parameters
+  if (!agentId || typeof agentId !== 'string') {
+    throw new Error('agentId is required and must be a string');
+  }
+  
+  if (!agentData || typeof agentData !== 'object') {
+    throw new Error(`agentData is required for sub-agent '${agentId}'`);
+  }
+  
+  // Validate required sub-agent fields
+  const requiredFields = ['name', 'description', 'prompt'];
+  const missingFields = requiredFields.filter(field => 
+    !agentData[field] || agentData[field] === null || agentData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for sub-agent '${agentId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -94,17 +113,9 @@ export function generateSubAgentDefinition(
   lines.push(`export const ${agentVarName} = subAgent({`);
   lines.push(`${indentation}id: ${formatString(agentId, q)},`);
 
-  // Name is required
-  if (agentData.name !== undefined && agentData.name !== null) {
-    lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
-  } else {
-    // Use agent ID as fallback name
-    lines.push(`${indentation}name: ${formatString(agentId, q)},`);
-  }
-
-  if (agentData.description !== undefined && agentData.description !== null) {
-    lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
+  lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {

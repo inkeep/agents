@@ -92,32 +92,22 @@ export function generateCredentialDefinition(
   lines.push(`export const ${credentialVarName} = credential({`);
   lines.push(`${indentation}id: ${formatString(credentialId, q)},`);
   
-  // Name is required
-  if (credentialData.name !== undefined && credentialData.name !== null) {
-    lines.push(`${indentation}name: ${formatString(credentialData.name, q)},`);
-  } else {
-    // Use credential ID as fallback name
-    lines.push(`${indentation}name: ${formatString(credentialId, q)},`);
+  console.info(`Credential data: ${JSON.stringify(credentialData, null, 2)}`);
+  
+  // Validate required fields
+  const requiredFields = ['name', 'type', 'credentialStoreId'];
+  const missingFields = requiredFields.filter(field => 
+    !credentialData[field] || credentialData[field] === null || credentialData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for credential '${credentialId}': ${missingFields.join(', ')}`);
   }
   
-  // Type is required for credentials (memory, keychain, env)
-  if (credentialData.type) {
-    lines.push(`${indentation}type: ${formatString(credentialData.type, q)},`);
-  } else {
-    // Default to memory for development
-    lines.push(`${indentation}type: ${formatString('memory', q)},`);
-  }
-  
-  // Credential store ID is required
-  if (credentialData.credentialStoreId) {
-    lines.push(`${indentation}credentialStoreId: ${formatString(credentialData.credentialStoreId, q)},`);
-  } else {
-    // Provide default based on type
-    const defaultStoreId = credentialData.type === 'env' ? 'env-default' : 
-                          credentialData.type === 'keychain' ? 'keychain-default' : 
-                          'memory-default';
-    lines.push(`${indentation}credentialStoreId: ${formatString(defaultStoreId, q)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}name: ${formatString(credentialData.name, q)},`);
+  lines.push(`${indentation}type: ${formatString(credentialData.type, q)},`);
+  lines.push(`${indentation}credentialStoreId: ${formatString(credentialData.credentialStoreId, q)},`);
   
   if (credentialData.description) {
     lines.push(`${indentation}description: ${formatString(credentialData.description, q, true)},`);

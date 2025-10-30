@@ -109,18 +109,9 @@ export function createTargetedTypeScriptPlaceholders(content: string, debug: boo
     return match;
   });
 
-  // 6. Replace execute functions (for functionTools)
+  // 6. Skip execute functions - let LLM handle them directly for proper formatting
   // execute: async ({ param1, param2 }) => { function body... }
-  const executeRegex = /(\s+execute:\s*)(async\s*\([^)]*\)\s*=>\s*\{[^]*?\})/g;
-  processedContent = processedContent.replace(executeRegex, (match, prefix, executeFunction) => {
-    if (executeFunction.length >= MIN_REPLACEMENT_LENGTH) {
-      const placeholder = `<EXECUTE_${generatePlaceholderId()}>`;
-      replacements[placeholder] = executeFunction;
-      replacedFields++;
-      return `${prefix}${placeholder}`;
-    }
-    return match;
-  });
+  // Note: We intentionally don't replace execute functions so the LLM can see and format them properly
 
   const processedSize = processedContent.length;
   const savings = originalSize - processedSize;

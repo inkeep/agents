@@ -1045,6 +1045,7 @@ export const getFullProject =
         for (const credential of credentialReferencesList) {
           projectCredentialReferences[credential.id] = {
             id: credential.id,
+            name: credential.name,
             type: credential.type,
             credentialStoreId: credential.credentialStoreId,
             retrievalParams: credential.retrievalParams,

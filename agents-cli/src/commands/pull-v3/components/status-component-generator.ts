@@ -65,6 +65,25 @@ export function generateStatusComponentDefinition(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
+  // Validate required parameters
+  if (!componentId || typeof componentId !== 'string') {
+    throw new Error('componentId is required and must be a string');
+  }
+  
+  if (!componentData || typeof componentData !== 'object') {
+    throw new Error(`componentData is required for status component '${componentId}'`);
+  }
+  
+  // Validate required status component fields
+  const requiredFields = ['type'];
+  const missingFields = requiredFields.filter(field => 
+    !componentData[field] || componentData[field] === null || componentData[field] === undefined
+  );
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Missing required fields for status component '${componentId}': ${missingFields.join(', ')}`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -74,13 +93,8 @@ export function generateStatusComponentDefinition(
   
   lines.push(`export const ${componentVarName} = statusComponent({`);
   
-  // Type is required for status components
-  if (componentData.type) {
-    lines.push(`${indentation}type: ${formatString(componentData.type, q)},`);
-  } else {
-    // Use component ID as fallback type
-    lines.push(`${indentation}type: ${formatString(componentId, q)},`);
-  }
+  // Required fields - these must be present
+  lines.push(`${indentation}type: ${formatString(componentData.type, q)},`);
   
   if (componentData.description) {
     lines.push(`${indentation}description: ${formatString(componentData.description, q, true)},`);

@@ -139,6 +139,15 @@ export function generateEnvironmentSettingsDefinition(
   environmentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
+  // Validate required parameters
+  if (!environmentName || typeof environmentName !== 'string') {
+    throw new Error('environmentName is required and must be a string');
+  }
+  
+  if (!environmentData || typeof environmentData !== 'object') {
+    throw new Error(`environmentData is required for environment '${environmentName}'`);
+  }
+  
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
