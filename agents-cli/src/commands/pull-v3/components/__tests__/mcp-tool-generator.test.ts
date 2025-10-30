@@ -78,23 +78,19 @@ describe('MCP Tool Generator', () => {
       expect(definition).toContain("id: 'stripe-payment-tool',");
     });
 
-    it('should use tool ID as name fallback when name not provided', () => {
-      const definition = generateMcpToolDefinition('my-mcp-tool', { 
-        serverUrl: 'https://example.com/mcp',
-        description: 'Tool without explicit name' 
-      });
-      
-      expect(definition).toContain("export const myMcpTool = mcpTool({");
-      expect(definition).toContain("name: 'my-mcp-tool',");
+    it('should throw error for missing name', () => {
+      expect(() => {
+        generateMcpToolDefinition('my-mcp-tool', { 
+          serverUrl: 'https://example.com/mcp',
+          description: 'Tool without explicit name' 
+        });
+      }).toThrow('Missing required fields for MCP tool \'my-mcp-tool\': name');
     });
 
-    it('should generate basic definition without serverUrl when not provided', () => {
-      const definition = generateMcpToolDefinition('no-server', { name: 'No Server Tool' });
-      
-      expect(definition).toContain("export const noServer = mcpTool({");
-      expect(definition).toContain("id: 'no-server',");
-      expect(definition).toContain("name: 'No Server Tool'");
-      expect(definition).not.toContain("serverUrl:");
+    it('should throw error for missing serverUrl', () => {
+      expect(() => {
+        generateMcpToolDefinition('no-server', { name: 'No Server Tool' });
+      }).toThrow('Missing required fields for MCP tool \'no-server\': serverUrl');
     });
 
     it('should handle credential as direct reference', () => {
@@ -119,16 +115,10 @@ describe('MCP Tool Generator', () => {
     });
 
 
-    it('should handle tools with minimal data', () => {
-      const definition = generateMcpToolDefinition('minimal', {});
-      
-      expect(definition).toContain("export const minimal = mcpTool({");
-      expect(definition).toContain("id: 'minimal',");
-      expect(definition).toContain("name: 'minimal'");
-      expect(definition).not.toContain("serverUrl:");
-      expect(definition).not.toContain("description:");
-      expect(definition).not.toContain("imageUrl:");
-      expect(definition).not.toContain("credential:");
+    it('should throw error for missing required fields', () => {
+      expect(() => {
+        generateMcpToolDefinition('minimal', {});
+      }).toThrow('Missing required fields for MCP tool \'minimal\': name, serverUrl');
     });
 
     it('should handle multiline descriptions', () => {
@@ -245,39 +235,20 @@ describe('MCP Tool Generator', () => {
       expect(result.credential).toBeDefined();
     });
 
-    it('should generate code for minimal MCP tool that compiles', () => {
+    it('should throw error for minimal MCP tool without required fields', () => {
       const minimalData = {};
       
-      const definition = generateMcpToolDefinition('minimal-mcp', minimalData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const mcpTool = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimalMcp;
-      `;
-
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.id).toBe('minimal-mcp');
-      expect(result.name).toBe('minimal-mcp'); // Uses ID as fallback
-      expect(result.serverUrl).toBeUndefined(); // No default URL
+        generateMcpToolDefinition('minimal-mcp', minimalData);
+      }).toThrow('Missing required fields for MCP tool \'minimal-mcp\': name, serverUrl');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty tool data', () => {
-      const definition = generateMcpToolDefinition('empty', {});
-      
-      expect(definition).toContain("export const empty = mcpTool({");
-      expect(definition).toContain("id: 'empty',");
-      expect(definition).toContain("name: 'empty'");
-      expect(definition).not.toContain("serverUrl:");
+    it('should throw error for empty tool data', () => {
+      expect(() => {
+        generateMcpToolDefinition('empty', {});
+      }).toThrow('Missing required fields for MCP tool \'empty\': name, serverUrl');
     });
 
     it('should handle special characters in tool ID', () => {
@@ -327,6 +298,18 @@ describe('MCP Tool Generator', () => {
       expect(definition).not.toContain("description:");
       expect(definition).not.toContain("imageUrl:");
       expect(definition).not.toContain("credential:");
+    });
+
+    it('should throw error for missing name only', () => {
+      expect(() => {
+        generateMcpToolDefinition('missing-name', { serverUrl: 'https://example.com/mcp' });
+      }).toThrow('Missing required fields for MCP tool \'missing-name\': name');
+    });
+
+    it('should throw error for missing serverUrl only', () => {
+      expect(() => {
+        generateMcpToolDefinition('missing-server', { name: 'Missing Server Tool' });
+      }).toThrow('Missing required fields for MCP tool \'missing-server\': serverUrl');
     });
   });
 });

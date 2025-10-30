@@ -101,13 +101,12 @@ describe('Status Component Generator', () => {
       expect(definition).toContain("type: 'progress_update',");
     });
 
-    it('should use component ID as type fallback when type not provided', () => {
-      const definition = generateStatusComponentDefinition('my-status', { 
-        description: 'Status without explicit type' 
-      });
-      
-      expect(definition).toContain("export const myStatus = statusComponent({");
-      expect(definition).toContain("type: 'my-status',");
+    it('should throw error for missing type', () => {
+      expect(() => {
+        generateStatusComponentDefinition('my-status', { 
+          description: 'Status without explicit type' 
+        });
+      }).toThrow('Missing required fields for status component \'my-status\': type');
     });
 
     it('should handle components with only type', () => {
@@ -324,37 +323,22 @@ describe('Status Component Generator', () => {
       expect(result.detailsSchema).toBeUndefined(); // No schema provided
     });
 
-    it('should generate code for status component with fallback type that compiles', () => {
+    it('should throw error for status component without type', () => {
       const noTypeData = {
         description: 'Status component without explicit type'
       };
       
-      const definition = generateStatusComponentDefinition('fallback-status', noTypeData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const statusComponent = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return fallbackStatus;
-      `;
-
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-
-      expect(result.type).toBe('fallback-status'); // Uses component ID as fallback
-      expect(result.description).toBe('Status component without explicit type');
+        generateStatusComponentDefinition('fallback-status', noTypeData);
+      }).toThrow('Missing required fields for status component \'fallback-status\': type');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle empty component data', () => {
-      const definition = generateStatusComponentDefinition('empty', {});
-      
-      expect(definition).toBe("export const empty = statusComponent({\n  type: 'empty'\n});");
+    it('should throw error for empty component data', () => {
+      expect(() => {
+        generateStatusComponentDefinition('empty', {});
+      }).toThrow('Missing required fields for status component \'empty\': type');
     });
 
     it('should handle special characters in component ID', () => {

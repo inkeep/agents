@@ -157,18 +157,16 @@ describe('External Agent Generator', () => {
       expect(definition).toContain('})'); // No semicolon at the end
     });
 
-    it('should handle empty string values', () => {
+    it('should throw error for empty string required fields', () => {
       const emptyStringData = {
         name: '',
         description: '',
         baseUrl: 'https://api.example.com/empty'
       };
       
-      const definition = generateExternalAgentDefinition('empty-strings-agent', emptyStringData);
-      
-      expect(definition).toContain("name: '',");
-      expect(definition).toContain("description: '',");
-      expect(definition).toContain("baseUrl: 'https://api.example.com/empty'");
+      expect(() => {
+        generateExternalAgentDefinition('empty-strings-agent', emptyStringData);
+      }).toThrow('Missing required fields for external agent \'empty-strings-agent\': name, description');
     });
 
     it('should throw error for null required values', () => {

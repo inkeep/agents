@@ -298,7 +298,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.message('Configuration loaded');
 
     // Step 2: Fetch project data from API
-    s.start(`Fetching project: ${projectId}`);
+    // s.start(`Fetching project: ${projectId}`);
     
     const apiClient = await ManagementApiClient.create(
       config.agentsManageApi.url,
@@ -419,7 +419,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     }
 
     // Step 5: Read existing project and compare
-    s.start('Reading existing project...');
+    // s.start('Reading existing project...');
     const localProject = await readExistingProject(paths.projectRoot, options.debug);
     
     if (!localProject) {

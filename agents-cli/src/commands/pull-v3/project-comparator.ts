@@ -90,10 +90,7 @@ export async function compareProjects(
   const changes = compareComponentsDirectly(localProject, remoteProject, localRegistry, debug);
   const componentChanges = groupChangesByType(changes);
 
-  if (debug) {
-    console.log(chalk.gray(`   Found ${changes.length} changes`));
-    console.log(chalk.gray(`   Changes: ${JSON.stringify(changes, null, 2)}`));
-  }
+  // Debug logging removed
 
   return {
     hasChanges: changes.length > 0,
@@ -208,7 +205,6 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
       if (agentData.contextConfig) {
         const contextConfigId = agentData.contextConfig.id; // Use actual contextConfig.id
         if (!contextConfigId) {
-          console.warn(`contextConfig for agent ${agentId} is missing required id field`);
           return; // Skip this contextConfig if no ID
         }
         changes.push({
@@ -1309,7 +1305,6 @@ function compareContextConfigs(
     // Use the actual contextConfig.id (now required)
     const contextId = localContextConfig?.id || remoteContextConfig?.id;
     if (!contextId) {
-      console.warn(`contextConfig for agent ${agentId} is missing required id field`);
       return; // Skip if no valid contextId
     }
     

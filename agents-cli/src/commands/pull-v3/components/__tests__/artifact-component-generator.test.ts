@@ -133,7 +133,11 @@ describe('Artifact Component Generator', () => {
     });
 
     it('should handle component ID to camelCase conversion', () => {
-      const definition = generateArtifactComponentDefinition('document-template', { name: 'Template' });
+      const definition = generateArtifactComponentDefinition('document-template', { 
+        name: 'Template',
+        description: 'Document template component',
+        props: { type: 'object', properties: { title: { type: 'string' } } }
+      });
       
       expect(definition).toContain("export const documentTemplate = artifactComponent({");
       expect(definition).toContain("id: 'document-template',");
@@ -155,19 +159,17 @@ describe('Artifact Component Generator', () => {
       expect(definition).not.toContain("content: preview(");
     });
 
-    it('should handle components with only id', () => {
-      const definition = generateArtifactComponentDefinition('minimal', {});
-      
-      expect(definition).toContain("export const minimal = artifactComponent({");
-      expect(definition).toContain("id: 'minimal'");
-      expect(definition).not.toContain("name:");
-      expect(definition).not.toContain("description:");
-      expect(definition).not.toContain("props:");
+    it('should throw error for missing required fields', () => {
+      expect(() => {
+        generateArtifactComponentDefinition('minimal', {});
+      }).toThrow('Missing required fields for artifact component \'minimal\': name, description, props');
     });
 
     it('should handle template property', () => {
       const dataWithTemplate = {
         name: 'Test',
+        description: 'Template component',
+        props: { type: 'object', properties: { title: { type: 'string' } } },
         template: '<div>{{title}}</div>'
       };
 
@@ -179,6 +181,8 @@ describe('Artifact Component Generator', () => {
     it('should handle contentType property', () => {
       const dataWithContentType = {
         name: 'Test',
+        description: 'Component with content type',
+        props: { type: 'object', properties: { content: { type: 'string' } } },
         contentType: 'text/html'
       };
 
@@ -196,6 +200,8 @@ describe('Artifact Component Generator', () => {
       
       const dataWithLongTemplate = {
         name: 'Test',
+        description: 'Component with multiline template',
+        props: { type: 'object', properties: { title: { type: 'string' }, url: { type: 'string' }, content: { type: 'string' } } },
         template: longTemplate
       };
 
@@ -204,7 +210,7 @@ describe('Artifact Component Generator', () => {
       expect(definition).toContain(`template: \`${longTemplate}\``);
     });
 
-    it('should handle schema field (alternative to props)', () => {
+    it('should throw error when only schema provided (needs props)', () => {
       const dataWithSchema = {
         name: 'Test',
         schema: {
@@ -217,16 +223,16 @@ describe('Artifact Component Generator', () => {
           }
         }
       };
-
-      const definition = generateArtifactComponentDefinition('test', dataWithSchema);
       
-      expect(definition).toContain("props: z.object({");
-      expect(definition).toContain("value: preview(");
+      expect(() => {
+        generateArtifactComponentDefinition('test', dataWithSchema);
+      }).toThrow('Missing required fields for artifact component \'test\': description, props');
     });
 
     it('should prefer props over schema when both exist', () => {
       const dataWithBoth = {
         name: 'Test',
+        description: 'Component with both props and schema',
         props: {
           type: 'object',
           properties: { 
@@ -256,6 +262,7 @@ describe('Artifact Component Generator', () => {
     it('should handle mixed preview and non-preview fields', () => {
       const mixedData = {
         name: 'Mixed',
+        description: 'Component with mixed preview fields',
         props: {
           type: 'object',
           properties: {
@@ -392,21 +399,29 @@ describe('Artifact Component Generator', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle empty component data', () => {
-      const definition = generateArtifactComponentDefinition('empty', {});
-      
-      expect(definition).toBe("export const empty = artifactComponent({\n  id: 'empty'\n});");
+    it('should throw error for empty component data', () => {
+      expect(() => {
+        generateArtifactComponentDefinition('empty', {});
+      }).toThrow('Missing required fields for artifact component \'empty\': name, description, props');
     });
 
     it('should handle special characters in component ID', () => {
-      const definition = generateArtifactComponentDefinition('user-artifact_2023', { name: 'User Artifact' });
+      const definition = generateArtifactComponentDefinition('user-artifact_2023', { 
+        name: 'User Artifact',
+        description: 'Component with special chars',
+        props: { type: 'object', properties: {} }
+      });
       
       expect(definition).toContain("export const userArtifact2023 = artifactComponent({");
       expect(definition).toContain("id: 'user-artifact_2023',");
     });
 
     it('should handle component ID starting with number', () => {
-      const definition = generateArtifactComponentDefinition('2023-artifact', { name: 'Artifact' });
+      const definition = generateArtifactComponentDefinition('2023-artifact', { 
+        name: 'Artifact',
+        description: 'Component starting with number',
+        props: { type: 'object', properties: {} }
+      });
       
       expect(definition).toContain("export const _2023Artifact = artifactComponent({");
     });
@@ -414,6 +429,7 @@ describe('Artifact Component Generator', () => {
     it('should handle deeply nested objects with preview fields', () => {
       const nestedData = {
         name: 'Nested',
+        description: 'Component with nested objects',
         props: {
           type: 'object',
           properties: {

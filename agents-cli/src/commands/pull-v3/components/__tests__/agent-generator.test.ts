@@ -173,31 +173,22 @@ describe('Agent Generator', () => {
       expect(definition).not.toContain('subAgents: () => [\n'); // Single line format
     });
 
-    it('should handle agent without optional fields', () => {
+    it('should throw error for missing required fields', () => {
       const minimalData = {
         name: 'Minimal Agent'
       };
       
-      const definition = generateAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
-      
-      expect(definition).toContain('export const minimalAgent = agent({');
-      expect(definition).toContain("id: 'minimal-agent',");
-      expect(definition).toContain("name: 'Minimal Agent'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('defaultSubAgent:');
-      expect(definition).not.toContain('subAgents:');
-      expect(definition).not.toContain('contextConfig:');
-      expect(definition).not.toContain('statusUpdates:');
-      expect(definition).not.toContain('stopWhen:');
+      expect(() => {
+        generateAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for agent \'minimal-agent\': defaultSubAgentId, subAgents');
     });
 
-    it('should use agent ID as name fallback', () => {
+    it('should throw error for missing all required fields', () => {
       const noNameData = {};
       
-      const definition = generateAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
-      
-      expect(definition).toContain("id: 'fallback-agent',");
-      expect(definition).toContain("name: 'fallback-agent'");
+      expect(() => {
+        generateAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for agent \'fallback-agent\': name, defaultSubAgentId, subAgents');
     });
 
     it('should handle camelCase conversion for agent variable names', () => {
@@ -210,6 +201,8 @@ describe('Agent Generator', () => {
       const multilineData = {
         name: 'Test Agent',
         description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings',
+        defaultSubAgentId: 'defaultSubAgent',
+        subAgents: ['subAgent1', 'subAgent2'],
         statusUpdates: {
           numEvents: 2,
           timeInSeconds: 10,
@@ -262,6 +255,8 @@ describe('Agent Generator', () => {
     it('should handle statusUpdates without all optional fields', () => {
       const partialStatusData = {
         name: 'Partial Status Agent',
+        defaultSubAgentId: 'defaultSubAgent',
+        subAgents: ['subAgent1'],
         statusUpdates: {
           numEvents: 5,
           statusComponents: [{ type: 'summary' }]
@@ -280,6 +275,8 @@ describe('Agent Generator', () => {
     it('should not generate stopWhen without transferCountIs', () => {
       const noTransferCountData = {
         name: 'No Transfer Count Agent',
+        defaultSubAgentId: 'defaultSubAgent',
+        subAgents: ['subAgent1'],
         stopWhen: {
           someOtherProperty: 10
         }
@@ -380,27 +377,12 @@ describe('Agent Generator', () => {
       expect(result.stopWhen.transferCountIs).toBe(5);
     });
 
-    it('should generate minimal agent code that compiles', () => {
+    it('should throw error for minimal agent without required fields', () => {
       const minimalData = { name: 'Minimal Test Agent' };
-      const definition = generateAgentDefinition('minimal-test-agent', minimalData, undefined, mockRegistry);
-      const definitionWithoutExport = definition.replace('export const minimalTestAgent', 'const result');
       
-      const moduleCode = `
-        const agent = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return result;
-      `;
-      
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-      
-      expect(result).toBeDefined();
-      expect(result.id).toBe('minimal-test-agent');
-      expect(result.name).toBe('Minimal Test Agent');
+        generateAgentDefinition('minimal-test-agent', minimalData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for agent \'minimal-test-agent\': defaultSubAgentId, subAgents');
     });
   });
 
@@ -419,21 +401,20 @@ describe('Agent Generator', () => {
       expect(definition).toContain("id: '2nd-generation-agent',");
     });
 
-    it('should handle empty string values', () => {
+    it('should throw error for empty string name', () => {
       const emptyStringData = {
         name: '',
         description: '',
-        defaultSubAgentId: 'assistant'
+        defaultSubAgentId: 'assistant',
+        subAgents: ['subAgent1']
       };
       
-      const definition = generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
-      
-      expect(definition).toContain("name: '',");
-      expect(definition).toContain("description: '',");
-      expect(definition).toContain('defaultSubAgent: assistant');
+      expect(() => {
+        generateAgentDefinition('empty-strings-agent', emptyStringData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for agent \'empty-strings-agent\': name');
     });
 
-    it('should handle null and undefined values gracefully', () => {
+    it('should throw error for null and undefined required values', () => {
       const nullData = {
         name: 'Test Agent',
         description: null,
@@ -442,18 +423,15 @@ describe('Agent Generator', () => {
         contextConfig: undefined
       };
       
-      const definition = generateAgentDefinition('null-values-agent', nullData, undefined, mockRegistry);
-      
-      expect(definition).toContain("name: 'Test Agent'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('defaultSubAgent:');
-      expect(definition).not.toContain('subAgents:');
-      expect(definition).not.toContain('contextConfig:');
+      expect(() => {
+        generateAgentDefinition('null-values-agent', nullData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for agent \'null-values-agent\': defaultSubAgentId, subAgents');
     });
 
     it('should handle large number of subAgents with proper formatting', () => {
       const manySubAgentsData = {
         name: 'Many SubAgents Agent',
+        defaultSubAgentId: 'agent1',
         subAgents: {
           'agent1': { id: 'agent1' },
           'agent2': { id: 'agent2' },

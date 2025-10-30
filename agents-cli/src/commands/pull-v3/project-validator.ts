@@ -216,7 +216,6 @@ async function validateProjectEquivalence(
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
 
     // Use existing project comparator instead of custom logic
-    console.log(chalk.cyan(`   📊 Project Structure Comparison:`));
 
     // Create a temporary registry for the temp project (needed by compareProjects)
     const tempRegistry = new ComponentRegistry();
@@ -233,7 +232,6 @@ async function validateProjectEquivalence(
     const hasChanges = comparison.hasChanges;
 
     if (!hasChanges) {
-      console.log(chalk.green(`      ✅ Projects are identical`));
       return true;
     } else {
       console.log(chalk.yellow(`      🔄 Found differences:`));
@@ -288,20 +286,14 @@ export async function validateTempDirectory(
   const tempDir = join(originalProjectRoot, tempDirName);
 
   // Step 1: Skip TypeScript compilation (temp directory may have SDK version mismatches)
-  console.log(
-    chalk.cyan(`   ⏭️  Skipping TypeScript compilation (known SDK type issues in temp directory)`)
-  );
   const compilationSuccess = true;
 
   // Step 2: Load and compare project definitions
-  console.log(chalk.cyan(`   🔍 Comparing project definitions...`));
   const equivalenceSuccess = await validateProjectEquivalence(tempDir, remoteProject);
 
   if (equivalenceSuccess) {
-    console.log(chalk.green(`   ✅ Generated project matches remote project structure`));
 
     // Ask user if they want to overwrite their files
-    console.log(chalk.cyan(`\n📁 Generated files are ready in: ${tempDir}`));
     console.log(
       chalk.yellow(`\n❓ Would you like to overwrite your project files with the generated files?`)
     );

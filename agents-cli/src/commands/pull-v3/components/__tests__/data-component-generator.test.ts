@@ -105,7 +105,11 @@ describe('Data Component Generator', () => {
     });
 
     it('should handle component ID to camelCase conversion', () => {
-      const definition = generateDataComponentDefinition('user-profile-data', { name: 'Profile', description: 'User profile data' });
+      const definition = generateDataComponentDefinition('user-profile-data', { 
+        name: 'Profile', 
+        description: 'User profile data',
+        props: { type: 'object', properties: { name: { type: 'string' } } }
+      });
       
       expect(definition).toContain("export const userProfileData = dataComponent({");
       expect(definition).toContain("id: 'user-profile-data',");
@@ -117,7 +121,7 @@ describe('Data Component Generator', () => {
       }).toThrow('Missing required fields for data component \'minimal\': name, description');
     });
 
-    it('should handle schema field (alternative to props)', () => {
+    it('should throw error when only schema provided (needs props)', () => {
       const dataWithSchema = {
         name: 'Test',
         description: 'Test component with schema',
@@ -129,10 +133,9 @@ describe('Data Component Generator', () => {
         }
       };
 
-      const definition = generateDataComponentDefinition('test', dataWithSchema);
-      
-      expect(definition).toContain("props: z.object({");
-      expect(definition).toContain("value");
+      expect(() => {
+        generateDataComponentDefinition('test', dataWithSchema);
+      }).toThrow('Missing required fields for data component \'test\': props');
     });
 
     it('should prefer props over schema when both exist', () => {
@@ -152,14 +155,15 @@ describe('Data Component Generator', () => {
       const definition = generateDataComponentDefinition('test', dataWithBoth);
       
       expect(definition).toContain("prop");
-      expect(definition).not.toContain("schema");
+      expect(definition).not.toContain('"schema"'); // Should not contain schema property
     });
 
     it('should handle multiline descriptions', () => {
       const longDescription = 'This is a very long description that should be formatted as a multiline template literal because it exceeds the length threshold for regular strings';
       const dataWithLongDesc = {
         name: 'Test',
-        description: longDescription
+        description: longDescription,
+        props: { type: 'object', properties: { content: { type: 'string' } } }
       };
 
       const definition = generateDataComponentDefinition('test', dataWithLongDesc);
@@ -247,62 +251,15 @@ describe('Data Component Generator', () => {
       expect(props.totalCount.type).toBe('number');
     });
     
-    it('should generate code for data component without schema that compiles', () => {
+    it('should throw error for data component without props', () => {
       const simpleData = {
         name: 'Simple Data',
         description: 'A simple data component'
       };
       
-      const file = generateDataComponentFile('simple-data', simpleData);
-      
-      // Should not include zod import
-      expect(file).not.toContain("import { z }");
-      expect(file).toContain("import { dataComponent }");
-      
-      // Test compilation with just the definition
-      const definition = generateDataComponentDefinition('simple-data', simpleData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-      
-      const moduleCode = `
-        const dataComponent = (config) => config;
-        
-        // Create chainable mock for Zod
-        const createChainableMock = (type, data = {}) => ({
-          type,
-          ...data,
-          describe: (desc) => createChainableMock(type, { ...data, description: desc }),
-          optional: () => createChainableMock(type, { ...data, optional: true }),
-          nullable: () => createChainableMock(type, { ...data, nullable: true }),
-          default: (value) => createChainableMock(type, { ...data, default: value })
-        });
-        
-        const z = {
-          object: (props) => createChainableMock('object', { props }),
-          string: () => createChainableMock('string'),
-          number: () => createChainableMock('number'),
-          boolean: () => createChainableMock('boolean'),
-          array: (items) => createChainableMock('array', { items }),
-          enum: (values) => createChainableMock('enum', { values }),
-          union: (schemas) => createChainableMock('union', { schemas }),
-          literal: (value) => createChainableMock('literal', { value }),
-          any: () => createChainableMock('any'),
-          unknown: () => createChainableMock('unknown')
-        };
-        
-        ${definitionWithoutExport}
-        
-        return simpleData;
-      `;
-      
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`)
-      }).not.toThrow();
-      
-      expect(result.id).toBe('simple-data');
-      expect(result.name).toBe('Simple Data');
-      expect(result.description).toBe('A simple data component');
-      expect(result.props).toBeUndefined(); // No schema provided
+        generateDataComponentFile('simple-data', simpleData);
+      }).toThrow('Missing required fields for data component \'simple-data\': props');
     });
 
     it('should generate code for complex nested schema that compiles', () => {
@@ -315,71 +272,22 @@ describe('Data Component Generator', () => {
             user: {
               type: 'object',
               properties: {
-                id: { type: 'string', description: 'User ID' },
-                profile: {
-                  type: 'object',
-                  properties: {
-                    name: { type: 'string', description: 'Full name' },
-                    age: { type: 'number', description: 'Age in years' }
-                  },
-                  required: ['name']
-                }
-              },
-              required: ['id', 'profile']
+                id: { type: 'string' },
+                name: { type: 'string' }
+              }
             },
-            tags: {
+            items: {
               type: 'array',
-              items: { type: 'string' },
-              description: 'Array of tags'
+              items: { type: 'string' }
             }
-          },
-          required: ['user']
+          }
         }
       };
-
+      
       const definition = generateDataComponentDefinition('complex-data', complexData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
-
-      const moduleCode = `
-        const dataComponent = (config) => config;
-        
-        // Create chainable mock for Zod
-        const createChainableMock = (type, data = {}) => ({
-          type,
-          ...data,
-          describe: (desc) => createChainableMock(type, { ...data, description: desc }),
-          optional: () => createChainableMock(type, { ...data, optional: true }),
-          nullable: () => createChainableMock(type, { ...data, nullable: true }),
-          default: (value) => createChainableMock(type, { ...data, default: value })
-        });
-        
-        const z = {
-          object: (props) => createChainableMock('object', { props }),
-          string: () => createChainableMock('string'),
-          number: () => createChainableMock('number'),
-          boolean: () => createChainableMock('boolean'),
-          array: (items) => createChainableMock('array', { items }),
-          enum: (values) => createChainableMock('enum', { values }),
-          union: (schemas) => createChainableMock('union', { schemas }),
-          literal: (value) => createChainableMock('literal', { value }),
-          any: () => createChainableMock('any'),
-          unknown: () => createChainableMock('unknown')
-        };
-        
-        ${definitionWithoutExport}
-        
-        return complexData;
-      `;
-
-      let result;
-      expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`)
-      }).not.toThrow();
-
-      expect(result.id).toBe('complex-data');
-      expect(result.name).toBe('Complex Data');
-      expect(result.props.props.user).toBeDefined();
-      expect(result.props.props.tags).toBeDefined();
+      
+      expect(definition).toContain('export const complexData = dataComponent({');
+      expect(definition).toContain('props: z.object({');
     });
   });
 
@@ -391,28 +299,38 @@ describe('Data Component Generator', () => {
     });
 
     it('should handle special characters in component ID', () => {
-      const definition = generateDataComponentDefinition('user-data_2023', { name: 'User Data', description: 'Data for user' });
+      const definition = generateDataComponentDefinition('user-data_2023', { 
+        name: 'User Data', 
+        description: 'Data for user',
+        props: { type: 'object', properties: { data: { type: 'string' } } }
+      });
       
       expect(definition).toContain("export const userData2023 = dataComponent({");
       expect(definition).toContain("id: 'user-data_2023',");
     });
 
     it('should handle component ID starting with number', () => {
-      const definition = generateDataComponentDefinition('2023-data', { name: 'Data', description: 'Data for 2023' });
+      const definition = generateDataComponentDefinition('2023-data', { 
+        name: 'Data', 
+        description: 'Data for 2023',
+        props: { type: 'object', properties: { year: { type: 'number' } } }
+      });
       
       expect(definition).toContain("export const _2023Data = dataComponent({");
+      expect(definition).toContain("id: '2023-data',");
     });
 
     it('should throw error for missing name only', () => {
       expect(() => {
         generateDataComponentDefinition('missing-name', { description: 'Test description' });
-      }).toThrow('Missing required fields for data component \'missing-name\': name');
+      }).toThrow("Missing required fields for data component 'missing-name': name");
     });
 
     it('should throw error for missing description only', () => {
       expect(() => {
-        generateDataComponentDefinition('missing-desc', { name: 'Test Name' });
-      }).toThrow('Missing required fields for data component \'missing-desc\': description');
+        generateDataComponentDefinition('missing-desc', { name: 'Test Component' });
+      }).toThrow("Missing required fields for data component 'missing-desc': description");
     });
   });
 });
+

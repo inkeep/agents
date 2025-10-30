@@ -92,7 +92,6 @@ export function generateCredentialDefinition(
   lines.push(`export const ${credentialVarName} = credential({`);
   lines.push(`${indentation}id: ${formatString(credentialId, q)},`);
   
-  console.info(`Credential data: ${JSON.stringify(credentialData, null, 2)}`);
   
   // Validate required fields
   const requiredFields = ['name', 'type', 'credentialStoreId'];

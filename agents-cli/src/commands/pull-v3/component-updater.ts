@@ -133,8 +133,7 @@ async function runBiomeOnFile(filePath: string): Promise<boolean> {
   } catch (error) {
     // Don't fail the entire process if Biome is not available or fails
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log(chalk.yellow(`   ⚠️ Biome not available or failed: ${errorMsg}`));
-    console.log(chalk.gray(`   💡 Install biome with: npm install --save-dev @biomejs/biome`));
+    // Biome not available - continue without formatting
     return false;
   }
 }
@@ -181,9 +180,6 @@ async function runBiomeOnDirectory(dirPath: string): Promise<boolean> {
     return true;
   } catch (error) {
     // Don't fail the entire process if Biome is not available or fails
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log(chalk.yellow(`   ⚠️ Biome directory formatting failed: ${errorMsg}`));
-    console.log(chalk.gray(`   💡 Install biome with: npm install --save-dev @biomejs/biome`));
     return false;
   }
 }
@@ -485,7 +481,6 @@ export async function updateModifiedComponents(
       const tempFilePath = join(projectRoot, tempDirName, relativePath);
       
       // Run Biome formatter and linter on the modified file
-      console.log(chalk.cyan(`   🔧 Running Biome formatter/linter...`));
       const biomeSuccess = await runBiomeOnFile(tempFilePath);
       
       if (biomeSuccess) {
@@ -605,26 +600,13 @@ export async function updateModifiedComponents(
   if (failed.length > 0) {
     console.log(chalk.red(`   ❌ ${failed.length} components failed to analyze`));
   }
-  console.log(chalk.gray('   💡 Files not modified - comparison only'));
   
-  // Show temp directory location
-  console.log(chalk.cyan(`\n📁 Complete project snapshot: ${tempDirName}`));
-  console.log(chalk.gray(`   Original files + modified files with LLM merging`));
-  console.log(chalk.gray(`   Use this directory to compare against your original project`));
 
-  // Run Biome on the entire temp directory
-  console.log(chalk.cyan(`\n🔧 Running Biome formatter/linter on entire temp directory...`));
+  // Run Biome on the entire temp directory (silently)
   const tempDir = join(projectRoot, tempDirName);
-  const biomeSuccess = await runBiomeOnDirectory(tempDir);
-  
-  if (biomeSuccess) {
-    console.log(chalk.green(`✅ Biome formatting and linting completed`));
-  } else {
-    console.log(chalk.yellow(`⚠️ Biome formatting had some issues (continuing anyway)`));
-  }
+  await runBiomeOnDirectory(tempDir);
 
-  // Validate the temp directory
-  console.log(chalk.cyan(`\n🔍 Validating generated project...`));
+  // Validate the temp directory (silently)
   await validateTempDirectory(projectRoot, tempDirName, remoteProject);
 
   return results;

@@ -116,6 +116,8 @@ describe('Sub-Agent Generator', () => {
     it('should handle single item arrays in single line format', () => {
       const singleItemData = {
         name: 'Single Item Agent',
+        description: 'Agent with single items',
+        prompt: 'I am a single item agent.',
         canUse: [{ toolId: 'onlyTool' }],
         dataComponents: ['onlyComponent']
       };
@@ -138,32 +140,22 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('tool3,');
     });
 
-    it('should handle sub-agent without optional fields', () => {
+    it('should throw error for missing required fields', () => {
       const minimalData = {
         name: 'Minimal Agent'
       };
       
-      const definition = generateSubAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
-      
-      expect(definition).toContain('export const minimalAgent = subAgent({');
-      expect(definition).toContain("id: 'minimal-agent',");
-      expect(definition).toContain("name: 'Minimal Agent'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('prompt:');
-      expect(definition).not.toContain('canUse:');
-      expect(definition).not.toContain('canDelegateTo:');
-      expect(definition).not.toContain('dataComponents:');
-      expect(definition).not.toContain('artifactComponents:');
-      expect(definition).not.toContain('stopWhen:');
+      expect(() => {
+        generateSubAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for sub-agent \'minimal-agent\': description, prompt');
     });
 
-    it('should use agent ID as name fallback', () => {
+    it('should throw error for missing all required fields', () => {
       const noNameData = {};
       
-      const definition = generateSubAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
-      
-      expect(definition).toContain("id: 'fallback-agent',");
-      expect(definition).toContain("name: 'fallback-agent'");
+      expect(() => {
+        generateSubAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for sub-agent \'fallback-agent\': name, description, prompt');
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -203,6 +195,8 @@ describe('Sub-Agent Generator', () => {
     it('should handle empty arrays', () => {
       const emptyArraysData = {
         name: 'Empty Arrays Agent',
+        description: 'Agent with empty arrays',
+        prompt: 'I have empty arrays.',
         canUse: [],
         canDelegateTo: [],
         dataComponents: [],
@@ -221,6 +215,8 @@ describe('Sub-Agent Generator', () => {
     it('should handle canTransferTo (legacy support)', () => {
       const transferData = {
         name: 'Transfer Agent',
+        description: 'Agent with transfer capability',
+        prompt: 'I can transfer to legacy agents.',
         canTransferTo: ['legacyAgent1', 'legacyAgent2']
       };
       
@@ -235,6 +231,8 @@ describe('Sub-Agent Generator', () => {
     it('should not generate stopWhen without stepCountIs', () => {
       const noStepCountData = {
         name: 'No Step Count Agent',
+        description: 'Agent without step count',
+        prompt: 'I do not have step count.',
         stopWhen: {
           someOtherProperty: 10
         }
@@ -248,6 +246,8 @@ describe('Sub-Agent Generator', () => {
     it('should handle stopWhen with only stepCountIs', () => {
       const stepCountOnlyData = {
         name: 'Step Count Only Agent',
+        description: 'Agent with step count limit',
+        prompt: 'I have a step count limit.',
         stopWhen: {
           stepCountIs: 15,
           otherProperty: 'ignored'
@@ -364,27 +364,12 @@ describe('Sub-Agent Generator', () => {
       expect(result.artifactComponents()).toHaveLength(1);
     });
 
-    it('should generate minimal sub-agent code that compiles', () => {
+    it('should throw error for minimal sub-agent without required fields', () => {
       const minimalData = { name: 'Minimal Test Agent' };
-      const definition = generateSubAgentDefinition('minimal-test-sub-agent', minimalData, undefined, mockRegistry);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
       
-      const moduleCode = `
-        const subAgent = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimalTestSubAgent;
-      `;
-      
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-      
-      expect(result).toBeDefined();
-      expect(result.id).toBe('minimal-test-sub-agent');
-      expect(result.name).toBe('Minimal Test Agent');
+        generateSubAgentDefinition('minimal-test-sub-agent', minimalData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for sub-agent \'minimal-test-sub-agent\': description, prompt');
     });
   });
 
@@ -403,21 +388,19 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain("id: '2nd-generation-sub-agent',");
     });
 
-    it('should handle empty string values', () => {
+    it('should throw error for empty string required fields', () => {
       const emptyStringData = {
         name: '',
         description: '',
         prompt: ''
       };
       
-      const definition = generateSubAgentDefinition('empty-strings-sub-agent', emptyStringData, undefined, mockRegistry);
-      
-      expect(definition).toContain("name: '',");
-      expect(definition).toContain("description: '',");
-      expect(definition).toContain("prompt: ''"); // No trailing comma on last property
+      expect(() => {
+        generateSubAgentDefinition('empty-strings-sub-agent', emptyStringData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for sub-agent \'empty-strings-sub-agent\': name, description, prompt');
     });
 
-    it('should handle null and undefined values gracefully', () => {
+    it('should throw error for null required values', () => {
       const nullData = {
         name: 'Test Sub Agent',
         description: null,
@@ -428,20 +411,16 @@ describe('Sub-Agent Generator', () => {
         artifactComponents: undefined
       };
       
-      const definition = generateSubAgentDefinition('null-values-sub-agent', nullData, undefined, mockRegistry);
-      
-      expect(definition).toContain("name: 'Test Sub Agent'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('prompt:');
-      expect(definition).not.toContain('canUse:');
-      expect(definition).not.toContain('canDelegateTo:');
-      expect(definition).not.toContain('dataComponents:');
-      expect(definition).not.toContain('artifactComponents:');
+      expect(() => {
+        generateSubAgentDefinition('null-values-sub-agent', nullData, undefined, mockRegistry);
+      }).toThrow('Missing required fields for sub-agent \'null-values-sub-agent\': description, prompt');
     });
 
     it('should handle large number of tools/agents with proper formatting', () => {
       const manyToolsData = {
         name: 'Many Tools Agent',
+        description: 'Agent with many tools and delegation options',
+        prompt: 'I have access to many tools.',
         canUse: [{ toolId: 'tool1' }, { toolId: 'tool2' }, { toolId: 'tool3' }, { toolId: 'tool4' }, { toolId: 'tool5' }, { toolId: 'tool6' }],
         canDelegateTo: ['agent1', 'agent2', 'agent3', 'agent4']
       };
@@ -463,6 +442,8 @@ describe('Sub-Agent Generator', () => {
     it('should handle mixed array and reference types', () => {
       const mixedData = {
         name: 'Mixed Types Agent',
+        description: 'Agent with mixed reference types',
+        prompt: 'I work with mixed types.',
         canUse: [{ toolId: 'stringTool' }],
         dataComponents: ['stringComponent']
       };
@@ -471,6 +452,33 @@ describe('Sub-Agent Generator', () => {
       
       expect(definition).toContain('canUse: () => [stringTool]');
       expect(definition).toContain('dataComponents: () => [stringComponent]');
+    });
+
+    it('should throw error for missing name only', () => {
+      expect(() => {
+        generateSubAgentDefinition('missing-name', { 
+          description: 'Test description',
+          prompt: 'Test prompt'
+        });
+      }).toThrow('Missing required fields for sub-agent \'missing-name\': name');
+    });
+
+    it('should throw error for missing description only', () => {
+      expect(() => {
+        generateSubAgentDefinition('missing-desc', { 
+          name: 'Test Agent',
+          prompt: 'Test prompt'
+        });
+      }).toThrow('Missing required fields for sub-agent \'missing-desc\': description');
+    });
+
+    it('should throw error for missing prompt only', () => {
+      expect(() => {
+        generateSubAgentDefinition('missing-prompt', { 
+          name: 'Test Agent',
+          description: 'Test description'
+        });
+      }).toThrow('Missing required fields for sub-agent \'missing-prompt\': prompt');
     });
   });
 });

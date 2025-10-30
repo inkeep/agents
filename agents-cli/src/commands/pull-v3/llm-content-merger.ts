@@ -8,11 +8,10 @@
  * - Imports and other non-component code
  */
 
-import { anthropic } from '@ai-sdk/anthropic';
-import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import chalk from 'chalk';
 import { createTargetedTypeScriptPlaceholders, restoreTargetedTypeScriptPlaceholders } from './targeted-typescript-placeholders';
+import { getAvailableModel } from './utils/model-provider-detector';
 
 /**
  * Strip code fences from LLM response if present
@@ -142,7 +141,7 @@ Return only the merged TypeScript code without any explanation or markdown forma
     const estimatedPromptTokens = estimateTokens(processedPrompt);
     
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-5'),
+      model: getAvailableModel(),
       prompt: processedPrompt,
     });
 
@@ -156,12 +155,8 @@ Return only the merged TypeScript code without any explanation or markdown forma
     const totalTokens = estimatedPromptTokens + estimatedCompletionTokens;
     const estimatedCost = calculateCostEstimate(estimatedPromptTokens, estimatedCompletionTokens);
     
-    // Log token usage and cost
-    console.log(chalk.cyan(`   📊 Token Usage & Cost Estimate:`));
-    console.log(chalk.gray(`      Prompt tokens: ~${estimatedPromptTokens.toLocaleString()}`));
-    console.log(chalk.gray(`      Completion tokens: ~${estimatedCompletionTokens.toLocaleString()}`));
-    console.log(chalk.gray(`      Total tokens: ~${totalTokens.toLocaleString()}`));
-    console.log(chalk.green(`      Estimated cost: $${estimatedCost.toFixed(4)}`));
+    // Log condensed token usage
+    console.log(chalk.gray(`   💰 LLM usage: ~${totalTokens.toLocaleString()} tokens ($${estimatedCost.toFixed(4)})`))
     
     // Restore placeholders in the generated content
     

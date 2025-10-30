@@ -114,6 +114,9 @@ describe('Project Generator', () => {
     it('should handle single item arrays in single line format', () => {
       const singleItemData = {
         name: 'Single Agent Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         agents: ['onlyAgent']
       };
       
@@ -134,30 +137,22 @@ describe('Project Generator', () => {
       expect(definition).not.toContain('reportingAgent,');
     });
 
-    it('should handle project without optional fields', () => {
+    it('should throw error for missing models field', () => {
       const minimalData = {
         name: 'Minimal Project'
       };
       
-      const definition = generateProjectDefinition('minimal-project', minimalData);
-      
-      expect(definition).toContain('export const minimalProject = project({');
-      expect(definition).toContain("id: 'minimal-project',");
-      expect(definition).toContain("name: 'Minimal Project'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('models:');
-      expect(definition).not.toContain('stopWhen:');
-      expect(definition).not.toContain('agents:');
-      expect(definition).not.toContain('tools:');
+      expect(() => {
+        generateProjectDefinition('minimal-project', minimalData);
+      }).toThrow('Missing required fields for project \'minimal-project\': models, models.base');
     });
 
-    it('should use project ID as name fallback', () => {
+    it('should throw error for missing required fields', () => {
       const noNameData = {};
       
-      const definition = generateProjectDefinition('fallback-project', noNameData);
-      
-      expect(definition).toContain("id: 'fallback-project',");
-      expect(definition).toContain("name: 'fallback-project'");
+      expect(() => {
+        generateProjectDefinition('fallback-project', noNameData);
+      }).toThrow('Missing required fields for project \'fallback-project\': name, models, models.base');
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -169,7 +164,10 @@ describe('Project Generator', () => {
     it('should handle multiline descriptions', () => {
       const multilineData = {
         name: 'Complex Project',
-        description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting'
+        description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        }
       };
       
       const definition = generateProjectDefinition('multiline-project', multilineData);
@@ -195,6 +193,9 @@ describe('Project Generator', () => {
     it('should handle empty arrays', () => {
       const emptyArraysData = {
         name: 'Empty Arrays Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         agents: [],
         tools: [],
         dataComponents: [],
@@ -213,6 +214,9 @@ describe('Project Generator', () => {
     it('should handle stopWhen with only transferCountIs', () => {
       const transferOnlyData = {
         name: 'Transfer Only Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         stopWhen: {
           transferCountIs: 5
         }
@@ -229,6 +233,9 @@ describe('Project Generator', () => {
     it('should handle stopWhen with only stepCountIs', () => {
       const stepOnlyData = {
         name: 'Step Only Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         stopWhen: {
           stepCountIs: 50
         }
@@ -371,27 +378,12 @@ describe('Project Generator', () => {
       expect(result.credentialReferences()).toHaveLength(2);
     });
 
-    it('should generate minimal project code that compiles', () => {
+    it('should throw error for minimal project without required fields', () => {
       const minimalData = { name: 'Minimal Test Project' };
-      const definition = generateProjectDefinition('minimal-test-project', minimalData);
-      const definitionWithoutExport = definition.replace('export const ', 'const ');
       
-      const moduleCode = `
-        const project = (config) => config;
-        
-        ${definitionWithoutExport}
-        
-        return minimalTestProject;
-      `;
-      
-      let result;
       expect(() => {
-        result = eval(`(() => { ${moduleCode} })()`);
-      }).not.toThrow();
-      
-      expect(result).toBeDefined();
-      expect(result.id).toBe('minimal-test-project');
-      expect(result.name).toBe('Minimal Test Project');
+        generateProjectDefinition('minimal-test-project', minimalData);
+      }).toThrow('Missing required fields for project \'minimal-test-project\': models, models.base');
     });
   });
 
@@ -410,19 +402,21 @@ describe('Project Generator', () => {
       expect(definition).toContain("id: '2nd-generation-project',");
     });
 
-    it('should handle empty string values', () => {
+    it('should throw error for empty string name', () => {
       const emptyStringData = {
         name: '',
-        description: ''
+        description: '',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        }
       };
       
-      const definition = generateProjectDefinition('empty-strings-project', emptyStringData);
-      
-      expect(definition).toContain("name: '',");
-      expect(definition).toContain("description: ''");
+      expect(() => {
+        generateProjectDefinition('empty-strings-project', emptyStringData);
+      }).toThrow('Missing required fields for project \'empty-strings-project\': name');
     });
 
-    it('should handle null and undefined values gracefully', () => {
+    it('should throw error for null models values', () => {
       const nullData = {
         name: 'Test Project',
         description: null,
@@ -431,18 +425,17 @@ describe('Project Generator', () => {
         tools: undefined
       };
       
-      const definition = generateProjectDefinition('null-values-project', nullData);
-      
-      expect(definition).toContain("name: 'Test Project'");
-      expect(definition).not.toContain('description:');
-      expect(definition).not.toContain('models:');
-      expect(definition).not.toContain('agents:');
-      expect(definition).not.toContain('tools:');
+      expect(() => {
+        generateProjectDefinition('null-values-project', nullData);
+      }).toThrow('Missing required fields for project \'null-values-project\': models, models.base');
     });
 
     it('should handle large number of agents with proper formatting', () => {
       const manyAgentsData = {
         name: 'Many Agents Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6']
       };
       
@@ -458,6 +451,9 @@ describe('Project Generator', () => {
     it('should handle mixed array types', () => {
       const mixedData = {
         name: 'Mixed Types Project',
+        models: {
+          base: { model: 'gpt-4o-mini' }
+        },
         agents: ['stringAgent'],
         tools: ['stringTool']
       };
@@ -466,6 +462,23 @@ describe('Project Generator', () => {
       
       expect(definition).toContain('agents: () => [stringAgent]');
       expect(definition).toContain('tools: () => [stringTool]');
+    });
+
+    it('should throw error for missing name only', () => {
+      expect(() => {
+        generateProjectDefinition('missing-name', { 
+          models: { base: { model: 'gpt-4o-mini' } }
+        });
+      }).toThrow('Missing required fields for project \'missing-name\': name');
+    });
+
+    it('should throw error for models without base', () => {
+      expect(() => {
+        generateProjectDefinition('missing-base', { 
+          name: 'Test Project',
+          models: { structuredOutput: { model: 'gpt-4o' } }
+        });
+      }).toThrow('Missing required fields for project \'missing-base\': models.base');
     });
   });
 });
