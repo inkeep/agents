@@ -249,6 +249,7 @@ const TagsInput: FC = () => {
 interface NameAndDescription {
   name?: string;
   description?: string;
+  isRequired?: boolean;
 }
 
 type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
@@ -278,69 +279,83 @@ interface FieldObject extends NameAndDescription {
   properties: AllFields[];
 }
 
-export function convertJsonSchemaToFields(schema: RJSFSchema, name?: string): AllFields {
+export function convertJsonSchemaToFields(
+  schema: RJSFSchema,
+  name?: string,
+  isRequired = false
+): AllFields {
   const { description } = schema;
+  const base = {
+    ...(name && { name }),
+    ...(description && { description }),
+    ...(isRequired && { isRequired: true }),
+  };
 
-  if (Array.isArray(schema.enum)) {
+  if (Array.isArray(schema.enum) && schema.type === 'string') {
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'enum',
       values: schema.enum.map(String),
     };
   }
 
   if (schema.type === 'object') {
+    const requiredFields: string[] = Array.isArray(schema.required) ? schema.required : [];
+    const requiredFieldsSet = new Set(requiredFields);
+
     const properties =
       schema && typeof schema.properties === 'object'
         ? Object.entries(schema.properties).map(([propertyName, prop]) =>
-            convertJsonSchemaToFields(prop, propertyName)
+            convertJsonSchemaToFields(prop, propertyName, requiredFieldsSet.has(propertyName))
           )
         : [];
 
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'object',
       properties,
     };
   }
+
   if (schema.type === 'array') {
     if (schema && typeof schema.items === 'object') {
       const items = convertJsonSchemaToFields(schema.items);
       return {
-        ...(name && { name }),
-        ...(description && { description }),
+        ...base,
         type: 'array',
         items,
       };
     }
+
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'array',
     };
   }
 
   if (schema.type === 'string') {
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'string',
     };
   }
+
   if (schema.type === 'number' || schema.type === 'integer') {
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'number',
     };
   }
+
   if (schema.type === 'boolean') {
     return {
-      ...(name && { name }),
-      ...(description && { description }),
+      ...base,
       type: 'boolean',
     };
   }
+
+  return {
+    ...base,
+    type: 'string',
+  };
 }

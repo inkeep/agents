@@ -66,6 +66,7 @@ describe('convertJsonSchemaToFields', () => {
         "properties": [
           {
             "description": "nested object",
+            "isRequired": true,
             "name": "nested",
             "properties": [
               {
@@ -74,6 +75,7 @@ describe('convertJsonSchemaToFields', () => {
                 "properties": [
                   {
                     "description": "string description",
+                    "isRequired": true,
                     "name": "string",
                     "type": "string",
                   },
@@ -84,6 +86,7 @@ describe('convertJsonSchemaToFields', () => {
                   },
                   {
                     "description": "integer description",
+                    "isRequired": true,
                     "name": "integer",
                     "type": "number",
                   },
@@ -94,6 +97,7 @@ describe('convertJsonSchemaToFields', () => {
                   },
                   {
                     "description": "enum description",
+                    "isRequired": true,
                     "name": "enum",
                     "type": "enum",
                     "values": [
