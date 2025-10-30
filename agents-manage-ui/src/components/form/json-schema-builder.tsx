@@ -279,77 +279,69 @@ interface FieldObject extends NameAndDescription {
 }
 
 export function convertJsonSchemaToFields(schema: RJSFSchema, name?: string): AllFields {
+  const { description } = schema;
+
   if (Array.isArray(schema.enum)) {
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'enum',
       values: schema.enum,
     };
   }
 
   if (schema.type === 'object') {
-    if (schema && typeof schema.properties === 'object') {
-      const properties = Object.entries(schema.properties).map(([propertyName, prop]) =>
-        convertJsonSchemaToFields(prop, propertyName)
-      );
-      return {
-        name: name ?? '',
-        description: schema.description,
-        type: 'object',
-        properties,
-      };
-    }
+    const properties =
+      schema && typeof schema.properties === 'object'
+        ? Object.entries(schema.properties).map(([propertyName, prop]) =>
+            convertJsonSchemaToFields(prop, propertyName)
+          )
+        : [];
+
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'object',
-      properties: [],
+      properties,
     };
   }
   if (schema.type === 'array') {
     if (schema && typeof schema.items === 'object') {
       const items = convertJsonSchemaToFields(schema.items);
       return {
-        name: name ?? '',
-        description: schema.description,
+        ...(name && { name }),
+        ...(description && { description }),
         type: 'array',
         items,
       };
     }
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'array',
-      items: {
-        name: '',
-        type: 'string',
-      },
+      items: {},
     };
   }
+
   if (schema.type === 'string') {
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'string',
     };
   }
   if (schema.type === 'number' || schema.type === 'integer') {
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'number',
     };
   }
   if (schema.type === 'boolean') {
     return {
-      name: name ?? '',
-      description: schema.description,
+      ...(name && { name }),
+      ...(description && { description }),
       type: 'boolean',
     };
   }
-  return {
-    name: name ?? '',
-    type: 'string',
-  };
 }
