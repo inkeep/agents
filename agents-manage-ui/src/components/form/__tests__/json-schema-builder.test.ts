@@ -1,7 +1,8 @@
+import { describe, it } from 'vitest';
 import { convertJsonSchemaToFields } from '@/components/form/json-schema-builder';
 import type { JSONSchema7 } from 'json-schema';
 
-const JSONSchema: JSONSchema7 = {
+export const JSONSchemaFixture: JSONSchema7 = {
   type: 'object',
   properties: {
     nested: {
@@ -64,7 +65,7 @@ const JSONSchema: JSONSchema7 = {
 
 describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
-    const schema = convertJsonSchemaToFields(JSONSchema);
+    const schema = convertJsonSchemaToFields(JSONSchemaFixture);
     expect(schema).toMatchInlineSnapshot(`
       {
         "properties": [

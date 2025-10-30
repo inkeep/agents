@@ -45,50 +45,53 @@ export function JsonSchemaInput<T extends FieldValues>({
       description={description}
       isRequired={isRequired}
     >
-      {(field) => (
-        <StandaloneJsonEditor
-          placeholder={placeholder}
-          {...field}
-          value={field.value || ''} // can be `null`
-          onChange={field.onChange}
-          readOnly={readOnly}
-          disabled={disabled}
-          actions={
-            <Dialog defaultOpen>
-              <DialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-                >
-                  Simple Edit
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="!max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>Structured output (JSON)</DialogTitle>
-                  <DialogDescription>
-                    The model will generate a JSON object that matches this schema.
-                  </DialogDescription>
-                  <JsonSchemaBuilder />
-                </DialogHeader>
-                <DialogFooter>
-                  {/* TODO */}
-                  {/*<Button variant="secondary">*/}
-                  {/*  <SquarePenIcon />*/}
-                  {/*  Generate*/}
-                  {/*</Button>*/}
-                  <Button className="ml-auto" variant="secondary">
-                    Close
+      {(field) => {
+        const value = field.value || ''; // can be `null`
+        return (
+          <StandaloneJsonEditor
+            placeholder={placeholder}
+            {...field}
+            value={value}
+            onChange={field.onChange}
+            readOnly={readOnly}
+            disabled={disabled}
+            actions={
+              <Dialog defaultOpen>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
+                  >
+                    Simple Edit
                   </Button>
-                  <Button>Update</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          }
-        />
-      )}
+                </DialogTrigger>
+                <DialogContent className="!max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Structured output (JSON)</DialogTitle>
+                    <DialogDescription>
+                      The model will generate a JSON object that matches this schema.
+                    </DialogDescription>
+                    <JsonSchemaBuilder value={value} />
+                  </DialogHeader>
+                  <DialogFooter>
+                    {/* TODO */}
+                    {/*<Button variant="secondary">*/}
+                    {/*  <SquarePenIcon />*/}
+                    {/*  Generate*/}
+                    {/*</Button>*/}
+                    <Button className="ml-auto" variant="secondary">
+                      Close
+                    </Button>
+                    <Button>Update</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            }
+          />
+        );
+      }}
     </FormFieldWrapper>
   );
 }

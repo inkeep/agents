@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { JSONSchema7 } from 'json-schema';
+import { JSONSchemaFixture } from '@/components/form/__tests__/json-schema-builder.test';
 
 const Types = {
   string: 'str',
@@ -158,7 +159,18 @@ const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   return <Icon className={cn('shrink-0', ClassToUse[type])} />;
 };
 
-export const JsonSchemaBuilder: FC = () => {
+export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
+  const [res] = useState<AllFields[]>(() => {
+    try {
+      // todo replace with JSON.parse(value) later
+      const result = convertJsonSchemaToFields(JSONSchemaFixture);
+      return result && result.type === 'object' ? result.properties : [];
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  });
+  console.log(res);
   const [properties, setProperties] = useState<ReactNode[]>([]);
   const handleAddProperty = useCallback(() => {
     setProperties((prev) => [...prev, <Property defaultType="str" />]);
