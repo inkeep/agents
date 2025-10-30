@@ -37,7 +37,7 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "test": "vitest --run",
+    "test": "vitest",
     "test:coverage": "vitest --run --coverage"
   },
   "dependencies": {

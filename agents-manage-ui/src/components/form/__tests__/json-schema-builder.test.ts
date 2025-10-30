@@ -60,40 +60,80 @@ describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
     const schema = convertJsonSchemaToFields(JSONSchema);
     expect(schema).toMatchInlineSnapshot(`
-      [
-        [
+      {
+        "description": undefined,
+        "name": "",
+        "properties": [
           {
-            "description": "The main title of the event or activity category",
-            "type": "string",
-          },
-          {
-            "description": "The type of event",
-            "type": "string",
-          },
-          {
-            "description": "A brief description of the event",
-            "type": "string",
-          },
-          [
-            {
+            "description": "The list of activities",
+            "items": {
               "description": undefined,
-              "type": "string",
+              "name": "",
+              "properties": [
+                {
+                  "description": "The main title of the event or activity category",
+                  "name": "title",
+                  "type": "string",
+                },
+                {
+                  "description": "The type of event",
+                  "name": "category",
+                  "type": "enum",
+                  "values": [
+                    "Festival",
+                    "Fitness",
+                    "Outdoor Activity",
+                    "Market",
+                    "Tour",
+                    "Other",
+                  ],
+                },
+                {
+                  "description": "A brief description of the event",
+                  "name": "description",
+                  "type": "string",
+                },
+                {
+                  "description": "Specific details like dates, time, and location",
+                  "name": "details",
+                  "properties": [
+                    {
+                      "description": undefined,
+                      "name": "dates",
+                      "type": "string",
+                    },
+                    {
+                      "description": undefined,
+                      "name": "time",
+                      "type": "string",
+                    },
+                    {
+                      "description": undefined,
+                      "name": "location",
+                      "type": "string",
+                    },
+                  ],
+                  "type": "object",
+                },
+                {
+                  "description": "A list of sub-points or examples, like different parks for hiking",
+                  "items": {
+                    "description": undefined,
+                    "name": "",
+                    "type": "string",
+                  },
+                  "name": "subItems",
+                  "type": "array",
+                },
+              ],
+              "type": "object",
             },
-            {
-              "description": undefined,
-              "type": "string",
-            },
-            {
-              "description": undefined,
-              "type": "string",
-            },
-          ],
-          {
-            "description": undefined,
-            "type": "string",
+            "name": "activities",
+            "type": "array",
           },
         ],
-      ]
+        "type": "object",
+      }
     `);
   });
 });
