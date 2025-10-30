@@ -296,9 +296,12 @@ export function convertJsonSchemaToFields(
 
     const properties =
       schema && typeof schema.properties === 'object'
-        ? Object.entries(schema.properties).map(([propertyName, prop]) =>
-            convertJsonSchemaToFields(prop, propertyName, requiredFieldsSet.has(propertyName))
-          )
+        ? Object.entries(schema.properties)
+            .map(([propertyName, prop]) =>
+              convertJsonSchemaToFields(prop, propertyName, requiredFieldsSet.has(propertyName))
+            )
+            // Filter unknown keys
+            .filter(Boolean)
         : [];
 
     return {
@@ -352,9 +355,4 @@ export function convertJsonSchemaToFields(
       type: 'boolean',
     };
   }
-
-  return {
-    ...base,
-    type: 'string',
-  };
 }

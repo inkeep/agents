@@ -47,6 +47,10 @@ const JSONSchema: RJSFSchema = {
                 },
               },
             },
+            unknown: {
+              // @ts-expect-error
+              type: 'UNKNOWN',
+            },
           },
           additionalProperties: false,
           required: ['string', 'integer', 'enum'],
