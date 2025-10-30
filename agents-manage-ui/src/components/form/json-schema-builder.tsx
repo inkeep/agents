@@ -283,7 +283,7 @@ export function convertJsonSchemaToFields(
   schema: RJSFSchema,
   name?: string,
   isRequired = false
-): AllFields {
+): AllFields | undefined {
   const base = {
     ...(name && { name }),
     ...(schema.description && { description: schema.description }),
@@ -297,11 +297,20 @@ export function convertJsonSchemaToFields(
     const properties =
       schema && typeof schema.properties === 'object'
         ? Object.entries(schema.properties)
-            .map(([propertyName, prop]) =>
-              convertJsonSchemaToFields(prop, propertyName, requiredFieldsSet.has(propertyName))
-            )
+            .map(([propertyName, prop]) => {
+              // TODO - to pass typecheck
+              if (typeof prop === 'string' || typeof prop === 'boolean') {
+                return null;
+              }
+
+              return convertJsonSchemaToFields(
+                prop,
+                propertyName,
+                requiredFieldsSet.has(propertyName)
+              );
+            })
             // Filter unknown keys
-            .filter(Boolean)
+            .filter((v) => !!v)
         : [];
 
     return {
