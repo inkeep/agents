@@ -132,6 +132,7 @@ export const CredentialReferenceApiInsertSchema = z.object({
   id: z.string(),
   tenantId: z.string().optional(),
   projectId: z.string().optional(),
+  name: z.string(),
   type: z.enum(CredentialStoreType),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),

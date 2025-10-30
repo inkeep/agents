@@ -133,33 +133,22 @@ export class TemplateEngine {
   }
 
   /**
-   * Process built-in variables like $now, $env, etc.
+   * Process built-in variables like $env, etc.
    */
   private static processBuiltinVariable(variable: string): string {
-    switch (variable) {
-      case '$now':
-        return new Date().toISOString();
-      case '$timestamp':
-        return Date.now().toString();
-      case '$date':
-        return new Date().toDateString();
-      case '$time':
-        return new Date().toTimeString();
-      default:
-        // Check for environment variables like $env.NODE_ENV
-        if (variable.startsWith('$env.')) {
-          const envVar = variable.substring(5);
-          return process.env[envVar] || '';
-        }
-
-        logger.warn(
-          {
-            variable,
-          },
-          'Unknown built-in variable'
-        );
-        return '';
+    // Check for environment variables like $env.NODE_ENV
+    if (variable.startsWith('$env.')) {
+      const envVar = variable.substring(5);
+      return process.env[envVar] || '';
     }
+
+    logger.warn(
+      {
+        variable,
+      },
+      'Unknown built-in variable'
+    );
+    return '';
   }
 
   /**

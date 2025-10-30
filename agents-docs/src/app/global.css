@@ -151,3 +151,51 @@ html {
     @apply border-none;
   }
 }
+
+/* Added this to enable text wrapping in code blocks - more specific selectors */
+/* Target Fumadocs-specific code block containers */
+.prose pre,
+.nd-codeblock pre,
+[data-rehype-pretty-code-fragment] pre,
+article pre,
+main pre,
+pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  overflow-x: auto !important; /* Change from hidden to auto for fallback */
+  max-width: 100% !important;
+}
+
+/* Target code elements within pre tags */
+.prose pre code,
+.nd-codeblock pre code,
+[data-rehype-pretty-code-fragment] pre code,
+article pre code,
+main pre code,
+pre code {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  display: block !important;
+}
+
+/* Target inline code blocks specifically */
+.prose code:not(pre code),
+article code:not(pre code),
+main code:not(pre code) {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Target Shiki-specific code highlighting spans */
+.shiki span {
+  word-break: inherit !important;
+}
+
+.type-table {
+  @apply gap-1;
+}
+.type-table div[data-state] button {
+  @apply flex gap-2;
+}

@@ -31,6 +31,9 @@ const DIRECTORY_VALIDATION = {
 };
 const execAsync = promisify(exec);
 
+const manageApiPort = '3002';
+const runApiPort = '3003';
+
 export const defaultGoogleModelConfigurations = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
@@ -74,8 +77,6 @@ type FileConfig = {
   openAiKey?: string;
   anthropicKey?: string;
   googleKey?: string;
-  manageApiPort?: string;
-  runApiPort?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
   disableGit?: boolean;
@@ -95,8 +96,6 @@ export const createAgents = async (
 ) => {
   let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
   const tenantId = 'default';
-  const manageApiPort = '3002';
-  const runApiPort = '3003';
 
   let projectId: string;
   let templateName: string;
@@ -264,8 +263,6 @@ export const createAgents = async (
       openAiKey,
       anthropicKey,
       googleKey,
-      manageApiPort: manageApiPort || '3002',
-      runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
       disableGit: disableGit,
@@ -325,8 +322,8 @@ export const createAgents = async (
         `  cd ${dirName}\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
-        `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
+        `  • Manage API: http://localhost:3002\n` +
+        `  • Run API: http://localhost:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -428,8 +425,89 @@ async function initializeGit() {
     );
   }
 }
+/**
+ * Check if a port is available
+ */
+async function isPortAvailable(port: number): Promise<boolean> {
+  const net = await import('node:net');
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // Only treat EADDRINUSE as "port in use", other errors might be transient
+      resolve(err.code === 'EADDRINUSE' ? false : true);
+    });
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    server.listen(port, 'localhost');
+  });
+}
+/**
+ * Display port conflict error and exit
+ */
+function displayPortConflictError(unavailablePorts: {
+  runApi: boolean;
+  manageApi: boolean;
+}): never {
+  let errorMessage = '';
+  if (unavailablePorts.runApi) {
+    errorMessage += `${color.red(`Run API port ${runApiPort} is already in use`)}\n`;
+  }
+  if (unavailablePorts.manageApi) {
+    errorMessage += `${color.red(`Manage API port ${manageApiPort} is already in use`)}\n`;
+  }
+
+  p.cancel(
+    `\n${color.red('✗ Port conflicts detected')}\n\n` +
+      `${errorMessage}\n` +
+      `${color.yellow('Please free up the ports and try again.')}\n`
+  );
+  process.exit(1);
+}
+
+/**
+ * Check port availability and display errors if needed
+ */
+async function checkPortsAvailability(): Promise<void> {
+  const [runApiAvailable, manageApiAvailable] = await Promise.all([
+    isPortAvailable(Number(runApiPort)),
+    isPortAvailable(Number(manageApiPort)),
+  ]);
+
+  if (!runApiAvailable || !manageApiAvailable) {
+    displayPortConflictError({
+      runApi: !runApiAvailable,
+      manageApi: !manageApiAvailable,
+    });
+  }
+}
+
+/**
+ * Wait for a server to be ready by polling a health endpoint
+ */
+async function waitForServerReady(url: string, timeout: number): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Server not ready yet, continue polling
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
+  }
+  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
+}
 
 async function setupProjectInDatabase(config: FileConfig) {
+  // Proactively check if ports are available BEFORE starting servers
+  await checkPortsAvailability();
+
+  // Start development servers in background
   const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -439,8 +517,52 @@ async function setupProjectInDatabase(config: FileConfig) {
     windowsHide: true,
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Track if port errors occur during startup (as a safety fallback)
+  const portErrors = { runApi: false, manageApi: false };
 
+  // Regex patterns for detecting port errors in output
+  const portErrorPatterns = {
+    runApi: new RegExp(
+      `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
+      'i'
+    ),
+    manageApi: new RegExp(
+      `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
+      'i'
+    ),
+  };
+
+  // Monitor output for port errors (fallback in case ports become unavailable between check and start)
+  const checkForPortErrors = (data: Buffer) => {
+    const output = data.toString();
+    if (portErrorPatterns.runApi.test(output)) {
+      portErrors.runApi = true;
+    }
+    if (portErrorPatterns.manageApi.test(output)) {
+      portErrors.manageApi = true;
+    }
+  };
+
+  devProcess.stdout.on('data', checkForPortErrors);
+
+  // Wait for servers to be ready
+  try {
+    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
+    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
+  } catch (error) {
+    // If servers don't start, we'll still try push but it will likely fail
+    console.warn(
+      'Warning: Servers may not be fully ready:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+
+  // Check if any port errors occurred during startup
+  if (portErrors.runApi || portErrors.manageApi) {
+    displayPortConflictError(portErrors);
+  }
+
+  // Run inkeep push
   try {
     await execAsync(
       `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`

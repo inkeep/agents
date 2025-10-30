@@ -21,12 +21,12 @@ async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
   }
   return (
     <BodyTemplate
-      breadcrumbs={[{ label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` }]}
+      breadcrumbs={[{ label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` }]}
     >
       <MainContent className="min-h-full">
         {agents.data.length > 0 ? (
           <>
-            <PageHeader title="Agent" description={agentDescription} />
+            <PageHeader title="Agents" description={agentDescription} />
             <AgentList tenantId={tenantId} projectId={projectId} agent={agents.data} />
           </>
         ) : (

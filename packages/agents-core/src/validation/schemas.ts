@@ -512,6 +512,7 @@ export const CredentialReferenceSelectSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
   projectId: z.string(),
+  name: z.string(),
   type: z.string(),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),

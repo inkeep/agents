@@ -28,80 +28,10 @@ const styleOverrides = `
   max-height: unset;
   box-shadow: none;
 }
+
 .ikp-ai-chat-message-wrapper {
   padding-top: 1rem;
   padding-bottom: 1rem;
-
-}
-[data-role="user"] .ikp-ai-chat-message-header {
-  display: none;
-}
-
-.ikp-ai-chat-message-header {
-  margin-bottom: 16px;
-}
-
-.ikp-ai-chat-message-wrapper:not(:last-child):after {
-  border-bottom-width: 0px;
-}
- [data-role="user"] .ikp-ai-chat-message-name {
-  display: none;
-  margin-bottom: 0px;
-}
-.ikp-ai-chat-message-content, .ikp-ai-chat-input {
-  font-size: 14px;
-}
-.ikp-ai-chat-message-avatar-content {
-  width: 24px;
-  height: 24px;
-}
-[data-widget-md] .ikp-ai-chat-message-avatar {
-  height: 24px;
-}
-.ikp-ai-chat-message-name {
-  background: none;
-  padding-left: 0px;
-  padding-right: 0px;
-  margin-left: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ikp-color-gray-600);
-}
-.ikp-ai-chat-tagline__text {
-  font-size: 13px;
-}
-.ikp-ai-chat-input__fieldset {
-  padding: 4px;
-}
-.ikp-ai-chat-input__send-button {
-  height: 36px;
-  width: 36px;
-}
-
-.ikp-ai-chat-message-loading {
-  height: auto;
-}
-
-/* User message styles */
-[data-role="user"] .ikp-ai-chat-message-content-wrapper {
-  align-items: flex-end;
-}
-[data-role="user"] .ikp-ai-chat-message-content {
-  background-color: var(--ikp-color-gray-100);
-  color: var(--ikp-color-gray-900);
-  border-radius: 24px;
-  border-bottom-right-radius: 2px;
-  padding: 8px 16px;
-}
-[data-role="user"] .ikp-ai-chat-message-part > p {
-  margin: 0px;
-}
-[data-role="user"] .ikp-ai-chat-message-part {
-  margin-bottom: 0px;
-}
-[data-theme=dark] [data-role="user"] .ikp-ai-chat-message-content {
-  background-color: var(--ikp-color-white-alpha-100);
-  color: var(--ikp-color-white-alpha-950);
 }
 
 .ikp-markdown-code {
@@ -112,14 +42,6 @@ const styleOverrides = `
 [data-theme=dark] .ikp-markdown-code {
   background-color: var(--ikp-color-white-alpha-100);
   color: var(--ikp-color-white-alpha-950);
-}
-
-/* Dark mode styles for chat containers */
-[data-theme=dark] .ikp-sidebar-chat__close-button {
-  color: var(--ikp-color-gray-50);
-}
-[data-theme=dark] .ikp-ai-chat-message-name {
-  background: none;
 }
 `;
 
@@ -179,7 +101,7 @@ export function ChatWidget({
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
-            onEvent: (event: InkeepCallbackEvent) => {
+            onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
@@ -256,7 +178,7 @@ export function ChatWidget({
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId,
+              'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,

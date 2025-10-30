@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AgentLoadingSkeleton() {
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Agent' }, { label: '' }]}>
+    <BodyTemplate breadcrumbs={[{ label: 'Agents' }, { label: '' }]}>
       <div className="flex h-screen bg-muted/20 dark:bg-background p-4">
         <div className="w-52">
           <div className="space-y-2">

@@ -584,7 +584,7 @@ class SigNozStatsAPI {
               disabled: QUERY_DEFAULTS.DISABLED,
               having: QUERY_DEFAULTS.HAVING,
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_1000,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               orderBy: [
                 {
                   columnName: SPAN_KEYS.TIMESTAMP,
@@ -873,7 +873,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -952,7 +952,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_ZERO,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1034,7 +1034,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1129,7 +1129,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1257,7 +1257,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1368,7 +1368,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           transfers: {
@@ -1430,7 +1430,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           delegations: {
@@ -1492,7 +1492,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           conversationMetadata: {
@@ -1549,7 +1549,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           aiCalls: {
@@ -1600,7 +1600,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           lastActivity: {
@@ -1638,7 +1638,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           spansWithErrors: {
@@ -1688,7 +1688,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
 
           userMessages: {
@@ -1738,7 +1738,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1800,7 +1800,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },
@@ -1878,7 +1878,7 @@ class SigNozStatsAPI {
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
             legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_NULL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
       },

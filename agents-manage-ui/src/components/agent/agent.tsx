@@ -36,7 +36,6 @@ import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 
 // Type for agent tool configuration lookup including both selection and headers
@@ -143,16 +142,12 @@ function Flow({
         if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
           const tool = toolLookup[node.data.toolId as string];
           if (tool) {
-            let provider = null;
-            provider = getToolTypeAndName(tool).type;
-
             return {
               ...node,
               data: {
                 ...node.data,
                 name: tool.name,
                 imageUrl: tool.imageUrl,
-                provider,
               },
             };
           }
@@ -788,7 +783,25 @@ function Flow({
     externalAgentLookup,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore agentToolConfigLookup
   useEffect(() => {
+    function hasRelationWithSubAgent({
+      relationshipId,
+      subAgentId,
+    }: {
+      relationshipId: unknown;
+      subAgentId: string;
+    }): boolean {
+      if (typeof relationshipId !== 'string') {
+        return false;
+      }
+      const config = agentToolConfigLookup[subAgentId];
+      if (!config) {
+        return false;
+      }
+      return Object.keys(config).includes(relationshipId);
+    }
+
     const onDataOperation: EventListenerOrEventListenerObject = (event) => {
       // @ts-expect-error -- improve types
       const data = event.detail;
@@ -822,17 +835,27 @@ function Flow({
           break;
         }
         case 'delegation_returned': {
-          const { targetSubAgent } = data.details.data;
+          const { targetSubAgent, fromSubAgent } = data.details.data;
           setEdges((prevEdges) =>
             prevEdges.map((edge) => ({
               ...edge,
-              data: { ...edge.data, delegating: false },
+              data: {
+                ...edge.data,
+                delegating:
+                  edge.source === targetSubAgent && edge.target === fromSubAgent
+                    ? 'inverted'
+                    : false,
+              },
             }))
           );
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: node.id === targetSubAgent, isDelegating: false },
+              data: {
+                ...node.data,
+                isExecuting: false,
+                isDelegating: node.id === targetSubAgent || node.id === fromSubAgent,
+              },
             }))
           );
           break;
@@ -855,9 +878,6 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const toolId = node.data.toolId as string;
-              const toolData = toolLookup[toolId];
-
               return {
                 ...node,
                 data: {
@@ -865,7 +885,10 @@ function Flow({
                   isExecuting: false,
                   isDelegating:
                     node.data.id === subAgentId ||
-                    toolData?.availableTools?.some((tool) => tool.name === toolName),
+                    hasRelationWithSubAgent({
+                      relationshipId: node.data.relationshipId,
+                      subAgentId,
+                    }),
                 },
               };
             });
@@ -893,14 +916,15 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
-              const toolId = node.data.toolId as string;
-              const toolData = toolLookup[toolId];
               return {
                 ...node,
                 data: {
                   ...node.data,
                   isDelegating: node.id === subAgentId,
-                  isExecuting: toolData?.availableTools?.some((tool) => tool.name === toolName),
+                  isExecuting: hasRelationWithSubAgent({
+                    subAgentId,
+                    relationshipId: node.data.relationshipId,
+                  }),
                 },
               };
             });

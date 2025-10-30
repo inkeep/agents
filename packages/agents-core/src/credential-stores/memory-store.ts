@@ -42,8 +42,9 @@ export class InMemoryCredentialStore implements CredentialStore {
    * Set a credential in the in memory store.
    * @param key - The key of the credential to set
    * @param value - The value of the credential to set
+   * @param metadata - Optional metadata (ignored by memory store)
    */
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, _metadata?: Record<string, string>): Promise<void> {
     this.credentials.set(key, value);
   }
 

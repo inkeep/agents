@@ -5,6 +5,7 @@ describe('credential builder function', () => {
   it('should create a credential with required fields', () => {
     const testCredential = credential({
       id: 'test-api-key',
+      name: 'Test API Key',
       type: 'memory',
       credentialStoreId: 'memory-default',
       retrievalParams: {
@@ -14,6 +15,7 @@ describe('credential builder function', () => {
 
     expect(testCredential).toEqual({
       id: 'test-api-key',
+      name: 'Test API Key',
       type: 'memory',
       credentialStoreId: 'memory-default',
       retrievalParams: {
@@ -25,6 +27,7 @@ describe('credential builder function', () => {
   it('should handle different credential types', () => {
     const oauthCredential = credential({
       id: 'oauth-token',
+      name: 'OAuth Token',
       type: 'nango',
       credentialStoreId: 'oauth-store',
       retrievalParams: {
@@ -43,6 +46,7 @@ describe('credential builder function', () => {
   it('should handle vault credentials', () => {
     const vaultCredential = credential({
       id: 'vault-secret',
+      name: 'Vault Secret',
       type: 'keychain',
       credentialStoreId: 'hashicorp-vault',
       retrievalParams: {
@@ -58,6 +62,7 @@ describe('credential builder function', () => {
   it('should handle nango credentials', () => {
     const nangoCredential = credential({
       id: 'nango-integration',
+      name: 'Nango Integration',
       type: 'nango',
       credentialStoreId: 'nango-default',
       retrievalParams: {
@@ -73,6 +78,7 @@ describe('credential builder function', () => {
   it('should handle empty retrieval params', () => {
     const simpleCredential = credential({
       id: 'simple',
+      name: 'Simple Credential',
       type: 'memory',
       credentialStoreId: 'memory-default',
       retrievalParams: {},
@@ -84,6 +90,7 @@ describe('credential builder function', () => {
   it('should handle optional retrieval params fields', () => {
     const credWithOptionals = credential({
       id: 'with-optionals',
+      name: 'Credential With Optionals',
       type: 'memory',
       credentialStoreId: 'memory-default',
       retrievalParams: {

@@ -1,5 +1,140 @@
 # @inkeep/agents-manage-ui
 
+## 0.29.10
+
+### Patch Changes
+
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+  - @inkeep/agents-manage-api@0.29.10
+  - @inkeep/agents-run-api@0.29.10
+
+## 0.29.9
+
+### Patch Changes
+
+- cd5b846: - Update agents-ui to latest, update docs to reflect renaming of modalSettings to openSettings"
+  - @inkeep/agents-manage-api@0.29.9
+  - @inkeep/agents-run-api@0.29.9
+  - @inkeep/agents-core@0.29.9
+
+## 0.29.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.29.8
+- @inkeep/agents-run-api@0.29.8
+- @inkeep/agents-core@0.29.8
+
+## 0.29.7
+
+### Patch Changes
+
+- Updated dependencies [a4cf6d8]
+  - @inkeep/agents-manage-api@0.29.7
+  - @inkeep/agents-run-api@0.29.7
+  - @inkeep/agents-core@0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+- Updated dependencies [6c52cc6]
+  - @inkeep/agents-core@0.29.6
+  - @inkeep/agents-run-api@0.29.6
+  - @inkeep/agents-manage-api@0.29.6
+
+## 0.29.5
+
+### Patch Changes
+
+- Updated dependencies [767d466]
+  - @inkeep/agents-core@0.29.5
+  - @inkeep/agents-manage-api@0.29.5
+  - @inkeep/agents-run-api@0.29.5
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- 0bfcd17: fix external link icon and arrow right icon to prevent color overflow
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+  - @inkeep/agents-manage-api@0.29.4
+  - @inkeep/agents-run-api@0.29.4
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+- Updated dependencies [d26c5a4]
+  - @inkeep/agents-core@0.29.3
+  - @inkeep/agents-manage-api@0.29.3
+  - @inkeep/agents-run-api@0.29.3
+
+## 0.29.2
+
+### Patch Changes
+
+- b499ce6: - Make agents plural in breadcrumbs ans agents page
+  - @inkeep/agents-manage-api@0.29.2
+  - @inkeep/agents-run-api@0.29.2
+  - @inkeep/agents-core@0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+- Updated dependencies [f2ac869]
+- Updated dependencies [37e50a6]
+- Updated dependencies [65f4b1a]
+  - @inkeep/agents-core@0.29.1
+  - @inkeep/agents-manage-api@0.29.1
+  - @inkeep/agents-run-api@0.29.1
+
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+### Patch Changes
+
+- Updated dependencies [38db07a]
+  - @inkeep/agents-core@0.29.0
+  - @inkeep/agents-manage-api@0.29.0
+  - @inkeep/agents-run-api@0.29.0
+
+## 0.28.0
+
+### Minor Changes
+
+- 8e3dfb1: zoom into section of graph where agent is selected
+- e63ba9e: replace `JSON`/`Prompt`/`Code` Codemirror editors with Monaco-editors
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- dbeddf1: fix for data animation, bug highlights unrelated MCP tools on invocation
+- bb4ea0e: - Fix errors in agent builder
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- c10ac33: fix: polling on activities cause chat widget to re-render every second
+- 074e076: mcp evironment settings
+- Updated dependencies [74a4d0b]
+- Updated dependencies [b4e878d]
+- Updated dependencies [96c499d]
+- Updated dependencies [074e076]
+  - @inkeep/agents-manage-api@0.28.0
+  - @inkeep/agents-run-api@0.28.0
+  - @inkeep/agents-core@0.28.0
+
 ## 0.27.0
 
 ### Minor Changes

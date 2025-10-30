@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.27.0",
+  "version": "0.29.10",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -59,7 +59,7 @@
     "drizzle-orm": "^0.44.4",
     "exit-hook": "^4.0.0",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.9.7",
+    "hono": "^4.10.3",
     "jmespath": "^0.16.0",
     "nanoid": "^5.1.5",
     "pino": "^9.11.0",

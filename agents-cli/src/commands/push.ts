@@ -1,12 +1,12 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 import { env } from '../env';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { initializeCommand } from '../utils/cli-pipeline';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { loadProject } from '../utils/project-loader';
-import { performBackgroundVersionCheck } from '../utils/background-version-check';
 
 export interface PushOptions {
   project?: string;

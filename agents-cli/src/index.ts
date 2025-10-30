@@ -140,6 +140,7 @@ program
   .option('--export', 'Export the Next.js project source files', false)
   .option('--output-dir <dir>', 'Output directory for build files', './inkeep-dev')
   .option('--path', 'Output the path to the Dashboard UI', false)
+  .option('--open-browser', 'Open the browser', false)
   .action(async (options) => {
     await devCommand({
       port: parseInt(options.port, 10),
@@ -148,6 +149,7 @@ program
       outputDir: options.outputDir,
       path: options.path,
       export: options.export,
+      openBrowser: options.openBrowser,
     });
   });
 
