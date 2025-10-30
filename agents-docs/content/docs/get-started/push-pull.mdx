@@ -1,7 +1,7 @@
 ---
 title: Push / Pull
 description: Push and pull your agents to and from the Visual Builder
-icon: "LuArrowLeftRight"    
+icon: "LuArrowLeftRight"
 ---
 
 ## Push code to visual
@@ -10,7 +10,10 @@ With Inkeep, you can define your agents in code, push them to the Visual Builder
 
 Let's walk through the process.
 
-<YouTubeVideo videoId="2-j4LuabeHQ" title="Push code to visual" caption="Visual guide to the usage of inkeep push" />
+<Video
+  src="https://www.youtube.com/watch?v=2-j4LuabeHQ&t=3s"
+  title="Visual guide to the usage of inkeep push"
+/>
 
 ### Step 1: Install the Inkeep CLI
 
@@ -26,7 +29,7 @@ Navigate to the `src/projects` directory.
 cd src/projects
 ```
 
-Add the docs assistant agent using `inkeep add`. 
+Add the docs assistant agent using `inkeep add`.
 
 ```bash
 inkeep add --project docs-assistant
@@ -34,8 +37,10 @@ inkeep add --project docs-assistant
 
 Find the downloaded code in `src/projects/docs-assistant`.
 
-<Note> 
-`inkeep add` imports a template project from our [cookbook library](https://github.com/inkeep/agents-cookbook/tree/main/template-projects) into your src/projects directory.
+<Note>
+  `inkeep add` imports a template project from our [cookbook
+  library](https://github.com/inkeep/agents-cookbook/tree/main/template-projects)
+  into your src/projects directory.
 </Note>
 
 ### Step 3: Push code to visual
@@ -58,11 +63,11 @@ Refresh http://localhost:3000, switch to the **Docs Assistant** project (in the 
 
 Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a question about Inkeep.
 
-<img src="/gifs/docs-assistant.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
+<Image src="/gifs/docs-assistant.gif" alt="Chat with your agent" />
 
 ## Run `inkeep pull`
 
-Make some changes, like changing a prompt, and let's walk through `inkeep pull`. 
+Make some changes, like changing a prompt, and let's walk through `inkeep pull`.
 
 ### Requirements
 
@@ -77,16 +82,15 @@ OPENAI_API_KEY=your_api_key_here
 GOOGLE_API_KEY=your_api_key_here
 ```
 
-The CLI prioritizes Anthropic → OpenAI → Google. 
+The CLI prioritizes Anthropic → OpenAI → Google.
 
 Here are the models used:
 
-| Provider   | Model(s)                        | Where to Get API Key                                    |
-|------------|---------------------------------|---------------------------------------------------------|
-| Anthropic  | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/)     |
-| OpenAI     | GPT-4.1                         | [OpenAI Platform](https://platform.openai.com/)         |
-| Google     | Gemini models (with thinking mode) | [Google AI Studio](https://ai.google.dev/)              |
-
+| Provider  | Model(s)                              | Where to Get API Key                                |
+| --------- | ------------------------------------- | --------------------------------------------------- |
+| Anthropic | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/) |
+| OpenAI    | GPT-4.1                               | [OpenAI Platform](https://platform.openai.com/)     |
+| Google    | Gemini models (with thinking mode)    | [Google AI Studio](https://ai.google.dev/)          |
 
 ### Step 1: Make an edit visually
 

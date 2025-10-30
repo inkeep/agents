@@ -27,19 +27,22 @@ To integrate Langfuse with your Inkeep Agent Framework instrumentation, you need
 Replace the default setup with a custom NodeSDK configuration:
 
 Set your environment variables:
+
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-xxxxxxxxxx
 LANGFUSE_SECRET_KEY=sk-lf-xxxxxxxxxx
 LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
 ```
+
 Update your instrumentation file:
+
 ```typescript
-import { 
-  defaultSpanProcessors, 
-  defaultContextManager, 
-  defaultResource, 
-  defaultTextMapPropagator, 
-  defaultInstrumentations 
+import {
+  defaultSpanProcessors,
+  defaultContextManager,
+  defaultResource,
+  defaultTextMapPropagator,
+  defaultInstrumentations,
 } from "@inkeep/agents-run-api/instrumentation";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { LangfuseSpanProcessor } from "@langfuse/otel";
@@ -54,12 +57,10 @@ export const defaultSDK = new NodeSDK({
 
 defaultSDK.start();
 ```
+
 <Note>
-Make sure to install the required dependencies in your run API directory:
-```bash
-cd apps/run-api
-pnpm add @opentelemetry/sdk-node @langfuse/otel
-```
+  Make sure to install the required dependencies in your run API directory:
+  ```bash cd apps/run-api pnpm add @opentelemetry/sdk-node @langfuse/otel ```
 </Note>
 
 #### What This Configuration Does
@@ -67,10 +68,6 @@ pnpm add @opentelemetry/sdk-node @langfuse/otel
 - **Preserves all default instrumentation**: Uses the same resource, context manager, propagator, and instrumentations as the default setup
 - **Adds Langfuse span processor**: Extends the default span processors with Langfuse's processor for specialized LLM observability
 - **Maintains compatibility**: Your existing traces will continue to work while adding Langfuse-specific features
-
-
-
-
 
 ## Dataset setup and execution
 
@@ -84,6 +81,7 @@ cd agent-cookbook/evals/langfuse-dataset-example
 ```
 
 **Set up environment variables in a `.env` file:**
+
 ```bash
 # Langfuse configuration (required for both scripts)
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
@@ -109,6 +107,7 @@ pnpm run langfuse-init-example
 ```
 
 This script will:
+
 - Connect to your Langfuse project
 - Create a new dataset called "inkeep-weather-example-dataset" with sample dataset items
 
@@ -121,6 +120,7 @@ pnpm run langfuse-run-dataset
 ```
 
 This script will:
+
 - Read items from your Langfuse dataset
 - Execute each item against your weather agent
 - Generate the data needed for evaluation
@@ -142,11 +142,10 @@ Langfuse provides a powerful web interface for running LLM evaluations without w
 
 Before creating evaluators, you need to configure a default LLM connection for evaluations:
 
-<img
+<Image
   src="/images/langfuse-llm-connection.png"
   alt="Langfuse LLM Connection setup showing OpenAI provider configuration with API key field and advanced settings"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+  style={{ border: "1px solid #e1e5e9" }}
 />
 
 **Setting up the LLM Connection:**
@@ -192,17 +191,17 @@ Once you've selected a managed evaluator, you can **edit it to target your datas
    - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
    - **{`{{generation}}`}** → **Object**: Trace, **Object Variable**: Output
 
-<img
+<Image
   src="/images/langfuse-helpfulness-setup.png"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "1600px", height: "auto", minHeight: "300px" }}
+  style={{
+    border: "1px solid #e1e5e9",
+    maxWidth: "1600px",
+    height: "auto",
+    minHeight: "300px",
+  }}
 />
 
-
-
 ## Option B: Create Custom Evaluator
-
-
 
 1. **Click "+ Create Custom Evaluator"** button
 2. **Fill in evaluator details**:
@@ -211,7 +210,6 @@ Once you've selected a managed evaluator, you can **edit it to target your datas
    - **Description**: Explain what this evaluator measures
    - **Model**: Select evaluation model
    - **Prompt**: Configure a custom prompt
-
 
 ### Example: Customizing a Weather Tool Evaluator
 
@@ -233,23 +231,31 @@ Input:
 User Question: {`{{input}}`}
 Tool Used: {`{{tool_used}}`}
 ```
-<img
+
+<Image
   src="/images/custom-eval.png"
   width="80%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "800px", height: "auto" }}
+  style={{
+    border: "1px solid #e1e5e9",
+    maxWidth: "800px",
+    height: "auto",
+  }}
 />
 
 2. **Configure variable mapping**:
    - **{`{{input}}`}** → **Object**: Trace, **Object Variable**: Input
    - **{`{{tool_used}}`}** → **Object**: Span, **Object Name**: weather-forecaster.ai.toolCall, **Object Variable**: Metadata, **JsonPath**: $.attributes["ai.toolCall.name"]
 
-<img
+<Image
   src="/images/custom-variable-mapping.png"
   alt="Langfuse helpfulness evaluator setup screen showing evaluator configuration with variable mapping and trace targeting options"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9", maxWidth: "1200px", height: "auto", minHeight: "300px" }}
+  style={{
+    border: "1px solid #e1e5e9",
+    maxWidth: "1200px",
+    height: "auto",
+    minHeight: "300px",
+  }}
 />
-
 
 ## Enable and Monitor
 

@@ -42,12 +42,26 @@ The tool handles:
 
 Install the Inkeep Agents documentation MCP server with one click:
 
-<div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+<div
+  style={{
+    display: "flex",
+    gap: "10px",
+    marginBottom: "16px",
+    flexWrap: "wrap",
+  }}
+>
   <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=inkeep-agents&config=eyJ1cmwiOiJodHRwczovL2FnZW50cy5pbmtlZXAuY29tL21jcCJ9">
-    <img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add to Cursor" style={{ height: '40px' }} />
+    <Image
+      src="https://cursor.com/deeplink/mcp-install-dark.png"
+      alt="Add to Cursor"
+      style={{ height: "40px" }}
+    />
   </a>
   <a href="vscode:mcp/install?%7B%22name%22%3A%22inkeep-agents%22%2C%22type%22%3A%22sse%22%2C%22url%22%3A%22https%3A%2F%2Fagents.inkeep.com%2Fmcp%22%7D">
-    <img src="https://img.shields.io/badge/VS_Code-Install_Inkeep_Agents-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff" alt="Install in VS Code" />
+    <Image
+      src="https://img.shields.io/badge/VS_Code-Install_Inkeep_Agents-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff"
+      alt="Install in VS Code"
+    />
   </a>
 </div>
 
@@ -78,7 +92,9 @@ Example when using an API key for auth:
 - For all subsequent JSON-RPC requests in that session, include `Mcp-Session-Id` header with the value from initialization.
 
 <Note>
-  Session management is required by MCP’s HTTP transport. If `Mcp-Session-Id` is missing or invalid on follow-up requests, the server will return a JSON-RPC error (e.g., "Session not found").
+  Session management is required by MCP’s HTTP transport. If `Mcp-Session-Id` is
+  missing or invalid on follow-up requests, the server will return a JSON-RPC
+  error (e.g., "Session not found").
 </Note>
 
 ## Configuration Notes
