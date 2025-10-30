@@ -58,6 +58,7 @@ export function ProjectSelector({ projects, selectedProjectId, tenantId }: Proje
                 {projects.map((project) => (
                   <CommandItem
                     key={project.projectId}
+                    value={project.projectId}
                     onSelect={() => {
                       router.push(`/${tenantId}/projects/${project.projectId}`);
                       setOpen(false);
