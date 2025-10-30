@@ -284,20 +284,11 @@ export function convertJsonSchemaToFields(
   name?: string,
   isRequired = false
 ): AllFields {
-  const { description } = schema;
   const base = {
     ...(name && { name }),
-    ...(description && { description }),
+    ...(schema.description && { description: schema.description }),
     ...(isRequired && { isRequired: true }),
   };
-
-  if (Array.isArray(schema.enum) && schema.type === 'string') {
-    return {
-      ...base,
-      type: 'enum',
-      values: schema.enum.map(String),
-    };
-  }
 
   if (schema.type === 'object') {
     const requiredFields: string[] = Array.isArray(schema.required) ? schema.required : [];
@@ -334,6 +325,14 @@ export function convertJsonSchemaToFields(
   }
 
   if (schema.type === 'string') {
+    if (Array.isArray(schema.enum)) {
+      return {
+        ...base,
+        type: 'enum',
+        values: schema.enum.map(String),
+      };
+    }
+
     return {
       ...base,
       type: 'string',
