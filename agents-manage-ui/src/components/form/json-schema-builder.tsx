@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { JSONSchema7 } from 'json-schema';
-import { JSONSchemaFixture } from '@/components/form/__tests__/json-schema-builder.test';
+import { JSONSchemaFixture } from '@/components/form/__tests__/json-schema-fixture';
 
 const Types = {
   string: 'str',
@@ -160,7 +160,7 @@ const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
 };
 
 export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
-  const [res] = useState<AllFields[]>(() => {
+  const [fields] = useState<AllFields[]>(() => {
     try {
       // todo replace with JSON.parse(value) later
       const result = convertJsonSchemaToFields(JSONSchemaFixture);
@@ -170,11 +170,24 @@ export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
       return [];
     }
   });
-  console.log(res);
-  const [properties, setProperties] = useState<ReactNode[]>([]);
-  const handleAddProperty = useCallback(() => {
-    setProperties((prev) => [...prev, <Property defaultType="str" />]);
-  }, []);
+  // const fields = useMemo(() => {
+  //   if (typeof value !== 'string' || value.trim().length === 0) {
+  //     return [] as AllFields[];
+  //   }
+  //
+  //   try {
+  //     const parsed = JSON.parse(value) as JSONSchema7;
+  //     const converted = convertJsonSchemaToFields(parsed);
+  //     if (!converted) return [];
+  //     if (converted.type === 'object') {
+  //       return (converted.properties ?? []).filter((child): child is AllFields => Boolean(child));
+  //     }
+  //     return [converted];
+  //   } catch (error) {
+  //     console.error('Failed to parse schema for builder', error);
+  //     return [] as AllFields[];
+  //   }
+  // }, [value]);
 
   return (
     <>
