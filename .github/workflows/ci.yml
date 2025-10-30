@@ -172,13 +172,3 @@ jobs:
       
       - name: Run create-agents E2E tests
         run: pnpm --filter @inkeep/create-agents test:e2e
-        env:
-          TURBO_TELEMETRY_DISABLED: 1
-          TURBO_CACHE_DIR: .turbo
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          DB_FILE_NAME: test.db
-          CI: true
-          HUSKY: 0
