@@ -13,7 +13,6 @@ import {
 } from './utils';
 
 const manageApiUrl = 'http://localhost:3002';
-const runApiUrl = 'http://localhost:3003';
 
 describe('create-agents quickstart e2e', () => {
   let testDir: string;

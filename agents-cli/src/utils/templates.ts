@@ -318,18 +318,26 @@ export async function getAvailableTemplates(
   local: string | undefined
 ): Promise<string[]> {
   // Fetch the list of templates from the repo
+
   if (local && local.length > 0) {
     const fullTemplatePath = path.join(local, templatePath);
-    const response = await fs.readdir(fullTemplatePath);
-    return response.filter((item: any) =>
-      fs.stat(path.join(templatePath, item)).then((stat) => stat.isDirectory())
-    );
+    const items = await fs.readdir(fullTemplatePath);
+    const directories = [];
+    for (const item of items) {
+      const stat = await fs.stat(path.join(fullTemplatePath, item));
+      if (stat.isDirectory() && item !== 'weather-project') {
+        directories.push(item);
+      }
+    }
+    return directories;
   } else {
     const response = await fetch(
-      `https://api.github.com/repos/inkeep/agents/agents-cookbook/contents/${templatePath}`
+      `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/${templatePath}`
     );
     const contents = await response.json();
 
-    return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
+    return contents
+      .filter((item: any) => item.type === 'dir' && item.name !== 'weather-project')
+      .map((item: any) => item.name);
   }
 }

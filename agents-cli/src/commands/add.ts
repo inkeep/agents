@@ -83,7 +83,6 @@ export async function addCommand(options: AddOptions) {
     s.start('Adding template...');
     if (options.project) {
       await addProjectTemplate(options.project, options.targetPath, options.localPrefix);
-      s.stop(`Project template "${options.project}" added to ${options.targetPath}`);
     }
     if (options.mcp) {
       await addMcpTemplate(options.mcp, options.targetPath, s, options.localPrefix);

@@ -7,5 +7,5 @@
   "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@inkeep/examples", "@inkeep/agents-ui", "@inkeep/agents-docs"]
+  "ignore": ["@inkeep/agents-ui", "@inkeep/agents-docs", "@inkeep/agents-cookbook"]
 }

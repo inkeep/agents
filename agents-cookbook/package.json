@@ -11,8 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inkeep/agents-core": "latest",
-    "@inkeep/agents-sdk": "latest",
+    "@inkeep/agents-cli": "workspace:*",
+    "@inkeep/agents-core": "workspace:*",
+    "@inkeep/agents-sdk": "workspace:*",
     "zod": "^4.1.12"
   },
   "devDependencies": {

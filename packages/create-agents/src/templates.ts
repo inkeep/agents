@@ -322,7 +322,7 @@ export async function getAvailableTemplates(localPrefix?: string): Promise<strin
   } else {
     // Fetch the list of templates from your repo
     const response = await fetch(
-      `https://api.github.com/repos/inkeep/agents/agents-cookbook/contents/template-projects`
+      `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
     );
     const contents = await response.json();
 
