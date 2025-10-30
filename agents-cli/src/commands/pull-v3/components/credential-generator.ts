@@ -92,6 +92,14 @@ export function generateCredentialDefinition(
   lines.push(`export const ${credentialVarName} = credential({`);
   lines.push(`${indentation}id: ${formatString(credentialId, q)},`);
   
+  // Name is required
+  if (credentialData.name !== undefined && credentialData.name !== null) {
+    lines.push(`${indentation}name: ${formatString(credentialData.name, q)},`);
+  } else {
+    // Use credential ID as fallback name
+    lines.push(`${indentation}name: ${formatString(credentialId, q)},`);
+  }
+  
   // Type is required for credentials (memory, keychain, env)
   if (credentialData.type) {
     lines.push(`${indentation}type: ${formatString(credentialData.type, q)},`);
