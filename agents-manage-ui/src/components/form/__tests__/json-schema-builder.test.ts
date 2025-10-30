@@ -1,7 +1,7 @@
 import { convertJsonSchemaToFields } from '@/components/form/json-schema-builder';
-import type { RJSFSchema } from '@rjsf/utils';
+import type { JSONSchema7 } from 'json-schema';
 
-const JSONSchema: RJSFSchema = {
+const JSONSchema: JSONSchema7 = {
   type: 'object',
   properties: {
     nested: {

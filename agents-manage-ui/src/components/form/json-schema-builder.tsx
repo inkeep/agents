@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { RJSFSchema } from '@rjsf/utils';
+import type { JSONSchema7 } from 'json-schema';
 
 const Types = {
   string: 'str',
@@ -280,7 +280,7 @@ interface FieldObject extends NameAndDescription {
 }
 
 export function convertJsonSchemaToFields(
-  schema: RJSFSchema,
+  schema: JSONSchema7,
   name?: string,
   isRequired = false
 ): AllFields | undefined {
@@ -299,7 +299,7 @@ export function convertJsonSchemaToFields(
         ? Object.entries(schema.properties)
             .map(([propertyName, prop]) => {
               // TODO - to pass typecheck
-              if (typeof prop === 'string' || typeof prop === 'boolean') {
+              if (typeof prop === 'boolean') {
                 return null;
               }
 
