@@ -31,7 +31,7 @@ describe('create-agents quickstart e2e', () => {
     await cleanupDir(testDir);
   });
 
-  it('should work with published packages', async () => {
+  it('should work e2e', async () => {
     // Run the CLI with all options (non-interactive mode)
     console.log('Running CLI with options:');
     console.log(`Working directory: ${testDir}`);
@@ -121,6 +121,30 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
+
+      // Link to local monorepo packages
+      const monorepoRoot = path.join(__dirname, '../../../../../'); // Go up to repo root
+      await linkLocalPackages(projectDir, monorepoRoot);
+
+      const pushResultLocal = await runCommand(
+        'pnpm',
+        [
+          'inkeep',
+          'push',
+          '--project',
+          `src/projects/${projectId}`,
+          '--config',
+          'src/inkeep.config.ts',
+        ],
+        projectDir,
+        30000
+      );
+
+      expect(pushResultLocal.exitCode).toBe(0);
+
+      // Test that the project works with local packages
+      const responseLocal = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
+      expect(responseLocal.status).toBe(200);
     } finally {
       console.log('Killing dev process');
 
@@ -149,78 +173,4 @@ describe('create-agents quickstart e2e', () => {
       console.log('Dev process cleanup complete');
     }
   }, 720000); // 12 minute timeout for full flow with network calls (CI can be slow)
-
-  it('should work with local monorepo packages', async () => {
-    // Create the project
-    const result = await runCreateAgentsCLI(
-      [workspaceName, '--openai-key', 'test-openai-key', '--disable-git'],
-      testDir
-    );
-
-    expect(result.exitCode).toBe(0);
-
-    // Link to local monorepo packages
-    const monorepoRoot = path.join(__dirname, '../../../../../'); // Go up to repo root
-    await linkLocalPackages(projectDir, monorepoRoot);
-
-    // Start dev servers with local packages
-    const devProcess = execa('pnpm', ['dev:all'], {
-      cwd: projectDir,
-      env: { ...process.env, FORCE_COLOR: '0' },
-      cleanup: true, // Ensure child processes are cleaned up
-      detached: false, // Keep attached to allow proper cleanup
-    });
-
-    try {
-      // Wait for servers to be ready
-      await waitForServerReady(`${manageApiUrl}/health`, 60000);
-      await waitForServerReady(`${runApiUrl}/health`, 60000);
-
-      const pushResult = await runCommand(
-        'pnpm',
-        [
-          'inkeep',
-          'push',
-          '--project',
-          `src/projects/${projectId}`,
-          '--config',
-          'src/inkeep.config.ts',
-        ],
-        projectDir,
-        30000
-      );
-
-      expect(pushResult.exitCode).toBe(0);
-
-      // Test that the project works with local packages
-      const response = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
-      expect(response.status).toBe(200);
-    } finally {
-      console.log('Killing dev process');
-
-      // Kill the process and wait for it to die
-      try {
-        devProcess.kill('SIGTERM');
-      } catch {
-        // Might already be dead
-      }
-
-      // Give it 2 seconds to shut down gracefully, then force kill
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      try {
-        devProcess.kill('SIGKILL');
-      } catch {
-        // Already dead or couldn't kill
-      }
-
-      // Wait for the process to be fully cleaned up (with timeout)
-      await Promise.race([
-        devProcess.catch(() => {}), // Wait for process to exit
-        new Promise((resolve) => setTimeout(resolve, 5000)), // Or timeout after 5s
-      ]);
-
-      console.log('Dev process cleanup complete');
-    }
-  }, 720000); // 12 minute timeout for install + build + dev (CI can be slow)
 });
