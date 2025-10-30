@@ -204,16 +204,52 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
  */
 export async function waitForServerReady(url: string, timeout: number): Promise<void> {
   const start = Date.now();
+  let lastError: Error | null = null;
+  let attempts = 0;
+
+  console.log(`Waiting for server at ${url}...`);
+
   while (Date.now() - start < timeout) {
+    attempts++;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(5000), // 5 second timeout per request
+      });
+
       if (response.ok) {
+        console.log(
+          `✓ Server ready at ${url} after ${attempts} attempts (${Date.now() - start}ms)`
+        );
         return;
       }
-    } catch {
-      // Server not ready yet, continue polling
+
+      lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+      // Log status every 10 attempts in CI
+      if (process.env.CI && attempts % 10 === 0) {
+        console.log(
+          `Still waiting for ${url}... (attempt ${attempts}, ${Math.floor((Date.now() - start) / 1000)}s elapsed)`
+        );
+      }
+    } catch (error) {
+      // Server not ready yet or connection refused
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Log connection errors periodically in CI
+      if (process.env.CI && attempts % 15 === 0) {
+        console.log(`Connection attempt ${attempts} failed: ${lastError.message}`);
+      }
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
+
+    // Wait before next attempt (exponential backoff up to 5s)
+    const waitTime = Math.min(1000 + attempts * 100, 5000);
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
   }
-  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
+
+  // Timeout reached - provide detailed error
+  const elapsed = Date.now() - start;
+  const errorDetails = lastError ? `: ${lastError.message}` : '';
+  throw new Error(
+    `Server not ready at ${url} after ${elapsed}ms (${attempts} attempts)${errorDetails}`
+  );
 }
