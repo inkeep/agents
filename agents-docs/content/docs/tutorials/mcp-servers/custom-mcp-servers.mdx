@@ -1,20 +1,32 @@
 ---
-title: Inkeep
-description: Learn how to use Inkeep to create MCP servers
+title: Build Custom MCP Servers
+sidebarTitle: Custom
+description: Build your own custom MCP servers
 icon: "brand/Inkeep"
 ---
+
+## When to Build Custom MCP Servers
+
+Build custom MCP servers when:
+- Native servers don't exist for your specific APIs
+- You need custom business logic beyond what existing servers provide
+- You have proprietary systems that require custom integration
+
+If pre-built servers meet your needs, consider [Native MCP servers](/tutorials/mcp-servers/native-mcp-servers) or [Composio's platform](/tutorials/mcp-servers/composio-mcp-servers) instead.
+
+## Getting Started
 
 The Quick Start workspace includes a Next.js app in the `apps/mcp/app/` directory that you can use to expose your MCP servers.
 Each MCP server you create will be exposed on a separate route on this app. 
 
-#### Adding from a template
+#### Creating from a template
 
-You can add a new MCP server from our [template library](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-mcps) using the [CLI](/typescript-sdk/cli-reference#inkeep-add).
+You can add a custom MCP server template from our [template library](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-mcps) for common use cases using the [CLI](/typescript-sdk/cli-reference#inkeep-add).
 ```bash
 inkeep add --mcp [server-name]
 ```
 
-This will automatically add a new MCP server to your Quick Start workspace.
+This will automatically add a custom MCP server template to your Quick Start workspace. After customizing and deploying it, you can register it.
 
 #### Using Vercel's Template
 
