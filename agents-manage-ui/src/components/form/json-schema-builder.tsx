@@ -147,7 +147,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           {inputs}
           <div
             style={{ marginLeft: indentStyle + 106 + (prefix ? 0 : 26) }}
-            className="h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm"
+            className="min-h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm"
           >
             <TagsInput
               value={field.values ?? []}
@@ -164,7 +164,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           <Property
             fieldId={field.items.id}
             depth={depth + 1}
-            prefix={<span className="shrink-0 text-sm">Array items</span>}
+            prefix={<span className="shrink-0 text-sm mr-[3px]">Array items</span>}
           />
         </>
       );
@@ -229,11 +229,11 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
   onChange,
 }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
-  const { addChild } = useJsonSchemaActions();
+  const { addChild, setFields } = useJsonSchemaActions();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    jsonSchemaStore.setState({ fields: parseFieldsFromJson(value) });
+    setFields(parseFieldsFromJson(value));
     return () => {
       const root: FieldObject = {
         id: '__root__',

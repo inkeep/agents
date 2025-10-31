@@ -538,7 +538,7 @@ interface JsonSchemaStateData {
 }
 
 interface JsonSchemaActions {
-  reset: (data: JsonSchemaStateData) => void;
+  setFields: (fields: EditableField[]) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -554,7 +554,7 @@ const jsonSchemaStore = create<JsonSchemaState>()(
   devtools((set) => ({
     fields: [],
     actions: {
-      reset({ fields }) {
+      setFields(fields) {
         set({ fields });
       },
       updateField(id, patch) {
