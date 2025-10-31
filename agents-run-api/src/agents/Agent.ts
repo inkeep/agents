@@ -570,6 +570,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
+                      fromSubAgent: this.config.id,
                     },
                   });
                 }
