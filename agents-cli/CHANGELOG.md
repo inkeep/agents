@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+- Updated dependencies [73569ce]
+  - @inkeep/agents-core@0.30.3
+  - @inkeep/agents-manage-ui@0.30.3
+  - @inkeep/agents-sdk@0.30.3
+
 ## 0.30.2
 
 ### Patch Changes
