@@ -360,12 +360,12 @@ export function TimelineItem({
 
           {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.subAgentName &&
+            activity.subAgentId &&
             activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
-                  {activity.subAgentName}
+                  {activity.subAgentId}
                 </Badge>
               </div>
             )}
