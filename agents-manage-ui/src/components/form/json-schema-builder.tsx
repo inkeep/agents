@@ -34,7 +34,6 @@ import {
   findFieldById,
   parseFieldsFromJson,
   createJsonSchemaBuilderStore,
-  stripIdsFromFields,
   fieldsToJsonSchema,
 } from '@/features/agent/state/json-schema';
 import { useStore } from 'zustand';
@@ -66,9 +65,10 @@ interface PropertyProps {
   fieldId: string;
   depth?: number;
   prefix?: ReactNode;
+  hideName?: boolean;
 }
 
-const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
+const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) => {
   const selector = useMemo(
     () => (state: JsonSchemaState) => findFieldById(state.fields, fieldId),
     [fieldId]
@@ -93,15 +93,17 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         onValueChange={(nextType) => changeType(field.id, nextType)}
         className="w-57"
       />
-      <Input
-        placeholder="Property name"
-        value={field.name ?? ''}
-        onChange={(event) =>
-          updateField(field.id, {
-            name: event.target.value,
-          })
-        }
-      />
+      {!hideName && (
+        <Input
+          placeholder="Property name"
+          value={field.name ?? ''}
+          onChange={(event) =>
+            updateField(field.id, {
+              name: event.target.value,
+            })
+          }
+        />
+      )}
       <Input
         placeholder="Add description"
         value={field.description ?? ''}
@@ -111,15 +113,17 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           })
         }
       />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Checkbox
-            checked={Boolean(field.isRequired)}
-            onCheckedChange={(checked) => updateField(field.id, { isRequired: checked === true })}
-          />
-        </TooltipTrigger>
-        <TooltipContent>Mark this field as required</TooltipContent>
-      </Tooltip>
+      {!hideName && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Checkbox
+              checked={Boolean(field.isRequired)}
+              onCheckedChange={(checked) => updateField(field.id, { isRequired: checked === true })}
+            />
+          </TooltipTrigger>
+          <TooltipContent>Mark this field as required</TooltipContent>
+        </Tooltip>
+      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -167,6 +171,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
             fieldId={field.items.id}
             depth={depth + 1}
             prefix={<span className="shrink-0 text-sm">Array items</span>}
+            hideName
           />
         </>
       );
@@ -248,9 +253,9 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
   value,
   onChange,
 }) => {
-  const lastSerializedRef = useRef<string | undefined>();
+  const lastSerializedRef = useRef('');
   const parsedSchema = useMemo(() => parseFieldsFromJson(value), [value]);
-  const storeRef = useRef<StoreApi<JsonSchemaState>>();
+  const storeRef = useRef<StoreApi<JsonSchemaState>>(null);
 
   if (!storeRef.current) {
     storeRef.current = createJsonSchemaBuilderStore(parsedSchema);
@@ -267,7 +272,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
   useEffect(() => {
     const root: FieldObject = {
       type: 'object',
-      properties: stripIdsFromFields(fields),
+      properties: fields,
       title: metadata.title,
       description: metadata.description,
     };

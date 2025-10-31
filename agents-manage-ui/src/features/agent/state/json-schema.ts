@@ -1,6 +1,62 @@
 import type { JSONSchema7 } from 'json-schema';
 import { createStore } from 'zustand/vanilla';
 
+type TypeValues = keyof typeof Types;
+
+interface NameAndDescription {
+  /** Unique identifier for the field. */
+  id: string;
+  /** Field name, typically property name in object. */
+  name?: string;
+  /** JSON Schema description field */
+  description?: string;
+  /** Indicates whether this field is required. */
+  isRequired?: boolean;
+  /** JSON Schema title field */
+  title?: string;
+}
+
+type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
+
+interface FieldString extends NameAndDescription {
+  type: 'string';
+}
+
+interface FieldNumber extends NameAndDescription {
+  type: 'number';
+}
+
+interface FieldBoolean extends NameAndDescription {
+  type: 'boolean';
+}
+
+interface FieldEnum extends NameAndDescription {
+  type: 'enum';
+  values: string[];
+}
+
+interface FieldArray extends NameAndDescription {
+  type: 'array';
+  items?: Exclude<AllFields, 'name' | 'isRequired'>;
+}
+
+interface FieldObject extends NameAndDescription {
+  type: 'object';
+  properties: AllFields[];
+}
+
+type EditableField =
+  | FieldString
+  | FieldNumber
+  | FieldBoolean
+  | FieldEnum
+  | (FieldArray & { items: EditableField })
+  | (FieldObject & { properties: EditableField[] });
+
+type FieldPatch = Partial<
+  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title'>
+>;
+
 const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
   if (field.description) {
     schema.description = field.description;
@@ -82,12 +138,19 @@ const fieldsToJsonSchema = (field: AllFields | undefined): JSONSchema7 => {
   }
 };
 
-function convertJsonSchemaToFields(
-  schema: JSONSchema7,
-  name?: string,
-  isRequired = false
-): AllFields | undefined {
+function convertJsonSchemaToFields({
+  schema,
+  name,
+  isRequired,
+  id = '__root__',
+}: {
+  schema: JSONSchema7;
+  name?: string;
+  isRequired?: boolean;
+  id?: string;
+}): AllFields | undefined {
   const base: NameAndDescription = {
+    id,
     ...(name && { name }),
     ...(schema.description && { description: schema.description }),
     ...(schema.title && { title: schema.title }),
@@ -105,11 +168,12 @@ function convertJsonSchemaToFields(
             if (typeof prop === 'boolean') {
               return acc;
             }
-            const child = convertJsonSchemaToFields(
-              prop,
-              propertyName,
-              requiredFieldsSet.has(propertyName)
-            );
+            const child = convertJsonSchemaToFields({
+              schema: prop,
+              name: propertyName,
+              isRequired: requiredFieldsSet.has(propertyName),
+              id: `${id}.${propertyName}`,
+            });
             if (child) {
               acc.push(child);
             }
@@ -127,8 +191,11 @@ function convertJsonSchemaToFields(
   if (schema.type === 'array') {
     let items: AllFields | undefined;
     if (schema && typeof schema.items === 'object') {
-      // @ts-expect-error todo: should we support Array of items?
-      items = convertJsonSchemaToFields(schema.items);
+      items = convertJsonSchemaToFields({
+        // @ts-expect-error todo: should we support Array of items?
+        schema: schema.items,
+        id: `${id}.[]`,
+      });
     }
 
     if (!items) {
@@ -181,14 +248,6 @@ function convertJsonSchemaToFields(
 
 const ROOT_ID = '__root__';
 
-let fieldIdCounter = 0;
-
-const createFieldId = () => `field-${++fieldIdCounter}`;
-
-const resetFieldIdCounter = () => {
-  fieldIdCounter = 0;
-};
-
 const Types = {
   string: 'string',
   number: 'number',
@@ -197,56 +256,6 @@ const Types = {
   array: 'array',
   object: 'object',
 };
-
-type TypeValues = keyof typeof Types;
-
-interface NameAndDescription {
-  name?: string;
-  description?: string;
-  isRequired?: boolean;
-  title?: string;
-}
-
-type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
-
-interface FieldString extends NameAndDescription {
-  type: 'string';
-}
-
-interface FieldNumber extends NameAndDescription {
-  type: 'number';
-}
-
-interface FieldBoolean extends NameAndDescription {
-  type: 'boolean';
-}
-
-interface FieldEnum extends NameAndDescription {
-  type: 'enum';
-  values: string[];
-}
-
-interface FieldArray extends NameAndDescription {
-  type: 'array';
-  items?: AllFields;
-}
-
-interface FieldObject extends NameAndDescription {
-  type: 'object';
-  properties: AllFields[];
-}
-
-type EditableField =
-  | (FieldString & { id: string })
-  | (FieldNumber & { id: string })
-  | (FieldBoolean & { id: string })
-  | (FieldEnum & { id: string })
-  | (FieldArray & { id: string; items: EditableField })
-  | (FieldObject & { id: string; properties: EditableField[] });
-
-type FieldPatch = Partial<
-  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title'>
->;
 
 const updateEditableField = (
   field: EditableField,
@@ -393,67 +402,19 @@ const removeEditableFieldFromTree = (fields: EditableField[], id: string): Mutab
   return [changed ? next : fields, changed];
 };
 
-const stripIdsFromField = (field: EditableField): AllFields => {
-  const base: NameAndDescription = {};
-  if (field.name && field.name !== '') base.name = field.name;
-  if (field.description) base.description = field.description;
-  if (field.title) base.title = field.title;
-  if (field.isRequired) base.isRequired = true;
-
-  switch (field.type) {
-    case 'object':
-      return {
-        ...base,
-        type: 'object',
-        properties: field.properties.map(stripIdsFromField),
-      };
-    case 'array':
-      return {
-        ...base,
-        type: 'array',
-        items: stripIdsFromField(field.items),
-      };
-    case 'enum':
-      return {
-        ...base,
-        type: 'enum',
-        values: field.values ?? [],
-      };
-    case 'number':
-      return {
-        ...base,
-        type: 'number',
-      };
-    case 'boolean':
-      return {
-        ...base,
-        type: 'boolean',
-      };
-    case 'string':
-    default:
-      return {
-        ...base,
-        type: 'string',
-      };
-  }
-};
-
-const stripIdsFromFields = (fields: EditableField[]): AllFields[] => fields.map(stripIdsFromField);
-
 interface ParsedSchemaResult {
   fields: AllFields[];
   metadata: Pick<NameAndDescription, 'title' | 'description'>;
 }
 
 const parseFieldsFromJson = (value: string): ParsedSchemaResult => {
-  resetFieldIdCounter();
   if (!value || value.trim().length === 0) {
     return { fields: [], metadata: {} };
   }
 
   try {
     const parsed = JSON.parse(value) as JSONSchema7;
-    const result = convertJsonSchemaToFields(parsed);
+    const result = convertJsonSchemaToFields({ schema: parsed });
     if (!result) {
       return { fields: [], metadata: {} };
     }
@@ -505,40 +466,6 @@ const applyPatchToField = (field: EditableField, patch: FieldPatch): EditableFie
   ...field,
   ...patch,
 });
-
-const addIdsToFields = (fields: AllFields[]): EditableField[] => fields.map(addIdsToField);
-
-const addIdsToField = (field: AllFields): EditableField => {
-  const id = createFieldId();
-  switch (field.type) {
-    case 'object':
-      return {
-        ...field,
-        id,
-        properties: (field.properties ?? []).map(addIdsToField),
-      };
-    case 'array':
-      return {
-        ...field,
-        id,
-        items: addIdsToField(field.items ?? { type: 'string' }),
-      };
-    case 'enum':
-      return {
-        ...field,
-        id,
-        values: field.values ?? [],
-      };
-    case 'number':
-    case 'boolean':
-    case 'string':
-    default:
-      return {
-        ...field,
-        id,
-      };
-  }
-};
 
 const createEditableField = (type: TypeValues): EditableField => {
   const id = createFieldId();
@@ -628,15 +555,12 @@ interface JsonSchemaState extends JsonSchemaStateData {
 }
 
 const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
-  resetFieldIdCounter();
-  const initialEditable = addIdsToFields(initial.fields);
   return createStore<JsonSchemaState>((set) => ({
-    fields: initialEditable,
+    fields: initial.fields,
     metadata: { ...initial.metadata },
     actions: {
       reset(data) {
-        resetFieldIdCounter();
-        set({ fields: addIdsToFields(data.fields), metadata: { ...data.metadata } });
+        set({ fields: data.fields, metadata: { ...data.metadata } });
       },
       updateField(id, patch) {
         set((state) => {
@@ -690,7 +614,6 @@ export {
   Types,
   ROOT_ID,
   createJsonSchemaBuilderStore,
-  stripIdsFromFields,
   findFieldById,
   parseFieldsFromJson,
   convertJsonSchemaToFields,

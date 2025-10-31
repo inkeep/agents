@@ -95,26 +95,31 @@ const schemaWithAnyOfResult: JSONSchema7 = {
 
 describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
-    const schema = convertJsonSchemaToFields(JSONSchemaFixture);
+    const schema = convertJsonSchemaToFields({ schema: JSONSchemaFixture });
     expect(schema).toEqual({
+      id: '__root__',
       properties: [
         {
+          id: '__root__.string',
           description: 'string description',
           name: 'string',
           title: 'My string',
           type: 'string',
         },
         {
+          id: '__root__.number',
           description: 'number description',
           name: 'number',
           title: 'My number',
           type: 'number',
         },
         {
+          id: '__root__.new',
           description: 'nested object',
           name: 'new',
           properties: [
             {
+              id: '__root__.new.newString',
               description: 'string description',
               name: 'newString',
               title: 'My new string',
@@ -124,37 +129,44 @@ describe('convertJsonSchemaToFields', () => {
           type: 'object',
         },
         {
+          id: '__root__.nested',
           description: 'nested object',
           isRequired: true,
           name: 'nested',
           properties: [
             {
+              id: '__root__.nested.nested2',
               description: 'another nested object',
               name: 'nested2',
               properties: [
                 {
+                  id: '__root__.nested.nested2.string',
                   description: 'string description',
                   isRequired: true,
                   name: 'string',
                   type: 'string',
                 },
                 {
+                  id: '__root__.nested.nested2.number',
                   description: 'number description',
                   name: 'number',
                   type: 'number',
                 },
                 {
+                  id: '__root__.nested.nested2.integer',
                   description: 'integer description',
                   isRequired: true,
                   name: 'integer',
                   type: 'number',
                 },
                 {
+                  id: '__root__.nested.nested2.boolean',
                   description: 'boolean description',
                   name: 'boolean',
                   type: 'boolean',
                 },
                 {
+                  id: '__root__.nested.nested2.enum',
                   description: 'enum description',
                   isRequired: true,
                   name: 'enum',
@@ -162,11 +174,14 @@ describe('convertJsonSchemaToFields', () => {
                   values: ['foo', 'bar', 'baz'],
                 },
                 {
+                  id: '__root__.nested.nested2.array',
                   description: 'array description',
                   items: {
+                    id: '__root__.nested.nested2.array.[]',
                     description: 'array item description',
                     properties: [
                       {
+                        id: '__root__.nested.nested2.array.[].prop',
                         description: 'array string item description',
                         name: 'prop',
                         type: 'string',
@@ -178,6 +193,7 @@ describe('convertJsonSchemaToFields', () => {
                   type: 'array',
                 },
                 {
+                  id: '__root__.nested.nested2.unknown',
                   name: 'unknown',
                   type: 'string',
                 },
@@ -193,11 +209,11 @@ describe('convertJsonSchemaToFields', () => {
   });
 
   it('should fallback when JSON schema contains $ref', () => {
-    const schema = convertJsonSchemaToFields(schemaWithRef);
+    const schema = convertJsonSchemaToFields({ schema: schemaWithRef });
     expect(fieldsToJsonSchema(schema)).toEqual(schemaWithRefResult);
   });
   it('should fallback when JSON schema contains anyOf', () => {
-    const schema = convertJsonSchemaToFields(schemaWithAnyOf);
+    const schema = convertJsonSchemaToFields({ schema: schemaWithAnyOf });
     expect(fieldsToJsonSchema(schema)).toEqual(schemaWithAnyOfResult);
   });
 });
