@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+- Updated dependencies [09ac1b4]
+  - @inkeep/agents-core@0.30.2
+
 ## 0.30.1
 
 ### Patch Changes
