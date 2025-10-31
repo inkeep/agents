@@ -193,16 +193,18 @@ function convertJsonSchemaToFields({
 
   if (schema.type === 'array') {
     let items: EditableField | undefined;
+    const itemsId = `${id}.[]`;
     if (schema && typeof schema.items === 'object') {
       items = convertJsonSchemaToFields({
         // @ts-expect-error todo: should we support Array of items?
         schema: schema.items,
-        id: `${id}.[]`,
+        id: itemsId,
       });
     }
 
     if (!items) {
       items = {
+        id: itemsId,
         type: 'string',
       };
     }
@@ -420,8 +422,7 @@ const parseFieldsFromJson = (value: string): EditableField[] => {
     }
 
     return [result];
-  } catch (error) {
-    console.error('Failed to parse schema for builder', error);
+  } catch {
     return [];
   }
 };
@@ -433,7 +434,6 @@ const findFieldById = (fields: EditableField[], id: string): EditableField | und
       return found;
     }
   }
-  return undefined;
 };
 
 const findFieldRecursively = (field: EditableField, id: string): EditableField | undefined => {
@@ -450,13 +450,7 @@ const findFieldRecursively = (field: EditableField, id: string): EditableField |
   } else if (field.type === 'array') {
     return findFieldRecursively(field.items, id);
   }
-  return undefined;
 };
-
-const applyPatchToField = (field: EditableField, patch: FieldPatch): EditableField => ({
-  ...field,
-  ...patch,
-});
 
 const createEditableField = ({ id, type }: { id: string; type: TypeValues }): EditableField => {
   switch (type) {
@@ -565,9 +559,10 @@ const jsonSchemaStore = create<JsonSchemaState>()(
       },
       updateField(id, patch) {
         set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-            applyPatchToField(candidate, patch)
-          );
+          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) => ({
+            ...candidate,
+            ...patch,
+          }));
           return changed ? { fields } : state;
         });
       },

@@ -81,7 +81,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       <SelectType
         value={field.type}
         onValueChange={(nextType) => changeType(field.id, nextType)}
-        className="w-57"
+        className="w-25 shrink-0"
       />
       {!prefix && (
         <Input
@@ -146,7 +146,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         <>
           {inputs}
           <div
-            style={{ marginLeft: indentStyle + 130 }}
+            style={{ marginLeft: indentStyle + 106 + (prefix ? 0 : 26) }}
             className="h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm"
           >
             <TagsInput
@@ -193,15 +193,9 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         </>
       );
     }
-    default: {
-      throw new TypeError(
-        `Unsupported type ${
-          // @ts-expect-error -- fallback
-          field.type
-        }`
-      );
-    }
   }
+  // @ts-expect-error -- fallback
+  throw new TypeError(`Unsupported type ${field.type}`);
 };
 
 const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
@@ -242,6 +236,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
     jsonSchemaStore.setState({ fields: parseFieldsFromJson(value) });
     return () => {
       const root: FieldObject = {
+        id: '__root__',
         type: 'object',
         properties: jsonSchemaStore.getState().fields,
       };
