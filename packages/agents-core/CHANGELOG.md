@@ -1,5 +1,14 @@
 # @inkeep/agents-core
 
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+
 ## 0.30.0
 
 ### Minor Changes
