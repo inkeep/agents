@@ -915,6 +915,7 @@ export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true 
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   agents: z.record(z.string(), AgentWithinContextOfProjectSchema),
   tools: z.record(z.string(), ToolApiInsertSchema),
+  functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),

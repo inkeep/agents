@@ -1,5 +1,10 @@
 import './env'; // Load environment files first (needed by instrumentation)
 import './instrumentation'; // Initialize Langfuse tracing second
+
+// Silence config loading logs for cleaner CLI output
+import { getLogger } from '@inkeep/agents-core';
+const configLogger = getLogger('config');
+configLogger.updateOptions({ level: 'silent' });
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +14,7 @@ import { configGetCommand, configListCommand, configSetCommand } from './command
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
-import { pullProjectCommand } from './commands/pull';
+import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
 
@@ -98,18 +103,20 @@ program
 
 program
   .command('pull')
-  .description('Pull entire project configuration from backend and update local files')
-  .option('--project <project-id>', 'Project ID or path to project directory')
+  .description('Pull project configuration with clean, efficient code generation')
+  .option('--project <project-id>', 'Project ID to pull from backend')
   .option('--config <path>', 'Path to configuration file')
-  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option(
     '--env <environment>',
     'Environment file to generate (development, staging, production). Defaults to development'
   )
-  .option('--json', 'Generate project data JSON file instead of updating files')
-  .option('--debug', 'Enable debug logging for LLM generation')
+  .option('--json', 'Output project data as JSON instead of generating files')
+  .option('--debug', 'Enable debug logging')
+  .option('--verbose', 'Enable verbose logging')
+  .option('--force', 'Force regeneration even if no changes detected')
+  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .action(async (options) => {
-    await pullProjectCommand(options);
+    await pullV3Command(options);
   });
 
 program
