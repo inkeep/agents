@@ -1,5 +1,63 @@
+import type { JSONSchema7 } from 'json-schema';
 import { convertJsonSchemaToFields } from '@/components/form/json-schema-builder';
 import { JSONSchemaFixture } from './json-schema-fixture';
+
+const schemaWithRef: JSONSchema7 = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'Order',
+  type: 'object',
+  properties: {
+    orderId: { type: 'string' },
+    customer: { $ref: '#/definitions/user' },
+    items: {
+      type: 'array',
+      items: { $ref: '#/definitions/item' },
+    },
+  },
+  required: ['orderId', 'customer', 'items'],
+  definitions: {
+    user: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['id', 'name'],
+    },
+    item: {
+      type: 'object',
+      properties: {
+        sku: { type: 'string' },
+        quantity: { type: 'integer', minimum: 1 },
+      },
+      required: ['sku', 'quantity'],
+    },
+  },
+};
+
+const schemaWithRefResult: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    orderId: {
+      type: 'string',
+      default: '',
+    },
+    customer: {
+      type: 'string',
+      default: '',
+    },
+    items: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      default: [],
+    },
+  },
+  additionalProperties: false,
+  required: ['orderId', 'customer', 'items'],
+  title: 'Order',
+};
 
 describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
