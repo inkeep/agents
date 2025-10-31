@@ -55,12 +55,14 @@ describe('Introspect Generator - End-to-End', () => {
     credentialReferences: {
       'api-credentials': {
         id: 'api-credentials',
+        name: 'API Credentials',
         type: 'bearer',
         credentialStoreId: 'main-store',
         retrievalParams: { key: 'api-token' }
       },
       'db-credentials': {
         id: 'db-credentials',
+        name: 'Database Credentials',
         type: 'basic',
         credentialStoreId: 'main-store',
         retrievalParams: { username: 'db-user', password: 'db-pass' }
@@ -82,7 +84,7 @@ describe('Introspect Generator - End-to-End', () => {
         dependencies: {
           'lodash': '^4.17.21'
         },
-        execute: 'async (params) => { return { priority: "high" }; }'
+        executeCode: 'async (params) => { return { priority: "high" }; }'
       }
     },
     tools: {
@@ -172,7 +174,7 @@ describe('Introspect Generator - End-to-End', () => {
         id: 'support-agent',
         name: 'Customer Support Agent',
         description: 'Primary customer support agent with escalation capabilities',
-        defaultSubAgent: 'level1Support',
+        defaultSubAgentId: 'level1-support',
         subAgents: {
           'level1-support': {
             id: 'level1-support',
@@ -238,7 +240,16 @@ describe('Introspect Generator - End-to-End', () => {
         id: 'escalation-specialist',
         name: 'Escalation Specialist',
         description: 'Expert agent for handling complex escalated issues',
-        prompt: 'You are an escalation specialist. Handle the most complex issues that require senior expertise.'
+        prompt: 'You are an escalation specialist. Handle the most complex issues that require senior expertise.',
+        defaultSubAgentId: 'expert-escalation',
+        subAgents: {
+          'expert-escalation': {
+            id: 'expert-escalation',
+            name: 'Expert Escalation',
+            description: 'Expert-level escalation handling',
+            prompt: 'You are an expert at handling escalated issues with senior-level expertise.'
+          }
+        }
       }
     },
     createdAt: new Date().toISOString(),
@@ -329,6 +340,9 @@ describe('Introspect Generator - End-to-End', () => {
       id: 'minimal-project',
       name: 'Minimal Test Project',
       description: 'Simple project for testing',
+      models: {
+        base: { model: 'gpt-4o-mini', temperature: 0.7 }
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -397,6 +411,9 @@ describe('Introspect Generator - End-to-End', () => {
       id: 'external-only',
       name: 'External Agents Only',
       description: 'Project with only external agents',
+      models: {
+        base: { model: 'gpt-4o-mini', temperature: 0.7 }
+      },
       externalAgents: {
         'external-service': {
           id: 'external-service',
