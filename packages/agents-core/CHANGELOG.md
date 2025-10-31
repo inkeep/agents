@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+
 ## 0.29.11
 
 ### Patch Changes
