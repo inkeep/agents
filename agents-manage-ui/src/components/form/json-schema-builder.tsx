@@ -114,30 +114,34 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) =
         }
       />
       {!hideName && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Checkbox
-              checked={Boolean(field.isRequired)}
-              onCheckedChange={(checked) => updateField(field.id, { isRequired: checked === true })}
-            />
-          </TooltipTrigger>
-          <TooltipContent>Mark this field as required</TooltipContent>
-        </Tooltip>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Checkbox
+                checked={Boolean(field.isRequired)}
+                onCheckedChange={(checked) =>
+                  updateField(field.id, { isRequired: checked === true })
+                }
+              />
+            </TooltipTrigger>
+            <TooltipContent>Mark this field as required</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => {
+                  removeField(field.id);
+                }}
+              >
+                <TrashIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Remove property</TooltipContent>
+          </Tooltip>
+        </>
       )}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => {
-              removeField(field.id);
-            }}
-          >
-            <TrashIcon />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Remove property</TooltipContent>
-      </Tooltip>
     </div>
   );
 

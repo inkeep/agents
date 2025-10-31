@@ -1,5 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
 import { createStore } from 'zustand/vanilla';
+import { nanoid } from 'nanoid';
 
 type TypeValues = keyof typeof Types;
 
@@ -16,7 +17,13 @@ interface NameAndDescription {
   title?: string;
 }
 
-type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
+type EditableField =
+  | FieldString
+  | FieldNumber
+  | FieldBoolean
+  | FieldEnum
+  | FieldArray
+  | FieldObject;
 
 interface FieldString extends NameAndDescription {
   type: 'string';
@@ -37,21 +44,13 @@ interface FieldEnum extends NameAndDescription {
 
 interface FieldArray extends NameAndDescription {
   type: 'array';
-  items?: Exclude<AllFields, 'name' | 'isRequired'>;
+  items: Exclude<EditableField, 'name' | 'isRequired'>;
 }
 
 interface FieldObject extends NameAndDescription {
   type: 'object';
-  properties: AllFields[];
+  properties: EditableField[];
 }
-
-type EditableField =
-  | FieldString
-  | FieldNumber
-  | FieldBoolean
-  | FieldEnum
-  | (FieldArray & { items: EditableField })
-  | (FieldObject & { properties: EditableField[] });
 
 type FieldPatch = Partial<
   Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title'>
@@ -67,7 +66,7 @@ const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => 
   return schema;
 };
 
-const fieldsToJsonSchema = (field: AllFields | undefined): JSONSchema7 => {
+const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
   if (!field) {
     return { type: 'string' };
   }
@@ -148,7 +147,7 @@ function convertJsonSchemaToFields({
   name?: string;
   isRequired?: boolean;
   id?: string;
-}): AllFields | undefined {
+}): EditableField | undefined {
   const base: NameAndDescription = {
     id,
     ...(name && { name }),
@@ -163,7 +162,7 @@ function convertJsonSchemaToFields({
 
     const properties =
       schema && typeof schema.properties === 'object'
-        ? Object.entries(schema.properties).reduce<AllFields[]>((acc, [propertyName, prop]) => {
+        ? Object.entries(schema.properties).reduce<EditableField[]>((acc, [propertyName, prop]) => {
             // TODO - to pass typecheck
             if (typeof prop === 'boolean') {
               return acc;
@@ -189,7 +188,7 @@ function convertJsonSchemaToFields({
   }
 
   if (schema.type === 'array') {
-    let items: AllFields | undefined;
+    let items: EditableField | undefined;
     if (schema && typeof schema.items === 'object') {
       items = convertJsonSchemaToFields({
         // @ts-expect-error todo: should we support Array of items?
@@ -403,7 +402,7 @@ const removeEditableFieldFromTree = (fields: EditableField[], id: string): Mutab
 };
 
 interface ParsedSchemaResult {
-  fields: AllFields[];
+  fields: EditableField[];
   metadata: Pick<NameAndDescription, 'title' | 'description'>;
 }
 
@@ -467,13 +466,19 @@ const applyPatchToField = (field: EditableField, patch: FieldPatch): EditableFie
   ...patch,
 });
 
-const createEditableField = (type: TypeValues): EditableField => {
-  const id = createFieldId();
+const createEditableField = ({ id, type }: { id: string; type: TypeValues }): EditableField => {
   switch (type) {
     case 'object':
       return { id, type: 'object', properties: [] };
     case 'array':
-      return { id, type: 'array', items: createEditableField('string') };
+      return {
+        id,
+        type: 'array',
+        items: createEditableField({
+          type: 'string',
+          id: `${id}.[]`,
+        }),
+      };
     case 'enum':
       return { id, type: 'enum', values: [] };
     case 'number':
@@ -509,7 +514,13 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
       return {
         ...base,
         type: 'array',
-        items: field.type === 'array' ? field.items : createEditableField('string'),
+        items:
+          field.type === 'array'
+            ? field.items
+            : createEditableField({
+                type: 'string',
+                id: `${base.id}.${nanoid()}`,
+              }),
       };
     case 'enum':
       return {
@@ -567,7 +578,7 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
           const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
             applyPatchToField(candidate, patch)
           );
-          return changed ? { fields } : {};
+          return changed ? { fields } : state;
         });
       },
       changeType(id, type) {
@@ -575,17 +586,20 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
           const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
             changeEditableFieldType(candidate, type)
           );
-          return changed ? { fields } : {};
+          return changed ? { fields } : state;
         });
       },
       addChild(parentId) {
         set((state) => {
-          const child = createEditableField('string');
+          const child = createEditableField({
+            type: 'string',
+            id: `${parentId}.${nanoid()}`,
+          });
           if (parentId === ROOT_ID) {
             return { fields: [...state.fields, child] };
           }
           const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
-          return changed ? { fields } : {};
+          return changed ? { fields } : state;
         });
       },
       removeField(id) {
@@ -595,7 +609,7 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
             return { fields: filtered };
           }
           const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
-          return changed ? { fields } : {};
+          return changed ? { fields } : state;
         });
       },
       updateEnumValues(id, values) {
@@ -603,7 +617,7 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
           const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
             candidate.type === 'enum' ? { ...candidate, values } : candidate
           );
-          return changed ? { fields } : {};
+          return changed ? { fields } : state;
         });
       },
     },
