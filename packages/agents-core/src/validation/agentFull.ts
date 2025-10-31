@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { FullAgentDefinition } from '../types/entities';
+import { detectDelegationCycles } from './cycleDetection';
 import { AgentWithinContextOfProjectSchema } from './schemas';
 
 // Zod-based validation and typing using the existing schema
@@ -113,7 +114,6 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
   const availableExternalAgentIds = new Set(Object.keys(agentData.externalAgents ?? {}));
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
-    // Only internal agents have relationship properties
     if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
       for (const targetId of subAgent.canTransferTo) {
         if (!availableAgentIds.has(targetId)) {
@@ -152,6 +152,11 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
         }
       }
     }
+  }
+
+  const cycles = detectDelegationCycles(agentData);
+  if (cycles.length > 0) {
+    errors.push(...cycles);
   }
 
   if (errors.length > 0)
