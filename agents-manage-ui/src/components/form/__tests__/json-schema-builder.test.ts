@@ -59,6 +59,44 @@ const schemaWithRefResult: JSONSchema7 = {
   title: 'Order',
 };
 
+const schemaWithAnyOf: JSONSchema7 = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'User Contact',
+  type: 'object',
+  properties: {
+    contact: {
+      description: 'User contact can be either an email or a phone number',
+      anyOf: [
+        {
+          type: 'string',
+          format: 'email',
+          description: 'Email address',
+        },
+        {
+          type: 'string',
+          pattern: '^\\+?[0-9\\-]{7,15}$',
+          description: 'Phone number (E.164 format or similar)',
+        },
+      ],
+    },
+  },
+  required: ['contact'],
+};
+
+const schemaWithAnyOfResult: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    contact: {
+      type: 'string',
+      description: 'User contact can be either an email or a phone number',
+      default: '',
+    },
+  },
+  additionalProperties: false,
+  required: ['contact'],
+  title: 'User Contact',
+};
+
 describe('convertJsonSchemaToFields', () => {
   it('should converts json schema to fields', () => {
     const schema = convertJsonSchemaToFields(JSONSchemaFixture);
