@@ -37,6 +37,7 @@ program
   .option('--project <template>', 'Project template to add')
   .option('--mcp <template>', 'MCP template to add')
   .option('--target-path <path>', 'Target path to add the template to')
+  .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
   .option('--config <path>', 'Path to configuration file')
   .action(async (template, options) => {
     await addCommand({ template, ...options });

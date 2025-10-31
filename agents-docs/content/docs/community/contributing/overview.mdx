@@ -5,7 +5,7 @@ description: How to contribute to the Inkeep Agent Framework
 icon: "LuZap"
 ---
 
-# Making a Contribution 
+# Making a Contribution
 
 Thank you for your interest in contributing to the Agent Framework! This document provides guidelines and information for contributors.
 
@@ -19,6 +19,7 @@ cd agents
 ```
 
 ### Step 2: Run the setup script
+
 For first-time setup, run:
 
 ```bash
@@ -26,10 +27,11 @@ pnpm setup-dev
 ```
 
 This will:
+
 1. Create `.env` from the template
 2. Set up user-global config at `~/.inkeep/config`
-4. Install dependencies
-5. Initialize the database
+3. Install dependencies
+4. Initialize the database
 
 Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
 
@@ -50,9 +52,6 @@ Add your Nango secret key to enable the Nango credential store (optional).
 ```
 NANGO_SECRET_KEY=sk-xxx
 ```
-
-
-
 
 ### Step 5: Run the agent framework
 
@@ -79,23 +78,22 @@ pnpm install -g @inkeep/agents-cli
 ### Step 2: Push the project
 
 ```bash
-cd examples
+cd agents-cookbook/template-projects/weather-project
 inkeep push
 ```
 
 <Note>
   The project will be pushed according to the project specified in the
-  `/examples/inkeep.config.ts` file, which is set to the `default` project by
+  `/agents-cookbook/template-projects/inkeep.config.ts` file, which is set to the `default` project by
   default. Feel free to change it to your own project.
 </Note>
 
 ### Step 3: Observe the Agent in the Visual Builder
 
-<img
+<Image
   src="/gifs/basic-agent.gif"
   alt="Basic Agent"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+  style={{ border: "1px solid #e1e5e9" }}
 />
 
 # Set up live traces
@@ -123,11 +121,10 @@ SIGNOZ_API_KEY=your-signoz-api-key-here
 
 Refresh the live traces panel on the right to see your agents in action.
 
-<img
+<Image
   src="/images/live-traces.png"
   alt="Live traces showing"
-  width="100%"
-  style={{ borderRadius: "10px", border: "1px solid #e1e5e9" }}
+  style={{ border: "1px solid #e1e5e9" }}
 />
 
 # Set up credentials
@@ -260,12 +257,14 @@ node agents-cli/dist/index.js --version
 ## Testing CLI Changes
 
 1. **Build the CLI after making changes:**
+
 ```bash
 cd agents-cli
 pnpm build
 ```
 
 2. **Test commands locally:**
+
 ```bash
 # From repository root
 node agents-cli/dist/index.js push examples/agent-configurations
@@ -273,6 +272,7 @@ node agents-cli/dist/index.js chat
 ```
 
 3. **Run CLI tests:**
+
 ```bash
 cd agents-cli
 pnpm test

@@ -284,7 +284,7 @@ git worktree prune
 - **UI Pages**: `/agents-manage-ui/src/app/` (Next.js pages and routing)
 - **Documentation**: `/agents-docs/` (Next.js/Fumadocs public documentation site)
 - **Legacy Documentation**: `/docs-legacy/` (internal/development notes)
-- **Examples**: `/examples/` for reference implementations
+- **Examples**: `/agents-cookbook/` for reference implementations
 
 ## Feature Development Examples
 
