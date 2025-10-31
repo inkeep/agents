@@ -17,6 +17,7 @@ The **workspace-level** configuration file for your Inkeep project. This file de
 - **Tenant and project identification** for organizing your agents
 - **API endpoints** for the Management and Runtime APIs
 - **Authentication credentials** for secure API access
+- **Model configuration** for AI models (required at least base model)
 - **Output directories** for generated files
 
 :::tip
@@ -45,6 +46,17 @@ export default defineConfig({
   agentsRunApi: {
     url: 'http://localhost:3003',
     apiKey: process.env.RUN_API_KEY, // Optional: API key for authentication
+  },
+
+  // Required: Model configuration (at least base model)
+  models: {
+    base: {
+      model: 'anthropic/claude-sonnet-4-5',
+      providerOptions: {
+        temperature: 0.7,
+        maxOutputTokens: 2048
+      }
+    }
   },
 
   // Optional: Output directory for generated files
