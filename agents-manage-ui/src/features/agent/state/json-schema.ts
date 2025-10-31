@@ -474,17 +474,6 @@ const parseFieldsFromJson = (value: string): ParsedSchemaResult => {
   }
 };
 
-interface JsonSchemaBuilderStore {
-  fields: EditableField[];
-  metadata: ParsedSchemaResult['metadata'];
-  reset: (data: ParsedSchemaResult) => void;
-  updateField: (id: string, patch: FieldPatch) => void;
-  changeType: (id: string, type: TypeValues) => void;
-  addChild: (parentId: string) => void;
-  removeField: (id: string) => void;
-  updateEnumValues: (id: string, values: string[]) => void;
-}
-
 const findFieldById = (fields: EditableField[], id: string): EditableField | undefined => {
   for (const field of fields) {
     const found = findFieldRecursively(field, id);
@@ -620,61 +609,79 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
   }
 };
 
-const createJsonSchemaBuilderStore = (
-  initial: ParsedSchemaResult
-): StoreApi<JsonSchemaBuilderStore> => {
+interface JsonSchemaStateData {
+  fields: EditableField[];
+  metadata: ParsedSchemaResult['metadata'];
+}
+
+interface JsonSchemaActions {
+  reset: (data: ParsedSchemaResult) => void;
+  updateField: (id: string, patch: FieldPatch) => void;
+  changeType: (id: string, type: TypeValues) => void;
+  addChild: (parentId: string) => void;
+  removeField: (id: string) => void;
+  updateEnumValues: (id: string, values: string[]) => void;
+}
+
+interface JsonSchemaState extends JsonSchemaStateData {
+  actions: JsonSchemaActions;
+}
+
+const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
   resetFieldIdCounter();
   const initialEditable = addIdsToFields(initial.fields);
-  return createStore<JsonSchemaBuilderStore>((set) => ({
+  return createStore<JsonSchemaState>((set) => ({
     fields: initialEditable,
     metadata: { ...initial.metadata },
-    reset(data) {
-      resetFieldIdCounter();
-      set({ fields: addIdsToFields(data.fields), metadata: { ...data.metadata } });
-    },
-    updateField(id, patch) {
-      set((state) => {
-        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-          applyPatchToField(candidate, patch)
-        );
-        return changed ? { fields } : {};
-      });
-    },
-    changeType(id, type) {
-      set((state) => {
-        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-          changeEditableFieldType(candidate, type)
-        );
-        return changed ? { fields } : {};
-      });
-    },
-    addChild(parentId) {
-      set((state) => {
-        const child = createEditableField('string');
-        if (parentId === ROOT_ID) {
-          return { fields: [...state.fields, child] };
-        }
-        const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
-        return changed ? { fields } : {};
-      });
-    },
-    removeField(id) {
-      set((state) => {
-        const filtered = state.fields.filter((field) => field.id !== id);
-        if (filtered.length !== state.fields.length) {
-          return { fields: filtered };
-        }
-        const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
-        return changed ? { fields } : {};
-      });
-    },
-    updateEnumValues(id, values) {
-      set((state) => {
-        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-          candidate.type === 'enum' ? { ...candidate, values } : candidate
-        );
-        return changed ? { fields } : {};
-      });
+    actions: {
+      reset(data) {
+        resetFieldIdCounter();
+        set({ fields: addIdsToFields(data.fields), metadata: { ...data.metadata } });
+      },
+      updateField(id, patch) {
+        set((state) => {
+          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+            applyPatchToField(candidate, patch)
+          );
+          return changed ? { fields } : {};
+        });
+      },
+      changeType(id, type) {
+        set((state) => {
+          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+            changeEditableFieldType(candidate, type)
+          );
+          return changed ? { fields } : {};
+        });
+      },
+      addChild(parentId) {
+        set((state) => {
+          const child = createEditableField('string');
+          if (parentId === ROOT_ID) {
+            return { fields: [...state.fields, child] };
+          }
+          const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
+          return changed ? { fields } : {};
+        });
+      },
+      removeField(id) {
+        set((state) => {
+          const filtered = state.fields.filter((field) => field.id !== id);
+          if (filtered.length !== state.fields.length) {
+            return { fields: filtered };
+          }
+          const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
+          return changed ? { fields } : {};
+        });
+      },
+      updateEnumValues(id, values) {
+        set((state) => {
+          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+            candidate.type === 'enum' ? { ...candidate, values } : candidate
+          );
+          return changed ? { fields } : {};
+        });
+      },
     },
   }));
 };
@@ -689,6 +696,6 @@ export {
   convertJsonSchemaToFields,
   fieldsToJsonSchema,
   type TypeValues,
-  type JsonSchemaBuilderStore,
+  type JsonSchemaState,
   type FieldObject,
 };

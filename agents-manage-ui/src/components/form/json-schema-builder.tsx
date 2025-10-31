@@ -1,5 +1,13 @@
 import type { ComponentProps, FC, ReactNode } from 'react';
-import { useEffect, createContext, useMemo,useContext, useRef, useState, useCallback } from 'react';
+import {
+  useEffect,
+  createContext,
+  useMemo,
+  useContext,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -19,7 +27,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { StoreApi } from 'zustand';
 import {
   type TypeValues,
-  type JsonSchemaBuilderStore,
+  type JsonSchemaState,
   type FieldObject,
   ROOT_ID,
   Types,
@@ -169,6 +177,18 @@ const ClassToUse: Record<TypeValues, string> = {
   array: 'text-pink-500',
   object: 'text-purple-500',
 };
+
+const JsonSchemaBuilderStoreContext = createContext<StoreApi<JsonSchemaState> | null>(null);
+
+const useSchemaStoreSelector = <T,>(selector: (state: JsonSchemaState) => T) => {
+    const store = useContext(JsonSchemaBuilderStoreContext);
+    if (!store) {
+        throw new Error('JsonSchemaBuilder store not found in context');
+    }
+    return useStore(store, selector);
+};
+
+const useJsonSchemaActions = () => useSchemaStoreSelector((state) => state.actions);
 
 const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   const Icon = IconToUse[type];
