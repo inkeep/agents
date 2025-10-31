@@ -110,6 +110,7 @@ export interface ArtifactSavedData {
   projectId?: string;
   contextId?: string;
   subAgentId?: string;
+  subAgentName?: string;
   metadata?: Record<string, any>;
   summaryData?: Record<string, any>;
   data?: Record<string, any>;
@@ -1233,7 +1234,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'agent_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
-          'artifact.sub_agent_id': artifactData.subAgentId || 'unknown',
+          'subAgent.id': artifactData.subAgentId || 'unknown',
+          'subAgent.name': artifactData.subAgentName || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
           'artifact.data': JSON.stringify(artifactData.data, null, 2),
           'tenant.id': artifactData.tenantId || 'unknown',
