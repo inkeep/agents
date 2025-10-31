@@ -209,7 +209,6 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -239,6 +238,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
@@ -397,6 +398,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -515,7 +520,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -558,6 +567,14 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -621,8 +638,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -820,7 +837,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.ARTIFACT_SUB_AGENT_ID,
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -1028,7 +1049,8 @@ export async function GET(
         description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
@@ -1134,10 +1156,10 @@ export async function GET(
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: AGENT_IDS.AI_ASSISTANT,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(
           span,
-          SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
+          SPAN_KEYS.SUB_AGENT_NAME,
           ACTIVITY_NAMES.UNKNOWN_AGENT
         ),
         result: hasError
@@ -1164,8 +1186,8 @@ export async function GET(
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
@@ -1199,7 +1221,8 @@ export async function GET(
         hasError,
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
       });
     }
 
@@ -1214,8 +1237,8 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
@@ -1239,7 +1262,7 @@ export async function GET(
         description: 'AI model streaming object response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming object failed'
@@ -1285,14 +1308,14 @@ export async function GET(
         description: 'Artifact processed',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || 'Unknown Agent',
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? 'Artifact processing failed' : 'Artifact processed successfully',
         artifactId: getString(span, SPAN_KEYS.ARTIFACT_ID, '') || undefined,
         artifactType: artifactType || undefined,
         artifactName: artifactName || undefined,
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
-        artifactSubAgentId: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
       });
     }

@@ -379,7 +379,8 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'ai.subAgent.name': currentAgentId,
+                'subAgent.name': agentConfig?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
               });
 
               // Store the agent response in the database with both text and parts

@@ -175,9 +175,9 @@ export function TimelineItem({
           )}
 
           {/* subagent badge for AI assistant message */}
-          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentName && (
+          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentName}</Badge>
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 
@@ -210,10 +210,10 @@ export function TimelineItem({
           )}
 
           {/* ai.telemetry.functionId badge for streamed text */}
-          {activity.type === 'ai_model_streamed_text' && activity.aiTelemetryFunctionId && (
+          {activity.type === 'ai_model_streamed_text' && activity.subAgentId && (
             <div className="mb-1">
               <Badge variant="code" className="text-xs">
-                {activity.aiTelemetryFunctionId}
+                {activity.subAgentId}
               </Badge>
             </div>
           )}
@@ -253,10 +253,10 @@ export function TimelineItem({
           )}
 
           {/* ai.telemetry.functionId badge for streamed object */}
-          {activity.type === 'ai_model_streamed_object' && activity.aiTelemetryFunctionId && (
+          {activity.type === 'ai_model_streamed_object' && activity.subAgentId && (
             <div className="mb-1">
               <Badge variant="code" className="text-xs">
-                {activity.aiTelemetryFunctionId}
+                {activity.subAgentId}
               </Badge>
             </div>
           )}
@@ -345,9 +345,9 @@ export function TimelineItem({
           )}
 
           {/* agent name for AI generation */}
-          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentName}</Badge>
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 
@@ -360,12 +360,12 @@ export function TimelineItem({
 
           {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.aiTelemetryFunctionId &&
+            activity.subAgentId &&
             activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
-                  {activity.aiTelemetryFunctionId}
+                  {activity.subAgentId}
                 </Badge>
               </div>
             )}
