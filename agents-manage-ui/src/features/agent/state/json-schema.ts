@@ -1,6 +1,87 @@
 import type { JSONSchema7 } from 'json-schema';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
+const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
+  if (field.description) {
+    schema.description = field.description;
+  }
+  if (field.title) {
+    schema.title = field.title;
+  }
+  return schema;
+};
+
+const fieldsToJsonSchema = (field: AllFields | undefined): JSONSchema7 => {
+  if (!field) {
+    return { type: 'string' };
+  }
+
+  switch (field.type) {
+    case 'object': {
+      const properties: Record<string, JSONSchema7> = {};
+      const required: string[] = [];
+
+      for (const property of field.properties ?? []) {
+        if (!property || !property.name) continue;
+        properties[property.name] = fieldsToJsonSchema(property);
+        if (property.isRequired) {
+          required.push(property.name);
+        }
+      }
+
+      const schema: JSONSchema7 = {
+        type: 'object',
+        properties,
+        additionalProperties: false,
+      };
+      applyCommonMetadata(schema, field);
+      if (required.length > 0) {
+        schema.required = required;
+      }
+      return schema;
+    }
+    case 'array': {
+      const items = fieldsToJsonSchema(field.items);
+      const schema: JSONSchema7 = {
+        type: 'array',
+        items,
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'enum': {
+      const schema: JSONSchema7 = {
+        type: 'string',
+        enum: field.values,
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'number': {
+      const schema: JSONSchema7 = {
+        type: 'number',
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'boolean': {
+      const schema: JSONSchema7 = {
+        type: 'boolean',
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'string':
+    default: {
+      const schema: JSONSchema7 = {
+        type: 'string',
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+  }
+};
+
 function convertJsonSchemaToFields(
   schema: JSONSchema7,
   name?: string,
@@ -493,64 +574,47 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
   if (field.type === type) {
     return field;
   }
+  const base = {
+    id: field.id,
+    name: field.name,
+    description: field.description,
+    isRequired: field.isRequired,
+    title: field.title,
+  };
 
   switch (type) {
     case 'object':
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'object',
         properties: field.type === 'object' ? field.properties : [],
       };
     case 'array':
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'array',
         items: field.type === 'array' ? field.items : createEditableField('string'),
       };
     case 'enum':
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'enum',
         values: field.type === 'enum' ? (field.values ?? []) : [],
       };
     case 'number':
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'number',
       };
     case 'boolean':
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'boolean',
       };
     case 'string':
     default:
       return {
-        id: field.id,
-        name: field.name,
-        description: field.description,
-        isRequired: field.isRequired,
-        title: field.title,
+        ...base,
         type: 'string',
       };
   }
@@ -564,25 +628,27 @@ const createJsonSchemaBuilderStore = (
   return createStore<JsonSchemaBuilderStore>((set) => ({
     fields: initialEditable,
     metadata: { ...initial.metadata },
-    reset: (data) => {
+    reset(data) {
       resetFieldIdCounter();
       set({ fields: addIdsToFields(data.fields), metadata: { ...data.metadata } });
     },
-    updateField: (id, patch) =>
+    updateField(id, patch) {
       set((state) => {
         const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
           applyPatchToField(candidate, patch)
         );
         return changed ? { fields } : {};
-      }),
-    changeType: (id, type) =>
+      });
+    },
+    changeType(id, type) {
       set((state) => {
         const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
           changeEditableFieldType(candidate, type)
         );
         return changed ? { fields } : {};
-      }),
-    addChild: (parentId) =>
+      });
+    },
+    addChild(parentId) {
       set((state) => {
         const child = createEditableField('string');
         if (parentId === ROOT_ID) {
@@ -590,8 +656,9 @@ const createJsonSchemaBuilderStore = (
         }
         const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
         return changed ? { fields } : {};
-      }),
-    removeField: (id) =>
+      });
+    },
+    removeField(id) {
       set((state) => {
         const filtered = state.fields.filter((field) => field.id !== id);
         if (filtered.length !== state.fields.length) {
@@ -599,14 +666,16 @@ const createJsonSchemaBuilderStore = (
         }
         const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
         return changed ? { fields } : {};
-      }),
-    updateEnumValues: (id, values) =>
+      });
+    },
+    updateEnumValues(id, values) {
       set((state) => {
         const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
           candidate.type === 'enum' ? { ...candidate, values } : candidate
         );
         return changed ? { fields } : {};
-      }),
+      });
+    },
   }));
 };
 
@@ -617,9 +686,9 @@ export {
   stripIdsFromFields,
   findFieldById,
   parseFieldsFromJson,
+  convertJsonSchemaToFields,
+  fieldsToJsonSchema,
   type TypeValues,
   type JsonSchemaBuilderStore,
   type FieldObject,
-  type AllFields,
-  type NameAndDescription,
 };
