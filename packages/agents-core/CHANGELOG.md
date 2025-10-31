@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+
 ## 0.30.2
 
 ### Patch Changes
