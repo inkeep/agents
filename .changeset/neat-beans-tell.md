@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": minor
 ---
 
-add `Simple Edit` mode for JSON Schema editors which opens Dialog where JSON Schema values are represented as html forms
+Add a `Simple Edit` mode for JSON Schema editors that opens a dialog where JSON Schema values are displayed and editable through an HTML form
