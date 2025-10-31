@@ -28,11 +28,13 @@ const Types = {
   object: 'object',
 };
 
-type TypeValues = (typeof Types)[keyof typeof Types];
+type TypeValues = keyof typeof Types;
+
+const INDENT_PX = 24;
 
 const SelectType: FC<{
   value: TypeValues;
-  onValueChange: Dispatch<'string'>;
+  onValueChange: Dispatch<TypeValues>;
   className?: string;
 }> = ({ value, onValueChange, className }) => {
   return (
@@ -51,18 +53,25 @@ const SelectType: FC<{
   );
 };
 
-const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
-  const [type, setType] = useState<TypeValues>(defaultType);
+const Property: FC<{
+  field: AllFields;
+  depth?: number;
+  prefix?: ReactNode;
+  suffix?: ReactNode;
+}> = ({ field, depth = 0, prefix }) => {
+  const [type, setType] = useState<TypeValues>(field.type);
+  const indentStyle = depth * INDENT_PX;
 
   const inputs = (
-    <>
+    <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
+      {prefix}
       <PropertyIcon type={type} />
       <SelectType value={type} onValueChange={setType} className="w-57" />
-      <Input placeholder="Property name" />
-      <Input placeholder="Add description" />
+      <Input placeholder="Property name" defaultValue={field.name} />
+      <Input placeholder="Add description" defaultValue={field.description} />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Checkbox />
+          <Checkbox defaultChecked={field.isRequired} />
         </TooltipTrigger>
         <TooltipContent>Mark this field as required</TooltipContent>
       </Tooltip>
@@ -74,36 +83,61 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
         </TooltipTrigger>
         <TooltipContent>Remove property</TooltipContent>
       </Tooltip>
-    </>
+    </div>
   );
 
-  switch (type) {
-    case 'num':
-    case 'bool':
-    case 'str': {
-      return <div className="flex gap-2 items-center">{inputs}</div>;
+  switch (field.type) {
+    case 'string':
+    case 'number':
+    case 'boolean': {
+      return inputs;
     }
     case 'enum': {
       return (
         <>
-          <div className="flex gap-2 items-center">{inputs}</div>
-          <TagsInput />
+          {inputs}
+          <div
+            style={{ marginLeft: indentStyle + 130 }}
+            className="h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm"
+          >
+            <TagsInput initialTags={field.values} depth={depth + 1} />
+          </div>
         </>
       );
     }
-    case 'arr': {
-      return <PropertyArray>{inputs}</PropertyArray>;
-    }
-    case 'obj': {
+    case 'array': {
       return (
         <>
-          <div className="flex gap-2 items-center">{inputs}</div>
+          {inputs}
+          <Property
+            field={{
+              ...field.items,
+              name: field.items.name ?? 'items',
+            }}
+            depth={depth + 1}
+            prefix={<span className="shrink-0 text-sm">Array items</span>}
+            suffix={null}
+          />
+        </>
+      );
+    }
+    case 'object': {
+      return (
+        <>
+          {inputs}
+          {field.properties.map((child, index) => (
+            <Property
+              key={child.name ?? `field-${depth}-${index}`}
+              field={child}
+              depth={depth + 1 + (prefix ? 3.5 : 0)}
+            />
+          ))}
           <Button
             onClick={() => {}}
             variant="secondary"
             size="sm"
-            className="self-start"
-            style={{ marginLeft: 24 }}
+            className="self-start text-xs"
+            style={{ marginLeft: indentStyle + 24 + (prefix ? 82 : 0) }}
           >
             <PlusIcon />
             Add property
@@ -115,22 +149,6 @@ const Property: FC<{ defaultType: TypeValues }> = ({ defaultType }) => {
       throw new TypeError(`Unsupported type ${type}`);
     }
   }
-};
-
-const PropertyArray: FC<{ children: ReactNode }> = ({ children }) => {
-  const [type, setType] = useState<TypeValues>('str');
-
-  return (
-    <>
-      <div className="flex gap-2 items-center">{children}</div>
-      <div className="flex gap-2 items-center me-8 ms-7.5">
-        <PropertyIcon type={type} />
-        <span className="shrink-0 md:text-sm">Array items</span>
-        <SelectType value={type} onValueChange={setType} />
-        <Input placeholder="Add description" />
-      </div>
-    </>
-  );
 };
 
 const IconToUse: Record<TypeValues, FC<ComponentProps<'svg'>>> = {
@@ -202,23 +220,17 @@ export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
           </TableRow>
         </TableHeader>
       </Table>
-      <Property defaultType="str" />
-      <Property defaultType="num" />
-      <Property defaultType="bool" />
-      <Property defaultType="enum" />
-      <Property defaultType="arr" />
-      <Property defaultType="obj" />
-      {properties}
-      <Button onClick={handleAddProperty} variant="secondary" size="sm" className="self-start">
-        <PlusIcon />
-        Add property
-      </Button>
+      {fields.map((field, index) => (
+        <Property key={field.name ?? `root-${index}`} field={field} depth={0} />
+      ))}
     </>
   );
 };
 
-const TagsInput: FC = () => {
-  const [tags, setTags] = useState<string[]>([]);
+const TagsInput: FC<{ initialTags?: string[]; }> = ({
+  initialTags = [],
+}) => {
+  const [tags, setTags] = useState<string[]>(initialTags);
   const [input, setInput] = useState('');
 
   const addTag = (value: string) => {
@@ -243,7 +255,7 @@ const TagsInput: FC = () => {
   };
 
   return (
-    <div className="ms-33.5 me-13.5 h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm">
+    <>
       {tags.map((tag) => (
         <Badge
           key={tag}
@@ -267,7 +279,7 @@ const TagsInput: FC = () => {
         placeholder="Type possible values and press enter"
         className="grow outline-none"
       />
-    </div>
+    </>
   );
 };
 
@@ -321,21 +333,21 @@ export function convertJsonSchemaToFields(
 
     const properties =
       schema && typeof schema.properties === 'object'
-        ? Object.entries(schema.properties)
-            .map(([propertyName, prop]) => {
-              // TODO - to pass typecheck
-              if (typeof prop === 'boolean') {
-                return null;
-              }
-
-              return convertJsonSchemaToFields(
-                prop,
-                propertyName,
-                requiredFieldsSet.has(propertyName)
-              );
-            })
-            // Filter unknown keys
-            .filter((v) => !!v)
+        ? Object.entries(schema.properties).reduce<AllFields[]>((acc, [propertyName, prop]) => {
+            // TODO - to pass typecheck
+            if (typeof prop === 'boolean') {
+              return acc;
+            }
+            const child = convertJsonSchemaToFields(
+              prop,
+              propertyName,
+              requiredFieldsSet.has(propertyName)
+            );
+            if (child) {
+              acc.push(child);
+            }
+            return acc;
+          }, [])
         : [];
 
     return {
