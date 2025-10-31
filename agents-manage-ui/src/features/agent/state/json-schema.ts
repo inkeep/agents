@@ -1,5 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
-import { createStore, type StoreApi } from 'zustand/vanilla';
+import { createStore } from 'zustand/vanilla';
 
 const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
   if (field.description) {

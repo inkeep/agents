@@ -1,4 +1,4 @@
-import type { ComponentProps, FC, ReactNode } from 'react';
+import type { ComponentProps, FC, ReactNode, Dispatch } from 'react';
 import {
   useEffect,
   createContext,
@@ -62,31 +62,73 @@ const SelectType: FC<{
   );
 };
 
-const Property: FC<{
-  field: AllFields;
+interface PropertyProps {
+  fieldId: string;
   depth?: number;
   prefix?: ReactNode;
-  suffix?: ReactNode;
-}> = ({ field, depth = 0, prefix }) => {
-  const [type, setType] = useState<TypeValues>(field.type);
+}
+
+const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
+  const selector = useMemo(
+    () => (state: JsonSchemaState) => findFieldById(state.fields, fieldId),
+    [fieldId]
+  );
+  const field = useSchemaStoreSelector(selector);
+
+  const { updateField, changeType, addChild, removeField, updateEnumValues } =
+    useJsonSchemaActions();
+
+  if (!field) {
+    return null;
+  }
+
   const indentStyle = depth * INDENT_PX;
 
   const inputs = (
     <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
       {prefix}
-      <PropertyIcon type={type} />
-      <SelectType value={type} onValueChange={setType} className="w-57" />
-      <Input placeholder="Property name" defaultValue={field.name} />
-      <Input placeholder="Add description" defaultValue={field.description} />
+      <PropertyIcon type={field.type} />
+      <SelectType
+        value={field.type}
+        onValueChange={(nextType) => changeType(field.id, nextType)}
+        className="w-57"
+      />
+      <Input
+        placeholder="Property name"
+        value={field.name ?? ''}
+        onChange={(event) =>
+          updateField(field.id, {
+            name: event.target.value,
+          })
+        }
+      />
+      <Input
+        placeholder="Add description"
+        value={field.description ?? ''}
+        onChange={(event) =>
+          updateField(field.id, {
+            description: event.target.value,
+          })
+        }
+      />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Checkbox defaultChecked={field.isRequired} />
+          <Checkbox
+            checked={Boolean(field.isRequired)}
+            onCheckedChange={(checked) => updateField(field.id, { isRequired: checked === true })}
+          />
         </TooltipTrigger>
         <TooltipContent>Mark this field as required</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button size="icon-sm" variant="ghost">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => {
+              removeField(field.id);
+            }}
+          >
             <TrashIcon />
           </Button>
         </TooltipTrigger>
@@ -109,7 +151,10 @@ const Property: FC<{
             style={{ marginLeft: indentStyle + 130 }}
             className="h-9 flex flex-wrap items-center gap-2 rounded-md border border-input px-3 py-1 bg-transparent dark:bg-input/30 md:text-sm"
           >
-            <TagsInput initialTags={field.values} depth={depth + 1} />
+            <TagsInput
+              value={field.values ?? []}
+              onChange={(values) => updateEnumValues(field.id, values)}
+            />
           </div>
         </>
       );
@@ -119,13 +164,9 @@ const Property: FC<{
         <>
           {inputs}
           <Property
-            field={{
-              ...field.items,
-              name: field.items.name ?? 'items',
-            }}
+            fieldId={field.items.id}
             depth={depth + 1}
             prefix={<span className="shrink-0 text-sm">Array items</span>}
-            suffix={null}
           />
         </>
       );
@@ -136,13 +177,13 @@ const Property: FC<{
           {inputs}
           {field.properties.map((child, index) => (
             <Property
-              key={child.name ?? `field-${depth}-${index}`}
-              field={child}
+              key={child.id ?? `field-${depth}-${index}`}
+              fieldId={child.id}
               depth={depth + 1 + (prefix ? 3.5 : 0)}
             />
           ))}
           <Button
-            onClick={() => {}}
+            onClick={() => addChild(field.id)}
             variant="secondary"
             size="sm"
             className="self-start text-xs"
@@ -155,7 +196,12 @@ const Property: FC<{
       );
     }
     default: {
-      throw new TypeError(`Unsupported type ${type}`);
+      throw new TypeError(
+        `Unsupported type ${
+          // @ts-expect-error -- fallback
+          field.type
+        }`
+      );
     }
   }
 };
@@ -181,11 +227,11 @@ const ClassToUse: Record<TypeValues, string> = {
 const JsonSchemaBuilderStoreContext = createContext<StoreApi<JsonSchemaState> | null>(null);
 
 const useSchemaStoreSelector = <T,>(selector: (state: JsonSchemaState) => T) => {
-    const store = useContext(JsonSchemaBuilderStoreContext);
-    if (!store) {
-        throw new Error('JsonSchemaBuilder store not found in context');
-    }
-    return useStore(store, selector);
+  const store = useContext(JsonSchemaBuilderStoreContext);
+  if (!store) {
+    throw new Error('useSchemaStoreSelector must be used within a JsonSchemaBuilderStore');
+  }
+  return useStore(store, selector);
 };
 
 const useJsonSchemaActions = () => useSchemaStoreSelector((state) => state.actions);
@@ -241,41 +287,61 @@ export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
           </TableRow>
         </TableHeader>
       </Table>
-      {fields.map((field, index) => (
-        <Property key={field.name ?? `root-${index}`} field={field} depth={0} />
+      {fields.map((field) => (
+        <Property key={field.id} fieldId={field.id} depth={0} />
       ))}
-    </>
+      <Button
+        onClick={() => store.getState().actions.addChild(ROOT_ID)}
+        variant="secondary"
+        size="sm"
+        className="self-start text-xs"
+      >
+        <PlusIcon />
+        Add property
+      </Button>
+    </JsonSchemaBuilderStoreContext.Provider>
   );
 };
 
-const TagsInput: FC<{ initialTags?: string[] }> = ({ initialTags = [] }) => {
-  const [tags, setTags] = useState<string[]>(initialTags);
+const TagsInput: FC<{ value: string[]; onChange: (next: string[]) => void }> = ({
+  value,
+  onChange,
+}) => {
   const [input, setInput] = useState('');
 
-  const addTag = (value: string) => {
-    const trimmed = value.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
-    }
-  };
+  const addTag = useCallback(
+    (tag: string) => {
+      const trimmed = tag.trim();
+      if (trimmed && !value.includes(trimmed)) {
+        onChange([...value, trimmed]);
+      }
+    },
+    [onChange, value]
+  );
 
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-  };
+  const removeTag = useCallback(
+    (tag: string) => {
+      onChange(value.filter((t) => t !== tag));
+    },
+    [onChange, value]
+  );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag(input);
-      setInput('');
-    } else if (e.key === 'Backspace' && !input && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
-  };
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addTag(input);
+        setInput('');
+      } else if (event.key === 'Backspace' && !input && value.length > 0) {
+        removeTag(value[value.length - 1]);
+      }
+    },
+    [addTag, input, removeTag, value]
+  );
 
   return (
     <>
-      {tags.map((tag) => (
+      {value.map((tag) => (
         <Badge
           key={tag}
           variant="secondary"
@@ -293,7 +359,7 @@ const TagsInput: FC<{ initialTags?: string[] }> = ({ initialTags = [] }) => {
       ))}
       <input
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(event) => setInput(event.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type possible values and press enter"
         className="grow outline-none"
