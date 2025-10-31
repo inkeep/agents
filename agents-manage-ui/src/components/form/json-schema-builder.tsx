@@ -1,5 +1,5 @@
-import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
-import { useCallback, useState } from 'react';
+import type { ComponentProps, FC, ReactNode } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -422,12 +422,9 @@ const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => 
   return schema;
 };
 
-const buildJsonSchemaFromField = (
-  field: AllFields | undefined,
-  options: { inArray?: boolean } = {}
-): JSONSchema7 => {
+export const fieldsToJsonSchema = (field: AllFields | undefined): JSONSchema7 => {
   if (!field) {
-    return { type: 'string', default: '' };
+    return { type: 'string' };
   }
 
   switch (field.type) {
@@ -437,7 +434,7 @@ const buildJsonSchemaFromField = (
 
       for (const property of field.properties ?? []) {
         if (!property || !property.name) continue;
-        properties[property.name] = buildJsonSchemaFromField(property);
+        properties[property.name] = fieldsToJsonSchema(property);
         if (property.isRequired) {
           required.push(property.name);
         }
@@ -455,11 +452,10 @@ const buildJsonSchemaFromField = (
       return schema;
     }
     case 'array': {
-      const items = buildJsonSchemaFromField(field.items, { inArray: true });
+      const items = fieldsToJsonSchema(field.items);
       const schema: JSONSchema7 = {
         type: 'array',
         items,
-        default: [],
       };
       applyCommonMetadata(schema, field);
       return schema;
@@ -469,9 +465,6 @@ const buildJsonSchemaFromField = (
         type: 'string',
         enum: field.values,
       };
-      if (!options.inArray) {
-        schema.default = '';
-      }
       applyCommonMetadata(schema, field);
       return schema;
     }
@@ -494,15 +487,8 @@ const buildJsonSchemaFromField = (
       const schema: JSONSchema7 = {
         type: 'string',
       };
-      if (!options.inArray) {
-        schema.default = '';
-      }
       applyCommonMetadata(schema, field);
       return schema;
     }
   }
-};
-
-export const fieldsToJsonSchema = (fields: AllFields | undefined): JSONSchema7 => {
-  return buildJsonSchemaFromField(fields);
 };

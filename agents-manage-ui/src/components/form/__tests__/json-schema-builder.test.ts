@@ -43,18 +43,15 @@ const schemaWithRefResult: JSONSchema7 = {
   properties: {
     orderId: {
       type: 'string',
-      default: '',
     },
     customer: {
       type: 'string',
-      default: '',
     },
     items: {
       type: 'array',
       items: {
         type: 'string',
       },
-      default: [],
     },
   },
   additionalProperties: false,
@@ -92,7 +89,6 @@ const schemaWithAnyOfResult: JSONSchema7 = {
     contact: {
       type: 'string',
       description: 'User contact can be either an email or a phone number',
-      default: '',
     },
   },
   additionalProperties: false,
