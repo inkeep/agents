@@ -88,43 +88,127 @@ models: {
 
 ## Provider Options
 
-### Generic Parameters
-```typescript
-providerOptions: {
-  maxOutputTokens: 4096,     // Token limit
-  temperature: 0.7,          // Randomness (0.0-1.0)
-  topP: 0.95,               // Nucleus sampling
-  seed: 12345,              // Deterministic output
-  maxDuration: 30,          // Timeout (seconds)
-}
-```
+Inkeep Agents supports all [Vercel AI SDK provider options](https://ai-sdk.dev/providers/ai-sdk-providers/).
 
-### Provider-Specific Features
+### Complete Examples
 
-**OpenAI Reasoning:**
-```typescript
-providerOptions: {
-  openai: { reasoningEffort: 'medium' }  // 'low' | 'medium' | 'high'
-}
-```
+**Basic configuration:**
 
-**Anthropic Thinking:**
+<Tabs items={['TypeScript', 'JSON']}>
+<Tab>
 ```typescript
-providerOptions: {
-  anthropic: { 
-    thinking: { type: 'enabled', budgetTokens: 8000 }
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      topP: 0.95,
+      seed: 12345,
+      maxDuration: 30,
+    }
   }
 }
 ```
+</Tab>
+<Tab>
+```json
+{
+  "maxOutputTokens": 4096,
+  "temperature": 0.7,
+  "topP": 0.95,
+  "seed": 12345,
+  "maxDuration": 30
+}
+```
+</Tab>
+</Tabs>
 
-**Google Thinking:**
+**OpenAI with reasoning:**
+
+<Tabs items={['TypeScript', 'JSON']}>
+<Tab>
 ```typescript
-providerOptions: {
-  google: { 
-    thinkingConfig: { thinkingBudget: 8192, includeThoughts: true }
+models: {
+  base: {
+    model: "openai/o1-preview",
+    providerOptions: {
+      openai: { reasoningEffort: 'medium' }, // 'low' | 'medium' | 'high'
+      maxOutputTokens: 4096
+    }
   }
 }
 ```
+</Tab>
+<Tab>
+```json
+{
+  "openai": { "reasoningEffort": "medium" },
+  "maxOutputTokens": 4096
+}
+```
+</Tab>
+</Tabs>
+
+**Anthropic with thinking:**
+
+<Tabs items={['TypeScript', 'JSON']}>
+<Tab>
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",
+    providerOptions: {
+      anthropic: { 
+        thinking: { type: 'enabled', budgetTokens: 8000 },
+        temperature: 0.5
+      }
+    }
+  }
+}
+```
+</Tab>
+<Tab>
+```json
+{
+  "anthropic": { 
+    "thinking": { "type": "enabled", "budgetTokens": 8000 }
+  },
+  "temperature": 0.5
+}
+```
+</Tab>
+</Tabs>
+
+**Google with thinking:**
+
+<Tabs items={['TypeScript', 'JSON']}>
+<Tab>
+```typescript
+models: {
+  base: {
+    model: "google/gemini-2.5-flash",
+    providerOptions: {
+      google: { 
+        thinkingConfig: { thinkingBudget: 8192, includeThoughts: true }
+      },
+      temperature: 0.7
+    }
+  }
+}
+```
+</Tab>
+<Tab>
+```json
+{
+  "google": { 
+    "thinkingConfig": { "thinkingBudget": 8192, "includeThoughts": true }
+  },
+  "temperature": 0.7
+}
+```
+</Tab>
+</Tabs>
 
 ## CLI Defaults
 
