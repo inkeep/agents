@@ -1,6 +1,10 @@
 import type { JSONSchema7 } from 'json-schema';
-import { createStore } from 'zustand/vanilla';
 import { nanoid } from 'nanoid';
+import { devtools } from 'zustand/middleware';
+import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
+
+const ROOT_ID = '__root__';
 
 type TypeValues = keyof typeof Types;
 
@@ -141,7 +145,7 @@ function convertJsonSchemaToFields({
   schema,
   name,
   isRequired,
-  id = '__root__',
+  id = ROOT_ID,
 }: {
   schema: JSONSchema7;
   name?: string;
@@ -244,8 +248,6 @@ function convertJsonSchemaToFields({
     type: 'string',
   };
 }
-
-const ROOT_ID = '__root__';
 
 const Types = {
   string: 'string',
@@ -401,36 +403,26 @@ const removeEditableFieldFromTree = (fields: EditableField[], id: string): Mutab
   return [changed ? next : fields, changed];
 };
 
-interface ParsedSchemaResult {
-  fields: EditableField[];
-  metadata: Pick<NameAndDescription, 'title' | 'description'>;
-}
-
-const parseFieldsFromJson = (value: string): ParsedSchemaResult => {
-  if (!value || value.trim().length === 0) {
-    return { fields: [], metadata: {} };
+const parseFieldsFromJson = (value: string): EditableField[] => {
+  if (!value.trim().length) {
+    return [];
   }
 
   try {
     const parsed = JSON.parse(value) as JSONSchema7;
     const result = convertJsonSchemaToFields({ schema: parsed });
     if (!result) {
-      return { fields: [], metadata: {} };
+      return [];
     }
-
-    const metadata = {
-      title: result.title,
-      description: result.description,
-    } satisfies Pick<NameAndDescription, 'title' | 'description'>;
 
     if (result.type === 'object') {
-      return { fields: result.properties ?? [], metadata };
+      return result.properties ?? [];
     }
 
-    return { fields: [result], metadata };
+    return [result];
   } catch (error) {
     console.error('Failed to parse schema for builder', error);
-    return { fields: [], metadata: {} };
+    return [];
   }
 };
 
@@ -549,14 +541,13 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
 
 interface JsonSchemaStateData {
   fields: EditableField[];
-  metadata: ParsedSchemaResult['metadata'];
 }
 
 interface JsonSchemaActions {
-  reset: (data: ParsedSchemaResult) => void;
+  reset: (data: JsonSchemaStateData) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
-  addChild: (parentId: string) => void;
+  addChild: (parentId?: string) => void;
   removeField: (id: string) => void;
   updateEnumValues: (id: string, values: string[]) => void;
 }
@@ -565,13 +556,12 @@ interface JsonSchemaState extends JsonSchemaStateData {
   actions: JsonSchemaActions;
 }
 
-const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
-  return createStore<JsonSchemaState>((set) => ({
-    fields: initial.fields,
-    metadata: { ...initial.metadata },
+const jsonSchemaStore = create<JsonSchemaState>()(
+  devtools((set) => ({
+    fields: [],
     actions: {
-      reset(data) {
-        set({ fields: data.fields, metadata: { ...data.metadata } });
+      reset({ fields }) {
+        set({ fields });
       },
       updateField(id, patch) {
         set((state) => {
@@ -589,7 +579,7 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
           return changed ? { fields } : state;
         });
       },
-      addChild(parentId) {
+      addChild(parentId = ROOT_ID) {
         set((state) => {
           const child = createEditableField({
             type: 'string',
@@ -621,18 +611,38 @@ const createJsonSchemaBuilderStore = (initial: ParsedSchemaResult) => {
         });
       },
     },
-  }));
-};
+  }))
+);
+
+/**
+ * Actions are functions that update values in your store.
+ * These are static and do not change between renders.
+ *
+ * @see https://tkdodo.eu/blog/working-with-zustand#separate-actions-from-state
+ */
+const useJsonSchemaActions = () => jsonSchemaStore((state) => state.actions);
+
+/**
+ * Select values from the store (excluding actions).
+ *
+ * We explicitly use `JsonSchemaStateData` instead of `JsonSchemaState`,
+ * which includes actions, to encourage using `jsonSchemaStore`
+ * when accessing or calling actions.
+ */
+function useJsonSchemaStore<T>(selector: (state: JsonSchemaStateData) => T): T {
+  return jsonSchemaStore(useShallow(selector));
+}
 
 export {
   Types,
-  ROOT_ID,
-  createJsonSchemaBuilderStore,
+  jsonSchemaStore,
   findFieldById,
   parseFieldsFromJson,
   convertJsonSchemaToFields,
   fieldsToJsonSchema,
+  useJsonSchemaStore,
+  useJsonSchemaActions,
   type TypeValues,
-  type JsonSchemaState,
+  type JsonSchemaStateData,
   type FieldObject,
 };

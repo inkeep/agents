@@ -1,13 +1,5 @@
 import type { ComponentProps, FC, ReactNode, Dispatch } from 'react';
-import {
-  useEffect,
-  createContext,
-  useMemo,
-  useContext,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -24,19 +16,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { StoreApi } from 'zustand';
 import {
   type TypeValues,
-  type JsonSchemaState,
+  type JsonSchemaStateData,
   type FieldObject,
-  ROOT_ID,
   Types,
   findFieldById,
   parseFieldsFromJson,
-  createJsonSchemaBuilderStore,
   fieldsToJsonSchema,
+  jsonSchemaStore,
+  useJsonSchemaActions,
+  useJsonSchemaStore,
 } from '@/features/agent/state/json-schema';
-import { useStore } from 'zustand';
 
 const INDENT_PX = 24;
 
@@ -65,15 +56,14 @@ interface PropertyProps {
   fieldId: string;
   depth?: number;
   prefix?: ReactNode;
-  hideName?: boolean;
 }
 
-const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) => {
+const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
   const selector = useMemo(
-    () => (state: JsonSchemaState) => findFieldById(state.fields, fieldId),
+    () => (state: JsonSchemaStateData) => findFieldById(state.fields, fieldId),
     [fieldId]
   );
-  const field = useSchemaStoreSelector(selector);
+  const field = useJsonSchemaStore(selector);
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -93,7 +83,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) =
         onValueChange={(nextType) => changeType(field.id, nextType)}
         className="w-57"
       />
-      {!hideName && (
+      {!prefix && (
         <Input
           placeholder="Property name"
           value={field.name ?? ''}
@@ -113,7 +103,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) =
           })
         }
       />
-      {!hideName && (
+      {!prefix && (
         <>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -175,7 +165,6 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix, hideName }) =
             fieldId={field.items.id}
             depth={depth + 1}
             prefix={<span className="shrink-0 text-sm">Array items</span>}
-            hideName
           />
         </>
       );
@@ -233,18 +222,6 @@ const ClassToUse: Record<TypeValues, string> = {
   object: 'text-purple-500',
 };
 
-const JsonSchemaBuilderStoreContext = createContext<StoreApi<JsonSchemaState> | null>(null);
-
-const useSchemaStoreSelector = <T,>(selector: (state: JsonSchemaState) => T) => {
-  const store = useContext(JsonSchemaBuilderStoreContext);
-  if (!store) {
-    throw new Error('useSchemaStoreSelector must be used within a JsonSchemaBuilderStore');
-  }
-  return useStore(store, selector);
-};
-
-const useJsonSchemaActions = () => useSchemaStoreSelector((state) => state.actions);
-
 const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   const Icon = IconToUse[type];
   if (!Icon) {
@@ -257,39 +234,25 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
   value,
   onChange,
 }) => {
-  const lastSerializedRef = useRef('');
-  const parsedSchema = useMemo(() => parseFieldsFromJson(value), [value]);
-  const storeRef = useRef<StoreApi<JsonSchemaState>>(null);
+  const fields = useJsonSchemaStore((state) => state.fields);
+  const { addChild } = useJsonSchemaActions();
 
-  if (!storeRef.current) {
-    storeRef.current = createJsonSchemaBuilderStore(parsedSchema);
-    lastSerializedRef.current = value;
-  } else if (value !== lastSerializedRef.current) {
-    storeRef.current.getState().actions.reset(parsedSchema);
-    lastSerializedRef.current = value;
-  }
-
-  const store = storeRef.current!;
-  const fields = useStore(store, (state) => state.fields);
-  const metadata = useStore(store, (state) => state.metadata);
-
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    const root: FieldObject = {
-      type: 'object',
-      properties: fields,
-      title: metadata.title,
-      description: metadata.description,
-    };
-    const schema = fieldsToJsonSchema(root);
-    const serialized = JSON.stringify(schema, null, 2);
-    if (serialized !== lastSerializedRef.current) {
-      lastSerializedRef.current = serialized;
+    jsonSchemaStore.setState({ fields: parseFieldsFromJson(value) });
+    return () => {
+      const root: FieldObject = {
+        type: 'object',
+        properties: jsonSchemaStore.getState().fields,
+      };
+      const schema = fieldsToJsonSchema(root);
+      const serialized = JSON.stringify(schema, null, 2);
       onChange(serialized);
-    }
-  }, [fields, metadata.description, metadata.title, onChange]);
+    };
+  }, []);
 
   return (
-    <JsonSchemaBuilderStoreContext.Provider value={store}>
+    <>
       <p>Properties</p>
       <Table>
         <TableHeader>
@@ -305,7 +268,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
         <Property key={field.id} fieldId={field.id} depth={0} />
       ))}
       <Button
-        onClick={() => store.getState().actions.addChild(ROOT_ID)}
+        onClick={() => addChild()}
         variant="secondary"
         size="sm"
         className="self-start text-xs"
@@ -313,7 +276,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
         <PlusIcon />
         Add property
       </Button>
-    </JsonSchemaBuilderStoreContext.Provider>
+    </>
   );
 };
 
