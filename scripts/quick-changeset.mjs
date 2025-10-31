@@ -4,8 +4,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import { adjectives, animals, colors, uniqueNamesGenerator } from 'unique-names-generator';
 import { fileURLToPath } from 'url';
-import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +18,8 @@ const packages = [
   '@inkeep/agents-manage-ui',
   '@inkeep/agents-run-api',
   '@inkeep/agents-sdk',
-  '@inkeep/create-agents'
+  '@inkeep/create-agents',
+  '@inkeep/ai-sdk-provider',
 ];
 
 function generateRandomFilename() {
@@ -26,7 +27,7 @@ function generateRandomFilename() {
     dictionaries: [adjectives, colors, animals],
     separator: '-',
     length: 3,
-    style: 'lowerCase'
+    style: 'lowerCase',
   });
   return `${name}.md`;
 }
@@ -34,7 +35,7 @@ function generateRandomFilename() {
 function createChangesetFile(bumpType, message) {
   // Generate frontmatter
   const frontmatter = ['---'];
-  packages.forEach(pkg => {
+  packages.forEach((pkg) => {
     frontmatter.push(`"${pkg}": ${bumpType}`);
   });
   frontmatter.push('---');
