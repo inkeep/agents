@@ -244,38 +244,43 @@ const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   return <Icon className={cn('shrink-0', ClassToUse[type])} />;
 };
 
-export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
-  const [fields] = useState<AllFields[]>(() => {
-    try {
-      // todo replace with JSON.parse(value) later
-      const result = convertJsonSchemaToFields(JSONSchemaFixture);
-      return result && result.type === 'object' ? result.properties : [];
-    } catch (e) {
-      console.error(e);
-      return [];
+export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string) => void }> = ({
+  value,
+  onChange,
+}) => {
+  const lastSerializedRef = useRef<string | undefined>();
+  const parsedSchema = useMemo(() => parseFieldsFromJson(value), [value]);
+  const storeRef = useRef<StoreApi<JsonSchemaState>>();
+
+  if (!storeRef.current) {
+    storeRef.current = createJsonSchemaBuilderStore(parsedSchema);
+    lastSerializedRef.current = value;
+  } else if (value !== lastSerializedRef.current) {
+    storeRef.current.getState().actions.reset(parsedSchema);
+    lastSerializedRef.current = value;
+  }
+
+  const store = storeRef.current!;
+  const fields = useStore(store, (state) => state.fields);
+  const metadata = useStore(store, (state) => state.metadata);
+
+  useEffect(() => {
+    const root: FieldObject = {
+      type: 'object',
+      properties: stripIdsFromFields(fields),
+      title: metadata.title,
+      description: metadata.description,
+    };
+    const schema = fieldsToJsonSchema(root);
+    const serialized = JSON.stringify(schema, null, 2);
+    if (serialized !== lastSerializedRef.current) {
+      lastSerializedRef.current = serialized;
+      onChange(serialized);
     }
-  });
-  // const fields = useMemo(() => {
-  //   if (typeof value !== 'string' || value.trim().length === 0) {
-  //     return [] as AllFields[];
-  //   }
-  //
-  //   try {
-  //     const parsed = JSON.parse(value) as JSONSchema7;
-  //     const converted = convertJsonSchemaToFields(parsed);
-  //     if (!converted) return [];
-  //     if (converted.type === 'object') {
-  //       return (converted.properties ?? []).filter((child): child is AllFields => Boolean(child));
-  //     }
-  //     return [converted];
-  //   } catch (error) {
-  //     console.error('Failed to parse schema for builder', error);
-  //     return [] as AllFields[];
-  //   }
-  // }, [value]);
+  }, [fields, metadata.description, metadata.title, onChange]);
 
   return (
-    <>
+    <JsonSchemaBuilderStoreContext.Provider value={store}>
       <p>Properties</p>
       <Table>
         <TableHeader>
