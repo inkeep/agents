@@ -11,63 +11,64 @@ With Inkeep, you can build AI Agents with a **No-Code Visual Builder** and **Typ
 
 ### No-Code Visual Builder
 
-A no-code canvas so any team can create and own the Agents they care about. 
+A no-code canvas so any team can create and own the Agents they care about.
 
-<img
-  src="/gifs/drag-n-drop.gif"
-  alt="No-Code Agent Builder demo"
-  width="100%"
-  style={{ borderRadius: "10px" }}
-/>
+<Image src="/gifs/drag-n-drop.gif" alt="No-Code Agent Builder demo" />
 
 ### TypeScript Agents SDK
 
 A code-first framework so engineering teams can build with the tools they expect.
 
-   ```typescript
+```typescript
 import { agent, subAgent } from "@inkeep/agents-sdk";
 import { lookupOrderTool } from "../tools/lookup-order";
 import { processRefundTool } from "../tools/process-refund";
 
 const orderInquiryAgent = subAgent({
-    id: "order-inquiry",
-    name: "Order Inquiry Agent",
-    description: "Handles questions about order status, shipping, and tracking",
-    prompt: "You are a helpful customer service agent specializing in order inquiries. Help customers track their orders, provide shipping updates, and answer questions about delivery times. Always be professional and empathetic.",
-    canUse: () => [lookupOrderTool],
+  id: "order-inquiry",
+  name: "Order Inquiry Agent",
+  description: "Handles questions about order status, shipping, and tracking",
+  prompt:
+    "You are a helpful customer service agent specializing in order inquiries. Help customers track their orders, provide shipping updates, and answer questions about delivery times. Always be professional and empathetic.",
+  canUse: () => [lookupOrderTool],
 });
 
 const returnsAgent = subAgent({
-    id: "returns-refunds",
-    name: "Returns & Refunds Agent",
-    description: "Processes return requests and handles refund inquiries",
-    prompt: "You handle returns and refunds. Guide customers through the return process, explain refund policies, and help resolve any issues with returns. Be understanding and solution-oriented.",
-    canUse: () => [processRefundTool],
+  id: "returns-refunds",
+  name: "Returns & Refunds Agent",
+  description: "Processes return requests and handles refund inquiries",
+  prompt:
+    "You handle returns and refunds. Guide customers through the return process, explain refund policies, and help resolve any issues with returns. Be understanding and solution-oriented.",
+  canUse: () => [processRefundTool],
 });
 
 export const customerSupportAgent = agent({
-    id: "customer-support",
-    name: "Customer Support Agent",
-    description: "Main customer support agent that routes to specialized agents",
-    defaultSubAgent: orderInquiryAgent,
-    subAgents: () => [orderInquiryAgent, returnsAgent],
+  id: "customer-support",
+  name: "Customer Support Agent",
+  description: "Main customer support agent that routes to specialized agents",
+  defaultSubAgent: orderInquiryAgent,
+  subAgents: () => [orderInquiryAgent, returnsAgent],
 });
-   ```
+```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: your technical and non-technical teams can edit and manage Agents in either format and switch or collaborate with others at any time.
 
 ## Use cases
+
 Inkeep Agents can operate as **Agentic Chat Assistants**, for example:
+
 - a customer experience agent for help centers, technical docs, or in-app experiences
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
 
 Agents can also be used for **Agentic Workflow Automation** like:
+
 - Creating and updating knowledge bases, documentation, and blogs
 - Updating CRMs, triaging helpdesk tickets, and tackling repetitive tasks
 
 ## Platform Overview
 
 **Inkeep Open Source** includes:
+
 - A Visual Builder & TypeScript SDK with 2-way sync
 - Multi-agent architecture to support teams of agents
 - MCP Tools with credentials management
@@ -87,7 +88,11 @@ Inkeep is designed to be extensible and open: you can use the LLM provider of yo
 ## Next Steps
 
 <Cards>
-  <Card title="Follow the Quick Start" icon="LuZap" href="/get-started/quick-start">
+  <Card
+    title="Follow the Quick Start"
+    icon="LuZap"
+    href="/get-started/quick-start"
+  >
     Get started with the Visual Builder and TypeScript SDK in under 5 minutes.
   </Card>
   <Card title="Conceptual Overview" icon="LuLightbulb" href="/concepts">

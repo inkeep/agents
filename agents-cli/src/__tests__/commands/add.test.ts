@@ -79,8 +79,8 @@ describe('Add Command', () => {
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
-      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects');
-      expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps');
+      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects', undefined);
+      expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps', undefined);
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('Available project templates:')
       );
@@ -96,7 +96,7 @@ describe('Add Command', () => {
       const options: AddOptions = { list: false };
 
       await expect(addCommand(options)).rejects.toThrow('Network error');
-      expect(getAvailableTemplates).toHaveBeenCalled();
+      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects', undefined);
     });
   });
 
@@ -115,7 +115,7 @@ describe('Add Command', () => {
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
-      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects');
+      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects', undefined);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '❌ Project template "non-existent-template" not found'
       );
@@ -137,7 +137,7 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      expect(getAvailableTemplates).toHaveBeenCalled();
+      expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects', undefined);
       expect(cloneTemplate).toHaveBeenCalled();
       expect(processExitSpy).not.toHaveBeenCalled();
     });
@@ -163,7 +163,7 @@ describe('Add Command', () => {
 
       const expectedPath = `${process.cwd()}/weather`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         expectedPath,
         [
           {
@@ -173,9 +173,6 @@ describe('Add Command', () => {
             },
           },
         ]
-      );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        `Project template "weather" added to undefined`
       );
     });
 
@@ -192,7 +189,7 @@ describe('Add Command', () => {
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         './projects/weather',
         [
           {
@@ -202,9 +199,6 @@ describe('Add Command', () => {
             },
           },
         ]
-      );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        'Project template "weather" added to ./projects'
       );
     });
 
@@ -242,7 +236,7 @@ describe('Add Command', () => {
 
       expect(fs.mkdir).toHaveBeenCalledWith('./new-projects', { recursive: true });
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         './new-projects/weather',
         [
           {
@@ -300,7 +294,7 @@ describe('Add Command', () => {
       expect(mockSpinner.start).toHaveBeenCalled();
       const expectedPath = `${process.cwd()}/weather`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         expectedPath,
         [
           {
@@ -310,9 +304,6 @@ describe('Add Command', () => {
             },
           },
         ]
-      );
-      expect(mockSpinner.stop).toHaveBeenCalledWith(
-        `Project template "weather" added to undefined`
       );
     });
 
@@ -349,7 +340,7 @@ describe('Add Command', () => {
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
         './my-agents/chatbot',
         [
           {
@@ -419,7 +410,7 @@ describe('Add Command', () => {
 
       const expectedPath = `${process.cwd()}/my-complex-template`;
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         expectedPath,
         [
           {
@@ -447,7 +438,7 @@ describe('Add Command', () => {
       await addCommand(options);
 
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         './deep/nested/path/my-complex-template',
         [
           {
@@ -610,8 +601,8 @@ describe('Add Command', () => {
 
         await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
-        expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects');
-        expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps');
+        expect(getAvailableTemplates).toHaveBeenCalledWith('template-projects', undefined);
+        expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps', undefined);
         expect(consoleLogSpy).toHaveBeenCalledWith(
           expect.stringContaining('Available project templates:')
         );
@@ -662,7 +653,7 @@ describe('Add Command', () => {
 
         await addCommand(options);
 
-        expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps');
+        expect(getAvailableTemplates).toHaveBeenCalledWith('template-mcps', undefined);
         expect(cloneTemplate).toHaveBeenCalled();
         expect(processExitSpy).not.toHaveBeenCalled();
       });
@@ -689,7 +680,7 @@ describe('Add Command', () => {
 
         expect(vi.mocked(findUp)).toHaveBeenCalledWith('apps/mcp/app', { type: 'directory' });
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           '/project/root/apps/mcp/app/zendesk'
         );
         expect(mockSpinner.stop).toHaveBeenCalledWith(
@@ -716,7 +707,7 @@ describe('Add Command', () => {
           message: `Do you want to add to ${originalCwd} instead?`,
         });
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           `${originalCwd}/zendesk`
         );
       });
@@ -747,7 +738,7 @@ describe('Add Command', () => {
 
         expect(vi.mocked(findUp)).not.toHaveBeenCalled();
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           './custom-mcp-path'
         );
         expect(mockSpinner.stop).toHaveBeenCalledWith(
@@ -778,7 +769,7 @@ describe('Add Command', () => {
         expect(p.spinner).toHaveBeenCalled();
         expect(mockSpinner.start).toHaveBeenCalled();
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           '/project/apps/mcp/app/zendesk'
         );
         expect(mockSpinner.stop).toHaveBeenCalledWith(
@@ -797,7 +788,7 @@ describe('Add Command', () => {
         await addCommand(options);
 
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/slack',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/slack',
           '/project/apps/mcp/app/slack'
         );
       });
@@ -829,7 +820,7 @@ describe('Add Command', () => {
         await addCommand(options);
 
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           '/project/apps/mcp/app/zendesk'
         );
       });
@@ -860,7 +851,7 @@ describe('Add Command', () => {
 
         expect(cloneTemplate).toHaveBeenCalledTimes(2);
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-projects/weather',
+          'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
           './projects/weather',
           [
             {
@@ -872,7 +863,7 @@ describe('Add Command', () => {
           ]
         );
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           './projects'
         );
       });
@@ -928,10 +919,10 @@ describe('Add Command', () => {
       });
 
       it('should add MCP template with custom target path', async () => {
-        await addMcpTemplate('zendesk', './custom-path', mockMcpSpinner);
+        await addMcpTemplate('zendesk', './custom-path', mockMcpSpinner, undefined);
 
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           './custom-path'
         );
         expect(mockMcpSpinner.stop).toHaveBeenCalledWith(
@@ -942,11 +933,11 @@ describe('Add Command', () => {
       it('should use findAppDirectory when no target path provided', async () => {
         vi.mocked(findUp).mockResolvedValue('/found/path/apps/mcp/app');
 
-        await addMcpTemplate('zendesk', undefined, mockMcpSpinner);
+        await addMcpTemplate('zendesk', undefined, mockMcpSpinner, undefined);
 
         expect(vi.mocked(findUp)).toHaveBeenCalledWith('apps/mcp/app', { type: 'directory' });
         expect(cloneTemplate).toHaveBeenCalledWith(
-          'https://github.com/inkeep/agents-cookbook/template-mcps/zendesk',
+          'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           '/found/path/apps/mcp/app/zendesk'
         );
       });

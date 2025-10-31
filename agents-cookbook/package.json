@@ -1,0 +1,25 @@
+{
+  "name": "agents-cookbook-templates",
+  "version": "1.0.0",
+  "description": "Template projects for the agents cookbook",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start:weather": "tsx weather-project/index.ts",
+    "dev:weather": "tsx --watch weather-project/index.ts",
+    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inkeep/agents-cli": "workspace:*",
+    "@inkeep/agents-core": "workspace:*",
+    "@inkeep/agents-sdk": "workspace:*",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.12",
+    "json-schema-to-ts": "^3.1.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

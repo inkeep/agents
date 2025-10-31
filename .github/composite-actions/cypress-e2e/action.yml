@@ -38,7 +38,7 @@ runs:
 
     - name: Push Weather Example Project
       shell: bash
-      run: cd examples && npx inkeep push --project weather-project
+      run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project
 
     - name: Run Cypress E2E Tests
       shell: bash
