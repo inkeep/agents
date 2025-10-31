@@ -106,6 +106,31 @@ describe('convertJsonSchemaToFields', () => {
     expect(schema).toEqual({
       properties: [
         {
+          description: 'string description',
+          name: 'string',
+          title: 'My string',
+          type: 'string',
+        },
+        {
+          description: 'number description',
+          name: 'number',
+          title: 'My number',
+          type: 'number',
+        },
+        {
+          description: 'nested object',
+          name: 'new',
+          properties: [
+            {
+              description: 'string description',
+              name: 'newString',
+              title: 'My new string',
+              type: 'string',
+            },
+          ],
+          type: 'object',
+        },
+        {
           description: 'nested object',
           isRequired: true,
           name: 'nested',
@@ -158,6 +183,10 @@ describe('convertJsonSchemaToFields', () => {
                   },
                   name: 'array',
                   type: 'array',
+                },
+                {
+                  name: 'unknown',
+                  type: 'string',
                 },
               ],
               type: 'object',

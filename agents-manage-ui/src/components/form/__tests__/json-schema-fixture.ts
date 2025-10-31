@@ -3,6 +3,27 @@ import type { JSONSchema7 } from 'json-schema';
 export const JSONSchemaFixture: JSONSchema7 = {
   type: 'object',
   properties: {
+    string: {
+      title: 'My string',
+      description: 'string description',
+      type: 'string',
+    },
+    number: {
+      title: 'My number',
+      description: 'number description',
+      type: 'number',
+    },
+    new: {
+      description: 'nested object',
+      type: 'object',
+      properties: {
+        newString: {
+          title: 'My new string',
+          description: 'string description',
+          type: 'string',
+        },
+      },
+    },
     nested: {
       description: 'nested object',
       type: 'object',
