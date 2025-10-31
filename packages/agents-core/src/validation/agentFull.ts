@@ -114,6 +114,7 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
   const availableExternalAgentIds = new Set(Object.keys(agentData.externalAgents ?? {}));
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
+    // Only internal agents have relationship properties
     if (subAgent.canTransferTo && Array.isArray(subAgent.canTransferTo)) {
       for (const targetId of subAgent.canTransferTo) {
         if (!availableAgentIds.has(targetId)) {
@@ -135,19 +136,6 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
             errors.push(
               `Agent '${subAgentId}' has delegation target '${targetItem}' that doesn't exist in agent`
             );
-          }
-
-          const targetAgent = agentData.subAgents[targetItem];
-          if (targetAgent && targetAgent.canDelegateTo && Array.isArray(targetAgent.canDelegateTo)) {
-            const delegatesBackToSource = targetAgent.canDelegateTo.some((item) => {
-              return typeof item === 'string' && item === subAgentId;
-            });
-
-            if (delegatesBackToSource) {
-              errors.push(
-                `Circular delegation detected: Agent '${subAgentId}' delegates to '${targetItem}' which delegates back to '${subAgentId}'. Two-way delegation is not allowed.`
-              );
-            }
           }
         }
       }

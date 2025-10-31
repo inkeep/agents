@@ -64,44 +64,6 @@ function hasCycle(graph: Map<string, string[]>): boolean {
   return false;
 }
 
-export function findNodesInCycles(edges: Edge[]): Set<string> {
-  const graph = buildDelegationGraph(edges);
-  const cycleNodes = new Set<string>();
-  const visited = new Set<string>();
-  const stack = new Set<string>();
-  const path: string[] = [];
-  
-  function dfs(node: string): boolean {
-    visited.add(node);
-    stack.add(node);
-    path.push(node);
-    
-    for (const neighbor of graph.get(node) || []) {
-      if (!visited.has(neighbor)) {
-        if (dfs(neighbor)) return true;
-      } else if (stack.has(neighbor)) {
-        const cycleStart = path.indexOf(neighbor);
-        path.slice(cycleStart).forEach(n => cycleNodes.add(n));
-        cycleNodes.add(neighbor);
-        return true;
-      }
-    }
-    
-    stack.delete(node);
-    path.pop();
-    return false;
-  }
-  
-  for (const node of graph.keys()) {
-    if (!visited.has(node)) {
-      path.length = 0;
-      dfs(node);
-    }
-  }
-  
-  return cycleNodes;
-}
-
 export function getCycleErrorMessage(sourceAgent: string, targetAgent: string): string {
   return `Cannot create delegation from "${sourceAgent}" to "${targetAgent}" as it would create a circular delegation chain. Circular delegations can cause infinite loops.`;
 }

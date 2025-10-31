@@ -112,6 +112,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "start-server-and-test": "^2.1.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
@@ -123,7 +124,6 @@
     "@vitest/web-worker": "3.1.4",
     "cypress": "^15.5.0",
     "jsdom": "^26.1.0",
-    "start-server-and-test": "^2.1.2",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.6",
