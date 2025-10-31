@@ -814,6 +814,8 @@ function getDetailedFieldChanges(
     'teamAgentRelationId',
     '_agentId',
     'teamAgents',
+    "_parentAgentId",
+    "_contextConfigData",
     // SDK-generated metadata
     'type', 
     // Runtime context fields
