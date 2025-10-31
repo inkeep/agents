@@ -14,8 +14,32 @@ if (process.env.NODE_ENV !== 'production') {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Enable Turbopack for faster builds
-  turbopack: {},
+  turbopack: {
+    rules: {
+      './**/icons/*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+  webpack(config) {
+    const { test: _test, ...imageLoaderOptions } = config.module.rules.find(
+      // @ts-expect-error -- fixme
+      (rule) => rule.test?.test?.('.svg')
+    );
+    config.module.rules.push({
+      test: /\.svg$/,
+      oneOf: [
+        {
+          // to avoid conflicts with default Next.js svg loader we only match images with resourceQuery ?svgr
+          resourceQuery: /svgr/,
+          use: ['@svgr/webpack'],
+        },
+        imageLoaderOptions,
+      ],
+    });
+    return config;
+  },
   eslint: {
     // Disable ESLint during builds on Vercel to avoid deployment failures
     ignoreDuringBuilds: true,
