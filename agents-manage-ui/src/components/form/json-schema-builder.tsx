@@ -227,9 +227,7 @@ export const JsonSchemaBuilder: FC<{ value: string }> = ({ value }) => {
   );
 };
 
-const TagsInput: FC<{ initialTags?: string[]; }> = ({
-  initialTags = [],
-}) => {
+const TagsInput: FC<{ initialTags?: string[] }> = ({ initialTags = [] }) => {
   const [tags, setTags] = useState<string[]>(initialTags);
   const [input, setInput] = useState('');
 
@@ -287,6 +285,7 @@ interface NameAndDescription {
   name?: string;
   description?: string;
   isRequired?: boolean;
+  title?: string;
 }
 
 type AllFields = FieldString | FieldNumber | FieldBoolean | FieldEnum | FieldArray | FieldObject;
@@ -321,9 +320,10 @@ export function convertJsonSchemaToFields(
   name?: string,
   isRequired = false
 ): AllFields | undefined {
-  const base = {
+  const base: NameAndDescription = {
     ...(name && { name }),
     ...(schema.description && { description: schema.description }),
+    ...(schema.title && { title: schema.title }),
     ...(isRequired && { isRequired: true }),
   };
 
@@ -358,18 +358,22 @@ export function convertJsonSchemaToFields(
   }
 
   if (schema.type === 'array') {
+    let items: AllFields | undefined;
     if (schema && typeof schema.items === 'object') {
-      const items = convertJsonSchemaToFields(schema.items);
-      return {
-        ...base,
-        type: 'array',
-        items,
+      // @ts-expect-error todo: should we support Array of items?
+      items = convertJsonSchemaToFields(schema.items);
+    }
+
+    if (!items) {
+      items = {
+        type: 'string',
       };
     }
 
     return {
       ...base,
       type: 'array',
+      items,
     };
   }
 
@@ -401,4 +405,104 @@ export function convertJsonSchemaToFields(
       type: 'boolean',
     };
   }
+
+  return {
+    ...base,
+    type: 'string',
+  };
 }
+
+const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
+  if (field.description) {
+    schema.description = field.description;
+  }
+  if (field.title) {
+    schema.title = field.title;
+  }
+  return schema;
+};
+
+const buildJsonSchemaFromField = (
+  field: AllFields | undefined,
+  options: { inArray?: boolean } = {}
+): JSONSchema7 => {
+  if (!field) {
+    return { type: 'string', default: '' };
+  }
+
+  switch (field.type) {
+    case 'object': {
+      const properties: Record<string, JSONSchema7> = {};
+      const required: string[] = [];
+
+      for (const property of field.properties ?? []) {
+        if (!property || !property.name) continue;
+        properties[property.name] = buildJsonSchemaFromField(property);
+        if (property.isRequired) {
+          required.push(property.name);
+        }
+      }
+
+      const schema: JSONSchema7 = {
+        type: 'object',
+        properties,
+        additionalProperties: false,
+      };
+      applyCommonMetadata(schema, field);
+      if (required.length > 0) {
+        schema.required = required;
+      }
+      return schema;
+    }
+    case 'array': {
+      const items = buildJsonSchemaFromField(field.items, { inArray: true });
+      const schema: JSONSchema7 = {
+        type: 'array',
+        items,
+        default: [],
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'enum': {
+      const schema: JSONSchema7 = {
+        type: 'string',
+        enum: field.values,
+      };
+      if (!options.inArray) {
+        schema.default = '';
+      }
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'number': {
+      const schema: JSONSchema7 = {
+        type: 'number',
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'boolean': {
+      const schema: JSONSchema7 = {
+        type: 'boolean',
+      };
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+    case 'string':
+    default: {
+      const schema: JSONSchema7 = {
+        type: 'string',
+      };
+      if (!options.inArray) {
+        schema.default = '';
+      }
+      applyCommonMetadata(schema, field);
+      return schema;
+    }
+  }
+};
+
+export const fieldsToJsonSchema = (fields: AllFields | undefined): JSONSchema7 => {
+  return buildJsonSchemaFromField(fields);
+};
