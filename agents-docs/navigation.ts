@@ -20,13 +20,13 @@ export default {
       group: 'Tutorials',
       pages: [
         {
-          group: 'MCP Server Setup Guide',
+          group: 'MCP Servers',
           icon: 'LuWrench',
           pages: [
-            'tutorials/how-to-create-mcp-servers/overview',
-            'tutorials/how-to-create-mcp-servers/prebuilt-provider-hosted-mcps',
-            'tutorials/how-to-create-mcp-servers/prebuilt-composio-mcps',
-            'tutorials/how-to-create-mcp-servers/inkeep',
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/custom-mcp-servers',
           ],
         },      
       ],

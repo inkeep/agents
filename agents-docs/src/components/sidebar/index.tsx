@@ -22,7 +22,7 @@ const footerLinks = [
     label: 'LinkedIn',
   },
   {
-    href: 'https://twitter.com/inkeep_ai',
+    href: 'https://twitter.com/inkeep',
     iconName: 'FaXTwitter',
     label: 'X (Twitter)',
   },

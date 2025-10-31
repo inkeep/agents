@@ -58,6 +58,7 @@ export function ProjectSelector({ projects, selectedProjectId, tenantId }: Proje
                 {projects.map((project) => (
                   <CommandItem
                     key={project.projectId}
+                    value={project.projectId}
                     onSelect={() => {
                       router.push(`/${tenantId}/projects/${project.projectId}`);
                       setOpen(false);
@@ -89,7 +90,7 @@ export function ProjectSelector({ projects, selectedProjectId, tenantId }: Proje
                     setOpen(false);
                     setShowNewProjectDialog(true);
                   }}
-                  className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
                   <Plus className="h-4 w-4 text-foreground" />
                   <span className="font-medium text-foreground uppercase font-mono tracking-wider">

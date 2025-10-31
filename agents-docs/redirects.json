@@ -107,5 +107,25 @@
     "source": "/talk-to-your-agents/api",
     "destination": "/talk-to-your-agents/chat-api",
     "permanent": true
+  },
+  {
+    "source": "/tutorials/how-to-create-mcp-servers/overview",
+    "destination": "/tutorials/mcp-servers/overview",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/how-to-create-mcp-servers/prebuilt-provider-hosted-mcps",
+    "destination": "/tutorials/mcp-servers/native-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/how-to-create-mcp-servers/prebuilt-composio-mcps",
+    "destination": "/tutorials/mcp-servers/composio-mcp-servers",
+    "permanent": true
+  },
+  {
+    "source": "/tutorials/how-to-create-mcp-servers/inkeep",
+    "destination": "/tutorials/mcp-servers/custom-mcp-servers",
+    "permanent": true
   }
 ]

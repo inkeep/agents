@@ -1,5 +1,6 @@
 ---
-title: MCP Servers
+title: Register MCP Servers in Visual Builder
+sidebarTitle: MCP Servers
 description: Create MCP servers that agents can use to access external services.
 icon: "LuServer"
 ---
@@ -40,12 +41,11 @@ After creating an MCP server, you can view its details:
    - **Active tools** - Currently enabled tools for the server
    - **Available tools** - All tools discovered from the server with descriptions and parameters
 
-<img
+<Image
   src="/images/mcp-server-healthy-status.png"
   alt="MCP server healthy status"
   width="60%"
   style={{
-    borderRadius: "10px",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -66,12 +66,11 @@ To modify an existing MCP server:
 2. The edit form shows all the same fields as creation, plus the ability to update **Active Tools**. By default, all available tools are enabled. You can select specific tools to enable.
 3. Click **Save** to apply changes
 
-<img
+<Image
   src="/images/mcp-server-edit-form.png"
   alt="MCP server healthy status"
   width="60%"
   style={{
-    borderRadius: "10px",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -89,12 +88,11 @@ If your MCP server requires authentication, you have two options: either use the
 3. Complete the OAuth authentication flow in your browser
 4. The credential will be automatically created and saved to your [Nango Store](/typescript-sdk/tools/credentials#nango-store) (follow steps to [setup Nango](/get-started/credentials)). If Nango is not set up, the framework will use the [Keychain Store](/typescript-sdk/tools/credentials#keychain-store) if available.
 
-<img
+<Image
   src="/images/mcp-server-click-to-login.png"
   alt="MCP server click to login"
   width="60%"
   style={{
-    borderRadius: "10px",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",
@@ -154,12 +152,11 @@ Once you have created an MCP server, you can add it to your agents:
 3. Connect the MCP server to a Sub Agent by dragging from the server's connector to the Sub Agent
 4. Your Sub Agent can now use the tools provided by that MCP server
 
-<img
+<Image
   src="/images/mcp-server-add-to-agent.png"
   alt="MCP server add to agent"
   width="60%"
   style={{
-    borderRadius: "10px",
     border: "1px solid #e1e5e9",
     display: "block",
     margin: "0 auto",

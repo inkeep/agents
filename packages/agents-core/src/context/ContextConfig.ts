@@ -4,7 +4,6 @@ import type {
   ContextFetchDefinition,
   CredentialReferenceApiInsert,
 } from '../types/index';
-import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { convertZodToJsonSchema } from '../utils/schema-conversion';
 import { ContextConfigApiUpdateSchema } from '../validation/schemas';
@@ -72,7 +71,7 @@ export interface ContextConfigBuilderOptions<
   R extends z.ZodTypeAny | undefined = undefined,
   CV = Record<string, builderFetchDefinition<z.ZodTypeAny>>,
 > {
-  id?: string;
+  id: string;
   headers?: R | HeadersSchemaBuilder<R extends z.ZodTypeAny ? R : z.ZodTypeAny>;
   contextVariables?: CV; // Zod-based fetch defs
   tenantId?: string;
@@ -138,8 +137,13 @@ export class ContextConfigBuilder<
       }
     }
 
+    // Validate required id field
+    if (!options.id) {
+      throw new Error('contextConfig requires an explicit id field');
+    }
+
     this.config = {
-      id: options.id || generateId(),
+      id: options.id,
       tenantId: this.tenantId,
       projectId: this.projectId,
       headersSchema: headers,

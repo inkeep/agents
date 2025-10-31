@@ -17,7 +17,7 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     ```html
     <script
         type="module"
-        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.14/dist/embed.js"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
         defer
 
 > </script>
@@ -36,7 +36,7 @@ Custom triggers give you complete control over how users open Inkeep modals in y
       aiChatSettings: {
         aiAssistantName: "Keepie",
       },
-      modalSettings: {
+      openSettings: {
         onOpenChange: handleOpenChange,
       },
     };
@@ -45,12 +45,12 @@ Custom triggers give you complete control over how users open Inkeep modals in y
     const modalChat = Inkeep.ModalChat(config);
 
     function handleOpenChange(newOpen) {
-      modalChat.update({ modalSettings: { isOpen: newOpen } });
+      modalChat.update({ openSettings: { isOpen: newOpen } });
     }
 
     // trigger
     document.querySelector("#chat-button").addEventListener("click", () => {
-      modalChat.update({ modalSettings: { isOpen: true } });
+      modalChat.update({ openSettings: { isOpen: true } });
     });
 
     // Access chat methods
@@ -81,9 +81,9 @@ Custom triggers give you complete control over how users open Inkeep modals in y
   name="InkeepAIChatSettings"
 />
 
-### Modal Settings
+### Open Settings
 
 <AutoTypeTable
   path="./content/docs/talk-to-your-agents/types.ts"
-  name="InkeepModalSettings"
+  name="OpenSettingsModal"
 />
