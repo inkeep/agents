@@ -446,20 +446,6 @@ describe('Agent', () => {
       await expect(agent.generate(messageInput)).rejects.toThrow('HTTP 404: Not Found');
     });
 
-    it('should throw error if no default agent and no agent specified', async () => {
-      const agentWithoutDefault = new Agent({
-        id: 'test-agent',
-        name: 'Test Agent',
-      });
-      await agentWithoutDefault.init();
-
-      const messageInput: MessageInput = 'Hello';
-
-      await expect(agentWithoutDefault.generate(messageInput)).rejects.toThrow(
-        'No default agent configured for this agent'
-      );
-    });
-
     it('should pass generate options correctly', async () => {
       const messageInput: MessageInput = 'Hello';
 
@@ -542,6 +528,9 @@ describe('Agent', () => {
         name: 'Test Agent',
         description: 'Test description',
         defaultSubAgent,
+        stopWhen: {
+          transferCountIs: 10,
+        },
         subAgents: () => [supportAgent],
       });
 
@@ -571,6 +560,9 @@ describe('Agent', () => {
             name: 'Support Agent',
             type: 'internal',
           },
+        },
+        stopWhen: {
+          transferCountIs: 10,
         },
       });
     });
@@ -1317,6 +1309,7 @@ describe('Agent', () => {
 
       const credentialRef = {
         id: 'test-cred',
+        name: 'test-cred',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
         retrievalParams: {

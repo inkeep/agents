@@ -1,0 +1,55 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": [
+    "**/.env",
+    "**/.env.local",
+    "**/.env.*"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "CI",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "ENVIRONMENT",
+    "DB_FILE_NAME",
+    "MANAGE_API_PORT",
+    "RUN_API_PORT",
+    "LOG_LEVEL",
+    "NANGO_SECRET_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        "dist/**",
+        "build/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false,
+      "inputs": [
+        "drizzle.config.ts",
+        "src/data/db/schema.ts"
+      ]
+    }
+  }
+}

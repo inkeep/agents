@@ -4,6 +4,7 @@
  * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
+import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
@@ -22,6 +23,7 @@ import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
+import { functionTools, functions } from '../db/schema';
 
 const defaultLogger = getLogger('projectFull');
 
@@ -343,12 +345,24 @@ export const createFullProjectServerSide =
           'Creating project agent'
         );
 
+        // Phase 1: Create all agents without sub-agents to avoid circular dependency issues
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 1: Creating agents without sub-agents'
+        );
+
         const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project');
+            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project (phase 1)');
 
-            const agentDataWithProjectResources = {
+            // Create agent without sub-agents
+            const agentDataWithoutSubAgents = {
               ...agentData,
+              subAgents: {}, // No sub-agents in phase 1
+              defaultSubAgentId: undefined, // Clear defaultSubAgentId since no sub-agents exist yet
               tools: typed.tools || {}, // Pass project-level MCP tools for validation
               functions: typed.functions || {}, // Pass project-level functions for validation
               dataComponents: typed.dataComponents || {},
@@ -359,14 +373,17 @@ export const createFullProjectServerSide =
             };
             await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              agentDataWithProjectResources
+              agentDataWithoutSubAgents
             );
 
-            logger.info({ projectId: typed.id, agentId }, 'Agent created successfully in project');
+            logger.info(
+              { projectId: typed.id, agentId },
+              'Agent created successfully in project (phase 1)'
+            );
           } catch (error) {
             logger.error(
               { projectId: typed.id, agentId, error },
-              'Failed to create agent in project'
+              'Failed to create agent in project (phase 1)'
             );
             throw error;
           }
@@ -378,7 +395,55 @@ export const createFullProjectServerSide =
             projectId: typed.id,
             agentCount: Object.keys(typed.agents).length,
           },
-          'All project agent created successfully'
+          'Phase 1 complete: All agents created without sub-agents'
+        );
+
+        // Phase 2: Add all sub-agents with their relationships
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2: Adding sub-agents with relationships'
+        );
+
+        const updatePromises = Object.entries(typed.agents)
+          .filter(([_, agentData]) => Object.keys(agentData.subAgents).length > 0)
+          .map(async ([agentId, agentData]) => {
+            try {
+              logger.info({ projectId: typed.id, agentId }, 'Adding sub-agents (phase 2)');
+
+              // Add all sub-agents with their relationships
+              const updateData = {
+                ...agentData,
+                subAgents: agentData.subAgents, // Include all sub-agents with their relationships
+              };
+
+              await updateFullAgentServerSide(db, logger)(
+                { tenantId, projectId: typed.id },
+                updateData as any
+              );
+
+              logger.info(
+                { projectId: typed.id, agentId },
+                'Sub-agents added successfully (phase 2)'
+              );
+            } catch (error) {
+              logger.error(
+                { projectId: typed.id, agentId, error },
+                'Failed to add sub-agents (phase 2)'
+              );
+              throw error;
+            }
+          });
+
+        await Promise.all(updatePromises);
+        logger.info(
+          {
+            projectId: typed.id,
+            agentCount: Object.keys(typed.agents).length,
+          },
+          'Phase 2 complete: All sub-agents added successfully'
         );
       }
 
@@ -932,6 +997,7 @@ export const getFullProject =
             name: component.name,
             description: component.description,
             props: component.props,
+            render: component.render,
           };
         }
         logger.info(
@@ -979,6 +1045,7 @@ export const getFullProject =
         for (const credential of credentialReferencesList) {
           projectCredentialReferences[credential.id] = {
             id: credential.id,
+            name: credential.name,
             type: credential.type,
             credentialStoreId: credential.credentialStoreId,
             retrievalParams: credential.retrievalParams,
@@ -993,6 +1060,46 @@ export const getFullProject =
           { tenantId, projectId, error },
           'Failed to retrieve credentialReferences for project'
         );
+      }
+
+      const projectFunctions: Record<string, any> = {};
+      try {
+        // Get all function tools with their associated function data by joining the tables
+        const functionToolsWithFunctions = await db
+          .select({
+            functionToolId: functionTools.id,
+            functionToolName: functionTools.name,
+            functionToolDescription: functionTools.description,
+            functionId: functions.id,
+            inputSchema: functions.inputSchema,
+            executeCode: functions.executeCode,
+            dependencies: functions.dependencies,
+          })
+          .from(functionTools)
+          .innerJoin(functions, eq(functionTools.functionId, functions.id))
+          .where(
+            and(
+              eq(functionTools.tenantId, tenantId),
+              eq(functionTools.projectId, projectId)
+            )
+          );
+
+        for (const item of functionToolsWithFunctions) {
+          projectFunctions[item.functionToolId] = {
+            id: item.functionId,
+            name: item.functionToolName,
+            description: item.functionToolDescription,
+            inputSchema: item.inputSchema,
+            executeCode: item.executeCode,
+            dependencies: item.dependencies,
+          };
+        }
+        logger.info(
+          { tenantId, projectId, functionCount: Object.keys(projectFunctions).length },
+          'Function tools with function data retrieved for project'
+        );
+      } catch (error) {
+        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve function tools for project');
       }
 
       const agents: Record<string, any> = {};
@@ -1044,6 +1151,7 @@ export const getFullProject =
         stopWhen: project.stopWhen || undefined,
         agents,
         tools: projectTools,
+        functions: projectFunctions,
         externalAgents: projectExternalAgents,
         dataComponents: projectDataComponents,
         artifactComponents: projectArtifactComponents,

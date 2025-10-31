@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cloneTemplate, getAvailableTemplates } from '../templates';
+import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
 import { createAgents } from '../utils';
 
 // Mock all dependencies
@@ -63,6 +63,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       'data-analysis',
     ]);
     vi.mocked(cloneTemplate).mockResolvedValue(undefined);
+    vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
 
     // Mock util.promisify to return a mock exec function
     const mockExecAsync = vi.fn().mockResolvedValue({ stdout: '', stderr: '' });
@@ -85,22 +86,23 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use event-planner as default template and project ID', async () => {
+    it('should use activies-planner as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
         anthropicKey: 'test-anthropic-key',
       });
 
-      // Should clone base template and weather-project template
+      // Should clone base template and activities-planner template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/event-planner',
-        'src/projects/event-planner',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
+        'src/projects/activities-planner',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
@@ -151,11 +153,12 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template and the specified template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
         'src/projects/chatbot',
         expect.arrayContaining([
           expect.objectContaining({
@@ -231,8 +234,9 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template but NOT project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
 
       // Should NOT validate templates
@@ -272,8 +276,9 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should only clone base template, not project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(getAvailableTemplates).not.toHaveBeenCalled();
       expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/my-custom-project');
@@ -314,7 +319,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         'src/projects/my-complex-template',
         expect.arrayContaining([
           expect.objectContaining({
@@ -419,7 +424,10 @@ describe('createAgents - Template and Project ID Logic', () => {
           call[0] &&
           typeof call[0] === 'object' &&
           'message' in call[0] &&
-          (call[0].message.includes('API key') || call[0].message.includes('Anthropic') || call[0].message.includes('OpenAI') || call[0].message.includes('Google'))
+          (call[0].message.includes('API key') ||
+            call[0].message.includes('Anthropic') ||
+            call[0].message.includes('OpenAI') ||
+            call[0].message.includes('Google'))
       );
       expect(apiKeyCalls).toHaveLength(0);
     });
@@ -467,4 +475,5 @@ function setupDefaultMocks() {
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
+  vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
 }

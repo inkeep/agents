@@ -11,13 +11,15 @@ icon: "TbInputSpark"
 Artifact components are defined using the `artifactComponent` builder function. **We recommend using Zod schemas** for type safety and better developer experience.
 
 <Callout>
-**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`, providing a ready-to-use example.
+  **Quick Start**: Citation artifacts are automatically included when you create
+  a new project with `npx @inkeep/create-agents`, providing a ready-to-use
+  example.
 </Callout>
 
 ```typescript
-import { artifactComponent } from '@inkeep/agents-sdk';
-import { z } from 'zod';
-import { preview } from '@inkeep/agents-core';
+import { artifactComponent } from "@inkeep/agents-sdk";
+import { z } from "zod";
+import { preview } from "@inkeep/agents-core";
 
 export const citation = artifactComponent({
   id: "citation",
@@ -32,24 +34,55 @@ export const citation = artifactComponent({
     content: z
       .array(
         z.object({
-          type: z.string().describe("Type of content (text, image, video, etc.)"),
+          type: z
+            .string()
+            .describe("Type of content (text, image, video, etc.)"),
           text: z.string().describe("The actual text content"),
         })
       )
-      .describe("Array of structured content blocks extracted from the document"),
+      .describe(
+        "Array of structured content blocks extracted from the document"
+      ),
   }),
 });
 ```
 
 <Callout>
-JSON Schema is also supported. Set `inPreview: true` on properties instead of using `preview()`.
+  JSON Schema is also supported. Set `inPreview: true` on properties instead of
+  using `preview()`.
 </Callout>
+
+## Schema Requirements
+
+<Callout type="warning">
+  **Critical**: Artifact schemas must match your tool's output structure. The
+  system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+</Callout>
+
+```typescript
+// ❌ WRONG: Tool returns text, schema expects structured data
+// Tool output: { result: { content: [{ text: "Weather: Sunny, 75°F" }] } }
+props: z.object({
+  temperature: z.number(), // ❌ Cannot extract number from text
+  condition: z.string(), // ❌ Cannot extract condition from text
+});
+
+// ✅ CORRECT: Tool returns structured data matching schema
+// Tool output: { result: { temperature: 75, condition: "Sunny" } }
+props: z.object({
+  temperature: z.number(),
+  condition: z.string(),
+});
+```
+
+Use OpenTelemetry traces to debug schema validation issues.
 
 ## Preview Fields
 
 Use `preview()` to mark fields for immediate availability. The `preview()` helper automatically sets `inPreview: true` in the generated schema.
 
 **Preview fields are:**
+
 - Shown to other agents for reasoning
 - Streamed in real-time to clients (Vercel AI SDK)
 - Auto-rendered by Inkeep's widget (citations as interactive cards)
@@ -82,8 +115,8 @@ Artifacts provide the source citations that back up information in data componen
 After defining your artifact component, use it in an agent:
 
 ```typescript
-import { agent } from '@inkeep/agents-sdk';
-import { citation } from './artifact-components/citation';
+import { agent } from "@inkeep/agents-sdk";
+import { citation } from "./artifact-components/citation";
 
 const searchAgent = agent({
   id: "search-agent",
@@ -97,11 +130,10 @@ const searchAgent = agent({
 
 Citation artifacts that are named `citation` and have `title` and `url` preview fields are automatically rendered as interactive cards by Inkeep's widget library. This provides source attribution and allows users to verify information at the source.
 
-<img
+<Image
   src="/images/citation-widget-example.png"
   alt="Citation artifact rendered as an interactive card in the Inkeep widget showing source attribution"
-  width="100%"
-  style={{ borderRadius: "10px", marginTop: "1rem" }}
+  style={{ marginTop: "1rem" }}
 />
 
 ## Example Flow
@@ -109,9 +141,9 @@ Citation artifacts that are named `citation` and have `title` and `url` preview 
 Here's a complete example with inline artifact component definition:
 
 ```typescript
-import { agent } from '@inkeep/agents-sdk';
-import { z } from 'zod';
-import { preview } from '@inkeep/agents-core';
+import { agent } from "@inkeep/agents-sdk";
+import { z } from "zod";
+import { preview } from "@inkeep/agents-core";
 
 const searchAgent = subAgent({
   id: "search",

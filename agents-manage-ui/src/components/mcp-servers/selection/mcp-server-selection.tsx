@@ -1,6 +1,5 @@
 'use client';
 
-import { generateId } from '@/lib/utils/id-utils';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -12,6 +11,7 @@ import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
+import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 
 interface MCPServerSelectionProps {

@@ -1,0 +1,65 @@
+---
+title: Chat Button
+description: Learn how to use the chat button component in JavaScript
+icon: "LuMessageCircle"
+---
+
+The chat button component is a simple way to trigger the Inkeep chat bubble in your JavaScript application.
+
+## Quick Start
+
+<Steps>
+  <Step>
+    Add the below `<script>` tag to the `<head>` or `<body>` of your website.
+    ```html
+    <script
+        type="module"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+        defer
+></script>
+    ```
+  </Step>
+  <Step>
+    Insert the Chat Button by using the `Inkeep.ChatButton()` function.
+
+    ```ts
+    const config: InkeepChatButtonProps = {
+      aiChatSettings: {
+        agentUrl: "https://your-api.example.com/api/chat",
+        apiKey: process.env.INKEEP_API_KEY, // Your API key
+      },
+    };
+
+    const chatButton = Inkeep.ChatButton(config);
+    ```
+
+  </Step>
+</Steps>
+
+## Config
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepChatButtonProps"
+/>
+
+### Base Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepBaseSettings"
+/>
+
+### Open Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="OpenSettingsChatButton"
+/>
+
+### AI Chat Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepAIChatSettings"
+/>

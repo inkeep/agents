@@ -34,7 +34,7 @@ export async function cloneTemplate(
 export async function cloneTemplateLocal(
   templatePath: string,
   targetPath: string,
-  replacements: ContentReplacement[]
+  replacements?: ContentReplacement[]
 ) {
   await fs.mkdir(targetPath, { recursive: true });
 
@@ -312,12 +312,20 @@ function injectPropertyIntoObject(content: string, propertyPath: string, replace
   return content;
 }
 
-export async function getAvailableTemplates(): Promise<string[]> {
-  // Fetch the list of templates from your repo
-  const response = await fetch(
-    'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
-  );
-  const contents = await response.json();
+export async function getAvailableTemplates(localPrefix?: string): Promise<string[]> {
+  if (localPrefix && localPrefix.length > 0) {
+    const fullTemplatePath = path.join(localPrefix, 'template-projects');
+    const response = await fs.readdir(fullTemplatePath);
+    return response.filter((item: any) =>
+      fs.stat(path.join(fullTemplatePath, item)).then((stat) => stat.isDirectory())
+    );
+  } else {
+    // Fetch the list of templates from your repo
+    const response = await fetch(
+      `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
+    );
+    const contents = await response.json();
 
-  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
+    return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
+  }
 }

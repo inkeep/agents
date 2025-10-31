@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { ContextResolver } from '../context';
-import { generateId } from '../utils/conversations';
 import type { CredentialStoreRegistry } from '../credential-stores';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
 import { CredentialStuffer } from '../credential-stuffer';
@@ -24,6 +23,7 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
 } from '../utils';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
 import { getCredentialReference } from './credentialReferences';
@@ -234,18 +234,17 @@ export const dbResultToMcpTool = async (
       error instanceof Error &&
       (await detectAuthenticationRequired({
         serverUrl: dbResult.config.mcp.server.url,
-        toolId: dbResult.id,
         error,
         logger,
       }));
 
     status = toolNeedsAuth ? 'needs_auth' : 'unhealthy';
 
+    const errorMessage = error instanceof Error ? error.message : 'Tool discovery failed';
+
     lastErrorComputed = toolNeedsAuth
-      ? 'Authentication required - OAuth login needed'
-      : error instanceof Error
-        ? error.message
-        : 'Tool discovery failed';
+      ? `Authentication required - OAuth login needed. ${errorMessage}`
+      : errorMessage;
   }
 
   const now = new Date().toISOString();

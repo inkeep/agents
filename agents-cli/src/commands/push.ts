@@ -1,46 +1,18 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import type { Project } from '@inkeep/agents-sdk';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 import { env } from '../env';
+import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { initializeCommand } from '../utils/cli-pipeline';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
-import { importWithTypeScriptSupport } from '../utils/tsx-loader';
-import { performBackgroundVersionCheck } from '../utils/background-version-check';
+import { loadProject } from '../utils/project-loader';
 
 export interface PushOptions {
   project?: string;
   config?: string;
   env?: string;
   json?: boolean;
-}
-
-/**
- * Load and validate project from index.ts
- */
-async function loadProject(projectDir: string) {
-  const indexPath = join(projectDir, 'index.ts');
-
-  if (!existsSync(indexPath)) {
-    throw new Error(`index.ts not found in project directory: ${projectDir}`);
-  }
-
-  // Import the module with TypeScript support
-  const module = await importWithTypeScriptSupport(indexPath);
-
-  // Find the first export with __type = "project"
-  const exports = Object.keys(module);
-  for (const exportKey of exports) {
-    const value = module[exportKey];
-    if (value && typeof value === 'object' && value.__type === 'project') {
-      return value as Project;
-    }
-  }
-
-  throw new Error(
-    'No project export found in index.ts. Expected an export with __type = "project"'
-  );
 }
 
 export async function pushCommand(options: PushOptions) {
@@ -263,7 +235,7 @@ export async function pushCommand(options: PushOptions) {
 
     // Display project URL if available
     if (config.manageUiUrl) {
-      const projectUrl = `${config.manageUiUrl}/projects/${projectId}`;
+      const projectUrl = `${config.manageUiUrl}/${config.tenantId}/projects/${projectId}`;
       console.log(chalk.cyan('\n🔗 Project URL:'));
       console.log(chalk.blue.underline(`  ${projectUrl}`));
     }

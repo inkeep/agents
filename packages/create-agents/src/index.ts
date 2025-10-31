@@ -16,6 +16,8 @@ program
     'Custom project id for experienced users who want an empty project directory'
   )
   .option('--disable-git', 'Disable git initialization')
+  .option('--local-agents-prefix <local-agents-prefix>', 'Local prefix for create-agents-template')
+  .option('--local-templates-prefix <local-templates-prefix>', 'Local prefix for project templates')
   .parse();
 
 async function main() {
@@ -30,6 +32,8 @@ async function main() {
       customProjectId: options.customProjectId,
       template: options.template,
       disableGit: options.disableGit,
+      localAgentsPrefix: options.localAgentsPrefix,
+      localTemplatesPrefix: options.localTemplatesPrefix,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

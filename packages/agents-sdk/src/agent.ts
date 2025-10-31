@@ -13,13 +13,14 @@ import { FunctionTool } from './function-tool';
 import type {
   AgentConfig,
   AgentInterface,
-  AllSubAgentInterface,
+  AllDelegateInputInterface,
   GenerateOptions,
   MessageInput,
   ModelSettings,
   RunResult,
   StreamResponse,
   SubAgentInterface,
+  subAgentTeamAgentInterface,
 } from './types';
 
 const logger = getLogger('agent');
@@ -89,9 +90,14 @@ export class Agent implements AgentInterface {
     this.subAgents = resolveGetter(config.subAgents) || [];
     this.agentMap = new Map(this.subAgents.map((agent) => [agent.getId(), agent]));
 
-    // Add default agent to map
+    // Add default agent to map if not already present
     if (this.defaultSubAgent) {
-      this.subAgents.push(this.defaultSubAgent);
+      const isAlreadyPresent = this.subAgents.some(
+        (agent) => agent.getId() === this.defaultSubAgent?.getId()
+      );
+      if (!isAlreadyPresent) {
+        this.subAgents.push(this.defaultSubAgent);
+      }
       this.agentMap.set(this.defaultSubAgent.getId(), this.defaultSubAgent);
     }
 
@@ -266,6 +272,7 @@ export class Agent implements AgentInterface {
         description: subAgent.config.description || `Agent ${subAgent.getName()}`,
         prompt: subAgent.getInstructions(),
         models: subAgent.config.models,
+        stopWhen: subAgent.config.stopWhen,
         canTransferTo: transfers.map((h) => h.getId()),
         canDelegateTo: delegates.map((d) => {
           if (typeof d === 'object' && 'externalAgent' in d) {
@@ -273,9 +280,10 @@ export class Agent implements AgentInterface {
               externalAgentId: d.externalAgent.getId(),
               ...(d.headers && { headers: d.headers }),
             };
-          } else if (typeof d === 'object' && 'type' in d && d.type === 'external') {
+          } else if (typeof d === 'object' && 'agent' in d) {
             return {
-              externalAgentId: d.getId(),
+              agentId: d.agent.getId(),
+              ...(d.headers && { headers: d.headers }),
             };
           }
           return d.getId();
@@ -327,6 +335,40 @@ export class Agent implements AgentInterface {
         }
       : undefined;
 
+    // Collect tools used by this agent's subAgents for agent-level tools field
+    const agentToolsObject: Record<string, any> = {};
+    for (const subAgent of this.subAgents) {
+      const subAgentTools = subAgent.getTools();
+      for (const [_toolName, toolInstance] of Object.entries(subAgentTools)) {
+        const toolId = toolInstance.getId();
+        // Only include MCP tools, not function tools (function tools go to project level)
+        if (toolInstance.constructor.name !== 'FunctionTool') {
+          if (!agentToolsObject[toolId]) {
+            // This should match the project-level tool format
+            if ('config' in toolInstance && 'serverUrl' in toolInstance.config) {
+              const mcpTool = toolInstance as any;
+              agentToolsObject[toolId] = {
+                id: toolId,
+                name: toolInstance.getName(),
+                description: null,
+                config: {
+                  type: 'mcp',
+                  mcp: {
+                    server: {
+                      url: mcpTool.config.serverUrl,
+                    },
+                    transport: mcpTool.config.transport,
+                    activeTools: mcpTool.config.activeTools,
+                  },
+                },
+                credentialReferenceId: null,
+              };
+            }
+          }
+        }
+      }
+    }
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -335,9 +377,13 @@ export class Agent implements AgentInterface {
       subAgents: subAgentsObject,
       externalAgents: externalAgentsObject,
       contextConfig: this.contextConfig?.toObject(),
+      // Include tools used by subAgents at agent level (MCP tools only)
+      ...(Object.keys(agentToolsObject).length > 0 && { tools: agentToolsObject }),
+      // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
       models: this.models,
+      stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
       createdAt: new Date().toISOString(),
@@ -751,6 +797,13 @@ export class Agent implements AgentInterface {
     };
   }
 
+  with(options: { headers?: Record<string, string> }): subAgentTeamAgentInterface {
+    return {
+      agent: this,
+      headers: options.headers,
+    };
+  }
+
   /**
    * Validate the agent configuration
    */
@@ -816,7 +869,7 @@ export class Agent implements AgentInterface {
   /**
    * Type guard to check if an agent is an internal AgentInterface
    */
-  isInternalAgent(agent: AllSubAgentInterface): agent is SubAgentInterface {
+  isInternalAgent(agent: AllDelegateInputInterface): agent is SubAgentInterface {
     // Internal agents have getTransfers, getDelegates, and other AgentInterface methods
     // External agents only have basic identification methods
     return 'getTransfers' in agent && typeof (agent as any).getTransfers === 'function';

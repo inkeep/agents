@@ -1,9 +1,15 @@
+import path from 'node:path';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { findUp } from 'find-up';
 import fs from 'fs-extra';
-import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from '../utils/templates';
+import {
+  type ContentReplacement,
+  cloneTemplate,
+  cloneTemplateLocal,
+  getAvailableTemplates,
+} from '../utils/templates';
 
 export interface AddOptions {
   project?: string;
@@ -11,6 +17,7 @@ export interface AddOptions {
   targetPath?: string;
   config?: string;
   list: boolean;
+  localPrefix?: string;
 }
 
 export const defaultGoogleModelConfigurations = {
@@ -50,8 +57,8 @@ export const defaultAnthropicModelConfigurations = {
 };
 
 export async function addCommand(options: AddOptions) {
-  const projectTemplates = await getAvailableTemplates('template-projects');
-  const mcpTemplates = await getAvailableTemplates('template-mcps');
+  const projectTemplates = await getAvailableTemplates('template-projects', options.localPrefix);
+  const mcpTemplates = await getAvailableTemplates('template-mcps', options.localPrefix);
   if (!options.project && !options.mcp) {
     console.log(chalk.yellow('Available project templates:'));
     for (const template of projectTemplates) {
@@ -75,18 +82,22 @@ export async function addCommand(options: AddOptions) {
     const s = p.spinner();
     s.start('Adding template...');
     if (options.project) {
-      await addProjectTemplate(options.project, options.targetPath);
-      s.stop(`Project template "${options.project}" added to ${options.targetPath}`);
+      await addProjectTemplate(options.project, options.targetPath, options.localPrefix);
+      s.stop();
     }
     if (options.mcp) {
-      await addMcpTemplate(options.mcp, options.targetPath, s);
+      await addMcpTemplate(options.mcp, options.targetPath, s, options.localPrefix);
     }
     return;
   }
 }
 
-export async function addProjectTemplate(template: string, targetPath: string | undefined) {
-  const templates = await getAvailableTemplates();
+export async function addProjectTemplate(
+  template: string,
+  targetPath: string | undefined,
+  localPrefix: string | undefined
+) {
+  const templates = await getAvailableTemplates('template-projects', localPrefix);
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
     for (const template of templates) {
@@ -154,17 +165,27 @@ export async function addProjectTemplate(template: string, targetPath: string | 
 
     const s = p.spinner();
     s.start('Adding template...');
-    const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-projects/${template}`;
 
     // Clone into the template-named subdirectory
-    await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
+    if (localPrefix && localPrefix.length > 0) {
+      const fullTemplatePath = path.join(localPrefix, 'template-projects', template);
+      await cloneTemplateLocal(fullTemplatePath, templateDir, contentReplacements);
+    } else {
+      const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-projects/${template}`;
+      await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
+    }
     s.stop(`Template "${template}" added to ${templateDir}`);
     return;
   }
 }
 
-export async function addMcpTemplate(template: string, targetPath: string | undefined, s: any) {
-  const templates = await getAvailableTemplates('template-mcps');
+export async function addMcpTemplate(
+  template: string,
+  targetPath: string | undefined,
+  spinner: any,
+  localPrefix: string | undefined
+) {
+  const templates = await getAvailableTemplates('template-mcps', localPrefix);
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
     for (const template of templates) {
@@ -177,9 +198,14 @@ export async function addMcpTemplate(template: string, targetPath: string | unde
     const foundPath = await findAppDirectory();
     targetPath = `${foundPath}/${template}`;
   }
-  const fullTemplatePath = `https://github.com/inkeep/agents-cookbook/template-mcps/${template}`;
-  await cloneTemplate(fullTemplatePath, targetPath);
-  s.stop(`MCP template "${template}" added to ${targetPath}`);
+  if (localPrefix && localPrefix.length > 0) {
+    const fullTemplatePath = path.join(localPrefix, 'template-mcps', template);
+    await cloneTemplateLocal(fullTemplatePath, targetPath);
+  } else {
+    const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-mcps/${template}`;
+    await cloneTemplate(fullTemplatePath, targetPath);
+  }
+  spinner.stop(`MCP template "${template}" added to ${targetPath}`);
 }
 
 export async function findAppDirectory() {

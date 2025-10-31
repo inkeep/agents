@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Separator } from '@/components/ui/separator';
@@ -164,7 +164,6 @@ export function ExternalAgentNodeEditor({
         value={headersInputValue}
         onChange={handleHeadersChange}
         placeholder="{}"
-        className=""
       />
       <ExternalLink
         href={`/${tenantId}/projects/${projectId}/external-agents/${selectedNode.data.id}/edit`}

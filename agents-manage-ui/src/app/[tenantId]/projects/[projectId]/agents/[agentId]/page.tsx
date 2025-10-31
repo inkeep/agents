@@ -65,10 +65,11 @@ async function AgentPage({
   const externalAgentLookup = createLookup(
     externalAgents.success ? externalAgents.data : undefined
   );
+
   return (
     <BodyTemplate
       breadcrumbs={[
-        { label: 'Agent', href: `/${tenantId}/projects/${projectId}/agents` },
+        { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
         { label: agent.data.name },
       ]}
     >

@@ -139,9 +139,19 @@ export type ExternalAgentRelationConfig = {
   relationType: string;
 };
 
+export type TeamAgentRelationConfig = {
+  relationId: string;
+  id: string;
+  name: string;
+  description: string;
+  baseUrl: string;
+  headers?: Record<string, string> | null;
+};
+
 export type DelegateRelation =
   | { type: 'internal'; config: AgentConfig }
-  | { type: 'external'; config: ExternalAgentRelationConfig };
+  | { type: 'external'; config: ExternalAgentRelationConfig }
+  | { type: 'team'; config: TeamAgentRelationConfig };
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
@@ -691,7 +701,7 @@ export class Agent {
         storeReference,
         selectedTools
       );
-    } else if (tool.headers && this.credentialStuffer) {
+    } else if (this.credentialStuffer) {
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -994,7 +1004,6 @@ export class Agent {
 
       const contextWithBuiltins = {
         ...result.resolvedContext,
-        $now: new Date().toISOString(),
         $env: process.env,
       };
 

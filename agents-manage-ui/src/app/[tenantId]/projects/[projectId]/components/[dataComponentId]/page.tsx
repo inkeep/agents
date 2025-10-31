@@ -25,7 +25,7 @@ export default async function DataComponentPage({
     );
   }
 
-  const { name, description, props, preview } = dataComponent;
+  const { name, description, props, render } = dataComponent;
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -47,7 +47,7 @@ export default async function DataComponentPage({
               name,
               description: description ?? '',
               props,
-              preview,
+              render,
             }}
           />
         </div>

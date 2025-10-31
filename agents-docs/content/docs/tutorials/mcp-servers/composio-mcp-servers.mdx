@@ -1,0 +1,25 @@
+---
+title: Leverage Composio MCP Server Library
+sidebarTitle: Composio
+description: Connect to Composio MCP servers for 10,000+ out-of-box MCP servers
+icon: "brand/Composio"
+---
+
+### Composio
+
+[Composio](https://composio.dev/) offers a platform with access to 10,000+ out-of-box MCP servers for popular services.
+
+#### Quick integration
+
+Follow Composio's MCP Gateway setup to obtain your MCP server URL and credentials. Then register it as a tool in your project:
+
+```typescript
+import { mcpTool } from '@inkeep/agents-sdk';
+
+const composioTool = mcpTool({
+  id: 'composio-tools',
+  name: 'Composio Integration',
+  description: 'Access popular SaaS tools via Composio',
+  serverUrl: 'YOUR_COMPOSIO_MCP_URL', // From Composio dashboard
+});
+```

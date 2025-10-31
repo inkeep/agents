@@ -68,3 +68,4 @@ dist
 .playwright-mcp
 .vercel
 .idea/
+agents-manage-ui/cypress/screenshots/

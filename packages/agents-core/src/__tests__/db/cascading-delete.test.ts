@@ -236,6 +236,7 @@ describe('Cascading Delete Tests', () => {
       tenantId,
       projectId,
       id: generateId(),
+      name: 'Test Credential',
       type: 'memory',
       credentialStoreId: 'test-store',
     };

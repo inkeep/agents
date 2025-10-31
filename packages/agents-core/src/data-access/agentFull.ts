@@ -37,6 +37,11 @@ import {
   upsertSubAgentRelation,
 } from './subAgentRelations';
 import { deleteSubAgent, listSubAgents, upsertSubAgent } from './subAgents';
+import {
+  deleteSubAgentTeamAgentRelation,
+  getSubAgentTeamAgentRelationsByAgent,
+  upsertSubAgentTeamAgentRelation,
+} from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
 
 export interface AgentLogger {
@@ -532,6 +537,7 @@ export const createFullAgentServerSide =
 
       const subAgentRelationPromises: Promise<void>[] = [];
       const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
+      const subAgentTeamAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typed.subAgents)) {
         // Process canTransferTo - always internal targets (strings only)
@@ -599,21 +605,11 @@ export const createFullAgentServerSide =
                     }
                   })()
                 );
-              } else {
+              } else if (typeof targetItem === 'object' && 'externalAgentId' in targetItem) {
                 // External agent delegation
                 subAgentExternalAgentRelationPromises.push(
                   (async () => {
                     try {
-                      logger.info(
-                        {
-                          subAgentId,
-                          externalAgentId: targetItem.externalAgentId,
-                          type: 'delegate',
-                        },
-                        'Processing external agent delegation relation'
-                      );
-
-                      // Upsert automatically creates or updates the relation
                       await upsertSubAgentExternalAgentRelation(db)({
                         scopes: {
                           tenantId,
@@ -632,7 +628,6 @@ export const createFullAgentServerSide =
                         {
                           subAgentId,
                           externalAgentId: targetItem.externalAgentId,
-                          type: 'delegate',
                         },
                         'External agent delegation relation processed successfully'
                       );
@@ -641,10 +636,40 @@ export const createFullAgentServerSide =
                         {
                           subAgentId,
                           externalAgentId: targetItem.externalAgentId,
-                          type: 'delegate',
                           error,
                         },
                         'Failed to create external delegation relation'
+                      );
+                    }
+                  })()
+                );
+              } else if (typeof targetItem === 'object' && 'agentId' in targetItem) {
+                // Team agent delegation
+                subAgentTeamAgentRelationPromises.push(
+                  (async () => {
+                    try {
+                      await upsertSubAgentTeamAgentRelation(db)({
+                        scopes: {
+                          tenantId,
+                          projectId,
+                          agentId: finalAgentId,
+                          subAgentId,
+                        },
+                        relationId: targetItem.subAgentTeamAgentRelationId,
+                        data: {
+                          targetAgentId: targetItem.agentId,
+                          headers: targetItem.headers || null,
+                        },
+                      });
+
+                      logger.info(
+                        { subAgentId, agentId: targetItem.agentId },
+                        'Team agent delegation relation processed successfully'
+                      );
+                    } catch (error) {
+                      logger.error(
+                        { subAgentId, agentId: targetItem.agentId, error },
+                        'Failed to create team agent delegation relation'
                       );
                     }
                   })()
@@ -657,6 +682,7 @@ export const createFullAgentServerSide =
 
       await Promise.all(subAgentRelationPromises);
       await Promise.all(subAgentExternalAgentRelationPromises);
+      await Promise.all(subAgentTeamAgentRelationPromises);
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
@@ -665,7 +691,10 @@ export const createFullAgentServerSide =
         { subAgentExternalAgentRelationCount: subAgentExternalAgentRelationPromises.length },
         'All sub-agent external agent relations created'
       );
-
+      logger.info(
+        { subAgentTeamAgentRelationCount: subAgentTeamAgentRelationPromises.length },
+        'All sub-agent team agent relations created'
+      );
       const createdAgent = await getFullAgentDefinition(db)({
         scopes: { tenantId, projectId, agentId: finalAgentId },
       });
@@ -1057,12 +1086,23 @@ export const updateFullAgentServerSide =
 
       // Delete orphaned subAgentExternalAgentRelations
       // Collect all incoming external agent relationships
-      const incomingExternalAgentRelationIds = new Set<string>();
-      for (const [_subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
+      const incomingExternalAgentRelationIds = new Map<string, string>();
+      const incomingTeamAgentRelationIds = new Map<string, string>();
+      for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         if (agentData.canDelegateTo && Array.isArray(agentData.canDelegateTo)) {
           for (const delegateItem of agentData.canDelegateTo) {
-            if (typeof delegateItem === 'object' && delegateItem.subAgentExternalAgentRelationId) {
-              incomingExternalAgentRelationIds.add(delegateItem.subAgentExternalAgentRelationId);
+            if (typeof delegateItem === 'object') {
+              if ('externalAgentId' in delegateItem) {
+                incomingExternalAgentRelationIds.set(
+                  subAgentId,
+                  delegateItem.subAgentExternalAgentRelationId ?? ''
+                );
+              } else if ('agentId' in delegateItem) {
+                incomingTeamAgentRelationIds.set(
+                  subAgentId,
+                  delegateItem.subAgentTeamAgentRelationId ?? ''
+                );
+              }
             }
           }
         }
@@ -1075,7 +1115,7 @@ export const updateFullAgentServerSide =
 
       let deletedExternalAgentRelationCount = 0;
       for (const relation of existingExternalAgentRelations) {
-        if (!incomingExternalAgentRelationIds.has(relation.id)) {
+        if (!incomingExternalAgentRelationIds.get(relation.subAgentId)?.includes(relation.id)) {
           try {
             await deleteSubAgentExternalAgentRelation(db)({
               scopes: {
@@ -1087,14 +1127,6 @@ export const updateFullAgentServerSide =
               relationId: relation.id,
             });
             deletedExternalAgentRelationCount++;
-            logger.info(
-              {
-                relationId: relation.id,
-                subAgentId: relation.subAgentId,
-                externalAgentId: relation.externalAgentId,
-              },
-              'Deleted orphaned external agent relation'
-            );
           } catch (error) {
             logger.error(
               { relationId: relation.id, error },
@@ -1108,6 +1140,40 @@ export const updateFullAgentServerSide =
         logger.info(
           { deletedExternalAgentRelationCount },
           'Deleted orphaned external agent relations from agent'
+        );
+      }
+
+      // Delete orphaned subAgentTeamAgentRelations
+      let deletedTeamAgentRelationCount = 0;
+      const existingTeamAgentRelations = await getSubAgentTeamAgentRelationsByAgent(db)({
+        scopes: { tenantId, projectId, agentId: finalAgentId },
+      });
+      for (const relation of existingTeamAgentRelations) {
+        if (!incomingTeamAgentRelationIds.get(relation.subAgentId)?.includes(relation.id)) {
+          try {
+            await deleteSubAgentTeamAgentRelation(db)({
+              scopes: {
+                tenantId,
+                projectId,
+                agentId: finalAgentId,
+                subAgentId: relation.subAgentId,
+              },
+              relationId: relation.id,
+            });
+            deletedTeamAgentRelationCount++;
+          } catch (error) {
+            logger.error(
+              { relationId: relation.id, error },
+              'Failed to delete orphaned team agent relation'
+            );
+          }
+        }
+      }
+
+      if (deletedTeamAgentRelationCount > 0) {
+        logger.info(
+          { deletedTeamAgentRelationCount },
+          'Deleted orphaned team agent relations from agent'
         );
       }
 
@@ -1330,9 +1396,11 @@ export const updateFullAgentServerSide =
       await deleteAgentRelationsByAgent(db)({
         scopes: { tenantId, projectId, agentId: typedAgentDefinition.id },
       });
+
       // Then create new relationships
       const subAgentRelationPromises: Promise<void>[] = [];
       const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
+      const subAgentTeamAgentRelationPromises: Promise<void>[] = [];
 
       for (const [subAgentId, agentData] of Object.entries(typedAgentDefinition.subAgents)) {
         // Process canTransferTo - always internal targets (strings only)
@@ -1363,11 +1431,10 @@ export const updateFullAgentServerSide =
           }
         }
 
-        // Process canDelegateTo - can be internal (string) or external (object)
         if (agentData.canDelegateTo) {
           for (const targetItem of agentData.canDelegateTo) {
             if (typeof targetItem === 'string') {
-              // Internal subAgent delegation
+              // subAgent delegation
               subAgentRelationPromises.push(
                 (async () => {
                   try {
@@ -1393,7 +1460,7 @@ export const updateFullAgentServerSide =
                   }
                 })()
               );
-            } else {
+            } else if ('externalAgentId' in targetItem) {
               // External agent delegation
               subAgentExternalAgentRelationPromises.push(
                 (async () => {
@@ -1425,6 +1492,33 @@ export const updateFullAgentServerSide =
                   }
                 })()
               );
+            } else if ('agentId' in targetItem) {
+              logger.info({ subAgentId, targetItem }, 'Processing team agent delegation');
+              // Team agent delegation
+              subAgentTeamAgentRelationPromises.push(
+                (async () => {
+                  try {
+                    await upsertSubAgentTeamAgentRelation(db)({
+                      scopes: { tenantId, projectId, agentId: finalAgentId, subAgentId },
+                      relationId: targetItem.subAgentTeamAgentRelationId,
+                      data: {
+                        targetAgentId: targetItem.agentId,
+                        headers: targetItem.headers || null,
+                      },
+                    });
+
+                    logger.info(
+                      { subAgentId, agentId: targetItem.agentId },
+                      'Team agent delegation relation created'
+                    );
+                  } catch (error) {
+                    logger.error(
+                      { subAgentId, agentId: targetItem.agentId, error },
+                      'Failed to create team agent delegation relation'
+                    );
+                  }
+                })()
+              );
             }
           }
         }
@@ -1442,6 +1536,14 @@ export const updateFullAgentServerSide =
           subAgentExternalAgentRelationPromisesCount: subAgentExternalAgentRelationPromises.length,
         },
         'All sub-agent external agent relations updated'
+      );
+
+      await Promise.all(subAgentTeamAgentRelationPromises);
+      logger.info(
+        {
+          subAgentTeamAgentRelationPromisesCount: subAgentTeamAgentRelationPromises.length,
+        },
+        'All sub-agent team agent relations updated'
       );
 
       // Retrieve and return the updated agent

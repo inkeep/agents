@@ -1,13 +1,17 @@
 import {
   type CredentialStoreRegistry,
   type ExecutionContext,
+  getAgentWithDefaultSubAgent,
   getSubAgentById,
   type SubAgentSelect,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
+import { getLogger } from '../logger';
 import type { SandboxConfig } from '../types/execution-context';
 import dbClient from './db/dbClient';
+
+const logger = getLogger('agents');
 
 /**
  * Create an AgentCard from database agent data
@@ -57,10 +61,11 @@ export function createAgentCard({
  * @param internalRelations - Pre-computed internal relations
  * @param externalRelations - Pre-computed external relations
  */
-export function generateDescriptionWithTransfers(
+export function generateDescriptionWithRelationData(
   baseDescription: string,
   internalRelations: any[],
-  externalRelations: any[]
+  externalRelations: any[],
+  teamRelations: any[]
 ): string {
   // Filter relations by type
   const transfers = [...internalRelations.filter((rel) => rel.relationType === 'transfer')];
@@ -68,6 +73,7 @@ export function generateDescriptionWithTransfers(
   const delegates = [
     ...internalRelations.filter((rel) => rel.relationType === 'delegate'),
     ...externalRelations.map((data) => data.externalAgent),
+    ...teamRelations.map((data) => data.targetAgent),
   ];
 
   // If no relations, return base description
@@ -164,15 +170,28 @@ export async function getRegisteredAgent(params: {
 }): Promise<RegisteredAgent | null> {
   const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
   const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
+  let dbAgent: SubAgentSelect;
 
   if (!subAgentId) {
-    throw new Error('Agent ID is required');
-  }
+    const agent = await getAgentWithDefaultSubAgent(dbClient)({
+      scopes: { tenantId, projectId, agentId },
+    });
+    logger.info({ agent }, 'agent with default sub agent');
+    if (!agent || !agent.defaultSubAgent) {
+      return null;
+    }
 
-  const dbAgent = await getSubAgentById(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-    subAgentId: subAgentId,
-  });
+    dbAgent = agent.defaultSubAgent;
+  } else {
+    const response = await getSubAgentById(dbClient)({
+      scopes: { tenantId, projectId, agentId },
+      subAgentId: subAgentId,
+    });
+    if (!response) {
+      return null;
+    }
+    dbAgent = response;
+  }
   if (!dbAgent) {
     return null;
   }

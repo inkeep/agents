@@ -1,4 +1,4 @@
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import type { ContextConfig, AgentMetadata } from '../../configuration/agent-types';
 import { SectionHeader } from '../section';
 
@@ -32,7 +32,6 @@ export function ContextConfigForm({
           value={contextVariables}
           onChange={(value) => updateContextConfig('contextVariables', value)}
           placeholder="{}"
-          className=""
         />
         <ExpandableJsonEditor
           name="headersSchema"
@@ -40,7 +39,6 @@ export function ContextConfigForm({
           value={headersSchema}
           onChange={(value) => updateContextConfig('headersSchema', value)}
           placeholder="{}"
-          className=""
         />
       </div>
     </div>

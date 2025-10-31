@@ -87,6 +87,8 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=signoz-ingestion-key=<your-ingestion-key>
 
 NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
+
+INKEEP_AGENTS_JWT_SIGNING_SECRET=
 ```
 
 | Environment Variable                  | Value                                                                                                                                                                                                                                      |
@@ -102,6 +104,7 @@ NANGO_SERVER_URL=https://api.nango.dev
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`  | `https://ingest.us.signoz.cloud:443/v1/traces`                                                                                                                                                                                             |
 | `OTEL_EXPORTER_OTLP_TRACES_HEADERS`   | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments. |
 | `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
+| `INKEEP_AGENTS_JWT_SIGNING_SECRET`    | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_JWT_SIGNING_SECRET` in Step 7.                                                                                                      |
 
 ### Step 7: Create a Vercel project for Manage UI
 

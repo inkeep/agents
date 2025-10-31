@@ -1,0 +1,77 @@
+---
+title: Embedded Chat
+description: Integrate Inkeep's embedded chat component directly into your React application for inline agent conversations.
+icon: "LuMonitor"
+---
+
+The EmbeddedChat widget provides a fully embedded chat interface that you can integrate directly into your JavaScript application's layout. Unlike modal or sidebar implementations, the embedded chat becomes part of your page structure, perfect for dedicated support pages, dashboards, or help centers.
+
+## Quick Start
+
+<Steps>
+  <Step>
+    Add the below `<script>` tag to the `<head>` or `<body>` of your website.
+
+    ```html
+    <script
+        type="module"
+        src="https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js@0.15/dist/embed.js"
+        defer
+
+> </script>
+
+    ```
+
+  </Step>
+  <Step>
+    Define an element in your page that will be the "container" for the embedded chat.
+
+    ```html
+    <div style="display: flex; align-items: center; justify-content: center; height: calc(100vh - 16px);">
+      <div style="max-height: 600px; height: 100%;">
+        <div id="ikp-embedded-chat-target"></div>
+      </div>
+    </div>
+    ```
+
+  </Step>
+  <Step>
+    Insert the EmbeddedChat widget by using the `Inkeep.EmbeddedChat()` function.
+
+    ```ts
+    <script type="module">
+      const config = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.INKEEP_API_KEY, // Your API key
+        },
+      };
+
+      // Initialize the widget
+      const widget = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", config);
+    </script>
+    ```
+
+  </Step>
+</Steps>
+
+## Config
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepEmbeddedChatProps"
+/>
+
+### Base Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepBaseSettings"
+/>
+
+### AI Chat Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepAIChatSettings"
+/>

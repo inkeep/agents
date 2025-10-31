@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/performance/noImgElement: n/a */
 import {
   Accordion,
   Accordions,
@@ -23,11 +24,13 @@ import {
 } from '@inkeep/docskit/mdx';
 import { APIPage } from 'fumadocs-openapi/ui';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { createGenerator } from 'fumadocs-typescript';
+import { AutoTypeTable } from '@/components/mdx/auto-type-table';
+
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
-import { YouTubeVideo } from '@/components/youtube-video';
 
 // Snippet component for MDX snippets
 // This is a placeholder that should be replaced by remark-mdx-snippets plugin
@@ -80,11 +83,24 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
   return <OriginalPre {...rest}>{children}</OriginalPre>;
 }
 
+const generator = createGenerator();
+
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
+    AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
+    Image: (props) => (
+      <img
+        alt={props.alt ?? 'Image'}
+        {...props}
+        height={props.height ?? 1200}
+        width={props.width ?? 1200}
+        sizes="100vw"
+        style={{ ...props.style, borderRadius: '10px', width: '100%' }}
+      />
+    ),
     ...components,
     Accordions,
     Accordion,
@@ -109,6 +125,5 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Mermaid,
     Snippet,
-    YouTubeVideo,
   };
 }

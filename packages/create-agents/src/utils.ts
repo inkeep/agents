@@ -1,13 +1,47 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import fs from 'fs-extra';
 import color from 'picocolors';
-import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
+import {
+  type ContentReplacement,
+  cloneTemplate,
+  cloneTemplateLocal,
+  getAvailableTemplates,
+} from './templates.js';
 
+// Shared validation utility
+const DIRECTORY_VALIDATION = {
+  pattern: /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/,
+  reservedNames: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i,
+  minLength: 1,
+  maxLength: 255,
+
+  validate(value: string): string | undefined {
+    if (!value || value.trim() === '') return 'Directory name is required';
+    if (value.length < this.minLength || value.length > this.maxLength) {
+      return `Directory name must be between ${this.minLength} and ${this.maxLength} characters`;
+    }
+    if (this.reservedNames.test(value)) {
+      return 'Directory name cannot be a reserved system name';
+    }
+    if (!this.pattern.test(value)) {
+      return 'Directory name can only contain letters, numbers, and hyphens (-), and underscores (_) and must start with a letter or number';
+    }
+    return undefined;
+  },
+};
+
+const agentsTemplateRepo = 'https://github.com/inkeep/agents/create-agents-template';
+
+const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/template-projects';
 const execAsync = promisify(exec);
+
+const manageApiPort = '3002';
+const runApiPort = '3003';
 
 export const defaultGoogleModelConfigurations = {
   base: {
@@ -52,11 +86,10 @@ type FileConfig = {
   openAiKey?: string;
   anthropicKey?: string;
   googleKey?: string;
-  manageApiPort?: string;
-  runApiPort?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
   disableGit?: boolean;
+  localPrefix?: string;
 };
 
 export const createAgents = async (
@@ -69,12 +102,22 @@ export const createAgents = async (
     template?: string;
     customProjectId?: string;
     disableGit?: boolean;
+    localAgentsPrefix?: string;
+    localTemplatesPrefix?: string;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
+  let {
+    dirName,
+    openAiKey,
+    anthropicKey,
+    googleKey,
+    template,
+    customProjectId,
+    disableGit,
+    localAgentsPrefix,
+    localTemplatesPrefix,
+  } = args;
   const tenantId = 'default';
-  const manageApiPort = '3002';
-  const runApiPort = '3003';
 
   let projectId: string;
   let templateName: string;
@@ -83,7 +126,7 @@ export const createAgents = async (
     projectId = customProjectId;
     templateName = '';
   } else if (template) {
-    const availableTemplates = await getAvailableTemplates();
+    const availableTemplates = await getAvailableTemplates(localTemplatesPrefix);
     if (!availableTemplates.includes(template)) {
       p.cancel(
         `${color.red('✗')} Template "${template}" not found\n\n` +
@@ -95,8 +138,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'event-planner';
-    templateName = 'event-planner';
+    projectId = 'activities-planner';
+    templateName = 'activities-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -106,12 +149,7 @@ export const createAgents = async (
       message: 'What do you want to name your agents directory?',
       placeholder: 'agents',
       defaultValue: 'agents',
-      validate: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Directory name is required';
-        }
-        return undefined;
-      },
+      validate: (value) => DIRECTORY_VALIDATION.validate(value),
     });
 
     if (p.isCancel(dirResponse)) {
@@ -119,6 +157,12 @@ export const createAgents = async (
       process.exit(0);
     }
     dirName = dirResponse as string;
+  } else {
+    // Validate the provided dirName
+    const validationError = DIRECTORY_VALIDATION.validate(dirName);
+    if (validationError) {
+      throw new Error(validationError);
+    }
   }
 
   if (!anthropicKey && !openAiKey && !googleKey) {
@@ -207,12 +251,6 @@ export const createAgents = async (
   s.start('Creating directory structure...');
 
   try {
-    const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
-
-    const projectTemplateRepo = templateName
-      ? `https://github.com/inkeep/agents-cookbook/template-projects/${templateName}`
-      : null;
-
     const directoryPath = path.resolve(process.cwd(), dirName);
 
     if (await fs.pathExists(directoryPath)) {
@@ -230,7 +268,10 @@ export const createAgents = async (
     }
 
     s.message('Building template...');
-    await cloneTemplate(agentsTemplateRepo, directoryPath);
+    await cloneTemplateHelper({
+      targetPath: directoryPath,
+      localPrefix: localAgentsPrefix,
+    });
 
     process.chdir(directoryPath);
 
@@ -241,8 +282,6 @@ export const createAgents = async (
       openAiKey,
       anthropicKey,
       googleKey,
-      manageApiPort: manageApiPort || '3002',
-      runApiPort: runApiPort || '3003',
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
       disableGit: disableGit,
@@ -254,7 +293,7 @@ export const createAgents = async (
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    if (projectTemplateRepo) {
+    if (templateName && templateName.length > 0) {
       s.message('Creating project template folder...');
       const templateTargetPath = `src/projects/${projectId}`;
 
@@ -266,8 +305,12 @@ export const createAgents = async (
           },
         },
       ];
-
-      await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
+      await cloneTemplateHelper({
+        templateName,
+        targetPath: templateTargetPath,
+        localPrefix: localTemplatesPrefix,
+        replacements: contentReplacements,
+      });
     } else {
       s.message('Creating empty project folder...');
       await fs.ensureDir(`src/projects/${projectId}`);
@@ -302,8 +345,8 @@ export const createAgents = async (
         `  cd ${dirName}\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
-        `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
+        `  • Manage API: http://localhost:3002\n` +
+        `  • Run API: http://localhost:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -327,6 +370,8 @@ async function createWorkspaceStructure() {
 async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
   const dbPath = process.cwd().replace(/\\/g, '/');
+
+  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
 
   const envContent = `# Environment
 ENVIRONMENT=development
@@ -353,6 +398,9 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 # Nango Configuration
 NANGO_SECRET_KEY=
+
+# JWT Signing Secret
+INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 `;
 
   await fs.writeFile('.env', envContent);
@@ -360,14 +408,18 @@ NANGO_SECRET_KEY=
 
 async function createInkeepConfig(config: FileConfig) {
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-  const config = defineConfig({
-    tenantId: "${config.tenantId}",
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
-  });
-      
-  export default config;`;
+    
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+  },
+});
+    
+export default config;`;
   await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
@@ -391,6 +443,8 @@ async function installDependencies() {
 async function initializeGit() {
   try {
     await execAsync('git init');
+    await execAsync('git add .');
+    await execAsync('git commit -m "Initial commit from inkeep/create-agents"');
   } catch (error) {
     console.error(
       'Error initializing git:',
@@ -398,8 +452,89 @@ async function initializeGit() {
     );
   }
 }
+/**
+ * Check if a port is available
+ */
+async function isPortAvailable(port: number): Promise<boolean> {
+  const net = await import('node:net');
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // Only treat EADDRINUSE as "port in use", other errors might be transient
+      resolve(err.code === 'EADDRINUSE' ? false : true);
+    });
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    server.listen(port, 'localhost');
+  });
+}
+/**
+ * Display port conflict error and exit
+ */
+function displayPortConflictError(unavailablePorts: {
+  runApi: boolean;
+  manageApi: boolean;
+}): never {
+  let errorMessage = '';
+  if (unavailablePorts.runApi) {
+    errorMessage += `${color.red(`Run API port ${runApiPort} is already in use`)}\n`;
+  }
+  if (unavailablePorts.manageApi) {
+    errorMessage += `${color.red(`Manage API port ${manageApiPort} is already in use`)}\n`;
+  }
+
+  p.cancel(
+    `\n${color.red('✗ Port conflicts detected')}\n\n` +
+      `${errorMessage}\n` +
+      `${color.yellow('Please free up the ports and try again.')}\n`
+  );
+  process.exit(1);
+}
+
+/**
+ * Check port availability and display errors if needed
+ */
+async function checkPortsAvailability(): Promise<void> {
+  const [runApiAvailable, manageApiAvailable] = await Promise.all([
+    isPortAvailable(Number(runApiPort)),
+    isPortAvailable(Number(manageApiPort)),
+  ]);
+
+  if (!runApiAvailable || !manageApiAvailable) {
+    displayPortConflictError({
+      runApi: !runApiAvailable,
+      manageApi: !manageApiAvailable,
+    });
+  }
+}
+
+/**
+ * Wait for a server to be ready by polling a health endpoint
+ */
+async function waitForServerReady(url: string, timeout: number): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Server not ready yet, continue polling
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
+  }
+  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
+}
 
 async function setupProjectInDatabase(config: FileConfig) {
+  // Proactively check if ports are available BEFORE starting servers
+  await checkPortsAvailability();
+
+  // Start development servers in background
   const { spawn } = await import('node:child_process');
   const devProcess = spawn('pnpm', ['dev:apis'], {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -409,8 +544,52 @@ async function setupProjectInDatabase(config: FileConfig) {
     windowsHide: true,
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Track if port errors occur during startup (as a safety fallback)
+  const portErrors = { runApi: false, manageApi: false };
 
+  // Regex patterns for detecting port errors in output
+  const portErrorPatterns = {
+    runApi: new RegExp(
+      `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
+      'i'
+    ),
+    manageApi: new RegExp(
+      `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
+      'i'
+    ),
+  };
+
+  // Monitor output for port errors (fallback in case ports become unavailable between check and start)
+  const checkForPortErrors = (data: Buffer) => {
+    const output = data.toString();
+    if (portErrorPatterns.runApi.test(output)) {
+      portErrors.runApi = true;
+    }
+    if (portErrorPatterns.manageApi.test(output)) {
+      portErrors.manageApi = true;
+    }
+  };
+
+  devProcess.stdout.on('data', checkForPortErrors);
+
+  // Wait for servers to be ready
+  try {
+    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
+    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
+  } catch (error) {
+    // If servers don't start, we'll still try push but it will likely fail
+    console.warn(
+      'Warning: Servers may not be fully ready:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+
+  // Check if any port errors occurred during startup
+  if (portErrors.runApi || portErrors.manageApi) {
+    displayPortConflictError(portErrors);
+  }
+
+  // Run inkeep push
   try {
     await execAsync(
       `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
@@ -447,6 +626,30 @@ async function setupDatabase() {
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+}
+
+async function cloneTemplateHelper(options: {
+  targetPath: string;
+  templateName?: string;
+  localPrefix?: string;
+  replacements?: ContentReplacement[];
+}) {
+  const { targetPath, templateName, localPrefix, replacements } = options;
+  // If local prefix is provided, use it to clone the template. This is useful for local development and testing.
+  if (localPrefix && localPrefix.length > 0) {
+    if (templateName) {
+      const fullTemplatePath = path.join(localPrefix, templateName);
+      await cloneTemplateLocal(fullTemplatePath, targetPath, replacements);
+    } else {
+      await cloneTemplateLocal(localPrefix, targetPath, replacements);
+    }
+  } else {
+    if (templateName) {
+      await cloneTemplate(`${projectTemplateRepo}/${templateName}`, targetPath, replacements);
+    } else {
+      await cloneTemplate(agentsTemplateRepo, targetPath, replacements);
+    }
   }
 }
 

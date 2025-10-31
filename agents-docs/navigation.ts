@@ -10,13 +10,27 @@ export default {
             'get-started/quick-start',
             'get-started/push-pull',
             'get-started/traces',
-            'get-started/credentials',
+            'get-started/upgrading',
           ],
         },
         'concepts',
       ],
     },
-
+    {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'MCP Servers',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },      
+      ],
+    },
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
@@ -25,13 +39,22 @@ export default {
         'typescript-sdk/models',
         'typescript-sdk/agent-relationships',
         {
-          group: 'Tools and MCPs',
+          group: 'Tools',
           icon: 'LuHammer',
           pages: [
-            'typescript-sdk/tools/mcp-servers',
-            'typescript-sdk/tools/create-mcp-servers',
+            'typescript-sdk/tools/mcp-tools',
             'typescript-sdk/tools/function-tools',
-            'typescript-sdk/tools/credentials',
+          ],
+        },
+        {
+          group: 'Credentials',
+          icon: 'LuKey',
+          pages: [
+            'typescript-sdk/credentials/overview',
+            'typescript-sdk/credentials/nango',
+            'typescript-sdk/credentials/keychain',
+            'typescript-sdk/credentials/environment-variables',
+            'typescript-sdk/credentials/env-aware-credentials',
           ],
         },
         'typescript-sdk/headers',
@@ -109,10 +132,33 @@ export default {
           group: 'Chat Components',
           icon: 'LuBlocks',
           pages: [
-            'talk-to-your-agents/react/chat-button',
-            'talk-to-your-agents/react/custom-trigger',
-            'talk-to-your-agents/react/side-bar-chat',
-            'talk-to-your-agents/react/embedded-chat',
+            {
+              group: 'React',
+              icon: 'brand/ReactIcon',
+              pages: [
+                'talk-to-your-agents/react/chat-button',
+                'talk-to-your-agents/react/custom-trigger',
+                'talk-to-your-agents/react/side-bar-chat',
+                'talk-to-your-agents/react/embedded-chat',
+              ],
+            },
+            {
+              group: 'JavaScript',
+              icon: 'brand/JavascriptIcon',
+              pages: [
+                'talk-to-your-agents/javascript/chat-button',
+                'talk-to-your-agents/javascript/custom-trigger',
+                'talk-to-your-agents/javascript/side-bar-chat',
+                'talk-to-your-agents/javascript/embedded-chat',
+              ],
+            },
+            {
+              group: "Customization",
+              icon: "LuBrush",
+              pages: [
+                'ui-components/customization/styling',
+              ]
+            }
           ],
         },
         {

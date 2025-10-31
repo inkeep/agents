@@ -1,12 +1,15 @@
 ---
 title: Quick Start
 description: Start developing your agents with the Inkeep Agent framework
-icon: "LuRocket"    
+icon: "LuRocket"
 ---
 
 ## Launch your first agent
 
-<YouTubeVideo videoId="T7ZKQz7Y1-E" title="Quick Start with Inkeep Agents" caption="Visual guide to the Quick Start steps" />
+<Video
+  src="https://www.youtube.com/watch?v=T7ZKQz7Y1-E&t=3s"
+  title="Visual guide to the Quick Start steps"
+/>
 
 ### Prerequisites
 
@@ -27,7 +30,7 @@ pnpm --version
 First, create a new agents project.
 
 ```bash
-npx @inkeep/create-agents my-agent-directory 
+npx @inkeep/create-agents my-agent-directory
 ```
 
 Navigate to the new agents project.
@@ -48,22 +51,43 @@ The Visual Builder automatically opens at http://localhost:3000.
 
 Navigate to the Event Planner agent at http://localhost:3000, click **Try it**, and ask about fun activities at a location of your choice.
 
-<img src="/gifs/event-planner.gif" alt="Chat with your agent" width="100%" style={{ borderRadius: "10px" }} />
+<Image src="/gifs/event-planner.gif" alt="Chat with your agent" />
 
 ### Step 4: Install Inkeep MCP (optional)
 
 To help with development, add the `Inkeep Agents MCP` to your preferred IDE or MCP client. It has tools to help "vibe code" agents with the Inkeep SDK.
 
-<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '16px' }}>
+<div
+  style={{
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "16px",
+  }}
+>
   <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=inkeep-agents&config=eyJ1cmwiOiJodHRwczovL2FnZW50cy5pbmtlZXAuY29tL21jcCJ9">
-    <img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add to Cursor" style={{ height: '32px', verticalAlign: 'middle' }} />
+    <Image
+      src="https://cursor.com/deeplink/mcp-install-dark.png"
+      alt="Add to Cursor"
+      style={{ height: "32px", verticalAlign: "middle" }}
+    />
   </a>
   <a href="vscode:mcp/install?%7B%22name%22%3A%22inkeep-agents-mcp%22%2C%22type%22%3A%22sse%22%2C%22url%22%3A%22https%3A%2F%2Fagents.inkeep.com%2Fmcp%22%7D">
-    <img src="https://img.shields.io/badge/VS_Code-Install_Inkeep_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff" alt="Install in VS Code" style={{ height: '22px', verticalAlign: 'middle' }}/>
+    <Image
+      src="https://img.shields.io/badge/VS_Code-Install_Inkeep_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=ffffff"
+      alt="Install in VS Code"
+      style={{ height: "22px", verticalAlign: "middle" }}
+    />
   </a>
 </div>
 
-Or manually install with any MCP client:
+To add to **Claude Code**, run this in your terminal:
+
+```bash
+claude mcp add --transport http inkeep-agents https://agents.inkeep.com/mcp --scope project
+```
+
+Or manually add to any MCP client:
 
 ```json
 {
@@ -80,7 +104,11 @@ Or manually install with any MCP client:
 Next, we recommend learning about `inkeep push` and `inkeep pull` so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`. See the [Push / Pull](/get-started/push-pull) guide for a quick example.
 
 <Cards>
-  <Card title="Push / Pull" icon="LuArrowLeftRight" href="/get-started/push-pull">
+  <Card
+    title="Push / Pull"
+    icon="LuArrowLeftRight"
+    href="/get-started/push-pull"
+  >
     Use our cookbook to learn about push and pull.
   </Card>
 </Cards>

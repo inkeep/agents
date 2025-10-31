@@ -129,14 +129,13 @@ describe('auth-detection', () => {
 
       const result = await detectAuthenticationRequired({
         serverUrl: 'https://mcp.example.com',
-        toolId: 'test-tool',
         error: new Error('Test error'),
         logger: mockLogger,
       });
 
       expect(result).toBe(true);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        { toolId: 'test-tool', serverUrl: 'https://mcp.example.com' },
+        { serverUrl: 'https://mcp.example.com' },
         'MCP OAuth support confirmed via metadata discovery'
       );
     });
@@ -148,14 +147,13 @@ describe('auth-detection', () => {
 
       const result = await detectAuthenticationRequired({
         serverUrl: 'https://mcp.example.com',
-        toolId: 'test-tool',
         error: new Error('Test error'),
         logger: mockLogger,
       });
 
       expect(result).toBe(false);
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        { toolId: 'test-tool', error: 'Test error' },
+        { error: 'Test error' },
         'No MCP OAuth authentication requirement detected'
       );
     });
@@ -175,14 +173,13 @@ describe('auth-detection', () => {
 
       const result = await detectAuthenticationRequired({
         serverUrl: 'https://mcp.example.com',
-        toolId: 'test-tool',
         error: new Error('Test error'),
         logger: mockLogger,
       });
 
       expect(result).toBe(true);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        { toolId: 'test-tool', serverUrl: 'https://mcp.example.com' },
+        { serverUrl: 'https://mcp.example.com' },
         'MCP OAuth support confirmed via metadata discovery'
       );
     });

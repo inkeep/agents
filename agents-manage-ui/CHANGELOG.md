@@ -1,5 +1,226 @@
 # @inkeep/agents-manage-ui
 
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+- Updated dependencies [e95f0d3]
+- Updated dependencies [94fe795]
+  - @inkeep/agents-core@0.30.0
+  - @inkeep/agents-manage-api@0.30.0
+  - @inkeep/agents-run-api@0.30.0
+
+## 0.29.11
+
+### Patch Changes
+
+- 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+- 69c303e: fix validation errors for Sub Agents and setup Cypress e2e tests
+- Updated dependencies [dba5a31]
+- Updated dependencies [b0817aa]
+  - @inkeep/agents-core@0.29.11
+  - @inkeep/agents-manage-api@0.29.11
+  - @inkeep/agents-run-api@0.29.11
+
+## 0.29.10
+
+### Patch Changes
+
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+  - @inkeep/agents-manage-api@0.29.10
+  - @inkeep/agents-run-api@0.29.10
+
+## 0.29.9
+
+### Patch Changes
+
+- cd5b846: - Update agents-ui to latest, update docs to reflect renaming of modalSettings to openSettings"
+  - @inkeep/agents-manage-api@0.29.9
+  - @inkeep/agents-run-api@0.29.9
+  - @inkeep/agents-core@0.29.9
+
+## 0.29.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.29.8
+- @inkeep/agents-run-api@0.29.8
+- @inkeep/agents-core@0.29.8
+
+## 0.29.7
+
+### Patch Changes
+
+- Updated dependencies [a4cf6d8]
+  - @inkeep/agents-manage-api@0.29.7
+  - @inkeep/agents-run-api@0.29.7
+  - @inkeep/agents-core@0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+- Updated dependencies [6c52cc6]
+  - @inkeep/agents-core@0.29.6
+  - @inkeep/agents-run-api@0.29.6
+  - @inkeep/agents-manage-api@0.29.6
+
+## 0.29.5
+
+### Patch Changes
+
+- Updated dependencies [767d466]
+  - @inkeep/agents-core@0.29.5
+  - @inkeep/agents-manage-api@0.29.5
+  - @inkeep/agents-run-api@0.29.5
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- 0bfcd17: fix external link icon and arrow right icon to prevent color overflow
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+  - @inkeep/agents-manage-api@0.29.4
+  - @inkeep/agents-run-api@0.29.4
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+- Updated dependencies [d26c5a4]
+  - @inkeep/agents-core@0.29.3
+  - @inkeep/agents-manage-api@0.29.3
+  - @inkeep/agents-run-api@0.29.3
+
+## 0.29.2
+
+### Patch Changes
+
+- b499ce6: - Make agents plural in breadcrumbs ans agents page
+  - @inkeep/agents-manage-api@0.29.2
+  - @inkeep/agents-run-api@0.29.2
+  - @inkeep/agents-core@0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+- Updated dependencies [f2ac869]
+- Updated dependencies [37e50a6]
+- Updated dependencies [65f4b1a]
+  - @inkeep/agents-core@0.29.1
+  - @inkeep/agents-manage-api@0.29.1
+  - @inkeep/agents-run-api@0.29.1
+
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+### Patch Changes
+
+- Updated dependencies [38db07a]
+  - @inkeep/agents-core@0.29.0
+  - @inkeep/agents-manage-api@0.29.0
+  - @inkeep/agents-run-api@0.29.0
+
+## 0.28.0
+
+### Minor Changes
+
+- 8e3dfb1: zoom into section of graph where agent is selected
+- e63ba9e: replace `JSON`/`Prompt`/`Code` Codemirror editors with Monaco-editors
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- dbeddf1: fix for data animation, bug highlights unrelated MCP tools on invocation
+- bb4ea0e: - Fix errors in agent builder
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- c10ac33: fix: polling on activities cause chat widget to re-render every second
+- 074e076: mcp evironment settings
+- Updated dependencies [74a4d0b]
+- Updated dependencies [b4e878d]
+- Updated dependencies [96c499d]
+- Updated dependencies [074e076]
+  - @inkeep/agents-manage-api@0.28.0
+  - @inkeep/agents-run-api@0.28.0
+  - @inkeep/agents-core@0.28.0
+
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+- Updated dependencies [4a2af4c]
+- Updated dependencies [0a6df6e]
+- Updated dependencies [a423b57]
+  - @inkeep/agents-core@0.27.0
+  - @inkeep/agents-run-api@0.27.0
+  - @inkeep/agents-manage-api@0.27.0
+
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- c1c55b5: Tighten up form styles, styles for component generation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+  - @inkeep/agents-core@0.26.2
+  - @inkeep/agents-manage-api@0.26.2
+  - @inkeep/agents-run-api@0.26.2
+
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+  - @inkeep/agents-manage-api@0.26.1
+  - @inkeep/agents-run-api@0.26.1
+
+## 0.26.0
+
+### Minor Changes
+
+- 0562d82: include `Projects` > `Project Name` > in breadcrumbs
+
+### Patch Changes
+
+- 5f537a8: remove unneeded agents-manage-ui/src/components/theme-provider.tsx file (next-themes already has `use client` directive)
+  - @inkeep/agents-manage-api@0.26.0
+  - @inkeep/agents-run-api@0.26.0
+  - @inkeep/agents-core@0.26.0
+
 ## 0.25.0
 
 ### Minor Changes
