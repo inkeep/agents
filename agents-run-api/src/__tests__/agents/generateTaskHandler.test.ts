@@ -265,6 +265,7 @@ vi.mock('@inkeep/agents-core', () => ({
     debug: vi.fn(),
   })),
   generateId: vi.fn(() => 'test-id-123'),
+  loadEnvironmentFiles: vi.fn(),
   TaskState: {
     Completed: 'completed',
     Failed: 'failed',
