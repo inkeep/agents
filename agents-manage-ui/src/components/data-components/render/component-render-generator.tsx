@@ -14,13 +14,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { updateDataComponent } from '@/lib/api/data-components';
+import { cn } from '@/lib/utils';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
 
-const StyledTabsTrigger = (props: React.ComponentProps<typeof TabsTrigger>) => {
+export const StyledTabsTrigger = (props: React.ComponentProps<typeof TabsTrigger>) => {
   return (
     <TabsTrigger
       {...props}
-      className="bg-transparent data-[state=active]:border-primary dark:data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:bg-transparent uppercase font-mono text-xs mt-0.5 pt-2"
+      className={cn(
+        'bg-transparent data-[state=active]:border-primary dark:data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:bg-transparent uppercase font-mono text-xs mt-0.5 pt-2',
+        props.className
+      )}
     />
   );
 };
