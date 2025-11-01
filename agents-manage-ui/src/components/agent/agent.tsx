@@ -828,7 +828,8 @@ function Flow({
               ...node,
               data: {
                 ...node.data,
-                isDelegating: node.id === fromSubAgent || node.id === targetSubAgent,
+                status:
+                  node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null,
               },
             }))
           );
@@ -853,8 +854,8 @@ function Flow({
               ...node,
               data: {
                 ...node.data,
-                isExecuting: false,
-                isDelegating: node.id === targetSubAgent || node.id === fromSubAgent,
+                status:
+                  node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null,
               },
             }))
           );
@@ -882,13 +883,14 @@ function Flow({
                 ...node,
                 data: {
                   ...node.data,
-                  isExecuting: false,
-                  isDelegating:
+                  status:
                     node.data.id === subAgentId ||
                     hasRelationWithSubAgent({
                       relationshipId: node.data.relationshipId,
                       subAgentId,
-                    }),
+                    })
+                      ? 'delegating'
+                      : null,
                 },
               };
             });
@@ -946,7 +948,10 @@ function Flow({
           setNodes((prevNodes) =>
             prevNodes.map((node) => ({
               ...node,
-              data: { ...node.data, isExecuting: node.id === subAgentId, isDelegating: false },
+              data: {
+                ...node.data,
+                status: node.id === subAgentId ? 'executing' : null,
+              },
             }))
           );
           break;
@@ -964,7 +969,7 @@ function Flow({
       setNodes((prevNodes) =>
         prevNodes.map((node) => ({
           ...node,
-          data: { ...node.data, isExecuting: false, isDelegating: false },
+          data: { ...node.data, status: null },
         }))
       );
     };

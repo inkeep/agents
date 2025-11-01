@@ -18,15 +18,16 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
   const functionToolId = data.toolId || data.functionToolId || id;
   const nodeErrors = getNodeErrors(functionToolId);
   const hasErrors = hasNodeErrors(functionToolId);
-
+  const isDelegating = data.status === 'delegating';
+  const isExecuting = data.status === 'executing';
   return (
     <div className="relative">
       <BaseNode
-        isSelected={selected || data.isDelegating}
+        isSelected={selected || isDelegating}
         className={cn(
           'rounded-4xl min-w-40 max-w-xs',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          data.isExecuting && 'node-executing'
+          isExecuting && 'node-executing'
         )}
       >
         <BaseNodeHeader className="mb-0 py-3">

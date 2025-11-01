@@ -21,7 +21,6 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   const name = data.name || `Tool: ${data.toolId}`;
   const imageUrl = data.imageUrl;
-  const provider = data.provider;
   const toolData = toolLookup[data.toolId];
 
   const availableTools = toolData?.availableTools;
@@ -77,14 +76,12 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   };
 
   const toolBadges = getToolDisplay();
-
+  const isDelegating = data.status === 'delegating';
+  const isExecuting = data.status === 'executing';
   return (
     <BaseNode
-      isSelected={selected || data.isDelegating}
-      className={cn(
-        'rounded-4xl min-w-40 min-h-13 max-w-3xs',
-        data.isExecuting && 'node-executing'
-      )}
+      isSelected={selected || isDelegating}
+      className={cn('rounded-4xl min-w-40 min-h-13 max-w-3xs', isExecuting && 'node-executing')}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">
         <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
