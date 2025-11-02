@@ -13,7 +13,14 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type ComponentPropsWithoutRef,
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -87,6 +94,8 @@ import NodeLibrary from './node-library/node-library';
 import { Playground } from './playground/playground';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { debounce } from '@/lib/utils/debounce';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
@@ -103,6 +112,7 @@ interface AgentProps {
 }
 
 type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
+type ResizablePanelProps = Required<ComponentPropsWithoutRef<typeof ResizablePanel>>;
 
 function Flow({
   agent,
@@ -264,10 +274,11 @@ function Flow({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata, panelSize } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
+    panelSize: state.panelSize,
   }));
   const {
     setNodes,
@@ -280,6 +291,7 @@ function Flow({
     clearSelection,
     markUnsaved,
     reset,
+    setPanelSize,
   } = useAgentActions();
 
   // Always use enriched nodes for ReactFlow
@@ -993,9 +1005,31 @@ function Flow({
     [fitView, isOpen]
   );
 
+  const handlePlaygroundPaneResize: ResizablePanelProps['onResize'] = useCallback(
+    debounce(300, (size) => {
+      setPanelSize({ playgroundPane: size });
+    }),
+    []
+  );
+  const handleSidePaneResize: ResizablePanelProps['onResize'] = useCallback(
+    debounce(300, (size) => {
+      setPanelSize({ sidePane: size });
+    }),
+    []
+  );
+
   return (
-    <div className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden">
-      <div className={`flex-1 h-full relative transition-all duration-300 ease-in-out`}>
+    <ResizablePanelGroup
+      direction="horizontal"
+      className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
+    >
+      <ResizablePanel
+        // Panel id and order props recommended when panels are dynamically rendered
+        id="react-flow-pane"
+        order={1}
+        minSize={30}
+        className="flex-1 h-full relative transition-all duration-300 ease-in-out"
+      >
         <DefaultMarker />
         <SelectedMarker />
         <ReactFlow
@@ -1054,31 +1088,53 @@ function Flow({
             </Panel>
           )}
         </ReactFlow>
-      </div>
-      <SidePane
-        selectedNodeId={nodeId}
-        selectedEdgeId={edgeId}
+      </ResizablePanel>
+      <ResizableSidePane
+        defaultSize={panelSize.sidePane}
+        onResize={handleSidePaneResize}
+        order={2}
+        id="side-pane"
+        minSize={24}
         isOpen={isOpen}
-        onClose={closeSidePane}
-        backToAgent={backToAgent}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        agentToolConfigLookup={agentToolConfigLookup}
-        subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-        subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-        credentialLookup={credentialLookup}
-      />
-      {showPlayground && agent?.id && (
-        <Playground
-          agentId={agent?.id}
-          projectId={projectId}
-          tenantId={tenantId}
-          setShowPlayground={setShowPlayground}
-          closeSidePane={closeSidePane}
+        // className="[flex-grow:0]"
+      >
+        <SidePane
+          selectedNodeId={nodeId}
+          selectedEdgeId={edgeId}
+          isOpen={isOpen}
+          onClose={closeSidePane}
+          backToAgent={backToAgent}
           dataComponentLookup={dataComponentLookup}
+          artifactComponentLookup={artifactComponentLookup}
+          agentToolConfigLookup={agentToolConfigLookup}
+          subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+          subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+          credentialLookup={credentialLookup}
         />
+      </ResizableSidePane>
+      {showPlayground && agent?.id && (
+        <>
+          <ResizableHandle />
+          <ResizablePanel
+            defaultSize={panelSize.playgroundPane}
+            onResize={handlePlaygroundPaneResize}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="playground-pane"
+            order={3}
+            minSize={27}
+          >
+            <Playground
+              agentId={agent?.id}
+              projectId={projectId}
+              tenantId={tenantId}
+              setShowPlayground={setShowPlayground}
+              closeSidePane={closeSidePane}
+              dataComponentLookup={dataComponentLookup}
+            />
+          </ResizablePanel>
+        </>
       )}
-    </div>
+    </ResizablePanelGroup>
   );
 }
 
@@ -1089,3 +1145,23 @@ export function Agent(props: AgentProps) {
     </ReactFlowProvider>
   );
 }
+
+interface ResizableSidePaneProps extends ComponentPropsWithoutRef<typeof ResizablePanel> {
+  isOpen: boolean;
+}
+
+/**
+ * When side pane is closed we don't need to render ResizablePanel
+ */
+const ResizableSidePane: FC<ResizableSidePaneProps> = ({ isOpen, ...props }) => {
+  if (!isOpen) {
+    return props.children;
+  }
+
+  return (
+    <>
+      <ResizableHandle />
+      <ResizablePanel {...props} />
+    </>
+  );
+};

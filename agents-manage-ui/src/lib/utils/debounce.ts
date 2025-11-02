@@ -4,7 +4,7 @@
  */
 export function debounce<F extends (...args: any[]) => any>(duration: number, fn: F) {
   let timeout = 0;
-  return (...args: any[]) => {
+  return ((...args: any[]) => {
     if (timeout) {
       clearTimeout(timeout);
     }
@@ -12,5 +12,5 @@ export function debounce<F extends (...args: any[]) => any>(duration: number, fn
       timeout = 0;
       fn(...args);
     }, duration);
-  };
+  }) as F;
 }
