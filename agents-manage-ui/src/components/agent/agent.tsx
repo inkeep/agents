@@ -15,10 +15,12 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import {
   type ComponentPropsWithoutRef,
+  type ComponentRef,
   type FC,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { toast } from 'sonner';
@@ -1014,6 +1016,7 @@ function Flow({
         id="react-flow-pane"
         order={1}
         minSize={30}
+        defaultSize={100}
         className="flex-1 h-full relative transition-all duration-300 ease-in-out"
       >
         <DefaultMarker />
@@ -1075,7 +1078,8 @@ function Flow({
           )}
         </ReactFlow>
       </ResizablePanel>
-      <ResizableSidePane
+      <ResizableHandle withHandle />
+      <DynamicResizablePanel
         //
         defaultSize={40}
         order={2}
@@ -1086,7 +1090,6 @@ function Flow({
         <SidePane
           selectedNodeId={nodeId}
           selectedEdgeId={edgeId}
-          isOpen={isOpen}
           onClose={closeSidePane}
           backToAgent={backToAgent}
           dataComponentLookup={dataComponentLookup}
@@ -1096,27 +1099,16 @@ function Flow({
           subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
           credentialLookup={credentialLookup}
         />
-      </ResizableSidePane>
+      </DynamicResizablePanel>
       {showPlayground && agent?.id && (
-        <>
-          <ResizableHandle />
-          <ResizablePanel
-            defaultSize={33}
-            // Panel id and order props recommended when panels are dynamically rendered
-            id="playground-pane"
-            order={3}
-            minSize={27}
-          >
-            <Playground
-              agentId={agent.id}
-              projectId={projectId}
-              tenantId={tenantId}
-              setShowPlayground={setShowPlayground}
-              closeSidePane={closeSidePane}
-              dataComponentLookup={dataComponentLookup}
-            />
-          </ResizablePanel>
-        </>
+        <Playground
+          agentId={agent.id}
+          projectId={projectId}
+          tenantId={tenantId}
+          setShowPlayground={setShowPlayground}
+          closeSidePane={closeSidePane}
+          dataComponentLookup={dataComponentLookup}
+        />
       )}
     </ResizablePanelGroup>
   );
@@ -1130,22 +1122,40 @@ export function Agent(props: AgentProps) {
   );
 }
 
-interface ResizableSidePaneProps extends ComponentPropsWithoutRef<typeof ResizablePanel> {
+interface DynamicResizablePanelProps extends ComponentPropsWithoutRef<typeof ResizablePanel> {
   isOpen: boolean;
 }
 
 /**
  * When side pane is closed we don't need to render ResizablePanel
  */
-const ResizableSidePane: FC<ResizableSidePaneProps> = ({ isOpen, ...props }) => {
-  if (!isOpen) {
-    return props.children;
+const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...props }) => {
+  const resizablePanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const el = resizablePanelRef.current;
+    console.log({ el });
+    if (!el) {
+      return;
+    }
+    if (isOpen) {
+      console.log('expand');
+      el.expand();
+    } else {
+      console.log('collapse');
+      el.collapse();
+    }
+  }, [isOpen]);
+  console.log({ isOpen });
+
+  if (!isMounted) {
+    return null;
   }
 
-  return (
-    <>
-      <ResizableHandle />
-      <ResizablePanel {...props} />
-    </>
-  );
+  return <ResizablePanel ref={resizablePanelRef} collapsible collapsedSize={0} {...props} />;
 };
