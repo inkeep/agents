@@ -131,8 +131,8 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  constructor(modelId: string, options: InkeepChatOptions, config: InkeepChatConfig) {
-    this.modelId = modelId;
+  constructor(options: InkeepChatOptions, config: InkeepChatConfig) {
+    this.modelId = 'inkeep-agent';
     this.options = options;
     this.config = config;
   }
@@ -142,7 +142,6 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
 
     return {
       args: {
-        model: this.modelId,
         messages: convertToInkeepChatMessages(options.prompt),
         conversationId: this.options.conversationId,
         headers: this.options.headers,

@@ -17,9 +17,9 @@ describe('InkeepChatLanguageModel', () => {
 
   describe('Model initialization', () => {
     it('should create model with correct properties', () => {
-      const model = new InkeepChatLanguageModel('agent-123', {}, mockConfig);
+      const model = new InkeepChatLanguageModel({}, mockConfig);
 
-      expect(model.modelId).toBe('agent-123');
+      expect(model.modelId).toBe('inkeep-agent');
       expect(model.provider).toBe('inkeep');
       expect(model.specificationVersion).toBe('v2');
       expect(model.defaultObjectGenerationMode).toBeUndefined();
@@ -32,7 +32,7 @@ describe('InkeepChatLanguageModel', () => {
         headers: { 'user-id': 'user-456' },
       };
 
-      const model = new InkeepChatLanguageModel('agent-123', options, mockConfig);
+      const model = new InkeepChatLanguageModel(options, mockConfig);
 
       expect(model.options.conversationId).toBe('conv-123');
       expect(model.options.headers).toEqual({ 'user-id': 'user-456' });
@@ -71,7 +71,7 @@ describe('InkeepChatLanguageModel', () => {
         text: async () => JSON.stringify(mockResponse),
       });
 
-      const model = new InkeepChatLanguageModel('agent-123', {}, mockConfig);
+      const model = new InkeepChatLanguageModel({}, mockConfig);
 
       const options: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
@@ -111,7 +111,7 @@ describe('InkeepChatLanguageModel', () => {
         text: async () => JSON.stringify(mockResponse),
       });
 
-      const model = new InkeepChatLanguageModel('agent-123', {}, mockConfig);
+      const model = new InkeepChatLanguageModel({}, mockConfig);
 
       const options: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
@@ -145,7 +145,6 @@ describe('InkeepChatLanguageModel', () => {
       });
 
       const model = new InkeepChatLanguageModel(
-        'agent-123',
         {
           conversationId: 'conv-456',
           headers: { 'user-id': 'user-789' },
@@ -191,7 +190,7 @@ describe('InkeepChatLanguageModel', () => {
         text: async () => JSON.stringify(mockResponse),
       });
 
-      const model = new InkeepChatLanguageModel('agent-123', {}, mockConfig);
+      const model = new InkeepChatLanguageModel({}, mockConfig);
 
       const options: LanguageModelV2CallOptions = {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
