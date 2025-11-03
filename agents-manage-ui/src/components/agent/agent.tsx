@@ -1078,7 +1078,7 @@ function Flow({
           )}
         </ReactFlow>
       </ResizablePanel>
-      <ResizableHandle withHandle />
+      <ResizableHandle withHandle className={isOpen ? '' : 'hidden'} />
       <DynamicResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="side-pane"
@@ -1134,12 +1134,12 @@ const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...prop
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // To avoid layout shifts on initial loading
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
     const el = panelRef.current;
-    console.log({ el });
     if (!el) {
       return;
     }
@@ -1149,7 +1149,6 @@ const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...prop
       el.collapse();
     }
   }, [isOpen]);
-  console.log({ isOpen });
 
   if (!isMounted) {
     return null;
