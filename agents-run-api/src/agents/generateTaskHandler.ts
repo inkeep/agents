@@ -263,7 +263,7 @@ export const createTaskHandler = (
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(
-            async (item) => await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry)
+            async (item) => await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry, item.id)
           )
         )) ?? [];
 

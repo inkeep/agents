@@ -559,6 +559,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   createdAt: z.date(),
   updatedAt: z.date(),
   expiresAt: z.date().optional(),
+  relationshipId: z.string().optional(),
 });
 
 export const MCPToolConfigSchema = McpToolSchema.omit({
