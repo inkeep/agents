@@ -118,10 +118,6 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
-  panelSize: {
-    playgroundPane: 40,
-    sidePane: 33,
-  },
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
@@ -318,30 +314,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       if (!errors || !errors.edgeErrors[edgeId]) return [];
       return errors.edgeErrors[edgeId];
     },
-    setPanelSize(newPanelSize) {
-      set(({ panelSize }) => ({
-        panelSize: {
-          ...panelSize,
-          ...newPanelSize,
-        },
-      }));
-    },
   },
 });
 
-export const agentStore = create<AgentState>()(
-  devtools(
-    persist(agentState, {
-      name: 'agent-store',
-      partialize(state) {
-        // We are saving only `panelSize` in `localStorage`
-        return {
-          panelSize: state.panelSize,
-        };
-      },
-    })
-  )
-);
+export const agentStore = create<AgentState>()(devtools(agentState));
 
 /**
  * Actions are functions that update values in your store.
