@@ -95,7 +95,6 @@ import { Playground } from './playground/playground';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { debounce } from '@/lib/utils/debounce';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
@@ -274,7 +273,7 @@ function Flow({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata, panelSize } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
@@ -291,7 +290,6 @@ function Flow({
     clearSelection,
     markUnsaved,
     reset,
-    setPanelSize,
   } = useAgentActions();
 
   // Always use enriched nodes for ReactFlow
@@ -1005,22 +1003,10 @@ function Flow({
     [fitView, isOpen]
   );
 
-  const handlePlaygroundPaneResize: ResizablePanelProps['onResize'] = useCallback(
-    debounce(300, (size) => {
-      setPanelSize({ playgroundPane: size });
-    }),
-    []
-  );
-  const handleSidePaneResize: ResizablePanelProps['onResize'] = useCallback(
-    debounce(300, (size) => {
-      setPanelSize({ sidePane: size });
-    }),
-    []
-  );
-
   return (
     <ResizablePanelGroup
       direction="horizontal"
+      autoSaveId="AGENT"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
       <ResizablePanel
@@ -1090,13 +1076,12 @@ function Flow({
         </ReactFlow>
       </ResizablePanel>
       <ResizableSidePane
-        defaultSize={panelSize.sidePane}
-        onResize={handleSidePaneResize}
+        //
+        defaultSize={40}
         order={2}
         id="side-pane"
         minSize={24}
         isOpen={isOpen}
-        // className="[flex-grow:0]"
       >
         <SidePane
           selectedNodeId={nodeId}
@@ -1116,15 +1101,14 @@ function Flow({
         <>
           <ResizableHandle />
           <ResizablePanel
-            defaultSize={panelSize.playgroundPane}
-            onResize={handlePlaygroundPaneResize}
+            defaultSize={33}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
             order={3}
             minSize={27}
           >
             <Playground
-              agentId={agent?.id}
+              agentId={agent.id}
               projectId={projectId}
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
