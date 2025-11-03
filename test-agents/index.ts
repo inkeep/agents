@@ -11,7 +11,7 @@ export const testAgentsProject = project({
   id: "test-agents",
   name: 'Test Agents',
   description:
-    'Test project with agents that simulate various error scenarios including tool failures and LLM provider failures',
+    'Test project with agents that simulate various error scenarios',
   models: {
     base: { model: 'openai/gpt-4o-mini' },
   },
