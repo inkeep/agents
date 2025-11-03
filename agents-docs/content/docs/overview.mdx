@@ -2,10 +2,10 @@
 title: No-Code Agent Builder + Agents SDK
 sidebarTitle: Overview
 icon: "LuBookOpen"
-description: Inkeep is a platform for building Agent-driven AI Chat Assistants and AI Workflows.
+description: Inkeep is a platform for building Agent-driven Chat Assistants and AI Workflows.
 ---
 
-With Inkeep, you can build AI Agents with a **No-Code Visual Builder** and **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in one platform.
+With Inkeep, you can build AI Agents with a **No-Code Visual Builder** and **Developer SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in one platform.
 
 ## Two ways to build
 
@@ -21,33 +21,22 @@ A code-first framework so engineering teams can build with the tools they expect
 
 ```typescript
 import { agent, subAgent } from "@inkeep/agents-sdk";
-import { lookupOrderTool } from "../tools/lookup-order";
-import { processRefundTool } from "../tools/process-refund";
+import { consoleMcp } from "./mcp";
 
-const orderInquiryAgent = subAgent({
-  id: "order-inquiry",
-  name: "Order Inquiry Agent",
-  description: "Handles questions about order status, shipping, and tracking",
-  prompt:
-    "You are a helpful customer service agent specializing in order inquiries. Help customers track their orders, provide shipping updates, and answer questions about delivery times. Always be professional and empathetic.",
-  canUse: () => [lookupOrderTool],
+const helloAgent = subAgent({
+  id: "hello-agent",
+  name: "Hello Agent",
+  description: "Says hello",
+  canUse: () => [consoleMcp], 
+  prompt: 'Reply to the user and console log "hello world" in fun variations like h3llo world.',
 });
 
-const returnsAgent = subAgent({
-  id: "returns-refunds",
-  name: "Returns & Refunds Agent",
-  description: "Processes return requests and handles refund inquiries",
-  prompt:
-    "You handle returns and refunds. Guide customers through the return process, explain refund policies, and help resolve any issues with returns. Be understanding and solution-oriented.",
-  canUse: () => [processRefundTool],
-});
-
-export const customerSupportAgent = agent({
-  id: "customer-support",
-  name: "Customer Support Agent",
-  description: "Main customer support agent that routes to specialized agents",
-  defaultSubAgent: orderInquiryAgent,
-  subAgents: () => [orderInquiryAgent, returnsAgent],
+export const basicAgent = agent({
+  id: "basic-agent",
+  name: "Basic Agent",
+  description: "A basic agent",
+  defaultSubAgent: helloAgent,
+  subAgents: () => [helloAgent],
 });
 ```
 
@@ -55,7 +44,7 @@ The **Visual Builder and TypeScript SDK are fully interoperable**: your technica
 
 ## Use cases
 
-Inkeep Agents can operate as **Agentic Chat Assistants**, for example:
+Inkeep Agents can operate as **Agentic AI Chat Assistants**, for example:
 
 - a customer experience agent for help centers, technical docs, or in-app experiences
 - an internal copilot to assist your support, sales, marketing, ops, and other teams
@@ -83,7 +72,7 @@ Interested in a managed platform? Sign up for the [Inkeep Cloud waitlist](https:
 
 Inkeep is designed to be extensible and open: you can use the LLM provider of your choice, use Agents via open protocols, and with a [fair-code](/community/license) license and great devex, easily deploy and self-host Agents in your own infra.
 
-[Follow us](https://docs.inkeep.com/community/inkeep-community) to stay up to date, get help, and share feedback.
+[Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.
 
 ## Next Steps
 

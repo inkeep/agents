@@ -38,7 +38,7 @@ export const Navbar = () => {
             >
               <a href={SLACK_URL} target="_blank" rel="noreferrer">
                 <SlackIcon />
-                <span className="sr-only">Slack</span>
+                <span>Community</span>
               </a>
             </Button>
             <Button variant="outline" size="sm" className="max-sm:hidden" asChild>
@@ -54,7 +54,7 @@ export const Navbar = () => {
               asChild
             >
               <a href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav" target="_blank" rel="noreferrer">
-                Join Cloud Waitlist <ChevronRight className="h-4 w-4 text-primary/60" />
+                Inkeep Cloud <ChevronRight className="h-4 w-4 text-primary/60" />
               </a>
             </Button>
             <MobileSearchTrigger />
