@@ -64,21 +64,21 @@ Define default models at the project level that all agents and Sub Agents will i
       model: "anthropic/claude-sonnet-4-5",
       providerOptions: {
         temperature: 0.7,
-        maxTokens: 4096
+        maxOutputTokens: 4096
       }
     },
     structuredOutput: {
       model: "openai/gpt-4.1-mini",
       providerOptions: {
         temperature: 0.1,
-        maxTokens: 2048
+        maxOutputTokens: 2048
       }
     },
     summarizer: {
       model: "openai/gpt-4.1-nano",
       providerOptions: {
         temperature: 0.3,
-        maxTokens: 1024
+        maxOutputTokens: 1024
       }
     }
   }
@@ -162,7 +162,7 @@ Project: {
       model: "claude-sonnet-4-0",
       providerOptions: {
         temperature: 0.7,
-        maxTokens: 4096
+        maxOutputTokens: 4096
       }
     }
   }
@@ -175,7 +175,7 @@ Agent: {
       model: "claude-sonnet-4-0", // Same model
       providerOptions: {
         temperature: 0.3,  // New temperature
-        maxTokens: 2048    // New maxTokens - project maxTokens is NOT inherited
+        maxOutputTokens: 2048    // New maxOutputTokens - project maxOutputTokens is NOT inherited
       }
     }
   }
@@ -212,7 +212,7 @@ Sub Agent: {
       model: "gpt-4.1-2025-04-14",
       providerOptions: {
         temperature: 0.7,
-        maxTokens: 2048
+        maxOutputTokens: 2048
       }
     }
     // No structuredOutput or summarizer specified

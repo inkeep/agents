@@ -1,6 +1,8 @@
 # Inkeep Agents
 
-Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. Get started with the [docs](https://docs.inkeep.com) or [1min quick start](https://docs.inkeep.com/get-started/quick-start).
+Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
+
+Get started with the [docs](https://docs.inkeep.com) or [1-minute quick start](https://docs.inkeep.com/get-started/quick-start).
 
 ## Two ways to build
 
@@ -19,24 +21,26 @@ A no-code canvas so any team can create and own the Agents they care about.
 
 A code-first framework so engineering teams can build with the tools they expect.
 
-   ```typescript
-   import { agent, subAgent } from "@inkeep/agents-sdk";
+```typescript
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { consoleMcp } from "./mcp";
 
-   const helloAgent = subAgent({
-     id: "hello-agent",
-     name: "Hello Agent",
-     description: "Says hello",
-     prompt: 'Only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
-   });
+const helloAgent = subAgent({
+  id: "hello-agent",
+  name: "Hello Agent",
+  description: "Says hello",
+  canUse: () => [consoleMcp], 
+  prompt: 'Reply to the user and console log "hello world" in fun variations like h3llo world.',
+});
 
-   export const basicAgent = agent({
-     id: "basic-agent",
-     name: "Basic Agent",
-     description: "A basic agent",
-     defaultSubAgent: helloAgent,
-     subAgents: () => [helloAgent],
-   });
-   ```
+export const basicAgent = agent({
+  id: "basic-agent",
+  name: "Basic Agent",
+  description: "A basic agent",
+  defaultSubAgent: helloAgent,
+  subAgents: () => [helloAgent],
+});
+```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: technical and non-technical teams can edit and manage Agents in either format and collaborate with others at any time.
 
@@ -84,4 +88,4 @@ Inkeep is designed to be extensible and open: use the LLM provider of your choic
 
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
-[Follow us](https://docs.inkeep.com/community/inkeep-community) to stay up to date, get help, and share feedback.
+[Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.

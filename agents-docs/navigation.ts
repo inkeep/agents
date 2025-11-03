@@ -10,25 +10,9 @@ export default {
             'get-started/quick-start',
             'get-started/push-pull',
             'get-started/traces',
-            'get-started/upgrading',
           ],
         },
         'concepts',
-      ],
-    },
-    {
-      group: 'Tutorials',
-      pages: [
-        {
-          group: 'MCP Servers',
-          icon: 'LuWrench',
-          pages: [
-            'tutorials/mcp-servers/overview',
-            'tutorials/mcp-servers/native-mcp-servers',
-            'tutorials/mcp-servers/composio-mcp-servers',
-            'tutorials/mcp-servers/custom-mcp-servers',
-          ],
-        },      
       ],
     },
     {
@@ -36,6 +20,7 @@ export default {
       icon: 'LuCode',
       pages: [
         'typescript-sdk/agent-settings',
+        'typescript-sdk/models',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',
@@ -170,6 +155,22 @@ export default {
         },
         'talk-to-your-agents/a2a',
         'troubleshooting',
+      ],
+    },
+    {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'MCP Servers',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },   
+        'tutorials/upgrading',
       ],
     },
     {

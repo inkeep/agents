@@ -200,7 +200,7 @@ function getFieldDisplayName(field: string): string {
     description: 'Description',
     model: 'Model',
     temperature: 'Temperature',
-    maxTokens: 'Max tokens',
+    maxOutputTokens: 'Max output tokens',
     systemPrompt: 'System prompt',
     tools: 'Tools',
     dataComponents: 'Components',

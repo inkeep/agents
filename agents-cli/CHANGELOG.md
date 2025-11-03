@@ -1,5 +1,56 @@
 # @inkeep/agents-cli
 
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+- Updated dependencies [73569ce]
+  - @inkeep/agents-core@0.30.3
+  - @inkeep/agents-manage-ui@0.30.3
+  - @inkeep/agents-sdk@0.30.3
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+- Updated dependencies [09ac1b4]
+  - @inkeep/agents-core@0.30.2
+  - @inkeep/agents-manage-ui@0.30.2
+  - @inkeep/agents-sdk@0.30.2
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+- Updated dependencies [8b889f4]
+- Updated dependencies [c6502dd]
+- Updated dependencies [c2f5582]
+- Updated dependencies [99bf28a]
+  - @inkeep/agents-manage-ui@0.30.1
+  - @inkeep/agents-core@0.30.1
+  - @inkeep/agents-sdk@0.30.1
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+- Updated dependencies [e95f0d3]
+- Updated dependencies [94fe795]
+  - @inkeep/agents-core@0.30.0
+  - @inkeep/agents-sdk@0.30.0
+  - @inkeep/agents-manage-ui@0.30.0
+
 ## 0.29.11
 
 ### Patch Changes

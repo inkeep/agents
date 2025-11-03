@@ -36,13 +36,17 @@ export function formatConversationAsPrettifiedTrace(
       exportedAt: new Date().toISOString(),
     },
     timing: {
-      startTime: conversation.conversationStartTime || '',
-      endTime: conversation.conversationEndTime || '',
+      startTime: conversation.conversationStartTime 
+        ? new Date(conversation.conversationStartTime).toISOString() 
+        : '',
+      endTime: conversation.conversationEndTime 
+        ? new Date(conversation.conversationEndTime).toISOString() 
+        : '',
       durationMs: conversation.duration
     },
     timeline: (conversation.activities || []).map((activity) => {
         // Destructure to exclude unwanted fields
-        const { id: _id, timestamp: _timestamp, ...rest } = activity;
+        const { id: _id, ...rest } = activity;
         return {
           ...rest
         };

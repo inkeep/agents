@@ -1,5 +1,36 @@
 # @inkeep/agents-core
 
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+
 ## 0.29.11
 
 ### Patch Changes

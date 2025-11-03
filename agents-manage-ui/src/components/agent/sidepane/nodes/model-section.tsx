@@ -76,7 +76,7 @@ export function ModelSection({
             value={models?.base?.providerOptions || ''}
             placeholder={`{
   "temperature": 0.7,
-  "maxTokens": 2048
+  "maxOutputTokens": 2048
 }`}
           />
         )}
@@ -124,7 +124,7 @@ export function ModelSection({
             value={models?.structuredOutput?.providerOptions || ''}
             placeholder={`{
   "temperature": 0.1,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
           />
         )}
@@ -172,7 +172,7 @@ export function ModelSection({
             value={models?.summarizer?.providerOptions || ''}
             placeholder={`{
   "temperature": 0.3,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
           />
         )}
