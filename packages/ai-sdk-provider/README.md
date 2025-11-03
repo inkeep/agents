@@ -23,6 +23,7 @@ const inkeep = createInkeep({
   baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL, // Required
   apiKey: <your-agent-api-key>, // Created in the Agents Dashboard
   headers: { // Optional if you are developing locally and dont want to use an api key
+    'x-inkeep-agent-id': 'your-agent-id',
     'x-inkeep-tenant-id': 'your-tenant-id',
     'x-inkeep-project-id': 'your-project-id',
   },
