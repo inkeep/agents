@@ -32,7 +32,7 @@ export const Navbar = () => {
           <div className="flex-1 flex items-center gap-0.5 md:gap-4 ml-auto justify-end">
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="sm"
               className="max-sm:hidden text-fd-muted-foreground hover:text-fd-accent-foreground"
               asChild
             >
