@@ -2,12 +2,29 @@ import { loader } from 'fumadocs-core/source';
 import { docs } from '@/.source';
 import { flattenNav, transformItems } from '@/components/sidebar/transform';
 import navigation from '../../navigation';
+import { createElement } from 'react';
+import * as brandIcons from '@/components/brand-icons';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({
   // it assigns a URL to your pages
   baseUrl: '/',
   source: docs.toFumadocsSource(),
+  icon(iconName) {
+    if (!iconName) return undefined;
+
+    // Handle brand/ prefixed icons
+    if (iconName.startsWith('brand/')) {
+      const brandIconName = iconName.split('brand/')[1] as keyof typeof brandIcons;
+      const BrandIcon = brandIcons[brandIconName];
+      if (BrandIcon) {
+        return createElement(BrandIcon);
+      }
+    }
+
+    // Return undefined for other icons to use default behavior
+    return undefined;
+  },
 });
 
 export const docsGroups = navigation.docs.map(transformItems);
