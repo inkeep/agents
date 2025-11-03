@@ -28,14 +28,13 @@ const inkeep = createInkeep({
   baseURL: process.env.INKEEP_AGENTS_RUN_API_URL, // Required
   apiKey: '<your-agent-api-key>', // Created in the Agents Dashboard
   headers: { // Optional if you are developing locally and don't want to use an api key
-    'x-inkeep-agent-id': 'your-agent-id',
     'x-inkeep-tenant-id': 'your-tenant-id',
     'x-inkeep-project-id': 'your-project-id',
   },
 });
 
 const { text } = await generateText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'What is the weather in NYC?',
 });
 
@@ -50,13 +49,14 @@ import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
   baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
   headers: {
     'x-emit-operations': 'true', // Enable tool event streaming
   },
 });
 
 const result = await streamText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'Plan an event in NYC',
 });
 
@@ -77,12 +77,12 @@ createInkeep({
 })
 ```
 
-### Model Options
+### Provider Options
 
 Pass options when creating a provider instance:
 
 ```typescript
-const model = inkeep({
+const provider = inkeep({
   conversationId: 'conv-456',
   headers: { 'user-id': 'user-789' },
 });
@@ -95,13 +95,14 @@ To receive tool call and result events in your stream, include the `x-emit-opera
 ```typescript
 const inkeep = createInkeep({
   baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
   headers: {
     'x-emit-operations': 'true',
   },
 });
 
 const result = await streamText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'Search for recent papers on AI',
 });
 
