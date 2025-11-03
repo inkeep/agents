@@ -1,6 +1,6 @@
 import { project } from '@inkeep/agents-sdk';
 import { badCredentialWeatherAgent } from './agents/bad-credential-403-agent';
-import { faultyApiWeatherAgent } from './agents/faulty-api-agent';
+import { faultyApiWeatherAgent } from './agents/faulty-api-tool-agent';
 import { invalidMcpWeatherAgent } from './agents/invalid-mcp';
 import { llmBadRequestAgent } from './agents/llm-bad-request-agent';
 import { llm404Agent } from './agents/llm-invalid-endpoint';
