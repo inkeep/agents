@@ -1016,6 +1016,7 @@ function Flow({
         id="react-flow-pane"
         order={1}
         minSize={30}
+        defaultSize={100}
         className="flex-1 h-full relative transition-all duration-300 ease-in-out"
       >
         <DefaultMarker />
@@ -1129,7 +1130,7 @@ interface DynamicResizablePanelProps extends ComponentPropsWithoutRef<typeof Res
  * When side pane is closed we don't need to render ResizablePanel
  */
 const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...props }) => {
-  const resizablePanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
+  const panelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -1137,7 +1138,8 @@ const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...prop
   }, []);
 
   useEffect(() => {
-    const el = resizablePanelRef.current;
+    const el = panelRef.current;
+    console.log({ el });
     if (!el) {
       return;
     }
@@ -1153,5 +1155,5 @@ const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...prop
     return null;
   }
 
-  return <ResizablePanel ref={resizablePanelRef} collapsible collapsedSize={0} {...props} />;
+  return <ResizablePanel ref={panelRef} collapsible collapsedSize={0} {...props} />;
 };
