@@ -6,6 +6,6 @@ export default defineConfig({
     url: 'http://localhost:3002',
   },
   agentsRunApi: {
-    url: 'http://localhost:3002',
+    url: 'http://localhost:3003',
   },
 });

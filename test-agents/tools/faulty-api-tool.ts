@@ -4,6 +4,6 @@ export const faultyApiTool = mcpTool({
   id: 'faulty-api-tool',
   name: `faulty API tool`,
   serverUrl: `https://broken-mcp.vercel.app/mcp`,
-  activeTools: ['faulty API tool']
+  activeTools: ['faulty_API_tool']
 });
 

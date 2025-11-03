@@ -6,7 +6,7 @@ export const llmTimeoutAgent = agent({
   description: 'Agent that points to non-existent endpoint causing connection timeout',
   models: {
     base: {
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4.1-nano',
       providerOptions: {
         baseURL: 'http://10.255.255.1:9999/v1',
       },

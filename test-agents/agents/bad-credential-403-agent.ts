@@ -4,6 +4,7 @@ import { badCredential403Tool } from '../tools/bad-credential-403-tool.ts';
 export const badCredentialWeatherAgent = agent({
   id: 'bad-credential-403-weather-agent',
   name: `Weather Agent (Bad Credential MCP)`,
+  description: `Test agent that uses the bad credential MCP returning a 403 error.`,
   defaultSubAgent: subAgent({
     id: 'bad-credential-403-weather-assistant',
     name: `Weather Assistant`,

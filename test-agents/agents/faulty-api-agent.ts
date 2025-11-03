@@ -3,7 +3,8 @@ import { faultyApiTool } from '../tools/faulty-api-tool';
 
 export const faultyApiWeatherAgent = agent({
   id: 'faulty-api-weather-agent',
-  name: `Weather Agent (Faulty API MCP)`,
+  name: `Weather Agent (Faulty API MCP Tool)`,
+  description: `Test agent that uses the faulty API MCP tool which is linked to an invalid API endpoint.`,
   defaultSubAgent: subAgent({
     id: 'faulty-api-weather-assistant',
     name: `Weather Assistant`,
