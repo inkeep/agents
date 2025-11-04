@@ -1,7 +1,7 @@
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type {
   AgentToolConfigLookup,
@@ -32,6 +32,10 @@ type AgentStateData = {
   future: HistoryEntry[];
   errors: AgentErrorSummary | null;
   showErrors: boolean;
+  /**
+   * Setting for using JSON Schema editor instead of Form builder.
+   */
+  jsonSchemaMode: boolean;
 };
 
 type AgentActions = {
@@ -74,6 +78,10 @@ type AgentActions = {
   hasErrors(): boolean;
   getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
   getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
+  /**
+   * Setter for `jsonSchemaMode` field.
+   */
+  setJsonSchemaMode(jsonSchemaMode: boolean): void;
 };
 
 type AgentState = AgentStateData & {
@@ -107,6 +115,7 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
+  jsonSchemaMode: false,
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
@@ -303,10 +312,24 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       if (!errors || !errors.edgeErrors[edgeId]) return [];
       return errors.edgeErrors[edgeId];
     },
+    setJsonSchemaMode(jsonSchemaMode) {
+      set({ jsonSchemaMode });
+    },
   },
 });
 
-export const agentStore = create<AgentState>()(devtools(agentState));
+export const agentStore = create<AgentState>()(
+  devtools(
+    persist(agentState, {
+      name: 'inkeep:agent',
+      partialize(state) {
+        return {
+          jsonSchemaMode: state.jsonSchemaMode,
+        };
+      },
+    })
+  )
+);
 
 /**
  * Actions are functions that update values in your store.
