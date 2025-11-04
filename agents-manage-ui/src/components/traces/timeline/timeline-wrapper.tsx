@@ -1,10 +1,9 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, Network, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
 import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
-import { ActivityTimeline } from '@/components/traces/timeline/activity-timeline';
 import { HierarchicalTimeline } from '@/components/traces/timeline/hierarchical-timeline';
 import { renderPanelContent } from '@/components/traces/timeline/render-panel-content';
 import type {
@@ -158,7 +157,6 @@ export function TimelineWrapper({
   onCopyTrace,
   isCopying = false,
 }: TimelineWrapperProps) {
-  const [hierarchicalView, setHierarchicalView] = useState(false);
   const [selected, setSelected] = useState<SelectedPanel | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -367,19 +365,6 @@ export function TimelineWrapper({
             <div className="flex items-center justify-between px-6 pb-4">
               <div className="flex items-center gap-2">
                 <div className="text-foreground text-md font-medium">Activity timeline</div>
-                <button
-                  type="button"
-                  onClick={() => setHierarchicalView(!hierarchicalView)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                    hierarchicalView
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                  title={hierarchicalView ? 'Switch to flat view' : 'Switch to hierarchical view'}
-                >
-                  <Network className="h-3 w-3" />
-                  {hierarchicalView ? 'Hierarchical' : 'Flat'}
-                </button>
               </div>
               <div className="flex items-center gap-2">
                 {/* Copy JSON Button */}
@@ -452,34 +437,19 @@ export function TimelineWrapper({
                 initial="smooth"
               >
                 <StickToBottom.Content>
-                  {hierarchicalView ? (
-                    <HierarchicalTimeline
-                      activities={sortedActivities}
-                      onSelect={(activity) => {
-                        setSelected({
-                          type: determinePanelType(activity),
-                          item: activity,
-                        });
-                      }}
-                      selectedActivityId={selected?.item?.id}
-                      collapsedAiMessages={collapsedAiMessages}
-                      onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                      allSpanAttributes={conversation?.allSpanAttributes}
-                    />
-                  ) : (
-                    <ActivityTimeline
-                      activities={sortedActivities}
-                      onSelect={(activity) => {
-                        setSelected({
-                          type: determinePanelType(activity),
-                          item: activity,
-                        });
-                      }}
-                      selectedActivityId={selected?.item?.id}
-                      collapsedAiMessages={collapsedAiMessages}
-                      onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                    />
-                  )}
+                  <HierarchicalTimeline
+                    activities={sortedActivities}
+                    onSelect={(activity) => {
+                      setSelected({
+                        type: determinePanelType(activity),
+                        item: activity,
+                      });
+                    }}
+                    selectedActivityId={selected?.item?.id}
+                    collapsedAiMessages={collapsedAiMessages}
+                    onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                    allSpanAttributes={conversation?.allSpanAttributes}
+                  />
                   {!isPolling && sortedActivities.length > 0 && !error && refreshOnce && (
                     <div className="flex justify-center items-center z-10">
                       <Button
@@ -502,34 +472,19 @@ export function TimelineWrapper({
               </StickToBottom>
             ) : (
               <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50">
-                {hierarchicalView ? (
-                  <HierarchicalTimeline
-                    activities={sortedActivities}
-                    onSelect={(activity) => {
-                      setSelected({
-                        type: determinePanelType(activity),
-                        item: activity,
-                      });
-                    }}
-                    selectedActivityId={selected?.item?.id}
-                    collapsedAiMessages={collapsedAiMessages}
-                    onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                    allSpanAttributes={conversation?.allSpanAttributes}
-                  />
-                ) : (
-                  <ActivityTimeline
-                    activities={sortedActivities}
-                    onSelect={(activity) => {
-                      setSelected({
-                        type: determinePanelType(activity),
-                        item: activity,
-                      });
-                    }}
-                    selectedActivityId={selected?.item?.id}
-                    collapsedAiMessages={collapsedAiMessages}
-                    onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                  />
-                )}
+                <HierarchicalTimeline
+                  activities={sortedActivities}
+                  onSelect={(activity) => {
+                    setSelected({
+                      type: determinePanelType(activity),
+                      item: activity,
+                    });
+                  }}
+                  selectedActivityId={selected?.item?.id}
+                  collapsedAiMessages={collapsedAiMessages}
+                  onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                  allSpanAttributes={conversation?.allSpanAttributes}
+                />
               </div>
             )}
           </div>

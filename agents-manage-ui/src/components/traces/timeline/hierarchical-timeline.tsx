@@ -1,4 +1,3 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { TimelineItem } from '@/components/traces/timeline/timeline-item';
 import { buildActivityTree, type TreeNode } from '@/components/traces/timeline/tree-utils';
@@ -55,7 +54,7 @@ function TreeNodeItem({
                 style={{ left: `${(node.depth - 1) * indentSize + 7}px` }}
               />
               <div
-                className="absolute top-[20px] border-t border-border"
+                className="absolute top-[16px] border-t border-border"
                 style={{
                   left: `${(node.depth - 1) * indentSize + 7}px`,
                   width: `${indentSize - 7}px`,
@@ -66,25 +65,6 @@ function TreeNodeItem({
         </div>
 
         <div className="flex-1">
-          {hasChildren && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleNodeCollapse(node.activity.id);
-              }}
-              className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded hover:bg-muted transition-colors"
-              title={isCollapsed ? 'Expand children' : 'Collapse children'}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              )}
-            </button>
-          )}
-          {!hasChildren && <div className="inline-block w-5 mr-1" />}
-
           <div className="inline-block w-full">
             <TimelineItem
               activity={node.activity}
@@ -93,6 +73,9 @@ function TreeNodeItem({
               isSelected={selectedActivityId === node.activity.id}
               isAiMessageCollapsed={collapsedAiMessages?.has(node.activity.id) || false}
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
+              hasChildren={hasChildren}
+              isCollapsed={isCollapsed}
+              onToggleCollapse={() => toggleNodeCollapse(node.activity.id)}
             />
           </div>
         </div>
