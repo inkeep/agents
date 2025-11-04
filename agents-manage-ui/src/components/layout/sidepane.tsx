@@ -19,7 +19,7 @@ interface SidePaneContentProps {
 
 function SidePaneRoot({ children }: SidePaneRootProps) {
   return (
-    <div className="relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] group z-50">
+    <div className="relative top-0 right-0 bg-background h-full flex flex-col rounded-br-[14px] group">
       {children}
     </div>
   );
