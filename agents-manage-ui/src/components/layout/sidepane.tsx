@@ -35,7 +35,7 @@ function SidePaneHeader({ children }: SidePaneHeaderProps) {
 
 function SidePaneContent({ children }: SidePaneContentProps) {
   return (
-    <ScrollArea className="border-border flex-1 h-0 [&>div>div]:table-fixed [&>div>div]:w-full">
+    <ScrollArea className="flex-1 h-0 [&>div>div]:table-fixed [&>div>div]:w-full">
       <div className="p-6">{children}</div>
     </ScrollArea>
   );
