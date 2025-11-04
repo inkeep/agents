@@ -52,7 +52,7 @@ export function generateExternalAgentDefinition(
   
   // Use registry to get collision-safe variable name if available
   if (registry) {
-    const registryVarName = registry.getVariableName(agentId, 'externalAgent');
+    const registryVarName = registry.getVariableName(agentId, 'externalAgents');
     if (registryVarName) {
       agentVarName = registryVarName;
     }
@@ -92,7 +92,7 @@ export function generateExternalAgentDefinition(
       }
       
       // Reference to a credential variable - use registry
-      const credentialVar = registry.getVariableName(agentData.credentialReference, 'credential');
+      const credentialVar = registry.getVariableName(agentData.credentialReference, 'credentials');
       
       if (!credentialVar) {
         throw new Error(`Failed to resolve variable name for credential reference: ${agentData.credentialReference}`);
@@ -151,7 +151,7 @@ export function generateExternalAgentImports(
     }
     
     const currentFilePath = `external-agents/${agentId}.ts`;
-    const credentialRefs = [{id: agentData.credentialReference, type: 'credential' as ComponentType}];
+    const credentialRefs = [{id: agentData.credentialReference, type: 'credentials' as ComponentType}];
     
     // Get import statements for referenced credentials
     const componentImports = registry.getImportsForFile(currentFilePath, credentialRefs);

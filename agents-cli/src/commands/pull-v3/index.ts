@@ -309,6 +309,22 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     const remoteProject = await apiClient.getFullProject(projectId);
     
+    // Debug: Check the format of canDelegateTo arrays in remote data
+    if (options.debug) {
+      console.log(chalk.cyan('🔍 Remote project canDelegateTo format inspection:'));
+      if (remoteProject.agents) {
+        for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
+          if (agentData.subAgents) {
+            for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents) as any[]) {
+              if (subAgentData.canDelegateTo && subAgentData.canDelegateTo.length > 0) {
+                console.log(chalk.gray(`   SubAgent ${subAgentId}.canDelegateTo:`), JSON.stringify(subAgentData.canDelegateTo, null, 2));
+              }
+            }
+          }
+        }
+      }
+    }
+    
     if (options.debug && remoteProject.functions) {
       console.log(chalk.gray('   📋 Project-level functions from API:'), Object.keys(remoteProject.functions));
       Object.entries(remoteProject.functions).forEach(([id, data]: [string, any]) => {
@@ -435,7 +451,35 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.message('Component registry built');
     
 
-    // Step 7: Comprehensive project comparison (now with access to registry)
+    // Step 7: Debug registry to see variable name conflicts
+    if (options.debug) {
+      console.log(chalk.cyan('\n🔍 Component Registry Debug:'));
+      const allComponents = localRegistry.getAllComponents();
+      console.log(chalk.gray('   Total components registered:'), allComponents.length);
+      
+      // Group by variable name to see conflicts
+      const nameGroups = new Map<string, any[]>();
+      for (const comp of allComponents) {
+        if (!nameGroups.has(comp.name)) {
+          nameGroups.set(comp.name, []);
+        }
+        nameGroups.get(comp.name)!.push(comp);
+      }
+      
+      // Show any conflicts
+      for (const [varName, components] of nameGroups.entries()) {
+        if (components.length > 1) {
+          console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
+          for (const comp of components) {
+            console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
+          }
+        } else {
+          console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
+        }
+      }
+    }
+
+    // Step 8: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
     const comparison = await compareProjects(localProject, remoteProject, localRegistry, options.debug);
     
@@ -485,6 +529,34 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         options.env || 'development',
         tempDirName
       );
+      
+      // Debug registry after new components are generated
+      if (options.debug) {
+        console.log(chalk.cyan('\n🔍 Component Registry After Generation:'));
+        const allComponents = localRegistry.getAllComponents();
+        console.log(chalk.gray('   Total components registered:'), allComponents.length);
+        
+        // Group by variable name to see conflicts
+        const nameGroups = new Map<string, any[]>();
+        for (const comp of allComponents) {
+          if (!nameGroups.has(comp.name)) {
+            nameGroups.set(comp.name, []);
+          }
+          nameGroups.get(comp.name)!.push(comp);
+        }
+        
+        // Show any conflicts
+        for (const [varName, components] of nameGroups.entries()) {
+          if (components.length > 1) {
+            console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
+            for (const comp of components) {
+              console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
+            }
+          } else {
+            console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
+          }
+        }
+      }
       
       const successful = newComponentResults.filter(r => r.success);
       console.log(chalk.green(`✅ Added ${successful.length} new components to temp directory`));

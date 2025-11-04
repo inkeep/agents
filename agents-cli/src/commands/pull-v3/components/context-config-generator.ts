@@ -181,7 +181,7 @@ export function generateContextConfigDefinition(
     if (!registry) {
       throw new Error('Registry is required for context config variable name generation');
     }
-    const varName = registry.getVariableName(contextId, 'contextConfig');
+    const varName = registry.getVariableName(contextId, 'contextConfigs');
     if (!varName) {
       throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
     }
@@ -337,7 +337,7 @@ export function generateContextConfigFile(
     if (!registry) {
       throw new Error('Registry is required for context config variable name generation');
     }
-    const varName = registry.getVariableName(contextId, 'contextConfig');
+    const varName = registry.getVariableName(contextId, 'contextConfigs');
     if (!varName) {
       throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
     }

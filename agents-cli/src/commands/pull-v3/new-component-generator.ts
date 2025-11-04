@@ -55,16 +55,7 @@ function toKebabCase(id: string): string {
     .replace(/[_]/g, '-');
 }
 
-/**
- * Generate variable name from component ID
- */
-function generateVariableName(componentId: string): string {
-  return componentId
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-}
+// Removed generateVariableName - registry handles all naming with conflict resolution
 
 /**
  * Determine file path for new component based on type and existing structure
@@ -212,7 +203,7 @@ export async function createNewComponents(
   }
 
   // Define dependency order - components earlier in the list should be created first
-  const creationOrder = [
+  const creationOrder: (keyof ProjectComparison['componentChanges'])[] = [
     'credentials',
     'environments', 
     'contextConfigs',  // Can be created early - just config objects
@@ -243,24 +234,21 @@ export async function createNewComponents(
       const filePath = determineNewFilePath(componentType, componentId, targetPaths);
       const relativePath = filePath.replace((tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/', '');
       
-      let variableName: string;
+      // Special handling for contextConfigs to use agent-based names
+      let explicitVariableName: string | undefined;
       if (componentType === 'contextConfigs') {
-        // For contextConfigs, try to extract agent ID and use agent-based variable name
         const contextResult = findContextConfigData(remoteProject, componentId);
         if (contextResult) {
-          variableName = `${toCamelCase(contextResult.agentId)}Context`;
-        } else {
-          variableName = generateVariableName(componentId);
+          explicitVariableName = `${toCamelCase(contextResult.agentId)}Context`;
         }
-      } else {
-        variableName = generateVariableName(componentId);
+        // If no contextResult, let registry generate unique name
       }
 
       localRegistry.register(
         componentId,
-        componentType.slice(0, -1) as ComponentType, // Remove 's' from plural
+        componentType, // componentType now matches ComponentType directly
         relativePath,
-        variableName,
+        explicitVariableName, // Only provide explicit name for contextConfigs, undefined for others
         false // isInline = false (new exported component)
       );
     }
@@ -380,8 +368,11 @@ export async function createNewComponents(
         writeFileSync(filePath, content, 'utf8');
 
         // Get the variable name that was already registered
-        const registryEntry = localRegistry.get(componentId, componentType as any);
-        const variableName = registryEntry?.name || generateVariableName(componentId);
+        const registryEntry = localRegistry.get(componentId, componentType);
+        if (!registryEntry) {
+          throw new Error(`Component ${componentId} (${componentType}) was not registered in the registry`);
+        }
+        const variableName = registryEntry.name;
 
         results.push({
           componentId,

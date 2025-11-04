@@ -169,7 +169,7 @@ export async function introspectGenerate(
     }
 
     // 7. Generate status components from registry
-    const registeredStatusComponents = registry.getAllComponents().filter(c => c.type === 'statusComponent');
+    const registeredStatusComponents = registry.getAllComponents().filter(c => c.type === 'statusComponents');
     if (registeredStatusComponents.length > 0) {
       
       for (const statusComp of registeredStatusComponents) {
@@ -200,7 +200,7 @@ export async function introspectGenerate(
     }
 
     // 9. Generate context configs from registry
-    const registeredContextConfigs = registry.getAllComponents().filter(c => c.type === 'contextConfig');
+    const registeredContextConfigs = registry.getAllComponents().filter(c => c.type === 'contextConfigs');
     if (registeredContextConfigs.length > 0) {
       
       for (const contextComp of registeredContextConfigs) {

@@ -310,7 +310,7 @@ export function generateEnvironmentFile(
     
     // Import each credential and collect variable names
     for (const credentialId of environmentData.credentials) {
-      const credentialComponent = registry.get(credentialId, 'credential');
+      const credentialComponent = registry.get(credentialId, 'credentials');
       if (credentialComponent) {
         const relativePath = `../credentials/${credentialId}`;
         imports.push(`import { ${credentialComponent.name} } from ${q}${relativePath}${q}${semi}`);
@@ -334,7 +334,7 @@ export function generateEnvironmentFile(
         const credentialVarName = credentialRefs[i];
         const isLast = i === credentialRefs.length - 1;
         // Use registry's variable name for the key to ensure valid JavaScript property name
-        const validKey = registry.getVariableName(credentialId, 'credential');
+        const validKey = registry.getVariableName(credentialId, 'credentials');
         lines.push(`${indentation}${indentation}${validKey}: ${credentialVarName}${isLast ? '' : ','}`);
       }
       lines.push(`${indentation}}`);

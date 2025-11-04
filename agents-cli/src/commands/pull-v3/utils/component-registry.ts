@@ -11,18 +11,21 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 export type ComponentType = 
-  | 'agent' 
-  | 'subAgent' 
-  | 'tool' 
-  | 'functionTool'
-  | 'dataComponent' 
-  | 'artifactComponent' 
-  | 'statusComponent'
-  | 'externalAgent'
-  | 'credential'
-  | 'contextConfig'
-  | 'fetchDefinition'
+  | 'agents' 
+  | 'subAgents' 
+  | 'tools' 
+  | 'functionTools'
+  | 'functions'
+  | 'dataComponents' 
+  | 'artifactComponents' 
+  | 'statusComponents'
+  | 'environments'
+  | 'externalAgents'
+  | 'credentials'
+  | 'contextConfigs'
+  | 'fetchDefinitions'
   | 'headers'
+  | 'models'
   | 'project';
 
 export interface ComponentInfo {
@@ -71,6 +74,7 @@ export class ComponentRegistry {
       // No real export name - generate unique name with prefixes if needed
       const baseName = this.toCamelCase(id);
       const uniqueName = this.ensureUniqueName(baseName, type);
+      console.log(`🔧 Registry: ${type}:${id} -> baseName: "${baseName}" -> uniqueName: "${uniqueName}"`);
       name = uniqueName;
       actualExportName = uniqueName;
     }
@@ -311,16 +315,21 @@ export class ComponentRegistry {
    */
   private getTypePrefix(type: ComponentType): string {
     switch (type) {
-      case 'agent': return 'agent';
-      case 'subAgent': return 'sub';
-      case 'externalAgent': return 'ext';
-      case 'tool': return 'tool';
-      case 'functionTool': return 'func';
-      case 'dataComponent': return 'data';
-      case 'artifactComponent': return 'artifact';
-      case 'credential': return 'cred';
-      case 'statusComponent': return 'status';
-      case 'contextConfig': return 'context';
+      case 'agents': return 'agent';
+      case 'subAgents': return 'sub';
+      case 'externalAgents': return 'ext';
+      case 'tools': return 'tool';
+      case 'functionTools': return 'func';
+      case 'functions': return 'func';
+      case 'dataComponents': return 'data';
+      case 'artifactComponents': return 'artifact';
+      case 'statusComponents': return 'status';
+      case 'environments': return 'env';
+      case 'credentials': return 'cred';
+      case 'contextConfigs': return 'context';
+      case 'fetchDefinitions': return 'fetch';
+      case 'headers': return 'header';
+      case 'models': return 'model';
       case 'project': return 'project';
       default: return 'comp';
     }
@@ -360,7 +369,7 @@ export class ComponentRegistry {
    * Get all components for debugging
    */
   getAllComponents(): ComponentInfo[] {
-    return Array.from(this.components.values());
+    return Array.from(this.componentsByTypeAndId.values());
   }
 
   /**
@@ -368,6 +377,7 @@ export class ComponentRegistry {
    */
   clear(): void {
     this.components.clear();
+    this.componentsByTypeAndId.clear();
     this.usedNames.clear();
   }
 }
@@ -385,14 +395,14 @@ export function registerAllComponents(
   // Register credentials
   if (project.credentialReferences) {
     for (const credId of Object.keys(project.credentialReferences)) {
-      registry.register(credId, 'credential', `credentials/${credId}.ts`);
+      registry.register(credId, 'credentials', `credentials/${credId}.ts`);
     }
   }
 
   // Register tools
   if (project.tools) {
     for (const toolId of Object.keys(project.tools)) {
-      registry.register(toolId, 'tool', `tools/${toolId}.ts`);
+      registry.register(toolId, 'tools', `tools/${toolId}.ts`);
     }
   }
 
@@ -402,7 +412,7 @@ export function registerAllComponents(
   // Register functions first (they take priority)
   if (project.functions) {
     for (const funcId of Object.keys(project.functions)) {
-      registry.register(funcId, 'functionTool', `tools/functions/${funcId}.ts`);
+      registry.register(funcId, 'functionTools', `tools/functions/${funcId}.ts`);
       processedFunctionIds.add(funcId);
     }
   }
@@ -411,7 +421,7 @@ export function registerAllComponents(
   if (project.functionTools) {
     for (const funcToolId of Object.keys(project.functionTools)) {
       if (!processedFunctionIds.has(funcToolId)) {
-        registry.register(funcToolId, 'functionTool', `tools/functions/${funcToolId}.ts`);
+        registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
       }
     }
   }
@@ -419,47 +429,50 @@ export function registerAllComponents(
   // Register data components
   if (project.dataComponents) {
     for (const componentId of Object.keys(project.dataComponents)) {
-      registry.register(componentId, 'dataComponent', `data-components/${componentId}.ts`);
+      registry.register(componentId, 'dataComponents', `data-components/${componentId}.ts`);
     }
   }
 
   // Register artifact components
   if (project.artifactComponents) {
     for (const componentId of Object.keys(project.artifactComponents)) {
-      registry.register(componentId, 'artifactComponent', `artifact-components/${componentId}.ts`);
+      registry.register(componentId, 'artifactComponents', `artifact-components/${componentId}.ts`);
     }
   }
 
   // Register external agents
   if (project.externalAgents) {
     for (const extAgentId of Object.keys(project.externalAgents)) {
-      registry.register(extAgentId, 'externalAgent', `external-agents/${extAgentId}.ts`);
+      registry.register(extAgentId, 'externalAgents', `external-agents/${extAgentId}.ts`);
     }
   }
 
   // Register extracted status components
   const statusComponents = extractStatusComponents(project);
   for (const statusId of Object.keys(statusComponents)) {
-    registry.register(statusId, 'statusComponent', `status-components/${statusId}.ts`);
+    registry.register(statusId, 'statusComponents', `status-components/${statusId}.ts`);
   }
 
   // Register agents
   if (project.agents) {
     for (const agentId of Object.keys(project.agents)) {
-      registry.register(agentId, 'agent', `agents/${agentId}.ts`);
+      console.log(`🔧 Registering agent: ${agentId}`);
+      registry.register(agentId, 'agents', `agents/${agentId}.ts`);
     }
   }
 
   // Register extracted sub-agents
   const subAgents = extractSubAgents(project);
+  console.log(`🔧 Found subAgents:`, Object.keys(subAgents));
   for (const subAgentId of Object.keys(subAgents)) {
-    registry.register(subAgentId, 'subAgent', `agents/sub-agents/${subAgentId}.ts`);
+    console.log(`🔧 Registering subAgent: ${subAgentId}`);
+    registry.register(subAgentId, 'subAgents', `agents/sub-agents/${subAgentId}.ts`);
   }
 
   // Register extracted context configs
   const contextConfigs = extractContextConfigs(project);
   for (const contextId of Object.keys(contextConfigs)) {
-    registry.register(contextId, 'contextConfig', `context-configs/${contextId}.ts`);
+    registry.register(contextId, 'contextConfigs', `context-configs/${contextId}.ts`);
   }
 }
 

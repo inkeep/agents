@@ -20,24 +20,23 @@ interface ComponentMatch {
 }
 
 /**
- * Component type mapping from function names to ComponentType
+ * Valid plural component types for parsing
  */
-const COMPONENT_TYPE_MAP: Record<string, ComponentType> = {
-  'project': 'project',
-  'agent': 'agent', 
-  'subAgent': 'subAgent',
-  'tool': 'tool',
-  'mcpTool': 'tool', // MCP tools are a type of tool
-  'functionTool': 'functionTool',
-  'dataComponent': 'dataComponent',
-  'artifactComponent': 'artifactComponent',
-  'statusComponent': 'statusComponent',
-  'externalAgent': 'externalAgent',
-  'credential': 'credential',
-  'contextConfig': 'contextConfig',
-  'fetchDefinition': 'fetchDefinition',
-  'headers': 'headers'
-};
+const VALID_COMPONENT_TYPES = new Set<ComponentType>([
+  'project',
+  'agents',
+  'subAgents', 
+  'tools',
+  'functionTools',
+  'dataComponents',
+  'artifactComponents',
+  'statusComponents',
+  'externalAgents',
+  'credentials',
+  'contextConfigs',
+  'fetchDefinitions',
+  'headers'
+]);
 
 /**
  * Parse a single file for all component definitions
@@ -91,8 +90,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -112,8 +111,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -133,9 +132,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
-      if (componentType && componentType === 'functionTool') {
+      const componentType = functionName as ComponentType;
+      // Only use 'name' field for functionTools components
+      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
                 
         components.push({
@@ -155,8 +154,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -176,8 +175,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -197,9 +196,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
-      if (componentType && componentType === 'functionTool' && exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      // Only use 'name' field for functionTools components
+      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -220,8 +219,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && !exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -240,8 +239,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && !exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         components.push({
           id: componentId,
@@ -259,9 +258,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
-      if (componentType && componentType === 'functionTool' && !exportedVariables.has(variableName)) {
+      const componentType = functionName as ComponentType;
+      // Only use 'name' field for functionTools components
+      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
                 
         components.push({
@@ -277,7 +276,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
 
     // Pattern 3: Truly inline components (not declared, not exported)
     // componentType({id: 'component-id', ...}) anywhere in code without variable declaration
-    const componentTypes = Object.keys(COMPONENT_TYPE_MAP);
+    const componentTypes = Array.from(VALID_COMPONENT_TYPES);
     for (const funcName of componentTypes) {
       // Look for function calls that are NOT part of variable declarations (export const or const)
       // Handle multi-line patterns where id might be on next line
@@ -286,7 +285,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       let inlineMatch;
       while ((inlineMatch = inlineIdPattern.exec(content)) !== null) {
         const componentId = inlineMatch[1];
-        const componentType = COMPONENT_TYPE_MAP[funcName];
+        const componentType = funcName as ComponentType;
         const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
         
         components.push({
@@ -300,12 +299,12 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       }
       
       // Also look for 'name' field for function tools only (handle multi-line)
-      if (funcName === 'functionTool') {
+      if (funcName === 'functionTools') {
         const inlineNamePattern = new RegExp(`(?<!(?:export\\s+)?const\\s+\\w+\\s*=\\s*)\\b${funcName}\\s*\\(\\s*\\{[^}]*?name:\\s*['"\`]([^'"\`]+)['"\`]`, 'gs');
         
         while ((inlineMatch = inlineNamePattern.exec(content)) !== null) {
           const componentId = inlineMatch[1];
-          const componentType = COMPONENT_TYPE_MAP[funcName];
+          const componentType = funcName as ComponentType;
           const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
           
           components.push({
@@ -345,7 +344,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
         
         components.push({
           id: credentialId,
-          type: 'credential',
+          type: 'credentials',
           filePath: relativePath,
           variableName: credentialKey, // Use the key name as variable name
           startLine: lineNumber,
@@ -394,19 +393,7 @@ function scanProjectForComponents(projectRoot: string, debug: boolean = false): 
   return allComponents;
 }
 
-/**
- * Generate a variable name for inline components
- */
-function generateVariableName(componentId: string, componentType: ComponentType): string {
-  // Convert kebab-case or snake_case to camelCase
-  const camelCase = componentId
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-  
-  return camelCase || `${componentType}Component`;
-}
+// Removed generateVariableName - registry handles all naming with conflict resolution
 
 /**
  * Build component registry from project parsing
@@ -461,13 +448,12 @@ export function buildComponentRegistryFromParsing(
         component.isInline
       );
     } else {
-      // Truly inline component with no variable name, generate one
-      const generatedName = generateVariableName(component.id, component.type);
+      // Truly inline component with no variable name, let registry generate unique name
       registry.register(
         component.id,
         component.type,
         component.filePath,
-        generatedName,
+        undefined, // Let registry handle naming with conflict resolution
         true // isInline = true
       );
     }
