@@ -13,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -103,7 +103,7 @@ interface AgentProps {
   externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
-type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
+type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
 
 function Flow({
   agent,
