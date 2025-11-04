@@ -37,6 +37,9 @@ import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+import dynamic from 'next/dynamic';
+
+const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground));
 
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
@@ -84,7 +87,6 @@ import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
-import { Playground } from './playground/playground';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
