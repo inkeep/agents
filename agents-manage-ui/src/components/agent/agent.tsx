@@ -39,7 +39,9 @@ import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import dynamic from 'next/dynamic';
 
-const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground));
+const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
+  ssr: false,
+});
 
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
