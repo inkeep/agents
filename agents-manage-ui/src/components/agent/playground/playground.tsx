@@ -1,5 +1,5 @@
 import { Bug, X } from 'lucide-react';
-import { useState } from 'react';
+import { type Dispatch, useState } from 'react';
 import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ interface PlaygroundProps {
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   dataComponentLookup?: Record<string, DataComponent>;
+  showTraces: boolean;
+  setShowTraces: Dispatch<boolean>;
 }
 
 export const Playground = ({
@@ -27,10 +29,11 @@ export const Playground = ({
   closeSidePane,
   setShowPlayground,
   dataComponentLookup = {},
+  showTraces,
+  setShowTraces,
 }: PlaygroundProps) => {
-  const [conversationId, setConversationId] = useState<string>(generateId());
+  const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
-  const [showTraces, setShowTraces] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
   const {
     chatActivities,
@@ -70,9 +73,7 @@ export const Playground = ({
   };
 
   return (
-    <div
-      className={`bg-background z-10 flex flex-col border-l ${showTraces ? 'w-full' : 'w-1/3 min-w-96'}`}
-    >
+    <div className="bg-background flex flex-col h-full">
       <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
         <div className="flex items-center gap-2">

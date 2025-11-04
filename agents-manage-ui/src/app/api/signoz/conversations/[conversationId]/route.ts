@@ -974,7 +974,6 @@ export async function GET(
         | 'ai_model_streamed_text'
         | 'ai_model_streamed_object'
         | 'artifact_processing';
-      name: string;
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1070,7 +1069,6 @@ export async function GET(
       activities.push({
         id: toolCall,
         type: ACTIVITY_TYPES.TOOL_CALL,
-        name,
         toolName: name,
         description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
         timestamp: span.timestamp,
@@ -1111,7 +1109,6 @@ export async function GET(
       activities.push({
         id: contextResolution,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context fetch ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(contextResolution) || undefined,
@@ -1143,7 +1140,6 @@ export async function GET(
       activities.push({
         id: contextHandle,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context handle ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(contextHandle) || undefined,
@@ -1164,7 +1160,6 @@ export async function GET(
       activities.push({
         id: userMessageSpanId,
         type: ACTIVITY_TYPES.USER_MESSAGE,
-        name: ACTIVITY_NAMES.USER_MESSAGE,
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
         parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
@@ -1186,7 +1181,6 @@ export async function GET(
       activities.push({
         id: aiAssistantMessageSpanId,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
-        name: ACTIVITY_NAMES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         parentSpanId: spanIdToParentSpanId.get(aiAssistantMessageSpanId) || undefined,
@@ -1218,7 +1212,6 @@ export async function GET(
       activities.push({
         id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
-        name: ACTIVITY_NAMES.AI_TEXT_GENERATION,
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(aiGeneration) || undefined,
@@ -1249,7 +1242,6 @@ export async function GET(
       activities.push({
         id: agentGeneration,
         type: ACTIVITY_TYPES.AGENT_GENERATION,
-        name: 'agent.generate',
         description: hasError ? 'Agent generation failed' : 'Agent generation',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(agentGeneration) || undefined,
@@ -1273,7 +1265,6 @@ export async function GET(
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-        name: ACTIVITY_NAMES.AI_STREAMING_TEXT,
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
@@ -1300,7 +1291,6 @@ export async function GET(
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
-        name: ACTIVITY_NAMES.AI_STREAMING_OBJECT,
         description: 'AI model streaming object response',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
@@ -1326,7 +1316,6 @@ export async function GET(
       activities.push({
         id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: '',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(contextFetcher) || undefined,
@@ -1350,7 +1339,6 @@ export async function GET(
       activities.push({
         id: artifactProcessing,
         type: 'artifact_processing',
-        name: 'Artifact Processing',
         description: 'Artifact processed',
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(artifactProcessing) || undefined,
