@@ -937,14 +937,14 @@ export async function GET(
       if (agentId || agentName) break;
     }
 
-    let allSpanAttributesEarly: Array<{
+    let allSpanAttributes: Array<{
       spanId: string;
       traceId: string;
       timestamp: string;
       data: Record<string, any>;
     }> = [];
     try {
-      allSpanAttributesEarly = await fetchAllSpanAttributes_SQL(
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(
         conversationId,
         SIGNOZ_URL,
         SIGNOZ_API_KEY
@@ -955,8 +955,8 @@ export async function GET(
     }
 
     const spanIdToParentSpanId = new Map<string, string | null>();
-    for (const spanAttr of allSpanAttributesEarly) {
-      const parentSpanId = spanAttr.data.parentSpanID || null;
+    for (const spanAttr of allSpanAttributes) {
+      const parentSpanId = spanAttr.data[SPAN_KEYS.PARENT_SPAN_ID] || null;
       spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
     }
 
@@ -1139,14 +1139,14 @@ export async function GET(
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
       } catch {}
 
-      const spanId2 = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const contextResolutionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: spanId2,
+        id: contextResolutionSpanId,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
         name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context handle ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
-        parentSpanId: spanIdToParentSpanId.get(spanId2) || undefined,
+        parentSpanId: spanIdToParentSpanId.get(contextResolutionSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
@@ -1160,14 +1160,14 @@ export async function GET(
     for (const span of userMessageSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      const spanId3 = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: spanId3,
+        id: userMessageSpanId,
         type: ACTIVITY_TYPES.USER_MESSAGE,
         name: ACTIVITY_NAMES.USER_MESSAGE,
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
-        parentSpanId: spanIdToParentSpanId.get(spanId3) || undefined,
+        parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
         subAgentName: ACTIVITY_NAMES.USER,
@@ -1182,14 +1182,14 @@ export async function GET(
     for (const span of aiAssistantSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      const spanId4 = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const aiAssistantMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: spanId4,
+        id: aiAssistantMessageSpanId,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
         name: ACTIVITY_NAMES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
-        parentSpanId: spanIdToParentSpanId.get(spanId4) || undefined,
+        parentSpanId: spanIdToParentSpanId.get(aiAssistantMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(
@@ -1453,7 +1453,7 @@ export async function GET(
       mcpToolErrors: [],
       agentId,
       agentName,
-      allSpanAttributes: allSpanAttributesEarly,
+      allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount,
       warningCount,
