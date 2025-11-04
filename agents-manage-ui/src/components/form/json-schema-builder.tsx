@@ -173,7 +173,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       return (
         <>
           {inputs}
-          {field.properties.map((child, index) => (
+          {field.properties.map((child) => (
             <Property
               key={child.id ?? `field-${depth}-${index}`}
               fieldId={child.id}
