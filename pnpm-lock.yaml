@@ -597,7 +597,7 @@ importers:
         specifier: ^7.61.1
         version: 7.65.0(react@19.1.1)
       react-resizable-panels:
-        specifier: ^3.0.5
+        specifier: ^3.0.6
         version: 3.0.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react-runner:
         specifier: ^1.0.5
