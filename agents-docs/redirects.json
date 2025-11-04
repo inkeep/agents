@@ -127,5 +127,10 @@
     "source": "/tutorials/how-to-create-mcp-servers/inkeep",
     "destination": "/tutorials/mcp-servers/custom-mcp-servers",
     "permanent": true
+  },
+  {
+    "source": "/get-started/upgrading",
+    "destination": "/tutorials/upgrading",
+    "permanent": true
   }
 ]

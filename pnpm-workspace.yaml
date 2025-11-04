@@ -6,4 +6,5 @@ packages:
   - agents-ui
   - agents-docs
   - agents-cookbook
+  - test-agents
   - "packages/*"

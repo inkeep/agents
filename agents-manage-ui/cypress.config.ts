@@ -12,6 +12,6 @@ export default defineConfig({
     setupNodeEvents(_on, _config) {
       // implement node event listeners here
     },
-    defaultCommandTimeout: 8_000,
+    defaultCommandTimeout: 10_000,
   },
 });

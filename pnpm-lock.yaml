@@ -1131,6 +1131,15 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
 
+  test-agents:
+    dependencies:
+      '@inkeep/agents-cli':
+        specifier: workspace:*
+        version: link:../agents-cli
+      '@inkeep/agents-sdk':
+        specifier: workspace:*
+        version: link:../packages/agents-sdk
+
 packages:
 
   '@adobe/css-tools@4.4.4':
