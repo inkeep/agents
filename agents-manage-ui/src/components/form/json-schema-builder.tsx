@@ -119,6 +119,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                type="button"
                 size="icon-sm"
                 variant="ghost"
                 onClick={() => {
@@ -177,6 +178,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
             <Property key={child.id} fieldId={child.id} depth={depth + 1 + (prefix ? 3.5 : 0)} />
           ))}
           <Button
+            type="button"
             onClick={() => addChild(field.id)}
             variant="secondary"
             size="sm"
@@ -258,6 +260,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
         <Property key={field.id} fieldId={field.id} depth={0} />
       ))}
       <Button
+        type="button"
         onClick={() => addChild()}
         variant="secondary"
         size="sm"
