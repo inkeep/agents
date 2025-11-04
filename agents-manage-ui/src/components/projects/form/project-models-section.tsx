@@ -62,7 +62,7 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
         }}
         placeholder={`{
   "temperature": 0.7,
-  "maxTokens": 2048
+  "maxOutputTokens": 2048
 }`}
       />
     </div>
@@ -116,7 +116,7 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
         }}
         placeholder={`{
   "temperature": 0.1,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
       />
     </div>
@@ -170,7 +170,7 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
         }}
         placeholder={`{
   "temperature": 0.3,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
       />
     </div>

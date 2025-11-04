@@ -226,7 +226,7 @@ function MetadataEditor() {
               value={models.base.providerOptions || ''}
               placeholder={`{
     "temperature": 0.7,
-    "maxTokens": 2048
+    "maxOutputTokens": 2048
 }`}
             />
           )}
@@ -286,7 +286,7 @@ function MetadataEditor() {
               value={models.structuredOutput.providerOptions || ''}
               placeholder={`{
   "temperature": 0.1,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
             />
           )}
@@ -345,7 +345,7 @@ function MetadataEditor() {
               value={models.summarizer.providerOptions || ''}
               placeholder={`{
   "temperature": 0.3,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
             />
           )}
