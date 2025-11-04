@@ -8,7 +8,7 @@ const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
-  'parentSpanId',
+  'parentSpanID',
   'traceID',
   'tenant.id',
   'project.id',
