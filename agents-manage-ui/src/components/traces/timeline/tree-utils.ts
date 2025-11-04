@@ -6,14 +6,7 @@ export interface TreeNode {
   depth: number;
 }
 
-interface SpanParentMap {
-  [spanId: string]: string | null;
-}
-
-export function buildActivityTree(
-  activities: ActivityItem[],
-  spanParentMap?: SpanParentMap
-): TreeNode[] {
+export function buildActivityTree(activities: ActivityItem[]): TreeNode[] {
   const sortedActivities = [...activities].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
@@ -32,28 +25,15 @@ export function buildActivityTree(
     });
   }
 
-  function findAncestorInActivities(spanId: string | null | undefined): string | null {
-    if (!spanId) return null;
-    
-    if (nodeMap.has(spanId)) {
-      return spanId;
-    }
-    
-    if (spanParentMap && spanParentMap[spanId]) {
-      return findAncestorInActivities(spanParentMap[spanId]);
-    }
-    
-    return null;
-  }
-
   for (const activity of sortedActivities) {
     const node = nodeMap.get(activity.id);
     if (!node) continue;
 
-    const ancestorSpanId = findAncestorInActivities(activity.parentSpanId);
+    // activity.parentSpanId is already resolved to nearest ancestor activity by API route
+    const parentSpanId = activity.parentSpanId;
     
-    if (ancestorSpanId && nodeMap.has(ancestorSpanId)) {
-      const parent = nodeMap.get(ancestorSpanId);
+    if (parentSpanId && nodeMap.has(parentSpanId)) {
+      const parent = nodeMap.get(parentSpanId);
       if (parent) {
         parent.children.push(node);
         node.depth = parent.depth + 1;

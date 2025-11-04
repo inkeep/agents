@@ -448,7 +448,6 @@ export function TimelineWrapper({
                     selectedActivityId={selected?.item?.id}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                    allSpanAttributes={conversation?.allSpanAttributes}
                   />
                   {!isPolling && sortedActivities.length > 0 && !error && refreshOnce && (
                     <div className="flex justify-center items-center z-10">
@@ -483,7 +482,6 @@ export function TimelineWrapper({
                   selectedActivityId={selected?.item?.id}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                  allSpanAttributes={conversation?.allSpanAttributes}
                 />
               </div>
             )}

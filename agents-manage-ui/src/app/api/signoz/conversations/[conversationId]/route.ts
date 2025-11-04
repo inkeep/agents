@@ -1372,6 +1372,21 @@ export async function GET(
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
     const operationEndTime = allSpanTimes.length > 0 ? Math.max(...allSpanTimes) : null;
 
+    // Resolve parentSpanId to nearest ancestor activity
+    const activityIds = new Set(activities.map((a) => a.id));
+    function findAncestorActivity(spanId: string): string | undefined {
+      if (!spanId) return undefined;
+      if (activityIds.has(spanId)) return spanId;
+      const parentSpanId = spanIdToParentSpanId.get(spanId);
+      if (!parentSpanId) return undefined;
+      return findAncestorActivity(parentSpanId);
+    }
+    for (const activity of activities) {
+      if (activity.parentSpanId) {
+        activity.parentSpanId = findAncestorActivity(activity.parentSpanId) || undefined;
+      }
+    }
+
     // Sort activities by pre-parsed timestamps
     activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 

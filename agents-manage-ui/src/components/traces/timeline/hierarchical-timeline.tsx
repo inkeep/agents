@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TimelineItem } from '@/components/traces/timeline/timeline-item';
 import { buildActivityTree, type TreeNode } from '@/components/traces/timeline/tree-utils';
-import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
+import type { ActivityItem } from '@/components/traces/timeline/types';
 
 interface HierarchicalTimelineProps {
   activities: ActivityItem[];
@@ -9,7 +9,6 @@ interface HierarchicalTimelineProps {
   selectedActivityId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
-  allSpanAttributes?: ConversationDetail['allSpanAttributes'];
 }
 
 interface TreeNodeItemProps {
@@ -108,7 +107,6 @@ export function HierarchicalTimeline({
   selectedActivityId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
-  allSpanAttributes,
 }: HierarchicalTimelineProps) {
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
 
@@ -124,14 +122,7 @@ export function HierarchicalTimeline({
     });
   };
 
-  const spanParentMap: Record<string, string | null> = {};
-  if (allSpanAttributes) {
-    for (const span of allSpanAttributes) {
-      spanParentMap[span.spanId] = span.data.parentSpanID || null;
-    }
-  }
-
-  const tree = buildActivityTree(activities, spanParentMap);
+  const tree = buildActivityTree(activities);
 
   return (
     <div className="pt-2 px-6 pb-6">
