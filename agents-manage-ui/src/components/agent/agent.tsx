@@ -41,6 +41,7 @@ import dynamic from 'next/dynamic';
 
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
+  loading: () => <EditorLoadingSkeleton className="p-6" />,
 });
 
 // Type for agent tool configuration lookup including both selection and headers
@@ -93,6 +94,7 @@ import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useIsMounted } from '@/hooks/use-is-mounted';
+import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
