@@ -621,7 +621,7 @@ const useJsonSchemaActions = () => jsonSchemaStore((state) => state.actions);
  * Select values from the store (excluding actions).
  *
  * We explicitly use `JsonSchemaStateData` instead of `JsonSchemaState`,
- * which includes actions, to encourage using `jsonSchemaStore`
+ * which includes actions, to encourage using `useJsonSchemaActions `
  * when accessing or calling actions.
  */
 function useJsonSchemaStore<T>(selector: (state: JsonSchemaStateData) => T): T {
