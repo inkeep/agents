@@ -1078,37 +1078,57 @@ function Flow({
           )}
         </ReactFlow>
       </ResizablePanel>
-      <ResizableHandle withHandle className={isOpen ? '' : 'hidden'} />
-      <DynamicResizablePanel
-        // Panel id and order props recommended when panels are dynamically rendered
-        id="side-pane"
+
+      <ResizableHandle className="hidden" />
+      <ResizablePanel
+        defaultSize={0}
+        className="hidden"
+        id="prevent-layout-shift-placeholder"
         order={2}
-        defaultSize={40}
-        minSize={24}
-        isOpen={isOpen}
-      >
-        <SidePane
-          selectedNodeId={nodeId}
-          selectedEdgeId={edgeId}
-          onClose={closeSidePane}
-          backToAgent={backToAgent}
-          dataComponentLookup={dataComponentLookup}
-          artifactComponentLookup={artifactComponentLookup}
-          agentToolConfigLookup={agentToolConfigLookup}
-          subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-          subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-          credentialLookup={credentialLookup}
-        />
-      </DynamicResizablePanel>
+      />
+
+      {isOpen && (
+        <DynamicResizablePanel
+          defaultSize={40}
+          minSize={24}
+          // Panel id and order props recommended when panels are dynamically rendered
+          id="side-pane"
+          order={3}
+        >
+          <SidePane
+            selectedNodeId={nodeId}
+            selectedEdgeId={edgeId}
+            onClose={closeSidePane}
+            backToAgent={backToAgent}
+            dataComponentLookup={dataComponentLookup}
+            artifactComponentLookup={artifactComponentLookup}
+            agentToolConfigLookup={agentToolConfigLookup}
+            subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+            subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+            credentialLookup={credentialLookup}
+          />
+        </DynamicResizablePanel>
+      )}
       {showPlayground && agent?.id && (
-        <Playground
-          agentId={agent.id}
-          projectId={projectId}
-          tenantId={tenantId}
-          setShowPlayground={setShowPlayground}
-          closeSidePane={closeSidePane}
-          dataComponentLookup={dataComponentLookup}
-        />
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            defaultSize={27}
+            minSize={27}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="playground-pane"
+            order={4}
+          >
+            <Playground
+              agentId={agent.id}
+              projectId={projectId}
+              tenantId={tenantId}
+              setShowPlayground={setShowPlayground}
+              closeSidePane={closeSidePane}
+              dataComponentLookup={dataComponentLookup}
+            />
+          </ResizablePanel>
+        </>
       )}
     </ResizablePanelGroup>
   );
@@ -1122,37 +1142,25 @@ export function Agent(props: AgentProps) {
   );
 }
 
-interface DynamicResizablePanelProps extends ComponentPropsWithoutRef<typeof ResizablePanel> {
-  isOpen: boolean;
-}
-
 /**
- * When side pane is closed we don't need to render ResizablePanel
+ * Fix layout shift
  */
-const DynamicResizablePanel: FC<DynamicResizablePanelProps> = ({ isOpen, ...props }) => {
-  const panelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
-  const [isMounted, setIsMounted] = useState(false);
+const DynamicResizablePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
+  const [mounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     // To avoid layout shifts on initial loading
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    const el = panelRef.current;
-    if (!el) {
-      return;
-    }
-    if (isOpen) {
-      el.expand();
-    } else {
-      el.collapse();
-    }
-  }, [isOpen]);
-
-  if (!isMounted) {
-    return null;
+  if (!mounted) {
+    return false;
   }
 
-  return <ResizablePanel ref={panelRef} collapsible collapsedSize={0} {...props} />;
+  return (
+    <>
+      <ResizableHandle withHandle />
+      <ResizablePanel {...props} />
+    </>
+  );
 };
