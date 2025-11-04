@@ -18,7 +18,7 @@ export interface PrettifiedTrace {
     endTime: string ;
     durationMs: number;
   };
-  timeline: Omit<ActivityItem, 'id' | 'timestamp'>[];
+  timeline: Omit<ActivityItem, 'id'>[];
 }
 
 /**
@@ -80,7 +80,7 @@ export function formatConversationAsPrettifiedTrace(
     },
     timeline: (conversation.activities || []).map((activity) => {
         // Destructure to exclude unwanted fields
-        const { id: _id, name: _name, ...rest } = activity;
+        const { id: _id, ...rest } = activity;
         // Order the fields according to hierarchy
         return orderObjectKeys(rest);
       }),
