@@ -13,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -1072,38 +1072,41 @@ function Flow({
 
       <ResizableHandle className="hidden" />
       <ResizablePanel
-        defaultSize={0}
+        maxSize={0}
         className="hidden"
         id="prevent-layout-shift-placeholder"
         order={2}
       />
 
       {isOpen && (
-        <DynamicResizablePanel
-          minSize={30}
-          // Panel id and order props recommended when panels are dynamically rendered
-          id="side-pane"
-          order={3}
-        >
-          <SidePane
-            selectedNodeId={nodeId}
-            selectedEdgeId={edgeId}
-            onClose={closeSidePane}
-            backToAgent={backToAgent}
-            dataComponentLookup={dataComponentLookup}
-            artifactComponentLookup={artifactComponentLookup}
-            agentToolConfigLookup={agentToolConfigLookup}
-            subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-            subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-            credentialLookup={credentialLookup}
-          />
-        </DynamicResizablePanel>
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            minSize={30}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="side-pane"
+            order={3}
+          >
+            <SidePane
+              selectedNodeId={nodeId}
+              selectedEdgeId={edgeId}
+              onClose={closeSidePane}
+              backToAgent={backToAgent}
+              dataComponentLookup={dataComponentLookup}
+              artifactComponentLookup={artifactComponentLookup}
+              agentToolConfigLookup={agentToolConfigLookup}
+              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+              credentialLookup={credentialLookup}
+            />
+          </ResizablePanel>
+        </>
       )}
       {showPlayground && agent?.id && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
-            minSize={20}
+            minSize={25}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
             order={4}
@@ -1133,26 +1136,3 @@ export function Agent(props: AgentProps) {
     </ReactFlowProvider>
   );
 }
-
-/**
- * Fix layout shift
- */
-const DynamicResizablePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
-  const [mounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    // To avoid layout shifts on initial loading
-    setIsMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return false;
-  }
-
-  return (
-    <>
-      <ResizableHandle withHandle />
-      <ResizablePanel {...props} />
-    </>
-  );
-};
