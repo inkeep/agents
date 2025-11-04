@@ -13,7 +13,7 @@ export const llm404Agent = agent({
     },
   },
   defaultSubAgent: subAgent({
-    id: 'llm-invalid-endpoint-assistant',
+    id: 'llm-404-assistant',
     name: 'Invalid Endpoint',
     description: 'Assistant pointing to wrong endpoint',
     prompt: `You are a helpful assistant.`,
