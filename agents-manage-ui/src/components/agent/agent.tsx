@@ -1008,7 +1008,7 @@ function Flow({
         id="react-flow-pane"
         order={1}
         minSize={30}
-        defaultSize={50}
+        defaultSize={100}
         className="flex-1 h-full relative transition-all duration-300 ease-in-out"
       >
         <DefaultMarker />
@@ -1081,7 +1081,6 @@ function Flow({
 
       {isOpen && (
         <DynamicResizablePanel
-          defaultSize={30}
           minSize={30}
           // Panel id and order props recommended when panels are dynamically rendered
           id="side-pane"
@@ -1105,7 +1104,6 @@ function Flow({
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
-            defaultSize={20}
             minSize={20}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
