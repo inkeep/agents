@@ -1,7 +1,7 @@
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type {
   AgentToolConfigLookup,

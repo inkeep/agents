@@ -269,7 +269,6 @@ function Flow({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
-    panelSize: state.panelSize,
   }));
   const {
     setNodes,
