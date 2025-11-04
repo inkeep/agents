@@ -73,7 +73,7 @@ export const Playground = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="bg-background flex flex-col h-full">
       <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
         <div className="flex items-center gap-2">
