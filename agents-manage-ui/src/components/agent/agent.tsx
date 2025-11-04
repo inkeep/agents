@@ -13,16 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -112,8 +103,7 @@ interface AgentProps {
   externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
-type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
-type ResizablePanelProps = Required<ComponentPropsWithoutRef<typeof ResizablePanel>>;
+type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -1005,6 +995,8 @@ function Flow({
     [fitView, isOpen]
   );
 
+  const [showTraces, setShowTraces] = useState(false);
+
   return (
     <ResizablePanelGroup
       direction="horizontal"
@@ -1016,7 +1008,7 @@ function Flow({
         id="react-flow-pane"
         order={1}
         minSize={30}
-        defaultSize={100}
+        defaultSize={50}
         className="flex-1 h-full relative transition-all duration-300 ease-in-out"
       >
         <DefaultMarker />
@@ -1089,8 +1081,8 @@ function Flow({
 
       {isOpen && (
         <DynamicResizablePanel
-          defaultSize={40}
-          minSize={24}
+          defaultSize={30}
+          minSize={30}
           // Panel id and order props recommended when panels are dynamically rendered
           id="side-pane"
           order={3}
@@ -1111,13 +1103,14 @@ function Flow({
       )}
       {showPlayground && agent?.id && (
         <>
-          <ResizableHandle withHandle />
+          {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
-            defaultSize={27}
-            minSize={27}
+            defaultSize={20}
+            minSize={20}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
             order={4}
+            className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
               agentId={agent.id}
@@ -1126,6 +1119,8 @@ function Flow({
               setShowPlayground={setShowPlayground}
               closeSidePane={closeSidePane}
               dataComponentLookup={dataComponentLookup}
+              showTraces={showTraces}
+              setShowTraces={setShowTraces}
             />
           </ResizablePanel>
         </>
