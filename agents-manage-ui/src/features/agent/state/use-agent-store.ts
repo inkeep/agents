@@ -32,13 +32,6 @@ type AgentStateData = {
   future: HistoryEntry[];
   errors: AgentErrorSummary | null;
   showErrors: boolean;
-  /**
-   * Size percents of resizable side and playground panes.
-   */
-  panelSize: {
-    sidePane: number;
-    playgroundPane: number;
-  };
 };
 
 type AgentActions = {
