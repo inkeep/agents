@@ -447,7 +447,7 @@ function compareFunctionTools(
   remoteFunctionTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('functionTool', localFunctionTools, remoteFunctionTools, debug);
+  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools, debug);
 }
 
 /**
@@ -482,7 +482,7 @@ function compareFunctions(
     };
   }
 
-  return compareComponentMaps('function', cleanLocalFunctions, cleanRemoteFunctions, debug);
+  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions, debug);
 }
 
 /**
@@ -493,7 +493,7 @@ function compareDataComponents(
   remoteDataComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('dataComponent', localDataComponents, remoteDataComponents, debug);
+  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents, debug);
 }
 
 /**
@@ -504,7 +504,7 @@ function compareArtifactComponents(
   remoteArtifactComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('artifactComponent', localArtifactComponents, remoteArtifactComponents, debug);
+  return compareComponentMaps('artifactComponents', localArtifactComponents, remoteArtifactComponents, debug);
 }
 
 /**
@@ -537,7 +537,7 @@ function compareStatusComponents(
   remoteStatusComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('statusComponent', localStatusComponents, remoteStatusComponents, debug);
+  return compareComponentMaps('statusComponents', localStatusComponents, remoteStatusComponents, debug);
 }
 
 /**
