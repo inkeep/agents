@@ -13,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -88,6 +88,7 @@ import { Playground } from './playground/playground';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
@@ -995,7 +996,7 @@ function Flow({
   );
 
   const [showTraces, setShowTraces] = useState(false);
-
+  const isMounted = useIsMounted();
   return (
     <ResizablePanelGroup
       direction="horizontal"
@@ -1069,30 +1070,38 @@ function Flow({
         </ReactFlow>
       </ResizablePanel>
 
-      {isOpen && (
-        <>
-          <ResizableHandle withHandle />
-          <MountedResizablePanel
-            minSize={30}
-            // Panel id and order props recommended when panels are dynamically rendered
-            id="side-pane"
-            order={2}
-          >
-            <SidePane
-              selectedNodeId={nodeId}
-              selectedEdgeId={edgeId}
-              onClose={closeSidePane}
-              backToAgent={backToAgent}
-              dataComponentLookup={dataComponentLookup}
-              artifactComponentLookup={artifactComponentLookup}
-              agentToolConfigLookup={agentToolConfigLookup}
-              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-              credentialLookup={credentialLookup}
-            />
-          </MountedResizablePanel>
-        </>
-      )}
+      {isOpen &&
+        /**
+         * Prevents layout shift of pane when it's opened by default (when nodeId/edgeId are in query params).
+         *
+         * The panel width depends on values stored in `localStorage`, which are only
+         * accessible after the component has mounted. This component delays rendering
+         * until then to avoid visual layout jumps.
+         */
+        isMounted && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel
+              minSize={30}
+              // Panel id and order props recommended when panels are dynamically rendered
+              id="side-pane"
+              order={2}
+            >
+              <SidePane
+                selectedNodeId={nodeId}
+                selectedEdgeId={edgeId}
+                onClose={closeSidePane}
+                backToAgent={backToAgent}
+                dataComponentLookup={dataComponentLookup}
+                artifactComponentLookup={artifactComponentLookup}
+                agentToolConfigLookup={agentToolConfigLookup}
+                subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
+                subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+                credentialLookup={credentialLookup}
+              />
+            </ResizablePanel>
+          </>
+        )}
 
       {showPlayground && agent?.id && (
         <>
@@ -1128,24 +1137,3 @@ export function Agent(props: AgentProps) {
     </ReactFlowProvider>
   );
 }
-
-/**
- * Prevents layout shift of pane which is opened by default.
- *
- * The panel width depends on values stored in `localStorage`, which are only
- * accessible after the component has mounted. This component delays rendering
- * until then to avoid visual layout jumps.
- */
-const MountedResizablePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return;
-  }
-
-  return <ResizablePanel {...props} />;
-};
