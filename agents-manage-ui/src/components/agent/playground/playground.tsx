@@ -28,7 +28,7 @@ export const Playground = ({
   setShowPlayground,
   dataComponentLookup = {},
 }: PlaygroundProps) => {
-  const [conversationId, setConversationId] = useState<string>(generateId());
+  const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [showTraces, setShowTraces] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
