@@ -74,10 +74,6 @@ type AgentActions = {
   hasErrors(): boolean;
   getNodeErrors(nodeId: string): AgentErrorSummary['allErrors'];
   getEdgeErrors(edgeId: string): AgentErrorSummary['allErrors'];
-  /**
-   * Setter for `panelSize`.
-   */
-  setPanelSize: (newPanelSize: Partial<AgentStateData['panelSize']>) => void;
 };
 
 type AgentState = AgentStateData & {
