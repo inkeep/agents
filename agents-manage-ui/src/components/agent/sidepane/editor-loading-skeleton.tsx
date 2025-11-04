@@ -1,8 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import type { ComponentProps, FC } from 'react';
+import { cn } from '@/lib/utils';
 
-export function EditorLoadingSkeleton() {
+export const EditorLoadingSkeleton: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
   return (
-    <div className="space-y-8 flex flex-col">
+    <div className={cn('space-y-8 flex flex-col', className)} {...props}>
       <div className="space-y-8">
         <div className="space-y-2">
           <Skeleton className="h-3.5 w-16" />
@@ -37,4 +39,4 @@ export function EditorLoadingSkeleton() {
       </div>
     </div>
   );
-}
+};
