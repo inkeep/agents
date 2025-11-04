@@ -1076,7 +1076,7 @@ function Flow({
             minSize={30}
             // Panel id and order props recommended when panels are dynamically rendered
             id="side-pane"
-            order={3}
+            order={2}
           >
             <SidePane
               selectedNodeId={nodeId}
@@ -1101,7 +1101,7 @@ function Flow({
             minSize={25}
             // Panel id and order props recommended when panels are dynamically rendered
             id="playground-pane"
-            order={4}
+            order={3}
             className={showTraces ? 'w-full flex-none!' : ''}
           >
             <Playground
