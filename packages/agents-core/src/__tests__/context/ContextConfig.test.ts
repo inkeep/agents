@@ -64,7 +64,7 @@ describe('ContextConfig', () => {
 
     it('should use default values for tenantId, projectId, agentId if not provided', () => {
       const config = new ContextConfigBuilder({
-        id: 'test-defaults-id'
+        id: 'test-defaults-id',
       });
 
       const obj = config.toObject();
@@ -75,7 +75,7 @@ describe('ContextConfig', () => {
 
     it('should throw error when getting ID if not set', () => {
       const config = new ContextConfigBuilder({
-        id: 'temp-id'
+        id: 'temp-id',
       });
 
       // Override the id to empty after construction

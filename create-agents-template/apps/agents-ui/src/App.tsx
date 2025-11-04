@@ -1,21 +1,18 @@
-import "./App.css";
+import './App.css';
 
-import {
-  InkeepEmbeddedChat,
-  type InkeepEmbeddedChatProps,
-} from "@inkeep/agents-ui";
-import { TemperatureList } from "./TemperatureList";
+import { InkeepEmbeddedChat, type InkeepEmbeddedChatProps } from '@inkeep/agents-ui';
+import { TemperatureList } from './TemperatureList';
 
 const embeddedChatProps: InkeepEmbeddedChatProps = {
   aiChatSettings: {
-    graphUrl: "http://localhost:3003/api/chat",
+    graphUrl: 'http://localhost:3003/api/chat',
     headers: {
-      tz: "US/Pacific", //Add timezone if different from US/Pacific.
+      tz: 'US/Pacific', //Add timezone if different from US/Pacific.
       // You can find a timezone list here: https://github.com/davidayalas/current-time?tab=readme-ov-file
     },
-    apiKey: "", // Add API key
+    apiKey: '', // Add API key
     components: {
-      "Temperature data": TemperatureList,
+      'Temperature data': TemperatureList,
     },
   },
 };
@@ -38,19 +35,15 @@ export default function App() {
                 Inkeep Agents UI Quickstart
               </span>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              AI Weather Assistant
-            </h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">AI Weather Assistant</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
-              Ask me anything about weather data, temperature forecasts, or try
-              requesting a temperature chart for any city.
+              Ask me anything about weather data, temperature forecasts, or try requesting a
+              temperature chart for any city.
             </p>
 
             {/* Quick Start Examples */}
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Try these examples:
-              </h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Try these examples:</h3>
               <div className="flex flex-wrap gap-2 justify-center">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
                   "What's the weather in San Francisco?"
@@ -80,7 +73,7 @@ export default function App() {
                 className="text-blue-600 hover:text-blue-700 ml-1"
               >
                 Management API
-              </a>{" "}
+              </a>{' '}
               •
               <a
                 href="http://localhost:3003"

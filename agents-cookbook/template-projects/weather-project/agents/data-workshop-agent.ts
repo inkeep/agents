@@ -18,6 +18,6 @@ export const dataWorkshopAgent = agent({
 - Currency conversion
 - Entertainment (jokes and quotes)
 
-Always use the appropriate tools to provide accurate results and be helpful in explaining what each tool does.`
-  })
+Always use the appropriate tools to provide accurate results and be helpful in explaining what each tool does.`,
+  }),
 });

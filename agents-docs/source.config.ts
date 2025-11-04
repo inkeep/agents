@@ -24,7 +24,7 @@ export default defineConfig({
       [remarkSourceCode, { baseDir: '..' }],
       [mdxSnippet, { snippetsDir: path.resolve(process.cwd(), '_snippets') }],
       [emoji, { accessible: true }],
-      ...v
+      ...v,
     ],
     rehypeCodeOptions: {
       inline: 'tailing-curly-colon',

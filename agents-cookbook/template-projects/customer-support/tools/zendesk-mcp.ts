@@ -1,4 +1,4 @@
-import { mcpTool } from "@inkeep/agents-sdk";
+import { mcpTool } from '@inkeep/agents-sdk';
 
 export const zendeskMcpTool = mcpTool({
   id: 'zendesk-mcp',

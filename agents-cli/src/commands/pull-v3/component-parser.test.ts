@@ -5,7 +5,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildComponentRegistryFromParsing, findComponentById, getAllLocalComponentIds } from './component-parser';
+import {
+  buildComponentRegistryFromParsing,
+  findComponentById,
+  getAllLocalComponentIds,
+} from './component-parser';
 import { tmpdir } from 'node:os';
 
 describe('Component Parser', () => {
@@ -29,7 +33,9 @@ describe('Component Parser', () => {
   it('should parse exported components', () => {
     // Create test file with exported components
     const testFile = join(testDir, 'index.ts');
-    writeFileSync(testFile, `
+    writeFileSync(
+      testFile,
+      `
 import { agent, tool, dataComponent } from '@inkeep/agents-sdk';
 
 export const myAgent = agent({
@@ -47,13 +53,14 @@ export const myData = dataComponent({
   id: 'my-data-id',
   name: 'My Data'
 });
-    `);
+    `
+    );
 
     const registry = buildComponentRegistryFromParsing(testDir);
     const components = registry.getAllComponents();
 
     expect(components).toHaveLength(3);
-    
+
     const agent = registry.get('my-agent-id', 'agent');
     expect(agent).toBeDefined();
     expect(agent?.type).toBe('agent');
@@ -74,7 +81,9 @@ export const myData = dataComponent({
   it('should parse inline components', () => {
     // Create test file with inline components
     const testFile = join(testDir, 'agent.ts');
-    writeFileSync(testFile, `
+    writeFileSync(
+      testFile,
+      `
 import { agent, subAgent, dataComponent } from '@inkeep/agents-sdk';
 
 export const mainAgent = agent({
@@ -97,7 +106,8 @@ export const mainAgent = agent({
     })
   ]
 });
-    `);
+    `
+    );
 
     const registry = buildComponentRegistryFromParsing(testDir);
     const components = registry.getAllComponents();
@@ -131,26 +141,35 @@ export const mainAgent = agent({
     mkdirSync(join(testDir, 'agents'));
     mkdirSync(join(testDir, 'tools'));
 
-    writeFileSync(join(testDir, 'index.ts'), `
+    writeFileSync(
+      join(testDir, 'index.ts'),
+      `
 export const myProject = project({
   id: 'test-project',
   name: 'Test Project'
 });
-    `);
+    `
+    );
 
-    writeFileSync(join(testDir, 'agents', 'agent1.ts'), `
+    writeFileSync(
+      join(testDir, 'agents', 'agent1.ts'),
+      `
 export const agent1 = agent({
   id: 'agent-1',
   name: 'Agent 1'
 });
-    `);
+    `
+    );
 
-    writeFileSync(join(testDir, 'tools', 'tool1.ts'), `
+    writeFileSync(
+      join(testDir, 'tools', 'tool1.ts'),
+      `
 export const tool1 = tool({
   id: 'tool-1',
   name: 'Tool 1'
 });
-    `);
+    `
+    );
 
     const registry = buildComponentRegistryFromParsing(testDir);
     const components = registry.getAllComponents();
@@ -169,12 +188,15 @@ export const tool1 = tool({
 
   it('should find component by ID', () => {
     const testFile = join(testDir, 'test.ts');
-    writeFileSync(testFile, `
+    writeFileSync(
+      testFile,
+      `
 export const myAgent = agent({
   id: 'find-me',
   name: 'Find Me'
 });
-    `);
+    `
+    );
 
     const found = findComponentById('find-me', testDir);
     expect(found).toBeDefined();
@@ -189,11 +211,14 @@ export const myAgent = agent({
 
   it('should get all local component IDs', () => {
     const testFile = join(testDir, 'components.ts');
-    writeFileSync(testFile, `
+    writeFileSync(
+      testFile,
+      `
 export const agent1 = agent({id: 'agent-1'});
 export const tool1 = tool({id: 'tool-1'});
 export const data1 = dataComponent({id: 'data-1'});
-    `);
+    `
+    );
 
     const ids = getAllLocalComponentIds(testDir);
     expect(ids.size).toBe(3);
@@ -205,7 +230,9 @@ export const data1 = dataComponent({id: 'data-1'});
 
   it('should handle kebab-case and snake_case IDs', () => {
     const testFile = join(testDir, 'test.ts');
-    writeFileSync(testFile, `
+    writeFileSync(
+      testFile,
+      `
 export const kebabTool = tool({
   id: 'kebab-case-tool'
 });
@@ -218,10 +245,11 @@ const agent1 = agent({
     })
   ]
 });
-    `);
+    `
+    );
 
     const registry = buildComponentRegistryFromParsing(testDir);
-    
+
     const kebab = registry.get('kebab-case-tool', 'tool');
     expect(kebab?.name).toBe('kebabTool');
 

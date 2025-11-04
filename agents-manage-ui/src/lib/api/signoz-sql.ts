@@ -106,17 +106,21 @@ export async function fetchAllSpanAttributes_SQL(
 
       const result = json?.data?.result?.[0];
       let rows: SpanRow[] = [];
-      rows = result?.series ? result.series.map((s: any) => ({
-        trace_id: s.labels?.trace_id,
-        span_id: s.labels?.span_id,
-        parent_span_id: s.labels?.parent_span_id,
-        timestamp: s.labels?.timestamp,
-        name: s.labels?.name,
-        attributes_string_json: s.labels?.attributes_string_json,
-        attributes_number_json: s.labels?.attributes_number_json,
-        attributes_bool_json: s.labels?.attributes_bool_json,
-        resources_string_json: s.labels?.resources_string_json,
-      })).filter((r: any) => r.trace_id && r.span_id) : []; // Filter out incomplete rows
+      rows = result?.series
+        ? result.series
+            .map((s: any) => ({
+              trace_id: s.labels?.trace_id,
+              span_id: s.labels?.span_id,
+              parent_span_id: s.labels?.parent_span_id,
+              timestamp: s.labels?.timestamp,
+              name: s.labels?.name,
+              attributes_string_json: s.labels?.attributes_string_json,
+              attributes_number_json: s.labels?.attributes_number_json,
+              attributes_bool_json: s.labels?.attributes_bool_json,
+              resources_string_json: s.labels?.resources_string_json,
+            }))
+            .filter((r: any) => r.trace_id && r.span_id)
+        : []; // Filter out incomplete rows
 
       if (!rows.length) {
         break;
