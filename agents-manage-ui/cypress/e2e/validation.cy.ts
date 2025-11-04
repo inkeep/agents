@@ -10,7 +10,7 @@ describe('Validation', () => {
     cy.contains('Create agent').click();
 
     // Wait for app to initialize and click to save
-    cy.url().should('include', '/default/projects/activities-planner/agents/new?pane=agent');
+    cy.contains('Agent Settings').should('be.visible');
     cy.contains('Save').click();
 
     // Check for validation errors
