@@ -3,9 +3,9 @@ import { InkeepChatLanguageModel } from './inkeep-chat-language-model';
 import type { InkeepChatOptions } from './inkeep-chat-options';
 
 export interface InkeepProvider {
-  (agentId: string, options?: InkeepChatOptions): InkeepChatLanguageModel;
+  (options?: InkeepChatOptions): InkeepChatLanguageModel;
 
-  languageModel(agentId: string, options?: InkeepChatOptions): InkeepChatLanguageModel;
+  languageModel(options?: InkeepChatOptions): InkeepChatLanguageModel;
 }
 
 export interface InkeepProviderSettings {
@@ -35,16 +35,16 @@ export function createInkeep(options: InkeepProviderSettings = {}): InkeepProvid
     };
   };
 
-  const createChatModel = (agentId: string, chatOptions?: InkeepChatOptions) =>
-    new InkeepChatLanguageModel(agentId, chatOptions ?? {}, {
+  const createChatModel = (chatOptions?: InkeepChatOptions) =>
+    new InkeepChatLanguageModel(chatOptions ?? {}, {
       provider: 'inkeep',
       baseURL: getBaseURL(),
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = (agentId: string, chatOptions?: InkeepChatOptions) =>
-    createChatModel(agentId, chatOptions);
+  const provider = (chatOptions?: InkeepChatOptions) =>
+    createChatModel(chatOptions);
 
   provider.languageModel = createChatModel;
 

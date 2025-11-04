@@ -70,10 +70,10 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003',
       });
 
-      const model = provider('agent-123');
+      const model = provider();
 
       expect(model).toBeDefined();
-      expect(model.modelId).toBe('agent-123');
+      expect(model.modelId).toBe('inkeep-agent');
       expect(model.provider).toBe('inkeep');
     });
 
@@ -82,10 +82,10 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003',
       });
 
-      const model = provider.languageModel('agent-456');
+      const model = provider.languageModel();
 
       expect(model).toBeDefined();
-      expect(model.modelId).toBe('agent-456');
+      expect(model.modelId).toBe('inkeep-agent');
     });
 
     it('should pass model options correctly', () => {
@@ -93,7 +93,7 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003',
       });
 
-      const model = provider('agent-123', {
+      const model = provider({
         conversationId: 'conv-456',
         headers: { 'user-id': 'user-789' },
       });
@@ -109,7 +109,7 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003',
       });
 
-      const model = provider('agent-123');
+      const model = provider();
       const headers = model.config.headers();
 
       expect(headers.Authorization).toBeUndefined();
@@ -121,7 +121,7 @@ describe('createInkeep', () => {
         apiKey: 'test-key',
       });
 
-      const model = provider('agent-123');
+      const model = provider();
       const headers = model.config.headers();
 
       expect(headers.Authorization).toBe('Bearer test-key');
@@ -135,7 +135,7 @@ describe('createInkeep', () => {
         },
       });
 
-      const model = provider('agent-123');
+      const model = provider();
       const headers = model.config.headers();
 
       expect(headers['x-custom-header']).toBe('custom-value');
@@ -150,7 +150,7 @@ describe('createInkeep', () => {
         },
       });
 
-      const model = provider('agent-123');
+      const model = provider();
       const headers = model.config.headers();
 
       expect(headers.Authorization).toBe('Bearer custom-key');
@@ -163,7 +163,7 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003/',
       });
 
-      const model = provider('agent-123');
+      const model = provider();
 
       expect(model.config.baseURL).toBe('http://localhost:3003');
     });
@@ -173,7 +173,7 @@ describe('createInkeep', () => {
         baseURL: 'http://localhost:3003',
       });
 
-      const model = provider('agent-123');
+      const model = provider();
 
       expect(model.config.baseURL).toBe('http://localhost:3003');
     });
