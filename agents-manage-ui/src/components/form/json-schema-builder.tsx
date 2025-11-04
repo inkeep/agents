@@ -174,11 +174,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         <>
           {inputs}
           {field.properties.map((child) => (
-            <Property
-              key={child.id}
-              fieldId={child.id}
-              depth={depth + 1 + (prefix ? 3.5 : 0)}
-            />
+            <Property key={child.id} fieldId={child.id} depth={depth + 1 + (prefix ? 3.5 : 0)} />
           ))}
           <Button
             onClick={() => addChild(field.id)}
@@ -248,7 +244,6 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
 
   return (
     <>
-      <p>Properties</p>
       <Table>
         <TableHeader>
           <TableRow>

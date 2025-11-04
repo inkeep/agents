@@ -1,17 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormFieldWrapper } from './form-field-wrapper';
+import { Switch } from '@/components/ui/switch';
 import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
@@ -35,6 +28,8 @@ export function JsonSchemaInput<T extends FieldValues>({
   readOnly,
   isRequired = false,
 }: JsonSchemaInputProps<T>) {
+  const [isAdvanced, setIsAdvanced] = useState(false);
+
   return (
     <FormFieldWrapper
       control={control}
@@ -45,45 +40,26 @@ export function JsonSchemaInput<T extends FieldValues>({
     >
       {(field) => {
         const value = field.value || ''; // can be `null`
+
         return (
-          <StandaloneJsonEditor
-            placeholder={placeholder}
-            {...field}
-            value={value}
-            onChange={field.onChange}
-            readOnly={readOnly}
-            disabled={disabled}
-            actions={
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="backdrop-blur-xl h-6 px-2 text-xs rounded-sm"
-                  >
-                    Simple Edit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="!max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle>Structured output (JSON)</DialogTitle>
-                    <DialogDescription>
-                      The model will generate a JSON object that matches this schema.
-                    </DialogDescription>
-                    <JsonSchemaBuilder value={value} onChange={field.onChange} />
-                  </DialogHeader>
-                  {/*<DialogFooter>*/}
-                  {/* TODO */}
-                  {/*<Button variant="secondary">*/}
-                  {/*  <SquarePenIcon />*/}
-                  {/*  Generate*/}
-                  {/*</Button>*/}
-                  {/*</DialogFooter>*/}
-                </DialogContent>
-              </Dialog>
-            }
-          />
+          <div className="pt-2 flex flex-col gap-2">
+            {isAdvanced ? (
+              <StandaloneJsonEditor
+                placeholder={placeholder}
+                {...field}
+                value={value}
+                onChange={field.onChange}
+                readOnly={readOnly}
+                disabled={disabled}
+              />
+            ) : (
+              <JsonSchemaBuilder value={value} onChange={field.onChange} />
+            )}
+            <span className="absolute flex items-center end-0 top-0 gap-2 text-sm">
+              Advanced
+              <Switch onCheckedChange={setIsAdvanced} />
+            </span>
+          </div>
         );
       }}
     </FormFieldWrapper>
