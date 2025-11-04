@@ -13,7 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentPropsWithoutRef, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -103,7 +103,7 @@ interface AgentProps {
   externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
-type ReactFlowProps = Required<ComponentPropsWithoutRef<typeof ReactFlow>>;
+type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
 function Flow({
   agent,
@@ -1007,8 +1007,7 @@ function Flow({
         id="react-flow-pane"
         order={1}
         minSize={30}
-        defaultSize={100}
-        className="flex-1 h-full relative transition-all duration-300 ease-in-out"
+        className="relative"
       >
         <DefaultMarker />
         <SelectedMarker />
@@ -1070,18 +1069,10 @@ function Flow({
         </ReactFlow>
       </ResizablePanel>
 
-      <ResizableHandle className="hidden" />
-      <ResizablePanel
-        maxSize={0}
-        className="hidden"
-        id="prevent-layout-shift-placeholder"
-        order={2}
-      />
-
       {isOpen && (
         <>
           <ResizableHandle withHandle />
-          <ResizablePanel
+          <DynamicResizePanel
             minSize={30}
             // Panel id and order props recommended when panels are dynamically rendered
             id="side-pane"
@@ -1099,9 +1090,10 @@ function Flow({
               subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
               credentialLookup={credentialLookup}
             />
-          </ResizablePanel>
+          </DynamicResizePanel>
         </>
       )}
+
       {showPlayground && agent?.id && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
@@ -1136,3 +1128,24 @@ export function Agent(props: AgentProps) {
     </ReactFlowProvider>
   );
 }
+
+/**
+ * Prevents layout shift of pane which is opened by default.
+ *
+ * The panel width depends on values stored in `localStorage`, which are only
+ * accessible after the component has mounted. This component delays rendering
+ * until then to avoid visual layout jumps.
+ */
+const DynamicResizePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return;
+  }
+
+  return <ResizablePanel {...props} />;
+};
