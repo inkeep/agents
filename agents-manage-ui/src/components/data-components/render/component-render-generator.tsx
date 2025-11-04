@@ -14,20 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { updateDataComponent } from '@/lib/api/data-components';
-import { cn } from '@/lib/utils';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
-
-export const StyledTabsTrigger = (props: React.ComponentProps<typeof TabsTrigger>) => {
-  return (
-    <TabsTrigger
-      {...props}
-      className={cn(
-        'bg-transparent data-[state=active]:border-primary dark:data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:bg-transparent uppercase font-mono text-xs mt-0.5 pt-2',
-        props.className
-      )}
-    />
-  );
-};
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
@@ -310,9 +297,15 @@ export function ComponentRenderGenerator({
         <Card className="px-2 py-4 pt-0">
           <Tabs defaultValue="render" className="w-full">
             <TabsList className="bg-transparent relative rounded-none border-b p-0 w-full justify-start gap-2">
-              <StyledTabsTrigger value="render">Render</StyledTabsTrigger>
-              <StyledTabsTrigger value="code">Code</StyledTabsTrigger>
-              <StyledTabsTrigger value="data">Sample Data</StyledTabsTrigger>
+              <TabsTrigger variant="underline" value="render">
+                Render
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="code">
+                Code
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="data">
+                Sample Data
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="render">
