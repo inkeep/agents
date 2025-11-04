@@ -112,6 +112,16 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
+const initialNodes: Node[] = [
+  {
+    id: generateId(),
+    type: NodeType.SubAgent,
+    position: { x: 0, y: 0 },
+    data: { name: '', isDefault: true },
+    deletable: false,
+  },
+]
+
 function Flow({
   agent,
   dataComponentLookup = {},
@@ -129,19 +139,6 @@ function Flow({
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
-
-  const initialNodes = useMemo<Node[]>(
-    () => [
-      {
-        id: generateId(),
-        type: NodeType.SubAgent,
-        position: { x: 0, y: 0 },
-        data: { name: '', isDefault: true },
-        deletable: false,
-      },
-    ],
-    []
-  );
 
   // Helper to enrich MCP nodes with tool data
   const enrichNodes = useCallback(
@@ -185,7 +182,7 @@ function Flow({
           }))
         : result.edges,
     };
-  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
+  }, [agent, enrichNodes, nodeId, edgeId]);
 
   const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
     if (!agent?.subAgents) return {} as AgentToolConfigLookup;
