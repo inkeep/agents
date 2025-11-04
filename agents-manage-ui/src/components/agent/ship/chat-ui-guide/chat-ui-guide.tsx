@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { DocsLink } from '../docs-link';
+import { DocsLink, Header } from '../guide-header';
 import { ChatUICode } from './chat-ui-code';
 import { ChatUIPreview } from './chat-ui-preview';
 import { ChatUIComponent, ChatUIPreviewForm } from './chat-ui-preview-form';
@@ -43,16 +43,17 @@ export function ChatUIGuide() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-md font-medium">Chat UI</h3>
+      <Header.Container>
+        <Header.Title title="Chat UI" />
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowCode(!showCode)}>
             {showCode ? <EyeIcon className="size-4" /> : <CodeIcon className="size-4" />}
             {showCode ? 'View preview' : 'View code'}
           </Button>
+          {/* todo should this link change based on the react vs js toggle? */}
           <DocsLink href={`${DOCS_BASE_URL}/talk-to-your-agents/react/chat-button`} />
         </div>
-      </div>
+      </Header.Container>
       {showCode ? (
         <ChatUICode
           component={component}

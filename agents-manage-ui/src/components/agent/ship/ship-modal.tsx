@@ -1,5 +1,4 @@
-import { BookOpen, RocketIcon } from 'lucide-react';
-import Link from 'next/link';
+import { RocketIcon } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,9 +10,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { ApiGuide } from './api-guide';
-import { ChatUIGuide } from './chat-ui/chat-ui-guide';
+import { ChatUIGuide } from './chat-ui-guide/chat-ui-guide';
 import { McpGuide } from './mcp-guide';
 import { SdkGuide } from './sdk-guide';
 
@@ -56,13 +54,6 @@ const shipModalTabItems: TabItem[] = [
     value: TAB_VALUES.API,
   },
 ];
-
-const docsUrlMap: Record<TabValue, string> = {
-  [TAB_VALUES.CHAT_UI]: `${DOCS_BASE_URL}/talk-to-your-agents/react/chat-button`,
-  [TAB_VALUES.MCP_SERVER]: `${DOCS_BASE_URL}/talk-to-your-agents/mcp-server`,
-  [TAB_VALUES.API]: `${DOCS_BASE_URL}/talk-to-your-agents/chat-api`,
-  [TAB_VALUES.SDK]: `${DOCS_BASE_URL}/talk-to-your-agents/vercel-ai-sdk/use-chat`,
-};
 
 export function ShipModal() {
   return (
