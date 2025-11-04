@@ -10,7 +10,7 @@ describe('Validation', () => {
     cy.contains('Create agent').click();
 
     // Wait for app to initialize and click to save
-    cy.contains('Save').click();
+    cy.contains('Save').should('be.visible').click();
 
     // Check for validation errors
     cy.contains('Validation Errors (1)').should('exist');
