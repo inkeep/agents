@@ -24,7 +24,7 @@ export interface PrettifiedTrace {
 /**
  * Priority fields that should appear first, in this order
  */
-const PRIORITY_FIELDS = ['type', 'description', 'status','timestamp'];
+const PRIORITY_FIELDS = ['subAgentId', 'subAgentName', 'type', 'description', 'status','timestamp'];
 
 /**
  * Orders object keys with priority fields first, then alphabetically
