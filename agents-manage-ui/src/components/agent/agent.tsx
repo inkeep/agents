@@ -1072,7 +1072,7 @@ function Flow({
       {isOpen && (
         <>
           <ResizableHandle withHandle />
-          <DynamicResizePanel
+          <MountedResizablePanel
             minSize={30}
             // Panel id and order props recommended when panels are dynamically rendered
             id="side-pane"
@@ -1090,7 +1090,7 @@ function Flow({
               subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
               credentialLookup={credentialLookup}
             />
-          </DynamicResizePanel>
+          </MountedResizablePanel>
         </>
       )}
 
@@ -1136,7 +1136,7 @@ export function Agent(props: AgentProps) {
  * accessible after the component has mounted. This component delays rendering
  * until then to avoid visual layout jumps.
  */
-const DynamicResizePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
+const MountedResizablePanel: FC<ComponentProps<typeof ResizablePanel>> = (props) => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
