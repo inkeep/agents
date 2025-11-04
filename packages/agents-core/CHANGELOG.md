@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.30.4
+
+### Patch Changes
+
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+
 ## 0.30.3
 
 ### Patch Changes

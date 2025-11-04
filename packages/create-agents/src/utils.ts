@@ -267,7 +267,7 @@ export const createAgents = async (
       await fs.emptyDir(directoryPath);
     }
 
-    s.message('Building template...');
+    s.message('Building template (this may take a while)...');
     await cloneTemplateHelper({
       targetPath: directoryPath,
       localPrefix: localAgentsPrefix,
@@ -438,6 +438,12 @@ export const myProject = project({
 
 async function installDependencies() {
   await execAsync('pnpm install');
+  try {
+    await execAsync('pnpm upgrade-agents');
+  } catch (error) {
+    console.warn('Warning: Package upgrade failed, continuing with current versions');
+    console.warn(error instanceof Error ? error.message : 'Unknown error');
+  }
 }
 
 async function initializeGit() {

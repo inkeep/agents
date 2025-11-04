@@ -30,7 +30,7 @@ const inkeep = createInkeep({
 });
 
 const { text } = await generateText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'What is the weather in NYC?',
 });
 
@@ -45,13 +45,14 @@ import { createInkeep } from '@inkeep/ai-sdk-provider';
 
 const inkeep = createInkeep({
   baseURL: proccess.env.INKEEP_AGENTS_RUN_API_URL,
+  apiKey: <your-agent-api-key>,
   headers: {
     'x-emit-operations': 'true', // Enable tool event streaming
   },
 });
 
 const result = await streamText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'Plan an event in NYC',
 });
 
@@ -68,7 +69,7 @@ createInkeep({
 })
 ```
 
-### Model Options
+### Provider Options
 
 Pass options when creating a provider instance:
 
@@ -86,7 +87,7 @@ import { inkeep } from '@inkeep/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: inkeep('agent-123', {
+  model: inkeep({
     conversationId: 'conv-123',
     headers: {
       'user-id': 'user-456',
@@ -152,7 +153,7 @@ const inkeep = createInkeep({
 });
 
 const result = await streamText({
-  model: inkeep('agent-123'),
+  model: inkeep(),
   prompt: 'Search for recent papers on AI',
 });
 
@@ -198,9 +199,3 @@ The provider emits the following AI SDK v2 stream events:
 **Control Events** (always emitted):
 - `finish` - Stream completion with usage statistics
 - `error` - Stream error occurred
-
-## Model Identification
-
-Models are identified by agent ID in the format:
-- `agent-123` - Direct agent ID
-- `inkeep/agent-123` - With provider prefix (when used with custom factories)

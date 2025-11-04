@@ -1,5 +1,18 @@
 # @inkeep/agents-cli
 
+## 0.30.4
+
+### Patch Changes
+
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+- Updated dependencies [aeacd5f]
+- Updated dependencies [26b89c6]
+- Updated dependencies [4a73629]
+  - @inkeep/agents-manage-ui@0.30.4
+  - @inkeep/agents-core@0.30.4
+  - @inkeep/agents-sdk@0.30.4
+
 ## 0.30.3
 
 ### Patch Changes

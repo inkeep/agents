@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.30.3",
+  "version": "0.30.4",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -99,7 +99,7 @@
     "react-dom": "19.1.1",
     "react-error-boundary": "^6.0.0",
     "react-hook-form": "^7.61.1",
-    "react-resizable-panels": "^3.0.5",
+    "react-resizable-panels": "^3.0.6",
     "react-runner": "^1.0.5",
     "recharts": "2.15.4",
     "remark-supersub": "^1.0.0",

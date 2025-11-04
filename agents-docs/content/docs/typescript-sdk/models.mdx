@@ -94,8 +94,8 @@ Inkeep Agents supports all [Vercel AI SDK provider options](https://ai-sdk.dev/p
 
 **Basic configuration:**
 
-<Tabs items={['TypeScript', 'JSON']}>
-<Tab>
+<Tabs>
+<Tab title="TypeScript">
 ```typescript
 models: {
   base: {
@@ -111,7 +111,7 @@ models: {
 }
 ```
 </Tab>
-<Tab>
+<Tab title="JSON">
 ```json
 {
   "maxOutputTokens": 4096,
@@ -126,8 +126,8 @@ models: {
 
 **OpenAI with reasoning:**
 
-<Tabs items={['TypeScript', 'JSON']}>
-<Tab>
+<Tabs>
+<Tab title="TypeScript">
 ```typescript
 models: {
   base: {
@@ -140,7 +140,7 @@ models: {
 }
 ```
 </Tab>
-<Tab>
+<Tab title="JSON">
 ```json
 {
   "openai": { "reasoningEffort": "medium" },
@@ -152,14 +152,14 @@ models: {
 
 **Anthropic with thinking:**
 
-<Tabs items={['TypeScript', 'JSON']}>
-<Tab>
+<Tabs>
+<Tab title="TypeScript">
 ```typescript
 models: {
   base: {
     model: "anthropic/claude-sonnet-4-5",
     providerOptions: {
-      anthropic: { 
+      anthropic: {
         thinking: { type: 'enabled', budgetTokens: 8000 },
         temperature: 0.5
       }
@@ -168,10 +168,10 @@ models: {
 }
 ```
 </Tab>
-<Tab>
+<Tab title="JSON">
 ```json
 {
-  "anthropic": { 
+  "anthropic": {
     "thinking": { "type": "enabled", "budgetTokens": 8000 }
   },
   "temperature": 0.5
@@ -182,14 +182,14 @@ models: {
 
 **Google with thinking:**
 
-<Tabs items={['TypeScript', 'JSON']}>
-<Tab>
+<Tabs>
+<Tab title="TypeScript">
 ```typescript
 models: {
   base: {
     model: "google/gemini-2.5-flash",
     providerOptions: {
-      google: { 
+      google: {
         thinkingConfig: { thinkingBudget: 8192, includeThoughts: true }
       },
       temperature: 0.7
@@ -198,10 +198,10 @@ models: {
 }
 ```
 </Tab>
-<Tab>
+<Tab title="JSON">
 ```json
 {
-  "google": { 
+  "google": {
     "thinkingConfig": { "thinkingBudget": 8192, "includeThoughts": true }
   },
   "temperature": 0.7
