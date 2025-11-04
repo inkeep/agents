@@ -999,7 +999,7 @@ function Flow({
   return (
     <ResizablePanelGroup
       direction="horizontal"
-      autoSaveId="AGENT"
+      autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
       <ResizablePanel
