@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": minor
 ---
 
-add changeset
+Make the Side Pane and Playground Pane (Try It! button) resizable and persist their sizes in localStorage.
