@@ -91,7 +91,7 @@ function detectOrphanedToolsInAgent(
  * Creates a user-friendly warning message for orphaned tools
  * Assumes result.hasOrphanedTools is true (should be checked by caller)
  */
-export function createOrphanedToolsWarningMessage(result: OrphanedToolsDetectionResult): string {
+function createOrphanedToolsWarningMessage(result: OrphanedToolsDetectionResult): string {
   const nodeCount = result.orphanedToolsByNode.length;
   const toolCount = result.totalOrphanedCount;
 
