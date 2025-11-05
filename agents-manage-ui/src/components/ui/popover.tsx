@@ -52,6 +52,5 @@ export {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  /** @lintignore */
   PopoverAnchor,
 };

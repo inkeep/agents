@@ -101,11 +101,9 @@ export {
   Table,
   TableHeader,
   TableBody,
-  /** @lintignore */
   TableFooter,
   TableHead,
   TableRow,
   TableCell,
-  /** @lintignore */
   TableCaption,
 };

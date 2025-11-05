@@ -211,29 +211,18 @@ function DropdownMenuSubContent({
 
 export {
   DropdownMenu,
-  /** @lintignore */
   DropdownMenuPortal,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  /** @lintignore */
   DropdownMenuGroup,
-  /** @lintignore */
   DropdownMenuLabel,
   DropdownMenuItem,
-  /** @lintignore */
   DropdownMenuCheckboxItem,
-  /** @lintignore */
   DropdownMenuRadioGroup,
-  /** @lintignore */
   DropdownMenuRadioItem,
-  /** @lintignore */
   DropdownMenuSeparator,
-  /** @lintignore */
   DropdownMenuShortcut,
-  /** @lintignore */
   DropdownMenuSub,
-  /** @lintignore */
   DropdownMenuSubTrigger,
-  /** @lintignore */
   DropdownMenuSubContent,
 };

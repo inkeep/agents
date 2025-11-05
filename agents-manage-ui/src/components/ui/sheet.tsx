@@ -120,13 +120,10 @@ function SheetDescription({
 
 export {
   Sheet,
-  /** @lintignore */
   SheetTrigger,
-  /** @lintignore */
   SheetClose,
   SheetContent,
   SheetHeader,
-  /** @lintignore */
   SheetFooter,
   SheetTitle,
   SheetDescription,

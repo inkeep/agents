@@ -77,7 +77,6 @@ export {
   CardHeader,
   CardFooter,
   CardTitle,
-  /** @lintignore */
   CardAction,
   CardDescription,
   CardContent,
