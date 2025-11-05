@@ -261,23 +261,6 @@ export async function updateModifiedComponents(
 ): Promise<ComponentUpdateResult[]> {
   const results: ComponentUpdateResult[] = [];
 
-  // DEBUG: Log local registry components
-  if (debug) {
-    const localComponents = localRegistry.getAllComponents();
-    console.log(chalk.magenta(`\n🔍 [DEBUG] Local registry has ${localComponents.length} components:`));
-    localComponents.forEach(comp => {
-      console.log(chalk.gray(`   - ${comp.type}:${comp.id} (${comp.name}) at ${comp.filePath}`));
-    });
-    
-    console.log(chalk.magenta(`\n🔍 [DEBUG] Remote project components:`));
-    console.log(chalk.gray(`   - agents: ${Object.keys(remoteProject.agents || {}).length}`));
-    console.log(chalk.gray(`   - tools: ${Object.keys(remoteProject.tools || {}).length}`));
-    console.log(chalk.gray(`   - subAgents: ${Object.keys(remoteProject.subAgents || {}).length}`));
-    console.log(chalk.gray(`   - contextConfigs: ${remoteProject.contextConfig ? 1 : 0}`));
-    if (remoteProject.contextConfig?.contextVariables) {
-      console.log(chalk.gray(`   - fetchDefinitions: ${Object.keys(remoteProject.contextConfig.contextVariables).length}`));
-    }
-  }
 
   // Create unique temp directory name with timestamp or use provided one
   const tempDirName = providedTempDirName || `.temp-${Date.now()}`;
