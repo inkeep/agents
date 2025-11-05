@@ -56,7 +56,7 @@ const mockRegistry = {
       {
         id: 'personalAgentContext',
         name: 'personalAgentContext',
-        type: 'contextConfig',
+        type: 'contextConfigs',
         filePath: 'context-configs/personalAgentContext.ts',
         exportName: 'personalAgentContext',
         isInline: false

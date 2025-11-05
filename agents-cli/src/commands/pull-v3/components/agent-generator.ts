@@ -322,20 +322,8 @@ export function generateAgentDefinition(
   }
 
   // contextConfig - reference to context configuration (generated separately)
-  if (agentData.contextConfig) {
-    // Try to find the contextConfig variable name by searching for contextConfig components
-    // Since contextConfig doesn't have a stable ID, we look for any contextConfig component
-    let contextConfigVar: string | undefined;
-    
-    if (registry) {
-      const allComponents = registry.getAllComponents();
-      const contextConfigComponent = allComponents.find(comp => comp.type === 'contextConfigs');
-      if (contextConfigComponent) {
-        contextConfigVar = contextConfigComponent.name;
-      } else {
-      }
-    }
-    
+  if (agentData.contextConfig && registry && agentData.contextConfig.id) {
+    const contextConfigVar = registry.getVariableName(agentData.contextConfig.id, 'contextConfigs');
     if (contextConfigVar) {
       lines.push(`${indentation}contextConfig: ${contextConfigVar},`);
     } else {

@@ -132,7 +132,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const componentId = match[3];
       
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
+      // Only use 'type' field for statusComponents
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -152,7 +153,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
       if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -174,7 +175,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
@@ -195,8 +196,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
-      if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'type' field for statusComponents
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents' && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -216,7 +218,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
       if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -239,7 +241,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
@@ -259,8 +261,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
-      if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'type' field for statusComponents
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         components.push({
           id: componentId,
