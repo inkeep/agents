@@ -7,6 +7,7 @@ dist/
 build/
 .next/
 coverage/
+.turbo/
 
 # Generated files
 *.d.ts
