@@ -9,22 +9,16 @@ import { z } from 'zod';
 
 // Import core types and schemas
 import {
-  AgentAgentApiInsertSchema,
   type AgentAgentInsert,
   type AgentApiInsert,
-  AgentApiInsertSchema,
   type FullAgentDefinition as CoreFullAgentDefinition,
-  ErrorResponseSchema,
   type ExternalAgentApiInsert,
   type ExternalAgentDefinition,
   FullAgentDefinitionSchema,
   type FunctionApiInsert,
   type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
   TenantParamsSchema,
   type ToolApiInsert,
-  ToolApiInsertSchema,
   type ToolInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
@@ -43,9 +37,6 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 export type AgentApi = AgentApiInsert;
 export type AgentAgentApi = AgentAgentInsert;
 export type ToolApi = ToolInsert;
-const AgentApiSchema = AgentApiInsertSchema;
-const AgentAgentApiSchema = AgentAgentApiInsertSchema;
-const ToolApiSchema = ToolApiInsertSchema;
 
 // Re-export types and schemas
 export { type ExternalAgentDefinition, FullAgentDefinitionSchema, type InternalAgentDefinition };
