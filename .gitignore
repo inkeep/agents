@@ -50,21 +50,16 @@ yarn-error.log*
 next-env.d.ts
 local.db
 
-# turborepo
-.turbo
-
-dist
-
-
 .ipc-hosted-tools/
 .hosted-tools/
 
 .playwright-mcp
-.vercel
+.vercel/
 .idea/
 agents-manage-ui/cypress/screenshots/
 
-# Generated files
+.turbo/
+dist/
 .next/
 out/
 .source/
