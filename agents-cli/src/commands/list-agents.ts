@@ -1,6 +1,6 @@
+import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import * as p from '@clack/prompts';
 import { ManagementApiClient } from '../api';
 import { initializeCommand } from '../utils/cli-pipeline';
 

@@ -5,16 +5,16 @@
  * External agents are agents hosted on other systems that can be called by internal agents
  */
 
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  removeTrailingComma,
-  generateImport,
-  generateFileContent,
-} from '../utils/generator-utils';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatString,
+  generateFileContent,
+  generateImport,
+  removeTrailingComma,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Generate External Agent Definition using externalAgent() builder function
@@ -54,7 +54,7 @@ export function generateExternalAgentDefinition(
 
   // Use registry to get collision-safe variable name if available
   if (registry) {
-    const registryVarName = registry.getVariableName(agentId, 'externalAgent');
+    const registryVarName = registry.getVariableName(agentId, 'externalAgents');
     if (registryVarName) {
       agentVarName = registryVarName;
     }
@@ -94,7 +94,7 @@ export function generateExternalAgentDefinition(
       }
 
       // Reference to a credential variable - use registry
-      const credentialVar = registry.getVariableName(agentData.credentialReference, 'credential');
+      const credentialVar = registry.getVariableName(agentData.credentialReference, 'credentials');
 
       if (!credentialVar) {
         throw new Error(
@@ -162,7 +162,7 @@ export function generateExternalAgentImports(
 
     const currentFilePath = `external-agents/${agentId}.ts`;
     const credentialRefs = [
-      { id: agentData.credentialReference, type: 'credential' as ComponentType },
+      { id: agentData.credentialReference, type: 'credentials' as ComponentType },
     ];
 
     // Get import statements for referenced credentials

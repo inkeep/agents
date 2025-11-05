@@ -2,11 +2,11 @@
  * Unit tests for agent generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateAgentDefinition,
-  generateAgentImports,
   generateAgentFile,
+  generateAgentImports,
 } from '../agent-generator';
 
 // Mock registry for tests
@@ -56,7 +56,7 @@ const mockRegistry = {
       {
         id: 'personalAgentContext',
         name: 'personalAgentContext',
-        type: 'contextConfig',
+        type: 'contextConfigs',
         filePath: 'context-configs/personalAgentContext.ts',
         exportName: 'personalAgentContext',
         isInline: false,
@@ -420,7 +420,7 @@ describe('Agent Generator', () => {
         const mainAssistant = { type: 'subAgent' };
         const helperAgent = { type: 'subAgent' };
         const coordinatorAgent = { type: 'subAgent' };
-        const personalAgentContext = { type: 'contextConfig' };
+        const complexAgentContext = { type: 'contextConfig' };
         const toolSummary = { config: 'toolSummaryConfig' };
         const progressUpdate = { config: 'progressUpdateConfig' };
         

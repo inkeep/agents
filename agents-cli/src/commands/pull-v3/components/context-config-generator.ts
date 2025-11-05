@@ -5,22 +5,22 @@
  * builder functions from @inkeep/agents-core
  */
 
-import { jsonSchemaToZod } from 'json-schema-to-zod';
 import chalk from 'chalk';
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  formatObject,
-  hasTemplateVariables,
-  formatPromptWithContext,
-  removeTrailingComma,
-  generateImport,
-  shouldInclude,
-  generateFileContent,
-} from '../utils/generator-utils';
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { ComponentRegistry } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatObject,
+  formatPromptWithContext,
+  formatString,
+  generateFileContent,
+  generateImport,
+  hasTemplateVariables,
+  removeTrailingComma,
+  shouldInclude,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Process template variables in fetchConfig objects
@@ -187,7 +187,7 @@ export function generateContextConfigDefinition(
     if (!registry) {
       throw new Error('Registry is required for context config variable name generation');
     }
-    const varName = registry.getVariableName(contextId, 'contextConfig');
+    const varName = registry.getVariableName(contextId, 'contextConfigs');
     if (!varName) {
       throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
     }
@@ -378,7 +378,7 @@ export function generateContextConfigFile(
     if (!registry) {
       throw new Error('Registry is required for context config variable name generation');
     }
-    const varName = registry.getVariableName(contextId, 'contextConfig');
+    const varName = registry.getVariableName(contextId, 'contextConfigs');
     if (!varName) {
       throw new Error(`Failed to resolve variable name for context config: ${contextId}`);
     }

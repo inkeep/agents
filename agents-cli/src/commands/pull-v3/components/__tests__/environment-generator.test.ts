@@ -2,14 +2,14 @@
  * Unit tests for environment settings generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  generateEnvironmentSettingsDefinition,
-  generateEnvironmentSettingsImports,
-  generateEnvironmentSettingsFile,
   generateEnvironmentIndexDefinition,
-  generateEnvironmentIndexImports,
   generateEnvironmentIndexFile,
+  generateEnvironmentIndexImports,
+  generateEnvironmentSettingsDefinition,
+  generateEnvironmentSettingsFile,
+  generateEnvironmentSettingsImports,
 } from '../environment-generator';
 
 describe('Environment Settings Generator', () => {

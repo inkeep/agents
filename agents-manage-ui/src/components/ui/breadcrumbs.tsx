@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 import { useProject } from '@/contexts/project-context';
+import { cn } from '@/lib/utils';
 
 export type BreadcrumbItem = {
   label: string;

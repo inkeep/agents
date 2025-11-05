@@ -1,9 +1,9 @@
 import 'dotenv/config';
+import { context as otelContext, trace as otelTrace, propagation } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { Langfuse } from 'langfuse';
 import { getLogger } from './logger.js';
-import { context as otelContext, propagation, trace as otelTrace } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { W3CTraceContextPropagator } from '@opentelemetry/core';
 
 const otelProvider = new NodeTracerProvider();
 otelProvider.register({ propagator: new W3CTraceContextPropagator() });

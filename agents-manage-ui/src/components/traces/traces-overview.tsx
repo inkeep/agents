@@ -6,17 +6,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
+import { useAggregateStats, useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
 import { AreaChartCard } from './charts/area-chart-card';
 import { StatCard } from './charts/stat-card';
 import { ConversationStatsCard } from './conversation-stats/conversation-stats-card';
-import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { AgentFilter } from './filters/agent-filter';
+import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 import { SpanFilters } from './filters/span-filters';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 // Time range options
 const TIME_RANGES = {

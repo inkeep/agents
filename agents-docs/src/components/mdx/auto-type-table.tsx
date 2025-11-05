@@ -1,7 +1,7 @@
-import { TypeTable, type ParameterNode, type TypeNode } from '@/components/mdx/type-table';
+import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { type Jsx, toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import * as runtime from 'react/jsx-runtime';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { type ParameterNode, type TypeNode, TypeTable } from '@/components/mdx/type-table';
 import { renderMarkdownToHast, renderTypeToHast } from '@/lib/markdown';
 import 'server-only';
 import type { ReactNode } from 'react';

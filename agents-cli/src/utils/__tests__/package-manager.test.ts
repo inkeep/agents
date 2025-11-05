@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getUpdateCommand, type PackageManager } from '../package-manager';
 
 describe('package-manager', () => {

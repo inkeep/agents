@@ -1,9 +1,8 @@
 import 'hono';
 
 import { createManagementApp } from '@inkeep/agents-manage-api';
-import { credentialStores } from '../../shared/credential-stores.js';
-
 import type { Hono } from 'hono';
+import { credentialStores } from '../../shared/credential-stores.js';
 
 const inkeep_manage_api_port = 3002;
 

@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.31.0
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+
 ## 0.30.4
 
 ### Patch Changes

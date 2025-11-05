@@ -5,29 +5,28 @@
  * from scratch without any comparison or diffing logic.
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import { ComponentRegistry, registerAllComponents } from './utils/component-registry';
-import { DEFAULT_STYLE } from './utils/generator-utils';
-
-// Import all component generators
-import { generateProjectFile } from './components/project-generator';
 import { generateAgentFile } from './components/agent-generator';
-import { generateSubAgentFile } from './components/sub-agent-generator';
-import { generateExternalAgentFile } from './components/external-agent-generator';
-import { generateDataComponentFile } from './components/data-component-generator';
 import { generateArtifactComponentFile } from './components/artifact-component-generator';
-import { generateStatusComponentFile } from './components/status-component-generator';
-import { generateFunctionToolFile } from './components/function-tool-generator';
-import { generateMcpToolFile } from './components/mcp-tool-generator';
+import { generateContextConfigFile } from './components/context-config-generator';
 import { generateCredentialFile } from './components/credential-generator';
+import { generateDataComponentFile } from './components/data-component-generator';
 import {
   generateEnvironmentFile,
   generateEnvironmentIndexFile,
 } from './components/environment-generator';
-import { generateContextConfigFile } from './components/context-config-generator';
+import { generateExternalAgentFile } from './components/external-agent-generator';
+import { generateFunctionToolFile } from './components/function-tool-generator';
+import { generateMcpToolFile } from './components/mcp-tool-generator';
+// Import all component generators
+import { generateProjectFile } from './components/project-generator';
+import { generateStatusComponentFile } from './components/status-component-generator';
+import { generateSubAgentFile } from './components/sub-agent-generator';
+import { ComponentRegistry, registerAllComponents } from './utils/component-registry';
+import { DEFAULT_STYLE } from './utils/generator-utils';
 
 interface ProjectPaths {
   projectRoot: string;
@@ -169,7 +168,7 @@ export async function introspectGenerate(
     // 7. Generate status components from registry
     const registeredStatusComponents = registry
       .getAllComponents()
-      .filter((c) => c.type === 'statusComponent');
+      .filter((c) => c.type === 'statusComponents');
     if (registeredStatusComponents.length > 0) {
       for (const statusComp of registeredStatusComponents) {
         // Get the actual status component data from the project
@@ -205,7 +204,7 @@ export async function introspectGenerate(
     // 9. Generate context configs from registry
     const registeredContextConfigs = registry
       .getAllComponents()
-      .filter((c) => c.type === 'contextConfig');
+      .filter((c) => c.type === 'contextConfigs');
     if (registeredContextConfigs.length > 0) {
       for (const contextComp of registeredContextConfigs) {
         // Get the actual context config data from the project

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 import { validationHelper } from '../../middleware/contextValidation';
+import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 
 describe('Context Validation with Zod to JSON Schema conversion and AJV', () => {
   describe('Basic Zod to JSON Schema conversion', () => {

@@ -1,10 +1,10 @@
 'use client';
 
-import { type ComponentProps, type FC, useCallback, useId, useState, useEffect } from 'react';
 import type * as Monaco from 'monaco-editor';
-import { MonacoEditor } from './monaco-editor';
+import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
 import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
+import { MonacoEditor } from './monaco-editor';
 
 interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
   uri?: `${string}.template`;

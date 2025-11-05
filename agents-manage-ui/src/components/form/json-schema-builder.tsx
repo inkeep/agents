@@ -1,5 +1,9 @@
-import type { ComponentProps, FC, ReactNode, Dispatch } from 'react';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { PlusIcon, TrashIcon, X } from 'lucide-react';
+import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -8,26 +12,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { PlusIcon, TrashIcon, X } from 'lucide-react';
-import { StringIcon, NumberIcon, BooleanIcon, EnumIcon, ArrayIcon, ObjectIcon } from './icons';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  type TypeValues,
-  type JsonSchemaStateData,
   type FieldObject,
-  Types,
-  findFieldById,
-  parseFieldsFromJson,
   fieldsToJsonSchema,
+  findFieldById,
+  type JsonSchemaStateData,
   jsonSchemaStore,
+  parseFieldsFromJson,
+  Types,
+  type TypeValues,
   useJsonSchemaActions,
   useJsonSchemaStore,
 } from '@/features/agent/state/json-schema';
+import { cn } from '@/lib/utils';
+import { ArrayIcon, BooleanIcon, EnumIcon, NumberIcon, ObjectIcon, StringIcon } from './icons';
 
 const INDENT_PX = 24;
 

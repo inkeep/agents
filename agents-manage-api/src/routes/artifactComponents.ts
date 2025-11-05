@@ -10,6 +10,7 @@ import {
   createArtifactComponent,
   deleteArtifactComponent,
   ErrorResponseSchema,
+  generateId,
   getArtifactComponentById,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
@@ -17,7 +18,6 @@ import {
   TenantProjectParamsSchema,
   updateArtifactComponent,
   validatePropsAsJsonSchema,
-  generateId,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 

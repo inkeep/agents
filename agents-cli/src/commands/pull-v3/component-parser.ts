@@ -5,10 +5,10 @@
  * - dataComponent({id: 'data-id', ...}) (inline)
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, extname, relative } from 'node:path';
-import { ComponentRegistry, type ComponentType } from './utils/component-registry';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
 import chalk from 'chalk';
+import { ComponentRegistry, type ComponentType } from './utils/component-registry';
 
 interface ComponentMatch {
   id: string;
@@ -20,23 +20,42 @@ interface ComponentMatch {
 }
 
 /**
- * Component type mapping from function names to ComponentType
+ * Valid plural component types for parsing
  */
-const COMPONENT_TYPE_MAP: Record<string, ComponentType> = {
+const VALID_COMPONENT_TYPES = new Set<ComponentType>([
+  'project',
+  'agents',
+  'subAgents',
+  'tools',
+  'functionTools',
+  'dataComponents',
+  'artifactComponents',
+  'statusComponents',
+  'externalAgents',
+  'credentials',
+  'contextConfigs',
+  'fetchDefinitions',
+  'headers',
+]);
+
+/**
+ * Mapping from SDK function names to ComponentTypes
+ */
+const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
   project: 'project',
-  agent: 'agent',
-  subAgent: 'subAgent',
-  tool: 'tool',
-  mcpTool: 'tool', // MCP tools are a type of tool
-  functionTool: 'functionTool',
-  dataComponent: 'dataComponent',
-  artifactComponent: 'artifactComponent',
-  statusComponent: 'statusComponent',
-  externalAgent: 'externalAgent',
-  credential: 'credential',
-  contextConfig: 'contextConfig',
-  fetchDefinition: 'fetchDefinition',
-  headers: 'headers',
+  agent: 'agents',
+  subAgent: 'subAgents',
+  tool: 'tools',
+  functionTool: 'functionTools',
+  dataComponent: 'dataComponents',
+  artifactComponent: 'artifactComponents',
+  statusComponent: 'statusComponents',
+  externalAgent: 'externalAgents',
+  credential: 'credentials',
+  contextConfig: 'contextConfigs',
+  fetchDefinition: 'fetchDefinitions',
+  header: 'headers',
+  mcpTool: 'tools',
 };
 
 /**
@@ -104,8 +123,8 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -125,8 +144,13 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'type' field for statusComponents
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents'
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -146,9 +170,9 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
-      if (componentType && componentType === 'functionTool') {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'name' field for functionTools components
+      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -168,8 +192,8 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -189,8 +213,14 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'type' field for statusComponents
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents' &&
+        exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -210,11 +240,11 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'name' field for functionTools components
       if (
-        componentType &&
-        componentType === 'functionTool' &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'functionTools' &&
         exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -237,8 +267,8 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && !exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -257,8 +287,14 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      if (componentType && !exportedVariables.has(variableName)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'type' field for statusComponents
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents' &&
+        !exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         components.push({
           id: componentId,
@@ -276,11 +312,12 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = COMPONENT_TYPE_MAP[functionName];
-      // Only use 'name' field for functionTool components
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      // Only use 'name' field for functionTools components
       if (
         componentType &&
-        componentType === 'functionTool' &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'functionTools' &&
         !exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -297,9 +334,9 @@ function parseFileForComponents(
     }
 
     // Pattern 3: Truly inline components (not declared, not exported)
-    // componentType({id: 'component-id', ...}) anywhere in code without variable declaration
-    const componentTypes = Object.keys(COMPONENT_TYPE_MAP);
-    for (const funcName of componentTypes) {
+    // functionName({id: 'component-id', ...}) anywhere in code without variable declaration
+    const functionNames = Object.keys(FUNCTION_NAME_TO_TYPE);
+    for (const funcName of functionNames) {
       // Look for function calls that are NOT part of variable declarations (export const or const)
       // Handle multi-line patterns where id might be on next line
       const inlineIdPattern = new RegExp(
@@ -310,7 +347,7 @@ function parseFileForComponents(
       let inlineMatch;
       while ((inlineMatch = inlineIdPattern.exec(content)) !== null) {
         const componentId = inlineMatch[1];
-        const componentType = COMPONENT_TYPE_MAP[funcName];
+        const componentType = FUNCTION_NAME_TO_TYPE[funcName];
         const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
 
         components.push({
@@ -332,7 +369,7 @@ function parseFileForComponents(
 
         while ((inlineMatch = inlineNamePattern.exec(content)) !== null) {
           const componentId = inlineMatch[1];
-          const componentType = COMPONENT_TYPE_MAP[funcName];
+          const componentType = FUNCTION_NAME_TO_TYPE[funcName];
           const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
 
           components.push({
@@ -373,7 +410,7 @@ function parseFileForComponents(
 
         components.push({
           id: credentialId,
-          type: 'credential',
+          type: 'credentials',
           filePath: relativePath,
           variableName: credentialKey, // Use the key name as variable name
           startLine: lineNumber,
@@ -418,20 +455,6 @@ function scanProjectForComponents(projectRoot: string, debug: boolean = false): 
 
   scanDirectory(projectRoot);
   return allComponents;
-}
-
-/**
- * Generate a variable name for inline components
- */
-function generateVariableName(componentId: string, componentType: ComponentType): string {
-  // Convert kebab-case or snake_case to camelCase
-  const camelCase = componentId
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-
-  return camelCase || `${componentType}Component`;
 }
 
 /**
@@ -484,13 +507,12 @@ export function buildComponentRegistryFromParsing(
         component.isInline
       );
     } else {
-      // Truly inline component with no variable name, generate one
-      const generatedName = generateVariableName(component.id, component.type);
+      // Truly inline component with no variable name, let registry generate unique name
       registry.register(
         component.id,
         component.type,
         component.filePath,
-        generatedName,
+        undefined, // Let registry handle naming with conflict resolution
         true // isInline = true
       );
     }

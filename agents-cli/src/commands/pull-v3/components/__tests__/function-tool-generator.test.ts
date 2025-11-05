@@ -2,11 +2,11 @@
  * Unit tests for function tool generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateFunctionToolDefinition,
-  generateFunctionToolImports,
   generateFunctionToolFile,
+  generateFunctionToolImports,
 } from '../function-tool-generator';
 
 describe('Function Tool Generator', () => {

@@ -1,11 +1,11 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
+import { ExternalAgentsList } from '@/components/external-agents/external-agents-list';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
-import { ExternalAgentsList } from '@/components/external-agents/external-agents-list';
 import { Button } from '@/components/ui/button';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 

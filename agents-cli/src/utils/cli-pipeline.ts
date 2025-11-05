@@ -1,5 +1,5 @@
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 import type { ValidatedConfiguration } from './config';
 import { validateConfiguration } from './config';
 

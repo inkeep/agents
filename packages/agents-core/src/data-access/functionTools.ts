@@ -1,9 +1,9 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
-import { subAgentFunctionToolRelations, functionTools } from '../db/schema';
+import { functionTools, subAgentFunctionToolRelations } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('functionTools');
