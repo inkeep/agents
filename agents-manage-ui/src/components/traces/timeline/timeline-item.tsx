@@ -421,8 +421,8 @@ export function TimelineItem({
       </div>
 
       {!isLast && !isCollapsed && hasChildren && (
-        <div 
-          className="absolute top-4 left-[7px] border-l border-border" 
+        <div
+          className="absolute top-4 left-[7px] border-l border-border"
           style={{ height: 'calc(100%)' }}
         />
       )}

@@ -31,7 +31,7 @@ export function buildActivityTree(activities: ActivityItem[]): TreeNode[] {
 
     // activity.parentSpanId is already resolved to nearest ancestor activity by API route
     const parentSpanId = activity.parentSpanId;
-    
+
     if (parentSpanId && nodeMap.has(parentSpanId)) {
       const parent = nodeMap.get(parentSpanId);
       if (parent) {
@@ -45,8 +45,7 @@ export function buildActivityTree(activities: ActivityItem[]): TreeNode[] {
 
   function sortChildren(node: TreeNode) {
     node.children.sort(
-      (a, b) =>
-        new Date(a.activity.timestamp).getTime() - new Date(b.activity.timestamp).getTime()
+      (a, b) => new Date(a.activity.timestamp).getTime() - new Date(b.activity.timestamp).getTime()
     );
     for (const child of node.children) {
       sortChildren(child);
@@ -58,8 +57,7 @@ export function buildActivityTree(activities: ActivityItem[]): TreeNode[] {
   }
 
   rootNodes.sort(
-    (a, b) =>
-      new Date(a.activity.timestamp).getTime() - new Date(b.activity.timestamp).getTime()
+    (a, b) => new Date(a.activity.timestamp).getTime() - new Date(b.activity.timestamp).getTime()
   );
 
   return rootNodes;
@@ -81,4 +79,3 @@ export function flattenTree(nodes: TreeNode[]): ActivityItem[] {
 
   return result;
 }
-

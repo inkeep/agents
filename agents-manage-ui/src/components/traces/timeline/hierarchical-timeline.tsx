@@ -42,13 +42,13 @@ function TreeNodeItem({
       {!isCollapsed && !isLast && (
         <div
           className="absolute left-0 top-0 border-l border-border"
-          style={{ 
+          style={{
             left: node.depth > 0 ? `${(node.depth - 1) * indentSize + 7}px` : '7px',
-            bottom: '-16px'
+            bottom: '-16px',
           }}
         />
       )}
-      
+
       <div className="flex items-start">
         <div
           style={{
