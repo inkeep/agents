@@ -18,10 +18,6 @@ logs/
 coverage/
 *.lcov
 
-# next.js
-.next/
-/out/
-
 # production
 /build
 
@@ -49,8 +45,6 @@ yarn-error.log*
 # Keep env.example for easy setup
 !env.example
 
-
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -69,3 +63,9 @@ dist
 .vercel
 .idea/
 agents-manage-ui/cypress/screenshots/
+
+# Generated files
+.next/
+out/
+.source/
+drizzle/
