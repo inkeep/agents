@@ -1,7 +1,7 @@
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-export function SectionTitle({ title, tooltip }: { title: string; tooltip?: React.ReactNode }) {
+function SectionTitle({ title, tooltip }: { title: string; tooltip?: React.ReactNode }) {
   return (
     <h3 className="text-sm font-semibold flex items-center">
       {title}
@@ -17,7 +17,7 @@ export function SectionTitle({ title, tooltip }: { title: string; tooltip?: Reac
   );
 }
 
-export function SectionDescription({ description }: { description: string }) {
+function SectionDescription({ description }: { description: string }) {
   return <p className="text-sm text-muted-foreground">{description}</p>;
 }
 

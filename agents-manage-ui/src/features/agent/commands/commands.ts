@@ -22,7 +22,7 @@ export class AddNodeCommand implements Command {
   }
 }
 
-export class DeleteSelectionCommand implements Command {
+class DeleteSelectionCommand implements Command {
   readonly name = 'DeleteSelection';
   execute() {
     const { actions } = agentStore.getState();
@@ -35,7 +35,7 @@ export class DeleteSelectionCommand implements Command {
   }
 }
 
-export class ConnectEdgeCommand implements Command {
+class ConnectEdgeCommand implements Command {
   readonly name = 'ConnectEdge';
   private connection: Connection;
   private createdEdgeId: string | null = null;
@@ -59,7 +59,7 @@ export class ConnectEdgeCommand implements Command {
   }
 }
 
-export class UpdateMetadataCommand implements Command {
+class UpdateMetadataCommand implements Command {
   readonly name = 'UpdateMetadata';
   private field: keyof AgentMetadata;
   private value: AgentMetadata[keyof AgentMetadata];
@@ -79,7 +79,7 @@ export class UpdateMetadataCommand implements Command {
   }
 }
 
-export class ClearSelectionCommand implements Command {
+class ClearSelectionCommand implements Command {
   readonly name = 'ClearSelection';
   execute() {
     const { actions } = agentStore.getState();
