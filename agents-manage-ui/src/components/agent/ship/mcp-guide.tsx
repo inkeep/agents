@@ -63,7 +63,7 @@ export function McpGuide() {
     "type": "mcp",
     "url": "${mcpServerUrl}",
     "headers": {
-      "Authorization": "Bearer <AGENT_API_KEY>"
+      "Authorization": "Bearer INKEEP_AGENT_API_KEY"
     }
   }
 }

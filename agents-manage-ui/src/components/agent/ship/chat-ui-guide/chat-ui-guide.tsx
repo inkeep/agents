@@ -57,8 +57,8 @@ export function ChatUIGuide() {
       {showCode ? (
         <ChatUICode
           component={component}
-          baseSettings={baseSettings}
-          aiChatSettings={aiChatSettings}
+          baseSettings={{ ...baseSettings }}
+          aiChatSettings={{ ...aiChatSettings, apiKey: 'INKEEP_AGENT_API_KEY' }}
         />
       ) : (
         <div className="flex flex-row gap-12 w-full">

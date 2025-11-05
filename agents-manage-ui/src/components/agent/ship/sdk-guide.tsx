@@ -37,9 +37,7 @@ export default function Page() {
     transport: new DefaultChatTransport({
       api: "${apiUrl}",
       headers: {
-        "x-inkeep-tenant-id": "${tenantId}",
-        "x-inkeep-project-id": "${projectId}",
-        "x-inkeep-agent-id": "${agentId}",
+        Authorization: "Bearer INKEEP_AGENT_API_KEY",
       },
     }),
   });

@@ -15,7 +15,7 @@ const styleOverrides = `
   .ikp-sidebar-chat__root {
     border-radius: 0px 9px 9px 0px;
   }
-  .ikp-ai-chat-wrapper {
+  [data-sidebar] .ikp-ai-chat-wrapper {
     border-radius: inherit;
   }
 `;
