@@ -23,11 +23,9 @@ export const File = ({ depth = 0, item }: { item: SidebarPage; depth?: number })
         isActive={active}
         data-depth={depth}
         className={`${active ? 'font-semibold' : ''} group/menu-button`}
-        style={
-          {
-            '--depth': `${depth + 0.5}rem`,
-          } as object
-        }
+        style={{
+          '--depth': `${depth + 0.5}rem`,
+        }}
       >
         <Link href={url} onClick={() => setOpenMobile(false)}>
           <span
