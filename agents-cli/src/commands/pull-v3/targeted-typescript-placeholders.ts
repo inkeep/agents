@@ -1,9 +1,9 @@
 /**
  * Targeted TypeScript Placeholder System
- * 
+ *
  * Only replaces specific, safe fields that tend to be large:
  * - prompt: (template literals or strings)
- * - description: (string literals)  
+ * - description: (string literals)
  * - inputSchema: (object literals)
  * - detailsSchema: (object literals)
  * - props: (object literals in artifact/data components)
@@ -38,7 +38,10 @@ const MIN_REPLACEMENT_LENGTH = 10; // Lowered from 80 to catch more fields
 /**
  * Create targeted placeholders for specific TypeScript fields
  */
-export function createTargetedTypeScriptPlaceholders(content: string, debug: boolean = false): TargetedPlaceholderResult {
+export function createTargetedTypeScriptPlaceholders(
+  content: string,
+  debug: boolean = false
+): TargetedPlaceholderResult {
   const replacements: Record<string, string> = {};
   let processedContent = content;
   let replacedFields = 0;
@@ -96,7 +99,7 @@ export function createTargetedTypeScriptPlaceholders(content: string, debug: boo
     return match;
   });
 
-  // 5. Replace props objects (for artifact/data components)  
+  // 5. Replace props objects (for artifact/data components)
   // props: z.object({ large props schema... })
   const propsRegex = /(\s+props:\s*)(z\.object\(\{[^]*?\}\)(?:\.[^,}\s]+)*)/g;
   processedContent = processedContent.replace(propsRegex, (match, prefix, propsObject) => {
@@ -144,7 +147,7 @@ export function restoreTargetedTypeScriptPlaceholders(
 
   for (const placeholder of sortedPlaceholders) {
     const originalValue = replacements[placeholder];
-    
+
     // Simple string replacement (placeholders are unique and safe)
     restoredContent = restoredContent.replace(placeholder, originalValue);
   }

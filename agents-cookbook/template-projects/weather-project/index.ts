@@ -6,7 +6,7 @@ export const myWeatherProject = project({
   name: 'Weather Project',
   description: 'Project containing sample agent framework using ',
   models: {
-    base: { model: 'openai/gpt-4o-mini' }
+    base: { model: 'openai/gpt-4o-mini' },
   },
   agents: () => [weatherAgent],
 });

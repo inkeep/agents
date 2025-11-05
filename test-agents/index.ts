@@ -8,10 +8,9 @@ import { llmTimeoutAgent } from './agents/llm-timeout-agent';
 import { slowToolWeatherAgent } from './agents/slow-tool-agent';
 
 export const testAgentsProject = project({
-  id: "test-agents",
+  id: 'test-agents',
   name: 'Test Agents',
-  description:
-    'Test project with agents that simulate various error scenarios',
+  description: 'Test project with agents that simulate various error scenarios',
   models: {
     base: { model: 'openai/gpt-4o-mini' },
   },

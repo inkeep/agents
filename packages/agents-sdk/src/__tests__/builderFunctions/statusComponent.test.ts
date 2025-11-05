@@ -191,4 +191,3 @@ describe('statusComponent builder function', () => {
     expect(schema?.properties?.results).toBeDefined();
   });
 });
-

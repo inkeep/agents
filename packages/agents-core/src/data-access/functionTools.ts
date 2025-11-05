@@ -269,7 +269,14 @@ export const upsertSubAgentFunctionToolRelation =
       // If relation exists, return it instead of creating a new one
       if (existingRelations.length > 0) {
         logger.info(
-          { tenantId, projectId, agentId, subAgentId, functionToolId, relationId: existingRelations[0].id },
+          {
+            tenantId,
+            projectId,
+            agentId,
+            subAgentId,
+            functionToolId,
+            relationId: existingRelations[0].id,
+          },
           'Sub_agent-function tool relation already exists, returning existing relation'
         );
         return { id: existingRelations[0].id };

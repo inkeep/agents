@@ -116,8 +116,7 @@ async function tryFallbackInsert(
         };
 
         await db.insert(ledgerArtifacts).values([minimalRow]);
-      } catch (_finalError: any) {
-      }
+      } catch (_finalError: any) {}
     }
   }
 }
@@ -248,7 +247,6 @@ export const addLedgerArtifacts =
         return;
       } catch (error: any) {
         lastError = error;
-
 
         const isRetryable =
           error.code === 'SQLITE_BUSY' ||

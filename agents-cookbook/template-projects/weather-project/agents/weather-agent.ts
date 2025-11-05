@@ -39,7 +39,7 @@ When users provide:
 You should use your geocoding tools to find the most accurate coordinates and provide clear
 information about the location found.`,
   canUse: () => [fdxgfv9HL7SXlfynPx8hf],
-})
+});
 
 export const weatherAgent = agent({
   id: 'weather-agent',
@@ -65,10 +65,7 @@ When users ask about weather:
 
 You have access to weather forecast data components that can enhance your responses
 with structured weather information.`,
-    canDelegateTo: () => [
-      weatherForecaster,
-      geocoderAgent
-    ],
+    canDelegateTo: () => [weatherForecaster, geocoderAgent],
     dataComponents: () => [weatherForecast],
   }),
 });

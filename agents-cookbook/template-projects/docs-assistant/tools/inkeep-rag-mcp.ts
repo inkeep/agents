@@ -1,4 +1,4 @@
-import { mcpTool } from "@inkeep/agents-sdk";
+import { mcpTool } from '@inkeep/agents-sdk';
 
 export const inkeepRagMcpTool = mcpTool({
   id: 'inkeep-rag-mcp',

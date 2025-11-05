@@ -43,8 +43,7 @@ export function createInkeep(options: InkeepProviderSettings = {}): InkeepProvid
       fetch: options.fetch,
     });
 
-  const provider = (chatOptions?: InkeepChatOptions) =>
-    createChatModel(chatOptions);
+  const provider = (chatOptions?: InkeepChatOptions) => createChatModel(chatOptions);
 
   provider.languageModel = createChatModel;
 

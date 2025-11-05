@@ -1,21 +1,21 @@
 {
-    "name": "mcp-quickstart",
-    "version": "0.1.0",
-    "description": "MCP for agents",
-    "type": "module",
-    "scripts": {
-      "dev": "next dev -p 3006",
-      "build": "next build",
-      "start": "next start"
-    },
-    "devDependencies": {
-      "@types/node": "24.9.2",
-      "@types/react": "19.2.2",
-      "mcp-handler": "^1.0.3",
-      "next": "^16.0.1",
-      "typescript": "5.9.3"
-    },
-    "engines": {
-      "node": ">=22.x"
-    }
+  "name": "mcp-quickstart",
+  "version": "0.1.0",
+  "description": "MCP for agents",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3006",
+    "build": "next build",
+    "start": "next start"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.2",
+    "@types/react": "19.2.2",
+    "mcp-handler": "^1.0.3",
+    "next": "^16.0.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.x"
   }
+}

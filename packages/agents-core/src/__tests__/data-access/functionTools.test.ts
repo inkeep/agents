@@ -463,10 +463,9 @@ describe('FunctionTools Data Access', () => {
           // First select is for relations
           return {
             from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([
-                { functionToolId: 'tool-1' },
-                { functionToolId: 'tool-2' },
-              ]),
+              where: vi
+                .fn()
+                .mockResolvedValue([{ functionToolId: 'tool-1' }, { functionToolId: 'tool-2' }]),
             }),
           };
         }

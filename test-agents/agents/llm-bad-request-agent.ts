@@ -16,4 +16,3 @@ export const llmBadRequestAgent = agent({
     prompt: `You are a helpful assistant.`,
   }),
 });
-
