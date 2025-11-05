@@ -46,7 +46,6 @@ interface ProjectPaths {
   externalAgentsDir: string;
 }
 
-
 /**
  * Create project directory structure
  */
@@ -271,9 +270,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       if (!existsSync(join(projectDir, 'index.ts'))) {
         s.stop(`No index.ts found in specified project directory: ${projectDir}`);
         console.error(
-          chalk.yellow(
-            'The specified project directory must contain an index.ts file'
-          )
+          chalk.yellow('The specified project directory must contain an index.ts file')
         );
         process.exit(1);
       }
@@ -297,18 +294,20 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     // Step 3: Load existing project to get project ID (like push does)
     s.start('Loading local project to get project ID...');
-    
+
     let localProjectForId: any;
     let projectId: string;
 
     try {
       localProjectForId = await loadProject(projectDir);
       projectId = localProjectForId.getId();
-      
+
       s.stop(`Project ID: ${projectId}`);
     } catch (error) {
       s.stop('Failed to load local project');
-      throw new Error(`Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     // Step 4: Fetch project data from API
