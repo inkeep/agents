@@ -87,7 +87,7 @@ export function generateMcpToolDefinition(
 
   // Required fields - these must be present
   lines.push(`${indentation}name: ${formatString(toolData.name, q)},`);
-  
+
   // MCP Configuration - handle complete config structure if available
   if (toolData.config?.mcp && typeof toolData.config.mcp === 'object') {
     // Use the complete mcp config structure from remote data
@@ -96,7 +96,7 @@ export function generateMcpToolDefinition(
     if (mcpConfig.transport) {
       lines.push(`${indentation}transport: ${JSON.stringify(mcpConfig.transport, null, 2)},`);
     }
-  }  
+  }
   if (toolData.description) {
     lines.push(`${indentation}description: ${formatString(toolData.description, q, true)},`);
   }
@@ -132,7 +132,9 @@ export function generateMcpToolDefinition(
   } else if (toolData.credentialReferenceId && registry) {
     // Generate credential reference via registry
     const validKey = registry.getVariableName(toolData.credentialReferenceId, 'credentials');
-    lines.push(`${indentation}credential: envSettings.getEnvironmentCredential(${formatString(validKey, q)}),`);
+    lines.push(
+      `${indentation}credential: envSettings.getEnvironmentCredential(${formatString(validKey, q)}),`
+    );
   }
 
   // Remove trailing comma from last line

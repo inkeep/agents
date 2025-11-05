@@ -29,12 +29,16 @@ export async function generateProjectIndex(
   const registryComponents = localRegistry.getAllComponents();
   const projectDataWithRegistry = {
     ...remoteProject,
-    agents: registryComponents.filter(c => c.type === 'agents').map(c => c.id),
-    tools: registryComponents.filter(c => c.type === 'tools').map(c => c.id),
-    externalAgents: registryComponents.filter(c => c.type === 'externalAgents').map(c => c.id),
-    dataComponents: registryComponents.filter(c => c.type === 'dataComponents').map(c => c.id),
-    artifactComponents: registryComponents.filter(c => c.type === 'artifactComponents').map(c => c.id),
-    credentialReferences: registryComponents.filter(c => c.type === 'credentials').map(c => c.id)
+    agents: registryComponents.filter((c) => c.type === 'agents').map((c) => c.id),
+    tools: registryComponents.filter((c) => c.type === 'tools').map((c) => c.id),
+    externalAgents: registryComponents.filter((c) => c.type === 'externalAgents').map((c) => c.id),
+    dataComponents: registryComponents.filter((c) => c.type === 'dataComponents').map((c) => c.id),
+    artifactComponents: registryComponents
+      .filter((c) => c.type === 'artifactComponents')
+      .map((c) => c.id),
+    credentialReferences: registryComponents
+      .filter((c) => c.type === 'credentials')
+      .map((c) => c.id),
   };
 
   const content = generateProjectFile(

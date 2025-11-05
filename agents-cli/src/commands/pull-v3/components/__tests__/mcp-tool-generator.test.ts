@@ -21,14 +21,15 @@ describe('MCP Tool Generator', () => {
     config: {
       mcp: {
         server: {
-          url: 'https://weather-mcp-hazel.vercel.app/mcp'
+          url: 'https://weather-mcp-hazel.vercel.app/mcp',
         },
         transport: {
-          type: 'streamable_http'
-        }
-      }
+          type: 'streamable_http',
+        },
+      },
     },
-    imageUrl: 'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp'
+    imageUrl:
+      'https://cdn.iconscout.com/icon/free/png-256/free-ios-weather-icon-svg-download-png-461610.png?f=webp',
   };
 
   const testToolWithCredential = {
@@ -37,14 +38,14 @@ describe('MCP Tool Generator', () => {
     config: {
       mcp: {
         server: {
-          url: 'https://stripe-mcp-hazel.vercel.app/mcp'
+          url: 'https://stripe-mcp-hazel.vercel.app/mcp',
         },
         transport: {
-          type: 'streamable_http'
-        }
-      }
+          type: 'streamable_http',
+        },
+      },
     },
-    credential: envSettings.getEnvironmentCredential('stripe_api_key')
+    credential: envSettings.getEnvironmentCredential('stripe_api_key'),
   };
 
   describe('generateMcpToolImports', () => {
@@ -94,11 +95,11 @@ describe('MCP Tool Generator', () => {
         config: {
           mcp: {
             server: {
-              url: 'https://stripe.example.com/mcp'
+              url: 'https://stripe.example.com/mcp',
             },
-            transport: { type: 'streamable_http' }
-          }
-        }
+            transport: { type: 'streamable_http' },
+          },
+        },
       });
 
       expect(definition).toContain('export const stripePaymentTool = mcpTool({');
@@ -132,10 +133,10 @@ describe('MCP Tool Generator', () => {
         config: {
           mcp: {
             server: {
-              url: 'https://api.example.com/mcp'
+              url: 'https://api.example.com/mcp',
             },
-            transport: { type: 'streamable_http' }
-          }
+            transport: { type: 'streamable_http' },
+          },
         },
         credential: {
           type: 'api_key',
@@ -174,14 +175,14 @@ describe('MCP Tool Generator', () => {
         config: {
           mcp: {
             server: {
-          url: 'https://api.example.com/mcp?key=value&param=test'
-        },
+              url: 'https://api.example.com/mcp?key=value&param=test',
+            },
             transport: {
-              type: 'streamable_http'
-            }
-          }
+              type: 'streamable_http',
+            },
+          },
         },
-        imageUrl: 'https://images.example.com/icon.png?size=256&format=webp'
+        imageUrl: 'https://images.example.com/icon.png?size=256&format=webp',
       };
 
       const definition = generateMcpToolDefinition('special', toolData);
@@ -325,12 +326,12 @@ describe('MCP Tool Generator', () => {
         config: {
           mcp: {
             server: {
-              url: 'not-a-valid-url'
+              url: 'not-a-valid-url',
             },
-            transport: { type: 'streamable_http' }
-          }
+            transport: { type: 'streamable_http' },
+          },
         },
-        imageUrl: 'also-not-valid'
+        imageUrl: 'also-not-valid',
       };
 
       const definition = generateMcpToolDefinition('invalid', toolData);

@@ -87,7 +87,7 @@ function formatStatusUpdates(
     ) {
       const contextConfigId = contextConfigData.id;
       const contextVarName = registry.getVariableName(contextConfigId, 'contextConfigs');
-      
+
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
       }
@@ -231,7 +231,7 @@ export function generateAgentDefinition(
     if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry) {
       const contextConfigId = contextConfigData.id;
       const contextVarName = registry.getVariableName(contextConfigId, 'contextConfigs');
-      
+
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
       }
@@ -302,9 +302,9 @@ export function generateAgentDefinition(
     if (!registry) {
       throw new Error('Registry is required for defaultSubAgent generation');
     }
-    
+
     const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId, 'subAgents');
-    
+
     if (!defaultSubAgentVar) {
       throw new Error(
         `Failed to resolve variable name for default sub-agent: ${agentData.defaultSubAgentId}`
@@ -327,7 +327,7 @@ export function generateAgentDefinition(
     // subAgents is an object with IDs as keys, extract the keys
     const subAgentIds = Object.keys(agentData.subAgents);
     const subAgentsArray = registry.formatReferencesForCode(subAgentIds, 'subAgents', style, 2);
-    
+
     if (!subAgentsArray) {
       throw new Error(`Failed to resolve variable names for sub-agents: ${subAgentIds.join(', ')}`);
     }
@@ -401,7 +401,9 @@ export function generateAgentImports(
     // Sub-agent references (subAgents is an object with IDs as keys)
     if (agentData.subAgents && typeof agentData.subAgents === 'object') {
       const subAgentIds = Object.keys(agentData.subAgents);
-      referencedComponents.push(...subAgentIds.map(id => ({id, type: 'subAgents' as ComponentType})));
+      referencedComponents.push(
+        ...subAgentIds.map((id) => ({ id, type: 'subAgents' as ComponentType }))
+      );
     }
 
     // Status component references
@@ -412,10 +414,10 @@ export function generateAgentImports(
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
         if (typeof comp === 'string') {
-          referencedComponents.push({id: comp, type: 'statusComponents'});
+          referencedComponents.push({ id: comp, type: 'statusComponents' });
         } else if (typeof comp === 'object' && comp) {
           const statusId = comp.id || comp.type || comp.name;
-          if (statusId) referencedComponents.push({id: statusId, type: 'statusComponents'});
+          if (statusId) referencedComponents.push({ id: statusId, type: 'statusComponents' });
         }
       }
     }
@@ -424,12 +426,12 @@ export function generateAgentImports(
     if (agentData.contextConfig) {
       // Use actual contextConfig.id
       const contextConfigId = agentData.contextConfig.id;
-      referencedComponents.push({id: contextConfigId, type: 'contextConfigs'});
+      referencedComponents.push({ id: contextConfigId, type: 'contextConfigs' });
     }
 
     // Default sub-agent reference
     if (agentData.defaultSubAgentId) {
-      referencedComponents.push({id: agentData.defaultSubAgentId, type: 'subAgents'});
+      referencedComponents.push({ id: agentData.defaultSubAgentId, type: 'subAgents' });
     }
 
     // Get import statements for all referenced components

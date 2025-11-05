@@ -10,14 +10,14 @@
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
-export type ComponentType = 
-  | 'agents' 
-  | 'subAgents' 
-  | 'tools' 
+export type ComponentType =
+  | 'agents'
+  | 'subAgents'
+  | 'tools'
   | 'functionTools'
   | 'functions'
-  | 'dataComponents' 
-  | 'artifactComponents' 
+  | 'dataComponents'
+  | 'artifactComponents'
   | 'statusComponents'
   | 'environments'
   | 'externalAgents'
@@ -73,7 +73,9 @@ export class ComponentRegistry {
       // No real export name - generate unique name with prefixes if needed
       const baseName = this.toCamelCase(id);
       const uniqueName = this.ensureUniqueName(baseName, type);
-      console.log(`🔧 Registry: ${type}:${id} -> baseName: "${baseName}" -> uniqueName: "${uniqueName}"`);
+      console.log(
+        `🔧 Registry: ${type}:${id} -> baseName: "${baseName}" -> uniqueName: "${uniqueName}"`
+      );
       name = uniqueName;
       actualExportName = uniqueName;
     }
@@ -318,23 +320,40 @@ export class ComponentRegistry {
    */
   private getTypePrefix(type: ComponentType): string {
     switch (type) {
-      case 'agents': return 'agent';
-      case 'subAgents': return 'sub';
-      case 'externalAgents': return 'ext';
-      case 'tools': return 'tool';
-      case 'functionTools': return 'func';
-      case 'functions': return 'func';
-      case 'dataComponents': return 'data';
-      case 'artifactComponents': return 'artifact';
-      case 'statusComponents': return 'status';
-      case 'environments': return 'env';
-      case 'credentials': return 'cred';
-      case 'contextConfigs': return 'context';
-      case 'fetchDefinitions': return 'fetch';
-      case 'headers': return 'header';
-      case 'models': return 'model';
-      case 'project': return 'project';
-      default: return 'comp';
+      case 'agents':
+        return 'agent';
+      case 'subAgents':
+        return 'sub';
+      case 'externalAgents':
+        return 'ext';
+      case 'tools':
+        return 'tool';
+      case 'functionTools':
+        return 'func';
+      case 'functions':
+        return 'func';
+      case 'dataComponents':
+        return 'data';
+      case 'artifactComponents':
+        return 'artifact';
+      case 'statusComponents':
+        return 'status';
+      case 'environments':
+        return 'env';
+      case 'credentials':
+        return 'cred';
+      case 'contextConfigs':
+        return 'context';
+      case 'fetchDefinitions':
+        return 'fetch';
+      case 'headers':
+        return 'header';
+      case 'models':
+        return 'model';
+      case 'project':
+        return 'project';
+      default:
+        return 'comp';
     }
   }
 

@@ -282,7 +282,6 @@ export async function updateModifiedComponents(
 ): Promise<ComponentUpdateResult[]> {
   const results: ComponentUpdateResult[] = [];
 
-
   // Create unique temp directory name with timestamp or use provided one
   const tempDirName = providedTempDirName || `.temp-${Date.now()}`;
 

@@ -249,8 +249,11 @@ export async function createNewComponents(
 
       // Register the component with its expected file path and variable name
       const filePath = determineNewFilePath(componentType, componentId, targetPaths);
-      const relativePath = filePath.replace((tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/', '');
-      
+      const relativePath = filePath.replace(
+        (tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/',
+        ''
+      );
+
       // Special handling for contextConfigs to use agent-based names
       let explicitVariableName: string | undefined;
       if (componentType === 'contextConfigs') {
@@ -395,7 +398,9 @@ export async function createNewComponents(
         // Get the variable name that was already registered
         const registryEntry = localRegistry.get(componentId, componentType);
         if (!registryEntry) {
-          throw new Error(`Component ${componentId} (${componentType}) was not registered in the registry`);
+          throw new Error(
+            `Component ${componentId} (${componentType}) was not registered in the registry`
+          );
         }
         const variableName = registryEntry.name;
 

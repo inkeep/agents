@@ -332,7 +332,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
-    
+
     if (options.debug && remoteProject.functions) {
       console.log(
         chalk.gray('   📋 Project-level functions from API:'),
@@ -484,7 +484,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.cyan('\n🔍 Component Registry Debug:'));
       const allComponents = localRegistry.getAllComponents();
       console.log(chalk.gray('   Total components registered:'), allComponents.length);
-      
+
       // Group by variable name to see conflicts
       const nameGroups = new Map<string, any[]>();
       for (const comp of allComponents) {
@@ -493,7 +493,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         }
         nameGroups.get(comp.name)!.push(comp);
       }
-      
+
       // Show any conflicts
       for (const [varName, components] of nameGroups.entries()) {
         if (components.length > 1) {
@@ -561,13 +561,13 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         options.env || 'development',
         tempDirName
       );
-      
+
       // Debug registry after new components are generated
       if (options.debug) {
         console.log(chalk.cyan('\n🔍 Component Registry After Generation:'));
         const allComponents = localRegistry.getAllComponents();
         console.log(chalk.gray('   Total components registered:'), allComponents.length);
-        
+
         // Group by variable name to see conflicts
         const nameGroups = new Map<string, any[]>();
         for (const comp of allComponents) {
@@ -576,7 +576,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
           }
           nameGroups.get(comp.name)!.push(comp);
         }
-        
+
         // Show any conflicts
         for (const [varName, components] of nameGroups.entries()) {
           if (components.length > 1) {
@@ -589,8 +589,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
           }
         }
       }
-      
-      const successful = newComponentResults.filter(r => r.success);
+
+      const successful = newComponentResults.filter((r) => r.success);
       console.log(chalk.green(`✅ Added ${successful.length} new components to temp directory`));
       s.message('New component files created');
     }

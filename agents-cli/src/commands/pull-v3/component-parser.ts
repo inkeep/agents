@@ -25,7 +25,7 @@ interface ComponentMatch {
 const VALID_COMPONENT_TYPES = new Set<ComponentType>([
   'project',
   'agents',
-  'subAgents', 
+  'subAgents',
   'tools',
   'functionTools',
   'dataComponents',
@@ -35,27 +35,27 @@ const VALID_COMPONENT_TYPES = new Set<ComponentType>([
   'credentials',
   'contextConfigs',
   'fetchDefinitions',
-  'headers'
+  'headers',
 ]);
 
 /**
  * Mapping from SDK function names to ComponentTypes
  */
 const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
-  'project': 'project',
-  'agent': 'agents',
-  'subAgent': 'subAgents',
-  'tool': 'tools',
-  'functionTool': 'functionTools',
-  'dataComponent': 'dataComponents',
-  'artifactComponent': 'artifactComponents',
-  'statusComponent': 'statusComponents',
-  'externalAgent': 'externalAgents',
-  'credential': 'credentials',
-  'contextConfig': 'contextConfigs',
-  'fetchDefinition': 'fetchDefinitions',
-  'header': 'headers',
-  'mcpTool': 'tools'
+  project: 'project',
+  agent: 'agents',
+  subAgent: 'subAgents',
+  tool: 'tools',
+  functionTool: 'functionTools',
+  dataComponent: 'dataComponents',
+  artifactComponent: 'artifactComponents',
+  statusComponent: 'statusComponents',
+  externalAgent: 'externalAgents',
+  credential: 'credentials',
+  contextConfig: 'contextConfigs',
+  fetchDefinition: 'fetchDefinitions',
+  header: 'headers',
+  mcpTool: 'tools',
 };
 
 /**
@@ -122,7 +122,7 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -143,10 +143,14 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'type' field for statusComponents
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents') {
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents'
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -165,7 +169,7 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
       if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools') {
@@ -187,7 +191,7 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       if (VALID_COMPONENT_TYPES.has(componentType) && exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -208,10 +212,15 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'type' field for statusComponents
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents' && exportedVariables.has(variableName)) {
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents' &&
+        exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -230,10 +239,14 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
-      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && exportedVariables.has(variableName)) {
+      if (
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'functionTools' &&
+        exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -253,7 +266,7 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       if (VALID_COMPONENT_TYPES.has(componentType) && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -273,10 +286,15 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'type' field for statusComponents
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'statusComponents' && !exportedVariables.has(variableName)) {
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'statusComponents' &&
+        !exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         components.push({
           id: componentId,
@@ -293,10 +311,15 @@ function parseFileForComponents(
       const variableName = match[1];
       const functionName = match[2];
       const componentId = match[3];
-      
+
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && !exportedVariables.has(variableName)) {
+      if (
+        componentType &&
+        VALID_COMPONENT_TYPES.has(componentType) &&
+        componentType === 'functionTools' &&
+        !exportedVariables.has(variableName)
+      ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({

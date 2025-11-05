@@ -113,37 +113,54 @@ export function generateProjectDefinition(
 
   // Agents array - function that returns agents
   if (shouldInclude(projectData.agents)) {
-    const agentsArray = registry ? registry.formatReferencesForCode(projectData.agents, 'agents', style, 2) : '[]';
+    const agentsArray = registry
+      ? registry.formatReferencesForCode(projectData.agents, 'agents', style, 2)
+      : '[]';
     lines.push(`${indentation}agents: () => ${agentsArray},`);
   }
 
   // Tools array - project-level tools (MCP tools)
   if (shouldInclude(projectData.tools)) {
-    const toolsArray = registry ? registry.formatReferencesForCode(projectData.tools, 'tools', style, 2) : '[]';
+    const toolsArray = registry
+      ? registry.formatReferencesForCode(projectData.tools, 'tools', style, 2)
+      : '[]';
     lines.push(`${indentation}tools: () => ${toolsArray},`);
   }
 
   // External agents array - project-level external agents
   if (shouldInclude(projectData.externalAgents)) {
-    const externalAgentsArray = registry ? registry.formatReferencesForCode(projectData.externalAgents, 'externalAgents', style, 2) : '[]';
+    const externalAgentsArray = registry
+      ? registry.formatReferencesForCode(projectData.externalAgents, 'externalAgents', style, 2)
+      : '[]';
     lines.push(`${indentation}externalAgents: () => ${externalAgentsArray},`);
   }
 
   // Data components array - project-level data components
   if (shouldInclude(projectData.dataComponents)) {
-    const dataComponentsArray = registry ? registry.formatReferencesForCode(projectData.dataComponents, 'dataComponents', style, 2) : '[]';
+    const dataComponentsArray = registry
+      ? registry.formatReferencesForCode(projectData.dataComponents, 'dataComponents', style, 2)
+      : '[]';
     lines.push(`${indentation}dataComponents: () => ${dataComponentsArray},`);
   }
 
   // Artifact components array - project-level artifact components
   if (shouldInclude(projectData.artifactComponents)) {
-    const artifactComponentsArray = registry ? registry.formatReferencesForCode(projectData.artifactComponents, 'artifactComponents', style, 2) : '[]';
+    const artifactComponentsArray = registry
+      ? registry.formatReferencesForCode(
+          projectData.artifactComponents,
+          'artifactComponents',
+          style,
+          2
+        )
+      : '[]';
     lines.push(`${indentation}artifactComponents: () => ${artifactComponentsArray},`);
   }
 
   // Credential references array - project-level credentials
   if (shouldInclude(projectData.credentialReferences)) {
-    const credentialReferencesArray = registry ? registry.formatReferencesForCode(projectData.credentialReferences, 'credentials', style, 2) : '[]';
+    const credentialReferencesArray = registry
+      ? registry.formatReferencesForCode(projectData.credentialReferences, 'credentials', style, 2)
+      : '[]';
     lines.push(`${indentation}credentialReferences: () => ${credentialReferencesArray},`);
   }
 
@@ -185,7 +202,7 @@ export function generateProjectImports(
         agentIds = Object.keys(projectData.agents);
       }
       for (const agentId of agentIds) {
-        referencedComponents.push({id: agentId, type: 'agents'});
+        referencedComponents.push({ id: agentId, type: 'agents' });
       }
     }
 
@@ -219,7 +236,7 @@ export function generateProjectImports(
         extAgentIds = Object.keys(projectData.externalAgents);
       }
       for (const extAgentId of extAgentIds) {
-        referencedComponents.push({id: extAgentId, type: 'externalAgents'});
+        referencedComponents.push({ id: extAgentId, type: 'externalAgents' });
       }
     }
 
@@ -232,7 +249,7 @@ export function generateProjectImports(
         dataCompIds = Object.keys(projectData.dataComponents);
       }
       for (const dataCompId of dataCompIds) {
-        referencedComponents.push({id: dataCompId, type: 'dataComponents'});
+        referencedComponents.push({ id: dataCompId, type: 'dataComponents' });
       }
     }
 
@@ -245,7 +262,7 @@ export function generateProjectImports(
         artifactCompIds = Object.keys(projectData.artifactComponents);
       }
       for (const artifactCompId of artifactCompIds) {
-        referencedComponents.push({id: artifactCompId, type: 'artifactComponents'});
+        referencedComponents.push({ id: artifactCompId, type: 'artifactComponents' });
       }
     }
 
@@ -258,7 +275,7 @@ export function generateProjectImports(
         credIds = Object.keys(projectData.credentialReferences);
       }
       for (const credId of credIds) {
-        referencedComponents.push({id: credId, type: 'credentials'});
+        referencedComponents.push({ id: credId, type: 'credentials' });
       }
     }
 

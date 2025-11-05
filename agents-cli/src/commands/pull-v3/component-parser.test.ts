@@ -60,7 +60,7 @@ export const myData = dataComponent({
     const components = registry.getAllComponents();
 
     expect(components).toHaveLength(3);
-    
+
     const agent = registry.get('my-agent-id', 'agents');
     expect(agent).toBeDefined();
     expect(agent?.type).toBe('agents');
@@ -249,7 +249,7 @@ const agent1 = agent({
     );
 
     const registry = buildComponentRegistryFromParsing(testDir);
-    
+
     const kebab = registry.get('kebab-case-tool', 'tools');
     expect(kebab?.name).toBe('kebabTool');
 

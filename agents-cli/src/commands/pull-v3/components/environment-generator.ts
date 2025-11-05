@@ -346,7 +346,9 @@ export function generateEnvironmentFile(
         const isLast = i === credentialRefs.length - 1;
         // Use registry's variable name for the key to ensure valid JavaScript property name
         const validKey = registry.getVariableName(credentialId, 'credentials');
-        lines.push(`${indentation}${indentation}${validKey}: ${credentialVarName}${isLast ? '' : ','}`);
+        lines.push(
+          `${indentation}${indentation}${validKey}: ${credentialVarName}${isLast ? '' : ','}`
+        );
       }
       lines.push(`${indentation}}`);
     } else {
