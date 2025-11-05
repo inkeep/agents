@@ -38,6 +38,14 @@ function TreeNodeItem({
 
   return (
     <div className="relative">
+      {/* Vertical line extending through all descendants - positioned relative to entire subtree */}
+      {node.depth > 0 && !isCollapsed && (
+        <div
+          className="absolute left-0 top-0 bottom-0 border-l border-border"
+          style={{ left: `${(node.depth - 1) * indentSize + 7}px` }}
+        />
+      )}
+      
       <div className="flex items-start">
         <div
           style={{
@@ -47,19 +55,13 @@ function TreeNodeItem({
           className="relative flex-shrink-0"
         >
           {node.depth > 0 && (
-            <>
-              <div
-                className="absolute left-0 top-0 bottom-0 border-l border-border"
-                style={{ left: `${(node.depth - 1) * indentSize + 7}px` }}
-              />
-              <div
-                className="absolute top-[16px] border-t border-border"
-                style={{
-                  left: `${(node.depth - 1) * indentSize + 7}px`,
-                  width: `${indentSize - 7}px`,
-                }}
-              />
-            </>
+            <div
+              className="absolute top-[16px] border-t border-border"
+              style={{
+                left: `${(node.depth - 1) * indentSize + 7}px`,
+                width: `${indentSize - 7}px`,
+              }}
+            />
           )}
         </div>
 
@@ -67,7 +69,7 @@ function TreeNodeItem({
           <div className="inline-block w-full">
             <TimelineItem
               activity={node.activity}
-              isLast={isLast && node.children.length === 0}
+              isLast={isLast && (node.children.length === 0 || isCollapsed)}
               onSelect={() => onSelect(node.activity)}
               isSelected={selectedActivityId === node.activity.id}
               isAiMessageCollapsed={collapsedAiMessages?.has(node.activity.id) || false}

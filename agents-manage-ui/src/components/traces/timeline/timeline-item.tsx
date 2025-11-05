@@ -118,8 +118,10 @@ export function TimelineItem({
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
-        <div className="mr-2 py-2">
-          <Icon className={`w-4 h-4 ${className}`} />
+        <div className="mr-2 py-2" style={{ width: '16px' }}>
+          <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
+            <Icon className={`w-4 h-4 ${className}`} />
+          </div>
         </div>
 
         <div
@@ -149,9 +151,9 @@ export function TimelineItem({
                 title={isCollapsed ? 'Expand children' : 'Collapse children'}
               >
                 {isCollapsed ? (
-                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 )}
               </button>
             )}
@@ -418,7 +420,12 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
+      {!isLast && !isCollapsed && (
+        <div 
+          className="absolute top-4 left-[7px] border-l border-border" 
+          style={{ height: 'calc(100%)' }}
+        />
+      )}
     </div>
   );
 }
