@@ -1,5 +1,13 @@
 # @inkeep/ai-sdk-provider
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-core@0.31.2
+
 ## 0.31.1
 
 ### Patch Changes
