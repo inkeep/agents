@@ -39,6 +39,26 @@ const VALID_COMPONENT_TYPES = new Set<ComponentType>([
 ]);
 
 /**
+ * Mapping from SDK function names to ComponentTypes
+ */
+const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
+  'project': 'project',
+  'agent': 'agents',
+  'subAgent': 'subAgents',
+  'tool': 'tools',
+  'functionTool': 'functionTools',
+  'dataComponent': 'dataComponents',
+  'artifactComponent': 'artifactComponents',
+  'statusComponent': 'statusComponents',
+  'externalAgent': 'externalAgents',
+  'credential': 'credentials',
+  'contextConfig': 'contextConfigs',
+  'fetchDefinition': 'fetchDefinitions',
+  'header': 'headers',
+  'mcpTool': 'tools'
+};
+
+/**
  * Parse a single file for all component definitions
  */
 function parseFileForComponents(filePath: string, projectRoot: string, debug: boolean = false): ComponentMatch[] {
@@ -90,8 +110,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
-      if (VALID_COMPONENT_TYPES.has(componentType)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -111,8 +131,8 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
-      if (VALID_COMPONENT_TYPES.has(componentType)) {
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         
         components.push({
@@ -258,9 +278,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       const functionName = match[2];
       const componentId = match[3];
       
-      const componentType = functionName as ComponentType;
+      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
-      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && !exportedVariables.has(variableName)) {
+      if (componentType && VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools' && !exportedVariables.has(variableName)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
                 
         components.push({
@@ -275,9 +295,9 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
     }
 
     // Pattern 3: Truly inline components (not declared, not exported)
-    // componentType({id: 'component-id', ...}) anywhere in code without variable declaration
-    const componentTypes = Array.from(VALID_COMPONENT_TYPES);
-    for (const funcName of componentTypes) {
+    // functionName({id: 'component-id', ...}) anywhere in code without variable declaration
+    const functionNames = Object.keys(FUNCTION_NAME_TO_TYPE);
+    for (const funcName of functionNames) {
       // Look for function calls that are NOT part of variable declarations (export const or const)
       // Handle multi-line patterns where id might be on next line
       const inlineIdPattern = new RegExp(`(?<!(?:export\\s+)?const\\s+\\w+\\s*=\\s*)\\b${funcName}\\s*\\(\\s*\\{[^}]*?id:\\s*['"\`]([^'"\`]+)['"\`]`, 'gs');
@@ -285,7 +305,7 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       let inlineMatch;
       while ((inlineMatch = inlineIdPattern.exec(content)) !== null) {
         const componentId = inlineMatch[1];
-        const componentType = funcName as ComponentType;
+        const componentType = FUNCTION_NAME_TO_TYPE[funcName];
         const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
         
         components.push({
@@ -299,12 +319,12 @@ function parseFileForComponents(filePath: string, projectRoot: string, debug: bo
       }
       
       // Also look for 'name' field for function tools only (handle multi-line)
-      if (funcName === 'functionTools') {
+      if (funcName === 'functionTool') {
         const inlineNamePattern = new RegExp(`(?<!(?:export\\s+)?const\\s+\\w+\\s*=\\s*)\\b${funcName}\\s*\\(\\s*\\{[^}]*?name:\\s*['"\`]([^'"\`]+)['"\`]`, 'gs');
         
         while ((inlineMatch = inlineNamePattern.exec(content)) !== null) {
           const componentId = inlineMatch[1];
-          const componentType = funcName as ComponentType;
+          const componentType = FUNCTION_NAME_TO_TYPE[funcName];
           const lineNumber = content.substring(0, inlineMatch.index).split('\n').length;
           
           components.push({
