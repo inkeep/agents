@@ -48,15 +48,7 @@ const AgentAgentApiSchema = AgentAgentApiInsertSchema;
 const ToolApiSchema = ToolApiInsertSchema;
 
 // Re-export types and schemas
-export {
-  
-  type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
-  type InternalAgentDefinition,
-  
-  
-  
-};
+export { type ExternalAgentDefinition, FullAgentDefinitionSchema, type InternalAgentDefinition };
 
 // Agent-builder specific parameter schema
 const AgentIdParamsSchema = TenantParamsSchema.extend({

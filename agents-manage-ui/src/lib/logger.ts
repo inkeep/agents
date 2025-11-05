@@ -39,4 +39,3 @@ export function getLogger(name?: string) {
 function withRequestContext<T>(reqId: string, fn: () => T): T {
   return asyncLocalStorage.run(new Map([['requestId', reqId]]), fn);
 }
-

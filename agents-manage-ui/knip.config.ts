@@ -1,5 +1,5 @@
-import type { KnipConfig } from 'knip'
+import type { KnipConfig } from 'knip';
 
 export default {
-    tags: ["-lintignore"],
-} satisfies KnipConfig
+  tags: ['-lintignore'],
+} satisfies KnipConfig;

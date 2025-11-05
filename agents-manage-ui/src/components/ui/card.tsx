@@ -72,6 +72,13 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Card, CardHeader, CardFooter, CardTitle,
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
   /** @lintignore */
-  CardAction, CardDescription, CardContent };
+  CardAction,
+  CardDescription,
+  CardContent,
+};

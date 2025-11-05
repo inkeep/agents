@@ -97,8 +97,15 @@ function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) 
   );
 }
 
-export { Table, TableHeader, TableBody,
+export {
+  Table,
+  TableHeader,
+  TableBody,
   /** @lintignore */
-  TableFooter, TableHead, TableRow, TableCell,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
   /** @lintignore */
-  TableCaption };
+  TableCaption,
+};

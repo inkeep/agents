@@ -203,9 +203,7 @@ async function updateMCPGenericIntegration({
 /**
  * Get connections for a specific integration
  */
-async function fetchNangoConnections(
-  integrationKey?: string
-): Promise<ApiPublicConnection[]> {
+async function fetchNangoConnections(integrationKey?: string): Promise<ApiPublicConnection[]> {
   try {
     const nango = getNangoClient();
     const response = await nango.listConnections();

@@ -1895,4 +1895,3 @@ let signozStatsClient: SigNozStatsAPI | null = null;
 export function getSigNozStatsClient(): SigNozStatsAPI {
   return (signozStatsClient ??= new SigNozStatsAPI());
 }
-

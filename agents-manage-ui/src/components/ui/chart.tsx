@@ -315,8 +315,8 @@ export {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-    /** @lintignore */
+  /** @lintignore */
   ChartLegend,
-    /** @lintignore */
+  /** @lintignore */
   ChartLegendContent,
 };
