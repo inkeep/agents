@@ -121,8 +121,11 @@ function AlertDialogCancel({
 
 export {
   AlertDialog,
+  /** @lintignore */
   AlertDialogPortal,
+  /** @lintignore */
   AlertDialogOverlay,
+  /** @lintignore */
   AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
@@ -130,5 +133,6 @@ export {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogAction,
+  /** @lintignore */
   AlertDialogCancel,
 };
