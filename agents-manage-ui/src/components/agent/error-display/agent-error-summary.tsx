@@ -90,7 +90,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
   );
 }
 
-export function AgentErrorSummaryComponent({
+export function AgentErrorSummary({
   errorSummary,
   onClose,
   onNavigateToNode,
@@ -192,6 +192,3 @@ export function AgentErrorSummaryComponent({
     </Card>
   );
 }
-
-// Export with the expected name for compatibility
-export { AgentErrorSummaryComponent as AgentErrorSummary };

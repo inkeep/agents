@@ -7,7 +7,7 @@ type EventMap = {
 type Listener<T> = (payload: T) => void;
 type EventKey = keyof EventMap;
 
-export class EventBus {
+class EventBus {
   private listeners = new Map<EventKey, Function[]>();
 
   on<K extends EventKey>(event: K, listener: Listener<EventMap[K]>) {

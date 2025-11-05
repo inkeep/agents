@@ -239,7 +239,7 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
 /**
  * Validates that a JSON object conforms to a given schema
  */
-export function validateDataAgainstSchema(data: any, schema: any): ValidationResult {
+function validateDataAgainstSchema(data: any, schema: any): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: string[] = [];
 
@@ -299,14 +299,14 @@ export function createSchemaTemplate(): string {
 /**
  * Type guard to check if a value is a valid JSON Schema object
  */
-export function isValidJsonSchemaObject(value: any): value is JsonSchemaObject {
+function isValidJsonSchemaObject(value: any): value is JsonSchemaObject {
   return objectValidator.Check(value);
 }
 
 /**
  * Get friendly error messages for common validation issues
  */
-export function getValidationSummary(result: ValidationResult): string {
+function getValidationSummary(result: ValidationResult): string {
   if (result.isValid) {
     return 'Valid JSON Schema for LLM usage';
   }

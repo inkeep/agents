@@ -525,4 +525,3 @@ export const IkpMessage: FC<IkpMessageProps> = ({
   );
 };
 
-export default IkpMessage;
