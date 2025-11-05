@@ -2,7 +2,7 @@
  * New Component Generator - Create brand new files for components that don't exist
  */
 
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
@@ -329,7 +329,7 @@ export async function createNewComponents(
           componentData = remoteProject.functions?.[componentId];
         } else if (componentType === 'functionTools') {
           // Function tools might be in functions or functionTools
-          let functionToolData =
+          const functionToolData =
             remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
 
           // If functionTool has a functionId reference, merge with the actual function data

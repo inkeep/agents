@@ -2,11 +2,11 @@
  * Unit tests for artifact component generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateArtifactComponentDefinition,
-  generateArtifactComponentImports,
   generateArtifactComponentFile,
+  generateArtifactComponentImports,
 } from '../artifact-component-generator';
 
 describe('Artifact Component Generator', () => {

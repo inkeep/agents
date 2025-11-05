@@ -7,6 +7,7 @@ import {
   FunctionToolApiInsertSchema,
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
+  generateId,
   getFunctionToolById,
   ListResponseSchema,
   listFunctionTools,
@@ -14,7 +15,6 @@ import {
   SingleResponseSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
-  generateId,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';

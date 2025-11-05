@@ -2,15 +2,15 @@
  * Unit tests for component parser
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildComponentRegistryFromParsing,
   findComponentById,
   getAllLocalComponentIds,
 } from './component-parser';
-import { tmpdir } from 'node:os';
 
 describe('Component Parser', () => {
   let testDir: string;

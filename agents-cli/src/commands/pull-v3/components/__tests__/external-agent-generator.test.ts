@@ -2,11 +2,11 @@
  * Unit tests for external agent generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateExternalAgentDefinition,
-  generateExternalAgentImports,
   generateExternalAgentFile,
+  generateExternalAgentImports,
 } from '../external-agent-generator';
 
 // Mock registry for tests

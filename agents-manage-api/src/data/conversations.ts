@@ -3,8 +3,8 @@ import {
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
-  getConversationHistory,
   generateId,
+  getConversationHistory,
 } from '@inkeep/agents-core';
 import dbClient from './db/dbClient';
 

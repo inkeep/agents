@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
   Divider,
@@ -15,7 +16,6 @@ import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
   try {

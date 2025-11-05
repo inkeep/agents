@@ -23,12 +23,11 @@ import {
   Warning,
 } from '@inkeep/docskit/mdx';
 import { APIPage } from 'fumadocs-openapi/ui';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { createGenerator } from 'fumadocs-typescript';
-import { AutoTypeTable } from '@/components/mdx/auto-type-table';
-
+import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
+import { AutoTypeTable } from '@/components/mdx/auto-type-table';
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
 

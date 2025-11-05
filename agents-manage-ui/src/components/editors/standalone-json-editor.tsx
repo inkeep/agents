@@ -1,10 +1,10 @@
 'use client';
 
 import { type FC, type ReactNode, useCallback } from 'react';
+import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { formatJson } from '@/lib/utils';
-import { JsonEditor } from '@/components/editors/json-editor';
 
 interface StandaloneJsonEditorProps {
   value?: string;

@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { InkeepChatLanguageModel } from '../inkeep-chat-language-model';
 import type { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { InkeepChatLanguageModel } from '../inkeep-chat-language-model';
 
 describe('InkeepChatLanguageModel', () => {
   const mockFetch = vi.fn();

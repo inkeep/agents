@@ -16,7 +16,7 @@ import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
 import { createTestDatabaseClient } from '../../../db/test-client';
-import { createTestSubAgentData, createTestAgentData, createTestRelationData } from '../helpers';
+import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';
 
 describe('Agent Agent Data Access - Integration Tests', () => {
   let db: DatabaseClient;

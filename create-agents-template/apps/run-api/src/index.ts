@@ -1,12 +1,12 @@
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
+
 loadEnvironmentFiles();
 import './instrumentation.js';
 import 'hono';
 
 import { createExecutionApp } from '@inkeep/agents-run-api';
-import { credentialStores } from '../../shared/credential-stores.js';
-
 import type { Hono } from 'hono';
+import { credentialStores } from '../../shared/credential-stores.js';
 
 const inkeep_run_api_port = 3003;
 

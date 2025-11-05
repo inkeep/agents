@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  agentHasArtifactComponents,
   associateArtifactComponentWithAgent,
   countArtifactComponents,
   countArtifactComponentsForAgent,
@@ -8,7 +9,6 @@ import {
   getAgentsUsingArtifactComponent,
   getArtifactComponentById,
   getArtifactComponentsForAgent,
-  agentHasArtifactComponents,
   isArtifactComponentAssociatedWithAgent,
   listArtifactComponents,
   listArtifactComponentsPaginated,

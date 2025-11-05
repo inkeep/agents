@@ -1,5 +1,5 @@
-import html from '@shikijs/langs/html';
 import path from 'node:path';
+import html from '@shikijs/langs/html';
 import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
 import emoji from 'remark-emoji';
 import { mdxSnippet } from 'remark-mdx-snippets';

@@ -2,11 +2,11 @@
  * Unit tests for status component generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateStatusComponentDefinition,
-  generateStatusComponentImports,
   generateStatusComponentFile,
+  generateStatusComponentImports,
 } from '../status-component-generator';
 
 describe('Status Component Generator', () => {

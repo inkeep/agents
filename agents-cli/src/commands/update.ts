@@ -1,5 +1,5 @@
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 import { detectPackageManager, executeUpdate, type PackageManager } from '../utils/package-manager';
 import { checkForUpdate, getChangelogUrl } from '../utils/version-check';
 

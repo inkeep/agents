@@ -3,8 +3,10 @@ import './instrumentation'; // Initialize Langfuse tracing second
 
 // Silence config loading logs for cleaner CLI output
 import { getLogger } from '@inkeep/agents-core';
+
 const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
+
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

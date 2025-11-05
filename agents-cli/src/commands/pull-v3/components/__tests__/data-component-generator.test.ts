@@ -2,11 +2,11 @@
  * Unit tests for data component generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateDataComponentDefinition,
-  generateDataComponentImports,
   generateDataComponentFile,
+  generateDataComponentImports,
 } from '../data-component-generator';
 
 describe('Data Component Generator', () => {
