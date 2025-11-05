@@ -2,13 +2,13 @@
  * Unit tests for context config generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateContextConfigDefinition,
-  generateContextConfigImports,
   generateContextConfigFile,
-  generateHeadersDefinition,
+  generateContextConfigImports,
   generateFetchDefinitionDefinition,
+  generateHeadersDefinition,
 } from '../context-config-generator';
 
 // Mock registry for tests

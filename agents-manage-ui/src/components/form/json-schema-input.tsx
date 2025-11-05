@@ -1,11 +1,11 @@
 'use client';
 
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
-import { FormFieldWrapper } from './form-field-wrapper';
-import { Switch } from '@/components/ui/switch';
-import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
+import { Switch } from '@/components/ui/switch';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
+import { FormFieldWrapper } from './form-field-wrapper';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;

@@ -1,7 +1,7 @@
-import { remark } from 'remark';
-import { rehypeCode, type RehypeCodeOptions, remarkGfm } from 'fumadocs-core/mdx-plugins';
-import remarkRehype from 'remark-rehype';
 import { highlightHast } from 'fumadocs-core/highlight';
+import { type RehypeCodeOptions, rehypeCode, remarkGfm } from 'fumadocs-core/mdx-plugins';
+import { remark } from 'remark';
+import remarkRehype from 'remark-rehype';
 
 const shikiOptions = {
   lazy: true,

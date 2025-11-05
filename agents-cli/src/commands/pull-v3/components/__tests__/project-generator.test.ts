@@ -2,11 +2,11 @@
  * Unit tests for project generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateProjectDefinition,
-  generateProjectImports,
   generateProjectFile,
+  generateProjectImports,
 } from '../project-generator';
 
 // Mock registry for tests

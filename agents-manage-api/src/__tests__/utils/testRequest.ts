@@ -1,5 +1,5 @@
-import app from '../../index';
 import { env } from '../../env';
+import app from '../../index';
 
 interface TestRequestOptions extends RequestInit {
   expectError?: boolean;

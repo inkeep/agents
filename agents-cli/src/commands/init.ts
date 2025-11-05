@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 
 export interface InitOptions {
   path?: string;

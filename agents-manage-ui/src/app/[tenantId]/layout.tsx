@@ -1,11 +1,11 @@
 'use client';
 
-import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
-import { getContextSuggestions } from '@/lib/context-suggestions';
 import type { IDisposable } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { type ReactNode, useEffect } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
+import { getContextSuggestions } from '@/lib/context-suggestions';
 
 function tryJsonParse(json = ''): object {
   if (!json.trim()) {

@@ -1,6 +1,6 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { fetchProject } from '@/lib/api/projects';
 import { ProjectProvider } from '@/contexts/project-context';
+import { fetchProject } from '@/lib/api/projects';
 
 export const dynamic = 'force-dynamic';
 

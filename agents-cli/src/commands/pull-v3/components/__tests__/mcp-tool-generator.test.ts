@@ -2,11 +2,11 @@
  * Unit tests for MCP tool generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateMcpToolDefinition,
-  generateMcpToolImports,
   generateMcpToolFile,
+  generateMcpToolImports,
 } from '../mcp-tool-generator';
 
 // Mock envSettings for tests

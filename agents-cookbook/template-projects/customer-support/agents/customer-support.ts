@@ -1,7 +1,7 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
+import { zendeskTicketCard } from '../data-components/ticketcard-data';
 import { knowledgeBaseMcpTool } from '../tools/knowledge-base-mcp';
 import { zendeskMcpTool } from '../tools/zendesk-mcp';
-import { zendeskTicketCard } from '../data-components/ticketcard-data';
 
 /**
  * Customer Support Agent

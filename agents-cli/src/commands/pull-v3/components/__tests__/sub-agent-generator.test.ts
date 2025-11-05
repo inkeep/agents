@@ -2,11 +2,11 @@
  * Unit tests for sub-agent generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateSubAgentDefinition,
-  generateSubAgentImports,
   generateSubAgentFile,
+  generateSubAgentImports,
 } from '../sub-agent-generator';
 
 // Mock registry for tests

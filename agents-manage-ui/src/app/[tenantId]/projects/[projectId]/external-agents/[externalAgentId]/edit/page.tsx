@@ -1,8 +1,8 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
 import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
+import { BodyTemplate } from '@/components/layout/body-template';
+import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';

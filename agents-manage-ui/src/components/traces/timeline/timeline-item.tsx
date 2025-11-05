@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
@@ -23,7 +24,6 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);

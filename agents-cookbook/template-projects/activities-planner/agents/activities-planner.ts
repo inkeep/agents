@@ -1,7 +1,7 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
-import { weatherMcpTool } from '../tools/weather-mcp';
-import { exaMcpTool } from '../tools/exa-mcp';
 import { activities } from '../data-components/activities';
+import { exaMcpTool } from '../tools/exa-mcp';
+import { weatherMcpTool } from '../tools/weather-mcp';
 
 /**
  * Activities Planner Agent

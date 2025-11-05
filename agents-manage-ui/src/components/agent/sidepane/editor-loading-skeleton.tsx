@@ -1,5 +1,5 @@
-import { Skeleton } from '@/components/ui/skeleton';
 import type { ComponentProps, FC } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export const EditorLoadingSkeleton: FC<ComponentProps<'div'>> = ({ className, ...props }) => {

@@ -2,11 +2,11 @@
  * Unit tests for agent generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateAgentDefinition,
-  generateAgentImports,
   generateAgentFile,
+  generateAgentImports,
 } from '../agent-generator';
 
 // Mock registry for tests

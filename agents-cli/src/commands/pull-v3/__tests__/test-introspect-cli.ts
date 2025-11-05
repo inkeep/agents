@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * Manual CLI test script for introspect functionality
  *
@@ -6,12 +7,12 @@
  *   npx tsx src/commands/pull-v3/__tests__/test-introspect-cli.ts
  */
 
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { introspectGenerate } from '../introspect-generator';
 import chalk from 'chalk';
+import { introspectGenerate } from '../introspect-generator';
 
 // Create a comprehensive test project
 const testProject: FullProjectDefinition = {

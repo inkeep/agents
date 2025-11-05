@@ -6,6 +6,7 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
+import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import type {
   AgentToolConfigLookup,
@@ -34,7 +35,6 @@ import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
 import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
 import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
-import { cn } from '@/lib/utils';
 
 interface SidePaneProps {
   selectedNodeId: string | null;

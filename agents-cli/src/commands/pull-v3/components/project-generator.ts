@@ -5,18 +5,18 @@
  * Projects are the top-level organizational unit that contains Agents and shared configurations
  */
 
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  formatObject,
-  removeTrailingComma,
-  generateImport,
-  generateFileContent,
-  shouldInclude,
-} from '../utils/generator-utils';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatObject,
+  formatString,
+  generateFileContent,
+  generateImport,
+  removeTrailingComma,
+  shouldInclude,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Generate Project Definition using project() builder function

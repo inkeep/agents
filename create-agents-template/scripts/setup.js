@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import {
+  createArtifactComponent,
   createDatabaseClient,
   createProject,
-  getProject,
-  createArtifactComponent,
   getArtifactComponentById,
+  getProject,
 } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 
