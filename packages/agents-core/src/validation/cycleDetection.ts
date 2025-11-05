@@ -22,7 +22,9 @@ export function detectDelegationCycles(agentData: FullAgentDefinition): string[]
         if (dfs(neighbor)) return true;
       } else if (stack.has(neighbor)) {
         const cycleStart = path.indexOf(neighbor);
-        cycles.push(`Circular delegation detected: ${[...path.slice(cycleStart), neighbor].join(' → ')}`);
+        cycles.push(
+          `Circular delegation detected: ${[...path.slice(cycleStart), neighbor].join(' → ')}`
+        );
         return true;
       }
     }
@@ -46,9 +48,7 @@ function buildDelegationGraph(agentData: FullAgentDefinition): Map<string, strin
   const graph = new Map<string, string[]>();
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
-    const delegates = subAgent.canDelegateTo?.filter(
-      (d): d is string => typeof d === 'string'
-    );
+    const delegates = subAgent.canDelegateTo?.filter((d): d is string => typeof d === 'string');
     if (delegates?.length) {
       graph.set(subAgentId, delegates);
     }
@@ -56,4 +56,3 @@ function buildDelegationGraph(agentData: FullAgentDefinition): Map<string, strin
 
   return graph;
 }
-

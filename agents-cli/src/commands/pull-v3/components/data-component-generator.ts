@@ -1,6 +1,6 @@
 /**
  * Data Component Generator - Generate data component definitions
- * 
+ *
  * Generates data components using the dataComponent() builder function from @inkeep/agents-sdk
  */
 
@@ -31,12 +31,12 @@ function toCamelCase(str: string): string {
 
 function formatString(str: string, quote: string = "'", multiline: boolean = false): string {
   if (!str) return `${quote}${quote}`;
-  
+
   if (multiline && (str.includes('\n') || str.length > 80)) {
     // Use template literal for multiline strings
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
-  
+
   return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
 }
 
@@ -47,7 +47,7 @@ function convertJsonSchemaToZod(schema: any): string {
   if (!schema || typeof schema !== 'object') {
     return 'z.any()';
   }
-  
+
   try {
     return jsonSchemaToZod(schema);
   } catch (error) {
@@ -68,35 +68,38 @@ export function generateDataComponentDefinition(
   if (!componentId || typeof componentId !== 'string') {
     throw new Error('componentId is required and must be a string');
   }
-  
+
   if (!componentData || typeof componentData !== 'object') {
     throw new Error(`componentData is required for data component '${componentId}'`);
   }
-  
+
   // Validate required data component fields
   const requiredFields = ['name', 'description', 'props'];
-  const missingFields = requiredFields.filter(field => 
-    !componentData[field] || componentData[field] === null || componentData[field] === undefined
+  const missingFields = requiredFields.filter(
+    (field) =>
+      !componentData[field] || componentData[field] === null || componentData[field] === undefined
   );
-  
+
   if (missingFields.length > 0) {
-    throw new Error(`Missing required fields for data component '${componentId}': ${missingFields.join(', ')}`);
+    throw new Error(
+      `Missing required fields for data component '${componentId}': ${missingFields.join(', ')}`
+    );
   }
-  
+
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
-  
+
   const componentVarName = toCamelCase(componentId);
   const lines: string[] = [];
-  
+
   lines.push(`export const ${componentVarName} = dataComponent({`);
   lines.push(`${indentation}id: ${formatString(componentId, q)},`);
-  
+
   // Required fields - these must be present
   lines.push(`${indentation}name: ${formatString(componentData.name, q)},`);
   lines.push(`${indentation}description: ${formatString(componentData.description, q, true)},`);
-  
+
   // Props schema (convert from JSON schema to zod using existing utility)
   // Pull-v2 shows that dataComponent uses either `props` or `schema` field from componentData
   const schema = componentData.props || componentData.schema;
@@ -104,14 +107,14 @@ export function generateDataComponentDefinition(
     const zodSchema = convertJsonSchemaToZod(schema);
     lines.push(`${indentation}props: ${zodSchema},`);
   }
-  
+
   // Remove trailing comma from last line
   if (lines.length > 0 && lines[lines.length - 1].endsWith(',')) {
     lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
   }
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -127,16 +130,16 @@ export function generateDataComponentImports(
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
   const imports: string[] = [];
-  
+
   // Always import dataComponent from SDK
   imports.push(`import { dataComponent } from ${q}@inkeep/agents-sdk${q}${semi}`);
-  
+
   // Add zod import if we have schema/props
   const schema = componentData.props || componentData.schema;
   if (schema) {
     imports.push(`import { z } from ${q}zod${q}${semi}`);
   }
-  
+
   return imports;
 }
 
@@ -150,6 +153,6 @@ export function generateDataComponentFile(
 ): string {
   const imports = generateDataComponentImports(componentId, componentData, style);
   const definition = generateDataComponentDefinition(componentId, componentData, style);
-  
+
   return imports.join('\n') + '\n\n' + definition + '\n';
 }

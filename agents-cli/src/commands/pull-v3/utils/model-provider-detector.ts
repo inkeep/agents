@@ -16,18 +16,18 @@ const PROVIDER_CONFIGS: SimpleProviderConfig[] = [
   {
     name: 'anthropic',
     envVars: ['ANTHROPIC_API_KEY'],
-    model: 'claude-sonnet-4-5'
+    model: 'claude-sonnet-4-5',
   },
   {
     name: 'openai',
-    envVars: ['OPENAI_API_KEY'], 
-    model: 'gpt-4.1'
+    envVars: ['OPENAI_API_KEY'],
+    model: 'gpt-4.1',
   },
   {
     name: 'google',
     envVars: ['GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'],
-    model: 'gemini-2.5-flash'
-  }
+    model: 'gemini-2.5-flash',
+  },
 ];
 
 /**
@@ -36,11 +36,11 @@ const PROVIDER_CONFIGS: SimpleProviderConfig[] = [
  */
 export function getAvailableModel(): any {
   for (const config of PROVIDER_CONFIGS) {
-    const hasKey = config.envVars.some(envVar => {
+    const hasKey = config.envVars.some((envVar) => {
       const value = process.env[envVar];
       return value && value.trim() !== '';
     });
-    
+
     if (hasKey) {
       switch (config.name) {
         case 'anthropic':
@@ -54,6 +54,8 @@ export function getAvailableModel(): any {
       }
     }
   }
-  
-  throw new Error('No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY');
+
+  throw new Error(
+    'No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY'
+  );
 }

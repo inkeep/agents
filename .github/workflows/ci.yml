@@ -90,6 +90,9 @@ jobs:
           CI: true
           HUSKY: 0
 
+      - name: Biome Format
+        run: pnpm format:check
+
       # Create summary report
       - name: Create CI Summary
         if: always()

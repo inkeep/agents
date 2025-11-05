@@ -1,9 +1,6 @@
 import type { StatusComponent as StatusComponentType } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
-import {
-  convertZodToJsonSchema,
-  isZodSchema,
-} from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import type { z } from 'zod';
 
 const logger = getLogger('statusComponent');
@@ -60,4 +57,3 @@ export class StatusComponent implements StatusComponentInterface {
     return this.config.detailsSchema;
   }
 }
-

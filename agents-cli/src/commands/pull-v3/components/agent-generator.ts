@@ -87,11 +87,11 @@ function formatStatusUpdates(
     ) {
       const contextConfigId = contextConfigData.id;
       const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
-      
+
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
       }
-      
+
       const headersVarName = 'headersSchema';
       lines.push(
         `${indent}${indentation}prompt: ${formatPromptWithContext(statusUpdatesConfig.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -131,24 +131,24 @@ function formatStopWhen(stopWhenConfig: any, style: CodeStyle, indentLevel: numb
 function hasDistinctModels(agentModels: any, projectModels: any): boolean {
   if (!agentModels) return false;
   if (!projectModels) return !!agentModels; // Agent has models but project doesn't
-  
+
   // Compare each model type
   const modelTypes = ['base', 'structuredOutput', 'summarizer'];
-  
+
   for (const type of modelTypes) {
     const agentModel = agentModels[type]?.model;
     const projectModel = projectModels[type]?.model;
-    
+
     // Check if models are different (including when one exists and other doesn't)
     if (agentModel !== projectModel) {
       return true;
     }
-    
+
     // Check provider options (only if both models exist)
     if (agentModel && projectModel) {
       const agentOptions = agentModels[type]?.providerOptions;
       const projectOptions = projectModels[type]?.providerOptions;
-      
+
       // Deep comparison for provider options
       if (agentOptions !== projectOptions) {
         if (!agentOptions && !projectOptions) {
@@ -166,7 +166,7 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
       }
     }
   }
-  
+
   return false;
 }
 
@@ -185,27 +185,27 @@ export function generateAgentDefinition(
   if (!agentId || typeof agentId !== 'string') {
     throw new Error('agentId is required and must be a string');
   }
-  
+
   if (!agentData || typeof agentData !== 'object') {
     throw new Error(`agentData is required for agent '${agentId}'`);
   }
-  
+
   // Validate required agent fields
   const requiredFields = ['name', 'defaultSubAgentId', 'subAgents'];
-  const missingFields = requiredFields.filter(field => 
-    !agentData[field] || agentData[field] === null || agentData[field] === undefined
+  const missingFields = requiredFields.filter(
+    (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );
-  
+
   if (missingFields.length > 0) {
     throw new Error(`Missing required fields for agent '${agentId}': ${missingFields.join(', ')}`);
   }
-  
+
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
 
   let agentVarName = toCamelCase(agentId);
-  
+
   // Use registry to get collision-safe variable name if available
   if (registry) {
     const registryVarName = registry.getVariableName(agentId, 'agent');
@@ -213,7 +213,7 @@ export function generateAgentDefinition(
       agentVarName = registryVarName;
     }
   }
-  
+
   const lines: string[] = [];
 
   lines.push(`export const ${agentVarName} = agent({`);
@@ -231,11 +231,11 @@ export function generateAgentDefinition(
     if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry) {
       const contextConfigId = contextConfigData.id;
       const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
-      
+
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
       }
-      
+
       const headersVarName = 'headersSchema';
       lines.push(
         `${indentation}prompt: ${formatPromptWithContext(agentData.prompt, contextVarName, headersVarName, contextConfigData, q, true)},`
@@ -248,40 +248,52 @@ export function generateAgentDefinition(
   // models - model configuration overrides (only when different from project level)
   if (agentData.models && hasDistinctModels(agentData.models, projectModels)) {
     lines.push(`${indentation}models: {`);
-    
+
     if (agentData.models.base?.model) {
       lines.push(`${indentation}${indentation}base: {`);
-      lines.push(`${indentation}${indentation}${indentation}model: ${formatString(agentData.models.base.model, q)}`);
+      lines.push(
+        `${indentation}${indentation}${indentation}model: ${formatString(agentData.models.base.model, q)}`
+      );
       if (agentData.models.base.providerOptions) {
         lines.push(`${indentation}${indentation}${indentation},`);
-        lines.push(`${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.base.providerOptions)}`);
+        lines.push(
+          `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.base.providerOptions)}`
+        );
       }
       lines.push(`${indentation}${indentation}},`);
     }
-    
+
     if (agentData.models.structuredOutput?.model) {
       lines.push(`${indentation}${indentation}structuredOutput: {`);
-      lines.push(`${indentation}${indentation}${indentation}model: ${formatString(agentData.models.structuredOutput.model, q)}`);
+      lines.push(
+        `${indentation}${indentation}${indentation}model: ${formatString(agentData.models.structuredOutput.model, q)}`
+      );
       if (agentData.models.structuredOutput.providerOptions) {
         lines.push(`${indentation}${indentation}${indentation},`);
-        lines.push(`${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.structuredOutput.providerOptions)}`);
+        lines.push(
+          `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.structuredOutput.providerOptions)}`
+        );
       }
       lines.push(`${indentation}${indentation}},`);
     }
-    
+
     if (agentData.models.summarizer?.model) {
       lines.push(`${indentation}${indentation}summarizer: {`);
-      lines.push(`${indentation}${indentation}${indentation}model: ${formatString(agentData.models.summarizer.model, q)}`);
+      lines.push(
+        `${indentation}${indentation}${indentation}model: ${formatString(agentData.models.summarizer.model, q)}`
+      );
       if (agentData.models.summarizer.providerOptions) {
         lines.push(`${indentation}${indentation}${indentation},`);
-        lines.push(`${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.summarizer.providerOptions)}`);
+        lines.push(
+          `${indentation}${indentation}${indentation}providerOptions: ${JSON.stringify(agentData.models.summarizer.providerOptions)}`
+        );
       }
       lines.push(`${indentation}${indentation}},`);
     }
-    
+
     // Remove trailing comma from last model entry
     removeTrailingComma(lines);
-    
+
     lines.push(`${indentation}},`);
   }
 
@@ -290,13 +302,15 @@ export function generateAgentDefinition(
     if (!registry) {
       throw new Error('Registry is required for defaultSubAgent generation');
     }
-    
+
     const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId, 'subAgent');
-    
+
     if (!defaultSubAgentVar) {
-      throw new Error(`Failed to resolve variable name for default sub-agent: ${agentData.defaultSubAgentId}`);
+      throw new Error(
+        `Failed to resolve variable name for default sub-agent: ${agentData.defaultSubAgentId}`
+      );
     }
-    
+
     lines.push(`${indentation}defaultSubAgent: ${defaultSubAgentVar},`);
   }
 
@@ -309,15 +323,15 @@ export function generateAgentDefinition(
     if (!registry) {
       throw new Error('Registry is required for subAgents generation');
     }
-    
+
     // subAgents is an object with IDs as keys, extract the keys
     const subAgentIds = Object.keys(agentData.subAgents);
     const subAgentsArray = registry.formatReferencesForCode(subAgentIds, 'subAgent', style, 2);
-    
+
     if (!subAgentsArray) {
       throw new Error(`Failed to resolve variable names for sub-agents: ${subAgentIds.join(', ')}`);
     }
-    
+
     lines.push(`${indentation}subAgents: () => ${subAgentsArray},`);
   }
 
@@ -326,16 +340,16 @@ export function generateAgentDefinition(
     // Try to find the contextConfig variable name by searching for contextConfig components
     // Since contextConfig doesn't have a stable ID, we look for any contextConfig component
     let contextConfigVar: string | undefined;
-    
+
     if (registry) {
       const allComponents = registry.getAllComponents();
-      const contextConfigComponent = allComponents.find(comp => comp.type === 'contextConfig');
+      const contextConfigComponent = allComponents.find((comp) => comp.type === 'contextConfig');
       if (contextConfigComponent) {
         contextConfigVar = contextConfigComponent.name;
       } else {
       }
     }
-    
+
     if (contextConfigVar) {
       lines.push(`${indentation}contextConfig: ${contextConfigVar},`);
     } else {
@@ -389,18 +403,19 @@ export function generateAgentImports(
   // Always import agent from SDK
   imports.push(generateImport(['agent'], '@inkeep/agents-sdk', style));
 
-
   // Generate imports for referenced components if registry is available
   if (registry) {
     const currentFilePath = `agents/${agentId}.ts`;
 
     // Collect all component references with their types
-    const referencedComponents: Array<{id: string, type: ComponentType}> = [];
+    const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
 
     // Sub-agent references (subAgents is an object with IDs as keys)
     if (agentData.subAgents && typeof agentData.subAgents === 'object') {
       const subAgentIds = Object.keys(agentData.subAgents);
-      referencedComponents.push(...subAgentIds.map(id => ({id, type: 'subAgent' as ComponentType})));
+      referencedComponents.push(
+        ...subAgentIds.map((id) => ({ id, type: 'subAgent' as ComponentType }))
+      );
     }
 
     // Status component references
@@ -411,10 +426,10 @@ export function generateAgentImports(
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
         if (typeof comp === 'string') {
-          referencedComponents.push({id: comp, type: 'statusComponent'});
+          referencedComponents.push({ id: comp, type: 'statusComponent' });
         } else if (typeof comp === 'object' && comp) {
           const statusId = comp.id || comp.type || comp.name;
-          if (statusId) referencedComponents.push({id: statusId, type: 'statusComponent'});
+          if (statusId) referencedComponents.push({ id: statusId, type: 'statusComponent' });
         }
       }
     }
@@ -423,12 +438,12 @@ export function generateAgentImports(
     if (agentData.contextConfig) {
       // Use actual contextConfig.id
       const contextConfigId = agentData.contextConfig.id;
-      referencedComponents.push({id: contextConfigId, type: 'contextConfig'});
+      referencedComponents.push({ id: contextConfigId, type: 'contextConfig' });
     }
 
     // Default sub-agent reference
     if (agentData.defaultSubAgentId) {
-      referencedComponents.push({id: agentData.defaultSubAgentId, type: 'subAgent'});
+      referencedComponents.push({ id: agentData.defaultSubAgentId, type: 'subAgent' });
     }
 
     // Get import statements for all referenced components

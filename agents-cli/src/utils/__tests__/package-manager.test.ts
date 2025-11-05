@@ -59,9 +59,7 @@ describe('package-manager', () => {
     it('should throw error for potentially malicious input', async () => {
       const { executeUpdate } = await import('../package-manager');
       // @ts-expect-error Testing invalid input
-      await expect(executeUpdate('npm && rm -rf /')).rejects.toThrow(
-        'Unsupported package manager'
-      );
+      await expect(executeUpdate('npm && rm -rf /')).rejects.toThrow('Unsupported package manager');
     });
   });
 });

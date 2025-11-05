@@ -51,7 +51,7 @@ export interface NangoCredentialData {
   provider: string;
   token?: string;
   metadata?: Record<string, any>;
-  expiresAt?: Date | undefined,
+  expiresAt?: Date | undefined;
 }
 
 const SUPPORTED_AUTH_MODES = [
@@ -477,7 +477,10 @@ export class NangoCredentialStore implements CredentialStore {
       };
     }
 
-    if (this.nangoConfig.secretKey.includes('mock') || this.nangoConfig.secretKey === 'your_nango_secret_key') {
+    if (
+      this.nangoConfig.secretKey.includes('mock') ||
+      this.nangoConfig.secretKey === 'your_nango_secret_key'
+    ) {
       return {
         available: false,
         reason: 'Nango secret key appears to be a placeholder or mock value',

@@ -738,7 +738,7 @@ class SigNozStatsAPI {
       const spanName = s.labels?.[SPAN_KEYS.NAME] || '';
       const count = countFromSeries(s);
       if (!count) continue;
-      
+
       if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
         ensure(id).totalErrors += count;
       }

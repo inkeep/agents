@@ -1151,11 +1151,7 @@ export async function GET(
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        subAgentName: getString(
-          span,
-          SPAN_KEYS.SUB_AGENT_NAME,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
@@ -1179,8 +1175,16 @@ export async function GET(
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
@@ -1228,8 +1232,16 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,

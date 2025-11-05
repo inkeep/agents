@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { 
+import {
   generateContextConfigDefinition,
   generateContextConfigImports,
   generateContextConfigFile,
   generateHeadersDefinition,
-  generateFetchDefinitionDefinition
+  generateFetchDefinitionDefinition,
 } from '../context-config-generator';
 
 // Mock registry for tests
@@ -23,7 +23,7 @@ const mockRegistry = {
       .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
-  }
+  },
 };
 
 describe('Context Config Generator', () => {
@@ -32,45 +32,45 @@ describe('Context Config Generator', () => {
       type: 'object',
       properties: {
         user_id: { type: 'string' },
-        api_key: { type: 'string' }
+        api_key: { type: 'string' },
       },
-      required: ['user_id', 'api_key']
-    }
+      required: ['user_id', 'api_key'],
+    },
   };
 
   const fetchData = {
     id: 'user-info',
-    name: 'User Information', 
+    name: 'User Information',
     trigger: 'initialization',
     fetchConfig: {
       url: 'https://api.example.com/users/${headers.toTemplate("user_id")}',
       method: 'GET',
       headers: {
-        Authorization: 'Bearer ${headers.toTemplate("api_key")}'
+        Authorization: 'Bearer ${headers.toTemplate("api_key")}',
       },
-      transform: 'user'
+      transform: 'user',
     },
     responseSchema: {
       type: 'object',
       properties: {
         name: { type: 'string' },
-        email: { type: 'string' }
-      }
+        email: { type: 'string' },
+      },
     },
-    defaultValue: 'Unable to fetch user information'
+    defaultValue: 'Unable to fetch user information',
   };
 
   const contextData = {
     headers: 'personalAgentHeaders',
     contextVariables: {
-      user: 'userFetcher'
-    }
+      user: 'userFetcher',
+    },
   };
 
   describe('generateHeadersDefinition', () => {
     it('should generate correct headers definition', () => {
       const definition = generateHeadersDefinition('personalAgentHeaders', headersData);
-      
+
       expect(definition).toContain('const personalAgentHeaders = headers({');
       expect(definition).toContain('schema: z.object({');
       expect(definition).toContain('"user_id": z.string()');
@@ -82,16 +82,16 @@ describe('Context Config Generator', () => {
       const definition = generateHeadersDefinition('test', headersData, {
         quotes: 'double',
         semicolons: false,
-        indentation: '    '
+        indentation: '    ',
       });
-      
+
       expect(definition).toContain('const test = headers({');
       expect(definition).not.toContain(';');
     });
 
     it('should handle camelCase conversion', () => {
       const definition = generateHeadersDefinition('personal-agent-headers', headersData);
-      
+
       expect(definition).toContain('const personalAgentHeaders = headers({');
     });
   });
@@ -99,13 +99,15 @@ describe('Context Config Generator', () => {
   describe('generateFetchDefinitionDefinition', () => {
     it('should generate correct fetch definition', () => {
       const definition = generateFetchDefinitionDefinition('userFetcher', fetchData);
-      
+
       expect(definition).toContain('const userFetcher = fetchDefinition({');
       expect(definition).toContain("id: 'user-info',");
       expect(definition).toContain("name: 'User Information',");
       expect(definition).toContain("trigger: 'initialization',");
       expect(definition).toContain('fetchConfig: {');
-      expect(definition).toContain("url: 'https://api.example.com/users/${headers.toTemplate(\"user_id\")}',");
+      expect(definition).toContain(
+        'url: \'https://api.example.com/users/${headers.toTemplate("user_id")}\','
+      );
       expect(definition).toContain("method: 'GET',");
       expect(definition).toContain('responseSchema: z.object({');
       expect(definition).toContain("defaultValue: 'Unable to fetch user information'");
@@ -117,12 +119,12 @@ describe('Context Config Generator', () => {
         id: 'simple-fetch',
         fetchConfig: {
           url: 'https://api.example.com/data',
-          method: 'GET'
-        }
+          method: 'GET',
+        },
       };
 
       const definition = generateFetchDefinitionDefinition('simpleFetch', minimalData);
-      
+
       expect(definition).toContain('const simpleFetch = fetchDefinition({');
       expect(definition).toContain("id: 'simple-fetch',");
       expect(definition).toContain('fetchConfig: {');
@@ -142,17 +144,17 @@ describe('Context Config Generator', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer token'
+            Authorization: 'Bearer token',
           },
           body: {
             query: 'test',
-            limit: 10
-          }
-        }
+            limit: 10,
+          },
+        },
       };
 
       const definition = generateFetchDefinitionDefinition('complexFetch', complexData);
-      
+
       expect(definition).toContain('fetchConfig: {');
       expect(definition).toContain("'Content-Type': 'application/json',");
       expect(definition).toContain("Authorization: 'Bearer token'");
@@ -164,12 +166,17 @@ describe('Context Config Generator', () => {
 
   describe('generateContextConfigDefinition', () => {
     it('should generate correct context config definition', () => {
-      const definition = generateContextConfigDefinition('personalAgentContext', contextData, undefined, mockRegistry);
-      
+      const definition = generateContextConfigDefinition(
+        'personalAgentContext',
+        contextData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('const personalAgentContext = contextConfig({');
       expect(definition).toContain('headers: personalAgentHeaders,');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain("user: userFetcher");
+      expect(definition).toContain('user: userFetcher');
       expect(definition).toContain('});');
     });
 
@@ -177,34 +184,49 @@ describe('Context Config Generator', () => {
       const dataWithoutHeaders = {
         contextVariables: {
           config: 'someConfig',
-          data: 'someData'
-        }
+          data: 'someData',
+        },
       };
 
-      const definition = generateContextConfigDefinition('simpleContext', dataWithoutHeaders, undefined, mockRegistry);
-      
+      const definition = generateContextConfigDefinition(
+        'simpleContext',
+        dataWithoutHeaders,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('const simpleContext = contextConfig({');
       expect(definition).not.toContain('headers:');
       expect(definition).toContain('contextVariables: {');
-      expect(definition).toContain("config: someConfig,");
-      expect(definition).toContain("data: someData");
+      expect(definition).toContain('config: someConfig,');
+      expect(definition).toContain('data: someData');
     });
 
     it('should handle context config without contextVariables', () => {
       const dataWithoutVariables = {
-        headers: 'myHeaders'
+        headers: 'myHeaders',
       };
 
-      const definition = generateContextConfigDefinition('headerOnlyContext', dataWithoutVariables, undefined, mockRegistry);
-      
+      const definition = generateContextConfigDefinition(
+        'headerOnlyContext',
+        dataWithoutVariables,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('const headerOnlyContext = contextConfig({');
       expect(definition).toContain('headers: myHeaders');
       expect(definition).not.toContain('contextVariables:');
     });
 
     it('should handle empty context config', () => {
-      const definition = generateContextConfigDefinition('emptyContext', {}, undefined, mockRegistry);
-      
+      const definition = generateContextConfigDefinition(
+        'emptyContext',
+        {},
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('const emptyContext = contextConfig({');
       expect(definition).toContain('});');
       expect(definition).not.toContain('headers:');
@@ -219,11 +241,11 @@ describe('Context Config Generator', () => {
         headers: 'personalAgentHeaders',
         headersSchema: { type: 'object' }, // This will trigger zod import
         contextVariables: {
-          user: 'userFetcher'
-        }
+          user: 'userFetcher',
+        },
       };
       const imports = generateContextConfigImports('test', dataWithSchemas);
-      
+
       // Since contextData has headers, it generates a combined import
       expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
       expect(imports).toContain("import { z } from 'zod';");
@@ -232,11 +254,11 @@ describe('Context Config Generator', () => {
     it('should include headers import when needed', () => {
       const dataWithHeaders = {
         headers: 'myHeaders',
-        headersSchema: { type: 'object' }
+        headersSchema: { type: 'object' },
       };
-      
+
       const imports = generateContextConfigImports('test', dataWithHeaders);
-      
+
       expect(imports).toContain("import { headers, contextConfig } from '@inkeep/agents-core';");
     });
 
@@ -245,23 +267,25 @@ describe('Context Config Generator', () => {
         contextVariables: {
           user: {
             fetchConfig: { url: 'test' },
-            responseSchema: { type: 'object' }
-          }
-        }
+            responseSchema: { type: 'object' },
+          },
+        },
       };
-      
+
       const imports = generateContextConfigImports('test', dataWithFetch);
-      
-      expect(imports).toContain("import { fetchDefinition, contextConfig } from '@inkeep/agents-core';");
+
+      expect(imports).toContain(
+        "import { fetchDefinition, contextConfig } from '@inkeep/agents-core';"
+      );
     });
 
     it('should handle different code styles', () => {
       const imports = generateContextConfigImports('test', contextData, {
         quotes: 'double',
         semicolons: false,
-        indentation: '    '
+        indentation: '    ',
       });
-      
+
       expect(imports[0]).toContain('import { headers, contextConfig } from "');
       expect(imports[0]).not.toContain(';');
     });
@@ -273,19 +297,26 @@ describe('Context Config Generator', () => {
         headers: 'personalAgentHeaders',
         headersSchema: headersData.schema,
         contextVariables: {
-          user: fetchData
-        }
+          user: fetchData,
+        },
       };
 
-      const file = generateContextConfigFile('personalAgentContext', fullContextData, undefined, mockRegistry);
-      
-      expect(file).toContain("import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';");
+      const file = generateContextConfigFile(
+        'personalAgentContext',
+        fullContextData,
+        undefined,
+        mockRegistry
+      );
+
+      expect(file).toContain(
+        "import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';"
+      );
       expect(file).toContain("import { z } from 'zod';");
       expect(file).toContain('const personalAgentHeaders = headers({');
       expect(file).toContain('const user = fetchDefinition({');
       expect(file).toContain('const personalAgentContext = contextConfig({');
       expect(file).toContain('export { personalAgentContext, personalAgentHeaders, user };');
-      
+
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*const/s);
       expect(file.endsWith('\n')).toBe(true);
@@ -294,12 +325,12 @@ describe('Context Config Generator', () => {
     it('should generate simple context config file', () => {
       const simpleData = {
         contextVariables: {
-          config: 'someValue'
-        }
+          config: 'someValue',
+        },
       };
 
       const file = generateContextConfigFile('simpleContext', simpleData, undefined, mockRegistry);
-      
+
       expect(file).toContain("import { contextConfig } from '@inkeep/agents-core';");
       expect(file).toContain('const simpleContext = contextConfig({');
       expect(file).toContain('export { simpleContext };');
@@ -312,7 +343,7 @@ describe('Context Config Generator', () => {
     it('should generate headers code that compiles', () => {
       const definition = generateHeadersDefinition('testHeaders', headersData);
       const definitionWithoutConst = definition.replace('const ', '');
-      
+
       const moduleCode = `
         const headers = (config) => config;
         const z = {
@@ -324,12 +355,12 @@ describe('Context Config Generator', () => {
         
         return testHeaders;
       `;
-      
+
       let result;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
-      
+
       expect(result).toBeDefined();
       expect(result.schema).toBeDefined();
     });
@@ -337,7 +368,7 @@ describe('Context Config Generator', () => {
     it('should generate fetch definition code that compiles', () => {
       const definition = generateFetchDefinitionDefinition('testFetch', fetchData);
       const definitionWithoutConst = definition.replace('const ', '');
-      
+
       const moduleCode = `
         const fetchDefinition = (config) => config;
         const createChainable = (type) => ({
@@ -354,12 +385,12 @@ describe('Context Config Generator', () => {
         
         return testFetch;
       `;
-      
+
       let result;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
-      
+
       expect(result).toBeDefined();
       expect(result.id).toBe('user-info');
       expect(result.name).toBe('User Information');
@@ -368,9 +399,14 @@ describe('Context Config Generator', () => {
     });
 
     it('should generate context config code that compiles', () => {
-      const definition = generateContextConfigDefinition('testContext', contextData, undefined, mockRegistry);
+      const definition = generateContextConfigDefinition(
+        'testContext',
+        contextData,
+        undefined,
+        mockRegistry
+      );
       const definitionWithoutConst = definition.replace('const ', '');
-      
+
       const moduleCode = `
         const contextConfig = (config) => config;
         const personalAgentHeaders = { type: 'headers' };
@@ -380,12 +416,12 @@ describe('Context Config Generator', () => {
         
         return testContext;
       `;
-      
+
       let result;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
-      
+
       expect(result).toBeDefined();
       expect(result.headers).toBeDefined();
       expect(result.contextVariables).toBeDefined();
@@ -395,18 +431,23 @@ describe('Context Config Generator', () => {
 
   describe('edge cases', () => {
     it('should handle special characters in IDs', () => {
-      const definition = generateContextConfigDefinition('context-config_v2', contextData, undefined, mockRegistry);
-      
+      const definition = generateContextConfigDefinition(
+        'context-config_v2',
+        contextData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('const contextConfigV2 = contextConfig({');
     });
 
     it('should handle empty schemas', () => {
       const emptySchemaData = {
-        schema: {}
+        schema: {},
       };
-      
+
       const definition = generateHeadersDefinition('emptyHeaders', emptySchemaData);
-      
+
       expect(definition).toContain('const emptyHeaders = headers({');
       expect(definition).toContain('schema: z.any()');
     });
@@ -418,19 +459,18 @@ describe('Context Config Generator', () => {
         trigger: undefined,
         fetchConfig: {
           url: 'test',
-          method: 'GET'
+          method: 'GET',
         },
-        defaultValue: null
+        defaultValue: null,
       };
 
       const definition = generateFetchDefinitionDefinition('test', dataWithNulls);
-      
+
       expect(definition).toContain("id: 'test',");
       expect(definition).toContain('fetchConfig: {');
       expect(definition).not.toContain('name:');
       expect(definition).not.toContain('trigger:');
       expect(definition).not.toContain('defaultValue:');
     });
-
   });
 });

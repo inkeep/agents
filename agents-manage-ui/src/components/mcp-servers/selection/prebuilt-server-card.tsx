@@ -54,9 +54,7 @@ export function PrebuiltServerCard({
             size={24}
             className="mt-0.5 flex-shrink-0"
           />
-          <span className="flex-1 min-w-0 text-base font-medium truncate">
-            {server.name}
-          </span>
+          <span className="flex-1 min-w-0 text-base font-medium truncate">{server.name}</span>
         </ItemCardTitle>
       </ItemCardHeader>
 

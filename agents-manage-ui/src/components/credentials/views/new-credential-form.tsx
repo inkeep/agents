@@ -22,7 +22,7 @@ export function NewCredentialForm() {
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
       const newCredentialId = generateId();
-      
+
       let newCredential: Credential | undefined;
       let credentialKeyToSet: string;
       let credentialValueToSet: string;

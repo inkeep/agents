@@ -1,10 +1,10 @@
 /**
  * Pull v3 - Clean, efficient project generation
- * 
+ *
  * Step 1: Validate and compile existing code
  * Step 2: Compare project with DB to detect ALL changes
  * Step 3: Classify changes as new vs modified components
- * Step 4: Generate new components deterministically 
+ * Step 4: Generate new components deterministically
  * Step 5: Use LLM to correct modified components
  */
 
@@ -88,12 +88,9 @@ async function loadProjectConfig(
 /**
  * Create project directory structure
  */
-function createProjectStructure(
-  projectDir: string,
-  projectId: string
-): ProjectPaths {
+function createProjectStructure(projectDir: string, projectId: string): ProjectPaths {
   const projectRoot = projectDir;
-  
+
   const paths = {
     projectRoot,
     agentsDir: join(projectRoot, 'agents'),
@@ -108,7 +105,7 @@ function createProjectStructure(
   };
 
   // Ensure all directories exist
-  Object.values(paths).forEach(dir => {
+  Object.values(paths).forEach((dir) => {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -120,7 +117,10 @@ function createProjectStructure(
 /**
  * Enrich canDelegateTo references with component type information
  */
-export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, debug: boolean = false): void {
+export function enrichCanDelegateToWithTypes(
+  project: FullProjectDefinition,
+  debug: boolean = false
+): void {
   if (debug) {
     console.log(chalk.gray('🔧 Enriching canDelegateTo with type information...'));
   }
@@ -128,12 +128,20 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, deb
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
   const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
-  const externalAgentIds = new Set(project.externalAgents ? Object.keys(project.externalAgents) : []);
+  const externalAgentIds = new Set(
+    project.externalAgents ? Object.keys(project.externalAgents) : []
+  );
 
   if (debug) {
     console.log(chalk.gray(`   Available agents: ${Array.from(agentIds).join(', ') || 'none'}`));
-    console.log(chalk.gray(`   Available subAgents: ${Array.from(subAgentIds).join(', ') || 'none'}`));
-    console.log(chalk.gray(`   Available externalAgents: ${Array.from(externalAgentIds).join(', ') || 'none'}`));
+    console.log(
+      chalk.gray(`   Available subAgents: ${Array.from(subAgentIds).join(', ') || 'none'}`)
+    );
+    console.log(
+      chalk.gray(
+        `   Available externalAgents: ${Array.from(externalAgentIds).join(', ') || 'none'}`
+      )
+    );
   }
 
   // Function to enrich a canDelegateTo array
@@ -142,7 +150,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, deb
 
     for (let i = 0; i < canDelegateTo.length; i++) {
       const item = canDelegateTo[i];
-      
+
       // Skip if it's already an object (already has type info)
       if (typeof item !== 'string') continue;
 
@@ -158,13 +166,19 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, deb
         enrichedItem = { externalAgentId: id };
       } else {
         if (debug) {
-          console.log(chalk.yellow(`   Warning: canDelegateTo reference "${id}" in ${context} not found in any component collection`));
+          console.log(
+            chalk.yellow(
+              `   Warning: canDelegateTo reference "${id}" in ${context} not found in any component collection`
+            )
+          );
         }
         continue; // Leave as string if we can't determine the type
       }
 
       if (debug && enrichedItem) {
-        console.log(chalk.gray(`   Enriched "${id}" in ${context} -> ${JSON.stringify(enrichedItem)}`));
+        console.log(
+          chalk.gray(`   Enriched "${id}" in ${context} -> ${JSON.stringify(enrichedItem)}`)
+        );
       }
 
       // Replace the string with the enriched object
@@ -190,7 +204,10 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition, deb
 /**
  * Read existing project from filesystem if it exists
  */
-async function readExistingProject(projectRoot: string, debug: boolean = false): Promise<FullProjectDefinition | null> {
+async function readExistingProject(
+  projectRoot: string,
+  debug: boolean = false
+): Promise<FullProjectDefinition | null> {
   const indexPath = join(projectRoot, 'index.ts');
 
   if (!existsSync(indexPath)) {
@@ -222,13 +239,20 @@ async function readExistingProject(projectRoot: string, debug: boolean = false):
   } catch (error) {
     // If there's any error parsing the existing project, treat as if it doesn't exist
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const isCredentialError = errorMessage.includes('Credential') && errorMessage.includes('not found');
-    
+    const isCredentialError =
+      errorMessage.includes('Credential') && errorMessage.includes('not found');
+
     if (debug) {
       if (isCredentialError) {
-        console.log(chalk.yellow('   ⚠ Cannot load existing project - credentials not configured:'));
+        console.log(
+          chalk.yellow('   ⚠ Cannot load existing project - credentials not configured:')
+        );
         console.log(chalk.gray(`   ${errorMessage}`));
-        console.log(chalk.gray('   💡 This is expected if you haven\'t added credentials to environment files yet'));
+        console.log(
+          chalk.gray(
+            "   💡 This is expected if you haven't added credentials to environment files yet"
+          )
+        );
       } else {
         console.log(chalk.red('   ✗ Error parsing existing project:'));
         console.log(chalk.red(`   ${errorMessage}`));
@@ -245,7 +269,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
   // Suppress SDK logging for cleaner output
   const originalLogLevel = process.env.LOG_LEVEL;
   process.env.LOG_LEVEL = 'silent';
-  
+
   const restoreLogLevel = () => {
     if (originalLogLevel !== undefined) {
       process.env.LOG_LEVEL = originalLogLevel;
@@ -269,7 +293,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
   try {
     // Step 1: Load configuration
     s.start('Loading configuration...');
-    
+
     let config: NestedInkeepConfig | null = null;
     const searchDir = process.cwd();
 
@@ -299,7 +323,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     // Step 2: Fetch project data from API
     // s.start(`Fetching project: ${projectId}`);
-    
+
     const apiClient = await ManagementApiClient.create(
       config.agentsManageApi.url,
       options.config,
@@ -308,14 +332,19 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
-    
+
     if (options.debug && remoteProject.functions) {
-      console.log(chalk.gray('   📋 Project-level functions from API:'), Object.keys(remoteProject.functions));
+      console.log(
+        chalk.gray('   📋 Project-level functions from API:'),
+        Object.keys(remoteProject.functions)
+      );
       Object.entries(remoteProject.functions).forEach(([id, data]: [string, any]) => {
-        console.log(chalk.gray(`      ${id}: has name=${!!data.name}, has description=${!!data.description}`));
+        console.log(
+          chalk.gray(`      ${id}: has name=${!!data.name}, has description=${!!data.description}`)
+        );
       });
     }
-    
+
     // Normalize remote project (same as pull-v2 - hoist agent-level functionTools)
     if (remoteProject.agents) {
       for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
@@ -323,7 +352,11 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
           remoteProject.functionTools = remoteProject.functionTools || {};
           Object.assign(remoteProject.functionTools, agentData.functionTools);
           if (options.debug) {
-            console.log(chalk.gray(`   Hoisted functionTools from agent ${agentId}: ${Object.keys(agentData.functionTools).join(', ')}`));
+            console.log(
+              chalk.gray(
+                `   Hoisted functionTools from agent ${agentId}: ${Object.keys(agentData.functionTools).join(', ')}`
+              )
+            );
           }
         }
         if (agentData.functions) {
@@ -336,14 +369,18 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
                 id: funcData.id,
                 inputSchema: funcData.inputSchema,
                 executeCode: funcData.executeCode,
-                dependencies: funcData.dependencies
+                dependencies: funcData.dependencies,
               };
             }
           });
           if (options.debug) {
-            const hoistedKeys = Object.keys(agentData.functions).filter(key => !remoteProject.functions[key]);
+            const hoistedKeys = Object.keys(agentData.functions).filter(
+              (key) => !remoteProject.functions[key]
+            );
             if (hoistedKeys.length > 0) {
-              console.log(chalk.gray(`   Hoisted functions from agent ${agentId}: ${hoistedKeys.join(', ')}`));
+              console.log(
+                chalk.gray(`   Hoisted functions from agent ${agentId}: ${hoistedKeys.join(', ')}`)
+              );
             }
           }
         }
@@ -355,16 +392,16 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // code structure keeps tools separate and imports them via canUse relationships
     if (remoteProject.agents && remoteProject.tools) {
       const projectToolIds = Object.keys(remoteProject.tools);
-      
+
       for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
         if (agentData.tools) {
           const originalToolCount = Object.keys(agentData.tools).length;
-          
+
           // Filter out any tools that are defined at project level
           const agentSpecificTools = Object.fromEntries(
             Object.entries(agentData.tools).filter(([toolId]) => !projectToolIds.includes(toolId))
           );
-          
+
           // Only keep tools field if there are agent-specific tools remaining
           if (Object.keys(agentSpecificTools).length > 0) {
             agentData.tools = agentSpecificTools;
@@ -372,20 +409,22 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             // Remove the tools field entirely if all tools were project-level
             delete agentData.tools;
           }
-          
+
           if (options.debug) {
             const removedCount = originalToolCount - Object.keys(agentSpecificTools).length;
             if (removedCount > 0) {
-              console.log(chalk.gray(`   Filtered ${removedCount} project-level tools from agent ${agentId}`));
+              console.log(
+                chalk.gray(`   Filtered ${removedCount} project-level tools from agent ${agentId}`)
+              );
             }
           }
         }
       }
     }
-    
+
     // Enrich canDelegateTo references with component type information
     enrichCanDelegateToWithTypes(remoteProject, options.debug);
-    
+
     s.message('Project data fetched');
 
     if (options.json) {
@@ -395,25 +434,31 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     }
 
     // Step 3: Set up project structure
-    const outputDir = (config.outputDirectory && config.outputDirectory !== 'default') 
-      ? config.outputDirectory 
-      : process.cwd();
+    const outputDir =
+      config.outputDirectory && config.outputDirectory !== 'default'
+        ? config.outputDirectory
+        : process.cwd();
     const projectDir = resolve(outputDir, projectId);
     const paths = createProjectStructure(projectDir, projectId);
 
     // Step 4: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {
       console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
-      
+
       s.start('Generating all files deterministically...');
-      await introspectGenerate(remoteProject, paths, options.env || 'development', options.debug || false);
+      await introspectGenerate(
+        remoteProject,
+        paths,
+        options.env || 'development',
+        options.debug || false
+      );
       s.stop('All files generated');
-      
+
       console.log(chalk.green('\n✅ Project regenerated successfully with introspect mode!'));
       console.log(chalk.gray(`   📁 Location: ${paths.projectRoot}`));
       console.log(chalk.gray(`   🌍 Environment: ${options.env || 'development'}`));
       console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
-      
+
       restoreLogLevel();
       process.exit(0);
     }
@@ -421,7 +466,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 5: Read existing project and compare
     // s.start('Reading existing project...');
     const localProject = await readExistingProject(paths.projectRoot, options.debug);
-    
+
     if (!localProject) {
       s.message('No existing project found - treating as new project');
     } else {
@@ -433,13 +478,16 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
     s.message('Component registry built');
-    
 
     // Step 7: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
-    const comparison = await compareProjects(localProject, remoteProject, localRegistry, options.debug);
-    
-    
+    const comparison = await compareProjects(
+      localProject,
+      remoteProject,
+      localRegistry,
+      options.debug
+    );
+
     if (!comparison.hasChanges && !options.force) {
       s.stop();
       console.log(chalk.green('✅ Project is already up to date'));
@@ -450,12 +498,10 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message(`Detected ${comparison.changeCount} differences`);
 
-
-
     // Step 8: Create temp directory and copy existing project (or start empty)
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
-    
+
     const { copyProjectToTemp } = await import('./component-updater');
     if (localProject) {
       // Copy existing project to temp directory
@@ -467,13 +513,15 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       mkdirSync(tempDir, { recursive: true });
       console.log(chalk.green(`✅ Empty temp directory created for new project`));
     }
-    
+
     s.message('Temp directory prepared');
 
     // Step 9: Add new components to temp directory
-    const newComponentCount = Object.values(comparison.componentChanges)
-      .reduce((sum, changes) => sum + changes.added.length, 0);
-      
+    const newComponentCount = Object.values(comparison.componentChanges).reduce(
+      (sum, changes) => sum + changes.added.length,
+      0
+    );
+
     if (newComponentCount > 0) {
       s.start('Creating new component files in temp directory...');
       const { createNewComponents } = await import('./new-component-generator');
@@ -485,17 +533,18 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         options.env || 'development',
         tempDirName
       );
-      
-      const successful = newComponentResults.filter(r => r.success);
+
+      const successful = newComponentResults.filter((r) => r.success);
       console.log(chalk.green(`✅ Added ${successful.length} new components to temp directory`));
       s.message('New component files created');
     }
 
     // Step 10: Apply modified components to temp directory
-    const modifiedCount = Object.values(comparison.componentChanges)
-      .reduce((sum, changes) => sum + changes.modified.length, 0);
-    
-    
+    const modifiedCount = Object.values(comparison.componentChanges).reduce(
+      (sum, changes) => sum + changes.modified.length,
+      0
+    );
+
     if (modifiedCount > 0) {
       s.start('Applying modified components to temp directory...');
       const { updateModifiedComponents } = await import('./component-updater');
@@ -506,7 +555,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         paths.projectRoot,
         options.env || 'development',
         options.debug,
-        tempDirName  // Use the temp directory we created
+        tempDirName // Use the temp directory we created
       );
       s.message('Modified components applied');
     }
@@ -514,10 +563,15 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 11: Create index.ts in temp directory only
     s.start('Generating project index file in temp directory...');
     const { generateProjectIndex } = await import('./project-index-generator');
-    
+
     // Only create in temp directory for validation
-    await generateProjectIndex(join(paths.projectRoot, tempDirName), remoteProject, localRegistry, projectId);
-    
+    await generateProjectIndex(
+      join(paths.projectRoot, tempDirName),
+      remoteProject,
+      localRegistry,
+      projectId
+    );
+
     s.message('Project index file created');
 
     // Step 12: Run validation and user interaction on complete temp directory
@@ -532,7 +586,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     restoreLogLevel();
     process.exit(0);
-
   } catch (error) {
     s.stop();
     console.error(chalk.red(`\nError: ${error instanceof Error ? error.message : String(error)}`));

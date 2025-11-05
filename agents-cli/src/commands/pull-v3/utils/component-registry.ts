@@ -1,6 +1,6 @@
 /**
  * Unified Component Registry - Handles both unique variable names AND file paths
- * 
+ *
  * This combines the functionality of ComponentTracker and ComponentMapper
  * into a single, clean system that handles:
  * 1. Unique variable name generation (with collision resolution)
@@ -10,13 +10,13 @@
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
-export type ComponentType = 
-  | 'agent' 
-  | 'subAgent' 
-  | 'tool' 
+export type ComponentType =
+  | 'agent'
+  | 'subAgent'
+  | 'tool'
   | 'functionTool'
-  | 'dataComponent' 
-  | 'artifactComponent' 
+  | 'dataComponent'
+  | 'artifactComponent'
   | 'statusComponent'
   | 'externalAgent'
   | 'credential'
@@ -26,12 +26,12 @@ export type ComponentType =
   | 'project';
 
 export interface ComponentInfo {
-  id: string;           // Original component ID
-  name: string;         // Unique variable name (guaranteed unique across project)
-  type: ComponentType;  // Component type
-  filePath: string;     // Relative file path (e.g., "agents/foo.ts")
-  exportName: string;   // Export name (usually same as name)
-  isInline: boolean;    // Whether component was defined inline (true) or exported (false)
+  id: string; // Original component ID
+  name: string; // Unique variable name (guaranteed unique across project)
+  type: ComponentType; // Component type
+  filePath: string; // Relative file path (e.g., "agents/foo.ts")
+  exportName: string; // Export name (usually same as name)
+  isInline: boolean; // Whether component was defined inline (true) or exported (false)
 }
 
 export class ComponentRegistry {
@@ -43,24 +43,23 @@ export class ComponentRegistry {
    * Register a component with both unique name and file path
    */
   register(
-    id: string, 
-    type: ComponentType, 
-    filePath: string, 
+    id: string,
+    type: ComponentType,
+    filePath: string,
     exportName?: string,
     isInline: boolean = false
   ): ComponentInfo {
     const typeKey = `${type}:${id}`;
-    
-    
+
     // Check if this component already exists - if so, return the existing one
     const existing = this.componentsByTypeAndId.get(typeKey);
     if (existing) {
       return existing;
     }
-    
+
     let name: string;
     let actualExportName: string;
-    
+
     // If exportName is provided (real discovered name), use it directly
     // Otherwise, generate and ensure uniqueness for assumed names
     if (exportName) {
@@ -74,26 +73,25 @@ export class ComponentRegistry {
       name = uniqueName;
       actualExportName = uniqueName;
     }
-    
-    
+
     const info: ComponentInfo = {
       id,
       name,
       type,
       filePath,
       exportName: actualExportName,
-      isInline
+      isInline,
     };
-    
+
     // Store with both ID-only key (for backward compatibility) and type+ID key (for collision handling)
     this.components.set(id, info);
     this.componentsByTypeAndId.set(typeKey, info);
-    
+
     this.usedNames.add(name);
     if (actualExportName && actualExportName !== name) {
       this.usedNames.add(actualExportName);
     }
-    
+
     return info;
   }
 
@@ -123,15 +121,18 @@ export class ComponentRegistry {
   getVariableName(id: string, type: ComponentType): string | undefined {
     const typeKey = `${type}:${id}`;
     const result = this.componentsByTypeAndId.get(typeKey)?.name;
-    
-    
+
     return result;
   }
 
   /**
    * Get import statement for a component
    */
-  getImportStatement(fromFilePath: string, componentId: string, componentType: ComponentType): string | undefined {
+  getImportStatement(
+    fromFilePath: string,
+    componentId: string,
+    componentType: ComponentType
+  ): string | undefined {
     const component = this.get(componentId, componentType);
     if (!component) return undefined;
 
@@ -146,7 +147,7 @@ export class ComponentRegistry {
   formatReferencesForCode(
     references: any[],
     componentType: ComponentType,
-    style: { quotes: 'single' | 'double'; indentation: string }, 
+    style: { quotes: 'single' | 'double'; indentation: string },
     indentLevel: number
   ): string {
     if (!Array.isArray(references) || references.length === 0) {
@@ -154,7 +155,7 @@ export class ComponentRegistry {
     }
 
     const variableNames: string[] = [];
-    
+
     for (const ref of references) {
       const id = this.extractIdFromReference(ref);
       if (id) {
@@ -180,12 +181,12 @@ export class ComponentRegistry {
     const { indentation } = style;
     const indent = indentation.repeat(indentLevel);
     const lines = ['['];
-    
+
     for (let i = 0; i < variableNames.length; i++) {
       const isLast = i === variableNames.length - 1;
       lines.push(`${indent}${variableNames[i]}${isLast ? '' : ','}`);
     }
-    
+
     lines.push(`${indentation.repeat(indentLevel - 1)}]`);
     return lines.join('\n');
   }
@@ -193,28 +194,30 @@ export class ComponentRegistry {
   /**
    * Get all import statements needed for a file
    */
-  getImportsForFile(fromFilePath: string, referencedComponents: Array<{id: string, type: ComponentType}>): string[] {
+  getImportsForFile(
+    fromFilePath: string,
+    referencedComponents: Array<{ id: string; type: ComponentType }>
+  ): string[] {
     const imports: string[] = [];
     const seenImports = new Set<string>(); // Deduplicate imports
-    
-    for (const {id, type} of referencedComponents) {
+
+    for (const { id, type } of referencedComponents) {
       const importStatement = this.getImportStatement(fromFilePath, id, type);
       if (importStatement && !seenImports.has(importStatement)) {
         imports.push(importStatement);
         seenImports.add(importStatement);
       }
     }
-    
+
     return imports;
   }
-
 
   /**
    * Get all component IDs referenced in arrays for import generation
    */
   getReferencedComponentIds(referenceArrays: any[][]): string[] {
     const componentIds: string[] = [];
-    
+
     for (const refArray of referenceArrays) {
       if (Array.isArray(refArray)) {
         for (const ref of refArray) {
@@ -225,7 +228,7 @@ export class ComponentRegistry {
         }
       }
     }
-    
+
     return componentIds;
   }
 
@@ -237,33 +240,33 @@ export class ComponentRegistry {
       return ref;
     } else if (typeof ref === 'object' && ref) {
       // Handle different component types by their specific ID fields (confirmed from debug output)
-      
+
       // Tool references (MCP tools and function tools)
       if (ref.toolId) return ref.toolId;
-      
+
       // Agent references (main agents and sub-agents)
       if (ref.agentId) return ref.agentId;
-      
+
       // External agent references
       if (ref.externalAgentId) return ref.externalAgentId;
-      
+
       // Credential store references (found in generated files)
       if (ref.credentialStoreId) return ref.credentialStoreId;
-      
+
       // Status component references using type field (confirmed from debug output)
       if (ref.type && !ref.agentId && !ref.toolId && !ref.externalAgentId) return ref.type;
-      
+
       // Generic ID field (fallback)
       if (ref.id) return ref.id;
-      
+
       // Name field (fallback)
       if (ref.name) return ref.name;
-      
+
       // For objects without recognized ID fields, warn and skip
       console.warn('ComponentRegistry: Reference without recognized ID field:', ref);
       return null;
     }
-    
+
     return null;
   }
 
@@ -284,7 +287,7 @@ export class ComponentRegistry {
   private ensureUniqueName(baseName: string, type: ComponentType): string {
     let uniqueName = baseName;
     let counter = 1;
-    
+
     while (this.usedNames.has(uniqueName)) {
       // Try with type prefix first
       if (counter === 1) {
@@ -295,14 +298,14 @@ export class ComponentRegistry {
         uniqueName = `${baseName}${counter}`;
       }
       counter++;
-      
+
       // Safety net to prevent infinite loops
       if (counter > 100) {
         uniqueName = `${baseName}_${Date.now()}`;
         break;
       }
     }
-    
+
     return uniqueName;
   }
 
@@ -311,18 +314,30 @@ export class ComponentRegistry {
    */
   private getTypePrefix(type: ComponentType): string {
     switch (type) {
-      case 'agent': return 'agent';
-      case 'subAgent': return 'sub';
-      case 'externalAgent': return 'ext';
-      case 'tool': return 'tool';
-      case 'functionTool': return 'func';
-      case 'dataComponent': return 'data';
-      case 'artifactComponent': return 'artifact';
-      case 'credential': return 'cred';
-      case 'statusComponent': return 'status';
-      case 'contextConfig': return 'context';
-      case 'project': return 'project';
-      default: return 'comp';
+      case 'agent':
+        return 'agent';
+      case 'subAgent':
+        return 'sub';
+      case 'externalAgent':
+        return 'ext';
+      case 'tool':
+        return 'tool';
+      case 'functionTool':
+        return 'func';
+      case 'dataComponent':
+        return 'data';
+      case 'artifactComponent':
+        return 'artifact';
+      case 'credential':
+        return 'cred';
+      case 'statusComponent':
+        return 'status';
+      case 'contextConfig':
+        return 'context';
+      case 'project':
+        return 'project';
+      default:
+        return 'comp';
     }
   }
 
@@ -333,21 +348,21 @@ export class ComponentRegistry {
     // Remove .ts extensions for calculation
     const fromParts = fromPath.replace('.ts', '').split('/');
     const toParts = toPath.replace('.ts', '').split('/');
-    
+
     // Remove filename from fromPath (keep directory only)
     fromParts.pop();
-    
+
     // Calculate relative path
     let relativePath = '';
-    
+
     // Go up directories from fromPath
     for (let i = 0; i < fromParts.length; i++) {
       relativePath += '../';
     }
-    
+
     // Add target path
     relativePath += toParts.join('/');
-    
+
     // Clean up path format
     if (relativePath.startsWith('../')) {
       return relativePath;
@@ -398,7 +413,7 @@ export function registerAllComponents(
 
   // Register function tools - prevent double registration
   const processedFunctionIds = new Set<string>();
-  
+
   // Register functions first (they take priority)
   if (project.functions) {
     for (const funcId of Object.keys(project.functions)) {
@@ -468,14 +483,14 @@ export function registerAllComponents(
  */
 function extractStatusComponents(project: FullProjectDefinition): Record<string, any> {
   const statusComponents: Record<string, any> = {};
-  
+
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
         // statusComponents is an array that can contain strings or objects
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let statusId: string;
-          
+
           if (typeof statusComp === 'string') {
             // Direct string reference to status component ID
             statusId = statusComp;
@@ -485,7 +500,7 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
           } else {
             continue;
           }
-          
+
           if (statusId && !statusComponents[statusId]) {
             // Use the actual status component data instead of creating dummy data
             statusComponents[statusId] = {
@@ -501,7 +516,7 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
       }
     }
   }
-  
+
   return statusComponents;
 }
 
@@ -510,7 +525,7 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
  */
 export function extractSubAgents(project: FullProjectDefinition): Record<string, any> {
   const subAgents: Record<string, any> = {};
-  
+
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.subAgents) {
@@ -520,7 +535,7 @@ export function extractSubAgents(project: FullProjectDefinition): Record<string,
       }
     }
   }
-  
+
   return subAgents;
 }
 
@@ -529,7 +544,7 @@ export function extractSubAgents(project: FullProjectDefinition): Record<string,
  */
 function extractContextConfigs(project: FullProjectDefinition): Record<string, any> {
   const contextConfigs: Record<string, any> = {};
-  
+
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.contextConfig) {
@@ -543,24 +558,27 @@ function extractContextConfigs(project: FullProjectDefinition): Record<string, a
       }
     }
   }
-  
+
   return contextConfigs;
 }
 
 /**
  * Find sub-agent data with parent agent info for contextConfig resolution
  */
-export function findSubAgentWithParent(project: FullProjectDefinition, subAgentId: string): {subAgentData: any, parentAgentId: string, contextConfigData?: any} | undefined {
+export function findSubAgentWithParent(
+  project: FullProjectDefinition,
+  subAgentId: string
+): { subAgentData: any; parentAgentId: string; contextConfigData?: any } | undefined {
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.subAgents && agentData.subAgents[subAgentId]) {
         // Get contextConfig data if parent agent has one with an ID
         const contextConfigData = agentData.contextConfig?.id ? agentData.contextConfig : undefined;
-        
+
         return {
           subAgentData: agentData.subAgents[subAgentId],
           parentAgentId: agentId,
-          contextConfigData
+          contextConfigData,
         };
       }
     }

@@ -153,7 +153,6 @@ export async function initCommand(options?: InitOptions) {
     placeholder: 'http://localhost:3002',
     defaultValue: 'http://localhost:3002',
     validate: validateUrl,
-      
   });
 
   if (p.isCancel(manageApiUrl)) {

@@ -1,6 +1,6 @@
 'use client';
 import { useBreadcrumb } from 'fumadocs-core/breadcrumb';
-import type * as PageTree from 'fumadocs-core/page-tree'
+import type * as PageTree from 'fumadocs-core/page-tree';
 
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';

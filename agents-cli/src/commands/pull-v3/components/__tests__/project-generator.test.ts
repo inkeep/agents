@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { 
+import {
   generateProjectDefinition,
   generateProjectImports,
-  generateProjectFile
+  generateProjectFile,
 } from '../project-generator';
 
 // Mock registry for tests
@@ -14,11 +14,11 @@ const mockRegistry = {
   formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
     if (!refs || refs.length === 0) return '[]';
     if (refs.length === 1) return `[${refs[0]}]`;
-    
+
     const indentStr = '  '.repeat(indent);
-    const items = refs.map(ref => `${indentStr}${ref}`).join(',\n');
+    const items = refs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
-  }
+  },
 };
 
 describe('Project Generator', () => {
@@ -28,35 +28,36 @@ describe('Project Generator', () => {
     models: {
       base: { model: 'gpt-4o-mini' },
       structuredOutput: { model: 'gpt-4o' },
-      summarizer: { model: 'gpt-4o-mini' }
+      summarizer: { model: 'gpt-4o-mini' },
     },
-    agents: ['supportAgent', 'escalationAgent']
+    agents: ['supportAgent', 'escalationAgent'],
   };
 
   const complexProjectData = {
     name: 'Enterprise AI Platform',
-    description: 'Comprehensive enterprise AI platform with multiple specialized agents and shared resources',
+    description:
+      'Comprehensive enterprise AI platform with multiple specialized agents and shared resources',
     models: {
       base: { model: 'gpt-4o', temperature: 0.7 },
       structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
-      summarizer: { model: 'gpt-4o-mini', temperature: 0.5 }
+      summarizer: { model: 'gpt-4o-mini', temperature: 0.5 },
     },
     stopWhen: {
       transferCountIs: 15,
-      stepCountIs: 100
+      stepCountIs: 100,
     },
     agents: ['primaryAgent', 'analyticsAgent', 'reportingAgent'],
     tools: ['dataAnalysisTool', 'reportGeneratorTool'],
     externalAgents: ['legacySystemAgent', 'partnerApiAgent'],
     dataComponents: ['userProfile', 'transactionHistory'],
     artifactComponents: ['dashboardComponent', 'reportComponent'],
-    credentialReferences: ['databaseCredentials', 'apiKeyCredentials']
+    credentialReferences: ['databaseCredentials', 'apiKeyCredentials'],
   };
 
   describe('generateProjectImports', () => {
     it('should generate basic imports', () => {
       const imports = generateProjectImports('customer-support-project', basicProjectData);
-      
+
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
     });
@@ -65,21 +66,28 @@ describe('Project Generator', () => {
       const imports = generateProjectImports('test-project', basicProjectData, {
         quotes: 'double',
         semicolons: false,
-        indentation: '    '
+        indentation: '    ',
       });
-      
+
       expect(imports[0]).toBe('import { project } from "@inkeep/agents-sdk"');
     });
   });
 
   describe('generateProjectDefinition', () => {
     it('should generate basic project definition', () => {
-      const definition = generateProjectDefinition('customer-support-project', basicProjectData, undefined, mockRegistry);
-      
+      const definition = generateProjectDefinition(
+        'customer-support-project',
+        basicProjectData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('export const customerSupportProject = project({');
       expect(definition).toContain("id: 'customer-support-project',");
       expect(definition).toContain("name: 'Customer Support System',");
-      expect(definition).toContain("description: 'Multi-agent customer support system with escalation capabilities',");
+      expect(definition).toContain(
+        "description: 'Multi-agent customer support system with escalation capabilities',"
+      );
       expect(definition).toContain('models: {');
       expect(definition).toContain("model: 'gpt-4o-mini'");
       expect(definition).toContain("model: 'gpt-4o'");
@@ -91,8 +99,13 @@ describe('Project Generator', () => {
     });
 
     it('should generate complex project with all features', () => {
-      const definition = generateProjectDefinition('enterprise-platform', complexProjectData, undefined, mockRegistry);
-      
+      const definition = generateProjectDefinition(
+        'enterprise-platform',
+        complexProjectData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('export const enterprisePlatform = project({');
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 15, // Max transfers for agents');
@@ -115,20 +128,30 @@ describe('Project Generator', () => {
       const singleItemData = {
         name: 'Single Agent Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
-        agents: ['onlyAgent']
+        agents: ['onlyAgent'],
       };
-      
-      const definition = generateProjectDefinition('single-agent-project', singleItemData, undefined, mockRegistry);
-      
+
+      const definition = generateProjectDefinition(
+        'single-agent-project',
+        singleItemData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('agents: () => [onlyAgent]');
       expect(definition).not.toContain('agents: () => [\n'); // Single line format
     });
 
     it('should handle multiple items in multi-line format', () => {
-      const definition = generateProjectDefinition('multi-item-project', complexProjectData, undefined, mockRegistry);
-      
+      const definition = generateProjectDefinition(
+        'multi-item-project',
+        complexProjectData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('agents: () => [');
       expect(definition).toContain('  primaryAgent,');
       expect(definition).toContain('  analyticsAgent,');
@@ -139,39 +162,42 @@ describe('Project Generator', () => {
 
     it('should throw error for missing models field', () => {
       const minimalData = {
-        name: 'Minimal Project'
+        name: 'Minimal Project',
       };
-      
+
       expect(() => {
         generateProjectDefinition('minimal-project', minimalData);
-      }).toThrow('Missing required fields for project \'minimal-project\': models, models.base');
+      }).toThrow("Missing required fields for project 'minimal-project': models, models.base");
     });
 
     it('should throw error for missing required fields', () => {
       const noNameData = {};
-      
+
       expect(() => {
         generateProjectDefinition('fallback-project', noNameData);
-      }).toThrow('Missing required fields for project \'fallback-project\': name, models, models.base');
+      }).toThrow(
+        "Missing required fields for project 'fallback-project': name, models, models.base"
+      );
     });
 
     it('should handle camelCase conversion for variable names', () => {
       const definition = generateProjectDefinition('my-complex-project_v2', basicProjectData);
-      
+
       expect(definition).toContain('export const myComplexProjectV2 = project({');
     });
 
     it('should handle multiline descriptions', () => {
       const multilineData = {
         name: 'Complex Project',
-        description: 'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
+        description:
+          'This is a very long description that should be handled as a multiline string because it exceeds the normal length threshold for single line strings\\nIt even contains newlines which should trigger multiline formatting',
         models: {
-          base: { model: 'gpt-4o-mini' }
-        }
+          base: { model: 'gpt-4o-mini' },
+        },
       };
-      
+
       const definition = generateProjectDefinition('multiline-project', multilineData);
-      
+
       expect(definition).toContain('description: `This is a very long description');
       expect(definition).toContain('It even contains newlines');
     });
@@ -180,9 +206,9 @@ describe('Project Generator', () => {
       const definition = generateProjectDefinition('styled-project', basicProjectData, {
         quotes: 'double',
         semicolons: false,
-        indentation: '    '
+        indentation: '    ',
       });
-      
+
       expect(definition).toContain('export const styledProject = project({');
       expect(definition).toContain('id: "styled-project",'); // Double quotes
       expect(definition).toContain('name: "Customer Support System",');
@@ -194,16 +220,16 @@ describe('Project Generator', () => {
       const emptyArraysData = {
         name: 'Empty Arrays Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
         agents: [],
         tools: [],
         dataComponents: [],
-        artifactComponents: []
+        artifactComponents: [],
       };
-      
+
       const definition = generateProjectDefinition('empty-arrays-project', emptyArraysData);
-      
+
       expect(definition).toContain("name: 'Empty Arrays Project'");
       expect(definition).not.toContain('agents:'); // Empty arrays should be omitted
       expect(definition).not.toContain('tools:');
@@ -215,15 +241,15 @@ describe('Project Generator', () => {
       const transferOnlyData = {
         name: 'Transfer Only Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
         stopWhen: {
-          transferCountIs: 5
-        }
+          transferCountIs: 5,
+        },
       };
-      
+
       const definition = generateProjectDefinition('transfer-only-project', transferOnlyData);
-      
+
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('transferCountIs: 5 // Max transfers for agents'); // No trailing comma when it's the only property
       expect(definition).toContain('}');
@@ -234,15 +260,15 @@ describe('Project Generator', () => {
       const stepOnlyData = {
         name: 'Step Only Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
         stopWhen: {
-          stepCountIs: 50
-        }
+          stepCountIs: 50,
+        },
       };
-      
+
       const definition = generateProjectDefinition('step-only-project', stepOnlyData);
-      
+
       expect(definition).toContain('stopWhen: {');
       expect(definition).toContain('stepCountIs: 50 // Max steps for sub-agents');
       expect(definition).toContain('}');
@@ -256,12 +282,12 @@ describe('Project Generator', () => {
         models: {
           base: { model: 'gpt-4o', temperature: 0.7, maxTokens: 4096 },
           structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
-          summarizer: { model: 'gpt-4o-mini' }
-        }
+          summarizer: { model: 'gpt-4o-mini' },
+        },
       };
-      
+
       const definition = generateProjectDefinition('complex-models-project', complexModelsData);
-      
+
       expect(definition).toContain('models: {');
       expect(definition).toContain('base: {');
       expect(definition).toContain("model: 'gpt-4o',");
@@ -275,11 +301,11 @@ describe('Project Generator', () => {
   describe('generateProjectFile', () => {
     it('should generate complete project file', () => {
       const file = generateProjectFile('customer-support-project', basicProjectData);
-      
+
       expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const customerSupportProject = project({');
       expect(file).toContain("name: 'Customer Support System',");
-      
+
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
@@ -287,7 +313,7 @@ describe('Project Generator', () => {
 
     it('should generate complex project file with all features', () => {
       const file = generateProjectFile('enterprise-platform', complexProjectData);
-      
+
       expect(file).toContain("import { project } from '@inkeep/agents-sdk';");
       expect(file).toContain('export const enterprisePlatform = project({');
       expect(file).toContain('stopWhen: {');
@@ -297,7 +323,7 @@ describe('Project Generator', () => {
       expect(file).toContain('dataComponents: () => [');
       expect(file).toContain('artifactComponents: () => [');
       expect(file).toContain('credentialReferences: () => [');
-      
+
       // Should have proper spacing
       expect(file).toMatch(/import.*\n\n.*export/s);
       expect(file.endsWith('\n')).toBe(true);
@@ -306,9 +332,14 @@ describe('Project Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate project code that compiles', () => {
-      const definition = generateProjectDefinition('test-project', basicProjectData, undefined, mockRegistry);
+      const definition = generateProjectDefinition(
+        'test-project',
+        basicProjectData,
+        undefined,
+        mockRegistry
+      );
       const definitionWithoutExport = definition.replace('export const ', 'const ');
-      
+
       const moduleCode = `
         const project = (config) => config;
         const supportAgent = { type: 'agent' };
@@ -318,16 +349,18 @@ describe('Project Generator', () => {
         
         return testProject;
       `;
-      
+
       let result;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
-      
+
       expect(result).toBeDefined();
       expect(result.id).toBe('test-project');
       expect(result.name).toBe('Customer Support System');
-      expect(result.description).toBe('Multi-agent customer support system with escalation capabilities');
+      expect(result.description).toBe(
+        'Multi-agent customer support system with escalation capabilities'
+      );
       expect(result.models).toBeDefined();
       expect(result.models.base.model).toBe('gpt-4o-mini');
       expect(result.agents).toBeDefined();
@@ -336,9 +369,14 @@ describe('Project Generator', () => {
     });
 
     it('should generate complex project code that compiles', () => {
-      const definition = generateProjectDefinition('complex-test-project', complexProjectData, undefined, mockRegistry);
+      const definition = generateProjectDefinition(
+        'complex-test-project',
+        complexProjectData,
+        undefined,
+        mockRegistry
+      );
       const definitionWithoutExport = definition.replace('export const ', 'const ');
-      
+
       const moduleCode = `
         const project = (config) => config;
         const primaryAgent = { type: 'agent' };
@@ -359,12 +397,12 @@ describe('Project Generator', () => {
         
         return complexTestProject;
       `;
-      
+
       let result;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
-      
+
       expect(result).toBeDefined();
       expect(result.id).toBe('complex-test-project');
       expect(result.stopWhen).toBeDefined();
@@ -380,24 +418,24 @@ describe('Project Generator', () => {
 
     it('should throw error for minimal project without required fields', () => {
       const minimalData = { name: 'Minimal Test Project' };
-      
+
       expect(() => {
         generateProjectDefinition('minimal-test-project', minimalData);
-      }).toThrow('Missing required fields for project \'minimal-test-project\': models, models.base');
+      }).toThrow("Missing required fields for project 'minimal-test-project': models, models.base");
     });
   });
 
   describe('edge cases', () => {
     it('should handle special characters in project IDs', () => {
       const definition = generateProjectDefinition('project-v2_final', basicProjectData);
-      
+
       expect(definition).toContain('export const projectV2Final = project({');
       expect(definition).toContain("id: 'project-v2_final',");
     });
 
     it('should handle project ID starting with numbers', () => {
       const definition = generateProjectDefinition('2nd-generation-project', basicProjectData);
-      
+
       expect(definition).toContain('export const _2ndGenerationProject = project({');
       expect(definition).toContain("id: '2nd-generation-project',");
     });
@@ -407,13 +445,13 @@ describe('Project Generator', () => {
         name: '',
         description: '',
         models: {
-          base: { model: 'gpt-4o-mini' }
-        }
+          base: { model: 'gpt-4o-mini' },
+        },
       };
-      
+
       expect(() => {
         generateProjectDefinition('empty-strings-project', emptyStringData);
-      }).toThrow('Missing required fields for project \'empty-strings-project\': name');
+      }).toThrow("Missing required fields for project 'empty-strings-project': name");
     });
 
     it('should throw error for null models values', () => {
@@ -422,25 +460,30 @@ describe('Project Generator', () => {
         description: null,
         models: undefined,
         agents: null,
-        tools: undefined
+        tools: undefined,
       };
-      
+
       expect(() => {
         generateProjectDefinition('null-values-project', nullData);
-      }).toThrow('Missing required fields for project \'null-values-project\': models, models.base');
+      }).toThrow("Missing required fields for project 'null-values-project': models, models.base");
     });
 
     it('should handle large number of agents with proper formatting', () => {
       const manyAgentsData = {
         name: 'Many Agents Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
-        agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6']
+        agents: ['agent1', 'agent2', 'agent3', 'agent4', 'agent5', 'agent6'],
       };
-      
-      const definition = generateProjectDefinition('many-agents-project', manyAgentsData, undefined, mockRegistry);
-      
+
+      const definition = generateProjectDefinition(
+        'many-agents-project',
+        manyAgentsData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('agents: () => [');
       expect(definition).toContain('  agent1,');
       expect(definition).toContain('  agent2,');
@@ -452,33 +495,38 @@ describe('Project Generator', () => {
       const mixedData = {
         name: 'Mixed Types Project',
         models: {
-          base: { model: 'gpt-4o-mini' }
+          base: { model: 'gpt-4o-mini' },
         },
         agents: ['stringAgent'],
-        tools: ['stringTool']
+        tools: ['stringTool'],
       };
-      
-      const definition = generateProjectDefinition('mixed-types-project', mixedData, undefined, mockRegistry);
-      
+
+      const definition = generateProjectDefinition(
+        'mixed-types-project',
+        mixedData,
+        undefined,
+        mockRegistry
+      );
+
       expect(definition).toContain('agents: () => [stringAgent]');
       expect(definition).toContain('tools: () => [stringTool]');
     });
 
     it('should throw error for missing name only', () => {
       expect(() => {
-        generateProjectDefinition('missing-name', { 
-          models: { base: { model: 'gpt-4o-mini' } }
+        generateProjectDefinition('missing-name', {
+          models: { base: { model: 'gpt-4o-mini' } },
         });
-      }).toThrow('Missing required fields for project \'missing-name\': name');
+      }).toThrow("Missing required fields for project 'missing-name': name");
     });
 
     it('should throw error for models without base', () => {
       expect(() => {
-        generateProjectDefinition('missing-base', { 
+        generateProjectDefinition('missing-base', {
           name: 'Test Project',
-          models: { structuredOutput: { model: 'gpt-4o' } }
+          models: { structuredOutput: { model: 'gpt-4o' } },
         });
-      }).toThrow('Missing required fields for project \'missing-base\': models.base');
+      }).toThrow("Missing required fields for project 'missing-base': models.base");
     });
   });
 });
