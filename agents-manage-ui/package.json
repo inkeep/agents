@@ -27,6 +27,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
+    "knip": "knip --fix-type exports",
     "dev": "next dev --turbopack -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "NODE_ENV=production next build && pnpm build:sync",
@@ -111,6 +112,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "knip": "^5.67.1",
     "start-server-and-test": "^2.1.2",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
