@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-manage-ui@0.31.1
+  - @inkeep/agents-core@0.31.1
+  - @inkeep/agents-sdk@0.31.1
+
 ## 0.31.0
 
 ### Patch Changes

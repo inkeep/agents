@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+
 ## 0.31.0
 
 ### Patch Changes
