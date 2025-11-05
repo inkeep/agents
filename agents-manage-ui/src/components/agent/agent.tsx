@@ -910,7 +910,6 @@ function Flow({
           const { subAgentId } = data.details;
           setNodes((prevNodes) =>
             prevNodes.map((node) => {
-              // console.log(node, subAgentId);
               return {
                 ...node,
                 data: {
