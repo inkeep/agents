@@ -63,10 +63,12 @@ export default function RootLayout({
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
               <SidebarProvider
-                style={{
-                  '--sidebar-width': 'calc(var(--spacing) * 62)',
-                  '--header-height': 'calc(var(--spacing) * 12)',
-                }}
+                style={
+                  {
+                    '--sidebar-width': 'calc(var(--spacing) * 62)',
+                    '--header-height': 'calc(var(--spacing) * 12)',
+                  } as React.CSSProperties
+                }
               >
                 <AppSidebar variant="inset" />
                 <SidebarInset>{children}</SidebarInset>
