@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSidePane } from '@/hooks/use-side-pane';
-import type { AgentErrorSummary as AgentErrorSummaryType, ProcessedAgentError } from '@/lib/utils/agent-error-parser';
+import type {
+  AgentErrorSummary as AgentErrorSummaryType,
+  ProcessedAgentError,
+} from '@/lib/utils/agent-error-parser';
 
 interface AgentErrorSummaryProps {
   errorSummary: AgentErrorSummaryType;
