@@ -672,24 +672,36 @@ export {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  /** @lintignore */
   SidebarGroupAction,
   SidebarGroupContent,
+  /** @lintignore */
   SidebarGroupLabel,
   SidebarHeader,
+  /** @lintignore */
   SidebarInput,
   SidebarInset,
   SidebarMenu,
+  /** @lintignore */
   SidebarMenuAction,
+  /** @lintignore */
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  /** @lintignore */
   SidebarMenuSkeleton,
+  /** @lintignore */
   SidebarMenuSub,
+  /** @lintignore */
   SidebarMenuSubButton,
+  /** @lintignore */
   SidebarMenuSubItem,
   SidebarProvider,
+  /** @lintignore */
   SidebarRail,
+  /** @lintignore */
   SidebarSeparator,
   SidebarTrigger,
+  /** @lintignore */
   useSidebar,
 };
