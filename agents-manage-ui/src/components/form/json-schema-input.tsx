@@ -5,7 +5,7 @@ import { FormFieldWrapper } from './form-field-wrapper';
 import { Switch } from '@/components/ui/switch';
 import { StandaloneJsonEditor } from '../editors/standalone-json-editor';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
-import { useAgentActions, useAgentStore } from "@/features/agent/state/use-agent-store";
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 interface JsonSchemaInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -28,8 +28,8 @@ export function JsonSchemaInput<T extends FieldValues>({
   readOnly,
   isRequired = false,
 }: JsonSchemaInputProps<T>) {
-  const isJsonSchemaModeChecked = useAgentStore(state => state.jsonSchemaMode)
-  const { setJsonSchemaMode } = useAgentActions()
+  const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
+  const { setJsonSchemaMode } = useAgentActions();
   return (
     <FormFieldWrapper
       control={control}
