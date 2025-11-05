@@ -93,6 +93,9 @@ jobs:
       - name: Biome Format
         run: pnpm format:check
 
+      - name: Biome Check
+        run: pnpm biome:check
+
       # Create summary report
       - name: Create CI Summary
         if: always()
