@@ -35,7 +35,7 @@ const getNangoClient = () => {
  * Check if Nango is properly configured
  * Returns true if NANGO_SECRET_KEY is set and not empty
  */
-export async function isNangoConfigured(): Promise<boolean> {
+async function isNangoConfigured(): Promise<boolean> {
   const secretKey = process.env.NANGO_SECRET_KEY;
   return !!(secretKey && secretKey.trim() !== '');
 }
@@ -57,7 +57,7 @@ export async function fetchNangoProviders(): Promise<ApiProvider[]> {
 /**
  * Get details for a specific Nango provider
  */
-export async function fetchNangoProvider(providerName: string): Promise<ApiProvider> {
+async function fetchNangoProvider(providerName: string): Promise<ApiProvider> {
   try {
     const nango = getNangoClient();
     const response = await nango.getProvider({ provider: providerName });
@@ -71,7 +71,7 @@ export async function fetchNangoProvider(providerName: string): Promise<ApiProvi
 /**
  * Fetch user's existing Nango integrations
  */
-export async function fetchNangoIntegrations(): Promise<ApiPublicIntegration[]> {
+async function fetchNangoIntegrations(): Promise<ApiPublicIntegration[]> {
   try {
     const nango = getNangoClient();
     const response = await nango.listIntegrations();
@@ -85,7 +85,7 @@ export async function fetchNangoIntegrations(): Promise<ApiPublicIntegration[]> 
 /**
  * Fetch a specific Nango integration
  */
-export async function fetchNangoIntegration(
+async function fetchNangoIntegration(
   uniqueKey: string
 ): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
   try {
@@ -131,7 +131,7 @@ export async function fetchNangoIntegration(
 /**
  * Create a new Nango integration
  */
-export async function createNangoIntegration(params: {
+async function createNangoIntegration(params: {
   provider: string;
   uniqueKey: string;
   displayName?: string;
@@ -156,7 +156,7 @@ export async function createNangoIntegration(params: {
   }
 }
 
-export async function updateMCPGenericIntegration({
+async function updateMCPGenericIntegration({
   uniqueKey,
 }: {
   uniqueKey: string;
@@ -203,7 +203,7 @@ export async function updateMCPGenericIntegration({
 /**
  * Get connections for a specific integration
  */
-export async function fetchNangoConnections(
+async function fetchNangoConnections(
   integrationKey?: string
 ): Promise<ApiPublicConnection[]> {
   try {
