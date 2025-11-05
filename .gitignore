@@ -64,3 +64,4 @@ dist/
 out/
 .source/
 drizzle/
+vite.config.d.ts
