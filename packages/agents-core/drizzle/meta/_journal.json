@@ -106,6 +106,34 @@
       "when": 1761227891220,
       "tag": "0014_broad_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1762356571291,
+      "tag": "0015_yielding_natasha_romanoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1762356703460,
+      "tag": "0016_yellow_pretty_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1762356785040,
+      "tag": "0017_colossal_kate_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1762357022031,
+      "tag": "0018_calm_ultimo",
+      "breakpoints": true
     }
   ]
 }

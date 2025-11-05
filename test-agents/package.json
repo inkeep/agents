@@ -1,0 +1,11 @@
+{
+  "name": "test-agents",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@inkeep/agents-sdk": "workspace:*",
+    "@inkeep/agents-cli": "workspace:*"
+  }
+}
+

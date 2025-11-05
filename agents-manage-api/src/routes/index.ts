@@ -7,6 +7,7 @@ import contextConfigsRoutes from './contextConfigs';
 import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
+import evaluationsRoutes from './evaluations';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
@@ -25,6 +26,9 @@ const app = new OpenAPIHono();
 
 // Mount projects route first (no projectId in path)
 app.route('/projects', projectsRoutes);
+
+// Mount evaluations routes at tenant level
+app.route('/evaluations', evaluationsRoutes);
 
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);

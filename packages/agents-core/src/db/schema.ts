@@ -794,6 +794,7 @@ export const evalTestSuiteRunEvaluator = sqliteTable(
   {
     id: text('id').notNull(),
     evalTestSuiteRunId: text('eval_test_suite_run_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     ...timestamps,
   },
@@ -805,8 +806,8 @@ export const evalTestSuiteRunEvaluator = sqliteTable(
       name: 'eval_test_suite_run_evaluators_run_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.evaluatorId],
-      foreignColumns: [evaluator.id],
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
       name: 'eval_test_suite_run_evaluators_evaluator_fk',
     }).onDelete('cascade'),
   ]
@@ -820,6 +821,8 @@ export const evalResult = sqliteTable(
     datasetItemId: text('dataset_item_id'),
     conversationId: text('conversation_id').notNull(),
     status: text('status').$type<'pending'|'done'|'failed'>().notNull(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     reasoning: text('reasoning'),
     metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
@@ -828,13 +831,13 @@ export const evalResult = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.id] }), 
     foreignKey({
-      columns: [table.conversationId],
-      foreignColumns: [conversations.id],
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
       name: 'eval_result_conversation_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.evaluatorId],
-      foreignColumns: [evaluator.id],
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
       name: 'eval_result_evaluator_fk',
     }).onDelete('cascade'),
     foreignKey({
@@ -875,19 +878,20 @@ export const conversationEvaluationConfigEvaluator = sqliteTable(
   {
     id: text('id').notNull(),
     conversationEvaluationConfigId: text('conversation_evaluation_config_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.id] }),
     foreignKey({
-      columns: [table.conversationEvaluationConfigId],
-      foreignColumns: [conversationEvaluationConfig.id],
+      columns: [table.tenantId, table.conversationEvaluationConfigId],
+      foreignColumns: [conversationEvaluationConfig.tenantId, conversationEvaluationConfig.id],
       name: 'conv_eval_config_evaluator_config_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.evaluatorId],
-      foreignColumns: [evaluator.id],
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
       name: 'conv_eval_config_evaluator_evaluator_fk',
     }).onDelete('cascade'),
   ]
