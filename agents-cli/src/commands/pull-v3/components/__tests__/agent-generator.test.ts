@@ -352,7 +352,7 @@ describe('Agent Generator', () => {
         const mainAssistant = { type: 'subAgent' };
         const helperAgent = { type: 'subAgent' };
         const coordinatorAgent = { type: 'subAgent' };
-        const personalAgentContext = { type: 'contextConfig' };
+        const complexAgentContext = { type: 'contextConfig' };
         const toolSummary = { config: 'toolSummaryConfig' };
         const progressUpdate = { config: 'progressUpdateConfig' };
         
