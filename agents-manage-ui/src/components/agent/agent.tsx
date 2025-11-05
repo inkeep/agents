@@ -85,6 +85,7 @@ import {
   newNodeDefaults,
   nodeTypes,
   teamAgentNodeTargetHandleId,
+  AnimatedNode,
 } from './configuration/node-types';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
@@ -905,8 +906,29 @@ function Flow({
           });
           break;
         }
+        case 'error': {
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) =>
+            prevNodes.map((node) => {
+              // console.log(node, subAgentId);
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  status: hasRelationWithSubAgent({
+                    relationshipId: node.data.relationshipId,
+                    subAgentId,
+                  })
+                    ? 'error'
+                    : null,
+                },
+              };
+            })
+          );
+          break;
+        }
         case 'tool_result': {
-          const { toolName } = data.details.data;
+          const { toolName, error } = data.details.data;
           const { subAgentId } = data.details;
           setNodes((prevNodes) => {
             setEdges((prevEdges) =>
@@ -926,15 +948,23 @@ function Flow({
               })
             );
             return prevNodes.map((node) => {
+              let status: AnimatedNode['status'] = null;
+              if (
+                hasRelationWithSubAgent({
+                  subAgentId,
+                  relationshipId: node.data.relationshipId,
+                })
+              ) {
+                status = error ? 'error' : 'executing';
+              } else if (node.id === subAgentId) {
+                status = 'delegating';
+              }
+
               return {
                 ...node,
                 data: {
                   ...node.data,
-                  isDelegating: node.id === subAgentId,
-                  isExecuting: hasRelationWithSubAgent({
-                    subAgentId,
-                    relationshipId: node.data.relationshipId,
-                  }),
+                  status,
                 },
               };
             });

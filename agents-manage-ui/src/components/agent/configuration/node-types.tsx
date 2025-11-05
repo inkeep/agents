@@ -17,8 +17,8 @@ interface NodeData {
 
 import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 
-interface AnimatedNode {
-  status?: 'delegating' | 'executing' | null;
+export interface AnimatedNode {
+  status?: 'delegating' | 'executing' | 'error' | null;
 }
 
 export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
