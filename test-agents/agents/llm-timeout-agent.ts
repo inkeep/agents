@@ -19,4 +19,3 @@ export const llmTimeoutAgent = agent({
     prompt: `You are a helpful assistant.`,
   }),
 });
-

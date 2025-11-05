@@ -2,11 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "target": "ESNext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "ESNext"
-    ],
+    "lib": ["dom", "dom.iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,12 +15,8 @@
     "jsx": "react-jsx",
     "incremental": true,
     "paths": {
-      "@/.source": [
-        ".source"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "@/.source": [".source"],
+      "@/*": ["./src/*"]
     },
     "plugins": [
       {
@@ -40,9 +32,8 @@
     ".next/types/**/*.ts",
     "content/docs/talk-to-your-agents/a2a.mdx",
     "content/docs/talk-to-your-agents/mcp-server.mdx",
-    ".next/dev/types/**/*.ts"
-, "scripts/generate-classnames.mjs"  ],
-  "exclude": [
-    "node_modules"
-  ]
+    ".next/dev/types/**/*.ts",
+    "scripts/generate-classnames.mjs"
+  ],
+  "exclude": ["node_modules"]
 }

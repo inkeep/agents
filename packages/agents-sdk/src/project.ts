@@ -956,8 +956,7 @@ export class Project implements ProjectInterface {
       stopWhen: this.stopWhen,
       agents: agentsObject,
       tools: toolsObject,
-      functionTools:
-        Object.keys(functionToolsObject).length > 0 ? functionToolsObject : undefined,
+      functionTools: Object.keys(functionToolsObject).length > 0 ? functionToolsObject : undefined,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,

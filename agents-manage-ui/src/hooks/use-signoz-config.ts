@@ -33,4 +33,3 @@ export function useSignozConfig() {
 
   return { isLoading, configError };
 }
-

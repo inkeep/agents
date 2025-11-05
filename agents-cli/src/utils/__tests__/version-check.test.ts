@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { compareVersions, checkForUpdate, getCurrentVersion, getChangelogUrl } from '../version-check';
+import {
+  compareVersions,
+  checkForUpdate,
+  getCurrentVersion,
+  getChangelogUrl,
+} from '../version-check';
 
 describe('version-check', () => {
   describe('compareVersions', () => {

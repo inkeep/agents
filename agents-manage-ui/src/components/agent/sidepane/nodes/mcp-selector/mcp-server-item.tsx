@@ -2,7 +2,7 @@ import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
 
 interface MCPServerItemProps {
   mcp: MCPTool;
@@ -31,12 +31,7 @@ export function MCPServerItem({ mcp, onClick }: MCPServerItemProps) {
       onClick={() => onClick(mcp)}
     >
       <div className="flex items-start gap-3">
-        <MCPToolImage
-          imageUrl={imageUrl}
-          name={name}
-          size={32}
-          className="flex-shrink-0 mt-0.5"
-        />
+        <MCPToolImage imageUrl={imageUrl} name={name} size={32} className="flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1 gap-2 min-w-0 truncate">
             <span className="font-medium text-sm truncate">{name}</span>

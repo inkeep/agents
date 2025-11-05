@@ -26,4 +26,3 @@ Always be friendly and informative when helping users with weather queries.`,
     canUse: () => [faultyApiTool],
   }),
 });
-

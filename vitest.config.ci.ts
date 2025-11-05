@@ -29,15 +29,15 @@ export default defineConfig({
 
     // Increased timeouts for CI environments
     testTimeout: 180000, // 3 minutes
-    hookTimeout: 60000,  // 1 minute for setup/teardown
+    hookTimeout: 60000, // 1 minute for setup/teardown
 
     // Use forks pool for better isolation in CI
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true,  // Run tests sequentially for stability
-        isolate: true,      // Isolate each test file
-        vmThreads: false,   // Prevent memory issues in CI
+        singleFork: true, // Run tests sequentially for stability
+        isolate: true, // Isolate each test file
+        vmThreads: false, // Prevent memory issues in CI
       },
     },
 

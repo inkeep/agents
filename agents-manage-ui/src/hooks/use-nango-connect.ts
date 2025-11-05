@@ -42,7 +42,15 @@ export function useNangoConnect() {
   );
 
   const openNangoConnectHeadless = useCallback(
-    async ({ mcpServerUrl, providerUniqueKey, providerDisplayName }: { mcpServerUrl: string, providerUniqueKey: string, providerDisplayName: string }): Promise<AuthSuccess> => {
+    async ({
+      mcpServerUrl,
+      providerUniqueKey,
+      providerDisplayName,
+    }: {
+      mcpServerUrl: string;
+      providerUniqueKey: string;
+      providerDisplayName: string;
+    }): Promise<AuthSuccess> => {
       const providerName = 'mcp-generic';
       const connectSessionToken = await createProviderConnectSession({
         providerName,

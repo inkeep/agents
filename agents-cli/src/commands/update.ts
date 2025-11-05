@@ -60,7 +60,7 @@ export async function updateCommand(options: UpdateOptions = {}) {
 
     if (!detectedManager) {
       console.log(chalk.yellow('\n⚠️  Could not auto-detect package manager'));
-      const manager = await p.select({
+      const manager = (await p.select({
         message: 'Which package manager did you use to install the CLI?',
         options: [
           { label: 'npm', value: 'npm' },
@@ -68,7 +68,7 @@ export async function updateCommand(options: UpdateOptions = {}) {
           { label: 'bun', value: 'bun' },
           { label: 'yarn', value: 'yarn' },
         ],
-      }) as PackageManager;
+      })) as PackageManager;
 
       if (p.isCancel(manager)) {
         p.cancel('Update cancelled');

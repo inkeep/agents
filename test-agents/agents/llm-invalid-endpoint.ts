@@ -19,4 +19,3 @@ export const llm404Agent = agent({
     prompt: `You are a helpful assistant.`,
   }),
 });
-

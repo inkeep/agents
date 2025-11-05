@@ -15,7 +15,10 @@ describe('Introspect Generator - End-to-End', () => {
 
   beforeEach(() => {
     // Create a unique temporary directory for each test
-    testDir = join(tmpdir(), `introspect-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+    testDir = join(
+      tmpdir(),
+      `introspect-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    );
     mkdirSync(testDir, { recursive: true });
 
     projectPaths = {
@@ -28,7 +31,7 @@ describe('Introspect Generator - End-to-End', () => {
       environmentsDir: join(testDir, 'environments'),
       credentialsDir: join(testDir, 'credentials'),
       contextConfigsDir: join(testDir, 'context-configs'),
-      externalAgentsDir: join(testDir, 'external-agents')
+      externalAgentsDir: join(testDir, 'external-agents'),
     };
   });
 
@@ -46,11 +49,11 @@ describe('Introspect Generator - End-to-End', () => {
     models: {
       base: { model: 'gpt-4o-mini', temperature: 0.7 },
       structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
-      summarizer: { model: 'gpt-4o-mini', temperature: 0.5 }
+      summarizer: { model: 'gpt-4o-mini', temperature: 0.5 },
     },
     stopWhen: {
       transferCountIs: 10,
-      stepCountIs: 50
+      stepCountIs: 50,
     },
     credentialReferences: {
       'api-credentials': {
@@ -58,15 +61,15 @@ describe('Introspect Generator - End-to-End', () => {
         name: 'API Credentials',
         type: 'bearer',
         credentialStoreId: 'main-store',
-        retrievalParams: { key: 'api-token' }
+        retrievalParams: { key: 'api-token' },
       },
       'db-credentials': {
         id: 'db-credentials',
         name: 'Database Credentials',
         type: 'basic',
         credentialStoreId: 'main-store',
-        retrievalParams: { username: 'db-user', password: 'db-pass' }
-      }
+        retrievalParams: { username: 'db-user', password: 'db-pass' },
+      },
     },
     functions: {
       'calculate-priority': {
@@ -77,15 +80,15 @@ describe('Introspect Generator - End-to-End', () => {
           type: 'object',
           properties: {
             customerTier: { type: 'string', enum: ['bronze', 'silver', 'gold', 'platinum'] },
-            issueType: { type: 'string', enum: ['bug', 'feature', 'support', 'billing'] }
+            issueType: { type: 'string', enum: ['bug', 'feature', 'support', 'billing'] },
           },
-          required: ['customerTier', 'issueType']
+          required: ['customerTier', 'issueType'],
         },
         dependencies: {
-          'lodash': '^4.17.21'
+          lodash: '^4.17.21',
         },
-        executeCode: 'async (params) => { return { priority: "high" }; }'
-      }
+        executeCode: 'async (params) => { return { priority: "high" }; }',
+      },
     },
     tools: {
       'knowledge-base': {
@@ -96,13 +99,13 @@ describe('Introspect Generator - End-to-End', () => {
           type: 'mcp',
           mcp: {
             server: {
-              url: 'https://kb.example.com/mcp'
+              url: 'https://kb.example.com/mcp',
             },
             transport: { type: 'streamable_http' },
-            activeTools: ['search', 'retrieve']
-          }
+            activeTools: ['search', 'retrieve'],
+          },
         },
-        credentialReferenceId: 'api-credentials'
+        credentialReferenceId: 'api-credentials',
       },
       'ticket-system': {
         id: 'ticket-system',
@@ -112,13 +115,13 @@ describe('Introspect Generator - End-to-End', () => {
           type: 'mcp',
           mcp: {
             server: {
-              url: 'https://tickets.example.com/mcp'
+              url: 'https://tickets.example.com/mcp',
             },
             transport: { type: 'sse' },
-            activeTools: ['create', 'update', 'close']
-          }
-        }
-      }
+            activeTools: ['create', 'update', 'close'],
+          },
+        },
+      },
     },
     dataComponents: {
       'customer-profile': {
@@ -129,8 +132,8 @@ describe('Introspect Generator - End-to-End', () => {
           customerId: 'string',
           name: 'string',
           tier: 'string',
-          preferences: 'object'
-        }
+          preferences: 'object',
+        },
       },
       'ticket-data': {
         id: 'ticket-data',
@@ -140,9 +143,9 @@ describe('Introspect Generator - End-to-End', () => {
           ticketId: 'string',
           subject: 'string',
           priority: 'string',
-          status: 'string'
-        }
-      }
+          status: 'string',
+        },
+      },
     },
     artifactComponents: {
       'ticket-summary': {
@@ -155,10 +158,10 @@ describe('Introspect Generator - End-to-End', () => {
             ticketId: { type: 'string', inPreview: true },
             subject: { type: 'string', inPreview: true },
             resolution: { type: 'string' },
-            satisfactionScore: { type: 'number' }
-          }
-        }
-      }
+            satisfactionScore: { type: 'number' },
+          },
+        },
+      },
     },
     externalAgents: {
       'legacy-crm': {
@@ -166,8 +169,8 @@ describe('Introspect Generator - End-to-End', () => {
         name: 'Legacy CRM System',
         description: 'Integration with legacy CRM system',
         baseUrl: 'https://crm-legacy.example.com/agents/crm',
-        credentialReferenceId: 'api-credentials'
-      }
+        credentialReferenceId: 'api-credentials',
+      },
     },
     agents: {
       'support-agent': {
@@ -180,26 +183,28 @@ describe('Introspect Generator - End-to-End', () => {
             id: 'level1-support',
             name: 'Level 1 Support',
             description: 'First level customer support',
-            prompt: 'You are a friendly Level 1 support agent. Help customers with basic questions.',
+            prompt:
+              'You are a friendly Level 1 support agent. Help customers with basic questions.',
             canUse: [{ toolId: 'knowledge-base' }],
             dataComponents: ['customer-profile'],
-            artifactComponents: ['ticket-summary']
+            artifactComponents: ['ticket-summary'],
           },
           'level2-support': {
             id: 'level2-support',
             name: 'Level 2 Support',
             description: 'Advanced technical support',
-            prompt: 'You are an experienced Level 2 support agent. Handle complex technical issues.',
+            prompt:
+              'You are an experienced Level 2 support agent. Handle complex technical issues.',
             canUse: [
               { toolId: 'knowledge-base' },
               { toolId: 'ticket-system' },
-              { toolId: 'calculate-priority' }
+              { toolId: 'calculate-priority' },
             ],
             canDelegateTo: [{ agentId: 'escalation-specialist' }],
             stopWhen: {
-              stepCountIs: 25
-            }
-          }
+              stepCountIs: 25,
+            },
+          },
         },
         contextConfig: {
           headers: 'supportHeaders',
@@ -207,53 +212,54 @@ describe('Introspect Generator - End-to-End', () => {
             type: 'object',
             properties: {
               'user-id': { type: 'string' },
-              'session-id': { type: 'string' }
-            }
+              'session-id': { type: 'string' },
+            },
           },
           contextVariables: {
             customerData: {
               fetchConfig: {
                 url: 'https://api.example.com/customers/${headers.toTemplate("user-id")}',
-                method: 'GET'
+                method: 'GET',
               },
               responseSchema: {
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
-                  tier: { type: 'string' }
-                }
-              }
-            }
-          }
+                  tier: { type: 'string' },
+                },
+              },
+            },
+          },
         },
         statusUpdates: {
           numEvents: 3,
           timeInSeconds: 15,
           statusComponents: ['tool-summary', 'progress-update'],
-          prompt: 'Provide updates on ticket resolution progress'
+          prompt: 'Provide updates on ticket resolution progress',
         },
         stopWhen: {
-          transferCountIs: 5
-        }
+          transferCountIs: 5,
+        },
       },
       'escalation-specialist': {
         id: 'escalation-specialist',
         name: 'Escalation Specialist',
         description: 'Expert agent for handling complex escalated issues',
-        prompt: 'You are an escalation specialist. Handle the most complex issues that require senior expertise.',
+        prompt:
+          'You are an escalation specialist. Handle the most complex issues that require senior expertise.',
         defaultSubAgentId: 'expert-escalation',
         subAgents: {
           'expert-escalation': {
             id: 'expert-escalation',
             name: 'Expert Escalation',
             description: 'Expert-level escalation handling',
-            prompt: 'You are an expert at handling escalated issues with senior-level expertise.'
-          }
-        }
-      }
+            prompt: 'You are an expert at handling escalated issues with senior-level expertise.',
+          },
+        },
+      },
     },
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   it('should generate complete project structure from complex project definition', async () => {
@@ -341,10 +347,10 @@ describe('Introspect Generator - End-to-End', () => {
       name: 'Minimal Test Project',
       description: 'Simple project for testing',
       models: {
-        base: { model: 'gpt-4o-mini', temperature: 0.7 }
+        base: { model: 'gpt-4o-mini', temperature: 0.7 },
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     await introspectGenerate(minimalProject, projectPaths, 'test', false);
@@ -371,19 +377,19 @@ describe('Introspect Generator - End-to-End', () => {
       codeStyle: {
         quotes: 'double' as const,
         semicolons: false,
-        indentation: '    '
-      }
+        indentation: '    ',
+      },
     };
 
     await introspectGenerate(mockComplexProject, projectPaths, 'development', false, options);
 
     const projectFile = join(testDir, 'index.ts');
     const projectContent = readFileSync(projectFile, 'utf-8');
-    
+
     // Should use double quotes
     expect(projectContent).toContain('import { project } from "@inkeep/agents-sdk"');
     expect(projectContent).toContain('id: "test-project"');
-    
+
     // Should have double quotes instead of single quotes
     expect(projectContent).toContain('import { project } from "@inkeep/agents-sdk"');
     expect(projectContent).toContain('})'); // No semicolon at end
@@ -412,18 +418,18 @@ describe('Introspect Generator - End-to-End', () => {
       name: 'External Agents Only',
       description: 'Project with only external agents',
       models: {
-        base: { model: 'gpt-4o-mini', temperature: 0.7 }
+        base: { model: 'gpt-4o-mini', temperature: 0.7 },
       },
       externalAgents: {
         'external-service': {
           id: 'external-service',
           name: 'External Service',
           description: 'External service integration',
-          baseUrl: 'https://external.example.com/agents'
-        }
+          baseUrl: 'https://external.example.com/agents',
+        },
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     await introspectGenerate(externalOnlyProject, projectPaths, 'production', false);
@@ -441,28 +447,28 @@ describe('Introspect Generator - End-to-End', () => {
       name: 'Complex Models Project',
       description: 'Project with complex model configurations',
       models: {
-        base: { 
-          model: 'gpt-4o', 
-          temperature: 0.7, 
+        base: {
+          model: 'gpt-4o',
+          temperature: 0.7,
           maxTokens: 4096,
-          topP: 0.9
+          topP: 0.9,
         },
-        structuredOutput: { 
-          model: 'gpt-4o', 
+        structuredOutput: {
+          model: 'gpt-4o',
           temperature: 0.1,
-          maxTokens: 2048
+          maxTokens: 2048,
         },
-        summarizer: { 
+        summarizer: {
           model: 'gpt-4o-mini',
-          temperature: 0.5
-        }
+          temperature: 0.5,
+        },
       },
       stopWhen: {
         transferCountIs: 20,
-        stepCountIs: 100
+        stepCountIs: 100,
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     await introspectGenerate(complexModelsProject, projectPaths, 'development', false);
@@ -481,8 +487,9 @@ describe('Introspect Generator - End-to-End', () => {
   it('should throw error for invalid project data', async () => {
     const invalidProject = null as any;
 
-    await expect(introspectGenerate(invalidProject, projectPaths, 'development', false))
-      .rejects.toThrow();
+    await expect(
+      introspectGenerate(invalidProject, projectPaths, 'development', false)
+    ).rejects.toThrow();
   });
 
   it('should validate generated TypeScript code compiles', async () => {
@@ -494,23 +501,23 @@ describe('Introspect Generator - End-to-End', () => {
       join(testDir, 'credentials', 'api-credentials.ts'),
       join(testDir, 'tools', 'knowledge-base.ts'),
       join(testDir, 'agents', 'support-agent.ts'),
-      join(testDir, 'agents', 'sub-agents', 'level1-support.ts')
+      join(testDir, 'agents', 'sub-agents', 'level1-support.ts'),
     ];
 
     for (const file of files) {
       if (existsSync(file)) {
         const content = readFileSync(file, 'utf-8');
-        
+
         // Basic syntax checks - allow contextConfig: undefined since contextConfig has no ID
         expect(content).not.toContain('null,'); // No null values in generated code
         expect(content.match(/import.*from/g)?.length).toBeGreaterThan(0); // Has imports
         expect(content.match(/export.*=/g)?.length).toBeGreaterThan(0); // Has exports
-        
+
         // Check for proper closing
         const openBraces = (content.match(/{/g) || []).length;
         const closeBraces = (content.match(/}/g) || []).length;
         expect(openBraces).toBe(closeBraces); // Balanced braces
-        
+
         const openParens = (content.match(/\(/g) || []).length;
         const closeParens = (content.match(/\)/g) || []).length;
         expect(openParens).toBe(closeParens); // Balanced parentheses

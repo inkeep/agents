@@ -1,4 +1,3 @@
-
 export interface PartBase {
   metadata?: { [key: string]: any };
 }
@@ -203,7 +202,6 @@ export interface TaskArtifactUpdateEvent {
   metadata?: { [key: string]: any };
 }
 
-
 export interface JSONParseError extends JSONRPCError {
   code: -32700;
   message: string;
@@ -275,7 +273,6 @@ export type A2AError =
   | ContentTypeNotSupportedError
   | InvalidAgentResponseError;
 
-
 export interface PushNotificationAuthenticationInfo {
   schemes: string[];
   credentials?: string;
@@ -291,7 +288,6 @@ export interface TaskPushNotificationConfig {
   taskId: string;
   pushNotificationConfig: PushNotificationConfig;
 }
-
 
 export interface TaskIdParams {
   id: string;
@@ -314,7 +310,6 @@ export interface MessageSendParams {
   configuration?: MessageSendConfiguration;
   metadata?: { [key: string]: any };
 }
-
 
 /**
  * Base interface for all JSON-RPC messages (Requests and Responses).
@@ -393,7 +388,6 @@ export interface TaskResubscriptionRequest extends JSONRPCRequest {
   params: TaskIdParams;
 }
 
-
 export interface SendMessageSuccessResponse extends JSONRPCResult<Message | Task> {}
 export type SendMessageResponse = SendMessageSuccessResponse | JSONRPCErrorResponse;
 
@@ -420,7 +414,6 @@ export interface GetTaskPushNotificationConfigSuccessResponse
 export type GetTaskPushNotificationConfigResponse =
   | GetTaskPushNotificationConfigSuccessResponse
   | JSONRPCErrorResponse;
-
 
 export type A2ARequest =
   | SendMessageRequest
