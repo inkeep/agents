@@ -43,23 +43,23 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 export type AgentApi = AgentApiInsert;
 export type AgentAgentApi = AgentAgentInsert;
 export type ToolApi = ToolInsert;
-export const AgentApiSchema = AgentApiInsertSchema;
-export const AgentAgentApiSchema = AgentAgentApiInsertSchema;
-export const ToolApiSchema = ToolApiInsertSchema;
+const AgentApiSchema = AgentApiInsertSchema;
+const AgentAgentApiSchema = AgentAgentApiInsertSchema;
+const ToolApiSchema = ToolApiInsertSchema;
 
 // Re-export types and schemas
 export {
-  ErrorResponseSchema,
+  
   type ExternalAgentDefinition,
   FullAgentDefinitionSchema,
   type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
-  TenantParamsSchema,
+  
+  
+  
 };
 
 // Agent-builder specific parameter schema
-export const AgentIdParamsSchema = TenantParamsSchema.extend({
+const AgentIdParamsSchema = TenantParamsSchema.extend({
   agentId: z.string(),
 });
 
