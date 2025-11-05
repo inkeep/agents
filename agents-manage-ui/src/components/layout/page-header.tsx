@@ -38,7 +38,7 @@ export function PageHeaderTitle({ className, children, ...props }: ComponentProp
 }
 
 // Description component
-export function PageHeaderDescription({ className, children, ...props }: ComponentProps<'p'>) {
+function PageHeaderDescription({ className, children, ...props }: ComponentProps<'p'>) {
   return (
     <p className={cn('text-muted-foreground text-sm font-normal', className)} {...props}>
       {children}
