@@ -39,10 +39,13 @@ function TreeNodeItem({
   return (
     <div className="relative">
       {/* Vertical line extending through all descendants - positioned relative to entire subtree */}
-      {node.depth > 0 && !isCollapsed && (
+      {!isCollapsed && !isLast && (
         <div
-          className="absolute left-0 top-0 bottom-0 border-l border-border"
-          style={{ left: `${(node.depth - 1) * indentSize + 7}px` }}
+          className="absolute left-0 top-0 border-l border-border"
+          style={{ 
+            left: node.depth > 0 ? `${(node.depth - 1) * indentSize + 7}px` : '7px',
+            bottom: '-16px'
+          }}
         />
       )}
       

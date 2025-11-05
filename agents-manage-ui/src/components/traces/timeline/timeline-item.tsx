@@ -420,7 +420,7 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && !isCollapsed && (
+      {!isLast && !isCollapsed && hasChildren && (
         <div 
           className="absolute top-4 left-[7px] border-l border-border" 
           style={{ height: 'calc(100%)' }}
