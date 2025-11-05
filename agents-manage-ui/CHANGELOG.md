@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-manage-api@0.31.2
+  - @inkeep/agents-run-api@0.31.2
+  - @inkeep/agents-core@0.31.2
+
 ## 0.31.1
 
 ### Patch Changes

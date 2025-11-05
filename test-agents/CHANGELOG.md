@@ -1,5 +1,14 @@
 # test-agents
 
+## 0.1.3
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-cli@0.31.2
+  - @inkeep/agents-sdk@0.31.2
+
 ## 0.1.2
 
 ### Patch Changes
