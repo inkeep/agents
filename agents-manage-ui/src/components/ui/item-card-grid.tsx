@@ -113,4 +113,4 @@ export interface CardItem {
   [key: string]: any;
 }
 
-export const getItemId = <T extends CardItem>(item: T): string | number => item.id;
+const getItemId = <T extends CardItem>(item: T): string | number => item.id;
