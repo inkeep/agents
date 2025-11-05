@@ -30,6 +30,7 @@ interface CollapsibleInfoCardProps {
   Icon?: LucideIcon;
 }
 
+/** @lintignore */
 export function CollapsibleInfoCard({
   title,
   children,
