@@ -149,6 +149,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
 }
 
 export {
+  /** @lintignore */
   useFormField,
   Form,
   FormItem,
