@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiGuide } from './api-guide';
 import { ChatUIGuide } from './chat-ui-guide/chat-ui-guide';
 import { McpGuide } from './mcp-guide';
+import { NodeJsGuide } from './node-js-guide';
 import { SdkGuide } from './sdk-guide';
 
 const TAB_VALUES = {
@@ -20,6 +21,7 @@ const TAB_VALUES = {
   MCP_SERVER: 'mcp-server',
   SDK: 'sdk',
   API: 'api',
+  NODE_JS: 'node-js',
 } as const;
 
 type TabValue = (typeof TAB_VALUES)[keyof typeof TAB_VALUES];
@@ -34,6 +36,7 @@ const shipModalTabComponents: Record<TabValue, ComponentType> = {
   [TAB_VALUES.MCP_SERVER]: McpGuide,
   [TAB_VALUES.SDK]: SdkGuide,
   [TAB_VALUES.API]: ApiGuide,
+  [TAB_VALUES.NODE_JS]: NodeJsGuide,
 };
 
 const shipModalTabItems: TabItem[] = [
@@ -52,6 +55,10 @@ const shipModalTabItems: TabItem[] = [
   {
     label: 'REST API',
     value: TAB_VALUES.API,
+  },
+  {
+    label: 'Node JS',
+    value: TAB_VALUES.NODE_JS,
   },
 ];
 
