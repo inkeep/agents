@@ -1,63 +1,61 @@
 import {
-  LineChart,
+  CartesianGrid,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import type { TemperatureDataProps} from "../../../src/weather-project/schemas/temperature-schema";
+} from 'recharts';
+import type { TemperatureDataProps } from '../../../src/weather-project/schemas/temperature-schema';
 
 type TemperatureData = TemperatureDataProps['temperature_data'][number];
 
-export const TemperatureList = ({
-  temperature_data,
-}: TemperatureDataProps) => {
+export const TemperatureList = ({ temperature_data }: TemperatureDataProps) => {
   const getWeatherIcon = (weatherCode: number) => {
     switch (weatherCode) {
       case 0:
-        return "☀️"; // Sunny
+        return '☀️'; // Sunny
       case 1:
-        return "☀️"; // Mainly sunny
+        return '☀️'; // Mainly sunny
       case 2:
-        return "⛅"; // Partly cloudy
+        return '⛅'; // Partly cloudy
       case 3:
-        return "☁️"; // Cloudy
+        return '☁️'; // Cloudy
       case 4:
-        return "🌧️"; // Rainy
+        return '🌧️'; // Rainy
       case 5:
-        return "⛈️"; // Stormy
+        return '⛈️'; // Stormy
       default:
-        return "🌤️"; // Default
+        return '🌤️'; // Default
     }
   };
 
   const getWeatherDescription = (weatherCode: number) => {
     switch (weatherCode) {
       case 0:
-        return "Sunny";
+        return 'Sunny';
       case 1:
-        return "Mainly sunny";
+        return 'Mainly sunny';
       case 2:
-        return "Partly Cloudy";
+        return 'Partly Cloudy';
       case 3:
-        return "Cloudy";
+        return 'Cloudy';
       case 4:
-        return "Rainy";
+        return 'Rainy';
       case 5:
-        return "Stormy";
+        return 'Stormy';
       default:
-        return "Unknown";
+        return 'Unknown';
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
     });
   };
 
@@ -70,7 +68,11 @@ export const TemperatureList = ({
   }));
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
     active?: boolean;
     payload?: Array<{ payload: TemperatureData & { fullDate: string } }>;
     label?: string;
@@ -82,15 +84,11 @@ export const TemperatureList = ({
           <p className="font-semibold text-gray-800 text-sm mb-2">{label}</p>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <p className="text-blue-600 font-bold text-lg">
-              {data.temperature}°F
-            </p>
+            <p className="text-blue-600 font-bold text-lg">{data.temperature}°F</p>
           </div>
           <p className="text-gray-600 text-sm flex items-center gap-2">
             <span className="text-lg">{getWeatherIcon(data.weather_code)}</span>
-            <span className="font-medium">
-              {getWeatherDescription(data.weather_code)}
-            </span>
+            <span className="font-medium">{getWeatherDescription(data.weather_code)}</span>
           </p>
         </div>
       );
@@ -105,44 +103,35 @@ export const TemperatureList = ({
           <span className="text-2xl">🌡️</span>
           Temperature Forecast
         </h3>
-        <div className="text-sm text-gray-500">
-          {chartData.length} data points
-        </div>
+        <div className="text-sm text-gray-500">{chartData.length} data points</div>
       </div>
 
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#e2e8f0"
-              opacity={0.6}
-            />
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
             <XAxis
               dataKey="date"
               stroke="#64748b"
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tick={{ fill: "#64748b" }}
+              tick={{ fill: '#64748b' }}
             />
             <YAxis
               stroke="#64748b"
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tick={{ fill: "#64748b" }}
+              tick={{ fill: '#64748b' }}
               label={{
-                value: "Temperature (°F)",
+                value: 'Temperature (°F)',
                 angle: -90,
-                position: "insideLeft",
+                position: 'insideLeft',
                 style: {
-                  textAnchor: "middle",
-                  fill: "#64748b",
-                  fontSize: "12px",
+                  textAnchor: 'middle',
+                  fill: '#64748b',
+                  fontSize: '12px',
                 },
               }}
             />
@@ -153,28 +142,22 @@ export const TemperatureList = ({
               stroke="url(#temperatureGradient)"
               strokeWidth={3}
               dot={{
-                fill: "#3b82f6",
+                fill: '#3b82f6',
                 strokeWidth: 2,
                 r: 5,
-                stroke: "#ffffff",
-                filter: "drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3))",
+                stroke: '#ffffff',
+                filter: 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3))',
               }}
               activeDot={{
                 r: 8,
-                stroke: "#3b82f6",
+                stroke: '#3b82f6',
                 strokeWidth: 3,
-                fill: "#ffffff",
-                filter: "drop-shadow(0 4px 8px rgba(59, 130, 246, 0.4))",
+                fill: '#ffffff',
+                filter: 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.4))',
               }}
             />
             <defs>
-              <linearGradient
-                id="temperatureGradient"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="0"
-              >
+              <linearGradient id="temperatureGradient" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#3b82f6" />
                 <stop offset="50%" stopColor="#8b5cf6" />
                 <stop offset="100%" stopColor="#06b6d4" />
@@ -195,10 +178,7 @@ export const TemperatureList = ({
           </div>
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="text-2xl font-bold text-gray-600">
-              {Math.round(
-                chartData.reduce((sum, d) => sum + d.temperature, 0) /
-                  chartData.length
-              )}
+              {Math.round(chartData.reduce((sum, d) => sum + d.temperature, 0) / chartData.length)}
             </div>
             <div className="text-xs text-gray-600 font-medium">Average</div>
           </div>

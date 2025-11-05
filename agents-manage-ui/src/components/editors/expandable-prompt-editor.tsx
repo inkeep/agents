@@ -1,10 +1,10 @@
-import { ExpandableField } from '@/components/form/expandable-field';
-import { PromptEditor } from '@/components/editors/prompt-editor';
-import { useCallback, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Braces } from 'lucide-react';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import type { ComponentProps } from 'react';
+import { useCallback, useState } from 'react';
+import { PromptEditor } from '@/components/editors/prompt-editor';
+import { ExpandableField } from '@/components/form/expandable-field';
+import { Button } from '@/components/ui/button';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor>;

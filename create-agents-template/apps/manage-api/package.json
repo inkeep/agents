@@ -1,25 +1,25 @@
 {
-	"name": "manage-api-quickstart",
-	"version": "0.1.0",
-	"description": "Manage API for agents",
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc",
-		"start": "node dist/manage-api/src/server.js"
-	},
-	"dependencies": {
-		"@hono/node-server": "^1.19.5",
-		"@inkeep/agents-manage-api": "^0.30.3",
-		"hono": "^4.10.4"
-	},
-	"devDependencies": {
-		"@hono/vite-dev-server": "^0.23.0",
-		"@types/node": "^20.12.0",
-		"typescript": "^5.4.0",
-		"vite": "^7.1.7"
-	},
-	"engines": {
-		"node": ">=22.x"
-	}
+  "name": "manage-api-quickstart",
+  "version": "0.1.0",
+  "description": "Manage API for agents",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc",
+    "start": "node dist/manage-api/src/server.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.5",
+    "@inkeep/agents-manage-api": "^0.30.3",
+    "hono": "^4.10.4"
+  },
+  "devDependencies": {
+    "@hono/vite-dev-server": "^0.23.0",
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0",
+    "vite": "^7.1.7"
+  },
+  "engines": {
+    "node": ">=22.x"
+  }
 }

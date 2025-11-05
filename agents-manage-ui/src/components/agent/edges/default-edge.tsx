@@ -1,5 +1,5 @@
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
-import { type FC, useRef, useEffect } from 'react';
+import { type FC, useEffect, useRef } from 'react';
 
 type DefaultEdgeProps = EdgeProps & {
   data?: {

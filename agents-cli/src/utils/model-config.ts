@@ -1,5 +1,5 @@
-import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import * as p from '@clack/prompts';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 
 export interface ModelConfigurationResult {
   modelSettings: {
@@ -57,7 +57,7 @@ export const defaultAnthropicModelConfigurations = {
  */
 export async function promptForModelConfiguration(): Promise<ModelConfigurationResult> {
   // Provider selection
-  const providers = await p.multiselect({
+  const providers = (await p.multiselect({
     message: 'Which AI providers would you like to configure?',
     options: [
       { value: 'anthropic', label: 'Anthropic (Claude)' },
@@ -65,7 +65,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
       { value: 'google', label: 'Google (Gemini)' },
     ],
     required: true,
-  }) as string[];
+  })) as string[];
 
   if (p.isCancel(providers)) {
     p.cancel('Operation cancelled');
@@ -109,10 +109,10 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   }
 
   // Model selection for different use cases
-  const baseModel = await p.select({
+  const baseModel = (await p.select({
     message: 'Select your default model for general tasks (required):',
     options: availableModels,
-  }) as string;
+  })) as string;
 
   if (p.isCancel(baseModel)) {
     p.cancel('Operation cancelled');

@@ -1,9 +1,9 @@
+import { shikiToMonaco } from '@shikijs/monaco';
+import type * as Monaco from 'monaco-editor';
+import { createHighlighter, type HighlighterGeneric } from 'shiki';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type * as Monaco from 'monaco-editor';
-import { createHighlighter, type HighlighterGeneric } from 'shiki';
-import { shikiToMonaco } from '@shikijs/monaco';
 import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 

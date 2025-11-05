@@ -1,26 +1,26 @@
 /**
  * Context Config Generator - Generate contextConfig definitions
- * 
- * Generates contextConfig using contextConfig(), headers(), and fetchDefinition() 
+ *
+ * Generates contextConfig using contextConfig(), headers(), and fetchDefinition()
  * builder functions from @inkeep/agents-core
  */
 
-import { jsonSchemaToZod } from 'json-schema-to-zod';
 import chalk from 'chalk';
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  formatObject,
-  hasTemplateVariables,
-  formatPromptWithContext,
-  removeTrailingComma,
-  generateImport,
-  shouldInclude,
-  generateFileContent
-} from '../utils/generator-utils';
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { ComponentRegistry } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatObject,
+  formatPromptWithContext,
+  formatString,
+  generateFileContent,
+  generateImport,
+  hasTemplateVariables,
+  removeTrailingComma,
+  shouldInclude,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Process template variables in fetchConfig objects
@@ -30,7 +30,10 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
     if (typeof value === 'string') {
       if (hasTemplateVariables(value)) {
         // Convert {{headers.field}} to ${headers.toTemplate("field")} syntax
-        const convertedStr = value.replace(/\{\{headers\.([^}]+)\}\}/g, `\${${headersVarName}.toTemplate("$1")}`);
+        const convertedStr = value.replace(
+          /\{\{headers\.([^}]+)\}\}/g,
+          `\${${headersVarName}.toTemplate("$1")}`
+        );
         return `\`${convertedStr.replace(/`/g, '\\`')}\``;
       } else {
         return `'${value.replace(/'/g, "\\'")}'`;
@@ -44,15 +47,15 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
 
   const processObject = (obj: any): string => {
     if (Array.isArray(obj)) {
-      const items = obj.map(item => processValue(item)).join(', ');
+      const items = obj.map((item) => processValue(item)).join(', ');
       return `[${items}]`;
     }
-    
+
     const entries = Object.entries(obj).map(([key, val]) => {
       const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
       return `${processedKey}: ${processValue(val)}`;
     });
-    
+
     return `{\n    ${entries.join(',\n    ')}\n  }`;
   };
 
@@ -70,23 +73,23 @@ export function generateHeadersDefinition(
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
-  
+
   const headersVarName = toCamelCase(headersId);
   const lines: string[] = [];
-  
+
   lines.push(`const ${headersVarName} = headers({`);
-  
+
   // Schema - convert JSON Schema to Zod
   if (headersData.schema) {
     const zodSchema = jsonSchemaToZod(headersData.schema, { module: 'none' });
     lines.push(`${indentation}schema: ${zodSchema},`);
   }
-  
+
   // Remove trailing comma from last line
   removeTrailingComma(lines);
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -102,37 +105,40 @@ export function generateFetchDefinitionDefinition(
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
-  
+
   const fetchVarName = toCamelCase(fetchId);
   const lines: string[] = [];
-  
+
   lines.push(`const ${fetchVarName} = fetchDefinition({`);
-  
+
   // id
   lines.push(`${indentation}id: ${formatString(fetchData.id || fetchId, q)},`);
-  
+
   // name
   if (fetchData.name) {
     lines.push(`${indentation}name: ${formatString(fetchData.name, q)},`);
   }
-  
+
   // trigger
   if (fetchData.trigger) {
     lines.push(`${indentation}trigger: ${formatString(fetchData.trigger, q)},`);
   }
-  
+
   // fetchConfig - handle template variables in URLs and headers
   if (fetchData.fetchConfig) {
-    const processedFetchConfig = processFetchConfigTemplates(fetchData.fetchConfig, headersVarName || 'headers');
+    const processedFetchConfig = processFetchConfigTemplates(
+      fetchData.fetchConfig,
+      headersVarName || 'headers'
+    );
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
-  
+
   // responseSchema - convert JSON Schema to Zod
   if (fetchData.responseSchema) {
     const zodSchema = jsonSchemaToZod(fetchData.responseSchema, { module: 'none' });
     lines.push(`${indentation}responseSchema: ${zodSchema},`);
   }
-  
+
   // defaultValue
   if (fetchData.defaultValue) {
     if (typeof fetchData.defaultValue === 'string') {
@@ -141,12 +147,12 @@ export function generateFetchDefinitionDefinition(
       lines.push(`${indentation}defaultValue: ${JSON.stringify(fetchData.defaultValue)},`);
     }
   }
-  
+
   // Remove trailing comma from last line
   removeTrailingComma(lines);
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -165,18 +171,18 @@ export function generateContextConfigDefinition(
   if (!contextId || typeof contextId !== 'string') {
     throw new Error('contextId is required and must be a string');
   }
-  
+
   if (!contextData || typeof contextData !== 'object') {
     throw new Error(`contextData is required for context config '${contextId}'`);
   }
-  
+
   // Context configs can be minimal - no specific required fields beyond the parameters
   // The contextConfig() builder can work with just an id or be completely empty
-  
+
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
-  
+
   const contextVarName = (() => {
     if (!registry) {
       throw new Error('Registry is required for context config variable name generation');
@@ -188,9 +194,9 @@ export function generateContextConfigDefinition(
     return varName;
   })();
   const lines: string[] = [];
-  
+
   lines.push(`const ${contextVarName} = contextConfig({`);
-  
+
   // Always include the id from the database
   if (contextData.id) {
     lines.push(`${indentation}id: ${formatString(contextData.id, q)},`);
@@ -202,35 +208,44 @@ export function generateContextConfigDefinition(
   } else if (contextData.headers) {
     lines.push(`${indentation}headers: ${contextData.headers},`);
   }
-  
+
   // contextVariables - reference to fetch definition variables
   if (contextData.contextVariables) {
     const contextVarLines = [`${indentation}contextVariables: {`];
-    
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
+
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
+      string,
+      any,
+    ][]) {
       if (typeof varData === 'string') {
         // String reference - output as variable name
         contextVarLines.push(`${indentation}  ${varName}: ${varData},`);
-      } else if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
+      } else if (
+        varData &&
+        typeof varData === 'object' &&
+        (varData.fetchConfig || varData.responseSchema)
+      ) {
         // Object with fetch config - reference the variable name
         contextVarLines.push(`${indentation}  ${varName},`);
       }
     }
-    
+
     // Remove trailing comma from last line
     if (contextVarLines[contextVarLines.length - 1].endsWith(',')) {
-      contextVarLines[contextVarLines.length - 1] = contextVarLines[contextVarLines.length - 1].slice(0, -1);
+      contextVarLines[contextVarLines.length - 1] = contextVarLines[
+        contextVarLines.length - 1
+      ].slice(0, -1);
     }
-    
+
     contextVarLines.push(`${indentation}},`);
     lines.push(...contextVarLines);
   }
-  
+
   // Remove trailing comma from last line
   removeTrailingComma(lines);
-  
+
   lines.push(`})${semi}`);
-  
+
   return lines.join('\n');
 }
 
@@ -243,31 +258,31 @@ export function generateContextConfigImports(
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
   const imports: string[] = [];
-  
+
   // Core imports from @inkeep/agents-core
   const coreImports: string[] = [];
-  
+
   // Check what we need to import based on the context data
   if (contextData.headers || hasHeadersInData(contextData)) {
     coreImports.push('headers');
   }
-  
+
   if (contextData.contextVariables && hasFetchDefinitionsInData(contextData)) {
     coreImports.push('fetchDefinition');
   }
-  
+
   // Always need contextConfig
   coreImports.push('contextConfig');
-  
+
   if (coreImports.length > 0) {
     imports.push(generateImport(coreImports, '@inkeep/agents-core', style));
   }
-  
+
   // Import zod for schema validation
   if (hasSchemas(contextData)) {
     imports.push(generateImport(['z'], 'zod', style));
   }
-  
+
   return imports;
 }
 
@@ -279,10 +294,13 @@ function hasHeadersInData(contextData: any): boolean {
 }
 
 function hasFetchDefinitionsInData(contextData: any): boolean {
-  return JSON.stringify(contextData).includes('fetchDefinition') || 
-         (contextData.contextVariables && Object.values(contextData.contextVariables).some((v: any) => 
-           v && typeof v === 'object' && (v.fetchConfig || v.responseSchema)
-         ));
+  return (
+    JSON.stringify(contextData).includes('fetchDefinition') ||
+    (contextData.contextVariables &&
+      Object.values(contextData.contextVariables).some(
+        (v: any) => v && typeof v === 'object' && (v.fetchConfig || v.responseSchema)
+      ))
+  );
 }
 
 function hasSchemas(contextData: any): boolean {
@@ -302,7 +320,7 @@ export function generateContextConfigFile(
 ): string {
   const imports = generateContextConfigImports(contextId, contextData, style);
   const definitions: string[] = [];
-  
+
   // Generate headers if present
   let headersVarName: string | undefined;
   if (contextData.headersSchema) {
@@ -313,25 +331,48 @@ export function generateContextConfigFile(
       // Auto-generate headers variable name from context ID
       headersVarName = `${toCamelCase(contextId)}Headers`;
     }
-    
-    const headersDefinition = generateHeadersDefinition(headersVarName || 'headers', { schema: contextData.headersSchema }, style);
+
+    const headersDefinition = generateHeadersDefinition(
+      headersVarName || 'headers',
+      { schema: contextData.headersSchema },
+      style
+    );
     definitions.push(headersDefinition);
   }
-  
+
   // Generate fetch definitions if present
   if (contextData.contextVariables) {
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
-      if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
-        const fetchDefinition = generateFetchDefinitionDefinition(varName, varData, style, headersVarName);
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
+      string,
+      any,
+    ][]) {
+      if (
+        varData &&
+        typeof varData === 'object' &&
+        (varData.fetchConfig || varData.responseSchema)
+      ) {
+        const fetchDefinition = generateFetchDefinitionDefinition(
+          varName,
+          varData,
+          style,
+          headersVarName
+        );
         definitions.push(fetchDefinition);
       }
     }
   }
-  
+
   // Generate main context config
-  const contextDefinition = generateContextConfigDefinition(contextId, contextData, style, registry!, agentId, headersVarName);
+  const contextDefinition = generateContextConfigDefinition(
+    contextId,
+    contextData,
+    style,
+    registry!,
+    agentId,
+    headersVarName
+  );
   definitions.push(contextDefinition);
-  
+
   // Export the main context config, headersSchema, and any fetch definitions
   const contextVarName = (() => {
     if (!registry) {
@@ -344,21 +385,28 @@ export function generateContextConfigFile(
     return varName;
   })();
   const exports: string[] = [contextVarName];
-  
+
   if (headersVarName) {
     exports.push(headersVarName);
   }
-  
+
   // Also export any fetch definition variables
   if (contextData.contextVariables) {
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
-      if (varData && typeof varData === 'object' && (varData.fetchConfig || varData.responseSchema)) {
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
+      string,
+      any,
+    ][]) {
+      if (
+        varData &&
+        typeof varData === 'object' &&
+        (varData.fetchConfig || varData.responseSchema)
+      ) {
         exports.push(varName);
       }
     }
   }
-  
+
   definitions.push(`export { ${exports.join(', ')} };`);
-  
+
   return generateFileContent(imports, definitions);
 }

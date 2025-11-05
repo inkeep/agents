@@ -10,6 +10,7 @@ import {
   createApiError,
   deleteAgent,
   ErrorResponseSchema,
+  generateId,
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
@@ -21,7 +22,6 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
-  generateId,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';

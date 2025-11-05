@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { contextCache } from '../db/schema';
 import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 
 /**
  * Get cached context data for a conversation with optional request hash validation

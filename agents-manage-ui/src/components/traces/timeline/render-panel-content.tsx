@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
 import {
   Divider,
@@ -15,7 +16,6 @@ import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function formatJsonSafely(content: string): string {
   try {
@@ -32,9 +32,7 @@ function AssistantMessageContent({ content }: { content: string }) {
     <LabeledBlock label="AI response content">
       <div className="relative">
         <Bubble className={`break-words ${isExpanded ? '' : 'max-h-48 overflow-hidden'}`}>
-          <Streamdown>
-            {content}
-          </Streamdown>
+          <Streamdown>{content}</Streamdown>
         </Bubble>
         {!isExpanded && (
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none" />
@@ -155,13 +153,7 @@ export function renderPanelContent({
           <Section>
             <Info
               label="Sub agent"
-              value={
-                a.subAgentId ? (
-                  <Badge variant="code">{a.subAgentId}</Badge>
-                ) : (
-                  'Unknown'
-                )
-              }
+              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : 'Unknown'}
             />
             {a.hasError && a.otelStatusDescription && (
               <LabeledBlock label="Error">
@@ -204,7 +196,9 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
-            <AssistantMessageContent content={a.aiResponseContent || 'Response content not available'} />
+            <AssistantMessageContent
+              content={a.aiResponseContent || 'Response content not available'}
+            />
 
             <StatusBadge status={a.status} />
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp)} />

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 
 export interface InitOptions {
   path?: string;
@@ -153,7 +153,6 @@ export async function initCommand(options?: InitOptions) {
     placeholder: 'http://localhost:3002',
     defaultValue: 'http://localhost:3002',
     validate: validateUrl,
-      
   });
 
   if (p.isCancel(manageApiUrl)) {

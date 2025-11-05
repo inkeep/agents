@@ -1,9 +1,9 @@
 import { loader } from 'fumadocs-core/source';
+import { createElement } from 'react';
 import { docs } from '@/.source';
+import * as brandIcons from '@/components/brand-icons';
 import { flattenNav, transformItems } from '@/components/sidebar/transform';
 import navigation from '../../navigation';
-import { createElement } from 'react';
-import * as brandIcons from '@/components/brand-icons';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({

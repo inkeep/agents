@@ -1,12 +1,12 @@
-import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
 import { Copy, Download } from 'lucide-react';
-import { toast } from 'sonner';
 import type * as Monaco from 'monaco-editor';
-import { JsonEditor } from './json-editor';
-import { Button } from '@/components/ui/button';
+import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
+import { JsonEditor } from './json-editor';
 import './json-editor-with-copy.css';
 
 const handleCopyFieldValue =

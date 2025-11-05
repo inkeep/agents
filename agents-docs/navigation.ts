@@ -6,11 +6,7 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: [
-            'get-started/quick-start',
-            'get-started/push-pull',
-            'get-started/traces',
-          ],
+          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
       ],
@@ -25,10 +21,7 @@ export default {
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: [
-            'typescript-sdk/tools/mcp-tools',
-            'typescript-sdk/tools/function-tools',
-          ],
+          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
         },
         {
           group: 'Credentials',
@@ -137,12 +130,10 @@ export default {
               ],
             },
             {
-              group: "Customization",
-              icon: "LuBrush",
-              pages: [
-                'ui-components/customization/styling',
-              ]
-            }
+              group: 'Customization',
+              icon: 'LuBrush',
+              pages: ['ui-components/customization/styling'],
+            },
           ],
         },
         {
@@ -169,7 +160,7 @@ export default {
             'tutorials/mcp-servers/composio-mcp-servers',
             'tutorials/mcp-servers/custom-mcp-servers',
           ],
-        },   
+        },
         'tutorials/upgrading',
       ],
     },

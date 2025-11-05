@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
-import { createDatabaseClient, createProject, getProject, createArtifactComponent, getArtifactComponentById } from '@inkeep/agents-core';
+import {
+  createArtifactComponent,
+  createDatabaseClient,
+  createProject,
+  getArtifactComponentById,
+  getProject,
+} from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -65,18 +71,18 @@ async function createCitationArtifact(dbClient, tenantId, projectId) {
 
 async function setupProject() {
   console.log('🚀 Setting up your Inkeep Agents project...');
-  
+
   try {
     const dbClient = createDatabaseClient({ url: dbUrl });
-    
+
     // Check if project already exists
     console.log('📋 Checking if project already exists...');
     try {
-      const existingProject = await getProject(dbClient)({ 
-        id: projectId, 
-        tenantId: tenantId 
+      const existingProject = await getProject(dbClient)({
+        id: projectId,
+        tenantId: tenantId,
       });
-      
+
       if (existingProject) {
         console.log('✅ Project already exists in database:', existingProject.name);
         console.log('🎯 Project ID:', projectId);
@@ -86,7 +92,7 @@ async function setupProject() {
     } catch (error) {
       // Project doesn't exist, continue with creation
     }
-    
+
     // Create the project in the database
     console.log('📦 Creating project in database...');
     await createProject(dbClient)({
@@ -95,23 +101,23 @@ async function setupProject() {
       name: projectName,
       description: projectDescription,
       models: {
-  "base": {
-    "model": "anthropic/claude-sonnet-4-20250514"
-  },
-  "structuredOutput": {
-    "model": "openai/gpt-4.1-mini-2025-04-14"
-  },
-  "summarizer": {
-    "model": "openai/gpt-4.1-nano-2025-04-14"
-  }
-},
+        base: {
+          model: 'anthropic/claude-sonnet-4-20250514',
+        },
+        structuredOutput: {
+          model: 'openai/gpt-4.1-mini-2025-04-14',
+        },
+        summarizer: {
+          model: 'openai/gpt-4.1-nano-2025-04-14',
+        },
+      },
     });
-    
+
     // Create default citation artifact
     console.log('📋 Creating default citation artifact...');
     await createCitationArtifact(dbClient, tenantId, projectId);
     console.log('✅ Citation artifact created successfully!');
-    
+
     console.log('✅ Project created successfully!');
     console.log('🎯 Project ID:', projectId);
     console.log('🏢 Tenant ID:', tenantId);
@@ -123,7 +129,6 @@ async function setupProject() {
     console.log('   - Runtime API:   http://localhost:3003');
     console.log('');
     console.log('🚀 Ready to build agents!');
-    
   } catch (error) {
     console.error('❌ Failed to setup project:', error);
     process.exit(1);

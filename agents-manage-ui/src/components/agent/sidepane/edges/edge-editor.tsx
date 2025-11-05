@@ -61,7 +61,7 @@ function RelationshipSection({
 }: RelationshipSectionProps) {
   const getRadioValue = () => {
     const checkedOption = options.find(
-      (opt) => checkedValues?.[opt.id as keyof A2AEdgeData['relationships']],
+      (opt) => checkedValues?.[opt.id as keyof A2AEdgeData['relationships']]
     );
     return checkedOption?.id || '';
   };
@@ -121,18 +121,22 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
 
   const checkForCycle = (delegateId: string): boolean => {
-    const source = delegateId === 'delegateSourceToTarget' ? selectedEdge.source : selectedEdge.target;
-    const target = delegateId === 'delegateSourceToTarget' ? selectedEdge.target : selectedEdge.source;
-    
+    const source =
+      delegateId === 'delegateSourceToTarget' ? selectedEdge.source : selectedEdge.target;
+    const target =
+      delegateId === 'delegateSourceToTarget' ? selectedEdge.target : selectedEdge.source;
+
     const allEdges = getEdges();
     const otherEdges = allEdges.filter((edge) => edge.id !== selectedEdge.id);
-    
+
     if (wouldCreateCycle(otherEdges, { source, target })) {
-      const sourceName = (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
-      const targetName = (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
+      const sourceName =
+        (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
+      const targetName =
+        (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
       const sourceLabel = delegateId === 'delegateSourceToTarget' ? sourceName : targetName;
       const targetLabel = delegateId === 'delegateSourceToTarget' ? targetName : sourceName;
-      
+
       toast.error('Circular Delegation Detected', {
         description: getCycleErrorMessage(sourceLabel, targetLabel),
       });
@@ -178,7 +182,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       };
     } else {
       const updates: Partial<A2AEdgeData['relationships']> = { [id]: checked };
-      
+
       // Prevent two-way delegation: when enabling one delegation direction, disable the opposite
       if (checked) {
         if (id === 'delegateSourceToTarget') {
@@ -187,7 +191,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
           updates.delegateSourceToTarget = false;
         }
       }
-      
+
       newRelationships = {
         ...(selectedEdge.data?.relationships as A2AEdgeData['relationships']),
         ...updates,

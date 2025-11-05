@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
@@ -23,7 +24,6 @@ import {
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -190,9 +190,7 @@ export function TimelineItem({
                   onClick={() => onToggleAiMessageCollapse(activity.id)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   title={
-                    isAiMessageCollapsed
-                      ? 'Expand AI streaming text'
-                      : 'Collapse AI streaming text'
+                    isAiMessageCollapsed ? 'Expand AI streaming text' : 'Collapse AI streaming text'
                   }
                 >
                   {isAiMessageCollapsed ? (
@@ -264,14 +262,18 @@ export function TimelineItem({
           {/* context fetch url */}
           {activity.type === 'context_fetch' && activity.toolResult && (
             <div className="mb-1">
-              <Badge variant="code" className="break-all">{activity.toolResult}</Badge>
+              <Badge variant="code" className="break-all">
+                {activity.toolResult}
+              </Badge>
             </div>
           )}
 
           {/* context resolution URL */}
           {activity.type === 'context_resolution' && activity.contextUrl && (
             <div className="mb-1">
-              <Badge variant="code" className="break-all">{activity.contextUrl}</Badge>
+              <Badge variant="code" className="break-all">
+                {activity.contextUrl}
+              </Badge>
             </div>
           )}
 
@@ -280,10 +282,7 @@ export function TimelineItem({
             activity.toolName?.includes('delegate') && (
               <Flow
                 from={activity.delegationFromSubAgentId || 'Unknown sub agent'}
-                to={
-                  activity.delegationToSubAgentId ||
-                  'Unknown sub agent'
-                }
+                to={activity.delegationToSubAgentId || 'Unknown sub agent'}
               />
             )}
 
@@ -293,10 +292,7 @@ export function TimelineItem({
               activity.toolName?.includes('transfer')) && (
               <Flow
                 from={activity.transferFromSubAgentId || 'Unknown sub agent'}
-                to={
-                  activity.transferToSubAgentId ||
-                  'Unknown sub agent'
-                }
+                to={activity.transferToSubAgentId || 'Unknown sub agent'}
               />
             )}
 

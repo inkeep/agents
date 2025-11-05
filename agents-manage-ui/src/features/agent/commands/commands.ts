@@ -1,7 +1,7 @@
 import type { Connection, Edge, Node } from '@xyflow/react';
 import { addEdge } from '@xyflow/react';
-import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { eventBus } from '@/lib/events';
 import type { Command } from './command-manager';

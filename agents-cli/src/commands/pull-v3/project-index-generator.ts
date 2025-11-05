@@ -18,7 +18,7 @@ export async function generateProjectIndex(
   projectId: string
 ): Promise<void> {
   const indexPath = join(projectRoot, 'index.ts');
-  
+
   const defaultStyle = {
     quotes: 'single' as const,
     indentation: '  ',
@@ -37,7 +37,12 @@ export async function generateProjectIndex(
     credentialReferences: registryComponents.filter(c => c.type === 'credentials').map(c => c.id)
   };
 
-  const content = generateProjectFile(projectId, projectDataWithRegistry, defaultStyle, localRegistry);
-  
+  const content = generateProjectFile(
+    projectId,
+    projectDataWithRegistry,
+    defaultStyle,
+    localRegistry
+  );
+
   writeFileSync(indexPath, content, 'utf8');
 }

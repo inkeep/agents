@@ -6,6 +6,7 @@
 
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { functions, functionTools } from '../db/schema';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
@@ -23,7 +24,6 @@ import { listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
 import { listTools, upsertTool } from './tools';
-import { functionTools, functions } from '../db/schema';
 
 const defaultLogger = getLogger('projectFull');
 
@@ -1077,12 +1077,7 @@ export const getFullProject =
           })
           .from(functionTools)
           .innerJoin(functions, eq(functionTools.functionId, functions.id))
-          .where(
-            and(
-              eq(functionTools.tenantId, tenantId),
-              eq(functionTools.projectId, projectId)
-            )
-          );
+          .where(and(eq(functionTools.tenantId, tenantId), eq(functionTools.projectId, projectId)));
 
         for (const item of functionToolsWithFunctions) {
           projectFunctions[item.functionToolId] = {
@@ -1099,7 +1094,10 @@ export const getFullProject =
           'Function tools with function data retrieved for project'
         );
       } catch (error) {
-        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve function tools for project');
+        logger.warn(
+          { tenantId, projectId, error },
+          'Failed to retrieve function tools for project'
+        );
       }
 
       const agents: Record<string, any> = {};

@@ -1,9 +1,9 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
-import { subAgentFunctionToolRelations, functionTools } from '../db/schema';
+import { functionTools, subAgentFunctionToolRelations } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('functionTools');
@@ -269,7 +269,14 @@ export const upsertSubAgentFunctionToolRelation =
       // If relation exists, return it instead of creating a new one
       if (existingRelations.length > 0) {
         logger.info(
-          { tenantId, projectId, agentId, subAgentId, functionToolId, relationId: existingRelations[0].id },
+          {
+            tenantId,
+            projectId,
+            agentId,
+            subAgentId,
+            functionToolId,
+            relationId: existingRelations[0].id,
+          },
           'Sub_agent-function tool relation already exists, returning existing relation'
         );
         return { id: existingRelations[0].id };

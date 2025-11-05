@@ -1,13 +1,13 @@
 'use client';
 
-import type { FC, ComponentPropsWithoutRef } from 'react';
-import { useEffect, useRef } from 'react';
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
-import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
-import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import type { ComponentPropsWithoutRef, FC } from 'react';
+import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
+import { cn } from '@/lib/utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {

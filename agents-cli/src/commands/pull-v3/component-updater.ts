@@ -2,12 +2,19 @@
  * Component Updater - Update existing components with new data
  */
 
-import { mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, copyFileSync, existsSync } from 'node:fs';
-import { basename, dirname, join, extname } from 'node:path';
 import { spawn } from 'node:child_process';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, extname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import { validateTempDirectory } from './project-validator';
 import { generateAgentFile } from './components/agent-generator';
 import { generateArtifactComponentFile } from './components/artifact-component-generator';
 import { generateContextConfigFile } from './components/context-config-generator';
@@ -22,6 +29,7 @@ import { generateStatusComponentFile } from './components/status-component-gener
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
 import type { ProjectComparison } from './project-comparator';
+import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
 
@@ -40,21 +48,21 @@ interface ComponentUpdateResult {
  */
 export function copyProjectToTemp(projectRoot: string, tempDirName: string): void {
   const tempDir = join(projectRoot, tempDirName);
-  
+
   function copyRecursively(sourceDir: string, targetDir: string): void {
     if (!existsSync(sourceDir)) return;
-    
+
     mkdirSync(targetDir, { recursive: true });
     const entries = readdirSync(sourceDir);
-    
+
     for (const entry of entries) {
       // Skip temp directories and node_modules
       if (entry.startsWith('.temp-') || entry === 'node_modules') continue;
-      
+
       const sourcePath = join(sourceDir, entry);
       const targetPath = join(targetDir, entry);
       const stat = statSync(sourcePath);
-      
+
       if (stat.isDirectory()) {
         copyRecursively(sourcePath, targetPath);
       } else if (stat.isFile()) {
@@ -62,7 +70,7 @@ export function copyProjectToTemp(projectRoot: string, tempDirName: string): voi
       }
     }
   }
-  
+
   copyRecursively(projectRoot, tempDir);
 }
 
@@ -100,30 +108,30 @@ async function runBiomeOnFile(filePath: string): Promise<boolean> {
     // First format the file
     await new Promise<void>((resolve, reject) => {
       const formatProcess = spawn('npx', ['biome', 'format', '--write', filePath], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       formatProcess.on('close', (code) => {
         if (code === 0) resolve();
         else reject(new Error(`Biome format exited with code ${code}`));
       });
-      
+
       formatProcess.on('error', (err) => {
         reject(new Error(`Failed to run biome format: ${err.message}`));
       });
     });
 
-    // Then lint and fix the file  
+    // Then lint and fix the file
     await new Promise<void>((resolve, reject) => {
       const lintProcess = spawn('npx', ['biome', 'lint', '--write', filePath], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       lintProcess.on('close', (code) => {
         if (code === 0) resolve();
         else reject(new Error(`Biome lint exited with code ${code}`));
       });
-      
+
       lintProcess.on('error', (err) => {
         reject(new Error(`Failed to run biome lint: ${err.message}`));
       });
@@ -147,14 +155,14 @@ async function runBiomeOnDirectory(dirPath: string): Promise<boolean> {
     await new Promise<void>((resolve, reject) => {
       const formatProcess = spawn('npx', ['biome', 'format', '--write', '.'], {
         cwd: dirPath,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       formatProcess.on('close', (code) => {
         if (code === 0) resolve();
         else reject(new Error(`Biome format exited with code ${code}`));
       });
-      
+
       formatProcess.on('error', (err) => {
         reject(new Error(`Failed to run biome format: ${err.message}`));
       });
@@ -164,14 +172,14 @@ async function runBiomeOnDirectory(dirPath: string): Promise<boolean> {
     await new Promise<void>((resolve, reject) => {
       const lintProcess = spawn('npx', ['biome', 'lint', '--write', '.'], {
         cwd: dirPath,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       lintProcess.on('close', (code) => {
         if (code === 0) resolve();
         else reject(new Error(`Biome lint exited with code ${code}`));
       });
-      
+
       lintProcess.on('error', (err) => {
         reject(new Error(`Failed to run biome lint: ${err.message}`));
       });
@@ -209,8 +217,15 @@ function generateUpdatedComponentContent(
       const parentInfo = findSubAgentWithParent(remoteProject, componentId);
       const parentAgentId = parentInfo?.parentAgentId;
       const contextConfigData = parentInfo?.contextConfigData;
-      
-      return generateSubAgentFile(componentId, componentData, defaultStyle, localRegistry, parentAgentId, contextConfigData);
+
+      return generateSubAgentFile(
+        componentId,
+        componentData,
+        defaultStyle,
+        localRegistry,
+        parentAgentId,
+        contextConfigData
+      );
     }
     case 'tools':
       return generateMcpToolFile(componentId, componentData, defaultStyle, localRegistry);
@@ -235,7 +250,13 @@ function generateUpdatedComponentContent(
       // Remove the temporary _agentId field before passing to generator
       const cleanComponentData = { ...componentData };
       delete cleanComponentData._agentId;
-      return generateContextConfigFile(componentId, cleanComponentData, defaultStyle, localRegistry, agentId);
+      return generateContextConfigFile(
+        componentId,
+        cleanComponentData,
+        defaultStyle,
+        localRegistry,
+        agentId
+      );
     }
     case 'fetchDefinitions':
       // Skip - fetchDefinitions are generated as part of their parent contextConfig
@@ -264,7 +285,7 @@ export async function updateModifiedComponents(
 
   // Create unique temp directory name with timestamp or use provided one
   const tempDirName = providedTempDirName || `.temp-${Date.now()}`;
-  
+
   // Copy entire project to temp directory first (only if we created the temp dir name)
   if (!providedTempDirName) {
     console.log(chalk.cyan(`📁 Copying project to ${tempDirName}...`));
@@ -280,7 +301,6 @@ export async function updateModifiedComponents(
       allModifiedComponents.push({ type: componentType, id: componentId });
     }
   }
-  
 
   if (allModifiedComponents.length === 0) {
     return results;
@@ -298,10 +318,10 @@ export async function updateModifiedComponents(
     if (componentType === 'functions') {
       actualComponentType = 'functionTools';
     }
-    
+
     const localComponent = localRegistry.get(componentId, actualComponentType as any);
     const singularType = actualComponentType.slice(0, -1);
-    const localComponentSingular = localRegistry.get(componentId, singularType as any);    
+    const localComponentSingular = localRegistry.get(componentId, singularType as any);
     const actualComponent = localComponent || localComponentSingular;
     if (actualComponent) {
       const filePath = actualComponent.filePath.startsWith('/')
@@ -377,7 +397,10 @@ export async function updateModifiedComponents(
         } else if (componentType === 'statusComponents') {
           // StatusComponents are nested within agents - find the statusComponent by ID
           for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
-            if (agentData.statusUpdates?.statusComponents && agentData.statusUpdates.statusComponents) {
+            if (
+              agentData.statusUpdates?.statusComponents &&
+              agentData.statusUpdates.statusComponents
+            ) {
               for (const statusComp of agentData.statusUpdates.statusComponents) {
                 if (statusComp['type'] === componentId) {
                   componentData = statusComp;
@@ -480,10 +503,10 @@ export async function updateModifiedComponents(
       writeToTempDirectory(projectRoot, filePath, finalContent, tempDirName);
       const relativePath = filePath.replace(projectRoot + '/', '');
       const tempFilePath = join(projectRoot, tempDirName, relativePath);
-      
+
       // Run Biome formatter and linter on the modified file
       const biomeSuccess = await runBiomeOnFile(tempFilePath);
-      
+
       if (biomeSuccess) {
         // Re-read the file after Biome formatting to get final size
         const formattedContent = readFileSync(tempFilePath, 'utf8');
@@ -548,40 +571,55 @@ export async function updateModifiedComponents(
   const actualChanges = successful.filter((r) => r.oldContent?.trim() !== r.newContent?.trim());
 
   console.log(chalk.yellow(`\n📋 Analyzed ${actualChanges.length} components with changes`));
-  
+
   // Log details of each changed component with field-level changes
   if (actualChanges.length > 0) {
     actualChanges.forEach((change) => {
-      console.log(chalk.blue(`   🔄 ${change.componentType}:${change.componentId} in ${change.filePath}`));
-      
+      console.log(
+        chalk.blue(`   🔄 ${change.componentType}:${change.componentId} in ${change.filePath}`)
+      );
+
       // Debug: log available changes in comparison
       if (debug) {
-        console.log(chalk.gray(`      🔍 Available comparison changes: ${comparison.changes.length}`));
+        console.log(
+          chalk.gray(`      🔍 Available comparison changes: ${comparison.changes.length}`)
+        );
         comparison.changes.forEach((c, i) => {
-          console.log(chalk.gray(`        ${i}: ${c.componentType}:${c.componentId} (${c.changeType})`));
+          console.log(
+            chalk.gray(`        ${i}: ${c.componentType}:${c.componentId} (${c.changeType})`)
+          );
         });
       }
-      
+
       // Find the corresponding change from the comparison data to show what fields changed
       // Note: comparison uses singular forms (e.g. 'subAgent') but updater uses plural forms (e.g. 'subAgents')
       // Convert plural component types (used by updater) to singular forms (used by comparator)
-      const normalizedCompType = change.componentType.endsWith('s') && change.componentType !== 'headers' 
-                                  ? change.componentType.slice(0, -1)  // Remove 's' from plural forms
-                                  : change.componentType;
-      const componentChanges = comparison.changes.filter(c => 
-        c.componentId === change.componentId && c.componentType === normalizedCompType
+      const normalizedCompType =
+        change.componentType.endsWith('s') && change.componentType !== 'headers'
+          ? change.componentType.slice(0, -1) // Remove 's' from plural forms
+          : change.componentType;
+      const componentChanges = comparison.changes.filter(
+        (c) => c.componentId === change.componentId && c.componentType === normalizedCompType
       );
-      
+
       if (debug) {
         console.log(chalk.gray(`      🔍 Matching changes found: ${componentChanges.length}`));
       }
-      
+
       componentChanges.forEach((compChange) => {
         if (compChange.changedFields && compChange.changedFields.length > 0) {
           compChange.changedFields.forEach((fieldChange) => {
-            const changeSymbol = fieldChange.changeType === 'added' ? '➕' : 
-                                fieldChange.changeType === 'deleted' ? '➖' : '🔄';
-            console.log(chalk.gray(`      ${changeSymbol} ${fieldChange.field}: ${fieldChange.description || fieldChange.changeType}`));
+            const changeSymbol =
+              fieldChange.changeType === 'added'
+                ? '➕'
+                : fieldChange.changeType === 'deleted'
+                  ? '➖'
+                  : '🔄';
+            console.log(
+              chalk.gray(
+                `      ${changeSymbol} ${fieldChange.field}: ${fieldChange.description || fieldChange.changeType}`
+              )
+            );
           });
         } else if (debug) {
           console.log(chalk.gray(`      🔍 No changedFields data available for this change`));
@@ -592,7 +630,7 @@ export async function updateModifiedComponents(
       });
     });
   }
-  
+
   if (successful.length > actualChanges.length) {
     console.log(
       chalk.gray(`   ⚪ ${successful.length - actualChanges.length} components had no changes`)
@@ -601,7 +639,6 @@ export async function updateModifiedComponents(
   if (failed.length > 0) {
     console.log(chalk.red(`   ❌ ${failed.length} components failed to analyze`));
   }
-  
 
   // Run Biome on the entire temp directory (silently)
   const tempDir = join(projectRoot, tempDirName);

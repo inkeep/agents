@@ -1,10 +1,10 @@
 'use client';
 
-import { type FC, useCallback } from 'react';
+import { type FC, type ReactNode, useCallback } from 'react';
+import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { formatJson } from '@/lib/utils';
-import { JsonEditor } from '@/components/editors/json-editor';
 
 interface StandaloneJsonEditorProps {
   value?: string;
@@ -16,11 +16,13 @@ interface StandaloneJsonEditorProps {
   className?: string;
   readOnly?: boolean;
   'aria-invalid'?: boolean;
+  actions?: ReactNode;
 }
 
 export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   value = '',
   onChange,
+  actions: $actions,
   ...props
 }) => {
   const handleFormat = useCallback(() => {
@@ -37,6 +39,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
 
   const actions = (
     <>
+      {$actions}
       {!value.trim() && (
         <Button
           type="button"

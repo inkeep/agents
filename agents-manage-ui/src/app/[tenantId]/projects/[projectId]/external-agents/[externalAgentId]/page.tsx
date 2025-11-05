@@ -1,7 +1,7 @@
 import FullPageError from '@/components/errors/full-page-error';
+import { ViewExternalAgentDetails } from '@/components/external-agents/view-external-agent-details';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
-import { ViewExternalAgentDetails } from '@/components/external-agents/view-external-agent-details';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 
 interface ExternalAgentPageProps {

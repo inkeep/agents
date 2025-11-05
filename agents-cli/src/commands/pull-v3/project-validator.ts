@@ -24,7 +24,11 @@ import { ComponentRegistry } from './utils/component-registry';
 /**
  * Get a specific component from a project by type and ID
  */
-function getComponentFromProject(project: FullProjectDefinition, componentType: string, componentId: string): any {
+function getComponentFromProject(
+  project: FullProjectDefinition,
+  componentType: string,
+  componentId: string
+): any {
   switch (componentType) {
     case 'credentials':
       return project.credentialReferences?.[componentId];
@@ -251,12 +255,24 @@ async function validateProjectEquivalence(
             // Show specific differences for modified components
             for (const modifiedId of changes.modified) {
               console.log(chalk.gray(`              ${modifiedId} detailed differences:`));
-              
+
               // Get the actual objects for comparison
-              const generatedComponent = getComponentFromProject(tempProjectDefinition, componentType, modifiedId);
-              const remoteComponent = getComponentFromProject(remoteProject, componentType, modifiedId);
-              console.log(chalk.gray(`Generated Component: ${JSON.stringify(generatedComponent, null, 2)}`));
-              console.log(chalk.gray(`Remote Component: ${JSON.stringify(remoteComponent, null, 2)}`));
+              const generatedComponent = getComponentFromProject(
+                tempProjectDefinition,
+                componentType,
+                modifiedId
+              );
+              const remoteComponent = getComponentFromProject(
+                remoteProject,
+                componentType,
+                modifiedId
+              );
+              console.log(
+                chalk.gray(`Generated Component: ${JSON.stringify(generatedComponent, null, 2)}`)
+              );
+              console.log(
+                chalk.gray(`Remote Component: ${JSON.stringify(remoteComponent, null, 2)}`)
+              );
             }
           }
           if (changes.deleted.length > 0) {
@@ -292,7 +308,6 @@ export async function validateTempDirectory(
   const equivalenceSuccess = await validateProjectEquivalence(tempDir, remoteProject);
 
   if (equivalenceSuccess) {
-
     // Ask user if they want to overwrite their files
     console.log(
       chalk.yellow(`\n❓ Would you like to overwrite your project files with the generated files?`)
