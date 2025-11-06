@@ -1,5 +1,13 @@
 # @inkeep/ai-sdk-provider
 
+## 0.31.3
+
+### Patch Changes
+
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes
