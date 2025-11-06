@@ -793,38 +793,15 @@ function Flow({
     externalAgentLookup,
   ]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore agentToolConfigLookup
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    function hasRelationWithSubAgent({
-      relationshipId,
-      subAgentId,
-    }: {
-      relationshipId: unknown;
-      subAgentId: string;
-    }): boolean {
-      if (typeof relationshipId !== 'string') {
-        return false;
-      }
-      const config = agentToolConfigLookup[subAgentId];
-      if (!config) {
-        return false;
-      }
-      return Object.keys(config).includes(relationshipId);
-    }
-
     const onCompletion = () => {
-      setEdges((prevEdges) =>
-        prevEdges.map((edge) => ({
-          ...edge,
-          data: { ...edge.data, delegating: false },
-        }))
-      );
-      setNodes((prevNodes) =>
-        prevNodes.map((node) => ({
-          ...node,
-          data: { ...node.data, status: null },
-        }))
-      );
+      // @ts-expect-error
+      animateGraph({
+        detail: {
+          type: 'completion',
+        },
+      });
     };
 
     document.addEventListener('ikp-data-operation', animateGraph);
@@ -833,7 +810,7 @@ function Flow({
       document.removeEventListener('ikp-data-operation', animateGraph);
       document.removeEventListener('ikp-aborted', onCompletion);
     };
-  }, [toolLookup]);
+  }, []);
 
   const onNodeClick: ReactFlowProps['onNodeClick'] = useCallback(
     (_, node) => {

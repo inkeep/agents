@@ -443,24 +443,22 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'tool_result': {
             const { toolName, error } = data.details.data;
             const { subAgentId } = data.details;
-            setNodes((prevNodes) => {
-              setEdges((prevEdges) =>
-                prevEdges.map((edge) => {
-                  const node = prevNodes.find((node) => node.id === edge.target);
-                  const toolId = node?.data.toolId as string;
-                  const toolData = get().toolLookup[toolId];
-                  const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+            return {
+              edges: prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = get().toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
 
-                  return {
-                    ...edge,
-                    data: {
-                      ...edge.data,
-                      delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
-                    },
-                  };
-                })
-              );
-              return prevNodes.map((node) => {
+                return {
+                  ...edge,
+                  data: {
+                    ...edge.data,
+                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                  },
+                };
+              }),
+              nodes: prevNodes.map((node) => {
                 let status: AnimatedNode['status'] = null;
                 if (
                   hasRelationWithSubAgent({
@@ -480,9 +478,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                     status,
                   },
                 };
-              });
-            });
-            break;
+              }),
+            };
           }
           case 'completion': {
             return {
