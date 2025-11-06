@@ -23,8 +23,8 @@ const TAB_VALUES = {
   CHAT_UI: 'chat-ui',
   MCP_SERVER: 'mcp-server',
   SDK: 'sdk',
-  API: 'api',
   NODE_JS: 'node-js',
+  API: 'api',
 } as const;
 
 type TabValue = (typeof TAB_VALUES)[keyof typeof TAB_VALUES];
@@ -38,8 +38,8 @@ const shipModalTabComponents: Record<TabValue, ComponentType> = {
   [TAB_VALUES.CHAT_UI]: ChatUIGuide,
   [TAB_VALUES.MCP_SERVER]: McpGuide,
   [TAB_VALUES.SDK]: SdkGuide,
-  [TAB_VALUES.API]: ApiGuide,
   [TAB_VALUES.NODE_JS]: NodeJsGuide,
+  [TAB_VALUES.API]: ApiGuide,
 };
 
 const shipModalTabItems: TabItem[] = [
@@ -56,12 +56,12 @@ const shipModalTabItems: TabItem[] = [
     value: TAB_VALUES.SDK,
   },
   {
-    label: 'REST API',
-    value: TAB_VALUES.API,
-  },
-  {
     label: 'Node JS',
     value: TAB_VALUES.NODE_JS,
+  },
+  {
+    label: 'REST API',
+    value: TAB_VALUES.API,
   },
 ];
 
@@ -92,7 +92,7 @@ export function ShipModal() {
                 </Link>
               </Button>
               <DialogClose asChild>
-                <Button variant="ghost" size="icon-sm">
+                <Button variant="ghost" className="size-8">
                   <X className="size-4 text-muted-foreground" />
                   <span className="sr-only">Close</span>
                 </Button>

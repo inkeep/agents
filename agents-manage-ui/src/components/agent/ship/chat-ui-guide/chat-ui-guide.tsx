@@ -1,8 +1,8 @@
 import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui/types';
 import { CodeIcon, EyeIcon } from 'lucide-react';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { DocsLink, Header } from '../guide-header';
@@ -19,7 +19,6 @@ interface ChatUIProps {
 export function ChatUIGuide() {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
-  const [showCode, setShowCode] = useState(false);
   const form = useForm<Partial<ChatUIProps>>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,
@@ -42,25 +41,35 @@ export function ChatUIGuide() {
   };
 
   return (
-    <div>
+    <Tabs defaultValue="preview">
       <Header.Container>
         <Header.Title title="Chat UI" />
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowCode(!showCode)}>
-            {showCode ? <EyeIcon className="size-4" /> : <CodeIcon className="size-4" />}
-            {showCode ? 'View preview' : 'View code'}
-          </Button>
+          <TabsList className="h-8">
+            <Tooltip>
+              <TooltipTrigger>
+                <TabsTrigger value="preview" className="py-1 px-1.5">
+                  <EyeIcon className="size-4" />
+                  <span className="sr-only">View preview</span>
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Preview</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger>
+                <TabsTrigger value="code" className="py-1 px-1.5">
+                  <CodeIcon className="size-4" />
+                  <span className="sr-only">View code</span>
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Code</TooltipContent>
+            </Tooltip>
+          </TabsList>
           {/* todo should this link change based on the react vs js toggle? */}
           <DocsLink href={`${DOCS_BASE_URL}/talk-to-your-agents/react/chat-button`} />
         </div>
       </Header.Container>
-      {showCode ? (
-        <ChatUICode
-          component={component}
-          baseSettings={{ ...baseSettings }}
-          aiChatSettings={{ ...aiChatSettings, apiKey: 'INKEEP_AGENT_API_KEY' }}
-        />
-      ) : (
+      <TabsContent value="preview">
         <div className="flex flex-row gap-12 w-full">
           <ChatUIPreviewForm form={form} />
           <div className="flex-1 h-[500px]">
@@ -71,7 +80,14 @@ export function ChatUIGuide() {
             />
           </div>
         </div>
-      )}
-    </div>
+      </TabsContent>
+      <TabsContent value="code">
+        <ChatUICode
+          component={component}
+          baseSettings={{ ...baseSettings }}
+          aiChatSettings={{ ...aiChatSettings, apiKey: 'INKEEP_AGENT_API_KEY' }}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
