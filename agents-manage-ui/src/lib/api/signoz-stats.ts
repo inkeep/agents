@@ -542,7 +542,7 @@ class SigNozStatsAPI {
       return [];
     }
   }
-
+ 
   async getUniqueModels(startTime: number, endTime: number, projectId?: string) {
     try {
       const resp = await this.makeRequest(
