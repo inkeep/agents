@@ -1705,10 +1705,6 @@ class SigNozStatsAPI {
           value: agentId,
         });
       }
-
-      // Don't add span filters here - we filter by conversation IDs instead when provided
-      // Span filters are handled by filtering conversations first, then querying those conversations
-
       return items;
     };
 
