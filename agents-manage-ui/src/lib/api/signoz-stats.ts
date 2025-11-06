@@ -6,6 +6,7 @@ import {
   AI_OPERATIONS,
   AI_TOOL_TYPES,
   DATA_SOURCES,
+  DATA_TYPES,
   OPERATORS,
   ORDER_DIRECTIONS,
   PANEL_TYPES,
@@ -86,6 +87,8 @@ const asNumberIfNumeric = (v: string) => (/^-?\d+(\.\d+)?$/.test(v) ? Number(v) 
 const FilterValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
 type FilterValue = z.infer<typeof FilterValueSchema>;
+
+type DataType = typeof DATA_TYPES[keyof typeof DATA_TYPES];
 
 const asTypedFilterValue = (v: string): FilterValue => {
   try {
@@ -1360,9 +1363,9 @@ class SigNozStatsAPI {
       for (const attr of filters.attributes ?? []) {
         const op = attr.operator ?? OPERATORS.EQUALS;
         let value: any = asTypedFilterValue(attr.value);
-        let dataType: 'string' | 'int64' | 'float64' | 'bool' = 'string';
-        if (typeof value === 'boolean') dataType = 'bool';
-        else if (typeof value === 'number') dataType = Number.isInteger(value) ? 'int64' : 'float64';
+        let dataType: DataType = DATA_TYPES.STRING;
+        if (typeof value === 'boolean') dataType = DATA_TYPES.BOOL;
+        else if (typeof value === 'number') dataType = Number.isInteger(value) ? DATA_TYPES.INT64 : DATA_TYPES.FLOAT64;
 
         if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
           filterItems.push({
@@ -1381,9 +1384,9 @@ class SigNozStatsAPI {
           value = `%${value}%`;
         }
 
-        if ((dataType === 'int64' || dataType === 'float64') && op === OPERATORS.EQUALS) {
+        if ((dataType === DATA_TYPES.INT64 || dataType === DATA_TYPES.FLOAT64) && op === OPERATORS.EQUALS) {
           const config =
-            dataType === 'int64' ? QUERY_FIELD_CONFIGS.INT64_TAG : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
+            dataType === DATA_TYPES.INT64 ? QUERY_FIELD_CONFIGS.INT64_TAG : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
           filterItems.push({
             key: { key: attr.key, ...config },
             op: OPERATORS.GREATER_THAN_OR_EQUAL,
@@ -1396,11 +1399,11 @@ class SigNozStatsAPI {
           });
         } else {
           const config =
-            dataType === 'string'
+            dataType === DATA_TYPES.STRING
               ? QUERY_FIELD_CONFIGS.STRING_TAG
-              : dataType === 'int64'
+              : dataType === DATA_TYPES.INT64
                 ? QUERY_FIELD_CONFIGS.INT64_TAG
-                : dataType === 'float64'
+                : dataType === DATA_TYPES.FLOAT64
                   ? QUERY_FIELD_CONFIGS.FLOAT64_TAG
                   : QUERY_FIELD_CONFIGS.BOOL_TAG;
           filterItems.push({ key: { key: attr.key, ...config }, op, value });
