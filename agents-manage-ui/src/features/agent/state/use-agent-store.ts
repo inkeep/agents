@@ -319,9 +319,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     animateGraph(event) {
       const data = event.detail;
-      window.ops ||= [];
-      window.ops.push({ detail: event.detail });
-      console.log('Data operation:', event.detail);
       switch (data.type) {
         case 'agent_initializing': {
           // TODO
