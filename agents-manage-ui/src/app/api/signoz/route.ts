@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
 
     const validationResult = signozRequestSchema.safeParse(body);
     if (!validationResult.success) {
-      logger.error({ validationErrors: validationResult.error.flatten() }, 'Request validation failed');
       return NextResponse.json(
         {
           error: 'Invalid request body',
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
 
     const timeValidation = validateTimeRange(validatedBody.start, validatedBody.end);
     if (!timeValidation.valid) {
-      logger.error({ timeValidation }, 'Time range validation failed');
       return NextResponse.json(
         {
           error: 'Invalid time range',
@@ -80,11 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
-    logger.info({ 
-      endpoint: signozEndpoint,
-      queryNames: Object.keys(validatedBody.compositeQuery?.builderQueries || {}),
-      queryCount: Object.keys(validatedBody.compositeQuery?.builderQueries || {}).length,
-    }, 'Calling SigNoz');
+    logger.info({ endpoint: signozEndpoint }, 'Calling SigNoz');
 
     const response = await axios.post(signozEndpoint, validatedBody, {
       headers: {
@@ -101,29 +95,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     logger.error(
-      { 
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-        isAxiosError: axios.isAxiosError(error),
-        axiosResponse: axios.isAxiosError(error) ? {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-        } : undefined,
-      },
+      { error, stack: error instanceof Error ? error.stack : undefined },
       'Error proxying to SigNoz'
     );
-    
-    // Return more detailed error information
-    const errorDetails = axios.isAxiosError(error) && error.response?.data
-      ? JSON.stringify(error.response.data)
-      : error instanceof Error ? error.message : 'Unknown error';
-    
     return NextResponse.json(
       {
         error: 'Failed to connect to SigNoz',
-        details: errorDetails,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
