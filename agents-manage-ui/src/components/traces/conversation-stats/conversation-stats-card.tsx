@@ -30,6 +30,7 @@ interface ConversationStatsCardProps {
   };
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  totalConversations?: number;
 }
 
 export function ConversationStatsCard({
@@ -41,6 +42,7 @@ export function ConversationStatsCard({
   pagination,
   searchQuery = '',
   onSearchChange,
+  totalConversations,
 }: ConversationStatsCardProps) {
   const [localQuery, setLocalQuery] = React.useState<string>(searchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
@@ -109,7 +111,7 @@ export function ConversationStatsCard({
             </div>
 
             <Badge variant="code" className="text-xs">
-              {pagination?.total || stats.length}
+              {totalConversations ?? pagination?.total ?? stats.length}
             </Badge>
           </CardTitle>
 

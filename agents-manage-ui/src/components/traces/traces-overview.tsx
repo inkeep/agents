@@ -53,11 +53,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
-  // Aggregate stats now come from useAggregateStats hook
-  const [aiCallsByAgent, setAiCallsByAgent] = useState<
-    Array<{ agentId: string; totalCalls: number }>
-  >([]);
-  const [_aiCallsLoading, setAiCallsLoading] = useState(true);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
@@ -156,24 +151,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   // Aggregate stats now come directly from server-side aggregation
 
-  // Fetch AI calls by agent
-  useEffect(() => {
-    const fetchAICallsByAgent = async () => {
-      try {
-        setAiCallsLoading(true);
-        const client = getSigNozStatsClient();
-        const aiCallsData = await client.getAICallsByAgent(startTime, endTime, projectId as string);
-        setAiCallsByAgent(aiCallsData);
-      } catch (err) {
-        console.error('Error fetching AI calls by agent:', err);
-      } finally {
-        setAiCallsLoading(false);
-      }
-    };
-
-    fetchAICallsByAgent();
-  }, [startTime, endTime, projectId]);
-
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
@@ -239,14 +216,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
 
-  // Get AI calls for selected agent
-  const selectedAgentAICalls = useMemo(() => {
-    if (!selectedAgent) {
-      return aggregateStats.totalAICalls;
-    }
-    const agentAICalls = aiCallsByAgent.find((ac) => ac.agentId === selectedAgent);
-    return agentAICalls?.totalCalls || 0;
-  }, [selectedAgent, aiCallsByAgent, aggregateStats.totalAICalls]);
 
   if (error) {
     return (
@@ -424,7 +393,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
             {/* AI Usage */}
             <StatCard
               title="AI calls"
-              stat={selectedAgentAICalls}
+              stat={aggregateStats.totalAICalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={SparklesIcon}
@@ -448,6 +417,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         pagination={pagination}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        totalConversations={aggregateStats.totalConversations}
       />
     </div>
   );
