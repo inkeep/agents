@@ -391,21 +391,19 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'tool_call': {
             const { toolName } = data.details.data;
             const { subAgentId } = data.details;
-            setNodes((prevNodes) => {
-              setEdges((prevEdges) =>
-                prevEdges.map((edge) => {
-                  const node = prevNodes.find((node) => node.id === edge.target);
-                  const toolId = node?.data.toolId as string;
-                  const toolData = get().toolLookup[toolId];
-                  const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
-                  const hasDots = edge.source === subAgentId && hasTool;
-                  return {
-                    ...edge,
-                    data: { ...edge.data, delegating: hasDots },
-                  };
-                })
-              );
-              return prevNodes.map((node) => {
+            return {
+              edges: prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = get().toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return {
+                  ...edge,
+                  data: { ...edge.data, delegating: hasDots },
+                };
+              }),
+              nodes: prevNodes.map((node) => {
                 return {
                   ...node,
                   data: {
@@ -420,9 +418,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                         : null,
                   },
                 };
-              });
-            });
-            break;
+              }),
+            };
           }
           case 'error': {
             const { subAgentId } = data.details;
@@ -451,7 +448,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 prevEdges.map((edge) => {
                   const node = prevNodes.find((node) => node.id === edge.target);
                   const toolId = node?.data.toolId as string;
-                  const toolData = toolLookup[toolId];
+                  const toolData = get().toolLookup[toolId];
                   const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
 
                   return {
