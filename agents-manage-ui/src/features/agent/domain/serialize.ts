@@ -27,15 +27,13 @@ export type ExtendedAgent = InternalAgentDefinition & {
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
  */
-function safeJsonParse(jsonString: string | undefined | null): any {
-  if (!jsonString) return undefined;
-
+function safeJsonParse(jsonString?: string | null): any {
+  if (!jsonString) {
+    return;
+  }
   try {
     return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return undefined;
-  }
+  } catch {}
 }
 function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {
   if (modelsData && typeof modelsData === 'object') {

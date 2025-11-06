@@ -1,11 +1,8 @@
 /// <reference types="cypress" />
 
 describe('Validation', () => {
-  beforeEach(() => {
-    cy.visit('/');
-  });
-
   it('for sub agent validate only `prompt` as required field', () => {
+    cy.visit('/');
     // Click create graph button
     cy.contains('Create agent').click();
 
@@ -17,5 +14,22 @@ describe('Validation', () => {
     cy.contains('Validation Errors (1)').should('exist');
     cy.contains('Sub Agent Errors (1)').click();
     cy.contains('Sub Agent is missing required field: Prompt').should('exist');
+  });
+
+  it('should not allow save invalid JSON', () => {
+    cy.visit('/default/projects/my-weather-project/agents/weather-agent');
+    cy.get('.react-flow__node').eq(1).click();
+    cy.get('[data-panel-id=side-pane]').contains('Back').click();
+    cy.get('.monaco-editor').should('be.visible');
+    cy.window().then((win) => {
+      const models = (win.monaco as typeof import('monaco-editor')).editor.getModels();
+      const jsonModel = models.find((model) => model.uri.path.endsWith('.json'));
+      expect(jsonModel, 'JSON Monaco model').to.exist;
+
+      jsonModel.setValue('foo bar');
+    });
+    cy.contains('Save changes').click();
+    cy.get('[data-sonner-toast]').should('be.visible');
+    cy.contains('Agent saved').should('not.exist');
   });
 });
