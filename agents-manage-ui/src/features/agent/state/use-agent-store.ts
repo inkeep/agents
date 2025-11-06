@@ -82,6 +82,8 @@ type AgentActions = {
    * Setter for `jsonSchemaMode` field.
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
+
+  animateGraph: EventListenerOrEventListenerObject;
 };
 
 type AgentState = AgentStateData & {
@@ -315,6 +317,191 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });
     },
+    animateGraph(event) {
+      const data = event.detail;
+      window.ops ||= [];
+      window.ops.push({ detail: event.detail });
+      console.log('Data operation:', event.detail);
+      switch (data.type) {
+        case 'agent_initializing': {
+          // TODO
+          break;
+        }
+        case 'delegation_sent':
+        case 'transfer': {
+          const { fromSubAgent, targetSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+              prevEdges.map((edge) => ({
+                ...edge,
+                data: {
+                  ...edge.data,
+                  delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+                },
+              }))
+          );
+          setNodes((prevNodes) =>
+              prevNodes.map((node) => ({
+                ...node,
+                data: {
+                  ...node.data,
+                  status:
+                      node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null,
+                },
+              }))
+          );
+          break;
+        }
+        case 'delegation_returned': {
+          const { targetSubAgent, fromSubAgent } = data.details.data;
+          setEdges((prevEdges) =>
+              prevEdges.map((edge) => ({
+                ...edge,
+                data: {
+                  ...edge.data,
+                  delegating:
+                      edge.source === targetSubAgent && edge.target === fromSubAgent
+                          ? 'inverted'
+                          : false,
+                },
+              }))
+          );
+          setNodes((prevNodes) =>
+              prevNodes.map((node) => ({
+                ...node,
+                data: {
+                  ...node.data,
+                  status:
+                      node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null,
+                },
+              }))
+          );
+          break;
+        }
+        case 'tool_call': {
+          const { toolName } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+                prevEdges.map((edge) => {
+                  const node = prevNodes.find((node) => node.id === edge.target);
+                  const toolId = node?.data.toolId as string;
+                  const toolData = toolLookup[toolId];
+                  const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                  const hasDots = edge.source === subAgentId && hasTool;
+                  return {
+                    ...edge,
+                    data: { ...edge.data, delegating: hasDots },
+                  };
+                })
+            );
+            return prevNodes.map((node) => {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  status:
+                      node.data.id === subAgentId ||
+                      hasRelationWithSubAgent({
+                        relationshipId: node.data.relationshipId,
+                        subAgentId,
+                      })
+                          ? 'delegating'
+                          : null,
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'error': {
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) =>
+              prevNodes.map((node) => {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    status: hasRelationWithSubAgent({
+                      relationshipId: node.data.relationshipId,
+                      subAgentId,
+                    })
+                        ? 'error'
+                        : null,
+                  },
+                };
+              })
+          );
+          break;
+        }
+        case 'tool_result': {
+          const { toolName, error } = data.details.data;
+          const { subAgentId } = data.details;
+          setNodes((prevNodes) => {
+            setEdges((prevEdges) =>
+                prevEdges.map((edge) => {
+                  const node = prevNodes.find((node) => node.id === edge.target);
+                  const toolId = node?.data.toolId as string;
+                  const toolData = toolLookup[toolId];
+                  const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+
+                  return {
+                    ...edge,
+                    data: {
+                      ...edge.data,
+                      delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                    },
+                  };
+                })
+            );
+            return prevNodes.map((node) => {
+              let status: AnimatedNode['status'] = null;
+              if (
+                  hasRelationWithSubAgent({
+                    subAgentId,
+                    relationshipId: node.data.relationshipId,
+                  })
+              ) {
+                status = error ? 'error' : 'executing';
+              } else if (node.id === subAgentId) {
+                status = 'delegating';
+              }
+
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  status,
+                },
+              };
+            });
+          });
+          break;
+        }
+        case 'completion': {
+          onCompletion();
+          break;
+        }
+        case 'agent_generate': {
+          const { subAgentId } = data.details;
+          setEdges((prevEdges) =>
+              prevEdges.map((node) => ({
+                ...node,
+                data: { ...node.data, delegating: false },
+              }))
+          );
+          setNodes((prevNodes) =>
+              prevNodes.map((node) => ({
+                ...node,
+                data: {
+                  ...node.data,
+                  status: node.id === subAgentId ? 'executing' : null,
+                },
+              }))
+          );
+          break;
+        }
+      }
+    }
   },
 });
 
