@@ -370,8 +370,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'delegation_returned': {
             const { targetSubAgent, fromSubAgent } = data.details.data;
-            setEdges((prevEdges) =>
-              prevEdges.map((edge) => ({
+            return {
+              edges: prevEdges.map((edge) => ({
                 ...edge,
                 data: {
                   ...edge.data,
@@ -380,19 +380,16 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                       ? 'inverted'
                       : false,
                 },
-              }))
-            );
-            setNodes((prevNodes) =>
-              prevNodes.map((node) => ({
+              })),
+              nodes: prevNodes.map((node) => ({
                 ...node,
                 data: {
                   ...node.data,
                   status:
                     node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null,
                 },
-              }))
-            );
-            break;
+              })),
+            };
           }
           case 'tool_call': {
             const { toolName } = data.details.data;
@@ -402,7 +399,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 prevEdges.map((edge) => {
                   const node = prevNodes.find((node) => node.id === edge.target);
                   const toolId = node?.data.toolId as string;
-                  const toolData = toolLookup[toolId];
+                  const toolData = get().toolLookup[toolId];
                   const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
                   const hasDots = edge.source === subAgentId && hasTool;
                   return {
@@ -432,8 +429,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'error': {
             const { subAgentId } = data.details;
-            setNodes((prevNodes) =>
-              prevNodes.map((node) => {
+            return {
+              nodes: prevNodes.map((node) => {
                 return {
                   ...node,
                   data: {
@@ -446,9 +443,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                       : null,
                   },
                 };
-              })
-            );
-            break;
+              }),
+            };
           }
           case 'tool_result': {
             const { toolName, error } = data.details.data;
@@ -500,22 +496,19 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'agent_generate': {
             const { subAgentId } = data.details;
-            setEdges((prevEdges) =>
-              prevEdges.map((node) => ({
+            return {
+              edges: prevEdges.map((node) => ({
                 ...node,
                 data: { ...node.data, delegating: false },
-              }))
-            );
-            setNodes((prevNodes) =>
-              prevNodes.map((node) => ({
+              })),
+              nodes: prevNodes.map((node) => ({
                 ...node,
                 data: {
                   ...node.data,
                   status: node.id === subAgentId ? 'executing' : null,
                 },
-              }))
-            );
-            break;
+              })),
+            };
           }
         }
         return state;
