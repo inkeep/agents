@@ -433,7 +433,7 @@ export function registerAllComponents(
   // Register tools
   if (project.tools) {
     for (const toolId of Object.keys(project.tools)) {
-      registry.register(toolId, 'tool', `tools/${toolId}.ts`);
+      registry.register(toolId, 'mcpTool', `tools/${toolId}.ts`);
     }
   }
 

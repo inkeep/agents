@@ -30,7 +30,7 @@ describe('Component Parser', () => {
     }
   });
 
-  it.skip('should parse exported components', () => {
+  it.skip('should parse exported components', async () => {
     // Create test file with exported components
     const testFile = join(testDir, 'index.ts');
     writeFileSync(
@@ -78,7 +78,7 @@ export const myData = dataComponent({
     expect(data?.name).toBe('myData');
   });
 
-  it.skip('should parse inline components', () => {
+  it.skip('should parse inline components', async () => {
     // Create test file with inline components
     const testFile = join(testDir, 'agent.ts');
     writeFileSync(
@@ -136,7 +136,7 @@ export const mainAgent = agent({
     expect(inlineData?.name).toBe('inlineData');
   });
 
-  it.skip('should handle multiple files', () => {
+  it.skip('should handle multiple files', async () => {
     // Create multiple test files
     mkdirSync(join(testDir, 'agent'));
     mkdirSync(join(testDir, 'tool'));
@@ -228,7 +228,7 @@ export const data1 = dataComponent({id: 'data-1'});
     expect(ids.has('not-there')).toBe(false);
   });
 
-  it.skip('should handle kebab-case and snake_case IDs', () => {
+  it.skip('should handle kebab-case and snake_case IDs', async () => {
     const testFile = join(testDir, 'test.ts');
     writeFileSync(
       testFile,
