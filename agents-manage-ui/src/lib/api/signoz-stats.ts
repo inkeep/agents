@@ -170,8 +170,6 @@ class SigNozStatsAPI {
     agentId?: string
   ): Promise<ConversationStats[] | PaginatedConversationStats> {
     try {
-      // Fetch ALL conversation stats using ClickHouse - no pagination at DB level
-      // We'll paginate in memory after fetching everything
       let stats = await this.fetchAllConversationStatsWithClickHouse(
         startTime,
         endTime,
@@ -204,12 +202,11 @@ class SigNozStatsAPI {
         return stats;
       }
 
-      // Paginate in memory
       const { page, limit } = pagination;
       const total = stats.length;
       const totalPages = Math.ceil(total / limit);
-      const startIdx = (page - 1) * limit;
-      const data = stats.slice(startIdx, startIdx + limit);
+      const start = (page - 1) * limit;
+      const data = stats.slice(start, start + limit);
 
       return {
         data,
@@ -223,11 +220,7 @@ class SigNozStatsAPI {
         },
       };
     } catch (e) {
-      console.error('[getConversationStats] ERROR:', e);
-      console.error(
-        '[getConversationStats] Error stack:',
-        e instanceof Error ? e.stack : 'No stack'
-      );
+      console.error('getConversationStats error:', e);
       return pagination
         ? {
             data: [],
@@ -424,11 +417,8 @@ class SigNozStatsAPI {
         return [];
       }
       const data = result.series.map((s: any) => {
-        // For table format, columns are in labels
-        // Also check values[0] as fallback
         const row = s.labels || {};
         if (s.values && s.values.length > 0 && s.values[0]) {
-          // Merge values into row if labels don't have the data
           Object.assign(row, s.values[0]);
         }
         return row;
@@ -448,20 +438,25 @@ class SigNozStatsAPI {
     // Build maps for aggregation
     const metaByConv = new Map<string, { tenantId: string; agentId: string; agentName: string }>();
     for (const row of metadataData) {
-      const id = row.conversation_id || row.conversationId;
+      const id = row.conversation_id;
       if (id) {
-        const agentId = row.agent_id || row.agentId || UNKNOWN_VALUE;
-        const agentName = row.agent_name || row.agentName;
-        // If agent_name is empty, try to use agent_id as fallback (better than "unknown")
+        const agentId = row.agent_id || UNKNOWN_VALUE;
+        const agentName = row.agent_name;
+        
+        const existing = metaByConv.get(id);
+        const existingAgentName = existing?.agentName;
+        
         const finalAgentName =
-          agentName && agentName !== ''
+          agentName && agentName !== '' && agentName !== UNKNOWN_VALUE
             ? agentName
-            : agentId !== UNKNOWN_VALUE
-              ? agentId
-              : UNKNOWN_VALUE;
+            : existingAgentName && existingAgentName !== UNKNOWN_VALUE
+              ? existingAgentName
+              : agentId !== UNKNOWN_VALUE
+                ? agentId
+                : UNKNOWN_VALUE;
 
         metaByConv.set(id, {
-          tenantId: row.tenant_id || row.tenantId || UNKNOWN_VALUE,
+          tenantId: row.tenant_id || existing?.tenantId || UNKNOWN_VALUE,
           agentId,
           agentName: finalAgentName,
         });
@@ -470,9 +465,9 @@ class SigNozStatsAPI {
 
     const firstSeen = new Map<string, number>();
     for (const row of lastActivityData) {
-      const id = row.conversation_id || row.conversationId;
+      const id = row.conversation_id;
       // The aggregated value comes in the 'value' field from ClickHouse table format
-      const ts = row.value || row.first_timestamp_nano || row.firstTimestampNano;
+      const ts = row.value || row.first_timestamp_nano;
       if (id && ts !== null && ts !== undefined) {
         // Timestamp from toUnixTimestamp64Nano returns nanoseconds as a number (or string number)
         let timestamp: number;
@@ -603,10 +598,10 @@ class SigNozStatsAPI {
     const firstMsgByConv = new Map<string, { content: string; timestamp: number }>();
     const msgsByConv = new Map<string, Array<{ t: number; c: string }>>();
     for (const row of userMessagesData) {
-      const convId = row.conversation_id || row.conversationId;
-      const content = row.message_content || row.messageContent;
+      const convId = row.conversation_id;
+      const content = row.message_content;
       // The aggregated value comes in the 'value' field from ClickHouse table format
-      const ts = row.value || row.first_timestamp_nano || row.firstTimestampNano;
+      const ts = row.value || row.first_timestamp_nano;
 
       if (!convId) {
         console.warn(
