@@ -57,11 +57,9 @@ export const Folder = ({ item, depth = 0 }: { item: SidebarPage; depth?: number 
           <SidebarMenuButton
             data-depth={depth}
             className="group/folder-button"
-            style={
-              {
-                '--depth': `${depth * 1.5 + 0.5}rem`,
-              } as object
-            }
+            style={{
+              '--depth': `${depth * 1.5 + 0.5}rem`,
+            }}
           >
             {groupIcon && (
               <span
