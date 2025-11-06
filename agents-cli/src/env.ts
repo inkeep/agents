@@ -22,7 +22,10 @@ const envSchema = z.object({
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_BASEURL: z.string().optional().default('https://cloud.langfuse.com'),
-  LANGFUSE_ENABLED: z.string().optional().transform(val => val === 'true'),
+  LANGFUSE_ENABLED: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
 });
 
 const parseEnv = () => {

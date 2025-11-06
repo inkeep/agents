@@ -1,10 +1,9 @@
 import 'dotenv/config';
+import { context as otelContext, trace as otelTrace, propagation } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { Langfuse } from 'langfuse';
 import { getLogger } from './logger.js';
-import { context as otelContext, propagation, trace as otelTrace } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { W3CTraceContextPropagator } from '@opentelemetry/core';
-
 
 const otelProvider = new NodeTracerProvider();
 otelProvider.register({ propagator: new W3CTraceContextPropagator() });
@@ -27,7 +26,6 @@ interface ChatAPIResponse {
   error?: string;
   traceId?: string;
 }
-
 
 const REQUIRED_CONFIG_FIELDS = ['datasetName', 'tenantId', 'projectId', 'agentId'] as const;
 const REQUIRED_ENV_VARS = [
@@ -73,13 +71,17 @@ function validateRequiredConfig(config: Partial<RunConfig>): void {
 
 function validateRequiredEnvVars(): void {
   const missing = REQUIRED_ENV_VARS.filter((varName) => !process.env[varName]);
-  if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  if (missing.length > 0)
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
 }
 
 async function runDatasetEvaluation(config: RunConfig): Promise<void> {
   const { datasetName, tenantId, projectId, agentId, runName, baseUrl, apiKey, metadata } = config;
 
-  logger.info({ datasetName, tenantId, projectId, agentId, runName }, 'Starting Langfuse dataset evaluation');
+  logger.info(
+    { datasetName, tenantId, projectId, agentId, runName },
+    'Starting Langfuse dataset evaluation'
+  );
 
   const authKey = apiKey || process.env.INKEEP_AGENTS_RUN_API_KEY;
   if (!authKey) throw new Error('API key is required. Set INKEEP_AGENTS_RUN_API_KEY');
@@ -161,7 +163,8 @@ async function processItem(
 }
 
 function extractInputFromDatasetItem(item: any): string | null {
-  if (item?.input && typeof (item.input as any)?.message === 'string') return (item.input as any).message;
+  if (item?.input && typeof (item.input as any)?.message === 'string')
+    return (item.input as any).message;
   logger.warn({ item }, 'Could not extract input text from dataset item');
   return null;
 }
@@ -171,7 +174,7 @@ class ChatAPIClient {
     private baseUrl: string,
     private authKey: string,
     private ctx: { tenantId: string; projectId: string; agentId: string }
-  ) { }
+  ) {}
 
   async processDatasetItem(
     userMessage: string,
@@ -229,7 +232,10 @@ class ChatAPIClient {
         await langfuse.flushAsync();
 
         if (!response.ok) {
-          return { error: `Chat API error: ${response.status} ${response.statusText}`, traceId: langfuseTrace.id };
+          return {
+            error: `Chat API error: ${response.status} ${response.statusText}`,
+            traceId: langfuseTrace.id,
+          };
         }
         return { traceId: langfuseTrace.id };
       } catch (err) {

@@ -1,9 +1,9 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { contextConfigs } from '../db/schema';
 import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
+import { generateId } from '../utils/conversations';
 
 export const getContextConfigById =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {

@@ -1,8 +1,9 @@
 // server.ts
-import app from "./index.js";
-import { serve } from "@hono/node-server";
+
+import { serve } from '@hono/node-server';
+import app from './index.js';
 
 serve({
-	fetch: app.fetch,
-	port: 3002,
+  fetch: app.fetch,
+  port: 3002,
 });

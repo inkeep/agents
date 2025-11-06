@@ -10,7 +10,8 @@ describe('Validation', () => {
     cy.contains('Create agent').click();
 
     // Wait for app to initialize and click to save
-    cy.contains('Save').should('not.be.disabled').click();
+    cy.get('.react-flow__node-agent').should('be.visible');
+    cy.contains('Save').click();
 
     // Check for validation errors
     cy.contains('Validation Errors (1)').should('exist');

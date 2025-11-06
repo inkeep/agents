@@ -1,13 +1,13 @@
 /**
  * Project Comparator - Direct component comparison
- * 
+ *
  * Uses direct component-by-component comparison instead of regex parsing
  * of difference strings. Based on pull-v2's compareProjectDefinitions approach.
  */
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import type { ComponentRegistry } from './utils/component-registry';
+import type { ComponentRegistry, ComponentType } from './utils/component-registry';
 
 export interface ComponentChange {
   componentType: ComponentType;
@@ -51,22 +51,7 @@ export interface ProjectComparison {
   };
 }
 
-type ComponentType = 
-  | 'agent' 
-  | 'subAgent'
-  | 'tool' 
-  | 'functionTool'
-  | 'function'
-  | 'dataComponent' 
-  | 'artifactComponent' 
-  | 'statusComponent' 
-  | 'environment' 
-  | 'contextConfig' 
-  | 'fetchDefinition' 
-  | 'header' 
-  | 'credential'
-  | 'externalAgent'
-  | 'models';
+// ComponentType is imported from component-registry.ts
 
 /**
  * Compare two projects and classify all changes using direct component comparison
@@ -104,15 +89,17 @@ export async function compareProjects(
 /**
  * Handle new project case (everything is added)
  */
-function createNewProjectComparison(project: FullProjectDefinition, debug: boolean): ProjectComparison {
-
+function createNewProjectComparison(
+  project: FullProjectDefinition,
+  debug: boolean
+): ProjectComparison {
   const changes: ComponentChange[] = [];
 
   // Add all agents
   if (project.agents) {
-    Object.keys(project.agents).forEach(agentId => {
+    Object.keys(project.agents).forEach((agentId) => {
       changes.push({
-        componentType: 'agent',
+        componentType: 'agents',
         componentId: agentId,
         changeType: 'added',
       });
@@ -121,9 +108,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add all tools
   if (project.tools) {
-    Object.keys(project.tools).forEach(toolId => {
+    Object.keys(project.tools).forEach((toolId) => {
       changes.push({
-        componentType: 'tool',
+        componentType: 'tools',
         componentId: toolId,
         changeType: 'added',
       });
@@ -132,9 +119,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add all function tools (including hoisted from agents)
   if (project.functionTools) {
-    Object.keys(project.functionTools).forEach(toolId => {
+    Object.keys(project.functionTools).forEach((toolId) => {
       changes.push({
-        componentType: 'functionTool',
+        componentType: 'functionTools',
         componentId: toolId,
         changeType: 'added',
       });
@@ -143,9 +130,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add all functions (execution code for function tools)
   if (project.functions) {
-    Object.keys(project.functions).forEach(funcId => {
+    Object.keys(project.functions).forEach((funcId) => {
       changes.push({
-        componentType: 'function',
+        componentType: 'functions',
         componentId: funcId,
         changeType: 'added',
       });
@@ -154,9 +141,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add all data components
   if (project.dataComponents) {
-    Object.keys(project.dataComponents).forEach(componentId => {
+    Object.keys(project.dataComponents).forEach((componentId) => {
       changes.push({
-        componentType: 'dataComponent',
+        componentType: 'dataComponents',
         componentId: componentId,
         changeType: 'added',
       });
@@ -165,9 +152,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add all artifact components
   if (project.artifactComponents) {
-    Object.keys(project.artifactComponents).forEach(componentId => {
+    Object.keys(project.artifactComponents).forEach((componentId) => {
       changes.push({
-        componentType: 'artifactComponent',
+        componentType: 'artifactComponents',
         componentId: componentId,
         changeType: 'added',
       });
@@ -178,9 +165,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
   if (project.agents) {
     Object.entries(project.agents).forEach(([agentId, agentData]) => {
       if (agentData.subAgents) {
-        Object.keys(agentData.subAgents).forEach(subAgentId => {
+        Object.keys(agentData.subAgents).forEach((subAgentId) => {
           changes.push({
-            componentType: 'subAgent',
+            componentType: 'subAgents',
             componentId: subAgentId,
             changeType: 'added',
           });
@@ -191,9 +178,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add status components (extracted from agents)
   const statusComponents = extractStatusComponentIds(project);
-  statusComponents.forEach(componentId => {
+  statusComponents.forEach((componentId) => {
     changes.push({
-      componentType: 'statusComponent',
+      componentType: 'statusComponents',
       componentId: componentId,
       changeType: 'added',
     });
@@ -208,7 +195,7 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
           return; // Skip this contextConfig if no ID
         }
         changes.push({
-          componentType: 'contextConfig',
+          componentType: 'contextConfigs',
           componentId: contextConfigId,
           changeType: 'added',
         });
@@ -218,9 +205,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add external agents
   if (project.externalAgents) {
-    Object.keys(project.externalAgents).forEach(extAgentId => {
+    Object.keys(project.externalAgents).forEach((extAgentId) => {
       changes.push({
-        componentType: 'externalAgent',
+        componentType: 'externalAgents',
         componentId: extAgentId,
         changeType: 'added',
       });
@@ -229,9 +216,9 @@ function createNewProjectComparison(project: FullProjectDefinition, debug: boole
 
   // Add environments/credentials
   if (project.credentialReferences) {
-    Object.keys(project.credentialReferences).forEach(credId => {
+    Object.keys(project.credentialReferences).forEach((credId) => {
       changes.push({
-        componentType: 'credential',
+        componentType: 'credentials',
         componentId: credId,
         changeType: 'added',
       });
@@ -260,18 +247,49 @@ function compareComponentsDirectly(
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
-
   // Compare each component type
   changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
   changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
   changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}, debug));
-  changes.push(...compareFunctionTools(localProject.functionTools || {}, remoteProject.functionTools || {}, debug));
-  changes.push(...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug));
-  changes.push(...compareDataComponents(localProject.dataComponents || {}, remoteProject.dataComponents || {}, debug));
-  changes.push(...compareArtifactComponents(localProject.artifactComponents || {}, remoteProject.artifactComponents || {}, debug));
-  changes.push(...compareCredentials(localProject.credentialReferences || {}, remoteProject.credentialReferences || {}, debug));
+  changes.push(
+    ...compareFunctionTools(
+      localProject.functionTools || {},
+      remoteProject.functionTools || {},
+      debug
+    )
+  );
+  changes.push(
+    ...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug)
+  );
+  changes.push(
+    ...compareDataComponents(
+      localProject.dataComponents || {},
+      remoteProject.dataComponents || {},
+      debug
+    )
+  );
+  changes.push(
+    ...compareArtifactComponents(
+      localProject.artifactComponents || {},
+      remoteProject.artifactComponents || {},
+      debug
+    )
+  );
+  changes.push(
+    ...compareCredentials(
+      localProject.credentialReferences || {},
+      remoteProject.credentialReferences || {},
+      debug
+    )
+  );
 
-  changes.push(...compareExternalAgents(localProject.externalAgents || {}, remoteProject.externalAgents || {}, debug));
+  changes.push(
+    ...compareExternalAgents(
+      localProject.externalAgents || {},
+      remoteProject.externalAgents || {},
+      debug
+    )
+  );
   // Extract status components from agents for comparison
   const localStatusComponents = extractStatusComponentsFromProject(localProject);
   const remoteStatusComponents = extractStatusComponentsFromProject(remoteProject);
@@ -280,10 +298,10 @@ function compareComponentsDirectly(
   // Compare contextConfig and fetchDefinition components separately
   changes.push(...compareContextConfigs(localProject, remoteProject, localRegistry, debug));
   changes.push(...compareFetchDefinitions(localProject, remoteProject, debug));
-  
+
   // Compare project-level models
   changes.push(...compareProjectModels(localProject.models, remoteProject.models, debug));
-  
+
   // Compare project-level fields
   changes.push(...compareProjectFields(localProject, remoteProject, debug));
 
@@ -302,44 +320,45 @@ function compareAgents(
   const localIds = Object.keys(localAgents);
   const remoteIds = Object.keys(remoteAgents);
 
-
   // Find added agents
-  remoteIds.filter(id => !localIds.includes(id)).forEach(id => {
-    const agent = remoteAgents[id];
-    changes.push({ 
-      componentType: 'agent', 
-      componentId: id, 
-      changeType: 'added',
-      summary: `New agent: ${agent.name || id}`
+  remoteIds
+    .filter((id) => !localIds.includes(id))
+    .forEach((id) => {
+      const agent = remoteAgents[id];
+      changes.push({
+        componentType: 'agents',
+        componentId: id,
+        changeType: 'added',
+        summary: `New agent: ${agent.name || id}`,
+      });
     });
-  });
 
   // Find deleted agents
-  localIds.filter(id => !remoteIds.includes(id)).forEach(id => {
-    const agent = localAgents[id];
-    changes.push({ 
-      componentType: 'agent', 
-      componentId: id, 
-      changeType: 'deleted',
-      summary: `Removed agent: ${agent.name || id}`
+  localIds
+    .filter((id) => !remoteIds.includes(id))
+    .forEach((id) => {
+      const agent = localAgents[id];
+      changes.push({
+        componentType: 'agents',
+        componentId: id,
+        changeType: 'deleted',
+        summary: `Removed agent: ${agent.name || id}`,
+      });
     });
-  });
 
   // Find modified agents with detailed field changes
-  const commonIds = localIds.filter(id => remoteIds.includes(id));
-  commonIds.forEach(id => {
-    
+  const commonIds = localIds.filter((id) => remoteIds.includes(id));
+  commonIds.forEach((id) => {
     const fieldChanges = getDetailedFieldChanges('', localAgents[id], remoteAgents[id]);
     if (fieldChanges.length > 0) {
       const summary = generateAgentChangeSummary(fieldChanges);
-      changes.push({ 
-        componentType: 'agent', 
-        componentId: id, 
+      changes.push({
+        componentType: 'agents',
+        componentId: id,
         changeType: 'modified',
         changedFields: fieldChanges,
-        summary
+        summary,
       });
-      
     }
   });
 
@@ -356,7 +375,7 @@ function compareSubAgents(
   debug: boolean
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
-  
+
   // Extract all subAgents from local agents
   const localSubAgents: Record<string, any> = {};
   for (const [agentId, agentData] of Object.entries(localAgents)) {
@@ -366,7 +385,7 @@ function compareSubAgents(
       }
     }
   }
-  
+
   // Extract all subAgents from remote agents
   const remoteSubAgents: Record<string, any> = {};
   for (const [agentId, agentData] of Object.entries(remoteAgents)) {
@@ -376,50 +395,52 @@ function compareSubAgents(
       }
     }
   }
-  
+
   const localIds = Object.keys(localSubAgents);
   const remoteIds = Object.keys(remoteSubAgents);
-  
-  
+
   // Find added subAgents
-  remoteIds.filter(id => !localIds.includes(id)).forEach(id => {
-    const subAgent = remoteSubAgents[id];
-    changes.push({ 
-      componentType: 'subAgent', 
-      componentId: id, 
-      changeType: 'added',
-      summary: `New subAgent: ${subAgent.name || id}`
+  remoteIds
+    .filter((id) => !localIds.includes(id))
+    .forEach((id) => {
+      const subAgent = remoteSubAgents[id];
+      changes.push({
+        componentType: 'subAgents',
+        componentId: id,
+        changeType: 'added',
+        summary: `New subAgent: ${subAgent.name || id}`,
+      });
     });
-  });
-  
+
   // Find deleted subAgents
-  localIds.filter(id => !remoteIds.includes(id)).forEach(id => {
-    const subAgent = localSubAgents[id];
-    changes.push({ 
-      componentType: 'subAgent', 
-      componentId: id, 
-      changeType: 'deleted',
-      summary: `Removed subAgent: ${subAgent.name || id}`
+  localIds
+    .filter((id) => !remoteIds.includes(id))
+    .forEach((id) => {
+      const subAgent = localSubAgents[id];
+      changes.push({
+        componentType: 'subAgents',
+        componentId: id,
+        changeType: 'deleted',
+        summary: `Removed subAgent: ${subAgent.name || id}`,
+      });
     });
-  });
-  
+
   // Find modified subAgents with detailed field changes
-  const commonIds = localIds.filter(id => remoteIds.includes(id));
-  commonIds.forEach(id => {
+  const commonIds = localIds.filter((id) => remoteIds.includes(id));
+  commonIds.forEach((id) => {
     const fieldChanges = getDetailedFieldChanges('', localSubAgents[id], remoteSubAgents[id]);
     if (fieldChanges.length > 0) {
       const summary = generateSubAgentChangeSummary(fieldChanges);
-      changes.push({ 
-        componentType: 'subAgent', 
-        componentId: id, 
+      changes.push({
+        componentType: 'subAgents',
+        componentId: id,
         changeType: 'modified',
         changedFields: fieldChanges,
-        summary
+        summary,
       });
-      
     }
   });
-  
+
   return changes;
 }
 
@@ -427,9 +448,11 @@ function compareSubAgents(
  * Generate a summary for subAgent changes
  */
 function generateSubAgentChangeSummary(fieldChanges: FieldChange[]): string {
-  const changeTypes = new Set(fieldChanges.map(c => c.changeType));
-  const fieldNames = fieldChanges.map(c => c.field.split('.')[0]).filter((value, index, self) => self.indexOf(value) === index);
-  
+  const changeTypes = new Set(fieldChanges.map((c) => c.changeType));
+  const fieldNames = fieldChanges
+    .map((c) => c.field.split('.')[0])
+    .filter((value, index, self) => self.indexOf(value) === index);
+
   if (changeTypes.has('modified') && fieldNames.length === 1) {
     return `Modified ${fieldNames[0]}`;
   } else if (changeTypes.has('added') && changeTypes.has('deleted')) {
@@ -451,7 +474,7 @@ function compareTools(
   remoteTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('tool', localTools, remoteTools, debug);
+  return compareComponentMaps('tools', localTools, remoteTools, debug);
 }
 
 /**
@@ -462,7 +485,7 @@ function compareFunctionTools(
   remoteFunctionTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('functionTool', localFunctionTools, remoteFunctionTools, debug);
+  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools, debug);
 }
 
 /**
@@ -476,28 +499,28 @@ function compareFunctions(
   // Clean functions data by removing metadata fields that belong to functionTools
   const cleanLocalFunctions: Record<string, any> = {};
   const cleanRemoteFunctions: Record<string, any> = {};
-  
+
   // Clean local functions
   for (const [id, func] of Object.entries(localFunctions)) {
     cleanLocalFunctions[id] = {
       id: func.id,
       inputSchema: func.inputSchema,
       executeCode: func.executeCode,
-      dependencies: func.dependencies
+      dependencies: func.dependencies,
     };
   }
-  
+
   // Clean remote functions
   for (const [id, func] of Object.entries(remoteFunctions)) {
     cleanRemoteFunctions[id] = {
       id: func.id,
       inputSchema: func.inputSchema,
       executeCode: func.executeCode,
-      dependencies: func.dependencies
+      dependencies: func.dependencies,
     };
   }
 
-  return compareComponentMaps('function', cleanLocalFunctions, cleanRemoteFunctions, debug);
+  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions, debug);
 }
 
 /**
@@ -508,7 +531,7 @@ function compareDataComponents(
   remoteDataComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('dataComponent', localDataComponents, remoteDataComponents, debug);
+  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents, debug);
 }
 
 /**
@@ -519,7 +542,12 @@ function compareArtifactComponents(
   remoteArtifactComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('artifactComponent', localArtifactComponents, remoteArtifactComponents, debug);
+  return compareComponentMaps(
+    'artifactComponents',
+    localArtifactComponents,
+    remoteArtifactComponents,
+    debug
+  );
 }
 
 /**
@@ -530,7 +558,7 @@ function compareCredentials(
   remoteCredentials: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('credential', localCredentials, remoteCredentials, debug);
+  return compareComponentMaps('credentials', localCredentials, remoteCredentials, debug);
 }
 
 /**
@@ -541,7 +569,7 @@ function compareExternalAgents(
   remoteExternalAgents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('externalAgent', localExternalAgents, remoteExternalAgents, debug);
+  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents, debug);
 }
 
 /**
@@ -552,7 +580,12 @@ function compareStatusComponents(
   remoteStatusComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('statusComponent', localStatusComponents, remoteStatusComponents, debug);
+  return compareComponentMaps(
+    'statusComponents',
+    localStatusComponents,
+    remoteStatusComponents,
+    debug
+  );
 }
 
 /**
@@ -564,23 +597,22 @@ function compareProjectModels(
   debug: boolean
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
-  
+
   // Get detailed field changes for models
   const fieldChanges = getDetailedFieldChanges('', localModels, remoteModels);
-  
+
   if (fieldChanges.length > 0) {
     const summary = generateModelsChangeSummary(fieldChanges);
-    
-    
+
     changes.push({
       componentType: 'models',
       componentId: 'project',
       changeType: 'modified',
       changedFields: fieldChanges,
-      summary
+      summary,
     });
   }
-  
+
   return changes;
 }
 
@@ -589,19 +621,19 @@ function compareProjectModels(
  */
 function generateModelsChangeSummary(fieldChanges: FieldChange[]): string {
   const modelTypes: string[] = [];
-  
-  fieldChanges.forEach(change => {
+
+  fieldChanges.forEach((change) => {
     const field = change.field;
     if (field.includes('base')) modelTypes.push('base model');
     else if (field.includes('structuredOutput')) modelTypes.push('structured output model');
     else if (field.includes('model')) modelTypes.push('model configuration');
   });
-  
+
   const uniqueTypes = [...new Set(modelTypes)];
   if (uniqueTypes.length > 0) {
     return `Updated ${uniqueTypes.join(', ')}`;
   }
-  
+
   return `${fieldChanges.length} model configuration changes`;
 }
 
@@ -614,31 +646,30 @@ function compareProjectFields(
   debug: boolean
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
-  
+
   // Compare basic project fields
   const projectFields = ['name', 'description', 'stopWhen'];
-  
+
   for (const field of projectFields) {
     const oldValue = (localProject as any)[field];
     const newValue = (remoteProject as any)[field];
-    
+
     if (!deepEqual(oldValue, newValue)) {
       const fieldChanges = getDetailedFieldChanges('', oldValue, newValue);
       if (fieldChanges.length > 0) {
         const summary = `Project ${field} updated`;
-        
+
         changes.push({
-          componentType: 'contextConfig', // Use contextConfig as catch-all for project-level changes
+          componentType: 'contextConfigs', // Use contextConfig as catch-all for project-level changes
           componentId: `project-${field}`,
           changeType: 'modified',
           changedFields: fieldChanges,
-          summary
+          summary,
         });
-        
       }
     }
   }
-  
+
   return changes;
 }
 
@@ -655,45 +686,47 @@ function compareComponentMaps(
   const localIds = Object.keys(localMap);
   const remoteIds = Object.keys(remoteMap);
 
-
   // Find added components
-  remoteIds.filter(id => !localIds.includes(id)).forEach(id => {
-    const component = remoteMap[id];
-    const summary = generateComponentSummary(componentType, 'added', component);
-    changes.push({ 
-      componentType, 
-      componentId: id, 
-      changeType: 'added',
-      summary
+  remoteIds
+    .filter((id) => !localIds.includes(id))
+    .forEach((id) => {
+      const component = remoteMap[id];
+      const summary = generateComponentSummary(componentType, 'added', component);
+      changes.push({
+        componentType,
+        componentId: id,
+        changeType: 'added',
+        summary,
+      });
     });
-  });
 
   // Find deleted components
-  localIds.filter(id => !remoteIds.includes(id)).forEach(id => {
-    const component = localMap[id];
-    const summary = generateComponentSummary(componentType, 'deleted', component);
-    changes.push({ 
-      componentType, 
-      componentId: id, 
-      changeType: 'deleted',
-      summary
+  localIds
+    .filter((id) => !remoteIds.includes(id))
+    .forEach((id) => {
+      const component = localMap[id];
+      const summary = generateComponentSummary(componentType, 'deleted', component);
+      changes.push({
+        componentType,
+        componentId: id,
+        changeType: 'deleted',
+        summary,
+      });
     });
-  });
 
   // Find modified components with detailed field changes
-  const commonIds = localIds.filter(id => remoteIds.includes(id));
-  commonIds.forEach(id => {
+  const commonIds = localIds.filter((id) => remoteIds.includes(id));
+  commonIds.forEach((id) => {
     const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
     if (fieldChanges.length > 0) {
       const summary = generateComponentChangeSummary(componentType, fieldChanges);
-      changes.push({ 
-        componentType, 
-        componentId: id, 
+      changes.push({
+        componentType,
+        componentId: id,
         changeType: 'modified',
         changedFields: fieldChanges,
-        summary
+        summary,
       });
-      
     }
   });
 
@@ -720,7 +753,7 @@ function compareArraysAsSet(
   depth: number
 ): FieldChange[] {
   const changes: FieldChange[] = [];
-  
+
   // Create a key function to uniquely identify array items
   const getItemKey = (item: any): string => {
     if (typeof item === 'string') return item;
@@ -737,21 +770,21 @@ function compareArraysAsSet(
     }
     return String(item);
   };
-  
+
   // Create maps for easier comparison
   const oldMap = new Map<string, any>();
   const newMap = new Map<string, any>();
-  
+
   oldArray.forEach((item, index) => {
     const key = getItemKey(item);
     oldMap.set(key, { item, index });
   });
-  
+
   newArray.forEach((item, index) => {
     const key = getItemKey(item);
     newMap.set(key, { item, index });
   });
-  
+
   // Find added items
   for (const [key, { item }] of newMap) {
     if (!oldMap.has(key)) {
@@ -759,11 +792,11 @@ function compareArraysAsSet(
         field: `${basePath}[+${key}]`,
         changeType: 'added',
         newValue: item,
-        description: `Added array item: ${formatValue(item)}`
+        description: `Added array item: ${formatValue(item)}`,
       });
     }
   }
-  
+
   // Find removed items
   for (const [key, { item }] of oldMap) {
     if (!newMap.has(key)) {
@@ -771,20 +804,25 @@ function compareArraysAsSet(
         field: `${basePath}[-${key}]`,
         changeType: 'deleted',
         oldValue: item,
-        description: `Removed array item: ${formatValue(item)}`
+        description: `Removed array item: ${formatValue(item)}`,
       });
     }
   }
-  
+
   // Find modified items (same key, different content)
   for (const [key, { item: newItem }] of newMap) {
     if (oldMap.has(key)) {
       const { item: oldItem } = oldMap.get(key)!;
-      const itemChanges = getDetailedFieldChanges(`${basePath}[${key}]`, oldItem, newItem, depth + 1);
+      const itemChanges = getDetailedFieldChanges(
+        `${basePath}[${key}]`,
+        oldItem,
+        newItem,
+        depth + 1
+      );
       changes.push(...itemChanges);
     }
   }
-  
+
   return changes;
 }
 
@@ -798,29 +836,28 @@ function getDetailedFieldChanges(
   depth: number = 0
 ): FieldChange[] {
   const changes: FieldChange[] = [];
-  
-  
+
   // Prevent infinite recursion
   if (depth > 10) return changes;
-  
+
   // Ignore database/SDK generated fields that shouldn't affect comparison
   const ignoredFields = [
     // Database-generated IDs
-    'agentToolRelationId', 
+    'agentToolRelationId',
     'subAgentExternalAgentRelationId',
-    'subAgentTeamAgentRelationId', 
+    'subAgentTeamAgentRelationId',
     'subAgentToolRelationId',
     'agentExternalAgentRelationId',
     'teamAgentRelationId',
     '_agentId',
     'teamAgents',
-    "_parentAgentId",
-    "_contextConfigData",
+    '_parentAgentId',
+    '_contextConfigData',
     // SDK-generated metadata
-    'type', 
+    'type',
     // Runtime context fields
-    'tenantId', 
-    'projectId', 
+    'tenantId',
+    'projectId',
     'agentId',
     // Runtime/error fields
     'lastError',
@@ -833,19 +870,19 @@ function getDetailedFieldChanges(
     'tools', // Tools are handled at project level and sub-agent level via canUse
     'teamAgents', // Team relationships are handled elsewhere
     // Timestamps
-    'createdAt', 
-    'updatedAt'
+    'createdAt',
+    'updatedAt',
   ];
-  
+
   // Handle empty value equivalence - null, undefined, [], {} are all considered "empty"
   const oldIsEmpty = isEmpty(oldObj);
   const newIsEmpty = isEmpty(newObj);
-  
+
   // If both are empty, no change
   if (oldIsEmpty && newIsEmpty) {
     return changes;
   }
-  
+
   // If only one is empty and the other has meaningful content, that's a change
   if (oldIsEmpty && !newIsEmpty) {
     const fieldPath = basePath || 'root';
@@ -854,11 +891,11 @@ function getDetailedFieldChanges(
       changeType: 'added',
       oldValue: oldObj,
       newValue: newObj,
-      description: `Added: ${formatValue(newObj)}`
+      description: `Added: ${formatValue(newObj)}`,
     });
     return changes;
   }
-  
+
   if (!oldIsEmpty && newIsEmpty) {
     const fieldPath = basePath || 'root';
     changes.push({
@@ -866,11 +903,11 @@ function getDetailedFieldChanges(
       changeType: 'deleted',
       oldValue: oldObj,
       newValue: newObj,
-      description: `Removed: ${formatValue(oldObj)}`
+      description: `Removed: ${formatValue(oldObj)}`,
     });
     return changes;
   }
-  
+
   // Handle arrays - all arrays are order-independent by default
   if (Array.isArray(oldObj) && Array.isArray(newObj)) {
     // Special handling for canDelegateTo arrays - normalize enriched vs non-enriched forms
@@ -881,41 +918,40 @@ function getDetailedFieldChanges(
     }
     return compareArraysAsSet(basePath, oldObj, newObj, depth);
   }
-  
+
   // Handle objects
   if (typeof oldObj === 'object' && typeof newObj === 'object') {
     const oldKeys = Object.keys(oldObj);
     const newKeys = Object.keys(newObj);
     const allKeys = [...new Set([...oldKeys, ...newKeys])];
-    
+
     for (const key of allKeys) {
       const fieldPath = basePath ? `${basePath}.${key}` : key;
-      
-      
+
       // Check if this field path should be ignored
-      const shouldIgnore = ignoredFields.some(ignored => {
+      const shouldIgnore = ignoredFields.some((ignored) => {
         // Exact field path match (e.g., "contextConfig.id")
         if (fieldPath === ignored) return true;
-        
+
         // Exact key match (e.g., "status", "createdAt")
         if (key === ignored) return true;
-        
+
         // For nested paths, check if we're at that exact path
         if (ignored.includes('.') && fieldPath === ignored) return true;
-        
+
         return false;
       });
-      
+
       if (shouldIgnore) {
         if (basePath === '' && key === 'statusUpdates') {
           console.log(`   ⚠️ statusUpdates field is being IGNORED due to ignored fields check`);
         }
         continue; // Skip this field
       }
-      
+
       const oldValue = oldObj[key];
       const newValue = newObj[key];
-      
+
       if (!(key in oldObj)) {
         // Only report as added if the new value is not empty
         if (!isEmpty(newValue)) {
@@ -923,7 +959,7 @@ function getDetailedFieldChanges(
             field: fieldPath,
             changeType: 'added',
             newValue: newValue,
-            description: `Added field: ${formatValue(newValue)}`
+            description: `Added field: ${formatValue(newValue)}`,
           });
         }
       } else if (!(key in newObj)) {
@@ -933,7 +969,7 @@ function getDetailedFieldChanges(
             field: fieldPath,
             changeType: 'deleted',
             oldValue: oldValue,
-            description: `Removed field: ${formatValue(oldValue)}`
+            description: `Removed field: ${formatValue(oldValue)}`,
           });
         }
       } else {
@@ -944,7 +980,7 @@ function getDetailedFieldChanges(
     }
     return changes;
   }
-  
+
   // Handle primitives
   if (oldObj !== newObj) {
     const fieldPath = basePath || 'value';
@@ -953,10 +989,10 @@ function getDetailedFieldChanges(
       changeType: 'modified',
       oldValue: oldObj,
       newValue: newObj,
-      description: `Changed from ${formatValue(oldObj)} to ${formatValue(newObj)}`
+      description: `Changed from ${formatValue(oldObj)} to ${formatValue(newObj)}`,
     });
   }
-  
+
   return changes;
 }
 
@@ -996,10 +1032,10 @@ function formatValue(value: any): string {
     }
     if (Object.keys(value).length === 0) return '{}';
     const keys = Object.keys(value);
-    
+
     // Show key-value pairs for small objects
     if (keys.length <= 3) {
-      const pairs = keys.map(key => {
+      const pairs = keys.map((key) => {
         const val = value[key];
         if (typeof val === 'string') {
           return `${key}: "${val.length > 15 ? val.substring(0, 12) + '...' : val}"`;
@@ -1011,7 +1047,7 @@ function formatValue(value: any): string {
       });
       return `{${pairs.join(', ')}}`;
     }
-    
+
     // For larger objects, just show key names
     if (keys.length <= 5) {
       return `{${keys.join(', ')}}`;
@@ -1026,53 +1062,64 @@ function formatValue(value: any): string {
  */
 function generateAgentChangeSummary(fieldChanges: FieldChange[]): string {
   const summaryParts: string[] = [];
-  
+
   // Check for important field changes
-  const nameChange = fieldChanges.find(c => c.field === 'name');
-  const promptChange = fieldChanges.find(c => c.field === 'prompt');
-  const modelChanges = fieldChanges.filter(c => c.field.startsWith('models'));
-  const toolChanges = fieldChanges.filter(c => c.field.includes('canUse') || c.field.includes('tools'));
-  const subAgentChanges = fieldChanges.filter(c => c.field.includes('subAgents') || c.field.includes('canDelegateTo'));
-  
+  const nameChange = fieldChanges.find((c) => c.field === 'name');
+  const promptChange = fieldChanges.find((c) => c.field === 'prompt');
+  const modelChanges = fieldChanges.filter((c) => c.field.startsWith('models'));
+  const toolChanges = fieldChanges.filter(
+    (c) => c.field.includes('canUse') || c.field.includes('tools')
+  );
+  const subAgentChanges = fieldChanges.filter(
+    (c) => c.field.includes('subAgents') || c.field.includes('canDelegateTo')
+  );
+
   if (nameChange) summaryParts.push('name updated');
   if (promptChange) summaryParts.push('prompt changed');
   if (modelChanges.length > 0) summaryParts.push(`${modelChanges.length} model changes`);
   if (toolChanges.length > 0) summaryParts.push(`${toolChanges.length} tool changes`);
   if (subAgentChanges.length > 0) summaryParts.push(`${subAgentChanges.length} sub-agent changes`);
-  
+
   if (summaryParts.length === 0) {
     return `${fieldChanges.length} field changes`;
   }
-  
+
   return summaryParts.join(', ');
 }
 
 /**
  * Generate summary for component addition/deletion
  */
-function generateComponentSummary(componentType: ComponentType, changeType: 'added' | 'deleted', component: any): string {
+function generateComponentSummary(
+  componentType: ComponentType,
+  changeType: 'added' | 'deleted',
+  component: any
+): string {
   const name = component?.name || component?.id || 'unnamed';
   const action = changeType === 'added' ? 'Added' : 'Removed';
-  
-  if (componentType === 'tool') {
+
+  if (componentType === 'tools') {
     const toolType = component?.config?.type || 'unknown type';
     return `${action} ${toolType} tool: ${name}`;
   }
-  
+
   return `${action} ${componentType}: ${name}`;
 }
 
 /**
  * Generate summary for component modifications
  */
-function generateComponentChangeSummary(componentType: ComponentType, fieldChanges: FieldChange[]): string {
-  if (componentType === 'tool') {
-    const configChanges = fieldChanges.filter(c => c.field.startsWith('config'));
+function generateComponentChangeSummary(
+  componentType: ComponentType,
+  fieldChanges: FieldChange[]
+): string {
+  if (componentType === 'tools') {
+    const configChanges = fieldChanges.filter((c) => c.field.startsWith('config'));
     if (configChanges.length > 0) {
       return `Configuration updated (${configChanges.length} changes)`;
     }
   }
-  
+
   return `${fieldChanges.length} field changes`;
 }
 
@@ -1083,17 +1130,17 @@ function deepEqual(a: any, b: any): boolean {
   // Handle empty value equivalence first
   const aIsEmpty = isEmpty(a);
   const bIsEmpty = isEmpty(b);
-  
+
   // If both are empty, they're equal
   if (aIsEmpty && bIsEmpty) {
     return true;
   }
-  
+
   // If only one is empty, they're not equal
   if (aIsEmpty !== bIsEmpty) {
     return false;
   }
-  
+
   // Both have content, check for detailed changes
   const changes = getDetailedFieldChanges('', a, b);
   return changes.length === 0;
@@ -1104,9 +1151,9 @@ function deepEqual(a: any, b: any): boolean {
  */
 function extractStatusComponentIds(project: FullProjectDefinition): string[] {
   const statusComponentIds: string[] = [];
-  
+
   if (!project.agents) return statusComponentIds;
-  
+
   for (const agentData of Object.values(project.agents)) {
     if ((agentData as any).statusUpdates?.statusComponents) {
       for (const statusComp of (agentData as any).statusUpdates.statusComponents) {
@@ -1117,7 +1164,7 @@ function extractStatusComponentIds(project: FullProjectDefinition): string[] {
       }
     }
   }
-  
+
   return statusComponentIds;
 }
 
@@ -1126,11 +1173,11 @@ function extractStatusComponentIds(project: FullProjectDefinition): string[] {
  */
 function extractStatusComponentsFromProject(project: FullProjectDefinition): Record<string, any> {
   const statusComponents: Record<string, any> = {};
-  
+
   if (!project.agents) {
     return statusComponents;
   }
-  
+
   for (const [_, agentData] of Object.entries(project.agents)) {
     if ((agentData as any).statusUpdates?.statusComponents) {
       for (const statusComp of (agentData as any).statusUpdates.statusComponents) {
@@ -1140,7 +1187,7 @@ function extractStatusComponentsFromProject(project: FullProjectDefinition): Rec
         }
       }
     }
-  }  
+  }
   return statusComponents;
 }
 
@@ -1149,34 +1196,15 @@ function extractStatusComponentsFromProject(project: FullProjectDefinition): Rec
  */
 function groupChangesByType(changes: ComponentChange[]): ProjectComparison['componentChanges'] {
   const result = createEmptyComponentChanges();
-  
-  // Map singular ComponentType to plural componentChanges keys
-  const typeMapping: Record<string, keyof ProjectComparison['componentChanges']> = {
-    'agent': 'agents',
-    'subAgent': 'subAgents',
-    'tool': 'tools', 
-    'functionTool': 'functionTools',
-    'function': 'functions',
-    'dataComponent': 'dataComponents',
-    'artifactComponent': 'artifactComponents',
-    'statusComponent': 'statusComponents',
-    'environment': 'environments',
-    'contextConfig': 'contextConfigs',
-    'fetchDefinition': 'fetchDefinitions',
-    'header': 'headers',
-    'credential': 'credentials',
-    'externalAgent': 'externalAgents',
-    'models': 'models'
-  };
-  
-  changes.forEach(change => {
-    const groupKey = typeMapping[change.componentType];
-    const group = result[groupKey];
+
+  changes.forEach((change) => {
+    // componentChanges keys now match ComponentType directly
+    const group = result[change.componentType as keyof ProjectComparison['componentChanges']];
     if (group && !group[change.changeType].includes(change.componentId)) {
       group[change.changeType].push(change.componentId);
     }
   });
-  
+
   return result;
 }
 
@@ -1216,36 +1244,52 @@ function truncateDescription(description: string): string {
  */
 function groupAgentChangesByCategory(fieldChanges: FieldChange[]): Record<string, FieldChange[]> {
   const categories: Record<string, FieldChange[]> = {
-    'Configuration': [],
+    Configuration: [],
     'Tools & Relationships': [],
-    'Models': [],
+    Models: [],
     'Context & Data': [],
-    'Other': []
+    Other: [],
   };
-  
-  fieldChanges.forEach(change => {
+
+  fieldChanges.forEach((change) => {
     const field = change.field.toLowerCase();
-    
+
     if (field.includes('model') || field.includes('provider')) {
       categories['Models'].push(change);
-    } else if (field.includes('tool') || field.includes('canuse') || field.includes('candelegateto') || field.includes('subagent') || field.includes('teamagent')) {
+    } else if (
+      field.includes('tool') ||
+      field.includes('canuse') ||
+      field.includes('candelegateto') ||
+      field.includes('subagent') ||
+      field.includes('teamagent')
+    ) {
       categories['Tools & Relationships'].push(change);
-    } else if (field.includes('context') || field.includes('data') || field.includes('fetch') || field.includes('header')) {
+    } else if (
+      field.includes('context') ||
+      field.includes('data') ||
+      field.includes('fetch') ||
+      field.includes('header')
+    ) {
       categories['Context & Data'].push(change);
-    } else if (field.includes('name') || field.includes('prompt') || field.includes('description') || field.includes('stopwhen')) {
+    } else if (
+      field.includes('name') ||
+      field.includes('prompt') ||
+      field.includes('description') ||
+      field.includes('stopwhen')
+    ) {
       categories['Configuration'].push(change);
     } else {
       categories['Other'].push(change);
     }
   });
-  
+
   // Remove empty categories
-  Object.keys(categories).forEach(key => {
+  Object.keys(categories).forEach((key) => {
     if (categories[key].length === 0) {
       delete categories[key];
     }
   });
-  
+
   return categories;
 }
 
@@ -1254,11 +1298,16 @@ function groupAgentChangesByCategory(fieldChanges: FieldChange[]): Record<string
  */
 function getCategoryIcon(category: string): string {
   switch (category) {
-    case 'Configuration': return '⚙️ ';
-    case 'Models': return '🧠';
-    case 'Tools & Relationships': return '🔗';
-    case 'Context & Data': return '📊';
-    default: return '📝';
+    case 'Configuration':
+      return '⚙️ ';
+    case 'Models':
+      return '🧠';
+    case 'Tools & Relationships':
+      return '🔗';
+    case 'Context & Data':
+      return '📊';
+    default:
+      return '📝';
   }
 }
 
@@ -1267,16 +1316,26 @@ function getCategoryIcon(category: string): string {
  */
 function getComponentIcon(componentType: string): string {
   switch (componentType) {
-    case 'agent': return '🤖';
-    case 'tool': return '🛠️ ';
-    case 'functionTool': return '⚡';
-    case 'dataComponent': return '📊';
-    case 'artifactComponent': return '📄';
-    case 'credential': return '🔑';
-    case 'contextConfig': return '⚙️ ';
-    case 'fetchDefinition': return '🔄';
-    case 'models': return '🧠';
-    default: return '📦';
+    case 'agents':
+      return '🤖';
+    case 'tools':
+      return '🛠️ ';
+    case 'functionTools':
+      return '⚡';
+    case 'dataComponents':
+      return '📊';
+    case 'artifactComponents':
+      return '📄';
+    case 'credentials':
+      return '🔑';
+    case 'contextConfigs':
+      return '⚙️ ';
+    case 'fetchDefinitions':
+      return '🔄';
+    case 'models':
+      return '🧠';
+    default:
+      return '📦';
   }
 }
 
@@ -1290,59 +1349,59 @@ function compareContextConfigs(
   debug: boolean
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
-  
+
   // Match contextConfigs by agent ID - each agent can have at most one contextConfig
   const agentIds = new Set([
     ...Object.keys(localProject.agents || {}),
-    ...Object.keys(remoteProject.agents || {})
+    ...Object.keys(remoteProject.agents || {}),
   ]);
-  
-  agentIds.forEach(agentId => {
+
+  agentIds.forEach((agentId) => {
     const localAgent = localProject.agents?.[agentId];
     const remoteAgent = remoteProject.agents?.[agentId];
-    
+
     const localContextConfig = localAgent?.contextConfig;
     const remoteContextConfig = remoteAgent?.contextConfig;
-    
+
     // Use the actual contextConfig.id (now required)
     const contextId = localContextConfig?.id || remoteContextConfig?.id;
     if (!contextId) {
       return; // Skip if no valid contextId
     }
-    
+
     if (!localContextConfig && remoteContextConfig) {
       changes.push({
-        componentType: 'contextConfig' as ComponentType,
+        componentType: 'contextConfigs' as ComponentType,
         componentId: contextId,
         changeType: 'added',
-        summary: `Added contextConfig for agent: ${agentId}`
+        summary: `Added contextConfig for agent: ${agentId}`,
       });
     } else if (localContextConfig && !remoteContextConfig) {
       changes.push({
-        componentType: 'contextConfig' as ComponentType,
+        componentType: 'contextConfigs' as ComponentType,
         componentId: contextId,
         changeType: 'deleted',
-        summary: `Removed contextConfig for agent: ${agentId}`
+        summary: `Removed contextConfig for agent: ${agentId}`,
       });
     } else if (localContextConfig && remoteContextConfig) {
       // Use detailed field changes to respect ignored fields
       const fieldChanges = getDetailedFieldChanges('', localContextConfig, remoteContextConfig);
-      
+
       // Filter out contextConfig id changes specifically (only for contextConfig comparison)
-      const filteredChanges = fieldChanges.filter(change => change.field !== 'id');
-      
+      const filteredChanges = fieldChanges.filter((change) => change.field !== 'id');
+
       if (filteredChanges.length > 0) {
         changes.push({
-          componentType: 'contextConfig' as ComponentType,
+          componentType: 'contextConfigs' as ComponentType,
           componentId: contextId,
           changeType: 'modified',
           changedFields: filteredChanges,
-          summary: `Modified contextConfig for agent: ${agentId} (${filteredChanges.length} changes)`
+          summary: `Modified contextConfig for agent: ${agentId} (${filteredChanges.length} changes)`,
         });
       }
     }
   });
-  
+
   return changes;
 }
 
@@ -1356,7 +1415,7 @@ function compareFetchDefinitions(
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const fetchDefinitions = new Map<string, { local?: any; remote?: any }>();
-  
+
   // Helper to extract fetchDefinitions from contextConfig
   const extractFetchDefinitions = (contextConfig: any) => {
     const fetchDefs: any[] = [];
@@ -1369,7 +1428,7 @@ function compareFetchDefinitions(
     }
     return fetchDefs;
   };
-  
+
   // Collect fetchDefinitions from both projects
   Object.entries(localProject.agents || {}).forEach(([agentId, agentData]) => {
     if (agentData.contextConfig) {
@@ -1382,7 +1441,7 @@ function compareFetchDefinitions(
       });
     }
   });
-  
+
   Object.entries(remoteProject.agents || {}).forEach(([agentId, agentData]) => {
     if (agentData.contextConfig) {
       const fetchDefs = extractFetchDefinitions(agentData.contextConfig);
@@ -1394,39 +1453,39 @@ function compareFetchDefinitions(
       });
     }
   });
-  
+
   // Compare each fetchDefinition
   fetchDefinitions.forEach((configs, fetchId) => {
     const { local, remote } = configs;
-    
+
     if (!local && remote) {
       changes.push({
-        componentType: 'fetchDefinition' as ComponentType,
+        componentType: 'fetchDefinitions' as ComponentType,
         componentId: fetchId,
         changeType: 'added',
-        summary: `Added fetchDefinition: ${fetchId}`
+        summary: `Added fetchDefinition: ${fetchId}`,
       });
     } else if (local && !remote) {
       changes.push({
-        componentType: 'fetchDefinition' as ComponentType,
+        componentType: 'fetchDefinitions' as ComponentType,
         componentId: fetchId,
         changeType: 'deleted',
-        summary: `Removed fetchDefinition: ${fetchId}`
+        summary: `Removed fetchDefinition: ${fetchId}`,
       });
     } else if (local && remote) {
       const localStr = JSON.stringify(local, null, 2);
       const remoteStr = JSON.stringify(remote, null, 2);
       if (localStr !== remoteStr) {
         changes.push({
-          componentType: 'fetchDefinition' as ComponentType,
+          componentType: 'fetchDefinitions' as ComponentType,
           componentId: fetchId,
           changeType: 'modified',
-          summary: `Modified fetchDefinition: ${fetchId}`
+          summary: `Modified fetchDefinition: ${fetchId}`,
         });
       }
     }
   });
-  
+
   return changes;
 }
 
@@ -1435,7 +1494,7 @@ function compareFetchDefinitions(
  * Converts both [{subAgentId: "id"}] and ["id"] to the same normalized form
  */
 function normalizeCanDelegateTo(canDelegateTo: any[]): string[] {
-  return canDelegateTo.map(item => {
+  return canDelegateTo.map((item) => {
     if (typeof item === 'string') {
       return item;
     }

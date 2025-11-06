@@ -14,8 +14,7 @@ export const slowTool = functionTool({
     required: ['delay'],
   },
   execute: async ({ delay }) => {
-    await new Promise(resolve => setTimeout(resolve, delay * 1000));
+    await new Promise((resolve) => setTimeout(resolve, delay * 1000));
     return { result: 'This should never be reached' };
   },
 });
-

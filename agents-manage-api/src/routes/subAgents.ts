@@ -5,6 +5,7 @@ import {
   createSubAgent,
   deleteSubAgent,
   ErrorResponseSchema,
+  generateId,
   getSubAgentById,
   listSubAgentsPaginated,
   PaginationQueryParamsSchema,
@@ -15,7 +16,6 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateSubAgent,
-  generateId,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 

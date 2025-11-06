@@ -1,16 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   // aiSearchComponentIds,
   aiChatComponentIds,
-  markDownComponentIds,
-  SearchBarComponentIds,
-  modalComponentIds,
   chatButtonComponentIds,
+  markDownComponentIds,
   miscellanousComponentIds,
+  modalComponentIds,
+  SearchBarComponentIds,
   toKebabCase,
 } from '@inkeep/agents-ui';
-
-import fs from 'node:fs';
-import path from 'node:path';
 
 const categories = [
   // {

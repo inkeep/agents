@@ -18,7 +18,7 @@ export async function generateProjectIndex(
   projectId: string
 ): Promise<void> {
   const indexPath = join(projectRoot, 'index.ts');
-  
+
   const defaultStyle = {
     quotes: 'single' as const,
     indentation: '  ',
@@ -29,15 +29,24 @@ export async function generateProjectIndex(
   const registryComponents = localRegistry.getAllComponents();
   const projectDataWithRegistry = {
     ...remoteProject,
-    agents: registryComponents.filter(c => c.type === 'agent').map(c => c.id),
-    tools: registryComponents.filter(c => c.type === 'tool').map(c => c.id),
-    externalAgents: registryComponents.filter(c => c.type === 'externalAgent').map(c => c.id),
-    dataComponents: registryComponents.filter(c => c.type === 'dataComponent').map(c => c.id),
-    artifactComponents: registryComponents.filter(c => c.type === 'artifactComponent').map(c => c.id),
-    credentialReferences: registryComponents.filter(c => c.type === 'credential').map(c => c.id)
+    agents: registryComponents.filter((c) => c.type === 'agents').map((c) => c.id),
+    tools: registryComponents.filter((c) => c.type === 'tools').map((c) => c.id),
+    externalAgents: registryComponents.filter((c) => c.type === 'externalAgents').map((c) => c.id),
+    dataComponents: registryComponents.filter((c) => c.type === 'dataComponents').map((c) => c.id),
+    artifactComponents: registryComponents
+      .filter((c) => c.type === 'artifactComponents')
+      .map((c) => c.id),
+    credentialReferences: registryComponents
+      .filter((c) => c.type === 'credentials')
+      .map((c) => c.id),
   };
 
-  const content = generateProjectFile(projectId, projectDataWithRegistry, defaultStyle, localRegistry);
-  
+  const content = generateProjectFile(
+    projectId,
+    projectDataWithRegistry,
+    defaultStyle,
+    localRegistry
+  );
+
   writeFileSync(indexPath, content, 'utf8');
 }

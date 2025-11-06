@@ -3,8 +3,10 @@ import './instrumentation'; // Initialize Langfuse tracing second
 
 // Silence config loading logs for cleaner CLI output
 import { getLogger } from '@inkeep/agents-core';
+
 const configLogger = getLogger('config');
 configLogger.updateOptions({ level: 'silent' });
+
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,7 +106,10 @@ program
 program
   .command('pull')
   .description('Pull project configuration with clean, efficient code generation')
-  .option('--project <project-id>', 'Project ID to pull from backend')
+  .option(
+    '--project <project-id>',
+    'Override project ID (defaults to local project ID from index.ts)'
+  )
   .option('--config <path>', 'Path to configuration file')
   .option(
     '--env <environment>',

@@ -141,9 +141,7 @@ export function MCPToolItem({
               size={24}
               className="mt-0.5 flex-shrink-0"
             />
-            <span className="flex-1 min-w-0 text-base font-medium truncate">
-              {tool.name}
-            </span>
+            <span className="flex-1 min-w-0 text-base font-medium truncate">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
         <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />

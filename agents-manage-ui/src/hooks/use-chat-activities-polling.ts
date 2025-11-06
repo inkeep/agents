@@ -23,7 +23,7 @@ export const useChatActivitiesPolling = ({
   const [chatActivities, setChatActivities] = useState<ConversationDetail | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const lastActivityCount = useRef(0)
+  const lastActivityCount = useRef(0);
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComponentMountedRef = useRef(true);

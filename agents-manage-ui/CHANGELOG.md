@@ -1,5 +1,45 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-manage-api@0.31.2
+  - @inkeep/agents-run-api@0.31.2
+  - @inkeep/agents-core@0.31.2
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-manage-api@0.31.1
+  - @inkeep/agents-run-api@0.31.1
+  - @inkeep/agents-core@0.31.1
+
+## 0.31.0
+
+### Minor Changes
+
+- c92cb22: Implement a Simple Edit mode for the JSON Schema editor, enabling users to modify the schema via an HTML form.
+- 3bfcc67: Make the Side Pane and Playground Pane (Try It! button) resizable and persist their sizes in localStorage.
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+- 970a058: import `<Playground />` with `next/dynamic` to improve `/agents/*` first load page sizes
+- Updated dependencies [eadc8f8]
+- Updated dependencies [48a3e3e]
+- Updated dependencies [b98fd0a]
+  - @inkeep/agents-manage-api@0.31.0
+  - @inkeep/agents-run-api@0.31.0
+  - @inkeep/agents-core@0.31.0
+
 ## 0.30.4
 
 ### Patch Changes

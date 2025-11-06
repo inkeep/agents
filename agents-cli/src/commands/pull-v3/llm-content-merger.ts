@@ -1,6 +1,6 @@
 /**
  * LLM Content Merger - Intelligently merge old and new component content
- * 
+ *
  * Uses an LLM to selectively update modified components while preserving:
  * - Original file structure and formatting
  * - Code style consistency
@@ -10,7 +10,10 @@
 
 import { generateText } from 'ai';
 import chalk from 'chalk';
-import { createTargetedTypeScriptPlaceholders, restoreTargetedTypeScriptPlaceholders } from './targeted-typescript-placeholders';
+import {
+  createTargetedTypeScriptPlaceholders,
+  restoreTargetedTypeScriptPlaceholders,
+} from './targeted-typescript-placeholders';
 import { getAvailableModel } from './utils/model-provider-detector';
 
 /**
@@ -19,10 +22,10 @@ import { getAvailableModel } from './utils/model-provider-detector';
 function stripCodeFences(content: string): string {
   // Remove opening code fence with optional language specifier
   content = content.replace(/^```(?:typescript|ts|javascript|js)?\s*\n?/i, '');
-  
+
   // Remove closing code fence
   content = content.replace(/\n?```\s*$/i, '');
-  
+
   return content;
 }
 
@@ -66,12 +69,13 @@ interface ComponentMergeResult {
  * Use LLM to intelligently merge old content with new component definitions
  */
 export async function mergeComponentsWithLLM(
-  request: ComponentMergeRequest,
+  request: ComponentMergeRequest
 ): Promise<ComponentMergeResult> {
   const { oldContent, newContent, modifiedComponents, filePath } = request;
-  
 
-  const componentList = modifiedComponents.map(c => `- ${c.componentType}:${c.componentId}`).join('\n');
+  const componentList = modifiedComponents
+    .map((c) => `- ${c.componentType}:${c.componentId}`)
+    .join('\n');
 
   const prompt = `You are a TypeScript code expert tasked with intelligently merging component updates.
 
@@ -131,51 +135,51 @@ Return only the merged TypeScript code without any explanation or markdown forma
     // Apply targeted placeholders to reduce prompt size and preserve large content
     const oldPlaceholders = createTargetedTypeScriptPlaceholders(oldContent);
     const newPlaceholders = createTargetedTypeScriptPlaceholders(newContent);
-        
+
     // Use placeholder-processed content in the prompt
     const processedPrompt = prompt
       .replace(oldContent, oldPlaceholders.processedContent)
-      .replace(newContent, newPlaceholders.processedContent);    
+      .replace(newContent, newPlaceholders.processedContent);
 
     // Estimate prompt tokens before sending
     const estimatedPromptTokens = estimateTokens(processedPrompt);
-    
+
     const result = await generateText({
       model: getAvailableModel(),
       prompt: processedPrompt,
     });
 
     let mergedContent = result.text.trim();
-    
+
     // Strip code fences if the LLM wrapped the response in code blocks
     mergedContent = stripCodeFences(mergedContent);
-    
+
     // Estimate completion tokens and calculate costs
     const estimatedCompletionTokens = estimateTokens(mergedContent);
     const totalTokens = estimatedPromptTokens + estimatedCompletionTokens;
     const estimatedCost = calculateCostEstimate(estimatedPromptTokens, estimatedCompletionTokens);
-    
+
     // Log condensed token usage
-    console.log(chalk.gray(`   💰 LLM usage: ~${totalTokens.toLocaleString()} tokens ($${estimatedCost.toFixed(4)})`))
-    
+    console.log(
+      chalk.gray(
+        `   💰 LLM usage: ~${totalTokens.toLocaleString()} tokens ($${estimatedCost.toFixed(4)})`
+      )
+    );
+
     // Restore placeholders in the generated content
-    
+
     // Merge both placeholder maps for restoration
     const allReplacements = {
       ...oldPlaceholders.replacements,
-      ...newPlaceholders.replacements
+      ...newPlaceholders.replacements,
     };
-    
+
     if (Object.keys(allReplacements).length > 0) {
       mergedContent = restoreTargetedTypeScriptPlaceholders(mergedContent, allReplacements);
-      
     }
-    
-    // Extract what changed (simple heuristic)
-    const changes = modifiedComponents.map(c => 
-      `Updated ${c.componentType}:${c.componentId}`
-    );
 
+    // Extract what changed (simple heuristic)
+    const changes = modifiedComponents.map((c) => `Updated ${c.componentType}:${c.componentId}`);
 
     return {
       mergedContent,
@@ -188,16 +192,14 @@ Return only the merged TypeScript code without any explanation or markdown forma
         estimatedCost: estimatedCost,
       },
     };
-
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    
 
     return {
       mergedContent: oldContent, // Fallback to original
       changes: [],
       success: false,
-      error: errorMsg
+      error: errorMsg,
     };
   }
 }
@@ -206,7 +208,7 @@ Return only the merged TypeScript code without any explanation or markdown forma
  * Preview the merge result by showing a diff-like summary
  */
 export function previewMergeResult(
-  oldContent: string, 
+  oldContent: string,
   mergedContent: string,
   changes: string[]
 ): void {
@@ -214,15 +216,15 @@ export function previewMergeResult(
   console.log(chalk.gray(`   Old content: ${oldContent.length} characters`));
   console.log(chalk.gray(`   New content: ${mergedContent.length} characters`));
   console.log(chalk.yellow(`   Changes applied:`));
-  
-  changes.forEach(change => {
+
+  changes.forEach((change) => {
     console.log(chalk.gray(`     • ${change}`));
   });
 
   // Show first few lines of merged content
   const lines = mergedContent.split('\n');
   const preview = lines.slice(0, 10).join('\n');
-  
+
   console.log(chalk.cyan('\n📄 Merged content preview (first 10 lines):'));
   console.log(chalk.gray('   ┌─────'));
   preview.split('\n').forEach((line, i) => {

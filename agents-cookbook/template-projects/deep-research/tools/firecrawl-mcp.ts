@@ -9,6 +9,6 @@ export const firecrawlMcpTool = mcpTool({
   name: 'Firecrawl',
   serverUrl: 'https://mcp.firecrawl.dev/{FIRECRAWL_API_KEY}/v2/mcp',
   transport: {
-    type: 'streamable_http'
-  }
+    type: 'streamable_http',
+  },
 });

@@ -296,9 +296,6 @@ export const detectAuthenticationRequired = async ({
     logger?.debug({ discoveryError }, 'MCP OAuth metadata discovery failed');
   }
 
-  logger?.debug(
-    { error: error?.message },
-    'No MCP OAuth authentication requirement detected'
-  );
+  logger?.debug({ error: error?.message }, 'No MCP OAuth authentication requirement detected');
   return false;
 };

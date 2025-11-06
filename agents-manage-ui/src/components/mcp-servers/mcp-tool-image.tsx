@@ -40,9 +40,7 @@ export function MCPToolImage({ imageUrl, name, size = 24, className }: MCPToolIm
       className={cn('relative flex items-center justify-center', className)}
       style={{ width: size, height: size }}
     >
-      {imageLoading && (
-        <ProviderIcon provider={name} size={size} className="absolute inset-0" />
-      )}
+      {imageLoading && <ProviderIcon provider={name} size={size} className="absolute inset-0" />}
       <Image
         src={imageUrl}
         alt={name}

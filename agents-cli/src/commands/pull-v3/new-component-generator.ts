@@ -2,7 +2,7 @@
  * New Component Generator - Create brand new files for components that don't exist
  */
 
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
@@ -55,16 +55,7 @@ function toKebabCase(id: string): string {
     .replace(/[_]/g, '-');
 }
 
-/**
- * Generate variable name from component ID
- */
-function generateVariableName(componentId: string): string {
-  return componentId
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-}
+// Removed generateVariableName - registry handles all naming with conflict resolution
 
 /**
  * Determine file path for new component based on type and existing structure
@@ -124,7 +115,6 @@ function generateComponentContent(
     semicolons: true,
   };
 
-
   switch (componentType) {
     case 'agents':
       return generateAgentFile(componentId, componentData, defaultStyle, componentRegistry);
@@ -136,8 +126,15 @@ function generateComponentContent(
       const cleanComponentData = { ...componentData };
       delete cleanComponentData._parentAgentId;
       delete cleanComponentData._contextConfigData;
-      
-      return generateSubAgentFile(componentId, cleanComponentData, defaultStyle, componentRegistry, parentAgentId, contextConfigData);
+
+      return generateSubAgentFile(
+        componentId,
+        cleanComponentData,
+        defaultStyle,
+        componentRegistry,
+        parentAgentId,
+        contextConfigData
+      );
     }
     case 'tools':
       return generateMcpToolFile(componentId, componentData, defaultStyle, componentRegistry);
@@ -162,7 +159,13 @@ function generateComponentContent(
       // Remove the temporary _agentId field before passing to generator
       const cleanComponentData = { ...componentData };
       delete cleanComponentData._agentId;
-      return generateContextConfigFile(componentId, cleanComponentData, defaultStyle, componentRegistry, agentId);
+      return generateContextConfigFile(
+        componentId,
+        cleanComponentData,
+        defaultStyle,
+        componentRegistry,
+        agentId
+      );
     }
     default:
       throw new Error(`No generator for component type: ${componentType}`);
@@ -178,7 +181,7 @@ export async function createNewComponents(
   localRegistry: ComponentRegistry,
   paths: ProjectPaths,
   environment: string,
-  tempDirName?: string,
+  tempDirName?: string
 ): Promise<NewComponentResult[]> {
   const results: NewComponentResult[] = [];
 
@@ -187,20 +190,24 @@ export async function createNewComponents(
   }
 
   // Determine target paths - use temp directory if provided
-  const targetPaths = tempDirName ? {
-    projectRoot: join(paths.projectRoot, tempDirName),
-    agentsDir: join(paths.projectRoot, tempDirName, 'agents'),
-    toolsDir: join(paths.projectRoot, tempDirName, 'tools'),
-    dataComponentsDir: join(paths.projectRoot, tempDirName, 'data-components'),
-    artifactComponentsDir: join(paths.projectRoot, tempDirName, 'artifact-components'),
-    statusComponentsDir: join(paths.projectRoot, tempDirName, 'status-components'),
-    environmentsDir: join(paths.projectRoot, tempDirName, 'environments'),
-    credentialsDir: join(paths.projectRoot, tempDirName, 'credentials'),
-    contextConfigsDir: join(paths.projectRoot, tempDirName, 'context-configs'),
-    externalAgentsDir: join(paths.projectRoot, tempDirName, 'external-agents'),
-  } : paths;
+  const targetPaths = tempDirName
+    ? {
+        projectRoot: join(paths.projectRoot, tempDirName),
+        agentsDir: join(paths.projectRoot, tempDirName, 'agents'),
+        toolsDir: join(paths.projectRoot, tempDirName, 'tools'),
+        dataComponentsDir: join(paths.projectRoot, tempDirName, 'data-components'),
+        artifactComponentsDir: join(paths.projectRoot, tempDirName, 'artifact-components'),
+        statusComponentsDir: join(paths.projectRoot, tempDirName, 'status-components'),
+        environmentsDir: join(paths.projectRoot, tempDirName, 'environments'),
+        credentialsDir: join(paths.projectRoot, tempDirName, 'credentials'),
+        contextConfigsDir: join(paths.projectRoot, tempDirName, 'context-configs'),
+        externalAgentsDir: join(paths.projectRoot, tempDirName, 'external-agents'),
+      }
+    : paths;
 
-  const actionText = tempDirName ? 'Creating component files in temp directory...' : 'Creating new component files...';
+  const actionText = tempDirName
+    ? 'Creating component files in temp directory...'
+    : 'Creating new component files...';
   console.log(chalk.cyan(`\n🆕 ${actionText}`));
 
   // Always ensure environment file exists for new projects
@@ -212,25 +219,26 @@ export async function createNewComponents(
   }
 
   // Define dependency order - components earlier in the list should be created first
-  const creationOrder = [
+  const creationOrder: (keyof ProjectComparison['componentChanges'])[] = [
     'credentials',
-    'environments', 
-    'contextConfigs',  // Can be created early - just config objects
-    'functionTools',   // Create functionTools before functions to avoid conflicts
+    'environments',
+    'contextConfigs', // Can be created early - just config objects
+    'functionTools', // Create functionTools before functions to avoid conflicts
     'functions',
     'tools',
     'dataComponents',
-    'artifactComponents', 
+    'artifactComponents',
     'statusComponents',
     'externalAgents',
-    'subAgents',  // Create subAgents before main agents so they can be referenced
-    'agents'      // Create agents last so they can reference everything
+    'subAgents', // Create subAgents before main agents so they can be referenced
+    'agents', // Create agents last so they can reference everything
   ];
 
   // Step 1: Register all new components in the registry first
   console.log(chalk.cyan('📝 Registering all new components in registry...'));
   for (const componentType of creationOrder) {
-    const changes = comparison.componentChanges[componentType as keyof typeof comparison.componentChanges];
+    const changes =
+      comparison.componentChanges[componentType as keyof typeof comparison.componentChanges];
     if (!changes) continue;
     const addedComponents = changes.added || [];
 
@@ -239,28 +247,28 @@ export async function createNewComponents(
       const existsLocally = localRegistry.get(componentId, componentType as any);
       if (existsLocally) continue;
 
-      // Register the component with its expected file path and variable name  
+      // Register the component with its expected file path and variable name
       const filePath = determineNewFilePath(componentType, componentId, targetPaths);
-      const relativePath = filePath.replace((tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/', '');
-      
-      let variableName: string;
+      const relativePath = filePath.replace(
+        (tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/',
+        ''
+      );
+
+      // Special handling for contextConfigs to use agent-based names
+      let explicitVariableName: string | undefined;
       if (componentType === 'contextConfigs') {
-        // For contextConfigs, try to extract agent ID and use agent-based variable name
         const contextResult = findContextConfigData(remoteProject, componentId);
         if (contextResult) {
-          variableName = `${toCamelCase(contextResult.agentId)}Context`;
-        } else {
-          variableName = generateVariableName(componentId);
+          explicitVariableName = `${toCamelCase(contextResult.agentId)}Context`;
         }
-      } else {
-        variableName = generateVariableName(componentId);
+        // If no contextResult, let registry generate unique name
       }
 
       localRegistry.register(
         componentId,
-        componentType.slice(0, -1) as ComponentType, // Remove 's' from plural
+        componentType, // componentType now matches ComponentType directly
         relativePath,
-        variableName,
+        explicitVariableName, // Only provide explicit name for contextConfigs, undefined for others
         false // isInline = false (new exported component)
       );
     }
@@ -269,7 +277,8 @@ export async function createNewComponents(
   // Step 2: Now generate all the files, knowing all components are registered
   console.log(chalk.cyan('🔨 Generating component files...'));
   for (const componentType of creationOrder) {
-    const changes = comparison.componentChanges[componentType as keyof typeof comparison.componentChanges];
+    const changes =
+      comparison.componentChanges[componentType as keyof typeof comparison.componentChanges];
     if (!changes) continue;
     const addedComponents = changes.added || [];
 
@@ -288,8 +297,7 @@ export async function createNewComponents(
 
         // Get component data based on component type
         let componentData: any = null;
-        
-        
+
         if (componentType === 'statusComponents') {
           // Status components are nested in agents - find them
           componentData = findStatusComponentData(remoteProject, componentId);
@@ -309,10 +317,16 @@ export async function createNewComponents(
           componentData = remoteProject.functions?.[componentId];
         } else if (componentType === 'functionTools') {
           // Function tools might be in functions or functionTools
-          let functionToolData = remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
-          
+          const functionToolData =
+            remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
+
           // If functionTool has a functionId reference, merge with the actual function data
-          if (functionToolData && 'functionId' in functionToolData && functionToolData.functionId && remoteProject.functions?.[functionToolData.functionId]) {
+          if (
+            functionToolData &&
+            'functionId' in functionToolData &&
+            functionToolData.functionId &&
+            remoteProject.functions?.[functionToolData.functionId]
+          ) {
             const functionData = remoteProject.functions[functionToolData.functionId];
             // Merge function data into functionTool data, but preserve functionTool metadata
             componentData = { ...functionData, ...functionToolData };
@@ -335,13 +349,15 @@ export async function createNewComponents(
           componentData = {
             name: `${componentId} Environment`,
             description: `Environment configuration for ${componentId}`,
-            credentials: remoteProject.credentialReferences ? Object.keys(remoteProject.credentialReferences) : []
+            credentials: remoteProject.credentialReferences
+              ? Object.keys(remoteProject.credentialReferences)
+              : [],
           };
         } else {
           // Standard top-level lookup
           componentData = remoteComponents[componentId];
         }
-        
+
         if (!componentData) {
           results.push({
             componentId,
@@ -370,7 +386,7 @@ export async function createNewComponents(
             componentType,
             componentId,
             componentData,
-            localRegistry,
+            localRegistry
           );
         } catch (genError) {
           throw genError;
@@ -380,8 +396,13 @@ export async function createNewComponents(
         writeFileSync(filePath, content, 'utf8');
 
         // Get the variable name that was already registered
-        const registryEntry = localRegistry.get(componentId, componentType as any);
-        const variableName = registryEntry?.name || generateVariableName(componentId);
+        const registryEntry = localRegistry.get(componentId, componentType);
+        if (!registryEntry) {
+          throw new Error(
+            `Component ${componentId} (${componentType}) was not registered in the registry`
+          );
+        }
+        const variableName = registryEntry.name;
 
         results.push({
           componentId,
@@ -390,7 +411,6 @@ export async function createNewComponents(
           variableName,
           success: true,
         });
-
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         results.push({
@@ -401,28 +421,34 @@ export async function createNewComponents(
           success: false,
           error: errorMsg,
         });
-
       }
     }
   }
 
   // After all components are created, generate environment index file if environments were created
-  const createdEnvironments = results.filter(r => r.success && r.componentType === 'environments');
+  const createdEnvironments = results.filter(
+    (r) => r.success && r.componentType === 'environments'
+  );
   if (createdEnvironments.length > 0) {
     try {
       console.log(chalk.cyan('📝 Generating environments index file...'));
       const { generateEnvironmentIndexFile } = await import('./components/environment-generator');
-      const environmentIds = createdEnvironments.map(r => r.componentId);
+      const environmentIds = createdEnvironments.map((r) => r.componentId);
       const defaultStyle = { quotes: 'single' as const, indentation: '  ', semicolons: true };
       const indexContent = generateEnvironmentIndexFile(environmentIds, defaultStyle);
       const indexPath = join(targetPaths.environmentsDir, 'index.ts');
-      
+
       mkdirSync(dirname(indexPath), { recursive: true });
       writeFileSync(indexPath, indexContent, 'utf8');
-      
+
       console.log(chalk.green('✅ Environment index file created'));
     } catch (error) {
-      console.log(chalk.yellow('⚠️ Failed to create environment index file:', error instanceof Error ? error.message : String(error)));
+      console.log(
+        chalk.yellow(
+          '⚠️ Failed to create environment index file:',
+          error instanceof Error ? error.message : String(error)
+        )
+      );
     }
   }
 
@@ -433,7 +459,6 @@ export async function createNewComponents(
   if (failed.length > 0) {
     console.log(chalk.red(`❌ ${failed.length} components failed`));
   }
-
 
   if (failed.length > 0) {
     console.log(chalk.red('\n❌ Failed to create:'));
@@ -448,22 +473,25 @@ export async function createNewComponents(
 /**
  * Find status component data by ID from project agents
  */
-function findStatusComponentData(project: FullProjectDefinition, statusId: string): any | undefined {
+function findStatusComponentData(
+  project: FullProjectDefinition,
+  statusId: string
+): any | undefined {
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let compId: string | undefined;
-          
+
           if (typeof statusComp === 'string') {
             compId = statusComp;
           } else if (typeof statusComp === 'object' && statusComp) {
             compId = statusComp.type;
           }
-          
+
           if (compId === statusId) {
-            return typeof statusComp === 'string' 
-              ? { id: statusId, type: statusId, description: `Status component for ${statusId}` } 
+            return typeof statusComp === 'string'
+              ? { id: statusId, type: statusId, description: `Status component for ${statusId}` }
               : statusComp;
           }
         }
@@ -476,7 +504,10 @@ function findStatusComponentData(project: FullProjectDefinition, statusId: strin
 /**
  * Find context config data by ID from project agents
  */
-function findContextConfigData(project: FullProjectDefinition, contextId: string): { contextConfig: any; agentId: string } | undefined {
+function findContextConfigData(
+  project: FullProjectDefinition,
+  contextId: string
+): { contextConfig: any; agentId: string } | undefined {
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
       if (agentData.contextConfig) {
@@ -503,4 +534,3 @@ function findSubAgentData(project: FullProjectDefinition, subAgentId: string): a
   }
   return undefined;
 }
-

@@ -1,12 +1,12 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
-import { ExpandableCodeEditor } from '@/components/editors/expandable-code-editor';
 import { InputField, TextareaField } from './form-fields';
 
 interface FunctionToolNodeEditorProps {
