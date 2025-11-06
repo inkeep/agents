@@ -1,5 +1,14 @@
 # test-agents
 
+## 0.1.5
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-cli@0.31.4
+  - @inkeep/agents-sdk@0.31.4
+
 ## 0.1.4
 
 ### Patch Changes
