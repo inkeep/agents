@@ -8,7 +8,11 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
-import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
+import {
+  type AnimatedNode,
+  mcpNodeHandleId,
+  NodeType,
+} from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -338,6 +342,24 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       const data = event.detail;
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
+
+        /** Wrapper function to always keep error state */
+        function changeNodeStatus(cb: (node: Node) => AnimatedNode['status']) {
+          return prevNodes.map((node) => {
+            if (node.data.status === 'error') {
+              return node;
+            }
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: cb(node),
+              },
+            };
+          });
+        }
+
         switch (data.type) {
           case 'agent_initializing': {
             // TODO
@@ -355,14 +377,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
                 },
               })),
-              nodes: prevNodes.map((node) => ({
-                ...node,
-                data: {
-                  ...node.data,
-                  status:
-                    node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null,
-                },
-              })),
+              nodes: changeNodeStatus((node) =>
+                node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null
+              ),
             };
           }
           case 'delegation_returned': {
@@ -378,14 +395,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                       : false,
                 },
               })),
-              nodes: prevNodes.map((node) => ({
-                ...node,
-                data: {
-                  ...node.data,
-                  status:
-                    node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null,
-                },
-              })),
+              nodes: changeNodeStatus((node) =>
+                node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null
+              ),
             };
           }
           case 'tool_call': {
@@ -403,41 +415,28 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   data: { ...edge.data, delegating: hasDots },
                 };
               }),
-              nodes: prevNodes.map((node) => {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    status:
-                      node.data.id === subAgentId ||
-                      hasRelationWithSubAgent({
-                        relationshipId: node.data.relationshipId,
-                        subAgentId,
-                      })
-                        ? 'delegating'
-                        : null,
-                  },
-                };
-              }),
+              nodes: changeNodeStatus((node) =>
+                node.data.id === subAgentId ||
+                hasRelationWithSubAgent({
+                  relationshipId: node.data.relationshipId,
+                  subAgentId,
+                })
+                  ? 'delegating'
+                  : null
+              ),
             };
           }
           case 'error': {
             const { subAgentId } = data.details;
             return {
-              nodes: prevNodes.map((node) => {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    status: hasRelationWithSubAgent({
-                      relationshipId: node.data.relationshipId,
-                      subAgentId,
-                    })
-                      ? 'error'
-                      : null,
-                  },
-                };
-              }),
+              nodes: changeNodeStatus((node) =>
+                hasRelationWithSubAgent({
+                  relationshipId: node.data.relationshipId,
+                  subAgentId,
+                })
+                  ? 'error'
+                  : null
+              ),
             };
           }
           case 'tool_result': {
@@ -458,7 +457,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   },
                 };
               }),
-              nodes: prevNodes.map((node) => {
+              nodes: changeNodeStatus((node) => {
                 let status: AnimatedNode['status'] = null;
                 if (
                   hasRelationWithSubAgent({
@@ -471,13 +470,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   status = 'delegating';
                 }
 
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    status,
-                  },
-                };
+                return status;
               }),
             };
           }
@@ -500,13 +493,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 ...node,
                 data: { ...node.data, delegating: false },
               })),
-              nodes: prevNodes.map((node) => ({
-                ...node,
-                data: {
-                  ...node.data,
-                  status: node.id === subAgentId ? 'executing' : null,
-                },
-              })),
+              nodes: changeNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
             };
           }
         }
