@@ -215,14 +215,6 @@ class SigNozStatsAPI {
       agentId
     );
 
-    console.log('📊 Pagination Stats:', {
-      totalConversations: total,
-      page: pagination.page,
-      limit: pagination.limit,
-      requestedConversationIds: conversationIds.length,
-      conversationIds: conversationIds,
-    });
-
     if (conversationIds.length === 0) {
       return {
         data: [],
@@ -431,16 +423,6 @@ class SigNozStatsAPI {
     const total = conversationIds.length;
     const start = (pagination.page - 1) * pagination.limit;
     const paginatedIds = conversationIds.slice(start, start + pagination.limit);
-
-    console.log('📄 getPaginatedConversationIds (optimized):', {
-      totalConversationsFound: total,
-      page: pagination.page,
-      limit: pagination.limit,
-      sliceStart: start,
-      sliceEnd: start + pagination.limit,
-      paginatedCount: paginatedIds.length,
-      paginatedIds: paginatedIds,
-    });
 
     return { conversationIds: paginatedIds, total };
   }

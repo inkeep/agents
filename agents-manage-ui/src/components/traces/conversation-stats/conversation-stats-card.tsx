@@ -111,7 +111,7 @@ export function ConversationStatsCard({
             </div>
 
             <Badge variant="code" className="text-xs">
-              {totalConversations ?? pagination?.total ?? stats.length}
+              {totalConversations ?? 0}
             </Badge>
           </CardTitle>
 
