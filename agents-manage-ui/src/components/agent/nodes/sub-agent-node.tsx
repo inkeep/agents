@@ -44,7 +44,7 @@ const ListSection = ({
 
 export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { data, selected, id } = props;
-  const { name, isDefault, description, models } = data;
+  const { name, isDefault, description, models, status } = data;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
@@ -71,16 +71,17 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
         .filter(Boolean) || [],
     [data?.artifactComponents, artifactComponentLookup]
   );
-
+  const isDelegating = status === 'delegating';
+  const isExecuting = status === 'executing';
   return (
     <div className="relative">
-      {isDefault && <NodeTab isSelected={selected || data.isDelegating}>Default</NodeTab>}
+      {isDefault && <NodeTab isSelected={selected || isDelegating}>Default</NodeTab>}
       <BaseNode
-        isSelected={selected || data.isDelegating}
+        isSelected={selected || isDelegating}
         className={cn(
           isDefault && 'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          data.isExecuting && 'node-executing'
+          isExecuting && 'node-executing'
         )}
         style={{ width: NODE_WIDTH }}
       >
