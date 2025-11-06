@@ -143,12 +143,6 @@ axiosRetry(axios, {
 
 class SigNozStatsAPI {
   private async makeRequest<T = any>(payload: any): Promise<T> {
-    console.log('[SigNoz] Making request with payload:', {
-      queryNames: Object.keys(payload.compositeQuery?.builderQueries || {}),
-      start: new Date(payload.start).toISOString(),
-      end: new Date(payload.end).toISOString(),
-    });
-
     const response = await axios.post<T>('/api/signoz', payload, {
       timeout: 30000,
       headers: {
@@ -156,7 +150,6 @@ class SigNozStatsAPI {
       },
     });
 
-    console.log('[SigNoz] Request successful, response status:', response.status);
     return response.data;
   }
 
@@ -177,21 +170,6 @@ class SigNozStatsAPI {
     agentId?: string
   ): Promise<ConversationStats[] | PaginatedConversationStats> {
     try {
-      console.log(
-        '[getConversationStats] Using ClickHouse queries - fetching ALL conversations, paginating in memory'
-      );
-      console.log('[getConversationStats] Called with:', {
-        timeRange: {
-          start: new Date(startTime).toISOString(),
-          end: new Date(endTime).toISOString(),
-        },
-        pagination,
-        filters,
-        projectId,
-        agentId,
-        searchQuery,
-      });
-
       // Fetch ALL conversation stats using ClickHouse - no pagination at DB level
       // We'll paginate in memory after fetching everything
       let stats = await this.fetchAllConversationStatsWithClickHouse(
@@ -201,8 +179,6 @@ class SigNozStatsAPI {
         projectId,
         agentId
       );
-
-      console.log('[getConversationStats] Fetched', stats.length, 'total conversations');
 
       // Apply search filter
       if (searchQuery?.trim()) {
@@ -235,14 +211,6 @@ class SigNozStatsAPI {
       const startIdx = (page - 1) * limit;
       const data = stats.slice(startIdx, startIdx + limit);
 
-      console.log(
-        '[getConversationStats] Returning',
-        data.length,
-        'stats for page',
-        page,
-        'of',
-        totalPages
-      );
       return {
         data,
         pagination: {
@@ -450,10 +418,9 @@ class SigNozStatsAPI {
     // Extract data from responses
     // For ClickHouse table queries, data comes in series format
     // Each series item represents a row, with columns in labels
-    const extractTableData = (resp: any, queryName: string) => {
+    const extractTableData = (resp: any) => {
       const result = resp?.data?.result?.[0];
       if (!result?.series) {
-        console.log(`[fetchAllConversationStatsWithClickHouse] No series data for ${queryName}`);
         return [];
       }
       const data = result.series.map((s: any) => {
@@ -466,24 +433,17 @@ class SigNozStatsAPI {
         }
         return row;
       });
-      console.log(
-        `[fetchAllConversationStatsWithClickHouse] Extracted ${data.length} rows for ${queryName}, sample:`,
-        data[0] || 'none'
-      );
       return data;
     };
 
-    const toolsData = extractTableData(resultsMap.get('tools'), 'tools');
-    const transfersData = extractTableData(resultsMap.get('transfers'), 'transfers');
-    const delegationsData = extractTableData(resultsMap.get('delegations'), 'delegations');
-    const aiCallsData = extractTableData(resultsMap.get('aiCalls'), 'aiCalls');
-    const lastActivityData = extractTableData(resultsMap.get('lastActivity'), 'lastActivity');
-    const metadataData = extractTableData(resultsMap.get('metadata'), 'metadata');
-    const spansWithErrorsData = extractTableData(
-      resultsMap.get('spansWithErrors'),
-      'spansWithErrors'
-    );
-    const userMessagesData = extractTableData(resultsMap.get('userMessages'), 'userMessages');
+    const toolsData = extractTableData(resultsMap.get('tools'));
+    const transfersData = extractTableData(resultsMap.get('transfers'));
+    const delegationsData = extractTableData(resultsMap.get('delegations'));
+    const aiCallsData = extractTableData(resultsMap.get('aiCalls'));
+    const lastActivityData = extractTableData(resultsMap.get('lastActivity'));
+    const metadataData = extractTableData(resultsMap.get('metadata'));
+    const spansWithErrorsData = extractTableData(resultsMap.get('spansWithErrors'));
+    const userMessagesData = extractTableData(resultsMap.get('userMessages'));
 
     // Build maps for aggregation
     const metaByConv = new Map<string, { tenantId: string; agentId: string; agentName: string }>();
@@ -507,11 +467,6 @@ class SigNozStatsAPI {
         });
       }
     }
-    console.log(
-      '[fetchAllConversationStatsWithClickHouse] Extracted metadata for',
-      metaByConv.size,
-      'conversations'
-    );
 
     const firstSeen = new Map<string, number>();
     for (const row of lastActivityData) {
@@ -549,11 +504,6 @@ class SigNozStatsAPI {
         firstSeen.set(id, timestamp);
       }
     }
-    console.log(
-      '[fetchAllConversationStatsWithClickHouse] Extracted timestamps for',
-      firstSeen.size,
-      'conversations'
-    );
     if (firstSeen.size === 0 && lastActivityData.length > 0) {
       console.error(
         '[fetchAllConversationStatsWithClickHouse] No timestamps extracted but had',
@@ -652,11 +602,6 @@ class SigNozStatsAPI {
     // Get first user message per conversation
     const firstMsgByConv = new Map<string, { content: string; timestamp: number }>();
     const msgsByConv = new Map<string, Array<{ t: number; c: string }>>();
-    console.log(
-      '[fetchAllConversationStatsWithClickHouse] Processing',
-      userMessagesData.length,
-      'user message rows'
-    );
     for (const row of userMessagesData) {
       const convId = row.conversation_id || row.conversationId;
       const content = row.message_content || row.messageContent;
@@ -706,12 +651,6 @@ class SigNozStatsAPI {
       }
     }
 
-    console.log(
-      '[fetchAllConversationStatsWithClickHouse] Grouped messages for',
-      msgsByConv.size,
-      'conversations'
-    );
-
     for (const [id, arr] of msgsByConv) {
       // Sort by timestamp (ascending - earliest first)
       arr.sort((a, b) => a.t - b.t);
@@ -722,12 +661,6 @@ class SigNozStatsAPI {
         firstMsgByConv.set(id, { content, timestamp: timestampMs || 0 });
       }
     }
-
-    console.log(
-      '[fetchAllConversationStatsWithClickHouse] Extracted first messages for',
-      firstMsgByConv.size,
-      'conversations'
-    );
 
     // Build ConversationStats objects
     // Get all unique conversation IDs
@@ -806,8 +739,6 @@ class SigNozStatsAPI {
 
   async getAICallsByAgent(startTime: number, endTime: number, projectId?: string) {
     try {
-      console.log('[getAICallsByAgent] Using ClickHouse query with GROUP BY agent.id');
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -860,8 +791,6 @@ class SigNozStatsAPI {
       const resp = await this.makeRequest(payload);
       const result = resp?.data?.result?.[0];
 
-      console.log('[getAICallsByAgent] Response series count:', result?.series?.length || 0);
-
       // Extract results - handle both table and timeseries formats
       const totals: Array<{ agentId: string; totalCalls: number }> = [];
       if (result?.series && result.series.length > 0) {
@@ -884,7 +813,6 @@ class SigNozStatsAPI {
           );
         } else {
           // Table format: multiple series or single series with one value
-          console.log('[getAICallsByAgent] Processing table format');
           for (const seriesItem of result.series) {
             const agentId =
               seriesItem.labels?.agent_id || seriesItem.labels?.agentId || UNKNOWN_VALUE;
@@ -896,14 +824,12 @@ class SigNozStatsAPI {
                 typeof countValue === 'string' ? parseInt(countValue, 10) : Number(countValue);
               if (!Number.isNaN(count)) {
                 totals.push({ agentId, totalCalls: count });
-                console.log('[getAICallsByAgent] Agent:', agentId, '→', count, 'calls');
               }
             }
           }
         }
       }
 
-      console.log('[getAICallsByAgent] Extracted', totals.length, 'agent totals');
       return totals.sort((a, b) => b.totalCalls - a.totalCalls);
     } catch (e) {
       console.error('getAICallsByAgent error:', e);
@@ -1032,8 +958,6 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
-      console.log('[getConversationsPerDay] Using ClickHouse query with GROUP BY date');
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1089,12 +1013,6 @@ class SigNozStatsAPI {
       const resp = await this.makeRequest(payload);
       const result = resp?.data?.result?.[0];
 
-      console.log(
-        '[getConversationsPerDay] Response has',
-        result?.series?.length || 0,
-        'series items'
-      );
-
       // Extract results from timeseries format
       // ClickHouse returns ONE series item with multiple values (one per timestamp)
       const buckets = new Map<string, number>();
@@ -1102,12 +1020,6 @@ class SigNozStatsAPI {
         const seriesItem = result.series[0]; // Get the first (and typically only) series
 
         if (seriesItem.values && Array.isArray(seriesItem.values)) {
-          console.log(
-            '[getConversationsPerDay] Processing',
-            seriesItem.values.length,
-            'time buckets'
-          );
-
           for (const valueItem of seriesItem.values) {
             // Each valueItem has: { timestamp: <milliseconds>, value: "<count>" }
             const timestamp = valueItem.timestamp;
@@ -1122,11 +1034,9 @@ class SigNozStatsAPI {
                 typeof countValue === 'string' ? parseInt(countValue, 10) : Number(countValue);
               if (!Number.isNaN(count)) {
                 buckets.set(dateStr, count);
-                console.log('[getConversationsPerDay] Added:', dateStr, '→', count);
               }
             }
           }
-          console.log('[getConversationsPerDay] Extracted', buckets.size, 'date buckets');
         }
       } else {
         console.warn('[getConversationsPerDay] No series data in result');
@@ -1138,13 +1048,6 @@ class SigNozStatsAPI {
         count: buckets.get(date) || 0,
       }));
 
-      console.log(
-        '[getConversationsPerDay] Returning',
-        finalData.length,
-        'date buckets with',
-        buckets.size,
-        'non-zero'
-      );
       return finalData;
     } catch (e) {
       console.error('getConversationsPerDay error:', e);
@@ -1160,8 +1063,6 @@ class SigNozStatsAPI {
     agentId?: string
   ) {
     try {
-      console.log('[getAggregateStats] Using ClickHouse queries for all aggregate stats');
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1310,7 +1211,6 @@ class SigNozStatsAPI {
             ) {
               const count = parseInt(firstSeries.values[0].value, 10);
               if (!Number.isNaN(count)) {
-                console.log(`[getAggregateStats] ${key}: ${count}`);
                 return { key, count };
               }
             }
@@ -1352,8 +1252,6 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
-      console.log('[getAvailableSpanNames] Using ClickHouse query with DISTINCT name');
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1417,7 +1315,6 @@ class SigNozStatsAPI {
         }
       }
 
-      console.log('[getAvailableSpanNames] Extracted', names.size, 'unique span names');
       return [...names].sort();
     } catch (e) {
       console.error('[getAvailableSpanNames] ERROR:', e);
