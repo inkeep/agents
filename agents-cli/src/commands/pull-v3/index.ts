@@ -54,13 +54,13 @@ function createProjectStructure(projectDir: string, projectId: string): ProjectP
 
   const paths = {
     projectRoot,
-    agentsDir: join(projectRoot, 'agents'),
-    toolsDir: join(projectRoot, 'tools'),
+    agentsDir: join(projectRoot, 'agent'),
+    toolsDir: join(projectRoot, 'tool'),
     dataComponentsDir: join(projectRoot, 'data-components'),
     artifactComponentsDir: join(projectRoot, 'artifact-components'),
     statusComponentsDir: join(projectRoot, 'status-components'),
-    environmentsDir: join(projectRoot, 'environments'),
-    credentialsDir: join(projectRoot, 'credentials'),
+    environmentsDir: join(projectRoot, 'environment'),
+    credentialsDir: join(projectRoot, 'credential'),
     contextConfigsDir: join(projectRoot, 'context-configs'),
     externalAgentsDir: join(projectRoot, 'external-agents'),
   };
@@ -460,7 +460,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 8: Build local component registry to understand current project structure
     s.start('Building component registry from local files...');
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
-    const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
+    const localRegistry = await buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
     s.message('Component registry built');
 
     // Step 9: Debug registry to see variable name conflicts

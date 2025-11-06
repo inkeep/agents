@@ -9,6 +9,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import chalk from 'chalk';
 import { ComponentRegistry, type ComponentType } from './utils/component-registry';
+import { parseProjectWithAST } from './ast-parser';
 
 interface ComponentMatch {
   id: string;
@@ -17,46 +18,13 @@ interface ComponentMatch {
   variableName?: string; // If exported
   startLine: number;
   isInline: boolean; // true if not exported, false if exported
+  isEnvironmentAware?: boolean; // Whether this is an environment-aware MCP tool
+  mcpKey?: string; // The MCP key for environment-aware tools
 }
 
-/**
- * Valid plural component types for parsing
- */
-const VALID_COMPONENT_TYPES = new Set<ComponentType>([
-  'project',
-  'agents',
-  'subAgents',
-  'tools',
-  'functionTools',
-  'dataComponents',
-  'artifactComponents',
-  'statusComponents',
-  'externalAgents',
-  'credentials',
-  'contextConfigs',
-  'fetchDefinitions',
-  'headers',
-]);
+// No more hardcoded valid types - we get them from SDK discovery!
 
-/**
- * Mapping from SDK function names to ComponentTypes
- */
-const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
-  project: 'project',
-  agent: 'agents',
-  subAgent: 'subAgents',
-  tool: 'tools',
-  functionTool: 'functionTools',
-  dataComponent: 'dataComponents',
-  artifactComponent: 'artifactComponents',
-  statusComponent: 'statusComponents',
-  externalAgent: 'externalAgents',
-  credential: 'credentials',
-  contextConfig: 'contextConfigs',
-  fetchDefinition: 'fetchDefinitions',
-  header: 'headers',
-  mcpTool: 'tools',
-};
+// No more manual mapping needed! SDK function names are used directly as ComponentType
 
 /**
  * Parse a single file for all component definitions
@@ -92,6 +60,11 @@ function parseFileForComponents(
     const exportedNamePattern =
       /export\s+const\s+(\w+)\s*=\s*(\w+)\s*\(\s*\{[^}]*?name:\s*['"`]([^'"`]+)['"`]/gs;
 
+    // Pattern 1d: Environment-aware MCP tools
+    // export const myTool = envSettings.getEnvironmentMcp('tool-key')
+    const environmentMcpPattern =
+      /export\s+const\s+(\w+)\s*=\s*envSettings\.getEnvironmentMcp\(\s*['"`]([^'"`]+)['"`]\s*\)/gs;
+
     // Pattern 2: Separate declaration + export patterns
     // const myComponent = componentType({id: 'component-id', ...}) + export { myComponent, ... }
     // Handle multi-line patterns where id might be on next line
@@ -123,8 +96,9 @@ function parseFileForComponents(
       const functionName = match[2];
       const componentId = match[3];
 
-      const componentType = FUNCTION_NAME_TO_TYPE[functionName];
-      if (componentType && VALID_COMPONENT_TYPES.has(componentType)) {
+      // Use SDK function name directly as component type
+      const componentType = functionName as ComponentType;
+      if (VALID_COMPONENT_TYPES.has(componentType)) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -149,7 +123,7 @@ function parseFileForComponents(
       if (
         componentType &&
         VALID_COMPONENT_TYPES.has(componentType) &&
-        componentType === 'statusComponents'
+        componentType === 'statusComponent'
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
@@ -172,7 +146,7 @@ function parseFileForComponents(
 
       const componentType = FUNCTION_NAME_TO_TYPE[functionName];
       // Only use 'name' field for functionTools components
-      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTools') {
+      if (VALID_COMPONENT_TYPES.has(componentType) && componentType === 'functionTool') {
         const lineNumber = content.substring(0, match.index).split('\n').length;
 
         components.push({
@@ -184,6 +158,25 @@ function parseFileForComponents(
           isInline: false,
         });
       }
+    }
+
+    // Process environment-aware MCP tools
+    while ((match = environmentMcpPattern.exec(content)) !== null) {
+      const variableName = match[1];
+      const environmentKey = match[2]; // This becomes the component ID
+      
+      const lineNumber = content.substring(0, match.index).split('\n').length;
+
+      components.push({
+        id: environmentKey, // Use the environment key as the component ID
+        type: 'tool', // Environment-aware MCP tools are still tools
+        filePath: relativePath,
+        variableName,
+        startLine: lineNumber,
+        isInline: false,
+        isEnvironmentAware: true, // Mark as environment-aware
+        mcpKey: environmentKey, // Store the MCP key
+      });
     }
 
     // Process separate declaration patterns with 'id' field
@@ -218,7 +211,7 @@ function parseFileForComponents(
       if (
         componentType &&
         VALID_COMPONENT_TYPES.has(componentType) &&
-        componentType === 'statusComponents' &&
+        componentType === 'statusComponent' &&
         exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -244,7 +237,7 @@ function parseFileForComponents(
       // Only use 'name' field for functionTools components
       if (
         VALID_COMPONENT_TYPES.has(componentType) &&
-        componentType === 'functionTools' &&
+        componentType === 'functionTool' &&
         exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -292,7 +285,7 @@ function parseFileForComponents(
       if (
         componentType &&
         VALID_COMPONENT_TYPES.has(componentType) &&
-        componentType === 'statusComponents' &&
+        componentType === 'statusComponent' &&
         !exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -317,7 +310,7 @@ function parseFileForComponents(
       if (
         componentType &&
         VALID_COMPONENT_TYPES.has(componentType) &&
-        componentType === 'functionTools' &&
+        componentType === 'functionTool' &&
         !exportedVariables.has(variableName)
       ) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
@@ -410,12 +403,56 @@ function parseFileForComponents(
 
         components.push({
           id: credentialId,
-          type: 'credentials',
+          type: 'credential',
           filePath: relativePath,
           variableName: credentialKey, // Use the key name as variable name
           startLine: lineNumber,
           isInline: true, // It's nested within environment settings
         });
+      }
+    }
+
+    // Pattern: Environment-based mcpServers within registerEnvironmentSettings
+    // export const development = registerEnvironmentSettings({
+    //   mcpServers: {
+    //     'weather-tool': mcpTool({
+    //       id: 'weather-tool',
+    //       name: 'Weather Tool',
+    //       serverUrl: 'http://localhost:3001/weather',
+    //       ...
+    //     })
+    //   }
+    // });
+    const envMcpServersPattern =
+      /registerEnvironmentSettings\s*\(\s*\{[^}]*?mcpServers:\s*\{([^}]+?)\}/gs;
+    let envMcpMatch;
+    while ((envMcpMatch = envMcpServersPattern.exec(content)) !== null) {
+      const mcpServersBlock = envMcpMatch[1];
+
+      // Extract individual MCP servers from the mcpServers block
+      // Look for patterns like 'tool-key': mcpTool({ id: 'tool-id', ... })
+      const mcpServerPattern = /['"`]([^'"`]+)['"`]:\s*mcpTool\s*\(\s*\{[^}]*?id:\s*['"`]([^'"`]+)['"`]/g;
+      let mcpMatch;
+      while ((mcpMatch = mcpServerPattern.exec(mcpServersBlock)) !== null) {
+        const mcpKey = mcpMatch[1]; // e.g., "weather-tool"
+        const mcpId = mcpMatch[2]; // e.g., "weather-tool"
+
+        const lineNumber = content.substring(0, envMcpMatch.index! + mcpMatch.index!).split('\n').length;
+
+        components.push({
+          id: mcpId, // Use the tool id from mcpTool({ id: '...' })
+          type: 'tool',
+          filePath: relativePath,
+          variableName: undefined, // No variable name for environment-embedded MCPs
+          startLine: lineNumber,
+          isInline: true, // These are inline within environment settings
+        });
+
+        if (debug) {
+          console.log(
+            chalk.gray(`   Found environment MCP server: ${mcpId} (key: ${mcpKey}) at ${relativePath}:${lineNumber}`)
+          );
+        }
       }
     }
   } catch (error) {
@@ -458,15 +495,46 @@ function scanProjectForComponents(projectRoot: string, debug: boolean = false): 
 }
 
 /**
+ * AST-based project scanning wrapper
+ */
+async function scanProjectWithAST(projectRoot: string, debug: boolean): Promise<ComponentMatch[]> {
+  if (debug) {
+    console.log(chalk.cyan('🔍 Using AST-based component parsing...'));
+  }
+  
+  const astComponents = await parseProjectWithAST(projectRoot);
+  
+  // Convert AST component format to legacy ComponentMatch format
+  // SDK function names are used directly as ComponentType (no mapping needed!)
+  const legacyComponents: ComponentMatch[] = astComponents.map(comp => ({
+    id: comp.id,
+    type: comp.type as ComponentType,
+    filePath: comp.filePath,
+    variableName: comp.variableName,
+    startLine: comp.startLine,
+    isInline: comp.isInline,
+    isEnvironmentAware: comp.category === 'environment-aware',
+    mcpKey: comp.category === 'environment-aware' ? comp.id : undefined
+  }));
+  
+  if (debug) {
+    console.log(chalk.green(`✅ Found ${legacyComponents.length} components using AST parsing`));
+  }
+  
+  return legacyComponents;
+}
+
+/**
  * Build component registry from project parsing
  */
-export function buildComponentRegistryFromParsing(
+export async function buildComponentRegistryFromParsing(
   projectRoot: string,
   debug: boolean = false
-): ComponentRegistry {
+): Promise<ComponentRegistry> {
   const registry = new ComponentRegistry();
 
-  const allComponents = scanProjectForComponents(projectRoot, debug);
+  // Use AST-based parsing instead of regex (which already uses SDK discovery internally)
+  const allComponents = await scanProjectWithAST(projectRoot, debug);
 
   // Sort components to prioritize exported over inline (in case of duplicates)
   allComponents.sort((a, b) => {

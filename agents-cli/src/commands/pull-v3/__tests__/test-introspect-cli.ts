@@ -462,13 +462,13 @@ async function main() {
 
   const projectPaths = {
     projectRoot: testDir,
-    agentsDir: join(testDir, 'agents'),
-    toolsDir: join(testDir, 'tools'),
+    agentsDir: join(testDir, 'agent'),
+    toolsDir: join(testDir, 'tool'),
     dataComponentsDir: join(testDir, 'data-components'),
     artifactComponentsDir: join(testDir, 'artifact-components'),
     statusComponentsDir: join(testDir, 'status-components'),
-    environmentsDir: join(testDir, 'environments'),
-    credentialsDir: join(testDir, 'credentials'),
+    environmentsDir: join(testDir, 'environment'),
+    credentialsDir: join(testDir, 'credential'),
     contextConfigsDir: join(testDir, 'context-configs'),
     externalAgentsDir: join(testDir, 'external-agents'),
   };

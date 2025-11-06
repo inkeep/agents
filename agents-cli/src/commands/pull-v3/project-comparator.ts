@@ -99,7 +99,7 @@ function createNewProjectComparison(
   if (project.agents) {
     Object.keys(project.agents).forEach((agentId) => {
       changes.push({
-        componentType: 'agents',
+        componentType: 'agent',
         componentId: agentId,
         changeType: 'added',
       });
@@ -110,7 +110,7 @@ function createNewProjectComparison(
   if (project.tools) {
     Object.keys(project.tools).forEach((toolId) => {
       changes.push({
-        componentType: 'tools',
+        componentType: 'tool',
         componentId: toolId,
         changeType: 'added',
       });
@@ -121,7 +121,7 @@ function createNewProjectComparison(
   if (project.functionTools) {
     Object.keys(project.functionTools).forEach((toolId) => {
       changes.push({
-        componentType: 'functionTools',
+        componentType: 'functionTool',
         componentId: toolId,
         changeType: 'added',
       });
@@ -143,7 +143,7 @@ function createNewProjectComparison(
   if (project.dataComponents) {
     Object.keys(project.dataComponents).forEach((componentId) => {
       changes.push({
-        componentType: 'dataComponents',
+        componentType: 'dataComponent',
         componentId: componentId,
         changeType: 'added',
       });
@@ -154,7 +154,7 @@ function createNewProjectComparison(
   if (project.artifactComponents) {
     Object.keys(project.artifactComponents).forEach((componentId) => {
       changes.push({
-        componentType: 'artifactComponents',
+        componentType: 'artifactComponent',
         componentId: componentId,
         changeType: 'added',
       });
@@ -167,7 +167,7 @@ function createNewProjectComparison(
       if (agentData.subAgents) {
         Object.keys(agentData.subAgents).forEach((subAgentId) => {
           changes.push({
-            componentType: 'subAgents',
+            componentType: 'subAgent',
             componentId: subAgentId,
             changeType: 'added',
           });
@@ -180,7 +180,7 @@ function createNewProjectComparison(
   const statusComponents = extractStatusComponentIds(project);
   statusComponents.forEach((componentId) => {
     changes.push({
-      componentType: 'statusComponents',
+      componentType: 'statusComponent',
       componentId: componentId,
       changeType: 'added',
     });
@@ -195,7 +195,7 @@ function createNewProjectComparison(
           return; // Skip this contextConfig if no ID
         }
         changes.push({
-          componentType: 'contextConfigs',
+          componentType: 'contextConfig',
           componentId: contextConfigId,
           changeType: 'added',
         });
@@ -207,7 +207,7 @@ function createNewProjectComparison(
   if (project.externalAgents) {
     Object.keys(project.externalAgents).forEach((extAgentId) => {
       changes.push({
-        componentType: 'externalAgents',
+        componentType: 'externalAgent',
         componentId: extAgentId,
         changeType: 'added',
       });
@@ -218,7 +218,7 @@ function createNewProjectComparison(
   if (project.credentialReferences) {
     Object.keys(project.credentialReferences).forEach((credId) => {
       changes.push({
-        componentType: 'credentials',
+        componentType: 'credential',
         componentId: credId,
         changeType: 'added',
       });
@@ -326,7 +326,7 @@ function compareAgents(
     .forEach((id) => {
       const agent = remoteAgents[id];
       changes.push({
-        componentType: 'agents',
+        componentType: 'agent',
         componentId: id,
         changeType: 'added',
         summary: `New agent: ${agent.name || id}`,
@@ -339,7 +339,7 @@ function compareAgents(
     .forEach((id) => {
       const agent = localAgents[id];
       changes.push({
-        componentType: 'agents',
+        componentType: 'agent',
         componentId: id,
         changeType: 'deleted',
         summary: `Removed agent: ${agent.name || id}`,
@@ -353,7 +353,7 @@ function compareAgents(
     if (fieldChanges.length > 0) {
       const summary = generateAgentChangeSummary(fieldChanges);
       changes.push({
-        componentType: 'agents',
+        componentType: 'agent',
         componentId: id,
         changeType: 'modified',
         changedFields: fieldChanges,
@@ -405,7 +405,7 @@ function compareSubAgents(
     .forEach((id) => {
       const subAgent = remoteSubAgents[id];
       changes.push({
-        componentType: 'subAgents',
+        componentType: 'subAgent',
         componentId: id,
         changeType: 'added',
         summary: `New subAgent: ${subAgent.name || id}`,
@@ -418,7 +418,7 @@ function compareSubAgents(
     .forEach((id) => {
       const subAgent = localSubAgents[id];
       changes.push({
-        componentType: 'subAgents',
+        componentType: 'subAgent',
         componentId: id,
         changeType: 'deleted',
         summary: `Removed subAgent: ${subAgent.name || id}`,
@@ -432,7 +432,7 @@ function compareSubAgents(
     if (fieldChanges.length > 0) {
       const summary = generateSubAgentChangeSummary(fieldChanges);
       changes.push({
-        componentType: 'subAgents',
+        componentType: 'subAgent',
         componentId: id,
         changeType: 'modified',
         changedFields: fieldChanges,
@@ -474,7 +474,7 @@ function compareTools(
   remoteTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('tools', localTools, remoteTools, debug);
+  return compareComponentMaps('tool', localTools, remoteTools, debug);
 }
 
 /**
@@ -485,7 +485,7 @@ function compareFunctionTools(
   remoteFunctionTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools, debug);
+  return compareComponentMaps('functionTool', localFunctionTools, remoteFunctionTools, debug);
 }
 
 /**
@@ -531,7 +531,7 @@ function compareDataComponents(
   remoteDataComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents, debug);
+  return compareComponentMaps('dataComponent', localDataComponents, remoteDataComponents, debug);
 }
 
 /**
@@ -543,7 +543,7 @@ function compareArtifactComponents(
   debug: boolean
 ): ComponentChange[] {
   return compareComponentMaps(
-    'artifactComponents',
+    'artifactComponent',
     localArtifactComponents,
     remoteArtifactComponents,
     debug
@@ -558,7 +558,7 @@ function compareCredentials(
   remoteCredentials: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('credentials', localCredentials, remoteCredentials, debug);
+  return compareComponentMaps('credential', localCredentials, remoteCredentials, debug);
 }
 
 /**
@@ -569,7 +569,7 @@ function compareExternalAgents(
   remoteExternalAgents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents, debug);
+  return compareComponentMaps('externalAgent', localExternalAgents, remoteExternalAgents, debug);
 }
 
 /**
@@ -581,7 +581,7 @@ function compareStatusComponents(
   debug: boolean
 ): ComponentChange[] {
   return compareComponentMaps(
-    'statusComponents',
+    'statusComponent',
     localStatusComponents,
     remoteStatusComponents,
     debug
@@ -660,7 +660,7 @@ function compareProjectFields(
         const summary = `Project ${field} updated`;
 
         changes.push({
-          componentType: 'contextConfigs', // Use contextConfig as catch-all for project-level changes
+          componentType: 'contextConfig', // Use contextConfig as catch-all for project-level changes
           componentId: `project-${field}`,
           changeType: 'modified',
           changedFields: fieldChanges,
@@ -867,7 +867,7 @@ function getDetailedFieldChanges(
     'status',
     'usedBy', // Computed field
     // Agent-level fields that shouldn't be compared (tools only for sub-agents via canUse)
-    'tools', // Tools are handled at project level and sub-agent level via canUse
+    'tool', // Tools are handled at project level and sub-agent level via canUse
     'teamAgents', // Team relationships are handled elsewhere
     // Timestamps
     'createdAt',
@@ -1068,10 +1068,10 @@ function generateAgentChangeSummary(fieldChanges: FieldChange[]): string {
   const promptChange = fieldChanges.find((c) => c.field === 'prompt');
   const modelChanges = fieldChanges.filter((c) => c.field.startsWith('models'));
   const toolChanges = fieldChanges.filter(
-    (c) => c.field.includes('canUse') || c.field.includes('tools')
+    (c) => c.field.includes('canUse') || c.field.includes('tool')
   );
   const subAgentChanges = fieldChanges.filter(
-    (c) => c.field.includes('subAgents') || c.field.includes('canDelegateTo')
+    (c) => c.field.includes('subAgent') || c.field.includes('canDelegateTo')
   );
 
   if (nameChange) summaryParts.push('name updated');
@@ -1098,7 +1098,7 @@ function generateComponentSummary(
   const name = component?.name || component?.id || 'unnamed';
   const action = changeType === 'added' ? 'Added' : 'Removed';
 
-  if (componentType === 'tools') {
+  if (componentType === 'tool') {
     const toolType = component?.config?.type || 'unknown type';
     return `${action} ${toolType} tool: ${name}`;
   }
@@ -1113,7 +1113,7 @@ function generateComponentChangeSummary(
   componentType: ComponentType,
   fieldChanges: FieldChange[]
 ): string {
-  if (componentType === 'tools') {
+  if (componentType === 'tool') {
     const configChanges = fieldChanges.filter((c) => c.field.startsWith('config'));
     if (configChanges.length > 0) {
       return `Configuration updated (${configChanges.length} changes)`;
@@ -1316,19 +1316,19 @@ function getCategoryIcon(category: string): string {
  */
 function getComponentIcon(componentType: string): string {
   switch (componentType) {
-    case 'agents':
+    case 'agent':
       return '🤖';
-    case 'tools':
+    case 'tool':
       return '🛠️ ';
-    case 'functionTools':
+    case 'functionTool':
       return '⚡';
-    case 'dataComponents':
+    case 'dataComponent':
       return '📊';
-    case 'artifactComponents':
+    case 'artifactComponent':
       return '📄';
-    case 'credentials':
+    case 'credential':
       return '🔑';
-    case 'contextConfigs':
+    case 'contextConfig':
       return '⚙️ ';
     case 'fetchDefinitions':
       return '🔄';
@@ -1371,14 +1371,14 @@ function compareContextConfigs(
 
     if (!localContextConfig && remoteContextConfig) {
       changes.push({
-        componentType: 'contextConfigs' as ComponentType,
+        componentType: 'contextConfig' as ComponentType,
         componentId: contextId,
         changeType: 'added',
         summary: `Added contextConfig for agent: ${agentId}`,
       });
     } else if (localContextConfig && !remoteContextConfig) {
       changes.push({
-        componentType: 'contextConfigs' as ComponentType,
+        componentType: 'contextConfig' as ComponentType,
         componentId: contextId,
         changeType: 'deleted',
         summary: `Removed contextConfig for agent: ${agentId}`,
@@ -1392,7 +1392,7 @@ function compareContextConfigs(
 
       if (filteredChanges.length > 0) {
         changes.push({
-          componentType: 'contextConfigs' as ComponentType,
+          componentType: 'contextConfig' as ComponentType,
           componentId: contextId,
           changeType: 'modified',
           changedFields: filteredChanges,

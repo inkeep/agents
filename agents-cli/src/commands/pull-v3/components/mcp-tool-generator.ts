@@ -40,6 +40,23 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
 }
 
 /**
+ * Generate environment-aware MCP Tool Definition using envSettings.getEnvironmentMcp()
+ */
+export function generateEnvironmentAwareMcpToolDefinition(
+  toolId: string,
+  environmentKey: string,
+  style: CodeStyle = DEFAULT_STYLE
+): string {
+  const { semicolons } = style;
+  const semi = semicolons ? ';' : '';
+  
+  const toolVarName = toCamelCase(toolId);
+  const q = style.quotes === 'single' ? "'" : '"';
+  
+  return `export const ${toolVarName} = envSettings.getEnvironmentMcp(${formatString(environmentKey, q)})${semi}`;
+}
+
+/**
  * Generate MCP Tool Definition using mcpTool() builder function
  */
 export function generateMcpToolDefinition(
@@ -131,7 +148,7 @@ export function generateMcpToolDefinition(
     }
   } else if (toolData.credentialReferenceId && registry) {
     // Generate credential reference via registry
-    const validKey = registry.getVariableName(toolData.credentialReferenceId, 'credentials');
+    const validKey = registry.getVariableName(toolData.credentialReferenceId, 'credential');
     lines.push(
       `${indentation}credential: envSettings.getEnvironmentCredential(${formatString(validKey, q)}),`
     );
@@ -145,6 +162,19 @@ export function generateMcpToolDefinition(
   lines.push(`})${semi}`);
 
   return lines.join('\n');
+}
+
+/**
+ * Generate imports needed for environment-aware MCP tool file
+ */
+export function generateEnvironmentAwareMcpToolImports(
+  style: CodeStyle = DEFAULT_STYLE
+): string[] {
+  const { quotes, semicolons } = style;
+  const q = quotes === 'single' ? "'" : '"';
+  const semi = semicolons ? ';' : '';
+  
+  return [`import { envSettings } from ${q}../environments${q}${semi}`];
 }
 
 /**
@@ -169,6 +199,20 @@ export function generateMcpToolImports(
   }
 
   return imports;
+}
+
+/**
+ * Generate complete environment-aware MCP tool file
+ */
+export function generateEnvironmentAwareMcpToolFile(
+  toolId: string,
+  environmentKey: string,
+  style: CodeStyle = DEFAULT_STYLE
+): string {
+  const imports = generateEnvironmentAwareMcpToolImports(style);
+  const definition = generateEnvironmentAwareMcpToolDefinition(toolId, environmentKey, style);
+
+  return imports.join('\n') + '\n\n' + definition + '\n';
 }
 
 /**

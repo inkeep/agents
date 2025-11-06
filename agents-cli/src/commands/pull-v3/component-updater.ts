@@ -210,9 +210,9 @@ function generateUpdatedComponentContent(
   };
 
   switch (componentType) {
-    case 'agents':
+    case 'agent':
       return generateAgentFile(componentId, componentData, defaultStyle, localRegistry);
-    case 'subAgents': {
+    case 'subAgent': {
       // Find parent agent info for contextConfig handling
       const parentInfo = findSubAgentWithParent(remoteProject, componentId);
       const parentAgentId = parentInfo?.parentAgentId;
@@ -227,24 +227,24 @@ function generateUpdatedComponentContent(
         contextConfigData
       );
     }
-    case 'tools':
+    case 'tool':
       return generateMcpToolFile(componentId, componentData, defaultStyle, localRegistry);
-    case 'functionTools':
+    case 'functionTool':
     case 'functions':
       return generateFunctionToolFile(componentId, componentData, defaultStyle);
-    case 'dataComponents':
+    case 'dataComponent':
       return generateDataComponentFile(componentId, componentData, defaultStyle);
-    case 'artifactComponents':
+    case 'artifactComponent':
       return generateArtifactComponentFile(componentId, componentData, defaultStyle);
-    case 'statusComponents':
+    case 'statusComponent':
       return generateStatusComponentFile(componentId, componentData, defaultStyle);
-    case 'environments':
+    case 'environment':
       return generateEnvironmentFile(componentId, componentData, defaultStyle, localRegistry);
-    case 'externalAgents':
+    case 'externalAgent':
       return generateExternalAgentFile(componentId, componentData, defaultStyle, localRegistry);
-    case 'credentials':
+    case 'credential':
       return generateCredentialFile(componentId, componentData, defaultStyle);
-    case 'contextConfigs': {
+    case 'contextConfig': {
       // Extract agent ID if stored in componentData
       const agentId = componentData._agentId;
       // Remove the temporary _agentId field before passing to generator
@@ -315,7 +315,7 @@ export async function updateModifiedComponents(
     // Handle function -> functionTool mapping: functions are implementation details of functionTools
     let actualComponentType = componentType;
     if (componentType === 'functions') {
-      actualComponentType = 'functionTools';
+      actualComponentType = 'functionTool';
     }
 
     const localComponent = localRegistry.get(componentId, actualComponentType as any);
@@ -361,7 +361,7 @@ export async function updateModifiedComponents(
         let componentData: any = null;
 
         // Handle nested component types that don't exist as top-level collections
-        if (componentType === 'contextConfigs') {
+        if (componentType === 'contextConfig') {
           // Find the contextConfig by its ID across all agents
           for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
             if (agentData.contextConfig && agentData.contextConfig.id === componentId) {
@@ -385,7 +385,7 @@ export async function updateModifiedComponents(
               if (componentData) break;
             }
           }
-        } else if (componentType === 'subAgents') {
+        } else if (componentType === 'subAgent') {
           // SubAgents are nested within agents - find the subAgent by ID
           for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
             if (agentData.subAgents && agentData.subAgents[componentId]) {
@@ -393,7 +393,7 @@ export async function updateModifiedComponents(
               break;
             }
           }
-        } else if (componentType === 'statusComponents') {
+        } else if (componentType === 'statusComponent') {
           // StatusComponents are nested within agents - find the statusComponent by ID
           for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
             if (
@@ -408,7 +408,7 @@ export async function updateModifiedComponents(
               }
             }
           }
-        } else if (componentType === 'credentials') {
+        } else if (componentType === 'credential') {
           // Credentials are in credentialReferences
           componentData = remoteProject.credentialReferences?.[componentId];
         } else {
@@ -591,7 +591,7 @@ export async function updateModifiedComponents(
       }
 
       // Find the corresponding change from the comparison data to show what fields changed
-      // Note: comparison uses singular forms (e.g. 'subAgent') but updater uses plural forms (e.g. 'subAgents')
+      // Note: comparison uses singular forms (e.g. 'subAgent') but updater uses plural forms (e.g. 'subAgent')
       // Convert plural component types (used by updater) to singular forms (used by comparator)
       const normalizedCompType =
         change.componentType.endsWith('s') && change.componentType !== 'headers'
@@ -637,6 +637,11 @@ export async function updateModifiedComponents(
   }
   if (failed.length > 0) {
     console.log(chalk.red(`   ❌ ${failed.length} components failed to analyze`));
+    if (debug) {
+      failed.forEach((f) => {
+        console.log(chalk.red(`      Error in ${f.componentType}:${f.componentId}: ${f.error}`));
+      });
+    }
   }
 
   // Run Biome on the entire temp directory (silently)

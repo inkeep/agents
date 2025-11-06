@@ -40,6 +40,76 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
 }
 
 /**
+ * Format mcpServers object for environment settings
+ */
+function formatMcpServersObject(mcpServers: any, style: CodeStyle, indentLevel: number): string {
+  if (!mcpServers || typeof mcpServers !== 'object') {
+    return '{}';
+  }
+
+  const { quotes, indentation } = style;
+  const q = quotes === 'single' ? "'" : '"';
+  const baseIndent = indentation.repeat(indentLevel);
+  const indent = indentation.repeat(indentLevel + 1);
+  const nestedIndent = indentation.repeat(indentLevel + 2);
+
+  const lines: string[] = ['{'];
+
+  for (const [key, toolData] of Object.entries(mcpServers) as [string, any][]) {
+    lines.push(`${indent}${formatString(key, q)}: mcpTool({`);
+
+    // Add tool properties
+    if (toolData.id) {
+      lines.push(`${nestedIndent}id: ${formatString(toolData.id, q)},`);
+    }
+    if (toolData.name) {
+      lines.push(`${nestedIndent}name: ${formatString(toolData.name, q)},`);
+    }
+    if (toolData.description) {
+      lines.push(`${nestedIndent}description: ${formatString(toolData.description, q, true)},`);
+    }
+    if (toolData.serverUrl) {
+      lines.push(`${nestedIndent}serverUrl: ${formatString(toolData.serverUrl, q)},`);
+    }
+    if (toolData.transport) {
+      const transportStr = JSON.stringify(toolData.transport, null, 2);
+      const formattedTransport = transportStr
+        .split('\n')
+        .map((line, index) => {
+          if (index === 0) return `${nestedIndent}transport: ${line}`;
+          return `${nestedIndent}${line}`;
+        })
+        .join('\n');
+      lines.push(formattedTransport + ',');
+    }
+    if (toolData.imageUrl) {
+      lines.push(`${nestedIndent}imageUrl: ${formatString(toolData.imageUrl, q)},`);
+    }
+    if (toolData.activeTools && Array.isArray(toolData.activeTools)) {
+      const activeToolsStr = JSON.stringify(toolData.activeTools);
+      lines.push(`${nestedIndent}activeTools: ${activeToolsStr},`);
+    }
+
+    // Remove trailing comma from last property
+    const lastPropIndex = lines.length - 1;
+    if (lines[lastPropIndex].endsWith(',')) {
+      lines[lastPropIndex] = lines[lastPropIndex].slice(0, -1);
+    }
+
+    lines.push(`${indent}}),`);
+  }
+
+  // Remove trailing comma from last mcp server
+  if (lines.length > 1 && lines[lines.length - 1].endsWith(',')) {
+    lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
+  }
+
+  lines.push(`${baseIndent}}`);
+
+  return lines.join('\n');
+}
+
+/**
  * Format credentials object for environment settings
  */
 function formatCredentialsObject(credentials: any, style: CodeStyle, indentLevel: number): string {
@@ -173,6 +243,12 @@ export function generateEnvironmentSettingsDefinition(
     lines.push(`${indentation}credentials: {},`);
   }
 
+  // MCP Servers object
+  if (environmentData.mcpServers && Object.keys(environmentData.mcpServers).length > 0) {
+    const formattedMcpServers = formatMcpServersObject(environmentData.mcpServers, style, 1);
+    lines.push(`${indentation}mcpServers: ${formattedMcpServers},`);
+  }
+
   // Other environment-specific settings can be added here in the future
   // e.g., contextVariables, defaultValues, etc.
 
@@ -231,6 +307,15 @@ export function generateEnvironmentSettingsImports(
 
   // Always import registerEnvironmentSettings
   imports.push(`import { registerEnvironmentSettings } from ${q}@inkeep/agents-sdk${q}${semi}`);
+
+  // Check if we need mcpTool for mcpServers
+  const needsMcpTool =
+    environmentData.mcpServers &&
+    Object.keys(environmentData.mcpServers).length > 0;
+
+  if (needsMcpTool) {
+    imports.push(`import { mcpTool } from ${q}@inkeep/agents-sdk${q}${semi}`);
+  }
 
   // Check if we need CredentialStoreType enum
   const needsCredentialStoreType =
@@ -321,7 +406,7 @@ export function generateEnvironmentFile(
 
     // Import each credential and collect variable names
     for (const credentialId of environmentData.credentials) {
-      const credentialComponent = registry.get(credentialId, 'credentials');
+      const credentialComponent = registry.get(credentialId, 'credential');
       if (credentialComponent) {
         const relativePath = `../credentials/${credentialId}`;
         imports.push(`import { ${credentialComponent.name} } from ${q}${relativePath}${q}${semi}`);
@@ -345,7 +430,7 @@ export function generateEnvironmentFile(
         const credentialVarName = credentialRefs[i];
         const isLast = i === credentialRefs.length - 1;
         // Use registry's variable name for the key to ensure valid JavaScript property name
-        const validKey = registry.getVariableName(credentialId, 'credentials');
+        const validKey = registry.getVariableName(credentialId, 'credential');
         lines.push(
           `${indentation}${indentation}${validKey}: ${credentialVarName}${isLast ? '' : ','}`
         );

@@ -23,13 +23,13 @@ describe('Introspect Generator - End-to-End', () => {
 
     projectPaths = {
       projectRoot: testDir,
-      agentsDir: join(testDir, 'agents'),
-      toolsDir: join(testDir, 'tools'),
+      agentsDir: join(testDir, 'agent'),
+      toolsDir: join(testDir, 'tool'),
       dataComponentsDir: join(testDir, 'data-components'),
       artifactComponentsDir: join(testDir, 'artifact-components'),
       statusComponentsDir: join(testDir, 'status-components'),
-      environmentsDir: join(testDir, 'environments'),
-      credentialsDir: join(testDir, 'credentials'),
+      environmentsDir: join(testDir, 'environment'),
+      credentialsDir: join(testDir, 'credential'),
       contextConfigsDir: join(testDir, 'context-configs'),
       externalAgentsDir: join(testDir, 'external-agents'),
     };
@@ -275,27 +275,27 @@ describe('Introspect Generator - End-to-End', () => {
     expect(projectContent).toContain("name: 'Test Customer Support Project'");
 
     // Verify credentials
-    const apiCredFile = join(testDir, 'credentials', 'api-credentials.ts');
+    const apiCredFile = join(testDir, 'credential', 'api-credentials.ts');
     expect(existsSync(apiCredFile)).toBe(true);
     const apiCredContent = readFileSync(apiCredFile, 'utf-8');
     expect(apiCredContent).toContain("import { credential } from '@inkeep/agents-sdk';");
     expect(apiCredContent).toContain('export const apiCredentials = credential({');
 
     // Verify environment
-    const envFile = join(testDir, 'environments', 'development.env.ts');
+    const envFile = join(testDir, 'environment', 'development.env.ts');
     expect(existsSync(envFile)).toBe(true);
     const envContent = readFileSync(envFile, 'utf-8');
     expect(envContent).toContain('export const development = registerEnvironmentSettings({');
 
     // Verify function tools
-    const funcFile = join(testDir, 'tools', 'functions', 'calculate-priority.ts');
+    const funcFile = join(testDir, 'tool', 'functions', 'calculate-priority.ts');
     expect(existsSync(funcFile)).toBe(true);
     const funcContent = readFileSync(funcFile, 'utf-8');
     expect(funcContent).toContain("import { functionTool } from '@inkeep/agents-sdk';");
     expect(funcContent).toContain('export const calculatePriority = functionTool({');
 
     // Verify MCP tools
-    const mcpFile = join(testDir, 'tools', 'knowledge-base.ts');
+    const mcpFile = join(testDir, 'tool', 'knowledge-base.ts');
     expect(existsSync(mcpFile)).toBe(true);
     const mcpContent = readFileSync(mcpFile, 'utf-8');
     expect(mcpContent).toContain("import { mcpTool } from '@inkeep/agents-sdk';");
@@ -327,14 +327,14 @@ describe('Introspect Generator - End-to-End', () => {
     // expect(existsSync(contextFile)).toBe(true);
 
     // Verify sub-agents
-    const subAgentFile = join(testDir, 'agents', 'sub-agents', 'level1-support.ts');
+    const subAgentFile = join(testDir, 'agent', 'sub-agents', 'level1-support.ts');
     expect(existsSync(subAgentFile)).toBe(true);
     const subAgentContent = readFileSync(subAgentFile, 'utf-8');
     expect(subAgentContent).toContain("import { subAgent } from '@inkeep/agents-sdk';");
     expect(subAgentContent).toContain('export const level1Support = subAgent({');
 
     // Verify main agents
-    const agentFile = join(testDir, 'agents', 'support-agent.ts');
+    const agentFile = join(testDir, 'agent', 'support-agent.ts');
     expect(existsSync(agentFile)).toBe(true);
     const agentContent = readFileSync(agentFile, 'utf-8');
     expect(agentContent).toContain("import { agent } from '@inkeep/agents-sdk';");
@@ -363,13 +363,13 @@ describe('Introspect Generator - End-to-End', () => {
     expect(projectContent).toContain("name: 'Minimal Test Project'");
 
     // Should generate environment file
-    const envFile = join(testDir, 'environments', 'test.env.ts');
+    const envFile = join(testDir, 'environment', 'test.env.ts');
     expect(existsSync(envFile)).toBe(true);
 
     // Should not generate component files for empty project
-    expect(existsSync(join(testDir, 'agents'))).toBe(false);
-    expect(existsSync(join(testDir, 'tools'))).toBe(false);
-    expect(existsSync(join(testDir, 'credentials'))).toBe(false);
+    expect(existsSync(join(testDir, 'agent'))).toBe(false);
+    expect(existsSync(join(testDir, 'tool'))).toBe(false);
+    expect(existsSync(join(testDir, 'credential'))).toBe(false);
   });
 
   it('should handle different code styles', async () => {
@@ -399,17 +399,17 @@ describe('Introspect Generator - End-to-End', () => {
     await introspectGenerate(mockComplexProject, projectPaths, 'development', false);
 
     // Verify all directories are created
-    expect(existsSync(join(testDir, 'agents'))).toBe(true);
-    expect(existsSync(join(testDir, 'agents', 'sub-agents'))).toBe(true);
-    expect(existsSync(join(testDir, 'tools'))).toBe(true);
-    expect(existsSync(join(testDir, 'tools', 'functions'))).toBe(true);
+    expect(existsSync(join(testDir, 'agent'))).toBe(true);
+    expect(existsSync(join(testDir, 'agent', 'sub-agents'))).toBe(true);
+    expect(existsSync(join(testDir, 'tool'))).toBe(true);
+    expect(existsSync(join(testDir, 'tool', 'functions'))).toBe(true);
     expect(existsSync(join(testDir, 'data-components'))).toBe(true);
     expect(existsSync(join(testDir, 'artifact-components'))).toBe(true);
     expect(existsSync(join(testDir, 'external-agents'))).toBe(true);
     // Context configs directory only created if contextConfig has an ID
     // expect(existsSync(join(testDir, 'context-configs'))).toBe(true);
-    expect(existsSync(join(testDir, 'credentials'))).toBe(true);
-    expect(existsSync(join(testDir, 'environments'))).toBe(true);
+    expect(existsSync(join(testDir, 'credential'))).toBe(true);
+    expect(existsSync(join(testDir, 'environment'))).toBe(true);
   });
 
   it('should handle projects with only external agents', async () => {
@@ -498,10 +498,10 @@ describe('Introspect Generator - End-to-End', () => {
     // Read generated files and verify they contain valid TypeScript syntax
     const files = [
       join(testDir, 'index.ts'),
-      join(testDir, 'credentials', 'api-credentials.ts'),
-      join(testDir, 'tools', 'knowledge-base.ts'),
-      join(testDir, 'agents', 'support-agent.ts'),
-      join(testDir, 'agents', 'sub-agents', 'level1-support.ts'),
+      join(testDir, 'credential', 'api-credentials.ts'),
+      join(testDir, 'tool', 'knowledge-base.ts'),
+      join(testDir, 'agent', 'support-agent.ts'),
+      join(testDir, 'agent', 'sub-agents', 'level1-support.ts'),
     ];
 
     for (const file of files) {

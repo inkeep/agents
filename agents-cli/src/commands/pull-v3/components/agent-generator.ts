@@ -70,7 +70,7 @@ function formatStatusUpdates(
     if (statusComponentIds.length > 0) {
       lines.push(`${indent}${indentation}statusComponents: [`);
       for (const statusCompId of statusComponentIds) {
-        const statusCompVar = registry?.getVariableName(statusCompId, 'statusComponents');
+        const statusCompVar = registry?.getVariableName(statusCompId, 'statusComponent');
         lines.push(`${indent}${indentation}${indentation}${statusCompVar || 'undefined'}.config,`);
       }
       lines.push(`${indent}${indentation}],`);
@@ -86,7 +86,7 @@ function formatStatusUpdates(
       registry
     ) {
       const contextConfigId = contextConfigData.id;
-      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfigs');
+      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
 
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
@@ -208,7 +208,7 @@ export function generateAgentDefinition(
 
   // Use registry to get collision-safe variable name if available
   if (registry) {
-    const registryVarName = registry.getVariableName(agentId, 'agents');
+    const registryVarName = registry.getVariableName(agentId, 'agent');
     if (registryVarName) {
       agentVarName = registryVarName;
     }
@@ -230,7 +230,7 @@ export function generateAgentDefinition(
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
     if (hasTemplateVariables(agentData.prompt) && contextConfigData && registry) {
       const contextConfigId = contextConfigData.id;
-      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfigs');
+      const contextVarName = registry.getVariableName(contextConfigId, 'contextConfig');
 
       if (!contextVarName) {
         throw new Error(`Failed to resolve context config variable name for: ${contextConfigId}`);
@@ -303,7 +303,7 @@ export function generateAgentDefinition(
       throw new Error('Registry is required for defaultSubAgent generation');
     }
 
-    const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId, 'subAgents');
+    const defaultSubAgentVar = registry.getVariableName(agentData.defaultSubAgentId, 'subAgent');
 
     if (!defaultSubAgentVar) {
       throw new Error(
@@ -326,7 +326,7 @@ export function generateAgentDefinition(
 
     // subAgents is an object with IDs as keys, extract the keys
     const subAgentIds = Object.keys(agentData.subAgents);
-    const subAgentsArray = registry.formatReferencesForCode(subAgentIds, 'subAgents', style, 2);
+    const subAgentsArray = registry.formatReferencesForCode(subAgentIds, 'subAgent', style, 2);
 
     if (!subAgentsArray) {
       throw new Error(`Failed to resolve variable names for sub-agents: ${subAgentIds.join(', ')}`);
@@ -337,7 +337,7 @@ export function generateAgentDefinition(
 
   // contextConfig - reference to context configuration (generated separately)
   if (agentData.contextConfig && registry && agentData.contextConfig.id) {
-    const contextConfigVar = registry.getVariableName(agentData.contextConfig.id, 'contextConfigs');
+    const contextConfigVar = registry.getVariableName(agentData.contextConfig.id, 'contextConfig');
     if (contextConfigVar) {
       lines.push(`${indentation}contextConfig: ${contextConfigVar},`);
     } else {
@@ -402,7 +402,7 @@ export function generateAgentImports(
     if (agentData.subAgents && typeof agentData.subAgents === 'object') {
       const subAgentIds = Object.keys(agentData.subAgents);
       referencedComponents.push(
-        ...subAgentIds.map((id) => ({ id, type: 'subAgents' as ComponentType }))
+        ...subAgentIds.map((id) => ({ id, type: 'subAgent' as ComponentType }))
       );
     }
 
@@ -414,10 +414,10 @@ export function generateAgentImports(
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
         if (typeof comp === 'string') {
-          referencedComponents.push({ id: comp, type: 'statusComponents' });
+          referencedComponents.push({ id: comp, type: 'statusComponent' });
         } else if (typeof comp === 'object' && comp) {
           const statusId = comp.id || comp.type || comp.name;
-          if (statusId) referencedComponents.push({ id: statusId, type: 'statusComponents' });
+          if (statusId) referencedComponents.push({ id: statusId, type: 'statusComponent' });
         }
       }
     }
@@ -426,12 +426,12 @@ export function generateAgentImports(
     if (agentData.contextConfig) {
       // Use actual contextConfig.id
       const contextConfigId = agentData.contextConfig.id;
-      referencedComponents.push({ id: contextConfigId, type: 'contextConfigs' });
+      referencedComponents.push({ id: contextConfigId, type: 'contextConfig' });
     }
 
     // Default sub-agent reference
     if (agentData.defaultSubAgentId) {
-      referencedComponents.push({ id: agentData.defaultSubAgentId, type: 'subAgents' });
+      referencedComponents.push({ id: agentData.defaultSubAgentId, type: 'subAgent' });
     }
 
     // Get import statements for all referenced components

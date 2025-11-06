@@ -104,7 +104,7 @@ export function generateSubAgentDefinition(
 
   // Use registry to get collision-safe variable name if available
   if (registry) {
-    const registryVarName = registry.getVariableName(agentId, 'subAgents');
+    const registryVarName = registry.getVariableName(agentId, 'subAgent');
     if (registryVarName) {
       agentVarName = registryVarName;
     }
@@ -122,7 +122,7 @@ export function generateSubAgentDefinition(
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {
     if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
-      const contextVarName = registry.getVariableName(contextConfigData.id, 'contextConfigs');
+      const contextVarName = registry.getVariableName(contextConfigData.id, 'contextConfig');
 
       if (!contextVarName) {
         throw new Error(
@@ -203,15 +203,24 @@ export function generateSubAgentDefinition(
       // Extract toolId from the relation object
       const toolId = toolRelation.toolId;
 
-      // Try both 'tools' (MCP tools) and 'functionTools' (inline function tools) types
-      let toolVarName = registry.getVariableName(toolId, 'tools');
+      // Try both 'mcpTool' (MCP tools) and 'functionTool' (inline function tools) types
+      let toolVarName = registry.getVariableName(toolId, 'mcpTool');
       if (!toolVarName) {
-        toolVarName = registry.getVariableName(toolId, 'functionTools');
+        toolVarName = registry.getVariableName(toolId, 'functionTool');
       }
 
       if (!toolVarName) {
+        // Log registry contents for debugging
+        console.log(`🔍 Registry contents for tool lookup failure:`);
+        console.log(`  Looking for toolId: ${toolId}`);
+        console.log(`  Registry has ${registry.getAll().length} total components:`);
+        registry.getAll().forEach(comp => {
+          if (comp.type === 'mcpTool' || comp.type === 'functionTool') {
+            console.log(`    ${comp.type}:${comp.id} -> ${comp.variableName}`);
+          }
+        });
         throw new Error(
-          `Failed to resolve variable name for tool: ${toolId} (tried both 'tools' and 'functionTools' types)`
+          `Failed to resolve variable name for tool: ${toolId} (tried both 'mcpTool' and 'functionTool' types)`
         );
       }
 
@@ -280,20 +289,20 @@ export function generateSubAgentDefinition(
       if (typeof delegateRelation === 'string') {
         // Simple string format - treat as subAgent by default
         targetAgentId = delegateRelation;
-        targetType = 'subAgents';
+        targetType = 'subAgent';
         hasHeaders = false;
       } else if (delegateRelation && typeof delegateRelation === 'object') {
         hasHeaders = delegateRelation.headers && Object.keys(delegateRelation.headers).length > 0;
 
         if (delegateRelation.externalAgentId) {
           targetAgentId = delegateRelation.externalAgentId;
-          targetType = 'externalAgents';
+          targetType = 'externalAgent';
         } else if (delegateRelation.agentId) {
           targetAgentId = delegateRelation.agentId;
-          targetType = 'agents';
+          targetType = 'agent';
         } else if (delegateRelation.subAgentId) {
           targetAgentId = delegateRelation.subAgentId;
-          targetType = 'subAgents';
+          targetType = 'subAgent';
         } else {
           throw new Error(
             `Delegate relation missing agentId, subAgentId, or externalAgentId: ${JSON.stringify(delegateRelation)}`
@@ -356,7 +365,7 @@ export function generateSubAgentDefinition(
 
     const transferArray = registry.formatReferencesForCode(
       agentData.canTransferTo,
-      'subAgents',
+      'subAgent',
       style,
       2
     );
@@ -382,7 +391,7 @@ export function generateSubAgentDefinition(
 
     const dataComponentsArray = registry.formatReferencesForCode(
       agentData.dataComponents,
-      'dataComponents',
+      'dataComponent',
       style,
       2
     );
@@ -408,7 +417,7 @@ export function generateSubAgentDefinition(
 
     const artifactComponentsArray = registry.formatReferencesForCode(
       agentData.artifactComponents,
-      'artifactComponents',
+      'artifactComponent',
       style,
       2
     );
@@ -462,7 +471,7 @@ export function generateSubAgentImports(
     const importStatement = registry.getImportStatement(
       currentFilePath,
       contextConfigId,
-      'contextConfigs'
+      'contextConfig'
     );
     if (importStatement) {
       imports.push(importStatement);
@@ -482,11 +491,11 @@ export function generateSubAgentImports(
         const toolId = toolRelation.toolId;
         if (toolId) {
           // Determine the actual component type by checking what's in the registry
-          let componentType: ComponentType = 'tools';
-          if (registry.get(toolId, 'functionTools')) {
-            componentType = 'functionTools';
-          } else if (registry.get(toolId, 'tools')) {
-            componentType = 'tools';
+          let componentType: ComponentType = 'mcpTool';
+          if (registry.get(toolId, 'functionTool')) {
+            componentType = 'functionTool';
+          } else if (registry.get(toolId, 'mcpTool')) {
+            componentType = 'mcpTool';
           }
 
           referencedComponents.push({ id: toolId, type: componentType });
@@ -498,18 +507,18 @@ export function generateSubAgentImports(
     if (Array.isArray(agentData.canDelegateTo)) {
       for (const delegateRelation of agentData.canDelegateTo) {
         let targetId: string | undefined;
-        let targetType: ComponentType = 'agents'; // default
+        let targetType: ComponentType = 'agent'; // default
 
         if (delegateRelation && typeof delegateRelation === 'object') {
           if (delegateRelation.externalAgentId) {
             targetId = delegateRelation.externalAgentId;
-            targetType = 'externalAgents';
+            targetType = 'externalAgent';
           } else if (delegateRelation.agentId) {
             targetId = delegateRelation.agentId;
-            targetType = 'agents';
+            targetType = 'agent';
           } else if (delegateRelation.subAgentId) {
             targetId = delegateRelation.subAgentId;
-            targetType = 'subAgents';
+            targetType = 'subAgent';
           }
         }
 
@@ -523,7 +532,7 @@ export function generateSubAgentImports(
     if (Array.isArray(agentData.canTransferTo)) {
       for (const transferId of agentData.canTransferTo) {
         if (typeof transferId === 'string') {
-          referencedComponents.push({ id: transferId, type: 'subAgents' });
+          referencedComponents.push({ id: transferId, type: 'subAgent' });
         }
       }
     }
@@ -532,7 +541,7 @@ export function generateSubAgentImports(
     if (Array.isArray(agentData.dataComponents)) {
       for (const dataCompId of agentData.dataComponents) {
         if (typeof dataCompId === 'string') {
-          referencedComponents.push({ id: dataCompId, type: 'dataComponents' });
+          referencedComponents.push({ id: dataCompId, type: 'dataComponent' });
         }
       }
     }
@@ -541,7 +550,7 @@ export function generateSubAgentImports(
     if (Array.isArray(agentData.artifactComponents)) {
       for (const artifactCompId of agentData.artifactComponents) {
         if (typeof artifactCompId === 'string') {
-          referencedComponents.push({ id: artifactCompId, type: 'artifactComponents' });
+          referencedComponents.push({ id: artifactCompId, type: 'artifactComponent' });
         }
       }
     }

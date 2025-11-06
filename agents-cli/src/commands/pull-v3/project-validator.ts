@@ -30,21 +30,21 @@ function getComponentFromProject(
   componentId: string
 ): any {
   switch (componentType) {
-    case 'credentials':
+    case 'credential':
       return project.credentialReferences?.[componentId];
-    case 'tools':
+    case 'mcpTool':
       return project.tools?.[componentId];
-    case 'agents':
+    case 'agent':
       return project.agents?.[componentId];
-    case 'dataComponents':
+    case 'dataComponent':
       return project.dataComponents?.[componentId];
-    case 'artifactComponents':
+    case 'artifactComponent':
       return project.artifactComponents?.[componentId];
-    case 'externalAgents':
+    case 'externalAgent':
       return project.externalAgents?.[componentId];
     case 'functions':
       return project.functions?.[componentId];
-    case 'functionTools':
+    case 'functionTool':
       return project.functionTools?.[componentId];
     default:
       return null;

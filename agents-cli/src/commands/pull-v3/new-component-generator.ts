@@ -15,7 +15,10 @@ import { generateDataComponentFile } from './components/data-component-generator
 import { generateEnvironmentFile } from './components/environment-generator';
 import { generateExternalAgentFile } from './components/external-agent-generator';
 import { generateFunctionToolFile } from './components/function-tool-generator';
-import { generateMcpToolFile } from './components/mcp-tool-generator';
+import {
+  generateEnvironmentAwareMcpToolFile,
+  generateMcpToolFile,
+} from './components/mcp-tool-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import type { ProjectComparison } from './project-comparator';
@@ -68,31 +71,31 @@ function determineNewFilePath(
   const fileName = `${toKebabCase(componentId)}.ts`;
 
   switch (componentType) {
-    case 'agents':
+    case 'agent':
       return join(paths.agentsDir, fileName);
-    case 'tools':
+    case 'tool':
       return join(paths.toolsDir, fileName);
-    case 'dataComponents':
+    case 'dataComponent':
       return join(paths.dataComponentsDir, fileName);
-    case 'artifactComponents':
+    case 'artifactComponent':
       return join(paths.artifactComponentsDir, fileName);
-    case 'statusComponents':
+    case 'statusComponent':
       return join(paths.statusComponentsDir, fileName);
-    case 'environments':
+    case 'environment':
       return join(paths.environmentsDir, `${toKebabCase(componentId)}.env.ts`);
-    case 'subAgents':
+    case 'subAgent':
       return join(paths.agentsDir, 'sub-agents', fileName);
-    case 'externalAgents':
+    case 'externalAgent':
       return join(paths.externalAgentsDir, fileName);
     case 'functions':
-    case 'functionTools': {
+    case 'functionTool': {
       // Functions might go in tools/functions/ or just tools/
       const functionsDir = join(paths.toolsDir, 'functions');
       return join(functionsDir, fileName);
     }
-    case 'credentials':
+    case 'credential':
       return join(paths.credentialsDir, fileName);
-    case 'contextConfigs':
+    case 'contextConfig':
       return join(paths.contextConfigsDir, fileName);
     default:
       throw new Error(`Unknown component type for new file: ${componentType}`);
@@ -116,9 +119,9 @@ function generateComponentContent(
   };
 
   switch (componentType) {
-    case 'agents':
+    case 'agent':
       return generateAgentFile(componentId, componentData, defaultStyle, componentRegistry);
-    case 'subAgents': {
+    case 'subAgent': {
       // Extract parent info for contextConfig handling
       const parentAgentId = componentData._parentAgentId;
       const contextConfigData = componentData._contextConfigData;
@@ -136,24 +139,37 @@ function generateComponentContent(
         contextConfigData
       );
     }
-    case 'tools':
+    case 'tool': {
+      // Check if this is an environment-aware MCP tool
+      if (componentData && componentData._isEnvironmentAware) {
+        const mcpKey = componentData._mcpKey;
+        delete componentData._isEnvironmentAware;
+        delete componentData._mcpKey;
+        return generateEnvironmentAwareMcpToolFile(
+          componentId,
+          mcpKey,
+          defaultStyle,
+          componentRegistry
+        );
+      }
       return generateMcpToolFile(componentId, componentData, defaultStyle, componentRegistry);
-    case 'dataComponents':
+    }
+    case 'dataComponent':
       return generateDataComponentFile(componentId, componentData, defaultStyle);
-    case 'artifactComponents':
+    case 'artifactComponent':
       return generateArtifactComponentFile(componentId, componentData, defaultStyle);
-    case 'statusComponents':
+    case 'statusComponent':
       return generateStatusComponentFile(componentId, componentData, defaultStyle);
-    case 'environments':
+    case 'environment':
       return generateEnvironmentFile(componentId, componentData, defaultStyle, componentRegistry);
-    case 'externalAgents':
+    case 'externalAgent':
       return generateExternalAgentFile(componentId, componentData, defaultStyle, componentRegistry);
     case 'functions':
-    case 'functionTools':
+    case 'functionTool':
       return generateFunctionToolFile(componentId, componentData, defaultStyle);
-    case 'credentials':
+    case 'credential':
       return generateCredentialFile(componentId, componentData, defaultStyle);
-    case 'contextConfigs': {
+    case 'contextConfig': {
       // Extract agent ID if stored in componentData
       const agentId = componentData._agentId;
       // Remove the temporary _agentId field before passing to generator
@@ -193,15 +209,15 @@ export async function createNewComponents(
   const targetPaths = tempDirName
     ? {
         projectRoot: join(paths.projectRoot, tempDirName),
-        agentsDir: join(paths.projectRoot, tempDirName, 'agents'),
-        toolsDir: join(paths.projectRoot, tempDirName, 'tools'),
-        dataComponentsDir: join(paths.projectRoot, tempDirName, 'data-components'),
-        artifactComponentsDir: join(paths.projectRoot, tempDirName, 'artifact-components'),
-        statusComponentsDir: join(paths.projectRoot, tempDirName, 'status-components'),
-        environmentsDir: join(paths.projectRoot, tempDirName, 'environments'),
-        credentialsDir: join(paths.projectRoot, tempDirName, 'credentials'),
-        contextConfigsDir: join(paths.projectRoot, tempDirName, 'context-configs'),
-        externalAgentsDir: join(paths.projectRoot, tempDirName, 'external-agents'),
+        agentsDir: join(paths.projectRoot, tempDirName, 'agent'),
+        toolsDir: join(paths.projectRoot, tempDirName, 'tool'),
+        dataComponentsDir: join(paths.projectRoot, tempDirName, 'data-component'),
+        artifactComponentsDir: join(paths.projectRoot, tempDirName, 'artifact-component'),
+        statusComponentsDir: join(paths.projectRoot, tempDirName, 'status-component'),
+        environmentsDir: join(paths.projectRoot, tempDirName, 'environment'),
+        credentialsDir: join(paths.projectRoot, tempDirName, 'credential'),
+        contextConfigsDir: join(paths.projectRoot, tempDirName, 'context-config'),
+        externalAgentsDir: join(paths.projectRoot, tempDirName, 'external-agent'),
       }
     : paths;
 
@@ -220,18 +236,18 @@ export async function createNewComponents(
 
   // Define dependency order - components earlier in the list should be created first
   const creationOrder: (keyof ProjectComparison['componentChanges'])[] = [
-    'credentials',
-    'environments',
-    'contextConfigs', // Can be created early - just config objects
-    'functionTools', // Create functionTools before functions to avoid conflicts
+    'credential',
+    'environment',
+    'contextConfig', // Can be created early - just config objects
+    'functionTool', // Create functionTools before functions to avoid conflicts
     'functions',
-    'tools',
-    'dataComponents',
-    'artifactComponents',
-    'statusComponents',
-    'externalAgents',
-    'subAgents', // Create subAgents before main agents so they can be referenced
-    'agents', // Create agents last so they can reference everything
+    'tool',
+    'dataComponent',
+    'artifactComponent',
+    'statusComponent',
+    'externalAgent',
+    'subAgent', // Create subAgents before main agents so they can be referenced
+    'agent', // Create agents last so they can reference everything
   ];
 
   // Step 1: Register all new components in the registry first
@@ -256,7 +272,7 @@ export async function createNewComponents(
 
       // Special handling for contextConfigs to use agent-based names
       let explicitVariableName: string | undefined;
-      if (componentType === 'contextConfigs') {
+      if (componentType === 'contextConfig') {
         const contextResult = findContextConfigData(remoteProject, componentId);
         if (contextResult) {
           explicitVariableName = `${toCamelCase(contextResult.agentId)}Context`;
@@ -298,13 +314,13 @@ export async function createNewComponents(
         // Get component data based on component type
         let componentData: any = null;
 
-        if (componentType === 'statusComponents') {
+        if (componentType === 'statusComponent') {
           // Status components are nested in agents - find them
           componentData = findStatusComponentData(remoteProject, componentId);
-        } else if (componentType === 'credentials') {
+        } else if (componentType === 'credential') {
           // Credentials might be in credentialReferences
           componentData = remoteProject.credentialReferences?.[componentId];
-        } else if (componentType === 'contextConfigs') {
+        } else if (componentType === 'contextConfig') {
           // Context configs are nested in agents - store both contextConfig and agentId
           const contextResult = findContextConfigData(remoteProject, componentId);
           if (contextResult) {
@@ -315,7 +331,7 @@ export async function createNewComponents(
         } else if (componentType === 'functions') {
           // Functions are in the functions collection
           componentData = remoteProject.functions?.[componentId];
-        } else if (componentType === 'functionTools') {
+        } else if (componentType === 'functionTool') {
           // Function tools might be in functions or functionTools
           const functionToolData =
             remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
@@ -333,7 +349,7 @@ export async function createNewComponents(
           } else {
             componentData = functionToolData;
           }
-        } else if (componentType === 'subAgents') {
+        } else if (componentType === 'subAgent') {
           // Sub-agents are nested within agents - get with parent info for contextConfig
           const subAgentInfo = findSubAgentWithParent(remoteProject, componentId);
           if (subAgentInfo) {
@@ -344,7 +360,7 @@ export async function createNewComponents(
           } else {
             componentData = null;
           }
-        } else if (componentType === 'environments') {
+        } else if (componentType === 'environment') {
           // Environments are generated programmatically based on environment name
           componentData = {
             name: `${componentId} Environment`,
@@ -426,9 +442,7 @@ export async function createNewComponents(
   }
 
   // After all components are created, generate environment index file if environments were created
-  const createdEnvironments = results.filter(
-    (r) => r.success && r.componentType === 'environments'
-  );
+  const createdEnvironments = results.filter((r) => r.success && r.componentType === 'environment');
   if (createdEnvironments.length > 0) {
     try {
       console.log(chalk.cyan('📝 Generating environments index file...'));
