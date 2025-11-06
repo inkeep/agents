@@ -1,5 +1,19 @@
 # @inkeep/agents-cli
 
+## 0.31.3
+
+### Patch Changes
+
+- f91281b: use forked mcp sdk
+- Updated dependencies [ce3720a]
+- Updated dependencies [ea4b251]
+- Updated dependencies [43edec7]
+- Updated dependencies [c1299f0]
+- Updated dependencies [f91281b]
+  - @inkeep/agents-manage-ui@0.31.3
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-sdk@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes
