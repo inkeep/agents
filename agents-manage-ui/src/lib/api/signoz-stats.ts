@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   AGGREGATE_OPERATORS,
   AI_OPERATIONS,
+  AI_TOOL_TYPES,
   CRITICAL_ERROR_SPAN_NAMES,
   DATA_SOURCES,
   OPERATORS,
@@ -247,7 +248,7 @@ class SigNozStatsAPI {
     // Build base WHERE clause
     let baseWhere = `
       timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-      AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+      AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
       AND attributes_string['conversation.id'] != ''
     `;
 
@@ -279,7 +280,7 @@ class SigNozStatsAPI {
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
           AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-          AND attributes_string['ai.toolType'] = 'mcp'
+          AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.MCP}'
         GROUP BY conversation_id, tool_name
       `,
 
@@ -293,7 +294,7 @@ class SigNozStatsAPI {
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
           AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-          AND attributes_string['ai.toolType'] = 'transfer'
+          AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.TRANSFER}'
         GROUP BY conversation_id, from_agent, to_agent
       `,
 
@@ -307,7 +308,7 @@ class SigNozStatsAPI {
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
           AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-          AND attributes_string['ai.toolType'] = 'delegation'
+          AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.DELEGATION}'
         GROUP BY conversation_id, from_agent, to_agent
       `,
 
@@ -737,7 +738,7 @@ class SigNozStatsAPI {
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-        AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+        AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
         AND attributes_string['conversation.id'] != ''
         AND attributes_string['ai.operationId'] = 'ai.generateText.doGenerate'
       `;
@@ -956,7 +957,7 @@ class SigNozStatsAPI {
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-        AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+        AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
         AND attributes_string['conversation.id'] != ''
       `;
 
@@ -1061,7 +1062,7 @@ class SigNozStatsAPI {
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-        AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+        AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
         AND attributes_string['conversation.id'] != ''
       `;
 
@@ -1149,21 +1150,21 @@ class SigNozStatsAPI {
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
             AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-            AND attributes_string['ai.toolType'] = 'mcp'
+            AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.MCP}'
         `,
         totalTransfers: `
           SELECT COUNT(*) as count
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
             AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-            AND attributes_string['ai.toolType'] = 'transfer'
+            AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.TRANSFER}'
         `,
         totalDelegations: `
           SELECT COUNT(*) as count
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
             AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
-            AND attributes_string['ai.toolType'] = 'delegation'
+            AND attributes_string['ai.toolType'] = '${AI_TOOL_TYPES.DELEGATION}'
         `,
         totalAICalls: `
           SELECT COUNT(*) as count
@@ -1250,7 +1251,7 @@ class SigNozStatsAPI {
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-        AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+        AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
         AND name != ''
       `;
 
@@ -1533,7 +1534,7 @@ class SigNozStatsAPI {
     // Build base WHERE clause
     let baseWhere = `
       timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
-      AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+      AND ts_bucket_start BETWEEN {{.start_timestamp}} AND {{.end_timestamp}}
       AND attributes_string['conversation.id'] != ''
     `;
 
