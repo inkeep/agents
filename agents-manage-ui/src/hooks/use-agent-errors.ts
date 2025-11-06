@@ -3,7 +3,7 @@
  */
 
 import { useCallback } from 'react';
-import { useAgentStore, useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export interface ErrorHelpers {
   hasFieldError: (fieldName: string) => boolean;

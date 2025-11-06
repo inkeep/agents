@@ -5,10 +5,10 @@
  * - dataComponent({id: 'data-id', ...}) (inline)
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, extname, relative } from 'node:path';
-import { ComponentRegistry, type ComponentType } from './utils/component-registry';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
 import chalk from 'chalk';
+import { ComponentRegistry, type ComponentType } from './utils/component-registry';
 
 interface ComponentMatch {
   id: string;

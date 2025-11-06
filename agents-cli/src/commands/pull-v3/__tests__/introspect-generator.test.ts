@@ -2,11 +2,11 @@
  * End-to-end integration tests for introspect generator
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, readFileSync, rmSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { introspectGenerate } from '../introspect-generator';
 
 describe('Introspect Generator - End-to-End', () => {

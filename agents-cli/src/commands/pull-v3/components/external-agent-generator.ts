@@ -5,16 +5,16 @@
  * External agents are agents hosted on other systems that can be called by internal agents
  */
 
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  removeTrailingComma,
-  generateImport,
-  generateFileContent,
-} from '../utils/generator-utils';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatString,
+  generateFileContent,
+  generateImport,
+  removeTrailingComma,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Generate External Agent Definition using externalAgent() builder function

@@ -2,11 +2,11 @@
  * Unit tests for credential generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   generateCredentialDefinition,
-  generateCredentialImports,
   generateCredentialFile,
+  generateCredentialImports,
 } from '../credential-generator';
 
 describe('Credential Generator', () => {

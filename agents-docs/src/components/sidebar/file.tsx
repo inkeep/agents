@@ -3,12 +3,12 @@
 import { icon } from '@inkeep/docskit';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import React from 'react';
+import * as brandIcons from '@/components/brand-icons';
 import { OpenApiTag } from '@/components/openapi-tag';
 import type { SidebarPage } from '@/components/sidebar/folder';
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { isActive } from '@/lib/utils';
-import * as brandIcons from '@/components/brand-icons';
-import React from 'react';
 
 export const File = ({ depth = 0, item }: { item: SidebarPage; depth?: number }) => {
   const { url, icon: iconName, title, sidebarTitle } = item;

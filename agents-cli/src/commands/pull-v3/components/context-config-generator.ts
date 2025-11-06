@@ -5,22 +5,22 @@
  * builder functions from @inkeep/agents-core
  */
 
-import { jsonSchemaToZod } from 'json-schema-to-zod';
 import chalk from 'chalk';
-import {
-  CodeStyle,
-  DEFAULT_STYLE,
-  toCamelCase,
-  formatString,
-  formatObject,
-  hasTemplateVariables,
-  formatPromptWithContext,
-  removeTrailingComma,
-  generateImport,
-  shouldInclude,
-  generateFileContent,
-} from '../utils/generator-utils';
+import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { ComponentRegistry } from '../utils/component-registry';
+import {
+  type CodeStyle,
+  DEFAULT_STYLE,
+  formatObject,
+  formatPromptWithContext,
+  formatString,
+  generateFileContent,
+  generateImport,
+  hasTemplateVariables,
+  removeTrailingComma,
+  shouldInclude,
+  toCamelCase,
+} from '../utils/generator-utils';
 
 /**
  * Process template variables in fetchConfig objects

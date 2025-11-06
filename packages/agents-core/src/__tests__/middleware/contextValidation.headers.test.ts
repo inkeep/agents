@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  validateHttpRequestHeaders,
   type ParsedHttpRequest,
+  validateHttpRequestHeaders,
 } from '../../middleware/contextValidation';
 
 describe('validateHttpRequestHeaders', () => {

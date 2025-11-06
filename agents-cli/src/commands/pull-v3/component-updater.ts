@@ -2,20 +2,19 @@
  * Component Updater - Update existing components with new data
  */
 
+import { spawn } from 'node:child_process';
 import {
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  readdirSync,
-  statSync,
   copyFileSync,
   existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
 } from 'node:fs';
-import { basename, dirname, join, extname } from 'node:path';
-import { spawn } from 'node:child_process';
+import { basename, dirname, extname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
-import { validateTempDirectory } from './project-validator';
 import { generateAgentFile } from './components/agent-generator';
 import { generateArtifactComponentFile } from './components/artifact-component-generator';
 import { generateContextConfigFile } from './components/context-config-generator';
@@ -30,6 +29,7 @@ import { generateStatusComponentFile } from './components/status-component-gener
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
 import type { ProjectComparison } from './project-comparator';
+import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
 

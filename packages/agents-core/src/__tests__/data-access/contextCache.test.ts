@@ -6,8 +6,8 @@ import {
   getCacheEntry,
   getContextConfigCacheEntries,
   getConversationCacheEntries,
-  invalidateInvocationDefinitionsCache,
   invalidateHeadersCache,
+  invalidateInvocationDefinitionsCache,
   setCacheEntry,
 } from '../../data-access/contextCache';
 import type { DatabaseClient } from '../../db/client';

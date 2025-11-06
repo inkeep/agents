@@ -1,7 +1,7 @@
 import {
-  InMemoryCredentialStore,
-  createNangoCredentialStore,
   createKeyChainStore,
+  createNangoCredentialStore,
+  InMemoryCredentialStore,
 } from '@inkeep/agents-core';
 
 // Shared credential stores configuration for all services

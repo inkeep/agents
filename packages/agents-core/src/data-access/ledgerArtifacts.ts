@@ -1,8 +1,8 @@
 import { and, count, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
+import { generateId } from '../utils/conversations';
 
 /**
  * Validate artifact data before database insertion

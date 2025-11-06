@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from 'json-schema';
 import { nanoid } from 'nanoid';
-import { devtools } from 'zustand/middleware';
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 const ROOT_ID = '__root__';

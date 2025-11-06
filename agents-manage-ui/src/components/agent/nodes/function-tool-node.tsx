@@ -1,11 +1,11 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code } from 'lucide-react';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { cn } from '@/lib/utils';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
-import { cn } from '@/lib/utils';
 
 export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
   const { data, selected, id } = props;

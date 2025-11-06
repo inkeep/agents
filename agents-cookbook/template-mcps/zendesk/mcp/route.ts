@@ -1,6 +1,6 @@
 import { createMcpHandler } from 'mcp-handler';
+import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { NextRequest } from 'next/server';
 
 // Store headers globally for access in tools
 let currentRequestHeaders: Headers | null = null;

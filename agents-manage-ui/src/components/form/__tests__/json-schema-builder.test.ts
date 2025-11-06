@@ -1,6 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
-import { JSONSchemaFixture } from './json-schema-fixture';
 import { convertJsonSchemaToFields, fieldsToJsonSchema } from '@/features/agent/state/json-schema';
+import { JSONSchemaFixture } from './json-schema-fixture';
 
 const schemaWithRef: JSONSchema7 = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
