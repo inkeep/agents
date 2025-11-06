@@ -336,9 +336,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       }
       // @ts-expect-error -- improve types
       const data = event.detail;
-      window.ops ||= [];
-      window.ops.push({ detail: event.detail });
-      console.log('Data operation:', event.detail);
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
         switch (data.type) {
