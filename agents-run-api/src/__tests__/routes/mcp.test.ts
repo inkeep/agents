@@ -38,7 +38,7 @@ vi.mock('fetch-to-node', () => ({
 }));
 
 // Mock MCP SDK
-vi.mock('@modelcontextprotocol/sdk/server/v1/mcp.js', () => ({
+vi.mock('@alcyone-labs/modelcontextprotocol-sdk/server/v1/mcp.js', () => ({
   McpServer: vi.fn().mockImplementation(() => ({
     tool: vi.fn(),
     prompt: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock('@modelcontextprotocol/sdk/server/v1/mcp.js', () => ({
 }));
 
 // Mock StreamableHTTPServerTransport
-vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
+vi.mock('@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: vi.fn().mockImplementation((options) => ({
     sessionIdGenerator: options?.sessionIdGenerator || (() => 'default-session'),
     start: vi.fn().mockResolvedValue(undefined), // Add the missing start method
@@ -730,7 +730,7 @@ describe('MCP Routes', () => {
 
       // Mock the StreamableHTTPServerTransport to simulate tool execution
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
@@ -876,7 +876,7 @@ describe('MCP Routes', () => {
       });
 
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
@@ -961,7 +961,7 @@ describe('MCP Routes', () => {
       });
 
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
