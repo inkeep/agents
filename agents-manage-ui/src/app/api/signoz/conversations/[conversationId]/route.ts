@@ -1175,11 +1175,13 @@ export async function GET(
         description: 'AI model generating text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span,
+        subAgentId: getString(
+        span,
         SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
         ACTIVITY_NAMES.UNKNOWN_AGENT
       ),
-        subAgentName: getString(span,
+        subAgentName: getString(
+        span,
         SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
         ACTIVITY_NAMES.UNKNOWN_AGENT
       ),
@@ -1230,11 +1232,13 @@ export async function GET(
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, 
+        subAgentId: getString(
+        span, 
         SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
         ACTIVITY_NAMES.UNKNOWN_AGENT
       ),
-        subAgentName: getString(span,
+        subAgentName: getString(
+        span,
         SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
         ACTIVITY_NAMES.UNKNOWN_AGENT
       ),
