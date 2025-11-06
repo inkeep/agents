@@ -230,11 +230,6 @@ class SigNozStatsAPI {
     }
 
     // Step 2: Fetch detailed stats only for the paginated conversation IDs
-    console.log(
-      '🔍 buildCombinedPayload: Fetching stats for',
-      conversationIds.length,
-      'conversations (optimized pagination)'
-    );
     const payload = this.buildCombinedPayload(
       startTime,
       endTime,
@@ -627,12 +622,6 @@ class SigNozStatsAPI {
           .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
           .filter(Boolean) as string[];
 
-        console.log(
-          '📊 getAggregateStats: Found',
-          filteredConversationIds.length,
-          'conversations matching span filters'
-        );
-
         if (filteredConversationIds.length === 0) {
           // No conversations match the filters, return zeros
           return {
@@ -645,12 +634,7 @@ class SigNozStatsAPI {
         }
       }
 
-      // Build payload without span filters (we'll filter by conversation IDs instead)
-      console.log('📊 getAggregateStats: Building aggregate badges payload', {
-        hasSpanFilters: !!(filters?.spanName || filters?.attributes?.length),
-        filteredConversationIds: filteredConversationIds?.length ?? 'all',
-        conversationIds: filteredConversationIds,
-      });
+
       const payload = this.buildAggregateBadgesPayload(
         startTime,
         endTime,
@@ -2013,12 +1997,6 @@ class SigNozStatsAPI {
       }
       // Add conversation ID filters if provided (for pagination optimization)
       if (conversationIds && conversationIds.length > 0) {
-        console.log(
-          '✅ buildCombinedPayload: Using IN filter for',
-          conversationIds.length,
-          'conversation IDs:',
-          conversationIds
-        );
         filtered = [
           ...filtered,
           {
@@ -2031,9 +2009,6 @@ class SigNozStatsAPI {
           },
         ];
       } else {
-        console.log(
-          '⚠️ buildCombinedPayload: No conversation IDs provided, using EXISTS check (fetching ALL conversations)'
-        );
         // Only add EXISTS check if no specific IDs provided
         filtered = [
           ...filtered,
