@@ -163,120 +163,35 @@ class SigNozStatsAPI {
   async getConversationStats(
     startTime: number,
     endTime: number,
-    filters?: SpanFilterOptions,
-    projectId?: string,
-    pagination?: { page: number; limit: number },
-    searchQuery?: string,
-    agentId?: string
-  ): Promise<ConversationStats[] | PaginatedConversationStats> {
+    filters: SpanFilterOptions | undefined,
+    projectId: string | undefined,
+    pagination: { page: number; limit: number },
+    searchQuery: string | undefined,
+    agentId: string | undefined
+  ): Promise<PaginatedConversationStats> {
     try {
-      // If pagination is enabled, optimize by first getting only the conversation IDs we need
-      if (pagination) {
-        return await this.getConversationStatsPaginated(
-          startTime,
-          endTime,
-          filters,
-          projectId,
-          pagination,
-          searchQuery,
-          agentId
-        );
-      }
-
-      // Non-paginated path: fetch all conversations (existing behavior)
-      const payload = this.buildCombinedPayload(startTime, endTime, filters, projectId, agentId);
-      const resp = await this.makeRequest(payload);
-
-      const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
-      const transfersSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TRANSFERS);
-      const delegationsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.DELEGATIONS);
-      const aiCallsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
-      const lastActivitySeries = this.extractSeries(resp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
-      const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
-      const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
-      const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
-
-      // metadata map
-      const metaByConv = new Map<
-        string,
-        { tenantId: string; agentId: string; agentName: string }
-      >();
-      for (const s of metadataSeries) {
-        const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-        if (!id) continue;
-        metaByConv.set(id, {
-          tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-          agentId: s.labels?.[SPAN_KEYS.AGENT_ID] ?? UNKNOWN_VALUE,
-          agentName: s.labels?.[SPAN_KEYS.AGENT_NAME] ?? UNKNOWN_VALUE,
-        });
-      }
-
-      // first seen map
-      const firstSeen = new Map<string, number>();
-      for (const s of lastActivitySeries) {
-        const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-        if (!id) continue;
-        firstSeen.set(id, numberFromSeries(s));
-      }
-
-      // first user message per conversation (min timestamp already grouped)
-      const firstMsgByConv = new Map<string, { content: string; timestamp: number }>();
-      const msgsByConv = new Map<string, Array<{ t: number; c: string }>>();
-      for (const s of userMessagesSeries) {
-        const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-        const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
-        const t = numberFromSeries(s);
-        if (!id || !content) continue;
-        (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({
-          t,
-          c: content,
-        });
-      }
-      for (const [id, arr] of msgsByConv) {
-        arr.sort((a, b) => a.t - b.t);
-        const first = arr[0];
-        if (first) {
-          const content = first.c.length > 100 ? `${first.c.slice(0, 100)}...` : first.c;
-          firstMsgByConv.set(id, { content, timestamp: nsToMs(first.t) });
-        }
-      }
-
-      // build stats
-      let stats = this.toConversationStats(
-        toolsSeries,
-        transfersSeries,
-        delegationsSeries,
-        aiCallsSeries,
-        metaByConv,
-        spansWithErrorsSeries,
-        firstMsgByConv
+      return await this.getConversationStatsPaginated(
+        startTime,
+        endTime,
+        filters,
+        projectId,
+        pagination,
+        searchQuery,
+        agentId
       );
-
-      // optional secondary filter pass via span filters
-      if (filters?.spanName || filters?.attributes?.length) {
-        stats = await this.applySpanFilters(stats, startTime, endTime, filters, projectId);
-      }
-
-      // search filter
-      if (searchQuery?.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        stats = stats.filter(
-          (s) =>
-            s.firstUserMessage?.toLowerCase().includes(q) ||
-            s.conversationId.toLowerCase().includes(q) ||
-            s.agentId.toLowerCase().includes(q)
-        );
-      }
-
-      // sort by first activity
-      stats.sort((a, b) =>
-        byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
-      );
-
-      return stats;
     } catch (e) {
       console.error('getConversationStats error:', e);
-      return [];
+      return {
+        data: [],
+        pagination: {
+          page: pagination.page,
+          limit: pagination.limit,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
     }
   }
 
@@ -433,17 +348,20 @@ class SigNozStatsAPI {
     searchQuery: string | undefined,
     agentId: string | undefined
   ): Promise<{ conversationIds: string[]; total: number }> {
-    // First, get all conversation IDs with their last activity (for sorting and total count)
-    const activityPayload = this.buildConversationActivityPayload(
+    // Consolidated query: fetch all required data in a single request
+    const consolidatedPayload = this.buildFilteredConversationIdsPayload(
       startTime,
       endTime,
+      filters,
+      projectId,
       agentId,
-      projectId
+      !!searchQuery?.trim()
     );
 
-    // Fetch activity data once
-    const activityResp = await this.makeRequest(activityPayload);
-    const activitySeries = this.extractSeries(activityResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
+    const consolidatedResp = await this.makeRequest(consolidatedPayload);
+
+    // Extract activity data (always needed for sorting)
+    const activitySeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
     const activityMap = new Map<string, number>();
     for (const s of activitySeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
@@ -451,38 +369,22 @@ class SigNozStatsAPI {
       activityMap.set(id, numberFromSeries(s));
     }
 
+    // Start with all conversation IDs from activity data
+    let conversationIds = Array.from(activityMap.keys());
+
     // Apply span filters if needed
-    let conversationIds: string[] = [];
     if (filters?.spanName || filters?.attributes?.length) {
-      const filteredPayload = this.buildFilteredConversationsPayload(
-        startTime,
-        endTime,
-        filters,
-        projectId
-      );
-      const filteredResp = await this.makeRequest(filteredPayload);
-      const filteredSeries = this.extractSeries(filteredResp, 'filteredConversations');
+      const filteredSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS);
       const filteredIds = new Set(
         filteredSeries.map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID]).filter(Boolean) as string[]
       );
-
-      // Filter conversation IDs to only those that match span filters
-      conversationIds = Array.from(activityMap.keys()).filter((id) => filteredIds.has(id));
-    } else {
-      conversationIds = Array.from(activityMap.keys());
+      conversationIds = conversationIds.filter((id) => filteredIds.has(id));
     }
 
-    // Get metadata for search filtering
+    // Apply search filtering if needed
     if (searchQuery?.trim()) {
-      const metadataPayload = this.buildConversationMetadataPayload(
-        startTime,
-        endTime,
-        agentId,
-        projectId
-      );
-      const metadataResp = await this.makeRequest(metadataPayload);
       const metadataSeries = this.extractSeries(
-        metadataResp,
+        consolidatedResp,
         QUERY_EXPRESSIONS.CONVERSATION_METADATA
       );
       const metadataMap = new Map<string, { agentId: string; conversationId: string }>();
@@ -493,16 +395,8 @@ class SigNozStatsAPI {
         metadataMap.set(id, { agentId: agentIdValue ?? '', conversationId: id });
       }
 
-      // Get user messages for search
-      const userMessagesPayload = this.buildUserMessagesPayload(
-        startTime,
-        endTime,
-        projectId,
-        agentId
-      );
-      const userMessagesResp = await this.makeRequest(userMessagesPayload);
       const userMessagesSeries = this.extractSeries(
-        userMessagesResp,
+        consolidatedResp,
         QUERY_EXPRESSIONS.USER_MESSAGES
       );
       const firstMessagesMap = new Map<string, string>();
@@ -515,7 +409,6 @@ class SigNozStatsAPI {
         }
       }
 
-      // Filter by search query
       const q = searchQuery.toLowerCase().trim();
       conversationIds = conversationIds.filter((id) => {
         const meta = metadataMap.get(id);
@@ -528,7 +421,7 @@ class SigNozStatsAPI {
       });
     }
 
-    // Sort by last activity (descending - most recent first) using the activityMap we already have
+    // Sort by last activity (descending - most recent first)
     conversationIds.sort((a, b) => {
       const aTime = activityMap.get(a) ?? 0;
       const bTime = activityMap.get(b) ?? 0;
@@ -539,7 +432,7 @@ class SigNozStatsAPI {
     const start = (pagination.page - 1) * pagination.limit;
     const paginatedIds = conversationIds.slice(start, start + pagination.limit);
 
-    console.log('📄 getPaginatedConversationIds:', {
+    console.log('📄 getPaginatedConversationIds (optimized):', {
       totalConversationsFound: total,
       page: pagination.page,
       limit: pagination.limit,
@@ -1061,28 +954,6 @@ class SigNozStatsAPI {
     return out;
   }
 
-  private async applySpanFilters(
-    stats: ConversationStats[],
-    startTime: number,
-    endTime: number,
-    filters: SpanFilterOptions,
-    projectId?: string
-  ) {
-    try {
-      const resp = await this.makeRequest(
-        this.buildFilteredConversationsPayload(startTime, endTime, filters, projectId)
-      );
-      const series = this.extractSeries(resp, 'filteredConversations');
-      const allowed = new Set<string>(
-        series.map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID]).filter(Boolean) as string[]
-      );
-      return stats.filter((s) => allowed.has(s.conversationId));
-    } catch (e) {
-      console.error('applySpanFilters error:', e);
-      return stats;
-    }
-  }
-
   // ---------- Payload builders (unchanged behavior, less repetition)
 
   private buildAgentModelBreakdownPayload(start: number, end: number, projectId?: string) {
@@ -1329,100 +1200,6 @@ class SigNozStatsAPI {
     };
   }
 
-  private buildUserMessagesPayload(
-    start: number,
-    end: number,
-    projectId?: string,
-    agentId?: string
-  ) {
-    const items: any[] = [
-      {
-        key: {
-          key: SPAN_KEYS.MESSAGE_CONTENT,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: {
-          key: SPAN_KEYS.CONVERSATION_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      ...(agentId && agentId !== 'all'
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: agentId,
-            },
-          ]
-        : []),
-      ...(projectId
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
-    ];
-
-    return {
-      start,
-      end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          userMessages: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.USER_MESSAGES,
-            aggregateOperator: AGGREGATE_OPERATORS.MIN,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.MESSAGE_CONTENT,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.USER_MESSAGES,
-            reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.ASC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-      projectId,
-    };
-  }
-
   private buildConversationMetadataPayload(
     start: number,
     end: number,
@@ -1512,6 +1289,288 @@ class SigNozStatsAPI {
             limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
         },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
+    };
+  }
+
+  private buildFilteredConversationIdsPayload(
+    start: number,
+    end: number,
+    filters: SpanFilterOptions | undefined,
+    projectId: string | undefined,
+    agentId: string | undefined,
+    includeSearchData: boolean
+  ) {
+    const buildBaseFilters = (): any[] => {
+      const items: any[] = [
+        {
+          key: {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          op: OPERATORS.EXISTS,
+          value: '',
+        },
+      ];
+
+      if (agentId && agentId !== 'all') {
+        items.push({
+          key: {
+            key: SPAN_KEYS.AGENT_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          op: OPERATORS.EQUALS,
+          value: agentId,
+        });
+      }
+
+      if (projectId) {
+        items.push({
+          key: {
+            key: SPAN_KEYS.PROJECT_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          op: OPERATORS.EQUALS,
+          value: projectId,
+        });
+      }
+
+      return items;
+    };
+
+    const builderQueries: Record<string, any> = {
+      // Always include activity query for sorting
+      lastActivity: {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+        aggregateOperator: AGGREGATE_OPERATORS.MIN,
+        aggregateAttribute: {
+          key: SPAN_KEYS.TIMESTAMP,
+          ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+        },
+        filters: { op: OPERATORS.AND, items: buildBaseFilters() },
+        groupBy: [
+          {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+        ],
+        expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+        reduceTo: REDUCE_OPERATIONS.MIN,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      },
+    };
+
+    // Add filtered conversations query if filters are provided
+    if (filters?.spanName || filters?.attributes?.length) {
+      const filterItems: any[] = [
+        {
+          key: {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          op: OPERATORS.EXISTS,
+          value: '',
+        },
+      ];
+
+      if (filters.spanName) {
+        filterItems.push({
+          key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+          op: OPERATORS.EQUALS,
+          value: filters.spanName,
+        });
+      }
+
+      // Attribute filters
+      for (const attr of filters.attributes ?? []) {
+        const op = attr.operator ?? OPERATORS.EQUALS;
+        let value: any = asTypedFilterValue(attr.value);
+        let dataType: 'string' | 'int64' | 'float64' | 'bool' = 'string';
+        if (typeof value === 'boolean') dataType = 'bool';
+        else if (typeof value === 'number') dataType = Number.isInteger(value) ? 'int64' : 'float64';
+
+        if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
+          filterItems.push({
+            key: { key: attr.key, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            op,
+            value: '',
+          });
+          continue;
+        }
+
+        if (
+          (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) &&
+          typeof value === 'string' &&
+          !value.includes('%')
+        ) {
+          value = `%${value}%`;
+        }
+
+        if ((dataType === 'int64' || dataType === 'float64') && op === OPERATORS.EQUALS) {
+          const config =
+            dataType === 'int64' ? QUERY_FIELD_CONFIGS.INT64_TAG : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
+          filterItems.push({
+            key: { key: attr.key, ...config },
+            op: OPERATORS.GREATER_THAN_OR_EQUAL,
+            value,
+          });
+          filterItems.push({
+            key: { key: attr.key, ...config },
+            op: OPERATORS.LESS_THAN_OR_EQUAL,
+            value,
+          });
+        } else {
+          const config =
+            dataType === 'string'
+              ? QUERY_FIELD_CONFIGS.STRING_TAG
+              : dataType === 'int64'
+                ? QUERY_FIELD_CONFIGS.INT64_TAG
+                : dataType === 'float64'
+                  ? QUERY_FIELD_CONFIGS.FLOAT64_TAG
+                  : QUERY_FIELD_CONFIGS.BOOL_TAG;
+          filterItems.push({ key: { key: attr.key, ...config }, op, value });
+        }
+      }
+
+      if (projectId) {
+        filterItems.push({
+          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.EQUALS,
+          value: projectId,
+        });
+      }
+
+      builderQueries.filteredConversations = {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
+        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+        aggregateAttribute: {
+          key: SPAN_KEYS.SPAN_ID,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        },
+        filters: { op: OPERATORS.AND, items: filterItems },
+        groupBy: [
+          {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+        ],
+        expression: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
+        reduceTo: REDUCE_OPERATIONS.SUM,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      };
+    }
+
+    // Add metadata and user messages queries if search is needed
+    if (includeSearchData) {
+      const metadataFilters = buildBaseFilters();
+      metadataFilters.push(
+        {
+          key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.EXISTS,
+          value: '',
+        },
+        {
+          key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          op: OPERATORS.EXISTS,
+          value: '',
+        }
+      );
+
+      builderQueries.conversationMetadata = {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
+        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+        aggregateAttribute: {
+          key: SPAN_KEYS.SPAN_ID,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        },
+        filters: { op: OPERATORS.AND, items: metadataFilters },
+        groupBy: [
+          {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        ],
+        expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
+        reduceTo: REDUCE_OPERATIONS.SUM,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      };
+
+      const userMessagesFilters = buildBaseFilters();
+      userMessagesFilters.push({
+        key: {
+          key: SPAN_KEYS.MESSAGE_CONTENT,
+          ...QUERY_FIELD_CONFIGS.STRING_TAG,
+        },
+        op: OPERATORS.EXISTS,
+        value: '',
+      });
+
+      builderQueries.userMessages = {
+        dataSource: DATA_SOURCES.TRACES,
+        queryName: QUERY_EXPRESSIONS.USER_MESSAGES,
+        aggregateOperator: AGGREGATE_OPERATORS.MIN,
+        aggregateAttribute: {
+          key: SPAN_KEYS.TIMESTAMP,
+          ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+        },
+        filters: { op: OPERATORS.AND, items: userMessagesFilters },
+        groupBy: [
+          {
+            key: SPAN_KEYS.CONVERSATION_ID,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+          {
+            key: SPAN_KEYS.MESSAGE_CONTENT,
+            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          },
+        ],
+        expression: QUERY_EXPRESSIONS.USER_MESSAGES,
+        reduceTo: REDUCE_OPERATIONS.MIN,
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.ASC }],
+        offset: QUERY_DEFAULTS.OFFSET,
+        disabled: QUERY_DEFAULTS.DISABLED,
+        having: QUERY_DEFAULTS.HAVING,
+        legend: QUERY_DEFAULTS.LEGEND,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+      };
+    }
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries,
       },
       dataSource: DATA_SOURCES.TRACES,
       projectId,

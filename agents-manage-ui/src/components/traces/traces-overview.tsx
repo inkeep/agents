@@ -135,7 +135,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     filters: spanFilters,
     projectId: projectId as string,
     searchQuery: debouncedSearchQuery,
-    pagination: { enabled: true, pageSize: 10 },
+    pagination: { pageSize: 10 },
     agentId: selectedAgent,
   });
 
