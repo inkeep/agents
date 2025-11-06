@@ -106,7 +106,10 @@ program
 program
   .command('pull')
   .description('Pull project configuration with clean, efficient code generation')
-  .option('--project <project-id>', 'Project ID to pull from backend')
+  .option(
+    '--project <project-id>',
+    'Override project ID (defaults to local project ID from index.ts)'
+  )
   .option('--config <path>', 'Path to configuration file')
   .option(
     '--env <environment>',

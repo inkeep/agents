@@ -1,5 +1,33 @@
 # @inkeep/create-agents
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-core@0.31.2
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-core@0.31.1
+
+## 0.31.0
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+- Updated dependencies [eadc8f8]
+- Updated dependencies [48a3e3e]
+- Updated dependencies [b98fd0a]
+  - @inkeep/agents-core@0.31.0
+
 ## 0.30.4
 
 ### Patch Changes

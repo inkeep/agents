@@ -26,8 +26,8 @@
     "coverage:check": "pnpm coverage:diff && pnpm coverage:enforce",
     "lint": "turbo lint --filter='!agents-cookbook-templates'",
     "lint:fix": "turbo lint:fix --filter='!agents-cookbook-templates'",
-    "format": "biome format --write",
-    "format:check": "biome format",
+    "format": "pnpm format:check --write",
+    "format:check": "biome check --linter-enabled=false",
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
     "precheck": "pnpm install --frozen-lockfile",
@@ -57,7 +57,7 @@
   "dependencies": {
     "npm-run-all": "^4.1.5",
     "tsup": "^8.5.0",
-    "zod": "^4.1.11"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
