@@ -1915,7 +1915,7 @@ class SigNozStatsAPI {
             aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
             aggregateAttribute: {
               key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             filters: {
               op: OPERATORS.AND,
