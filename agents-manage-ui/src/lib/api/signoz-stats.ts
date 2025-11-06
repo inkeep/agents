@@ -443,10 +443,10 @@ class SigNozStatsAPI {
       if (id) {
         const agentId = row.agent_id || UNKNOWN_VALUE;
         const agentName = row.agent_name;
-        
+
         const existing = metaByConv.get(id);
         const existingAgentName = existing?.agentName;
-        
+
         const finalAgentName =
           agentName && agentName !== '' && agentName !== UNKNOWN_VALUE
             ? agentName
