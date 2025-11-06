@@ -112,7 +112,7 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
-function Flow({
+function AgentReactFlowConsumer({
   agent,
   dataComponentLookup = {},
   artifactComponentLookup = {},
@@ -1139,7 +1139,7 @@ function Flow({
 export function Agent(props: AgentProps) {
   return (
     <ReactFlowProvider>
-      <Flow {...props} />
+      <AgentReactFlowConsumer {...props} />
     </ReactFlowProvider>
   );
 }
