@@ -323,7 +323,11 @@ class SigNozStatsAPI {
     }
 
     // Step 2: Fetch detailed stats only for the paginated conversation IDs
-    console.log('🔍 buildCombinedPayload: Fetching stats for', conversationIds.length, 'conversations (optimized pagination)');
+    console.log(
+      '🔍 buildCombinedPayload: Fetching stats for',
+      conversationIds.length,
+      'conversations (optimized pagination)'
+    );
     const payload = this.buildCombinedPayload(
       startTime,
       endTime,
@@ -344,10 +348,7 @@ class SigNozStatsAPI {
     const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
 
     // metadata map
-    const metaByConv = new Map<
-      string,
-      { tenantId: string; agentId: string; agentName: string }
-    >();
+    const metaByConv = new Map<string, { tenantId: string; agentId: string; agentName: string }>();
     for (const s of metadataSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -462,9 +463,7 @@ class SigNozStatsAPI {
       const filteredResp = await this.makeRequest(filteredPayload);
       const filteredSeries = this.extractSeries(filteredResp, 'filteredConversations');
       const filteredIds = new Set(
-        filteredSeries
-          .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
-          .filter(Boolean) as string[]
+        filteredSeries.map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID]).filter(Boolean) as string[]
       );
 
       // Filter conversation IDs to only those that match span filters
@@ -482,7 +481,10 @@ class SigNozStatsAPI {
         projectId
       );
       const metadataResp = await this.makeRequest(metadataPayload);
-      const metadataSeries = this.extractSeries(metadataResp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
+      const metadataSeries = this.extractSeries(
+        metadataResp,
+        QUERY_EXPRESSIONS.CONVERSATION_METADATA
+      );
       const metadataMap = new Map<string, { agentId: string; conversationId: string }>();
       for (const s of metadataSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
@@ -492,9 +494,17 @@ class SigNozStatsAPI {
       }
 
       // Get user messages for search
-      const userMessagesPayload = this.buildUserMessagesPayload(startTime, endTime, projectId, agentId);
+      const userMessagesPayload = this.buildUserMessagesPayload(
+        startTime,
+        endTime,
+        projectId,
+        agentId
+      );
       const userMessagesResp = await this.makeRequest(userMessagesPayload);
-      const userMessagesSeries = this.extractSeries(userMessagesResp, QUERY_EXPRESSIONS.USER_MESSAGES);
+      const userMessagesSeries = this.extractSeries(
+        userMessagesResp,
+        QUERY_EXPRESSIONS.USER_MESSAGES
+      );
       const firstMessagesMap = new Map<string, string>();
       for (const s of userMessagesSeries) {
         const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
@@ -742,7 +752,11 @@ class SigNozStatsAPI {
           .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
           .filter(Boolean) as string[];
 
-        console.log('📊 getAggregateStats: Found', filteredConversationIds.length, 'conversations matching span filters');
+        console.log(
+          '📊 getAggregateStats: Found',
+          filteredConversationIds.length,
+          'conversations matching span filters'
+        );
 
         if (filteredConversationIds.length === 0) {
           // No conversations match the filters, return zeros
@@ -1641,7 +1655,7 @@ class SigNozStatsAPI {
   ) {
     const buildBaseFilters = (): any[] => {
       const items: any[] = [];
-      
+
       if (projectId) {
         items.push({
           key: {
@@ -1652,7 +1666,7 @@ class SigNozStatsAPI {
           value: projectId,
         });
       }
-      
+
       if (agentId) {
         items.push({
           key: {
@@ -1958,7 +1972,12 @@ class SigNozStatsAPI {
       }
       // Add conversation ID filters if provided (for pagination optimization)
       if (conversationIds && conversationIds.length > 0) {
-        console.log('✅ buildCombinedPayload: Using IN filter for', conversationIds.length, 'conversation IDs:', conversationIds);
+        console.log(
+          '✅ buildCombinedPayload: Using IN filter for',
+          conversationIds.length,
+          'conversation IDs:',
+          conversationIds
+        );
         filtered = [
           ...filtered,
           {
@@ -1971,7 +1990,9 @@ class SigNozStatsAPI {
           },
         ];
       } else {
-        console.log('⚠️ buildCombinedPayload: No conversation IDs provided, using EXISTS check (fetching ALL conversations)');
+        console.log(
+          '⚠️ buildCombinedPayload: No conversation IDs provided, using EXISTS check (fetching ALL conversations)'
+        );
         // Only add EXISTS check if no specific IDs provided
         filtered = [
           ...filtered,
