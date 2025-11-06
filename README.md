@@ -8,7 +8,7 @@ Get started with the [docs](https://docs.inkeep.com) or [1-minute quick start](h
 
 ### No-Code Visual Builder
 
-A no-code canvas so any team can create and own the Agents they care about. 
+A no-code, drag-and-drop canvas so any team can create and own the Agents they care about. 
 
 <img
   src="agents-docs/public/gifs/drag-n-drop.gif"
@@ -19,7 +19,7 @@ A no-code canvas so any team can create and own the Agents they care about.
 
 ### TypeScript Agents SDK
 
-A code-first framework so engineering teams can build with the tools they expect.
+A code-first framework so engineering teams can build with typesafety, intellisense, CI/CD, and the tools they expect.
 
 ```typescript
 import { agent, subAgent } from "@inkeep/agents-sdk";
@@ -78,7 +78,7 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 - **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
 - **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.
 
-Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with the AI SDK, and `agents-run-api` outputs a data stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
+Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers, so it's compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) hook other AI primatives.
 
 ## License and Community
 
