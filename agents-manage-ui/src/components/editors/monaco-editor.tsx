@@ -179,7 +179,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           container.style.height = `${contentHeight}px`;
         }
       }
-      updateHeight()
+      updateHeight();
 
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }

@@ -30,6 +30,7 @@ describe('Validation', () => {
     });
     cy.contains('Save changes').click();
     cy.get('[data-sonner-toast]').should('be.visible');
-    cy.contains('Agent saved').should('not.exist');
+    cy.contains('Save changes').should('not.be.disabled');
+    cy.contains('Agent saved', { timeout: 0 }).should('not.exist');
   });
 });
