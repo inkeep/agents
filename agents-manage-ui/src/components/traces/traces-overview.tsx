@@ -216,7 +216,6 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
 
-
   if (error) {
     return (
       <div className="space-y-4">

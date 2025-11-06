@@ -88,7 +88,7 @@ const FilterValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
 type FilterValue = z.infer<typeof FilterValueSchema>;
 
-type DataType = typeof DATA_TYPES[keyof typeof DATA_TYPES];
+type DataType = (typeof DATA_TYPES)[keyof typeof DATA_TYPES];
 
 const asTypedFilterValue = (v: string): FilterValue => {
   try {
@@ -364,7 +364,10 @@ class SigNozStatsAPI {
 
     // Apply span filters if needed
     if (filters?.spanName || filters?.attributes?.length) {
-      const filteredSeries = this.extractSeries(consolidatedResp, QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS);
+      const filteredSeries = this.extractSeries(
+        consolidatedResp,
+        QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS
+      );
       const filteredIds = new Set(
         filteredSeries.map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID]).filter(Boolean) as string[]
       );
@@ -542,7 +545,7 @@ class SigNozStatsAPI {
       return [];
     }
   }
- 
+
   async getUniqueModels(startTime: number, endTime: number, projectId?: string) {
     try {
       const resp = await this.makeRequest(
@@ -636,7 +639,6 @@ class SigNozStatsAPI {
           };
         }
       }
-
 
       const payload = this.buildAggregateBadgesPayload(
         startTime,
@@ -1365,7 +1367,8 @@ class SigNozStatsAPI {
         let value: any = asTypedFilterValue(attr.value);
         let dataType: DataType = DATA_TYPES.STRING;
         if (typeof value === 'boolean') dataType = DATA_TYPES.BOOL;
-        else if (typeof value === 'number') dataType = Number.isInteger(value) ? DATA_TYPES.INT64 : DATA_TYPES.FLOAT64;
+        else if (typeof value === 'number')
+          dataType = Number.isInteger(value) ? DATA_TYPES.INT64 : DATA_TYPES.FLOAT64;
 
         if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
           filterItems.push({
@@ -1384,9 +1387,14 @@ class SigNozStatsAPI {
           value = `%${value}%`;
         }
 
-        if ((dataType === DATA_TYPES.INT64 || dataType === DATA_TYPES.FLOAT64) && op === OPERATORS.EQUALS) {
+        if (
+          (dataType === DATA_TYPES.INT64 || dataType === DATA_TYPES.FLOAT64) &&
+          op === OPERATORS.EQUALS
+        ) {
           const config =
-            dataType === DATA_TYPES.INT64 ? QUERY_FIELD_CONFIGS.INT64_TAG : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
+            dataType === DATA_TYPES.INT64
+              ? QUERY_FIELD_CONFIGS.INT64_TAG
+              : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
           filterItems.push({
             key: { key: attr.key, ...config },
             op: OPERATORS.GREATER_THAN_OR_EQUAL,
