@@ -26,7 +26,7 @@ export interface ConversationStats {
   agentId: string;
   agentName: string;
   totalToolCalls: number;
-  toolsUsed: Array<{ name: string; calls: number; description: string }>;
+  toolsUsed: Array<{ name: string; calls: number }>;
   transfers: Array<{ from: string; to: string; count: number }>;
   totalTransfers: number;
   delegations: Array<{ from: string; to: string; count: number }>;
@@ -193,7 +193,7 @@ class SigNozStatsAPI {
 
       // Fetch ALL conversation stats using ClickHouse - no pagination at DB level
       // We'll paginate in memory after fetching everything
-      const stats = await this.fetchAllConversationStatsWithClickHouse(
+      let stats = await this.fetchAllConversationStatsWithClickHouse(
         startTime,
         endTime,
         filters,
@@ -204,10 +204,9 @@ class SigNozStatsAPI {
       console.log('[getConversationStats] Fetched', stats.length, 'total conversations');
 
       // Apply search filter
-      let filteredStats = stats;
       if (searchQuery?.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        filteredStats = filteredStats.filter(
+        stats = stats.filter(
           (s) =>
             s.firstUserMessage?.toLowerCase().includes(q) ||
             s.conversationId.toLowerCase().includes(q) ||
@@ -217,30 +216,27 @@ class SigNozStatsAPI {
 
       // Apply span filters if needed
       if (filters?.spanName || filters?.attributes?.length) {
-        filteredStats = await this.applySpanFilters(filteredStats, startTime, endTime, filters, projectId);
+        stats = await this.applySpanFilters(stats, startTime, endTime, filters, projectId);
       }
 
       // Sort by first activity (descending - most recent first)
-      filteredStats.sort((a, b) =>
-        byFirstActivity(a.startTime, b.startTime)
-      );
+      stats.sort((a, b) => byFirstActivity(a.startTime, b.startTime));
 
       // If no pagination requested, return all
       if (!pagination) {
-        return filteredStats;
+        return stats;
       }
 
       // Paginate in memory
       const { page, limit } = pagination;
-      const total = filteredStats.length;
+      const total = stats.length;
       const totalPages = Math.ceil(total / limit);
       const startIdx = (page - 1) * limit;
-      const endIdx = startIdx + limit;
-      const paginatedData = filteredStats.slice(startIdx, endIdx);
+      const data = stats.slice(startIdx, startIdx + limit);
 
-      console.log('[getConversationStats] Returning', paginatedData.length, 'stats for page', page, 'of', totalPages);
+      console.log('[getConversationStats] Returning', data.length, 'stats for page', page, 'of', totalPages);
       return {
-        data: paginatedData,
+        data,
         pagination: {
           page,
           limit,
@@ -276,12 +272,6 @@ class SigNozStatsAPI {
     projectId?: string,
     agentId?: string
   ): Promise<ConversationStats[]> {
-    // Convert timestamps
-    const startTimeNano = startTime * 1000000;
-    const endTimeNano = endTime * 1000000;
-    const startDatetime = new Date(startTime).toISOString().replace('T', ' ').slice(0, -1);
-    const endDatetime = new Date(endTime).toISOString().replace('T', ' ').slice(0, -1);
-
     // Build base WHERE clause
     let baseWhere = `
       timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -290,10 +280,10 @@ class SigNozStatsAPI {
     `;
 
     const variables: Record<string, any> = {
-      start_datetime: startDatetime,
-      end_datetime: endDatetime,
-      start_timestamp: startTimeNano,
-      end_timestamp: endTimeNano,
+      start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
+      end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
+      start_timestamp: startTime * 1000000,
+      end_timestamp: endTime * 1000000,
     };
 
     if (projectId) {
@@ -690,18 +680,13 @@ class SigNozStatsAPI {
 
     const stats: ConversationStats[] = [];
     for (const convId of allConvIds) {
-      const meta = metaByConv.get(convId) || {
-        tenantId: UNKNOWN_VALUE,
-        agentId: UNKNOWN_VALUE,
-        agentName: UNKNOWN_VALUE,
-      };
+      const meta = metaByConv.get(convId);
 
       // Build tools array
       const toolsMap = toolsByConv.get(convId) || new Map();
       const toolsUsed = Array.from(toolsMap.entries()).map(([name, calls]) => ({
         name,
         calls,
-        description: '', // ClickHouse query doesn't fetch descriptions
       }));
 
       // Build transfers array
@@ -727,17 +712,15 @@ class SigNozStatsAPI {
       
       // Use first message timestamp if available and valid, otherwise use first seen timestamp
       // Convert nanoseconds to milliseconds for startTime
-      const startTimeMs = (firstMsg?.timestamp && firstMsg.timestamp > 0)
+      const startTimeMs = (firstMsg?.timestamp && firstMsg.timestamp > 0) 
         ? firstMsg.timestamp 
-        : firstTimestamp 
-          ? nsToMs(firstTimestamp) 
-          : undefined;
+        : firstTimestamp ? nsToMs(firstTimestamp) : undefined;
 
       stats.push({
         conversationId: convId,
-        tenantId: meta.tenantId,
-        agentId: meta.agentId,
-        agentName: meta.agentName,
+        tenantId: meta?.tenantId || UNKNOWN_VALUE,
+        agentId: meta?.agentId || UNKNOWN_VALUE,
+        agentName: meta?.agentName || UNKNOWN_VALUE,
         totalToolCalls: Array.from(toolsMap.values()).reduce((sum, count) => sum + count, 0),
         toolsUsed,
         transfers,
@@ -759,12 +742,6 @@ class SigNozStatsAPI {
     try {
       console.log('[getAICallsByAgent] Using ClickHouse query with GROUP BY agent.id');
 
-      // Convert timestamps
-      const startTimeNano = startTime * 1000000;
-      const endTimeNano = endTime * 1000000;
-      const startDatetime = new Date(startTime).toISOString().replace('T', ' ').slice(0, -1);
-      const endDatetime = new Date(endTime).toISOString().replace('T', ' ').slice(0, -1);
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -774,10 +751,10 @@ class SigNozStatsAPI {
       `;
 
       const variables: Record<string, any> = {
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        start_timestamp: startTimeNano,
-        end_timestamp: endTimeNano,
+        start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
+        end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
+        start_timestamp: startTime * 1000000,
+        end_timestamp: endTime * 1000000,
       };
 
       if (projectId) {
@@ -991,12 +968,6 @@ class SigNozStatsAPI {
     try {
       console.log('[getConversationsPerDay] Using ClickHouse query with GROUP BY date');
 
-      // Convert timestamps
-      const startTimeNano = startTime * 1000000;
-      const endTimeNano = endTime * 1000000;
-      const startDatetime = new Date(startTime).toISOString().replace('T', ' ').slice(0, -1);
-      const endDatetime = new Date(endTime).toISOString().replace('T', ' ').slice(0, -1);
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1005,10 +976,10 @@ class SigNozStatsAPI {
       `;
 
       const variables: Record<string, any> = {
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        start_timestamp: startTimeNano,
-        end_timestamp: endTimeNano,
+        start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
+        end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
+        start_timestamp: startTime * 1000000,
+        end_timestamp: endTime * 1000000,
       };
 
       if (projectId) {
@@ -1118,18 +1089,12 @@ class SigNozStatsAPI {
   async getAggregateStats(
     startTime: number,
     endTime: number,
-    _filters?: SpanFilterOptions,
+    filters?: SpanFilterOptions,
     projectId?: string,
     agentId?: string
   ) {
     try {
       console.log('[getAggregateStats] Using ClickHouse queries for all aggregate stats');
-      
-      // Convert timestamps
-      const startTimeNano = startTime * 1000000;
-      const endTimeNano = endTime * 1000000;
-      const startDatetime = new Date(startTime).toISOString().replace('T', ' ').slice(0, -1);
-      const endDatetime = new Date(endTime).toISOString().replace('T', ' ').slice(0, -1);
       
       // Build base WHERE clause
       let baseWhere = `
@@ -1139,10 +1104,10 @@ class SigNozStatsAPI {
       `;
       
       const variables: Record<string, any> = {
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        start_timestamp: startTimeNano,
-        end_timestamp: endTimeNano,
+        start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
+        end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
+        start_timestamp: startTime * 1000000,
+        end_timestamp: endTime * 1000000,
       };
       
       if (projectId) {
@@ -1152,6 +1117,55 @@ class SigNozStatsAPI {
       if (agentId && agentId !== 'all') {
         baseWhere += ` AND attributes_string['agent.id'] = {{.agent_id}}`;
         variables.agent_id = agentId;
+      }
+      let filteredConversationIds: Set<string> | null = null;
+      if (filters?.spanName || filters?.attributes?.length) {
+        try {
+          const payload = this.buildFilteredConversationsPayload(startTime, endTime, filters, projectId);
+          const resp = await this.makeRequest(payload);
+          
+          // Extract conversation IDs from ClickHouse table format
+          const result = resp?.data?.result?.[0];
+          filteredConversationIds = new Set<string>();
+          if (result?.series && result.series.length > 0) {
+            for (const seriesItem of result.series) {
+              const convId = seriesItem.labels?.conversation_id;
+              if (convId && typeof convId === 'string') {
+                filteredConversationIds.add(convId);
+              }
+            }
+          }
+          
+          // If no conversations match the filter, return zeros
+          if (filteredConversationIds.size === 0) {
+            return {
+              totalToolCalls: 0,
+              totalTransfers: 0,
+              totalDelegations: 0,
+              totalConversations: 0,
+              totalAICalls: 0,
+            };
+          }
+          
+          // Add conversation ID filter to baseWhere
+          const convIdsArray = Array.from(filteredConversationIds);
+          const convIdVars = convIdsArray.map((id, idx) => {
+            const varKey = `conv_id_${idx}`;
+            variables[varKey] = id;
+            return `{{.${varKey}}}`;
+          }).join(', ');
+          baseWhere += ` AND attributes_string['conversation.id'] IN (${convIdVars})`;
+        } catch (error) {
+          console.error('[getAggregateStats] Error getting filtered conversations:', error);
+          // If filter query fails, return zeros to be safe
+          return {
+            totalToolCalls: 0,
+            totalTransfers: 0,
+            totalDelegations: 0,
+            totalConversations: 0,
+            totalAICalls: 0,
+          };
+        }
       }
       
       // Build queries for each metric
@@ -1267,12 +1281,6 @@ class SigNozStatsAPI {
     try {
       console.log('[getAvailableSpanNames] Using ClickHouse query with DISTINCT name');
 
-      // Convert timestamps
-      const startTimeNano = startTime * 1000000;
-      const endTimeNano = endTime * 1000000;
-      const startDatetime = new Date(startTime).toISOString().replace('T', ' ').slice(0, -1);
-      const endDatetime = new Date(endTime).toISOString().replace('T', ' ').slice(0, -1);
-
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1281,10 +1289,10 @@ class SigNozStatsAPI {
       `;
 
       const variables: Record<string, any> = {
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        start_timestamp: startTimeNano,
-        end_timestamp: endTimeNano,
+        start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
+        end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
+        start_timestamp: startTime * 1000000,
+        end_timestamp: endTime * 1000000,
       };
 
       if (projectId) {
@@ -1552,12 +1560,6 @@ class SigNozStatsAPI {
     filters: SpanFilterOptions,
     projectId?: string
   ) {
-    // Convert timestamps
-    const startTimeNano = start * 1000000;
-    const endTimeNano = end * 1000000;
-    const startDatetime = new Date(start).toISOString().replace('T', ' ').slice(0, -1);
-    const endDatetime = new Date(end).toISOString().replace('T', ' ').slice(0, -1);
-
     // Build base WHERE clause
     let baseWhere = `
       timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
@@ -1566,10 +1568,10 @@ class SigNozStatsAPI {
     `;
 
     const variables: Record<string, any> = {
-      start_datetime: startDatetime,
-      end_datetime: endDatetime,
-      start_timestamp: startTimeNano,
-      end_timestamp: endTimeNano,
+      start_datetime: new Date(start).toISOString().replace('T', ' ').slice(0, -1),
+      end_datetime: new Date(end).toISOString().replace('T', ' ').slice(0, -1),
+      start_timestamp: start * 1000000,
+      end_timestamp: end * 1000000,
     };
 
     if (projectId) {
