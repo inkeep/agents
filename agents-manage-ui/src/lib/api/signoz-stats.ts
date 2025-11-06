@@ -234,7 +234,14 @@ class SigNozStatsAPI {
       const startIdx = (page - 1) * limit;
       const data = stats.slice(startIdx, startIdx + limit);
 
-      console.log('[getConversationStats] Returning', data.length, 'stats for page', page, 'of', totalPages);
+      console.log(
+        '[getConversationStats] Returning',
+        data.length,
+        'stats for page',
+        page,
+        'of',
+        totalPages
+      );
       return {
         data,
         pagination: {
@@ -248,7 +255,10 @@ class SigNozStatsAPI {
       };
     } catch (e) {
       console.error('[getConversationStats] ERROR:', e);
-      console.error('[getConversationStats] Error stack:', e instanceof Error ? e.stack : 'No stack');
+      console.error(
+        '[getConversationStats] Error stack:',
+        e instanceof Error ? e.stack : 'No stack'
+      );
       return pagination
         ? {
             data: [],
@@ -468,7 +478,10 @@ class SigNozStatsAPI {
     const aiCallsData = extractTableData(resultsMap.get('aiCalls'), 'aiCalls');
     const lastActivityData = extractTableData(resultsMap.get('lastActivity'), 'lastActivity');
     const metadataData = extractTableData(resultsMap.get('metadata'), 'metadata');
-    const spansWithErrorsData = extractTableData(resultsMap.get('spansWithErrors'), 'spansWithErrors');
+    const spansWithErrorsData = extractTableData(
+      resultsMap.get('spansWithErrors'),
+      'spansWithErrors'
+    );
     const userMessagesData = extractTableData(resultsMap.get('userMessages'), 'userMessages');
 
     // Build maps for aggregation
@@ -479,8 +492,13 @@ class SigNozStatsAPI {
         const agentId = row.agent_id || row.agentId || UNKNOWN_VALUE;
         const agentName = row.agent_name || row.agentName;
         // If agent_name is empty, try to use agent_id as fallback (better than "unknown")
-        const finalAgentName = agentName && agentName !== '' ? agentName : (agentId !== UNKNOWN_VALUE ? agentId : UNKNOWN_VALUE);
-        
+        const finalAgentName =
+          agentName && agentName !== ''
+            ? agentName
+            : agentId !== UNKNOWN_VALUE
+              ? agentId
+              : UNKNOWN_VALUE;
+
         metaByConv.set(id, {
           tenantId: row.tenant_id || row.tenantId || UNKNOWN_VALUE,
           agentId,
@@ -488,7 +506,11 @@ class SigNozStatsAPI {
         });
       }
     }
-    console.log('[fetchAllConversationStatsWithClickHouse] Extracted metadata for', metaByConv.size, 'conversations');
+    console.log(
+      '[fetchAllConversationStatsWithClickHouse] Extracted metadata for',
+      metaByConv.size,
+      'conversations'
+    );
 
     const firstSeen = new Map<string, number>();
     for (const row of lastActivityData) {
@@ -503,21 +525,41 @@ class SigNozStatsAPI {
           if (!Number.isNaN(num) && num > 0) {
             timestamp = num;
           } else {
-            console.warn('[fetchAllConversationStatsWithClickHouse] Invalid timestamp string for', id, ':', ts);
+            console.warn(
+              '[fetchAllConversationStatsWithClickHouse] Invalid timestamp string for',
+              id,
+              ':',
+              ts
+            );
             continue;
           }
         } else if (typeof ts === 'number' && ts > 0) {
           timestamp = ts;
         } else {
-          console.warn('[fetchAllConversationStatsWithClickHouse] Invalid timestamp type for', id, ':', typeof ts, ts);
+          console.warn(
+            '[fetchAllConversationStatsWithClickHouse] Invalid timestamp type for',
+            id,
+            ':',
+            typeof ts,
+            ts
+          );
           continue;
         }
         firstSeen.set(id, timestamp);
       }
     }
-    console.log('[fetchAllConversationStatsWithClickHouse] Extracted timestamps for', firstSeen.size, 'conversations');
+    console.log(
+      '[fetchAllConversationStatsWithClickHouse] Extracted timestamps for',
+      firstSeen.size,
+      'conversations'
+    );
     if (firstSeen.size === 0 && lastActivityData.length > 0) {
-      console.error('[fetchAllConversationStatsWithClickHouse] No timestamps extracted but had', lastActivityData.length, 'rows. Sample row:', lastActivityData[0]);
+      console.error(
+        '[fetchAllConversationStatsWithClickHouse] No timestamps extracted but had',
+        lastActivityData.length,
+        'rows. Sample row:',
+        lastActivityData[0]
+      );
     }
 
     // Aggregate tools by conversation
@@ -609,7 +651,11 @@ class SigNozStatsAPI {
     // Get first user message per conversation
     const firstMsgByConv = new Map<string, { content: string; timestamp: number }>();
     const msgsByConv = new Map<string, Array<{ t: number; c: string }>>();
-    console.log('[fetchAllConversationStatsWithClickHouse] Processing', userMessagesData.length, 'user message rows');
+    console.log(
+      '[fetchAllConversationStatsWithClickHouse] Processing',
+      userMessagesData.length,
+      'user message rows'
+    );
     for (const row of userMessagesData) {
       const convId = row.conversation_id || row.conversationId;
       const content = row.message_content || row.messageContent;
@@ -617,15 +663,24 @@ class SigNozStatsAPI {
       const ts = row.value || row.first_timestamp_nano || row.firstTimestampNano;
 
       if (!convId) {
-        console.warn('[fetchAllConversationStatsWithClickHouse] Row missing conversation_id:', Object.keys(row), row);
+        console.warn(
+          '[fetchAllConversationStatsWithClickHouse] Row missing conversation_id:',
+          Object.keys(row),
+          row
+        );
         continue;
       }
 
       if (!content || content === '') {
-        console.warn('[fetchAllConversationStatsWithClickHouse] Row missing message_content for convId:', convId, 'row keys:', Object.keys(row));
+        console.warn(
+          '[fetchAllConversationStatsWithClickHouse] Row missing message_content for convId:',
+          convId,
+          'row keys:',
+          Object.keys(row)
+        );
         continue;
       }
-      
+
       // Timestamp from toUnixTimestamp64Nano returns nanoseconds as a number (or string number)
       let timestamp: number | null = null;
       if (ts !== null && ts !== undefined && ts !== '') {
@@ -638,7 +693,7 @@ class SigNozStatsAPI {
           timestamp = ts;
         }
       }
-      
+
       // Add message even if timestamp is missing (we'll use span timestamp as fallback)
       if (!msgsByConv.has(convId)) {
         msgsByConv.set(convId, []);
@@ -649,9 +704,13 @@ class SigNozStatsAPI {
         msgArr.push({ t: timestamp || 0, c: content });
       }
     }
-    
-    console.log('[fetchAllConversationStatsWithClickHouse] Grouped messages for', msgsByConv.size, 'conversations');
-    
+
+    console.log(
+      '[fetchAllConversationStatsWithClickHouse] Grouped messages for',
+      msgsByConv.size,
+      'conversations'
+    );
+
     for (const [id, arr] of msgsByConv) {
       // Sort by timestamp (ascending - earliest first)
       arr.sort((a, b) => a.t - b.t);
@@ -660,11 +719,14 @@ class SigNozStatsAPI {
         const content = first.c.length > 100 ? `${first.c.slice(0, 100)}...` : first.c;
         const timestampMs = first.t > 0 ? nsToMs(first.t) : undefined;
         firstMsgByConv.set(id, { content, timestamp: timestampMs || 0 });
-
       }
     }
-    
-    console.log('[fetchAllConversationStatsWithClickHouse] Extracted first messages for', firstMsgByConv.size, 'conversations');
+
+    console.log(
+      '[fetchAllConversationStatsWithClickHouse] Extracted first messages for',
+      firstMsgByConv.size,
+      'conversations'
+    );
 
     // Build ConversationStats objects
     // Get all unique conversation IDs
@@ -709,12 +771,15 @@ class SigNozStatsAPI {
 
       const firstMsg = firstMsgByConv.get(convId);
       const firstTimestamp = firstSeen.get(convId);
-      
+
       // Use first message timestamp if available and valid, otherwise use first seen timestamp
       // Convert nanoseconds to milliseconds for startTime
-      const startTimeMs = (firstMsg?.timestamp && firstMsg.timestamp > 0) 
-        ? firstMsg.timestamp 
-        : firstTimestamp ? nsToMs(firstTimestamp) : undefined;
+      const startTimeMs =
+        firstMsg?.timestamp && firstMsg.timestamp > 0
+          ? firstMsg.timestamp
+          : firstTimestamp
+            ? nsToMs(firstTimestamp)
+            : undefined;
 
       stats.push({
         conversationId: convId,
@@ -1095,21 +1160,21 @@ class SigNozStatsAPI {
   ) {
     try {
       console.log('[getAggregateStats] Using ClickHouse queries for all aggregate stats');
-      
+
       // Build base WHERE clause
       let baseWhere = `
         timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
         AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
         AND attributes_string['conversation.id'] != ''
       `;
-      
+
       const variables: Record<string, any> = {
         start_datetime: new Date(startTime).toISOString().replace('T', ' ').slice(0, -1),
         end_datetime: new Date(endTime).toISOString().replace('T', ' ').slice(0, -1),
         start_timestamp: startTime * 1000000,
         end_timestamp: endTime * 1000000,
       };
-      
+
       if (projectId) {
         baseWhere += ` AND attributes_string['project.id'] = {{.project_id}}`;
         variables.project_id = projectId;
@@ -1121,9 +1186,14 @@ class SigNozStatsAPI {
       let filteredConversationIds: Set<string> | null = null;
       if (filters?.spanName || filters?.attributes?.length) {
         try {
-          const payload = this.buildFilteredConversationsPayload(startTime, endTime, filters, projectId);
+          const payload = this.buildFilteredConversationsPayload(
+            startTime,
+            endTime,
+            filters,
+            projectId
+          );
           const resp = await this.makeRequest(payload);
-          
+
           // Extract conversation IDs from ClickHouse table format
           const result = resp?.data?.result?.[0];
           filteredConversationIds = new Set<string>();
@@ -1135,7 +1205,7 @@ class SigNozStatsAPI {
               }
             }
           }
-          
+
           // If no conversations match the filter, return zeros
           if (filteredConversationIds.size === 0) {
             return {
@@ -1146,14 +1216,16 @@ class SigNozStatsAPI {
               totalAICalls: 0,
             };
           }
-          
+
           // Add conversation ID filter to baseWhere
           const convIdsArray = Array.from(filteredConversationIds);
-          const convIdVars = convIdsArray.map((id, idx) => {
-            const varKey = `conv_id_${idx}`;
-            variables[varKey] = id;
-            return `{{.${varKey}}}`;
-          }).join(', ');
+          const convIdVars = convIdsArray
+            .map((id, idx) => {
+              const varKey = `conv_id_${idx}`;
+              variables[varKey] = id;
+              return `{{.${varKey}}}`;
+            })
+            .join(', ');
           baseWhere += ` AND attributes_string['conversation.id'] IN (${convIdVars})`;
         } catch (error) {
           console.error('[getAggregateStats] Error getting filtered conversations:', error);
@@ -1167,7 +1239,7 @@ class SigNozStatsAPI {
           };
         }
       }
-      
+
       // Build queries for each metric
       const queries = {
         totalConversations: `
@@ -1367,22 +1439,27 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
-      const payload = this.buildFilteredConversationsPayload(startTime, endTime, filters, projectId);
+      const payload = this.buildFilteredConversationsPayload(
+        startTime,
+        endTime,
+        filters,
+        projectId
+      );
       const resp = await this.makeRequest(payload);
-      
+
       // Extract conversation IDs from ClickHouse table format
       const result = resp?.data?.result?.[0];
       const allowed = new Set<string>();
       if (result?.series && result.series.length > 0) {
         for (const seriesItem of result.series) {
           const convId = seriesItem.labels?.conversation_id;
-          
+
           if (convId && typeof convId === 'string') {
             allowed.add(convId);
           }
         }
       }
-      
+
       return stats.filter((s) => allowed.has(s.conversationId));
     } catch (e) {
       console.error('[applySpanFilters] ERROR:', e);
@@ -1667,21 +1744,25 @@ class SigNozStatsAPI {
       } else if (op === 'in') {
         // Handle IN operator - convert array to SQL IN clause
         if (Array.isArray(value)) {
-          const inValues = value.map((v, idx) => {
-            const inVarKey = `${varKey}_${idx}`;
-            variables[inVarKey] = v;
-            return `{{.${inVarKey}}}`;
-          }).join(', ');
+          const inValues = value
+            .map((v, idx) => {
+              const inVarKey = `${varKey}_${idx}`;
+              variables[inVarKey] = v;
+              return `{{.${inVarKey}}}`;
+            })
+            .join(', ');
           baseWhere += ` AND attributes_string['${attr.key}'] IN (${inValues})`;
         }
       } else if (op === 'nin') {
         // Handle NOT IN operator
         if (Array.isArray(value)) {
-          const inValues = value.map((v, idx) => {
-            const inVarKey = `${varKey}_${idx}`;
-            variables[inVarKey] = v;
-            return `{{.${inVarKey}}}`;
-          }).join(', ');
+          const inValues = value
+            .map((v, idx) => {
+              const inVarKey = `${varKey}_${idx}`;
+              variables[inVarKey] = v;
+              return `{{.${inVarKey}}}`;
+            })
+            .join(', ');
           baseWhere += ` AND attributes_string['${attr.key}'] NOT IN (${inValues})`;
         }
       }
