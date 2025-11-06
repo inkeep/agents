@@ -14,10 +14,10 @@ import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { ManagementApiClient } from '../../api';
-import type { NestedInkeepConfig } from '../../config';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
-import { loadConfig } from '../../utils/config';
+import { initializeCommand } from '../../utils/cli-pipeline';
 import { compareProjectDefinitions } from '../../utils/json-comparison';
+import { loadProject } from '../../utils/project-loader';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
 import { extractSubAgents } from './utils/component-registry';
@@ -44,45 +44,6 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
-}
-
-/**
- * Load and validate inkeep.config.ts
- */
-async function loadProjectConfig(
-  projectDir: string,
-  configPathOverride?: string
-): Promise<NestedInkeepConfig> {
-  const configPath = configPathOverride
-    ? resolve(process.cwd(), configPathOverride)
-    : join(projectDir, 'inkeep.config.ts');
-
-  if (!existsSync(configPath)) {
-    throw new Error(`Configuration file not found: ${configPath}`);
-  }
-
-  try {
-    const config = await loadConfig(configPath);
-
-    if (!config.tenantId) {
-      throw new Error('tenantId is required in inkeep.config.ts');
-    }
-
-    return {
-      tenantId: config.tenantId,
-      agentsManageApi: {
-        url: config.agentsManageApiUrl || 'http://localhost:3002',
-        ...(config.agentsManageApiKey && { apiKey: config.agentsManageApiKey }),
-      },
-      agentsRunApi: {
-        url: config.agentsRunApiUrl || 'http://localhost:3003',
-        ...(config.agentsRunApiKey && { apiKey: config.agentsRunApiKey }),
-      },
-      outputDirectory: config.outputDirectory,
-    };
-  } catch (error: any) {
-    throw new Error(`Failed to load configuration: ${error.message}`);
-  }
 }
 
 /**
@@ -291,41 +252,69 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
   const s = p.spinner();
 
   try {
-    // Step 1: Load configuration
-    s.start('Loading configuration...');
+    // Step 1: Load configuration (same as push command)
+    const { config } = await initializeCommand({
+      configPath: options.config,
+      showSpinner: true,
+      spinnerText: 'Loading configuration...',
+      logConfig: true,
+    });
 
-    let config: NestedInkeepConfig | null = null;
-    const searchDir = process.cwd();
+    // Step 2: Determine project directory - match push command behavior
+    s.start('Detecting project...');
+    let projectDir: string;
 
-    if (options.config) {
-      const configPath = resolve(process.cwd(), options.config);
-      if (existsSync(configPath)) {
-        config = await loadProjectConfig(dirname(configPath), options.config);
-      } else {
-        throw new Error(`Configuration file not found: ${configPath}`);
+    if (options.project) {
+      // If project path is explicitly specified, use it and require index.ts
+      projectDir = resolve(process.cwd(), options.project);
+      if (!existsSync(join(projectDir, 'index.ts'))) {
+        s.stop(`No index.ts found in specified project directory: ${projectDir}`);
+        console.error(
+          chalk.yellow('The specified project directory must contain an index.ts file')
+        );
+        process.exit(1);
       }
     } else {
-      // Search for config file
-      const currentConfigPath = join(searchDir, 'inkeep.config.ts');
-      if (existsSync(currentConfigPath)) {
-        config = await loadProjectConfig(searchDir);
+      // Look for index.ts in current directory (same as push)
+      const currentDir = process.cwd();
+      if (existsSync(join(currentDir, 'index.ts'))) {
+        projectDir = currentDir;
       } else {
-        throw new Error('Could not find inkeep.config.ts');
+        s.stop('No index.ts found in current directory');
+        console.error(
+          chalk.yellow(
+            'Please run this command from a directory containing index.ts or use --project <path>'
+          )
+        );
+        process.exit(1);
       }
     }
 
-    const projectId = options.project;
-    if (!projectId) {
-      throw new Error('Project ID is required');
+    s.stop(`Project found: ${projectDir}`);
+
+    // Step 3: Load existing project to get project ID (like push does)
+    s.start('Loading local project to get project ID...');
+
+    let localProjectForId: any;
+    let projectId: string;
+
+    try {
+      localProjectForId = await loadProject(projectDir);
+      projectId = localProjectForId.getId();
+
+      s.stop(`Project ID: ${projectId}`);
+    } catch (error) {
+      s.stop('Failed to load local project');
+      throw new Error(
+        `Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
-    s.message('Configuration loaded');
-
-    // Step 2: Fetch project data from API
-    // s.start(`Fetching project: ${projectId}`);
+    // Step 4: Fetch project data from API
+    s.start(`Fetching project: ${projectId}`);
 
     const apiClient = await ManagementApiClient.create(
-      config.agentsManageApi.url,
+      config.agentsManageApiUrl,
       options.config,
       config.tenantId,
       projectId
@@ -433,15 +422,10 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       return;
     }
 
-    // Step 3: Set up project structure
-    const outputDir =
-      config.outputDirectory && config.outputDirectory !== 'default'
-        ? config.outputDirectory
-        : process.cwd();
-    const projectDir = resolve(outputDir, projectId);
+    // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir, projectId);
 
-    // Step 4: Introspect mode - skip comparison, regenerate everything
+    // Step 6: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {
       console.log(chalk.yellow('\n🔍 Introspect mode: Regenerating all files from scratch'));
 
@@ -463,7 +447,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       process.exit(0);
     }
 
-    // Step 5: Read existing project and compare
+    // Step 7: Read existing project and compare
     // s.start('Reading existing project...');
     const localProject = await readExistingProject(paths.projectRoot, options.debug);
 
@@ -473,13 +457,41 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       s.message('Existing project loaded');
     }
 
-    // Step 6: Build local component registry to understand current project structure
+    // Step 8: Build local component registry to understand current project structure
     s.start('Building component registry from local files...');
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
     s.message('Component registry built');
 
-    // Step 7: Comprehensive project comparison (now with access to registry)
+    // Step 9: Debug registry to see variable name conflicts
+    if (options.debug) {
+      console.log(chalk.cyan('\n🔍 Component Registry Debug:'));
+      const allComponents = localRegistry.getAllComponents();
+      console.log(chalk.gray('   Total components registered:'), allComponents.length);
+
+      // Group by variable name to see conflicts
+      const nameGroups = new Map<string, any[]>();
+      for (const comp of allComponents) {
+        if (!nameGroups.has(comp.name)) {
+          nameGroups.set(comp.name, []);
+        }
+        nameGroups.get(comp.name)!.push(comp);
+      }
+
+      // Show any conflicts
+      for (const [varName, components] of nameGroups.entries()) {
+        if (components.length > 1) {
+          console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
+          for (const comp of components) {
+            console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
+          }
+        } else {
+          console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
+        }
+      }
+    }
+
+    // Step 10: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
     const comparison = await compareProjects(
       localProject,
@@ -498,7 +510,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message(`Detected ${comparison.changeCount} differences`);
 
-    // Step 8: Create temp directory and copy existing project (or start empty)
+    // Step 11: Create temp directory and copy existing project (or start empty)
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
 
@@ -516,7 +528,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message('Temp directory prepared');
 
-    // Step 9: Add new components to temp directory
+    // Step 12: Add new components to temp directory
     const newComponentCount = Object.values(comparison.componentChanges).reduce(
       (sum, changes) => sum + changes.added.length,
       0
@@ -534,12 +546,40 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         tempDirName
       );
 
+      // Debug registry after new components are generated
+      if (options.debug) {
+        console.log(chalk.cyan('\n🔍 Component Registry After Generation:'));
+        const allComponents = localRegistry.getAllComponents();
+        console.log(chalk.gray('   Total components registered:'), allComponents.length);
+
+        // Group by variable name to see conflicts
+        const nameGroups = new Map<string, any[]>();
+        for (const comp of allComponents) {
+          if (!nameGroups.has(comp.name)) {
+            nameGroups.set(comp.name, []);
+          }
+          nameGroups.get(comp.name)!.push(comp);
+        }
+
+        // Show any conflicts
+        for (const [varName, components] of nameGroups.entries()) {
+          if (components.length > 1) {
+            console.log(chalk.red(`   ❌ Variable name conflict: "${varName}"`));
+            for (const comp of components) {
+              console.log(chalk.gray(`      - ${comp.type}:${comp.id} -> ${comp.filePath}`));
+            }
+          } else {
+            console.log(chalk.gray(`   ✅ ${varName} (${components[0].type}:${components[0].id})`));
+          }
+        }
+      }
+
       const successful = newComponentResults.filter((r) => r.success);
       console.log(chalk.green(`✅ Added ${successful.length} new components to temp directory`));
       s.message('New component files created');
     }
 
-    // Step 10: Apply modified components to temp directory
+    // Step 13: Apply modified components to temp directory
     const modifiedCount = Object.values(comparison.componentChanges).reduce(
       (sum, changes) => sum + changes.modified.length,
       0
@@ -560,7 +600,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       s.message('Modified components applied');
     }
 
-    // Step 11: Create index.ts in temp directory only
+    // Step 14: Create index.ts in temp directory only
     s.start('Generating project index file in temp directory...');
     const { generateProjectIndex } = await import('./project-index-generator');
 
@@ -574,7 +614,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message('Project index file created');
 
-    // Step 12: Run validation and user interaction on complete temp directory
+    // Step 15: Run validation and user interaction on complete temp directory
     if (newComponentCount > 0 || modifiedCount > 0) {
       s.start('Running validation on complete project...');
       const { validateTempDirectory } = await import('./project-validator');

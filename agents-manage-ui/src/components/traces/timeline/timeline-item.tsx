@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  ArrowUpRight,
   ChevronDown,
   ChevronRight,
   Cpu,
@@ -79,6 +78,9 @@ interface TimelineItemProps {
   isSelected?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
+  hasChildren?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function TimelineItem({
@@ -88,6 +90,9 @@ export function TimelineItem({
   isSelected = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
+  hasChildren = false,
+  isCollapsed = false,
+  onToggleCollapse,
 }: TimelineItemProps) {
   const typeForIcon =
     activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
@@ -113,8 +118,10 @@ export function TimelineItem({
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
       <div className="flex items-start">
-        <div className="mr-2 py-2">
-          <Icon className={`w-4 h-4 ${className}`} />
+        <div className="mr-2 py-2" style={{ width: '16px' }}>
+          <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
+            <Icon className={`w-4 h-4 ${className}`} />
+          </div>
         </div>
 
         <div
@@ -122,7 +129,7 @@ export function TimelineItem({
             isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={onSelect}
@@ -132,11 +139,24 @@ export function TimelineItem({
               <span className="font-medium">
                 <Streamdown>{activity.description}</Streamdown>
               </span>
-              <ArrowUpRight
-                className={`h-4 w-4 transition-colors ${activity.status === 'error' ? 'text-red-700 group-hover:text-red-800' : 'text-muted-foreground group-hover:text-primary'}`}
-                aria-hidden="true"
-              />
             </button>
+            {hasChildren && onToggleCollapse && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCollapse();
+                }}
+                className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded hover:bg-muted transition-colors"
+                title={isCollapsed ? 'Expand children' : 'Collapse children'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            )}
           </div>
 
           {/* user message bubble */}
@@ -400,7 +420,12 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
+      {!isLast && !isCollapsed && hasChildren && (
+        <div
+          className="absolute top-4 left-[7px] border-l border-border"
+          style={{ height: 'calc(100%)' }}
+        />
+      )}
     </div>
   );
 }
