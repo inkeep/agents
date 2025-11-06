@@ -15,6 +15,7 @@ import {
   QUERY_TYPES,
   REDUCE_OPERATIONS,
   SPAN_KEYS,
+  SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 
@@ -316,7 +317,7 @@ class SigNozStatsAPI {
           COUNT(*) as count
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
-          AND name = 'ai.toolCall'
+          AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
           AND attributes_string['ai.toolType'] = 'mcp'
         GROUP BY conversation_id, tool_name
       `,
@@ -330,7 +331,7 @@ class SigNozStatsAPI {
           COUNT(*) as count
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
-          AND name = 'ai.toolCall'
+          AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
           AND attributes_string['ai.toolType'] = 'transfer'
         GROUP BY conversation_id, from_agent, to_agent
       `,
@@ -344,7 +345,7 @@ class SigNozStatsAPI {
           COUNT(*) as count
         FROM signoz_traces.distributed_signoz_index_v3
         WHERE ${baseWhere}
-          AND name = 'ai.toolCall'
+          AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
           AND attributes_string['ai.toolType'] = 'delegation'
         GROUP BY conversation_id, from_agent, to_agent
       `,
@@ -419,7 +420,7 @@ class SigNozStatsAPI {
       const payload = {
         start: startTime,
         end: endTime,
-        step: 60,
+        step: QUERY_DEFAULTS.STEP,
         variables,
         compositeQuery: {
           queryType: 'clickhouse_sql',
@@ -841,7 +842,7 @@ class SigNozStatsAPI {
       const payload = {
         start: startTime,
         end: endTime,
-        step: 60,
+        step: QUERY_DEFAULTS.STEP,
         variables,
         compositeQuery: {
           queryType: 'clickhouse_sql',
@@ -1070,7 +1071,7 @@ class SigNozStatsAPI {
       const payload = {
         start: startTime,
         end: endTime,
-        step: 60,
+        step: QUERY_DEFAULTS.STEP,
         variables,
         compositeQuery: {
           queryType: 'clickhouse_sql',
@@ -1251,21 +1252,21 @@ class SigNozStatsAPI {
           SELECT COUNT(*) as count
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
-            AND name = 'ai.toolCall'
+            AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
             AND attributes_string['ai.toolType'] = 'mcp'
         `,
         totalTransfers: `
           SELECT COUNT(*) as count
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
-            AND name = 'ai.toolCall'
+            AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
             AND attributes_string['ai.toolType'] = 'transfer'
         `,
         totalDelegations: `
           SELECT COUNT(*) as count
           FROM signoz_traces.distributed_signoz_index_v3
           WHERE ${baseWhere}
-            AND name = 'ai.toolCall'
+            AND name = '${SPAN_NAMES.AI_TOOL_CALL}'
             AND attributes_string['ai.toolType'] = 'delegation'
         `,
         totalAICalls: `
@@ -1281,7 +1282,7 @@ class SigNozStatsAPI {
         const payload = {
           start: startTime,
           end: endTime,
-          step: 60,
+          step: QUERY_DEFAULTS.STEP,
           variables,
           compositeQuery: {
             queryType: 'clickhouse_sql',
@@ -1387,7 +1388,7 @@ class SigNozStatsAPI {
       const payload = {
         start: startTime,
         end: endTime,
-        step: 60,
+        step: QUERY_DEFAULTS.STEP,
         variables,
         compositeQuery: {
           queryType: 'clickhouse_sql',
@@ -1779,7 +1780,7 @@ class SigNozStatsAPI {
     return {
       start,
       end,
-      step: 60,
+      step: QUERY_DEFAULTS.STEP,
       variables,
       compositeQuery: {
         queryType: 'clickhouse_sql',
