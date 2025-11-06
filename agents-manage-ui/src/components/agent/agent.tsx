@@ -88,7 +88,6 @@ import {
   newNodeDefaults,
   nodeTypes,
   teamAgentNodeTargetHandleId,
-  type AnimatedNode,
 } from './configuration/node-types';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
