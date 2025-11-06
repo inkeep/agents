@@ -8,6 +8,7 @@ import {
   AGENT_IDS,
   AGGREGATE_OPERATORS,
   AI_OPERATIONS,
+  CRITICAL_ERROR_SPAN_NAMES,
   DATA_SOURCES,
   OPERATORS,
   ORDER_DIRECTIONS,
@@ -902,27 +903,13 @@ export async function GET(
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
 
     // Categorize spans with errors into critical errors vs warnings
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
 
     let errorCount = 0;
     let warningCount = 0;
 
     for (const span of spansWithErrorsList) {
       const spanName = getString(span, SPAN_KEYS.NAME, '');
-      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
+      if ((CRITICAL_ERROR_SPAN_NAMES as readonly string[]).includes(spanName)) {
         errorCount++;
       } else {
         warningCount++;

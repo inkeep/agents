@@ -14,6 +14,21 @@ export const SPAN_NAMES = {
   ARTIFACT_PROCESSING: 'agent_session.process_artifact',
 } as const;
 
+export const CRITICAL_ERROR_SPAN_NAMES = [
+  'execution_handler.execute',
+  'agent.load_tools',
+  'context.handle_context_resolution',
+  'context.resolve',
+  'agent.generate',
+  'context-resolver.resolve_single_fetch_definition',
+  'agent_session.generate_structured_update',
+  'agent_session.process_artifact',
+  'agent_session.generate_artifact_metadata',
+  'response.format_object_response',
+  'response.format_response',
+  'ai.toolCall',
+] as const;
+
 export const AI_OPERATIONS = {
   GENERATE_TEXT: 'ai.generateText.doGenerate',
   STREAM_TEXT: 'ai.streamText.doStream',
