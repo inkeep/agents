@@ -8,7 +8,11 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
-import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
+import {
+  type AnimatedNode,
+  mcpNodeHandleId,
+  NodeType,
+} from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -82,6 +86,8 @@ type AgentActions = {
    * Setter for `jsonSchemaMode` field.
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
+
+  animateGraph: EventListenerOrEventListenerObject;
 };
 
 type AgentState = AgentStateData & {
@@ -314,6 +320,185 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     },
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });
+    },
+    animateGraph(event) {
+      function hasRelationWithSubAgent({
+        relationshipId,
+        subAgentId,
+      }: {
+        relationshipId: unknown;
+        subAgentId: string;
+      }): boolean {
+        if (typeof relationshipId !== 'string') {
+          return false;
+        }
+        const config = get().agentToolConfigLookup[subAgentId];
+        if (!config) {
+          return false;
+        }
+        return Object.keys(config).includes(relationshipId);
+      }
+      // @ts-expect-error -- improve types
+      const data = event.detail;
+      set((state) => {
+        const { edges: prevEdges, nodes: prevNodes } = state;
+
+        /** Wrapper function to always keep error state */
+        function changeNodeStatus(cb: (node: Node) => AnimatedNode['status']) {
+          return prevNodes.map((node) => {
+            if (node.data.status === 'error') {
+              return node;
+            }
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: cb(node),
+              },
+            };
+          });
+        }
+
+        switch (data.type) {
+          case 'agent_initializing': {
+            // TODO
+            break;
+          }
+          case 'delegation_sent':
+          case 'transfer': {
+            const { fromSubAgent, targetSubAgent } = data.details.data;
+
+            return {
+              edges: prevEdges.map((edge) => ({
+                ...edge,
+                data: {
+                  ...edge.data,
+                  delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+                },
+              })),
+              nodes: changeNodeStatus((node) =>
+                node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null
+              ),
+            };
+          }
+          case 'delegation_returned': {
+            const { targetSubAgent, fromSubAgent } = data.details.data;
+            return {
+              edges: prevEdges.map((edge) => ({
+                ...edge,
+                data: {
+                  ...edge.data,
+                  delegating:
+                    edge.source === targetSubAgent && edge.target === fromSubAgent
+                      ? 'inverted'
+                      : false,
+                },
+              })),
+              nodes: changeNodeStatus((node) =>
+                node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null
+              ),
+            };
+          }
+          case 'tool_call': {
+            const { toolName } = data.details.data;
+            const { subAgentId } = data.details;
+            return {
+              edges: prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = get().toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+                const hasDots = edge.source === subAgentId && hasTool;
+                return {
+                  ...edge,
+                  data: { ...edge.data, delegating: hasDots },
+                };
+              }),
+              nodes: changeNodeStatus((node) =>
+                node.data.id === subAgentId ||
+                hasRelationWithSubAgent({
+                  relationshipId: node.data.relationshipId,
+                  subAgentId,
+                })
+                  ? 'delegating'
+                  : null
+              ),
+            };
+          }
+          case 'error': {
+            const { subAgentId } = data.details;
+            return {
+              nodes: changeNodeStatus((node) =>
+                hasRelationWithSubAgent({
+                  relationshipId: node.data.relationshipId,
+                  subAgentId,
+                })
+                  ? 'error'
+                  : null
+              ),
+            };
+          }
+          case 'tool_result': {
+            const { toolName, error } = data.details.data;
+            const { subAgentId } = data.details;
+            return {
+              edges: prevEdges.map((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                const toolId = node?.data.toolId as string;
+                const toolData = get().toolLookup[toolId];
+                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
+
+                return {
+                  ...edge,
+                  data: {
+                    ...edge.data,
+                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
+                  },
+                };
+              }),
+              nodes: changeNodeStatus((node) => {
+                let status: AnimatedNode['status'] = null;
+                if (
+                  hasRelationWithSubAgent({
+                    subAgentId,
+                    relationshipId: node.data.relationshipId,
+                  })
+                ) {
+                  status = error ? 'error' : 'executing';
+                } else if (node.id === subAgentId) {
+                  status = 'delegating';
+                }
+
+                return status;
+              }),
+            };
+          }
+          case 'completion': {
+            return {
+              edges: prevEdges.map((edge) => ({
+                ...edge,
+                data: { ...edge.data, delegating: false },
+              })),
+              nodes: prevNodes.map((node) => ({
+                ...node,
+                data: { ...node.data, status: null },
+              })),
+            };
+          }
+          case 'agent_generate': {
+            const { subAgentId } = data.details;
+            return {
+              edges: prevEdges.map((node) => ({
+                ...node,
+                data: { ...node.data, delegating: false },
+              })),
+              nodes: changeNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
+            };
+          }
+        }
+        return state;
+      });
     },
   },
 });

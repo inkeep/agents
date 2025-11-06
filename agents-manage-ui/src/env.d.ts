@@ -9,3 +9,9 @@ declare module '*.svg?svgr' {
 
   export default ReactComponent;
 }
+
+declare namespace React {
+  interface CSSProperties {
+    [key: `--${string}`]: string | number;
+  }
+}
