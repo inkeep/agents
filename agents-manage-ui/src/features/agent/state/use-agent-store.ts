@@ -485,8 +485,16 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             break;
           }
           case 'completion': {
-            onCompletion();
-            break;
+            return {
+              edges: prevEdges.map((edge) => ({
+                ...edge,
+                data: { ...edge.data, delegating: false },
+              })),
+              nodes: prevNodes.map((node) => ({
+                ...node,
+                data: { ...node.data, status: null },
+              })),
+            };
           }
           case 'agent_generate': {
             const { subAgentId } = data.details;
