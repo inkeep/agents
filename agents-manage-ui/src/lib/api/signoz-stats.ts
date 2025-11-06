@@ -428,27 +428,6 @@ class SigNozStatsAPI {
     return { conversationIds: paginatedIds, total };
   }
 
-  async getAICallsByAgent(startTime: number, endTime: number, projectId?: string) {
-    try {
-      const resp = await this.makeRequest(
-        this.buildCombinedPayload(startTime, endTime, undefined, projectId)
-      );
-      const series = this.extractSeries(resp, QUERY_EXPRESSIONS.AI_CALLS);
-      const totals = new Map<string, number>();
-      for (const s of series) {
-        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const count = countFromSeries(s);
-        if (count) totals.set(agentId, (totals.get(agentId) || 0) + count);
-      }
-      return [...totals]
-        .map(([agentId, totalCalls]) => ({ agentId, totalCalls }))
-        .sort((a, b) => b.totalCalls - a.totalCalls);
-    } catch (e) {
-      console.error('getAICallsByAgent error:', e);
-      return [];
-    }
-  }
-
   async getAICallsBySubAgent(
     startTime: number,
     endTime: number,
