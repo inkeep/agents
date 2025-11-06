@@ -28,6 +28,18 @@ describe('Validation', () => {
 
       jsonModel.setValue('foo bar');
     });
+
+    cy.contains('Save changes').click();
+    cy.get('[data-sonner-toast]').should('be.visible');
+    cy.contains('Save changes').should('not.be.disabled');
+    cy.contains('Agent saved', { timeout: 0 }).should('not.exist');
+  });
+
+  it('should not allow save empty id', () => {
+    cy.visit('/default/projects/my-weather-project/agents/weather-agent');
+    cy.get('.react-flow__node').eq(1).click();
+    cy.get('[name=id]').clear();
+
     cy.contains('Save changes').click();
     cy.get('[data-sonner-toast]').should('be.visible');
     cy.contains('Save changes').should('not.be.disabled');
