@@ -16,13 +16,10 @@ import { ModelFactory } from '@/lib/ai/model-factory';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
 
-interface RouteContext {
-  params: Promise<{
-    dataComponentId: string;
-  }>;
-}
-
-export async function POST(request: NextRequest, context: RouteContext) {
+export async function POST(
+  request: NextRequest,
+  context: RouteContext<'/api/data-components/[dataComponentId]/generate-render'>
+) {
   try {
     const { dataComponentId } = await context.params;
     const body = await request.json();
