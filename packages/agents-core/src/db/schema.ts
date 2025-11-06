@@ -757,6 +757,29 @@ export const evalTestSuiteConfig = sqliteTable(
   ]
 );
 
+export const evalTestSuiteConfigAgents = sqliteTable(
+  'eval_test_suite_config_agents',
+  {
+    tenantId: text('tenant_id').notNull(),
+    testSuiteConfigId: text('test_suite_config_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.testSuiteConfigId, table.agentId] }),
+    foreignKey({
+      columns: [table.tenantId, table.testSuiteConfigId],
+      foreignColumns: [evalTestSuiteConfig.tenantId, evalTestSuiteConfig.id],
+      name: 'eval_test_suite_config_agents_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.agentId],
+      foreignColumns: [agents.id],
+      name: 'eval_test_suite_config_agents_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const evalTestSuiteRun = sqliteTable(
   'eval_test_suite_run',
   {
@@ -1001,7 +1024,8 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
-  evalTestSuiteRuns: many(evalTestSuiteRun),
+  evalTestSuiteConfigs: many(evalTestSuiteConfigAgents), 
+  evalTestSuiteRuns: many(evalTestSuiteRun), 
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -1296,6 +1320,18 @@ export const evaluatorRelations = relations(evaluator, ({ many }) => ({
 
 export const evalTestSuiteConfigRelations = relations(evalTestSuiteConfig, ({ many }) => ({
   runs: many(evalTestSuiteRun),
+  agents: many(evalTestSuiteConfigAgents),
+}));
+
+export const evalTestSuiteConfigAgentsRelations = relations(evalTestSuiteConfigAgents, ({ one }) => ({
+  testSuiteConfig: one(evalTestSuiteConfig, {
+    fields: [evalTestSuiteConfigAgents.tenantId, evalTestSuiteConfigAgents.testSuiteConfigId],
+    references: [evalTestSuiteConfig.tenantId, evalTestSuiteConfig.id],
+  }),
+  agent: one(agents, {
+    fields: [evalTestSuiteConfigAgents.agentId],
+    references: [agents.id],
+  }),
 }));
 
 export const evalTestSuiteRunRelations = relations(evalTestSuiteRun, ({ one, many }) => ({

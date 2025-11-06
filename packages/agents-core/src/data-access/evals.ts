@@ -8,6 +8,7 @@ import {
   datasetItem,
   evalResult,
   evalTestSuiteConfig,
+  evalTestSuiteConfigAgents,
   evaluator,
   subAgents,
 } from '../db/schema';
@@ -799,6 +800,85 @@ export const updateEvalTestSuiteConfig =
   };
 
 /**
+ * Eval Test Suite Config Agents - Associate agents with test suite config
+ */
+export const associateAgentsWithTestSuiteConfig =
+  (db: DatabaseClient) =>
+  async (params: {
+    tenantId: string;
+    testSuiteConfigId: string;
+    agentIds: string[];
+  }) => {
+    const now = new Date().toISOString();
+    
+    // First, remove existing associations
+    await db
+      .delete(evalTestSuiteConfigAgents)
+      .where(
+        and(
+          eq(evalTestSuiteConfigAgents.tenantId, params.tenantId),
+          eq(evalTestSuiteConfigAgents.testSuiteConfigId, params.testSuiteConfigId)
+        )
+      );
+    
+    // Then add new associations
+    if (params.agentIds.length > 0) {
+      const values = params.agentIds.map(agentId => ({
+        tenantId: params.tenantId,
+        testSuiteConfigId: params.testSuiteConfigId,
+        agentId,
+        createdAt: now,
+        updatedAt: now,
+      }));
+      
+      await db.insert(evalTestSuiteConfigAgents).values(values);
+    }
+    
+    return { success: true };
+  };
+
+/**
+ * Eval Test Suite Config Agents - Get agents for test suite config
+ */
+export const getAgentsForTestSuiteConfig =
+  (db: DatabaseClient) =>
+  async (params: {
+    tenantId: string;
+    testSuiteConfigId: string;
+  }) => {
+    const rows = await db
+      .select()
+      .from(evalTestSuiteConfigAgents)
+      .where(
+        and(
+          eq(evalTestSuiteConfigAgents.tenantId, params.tenantId),
+          eq(evalTestSuiteConfigAgents.testSuiteConfigId, params.testSuiteConfigId)
+        )
+      );
+    
+    return rows.map(row => row.agentId);
+  };
+
+/**
+ * Eval Test Suite Config Agents - Get test suite configs for agent
+ */
+export const getTestSuiteConfigsForAgent =
+  (db: DatabaseClient) =>
+  async (params: {
+    agentId: string;
+  }) => {
+    const rows = await db
+      .select({
+        testSuiteConfigId: evalTestSuiteConfigAgents.testSuiteConfigId,
+        tenantId: evalTestSuiteConfigAgents.tenantId,
+      })
+      .from(evalTestSuiteConfigAgents)
+      .where(eq(evalTestSuiteConfigAgents.agentId, params.agentId));
+    
+    return rows;
+  };
+
+/**
  * Eval Test Suite Config - Delete
  */
 export const deleteEvalTestSuiteConfig =
@@ -815,4 +895,3 @@ export const deleteEvalTestSuiteConfig =
 
     return row ?? null;
   };
-
