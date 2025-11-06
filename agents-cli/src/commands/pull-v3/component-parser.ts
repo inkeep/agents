@@ -22,9 +22,26 @@ interface ComponentMatch {
   mcpKey?: string; // The MCP key for environment-aware tools
 }
 
-// No more hardcoded valid types - we get them from SDK discovery!
+// Temporary stub constants for backward compatibility - TODO: remove when fully migrated to AST parsing
+const VALID_COMPONENT_TYPES = new Set<ComponentType>([
+  'agent', 'subAgent', 'mcpTool', 'functionTool', 'dataComponent', 'artifactComponent', 
+  'statusComponent', 'environment', 'externalAgent', 'credential', 'contextConfig', 'project'
+]);
 
-// No more manual mapping needed! SDK function names are used directly as ComponentType
+const FUNCTION_NAME_TO_TYPE: Record<string, ComponentType> = {
+  'mcpTool': 'mcpTool',
+  'functionTool': 'functionTool',
+  'agent': 'agent',
+  'subAgent': 'subAgent',
+  'dataComponent': 'dataComponent',
+  'artifactComponent': 'artifactComponent',
+  'statusComponent': 'statusComponent',
+  'environment': 'environment',
+  'externalAgent': 'externalAgent',
+  'credential': 'credential',
+  'contextConfig': 'contextConfig',
+  'project': 'project',
+};
 
 /**
  * Parse a single file for all component definitions

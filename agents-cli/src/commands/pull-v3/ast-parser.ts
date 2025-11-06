@@ -218,7 +218,7 @@ function analyzeCallExpression(
   
   // If not found in discovered patterns, check for property access patterns
   if (!sdkFunction && functionName.includes('.')) {
-    sdkFunction = analyzePropertyAccessPattern(functionName, callExpr);
+    sdkFunction = analyzePropertyAccessPattern(functionName, callExpr) || undefined;
   }
   
   if (!sdkFunction || !sdkFunction.componentType) {
@@ -285,7 +285,7 @@ function analyzePropertyAccessPattern(functionName: string, callExpr: CallExpres
   if (pattern) {
     return {
       name: functionName,
-      category: pattern.category,
+      category: pattern.category as 'static' | 'environment-aware' | 'utility',
       componentType: pattern.componentType, // Now maps to SDK function names
       parameters: []
     };

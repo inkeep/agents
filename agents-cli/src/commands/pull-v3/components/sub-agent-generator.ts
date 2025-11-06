@@ -216,7 +216,7 @@ export function generateSubAgentDefinition(
         console.log(`  Registry has ${registry.getAll().length} total components:`);
         registry.getAll().forEach(comp => {
           if (comp.type === 'mcpTool' || comp.type === 'functionTool') {
-            console.log(`    ${comp.type}:${comp.id} -> ${comp.variableName}`);
+            console.log(`    ${comp.type}:${comp.id} -> ${comp.name}`);
           }
         });
         throw new Error(

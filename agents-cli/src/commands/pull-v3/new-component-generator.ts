@@ -26,6 +26,28 @@ import type { ComponentRegistry, ComponentType } from './utils/component-registr
 import { findSubAgentWithParent } from './utils/component-registry';
 import { toCamelCase } from './utils/generator-utils';
 
+// Map plural API types to singular ComponentTypes
+function mapApiTypeToComponentType(apiType: keyof ProjectComparison['componentChanges']): ComponentType {
+  const mapping: Record<keyof ProjectComparison['componentChanges'], ComponentType> = {
+    'agents': 'agent',
+    'subAgents': 'subAgent', 
+    'tools': 'mcpTool', // API tools map to mcpTool
+    'functionTools': 'functionTool',
+    'functions': 'functionTool', // functions are implementation details of functionTools
+    'dataComponents': 'dataComponent',
+    'artifactComponents': 'artifactComponent',
+    'statusComponents': 'statusComponent',
+    'environments': 'environment',
+    'contextConfigs': 'contextConfig',
+    'fetchDefinitions': 'fetchDefinition',
+    'headers': 'header',
+    'credentials': 'credential',
+    'externalAgents': 'externalAgent',
+    'models': 'model',
+  };
+  return mapping[apiType];
+}
+
 interface ProjectPaths {
   projectRoot: string;
   agentsDir: string;
@@ -148,8 +170,7 @@ function generateComponentContent(
         return generateEnvironmentAwareMcpToolFile(
           componentId,
           mcpKey,
-          defaultStyle,
-          componentRegistry
+          defaultStyle
         );
       }
       return generateMcpToolFile(componentId, componentData, defaultStyle, componentRegistry);
@@ -236,18 +257,18 @@ export async function createNewComponents(
 
   // Define dependency order - components earlier in the list should be created first
   const creationOrder: (keyof ProjectComparison['componentChanges'])[] = [
-    'credential',
-    'environment',
-    'contextConfig', // Can be created early - just config objects
-    'functionTool', // Create functionTools before functions to avoid conflicts
+    'credentials',
+    'environments',
+    'contextConfigs', // Can be created early - just config objects
+    'functionTools', // Create functionTools before functions to avoid conflicts
     'functions',
-    'tool',
-    'dataComponent',
-    'artifactComponent',
-    'statusComponent',
-    'externalAgent',
-    'subAgent', // Create subAgents before main agents so they can be referenced
-    'agent', // Create agents last so they can reference everything
+    'tools',
+    'dataComponents',
+    'artifactComponents',
+    'statusComponents',
+    'externalAgents',
+    'subAgents', // Create subAgents before main agents so they can be referenced
+    'agents', // Create agents last so they can reference everything
   ];
 
   // Step 1: Register all new components in the registry first
@@ -259,8 +280,11 @@ export async function createNewComponents(
     const addedComponents = changes.added || [];
 
     for (const componentId of addedComponents) {
+      // Map API type to ComponentType  
+      const singularType = mapApiTypeToComponentType(componentType);
+      
       // Check if component already exists locally
-      const existsLocally = localRegistry.get(componentId, componentType as any);
+      const existsLocally = localRegistry.get(componentId, singularType);
       if (existsLocally) continue;
 
       // Register the component with its expected file path and variable name
@@ -272,7 +296,7 @@ export async function createNewComponents(
 
       // Special handling for contextConfigs to use agent-based names
       let explicitVariableName: string | undefined;
-      if (componentType === 'contextConfig') {
+      if (componentType === 'contextConfigs') {
         const contextResult = findContextConfigData(remoteProject, componentId);
         if (contextResult) {
           explicitVariableName = `${toCamelCase(contextResult.agentId)}Context`;
@@ -282,7 +306,7 @@ export async function createNewComponents(
 
       localRegistry.register(
         componentId,
-        componentType, // componentType now matches ComponentType directly
+        singularType, // Use mapped singular ComponentType
         relativePath,
         explicitVariableName, // Only provide explicit name for contextConfigs, undefined for others
         false // isInline = false (new exported component)
@@ -314,13 +338,13 @@ export async function createNewComponents(
         // Get component data based on component type
         let componentData: any = null;
 
-        if (componentType === 'statusComponent') {
+        if (componentType === 'statusComponents') {
           // Status components are nested in agents - find them
           componentData = findStatusComponentData(remoteProject, componentId);
-        } else if (componentType === 'credential') {
+        } else if (componentType === 'credentials') {
           // Credentials might be in credentialReferences
           componentData = remoteProject.credentialReferences?.[componentId];
-        } else if (componentType === 'contextConfig') {
+        } else if (componentType === 'contextConfigs') {
           // Context configs are nested in agents - store both contextConfig and agentId
           const contextResult = findContextConfigData(remoteProject, componentId);
           if (contextResult) {
@@ -331,7 +355,7 @@ export async function createNewComponents(
         } else if (componentType === 'functions') {
           // Functions are in the functions collection
           componentData = remoteProject.functions?.[componentId];
-        } else if (componentType === 'functionTool') {
+        } else if (componentType === 'functionTools') {
           // Function tools might be in functions or functionTools
           const functionToolData =
             remoteProject.functionTools?.[componentId] || remoteProject.functions?.[componentId];
@@ -349,7 +373,7 @@ export async function createNewComponents(
           } else {
             componentData = functionToolData;
           }
-        } else if (componentType === 'subAgent') {
+        } else if (componentType === 'subAgents') {
           // Sub-agents are nested within agents - get with parent info for contextConfig
           const subAgentInfo = findSubAgentWithParent(remoteProject, componentId);
           if (subAgentInfo) {
@@ -360,7 +384,7 @@ export async function createNewComponents(
           } else {
             componentData = null;
           }
-        } else if (componentType === 'environment') {
+        } else if (componentType === 'environments') {
           // Environments are generated programmatically based on environment name
           componentData = {
             name: `${componentId} Environment`,
@@ -411,11 +435,12 @@ export async function createNewComponents(
         // Write file
         writeFileSync(filePath, content, 'utf8');
 
-        // Get the variable name that was already registered
-        const registryEntry = localRegistry.get(componentId, componentType);
+        // Get the variable name that was already registered (using singular type)
+        const singularType = mapApiTypeToComponentType(componentType);
+        const registryEntry = localRegistry.get(componentId, singularType);
         if (!registryEntry) {
           throw new Error(
-            `Component ${componentId} (${componentType}) was not registered in the registry`
+            `Component ${componentId} (${singularType}) was not registered in the registry`
           );
         }
         const variableName = registryEntry.name;

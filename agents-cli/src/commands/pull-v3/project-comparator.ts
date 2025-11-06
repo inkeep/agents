@@ -132,7 +132,7 @@ function createNewProjectComparison(
   if (project.functions) {
     Object.keys(project.functions).forEach((funcId) => {
       changes.push({
-        componentType: 'functions',
+        componentType: 'functionTool',
         componentId: funcId,
         changeType: 'added',
       });
@@ -520,7 +520,7 @@ function compareFunctions(
     };
   }
 
-  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions, debug);
+  return compareComponentMaps('functionTool', cleanLocalFunctions, cleanRemoteFunctions, debug);
 }
 
 /**
@@ -605,7 +605,7 @@ function compareProjectModels(
     const summary = generateModelsChangeSummary(fieldChanges);
 
     changes.push({
-      componentType: 'models',
+      componentType: 'model',
       componentId: 'project',
       changeType: 'modified',
       changedFields: fieldChanges,

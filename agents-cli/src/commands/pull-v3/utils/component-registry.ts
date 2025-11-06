@@ -136,6 +136,13 @@ export class ComponentRegistry {
   }
 
   /**
+   * Get all components in the registry
+   */
+  getAll(): ComponentInfo[] {
+    return Array.from(this.componentsByTypeAndId.values());
+  }
+
+  /**
    * Get import statement for a component
    */
   getImportStatement(
@@ -334,8 +341,6 @@ export class ComponentRegistry {
         return 'tool';
       case 'functionTool':
         return 'func';
-      case 'functions':
-        return 'func';
       case 'dataComponent':
         return 'data';
       case 'artifactComponent':
@@ -348,11 +353,11 @@ export class ComponentRegistry {
         return 'cred';
       case 'contextConfig':
         return 'context';
-      case 'fetchDefinitions':
+      case 'fetchDefinition':
         return 'fetch';
-      case 'headers':
+      case 'header':
         return 'header';
-      case 'models':
+      case 'model':
         return 'model';
       case 'project':
         return 'project';

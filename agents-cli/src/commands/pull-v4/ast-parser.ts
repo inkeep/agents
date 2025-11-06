@@ -218,7 +218,7 @@ function analyzeCallExpression(
   
   // If not found in discovered patterns, check for property access patterns
   if (!sdkFunction && functionName.includes('.')) {
-    sdkFunction = analyzePropertyAccessPattern(functionName, callExpr);
+    sdkFunction = analyzePropertyAccessPattern(functionName, callExpr) || undefined;
   }
   
   if (!sdkFunction || !sdkFunction.componentType) {
