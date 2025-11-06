@@ -4,6 +4,7 @@ packages:
   - agents-manage-ui
   - agents-cli
   - agents-ui
-  - examples
   - agents-docs
+  - agents-cookbook
+  - test-agents
   - "packages/*"

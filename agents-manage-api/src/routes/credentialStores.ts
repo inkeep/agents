@@ -40,7 +40,6 @@ const CreateCredentialInStoreResponseSchema = z.object({
   }),
 });
 
-
 app.openapi(
   createRoute({
     method: 'get',
@@ -143,13 +142,16 @@ app.openapi(
       // Set the credential in the store
       await store.set(key, value, metadata ?? {});
 
-      return c.json({
-        data: {
-          key,
-          storeId,
-          createdAt: new Date().toISOString(),
+      return c.json(
+        {
+          data: {
+            key,
+            storeId,
+            createdAt: new Date().toISOString(),
+          },
         },
-      }, 201);
+        201
+      );
     } catch (error) {
       console.error(`Error setting credential in store ${storeId}:`, error);
       throw createApiError({

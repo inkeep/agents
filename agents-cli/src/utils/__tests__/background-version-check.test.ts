@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { performBackgroundVersionCheck } from '../background-version-check';
 import * as versionCheck from '../version-check';
 
@@ -54,9 +54,7 @@ describe('background-version-check', () => {
 
     it('should silently fail if version check fails', async () => {
       // Mock checkForUpdate to throw an error
-      vi.spyOn(versionCheck, 'checkForUpdate').mockRejectedValue(
-        new Error('Network error')
-      );
+      vi.spyOn(versionCheck, 'checkForUpdate').mockRejectedValue(new Error('Network error'));
 
       // Should not throw
       expect(() => performBackgroundVersionCheck()).not.toThrow();

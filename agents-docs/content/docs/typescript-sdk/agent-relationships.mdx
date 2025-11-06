@@ -57,11 +57,15 @@ const supportAgent = agent({
   id: "customer-support-agent",
   defaultSubAgent: routerSubAgent,
   subAgents: () => [routerSubAgent, qaSubAgent, orderSubAgent],
-  modelSettings: {
-    model: "anthropic/claude-sonnet-4-5",
-    structuredOutput: "openai/gpt-4.1-mini",
-    providerOptions: {
-      anthropic: { temperature: 0.5 },
+  models: {
+    base: {
+      model: "anthropic/claude-sonnet-4-5",
+      providerOptions: {
+        temperature: 0.5,
+      },
+    },
+    structuredOutput: {
+      model: "openai/gpt-4.1-mini",
     },
   },
 });
@@ -108,11 +112,13 @@ const mathAgent = agent({
   id: "math-delegation-agent",
   defaultSubAgent: mathSupervisor,
   subAgents: () => [mathSupervisor, numberProducerA, numberProducerB],
-  modelSettings: {
-    model: "anthropic/claude-3-5-haiku-20241022",
-    providerOptions: {
-      anthropic: { temperature: 0.1 },
-    },
+  models: {
+    base: {
+      model: "anthropic/claude-haiku-4-5",
+      providerOptions: {
+        temperature: 0.1,
+      }
+    }
   },
 });
 ```

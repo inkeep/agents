@@ -1,5 +1,5 @@
 import { Play, Settings } from 'lucide-react';
-import { useEffect, useRef, type ComponentProps } from 'react';
+import { type ComponentProps, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';

@@ -6,17 +6,16 @@ export const llm404Agent = agent({
   description: 'Agent that points to invalid endpoint causing 404 errors',
   models: {
     base: {
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4.1-nano',
       providerOptions: {
         baseURL: 'https://api.openai.com/invalid-endpoint',
       },
     },
   },
   defaultSubAgent: subAgent({
-    id: 'llm-rate-limit-assistant',
+    id: 'llm-404-assistant',
     name: 'Invalid Endpoint',
     description: 'Assistant pointing to wrong endpoint',
     prompt: `You are a helpful assistant.`,
   }),
 });
-

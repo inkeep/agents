@@ -32,13 +32,13 @@ export const Navbar = () => {
           <div className="flex-1 flex items-center gap-0.5 md:gap-4 ml-auto justify-end">
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="sm"
               className="max-sm:hidden text-fd-muted-foreground hover:text-fd-accent-foreground"
               asChild
             >
               <a href={SLACK_URL} target="_blank" rel="noreferrer">
                 <SlackIcon />
-                <span className="sr-only">Slack</span>
+                <span>Community</span>
               </a>
             </Button>
             <Button variant="outline" size="sm" className="max-sm:hidden" asChild>
@@ -53,8 +53,12 @@ export const Navbar = () => {
               className="max-sm:hidden text-primary border border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
               asChild
             >
-              <a href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav" target="_blank" rel="noreferrer">
-                Join Cloud Waitlist <ChevronRight className="h-4 w-4 text-primary/60" />
+              <a
+                href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Inkeep Cloud <ChevronRight className="h-4 w-4 text-primary/60" />
               </a>
             </Button>
             <MobileSearchTrigger />

@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { FullAgentDefinition } from '../types/entities';
+import { detectDelegationCycles } from './cycleDetection';
 import { AgentWithinContextOfProjectSchema } from './schemas';
 
 // Zod-based validation and typing using the existing schema
@@ -105,7 +106,7 @@ export function validateArtifactComponentReferences(
 }
 
 /**
- * Validates agent relationships (transfer and delegation targets exist)
+ * Validates agent relationships (transfer and delegation targets exist, and there is no circular delegation)
  */
 export function validateAgentRelationships(agentData: FullAgentDefinition): void {
   const errors: string[] = [];
@@ -139,6 +140,11 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
         }
       }
     }
+  }
+
+  const cycles = detectDelegationCycles(agentData);
+  if (cycles.length > 0) {
+    errors.push(...cycles);
   }
 
   if (errors.length > 0)

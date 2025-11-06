@@ -4,6 +4,7 @@ import { slowTool } from '../tools/slow-tool';
 export const slowToolWeatherAgent = agent({
   id: 'slow-tool-weather-agent',
   name: `Weather Agent (Slow Tool Timeout)`,
+  description: `Test agent that uses the slow tool MCP tool which is linked to a slow tool that will timeout.`,
   defaultSubAgent: subAgent({
     id: 'slow-tool-weather-assistant',
     name: `Weather Assistant`,
@@ -25,4 +26,3 @@ Always be friendly and informative when helping users with weather queries.`,
     canUse: () => [slowTool],
   }),
 });
-

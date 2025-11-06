@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { cn } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
-import { cn } from '@/lib/utils';
 
 const ListSection = ({
   title,

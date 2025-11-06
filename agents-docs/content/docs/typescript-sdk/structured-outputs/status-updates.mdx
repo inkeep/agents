@@ -69,8 +69,8 @@ export const myAgent = agent({
 
   // Model Settings with summarizer
   models: {
-    base: { model: "claude-3-5-sonnet-20241022" },
-    summarizer: { model: "claude-3-5-sonnet-20241022" }, // Model for status updates
+    base: { model: "anthropic/claude-sonnet-4-5" },
+    summarizer: { model: "anthropic/claude-sonnet-4-5" }, // Model for status updates
   },
 
   // Status updates configuration
@@ -108,8 +108,8 @@ export const searchDemo = agent({
   subAgents: () => [searchAgent],
 
   models: {
-    base: { model: "claude-3-5-sonnet-20241022" },
-    summarizer: { model: "claude-3-5-sonnet-20241022" },
+    base: { model: "anthropic/claude-sonnet-4-5" },
+    summarizer: { model: "anthropic/claude-sonnet-4-5" },
   },
 
   // Enable status updates
@@ -137,7 +137,7 @@ export const myAgent = agent({
   defaultSubAgent: myAgent,
   subAgents: () => [myAgent],
   models: {
-    summarizer: { model: "claude-3-5-sonnet-20241022" },
+    summarizer: { model: "anthropic/claude-sonnet-4-5" },
   },
   statusUpdates: {
     numEvents: 3,
@@ -226,7 +226,7 @@ export const myAgent = agent({
   defaultSubAgent: myAgent,
   subAgents: () => [myAgent],
   models: {
-    summarizer: { model: "claude-3-5-sonnet-20241022" },
+    summarizer: { model: "anthropic/claude-sonnet-4-5" },
   },
   statusUpdates: {
     numEvents: 3,

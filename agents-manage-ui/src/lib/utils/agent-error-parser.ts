@@ -39,7 +39,9 @@ export interface AgentErrorSummary {
  */
 export function parseAgentValidationErrors(apiError: string): AgentErrorSummary {
   try {
-    const errors = JSON.parse(apiError.replace(/^\[\d\d\d] /, '')) as any[];
+    // Replace [400] status code from error content
+    apiError = apiError.replace(/^\[\d\d\d]/, '');
+    const errors = JSON.parse(apiError) as any[];
     const processedErrors: ProcessedAgentError[] = [];
 
     for (const error of errors) {
@@ -63,7 +65,8 @@ export function parseAgentValidationErrors(apiError: string): AgentErrorSummary 
     }
 
     return categorizeErrors(processedErrors);
-  } catch {
+  } catch (error) {
+    console.error(error);
     // Fallback for unparseable errors
     return {
       totalErrors: 1,
@@ -119,7 +122,7 @@ function processValidationError(
     type = 'node';
     nodeType = 'subAgent';
     nodeId = fullPath[1];
-    field = error.path.join('.') || 'configuration';
+    field = error.path.slice(2).join('.') || 'configuration';
   } else if (fullPath[0] === 'edges' && fullPath[1]) {
     type = 'edge';
     edgeId = fullPath[1];
@@ -197,7 +200,7 @@ function getFieldDisplayName(field: string): string {
     description: 'Description',
     model: 'Model',
     temperature: 'Temperature',
-    maxTokens: 'Max tokens',
+    maxOutputTokens: 'Max output tokens',
     systemPrompt: 'System prompt',
     tools: 'Tools',
     dataComponents: 'Components',

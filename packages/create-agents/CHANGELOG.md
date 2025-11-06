@@ -1,5 +1,126 @@
 # @inkeep/create-agents
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-core@0.31.2
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-core@0.31.1
+
+## 0.31.0
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+- Updated dependencies [eadc8f8]
+- Updated dependencies [48a3e3e]
+- Updated dependencies [b98fd0a]
+  - @inkeep/agents-core@0.31.0
+
+## 0.30.4
+
+### Patch Changes
+
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+- Updated dependencies [26b89c6]
+- Updated dependencies [4a73629]
+  - @inkeep/agents-core@0.30.4
+
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+- Updated dependencies [73569ce]
+  - @inkeep/agents-core@0.30.3
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+- Updated dependencies [09ac1b4]
+  - @inkeep/agents-core@0.30.2
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+- Updated dependencies [8b889f4]
+- Updated dependencies [c6502dd]
+- Updated dependencies [c2f5582]
+- Updated dependencies [99bf28a]
+  - @inkeep/agents-core@0.30.1
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+- Updated dependencies [e95f0d3]
+- Updated dependencies [94fe795]
+  - @inkeep/agents-core@0.30.0
+
+## 0.29.11
+
+### Patch Changes
+
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+- Updated dependencies [dba5a31]
+- Updated dependencies [b0817aa]
+  - @inkeep/agents-core@0.29.11
+
+## 0.29.10
+
+### Patch Changes
+
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+
+## 0.29.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.29.9
+
+## 0.29.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.29.8
+
+## 0.29.7
+
+### Patch Changes
+
+- a4cf6d8: Port error logging
+  - @inkeep/agents-core@0.29.7
+
 ## 0.29.6
 
 ### Patch Changes

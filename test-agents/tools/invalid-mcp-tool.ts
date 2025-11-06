@@ -5,4 +5,3 @@ export const invalidMcpTool = mcpTool({
   name: `invalid MCP tool`,
   serverUrl: `https://broken-mcp.vercel.app/mcp1`,
 });
-

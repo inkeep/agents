@@ -39,21 +39,33 @@ describe('ContextConfig', () => {
       expect(config.getContextVariables()).toEqual({});
     });
 
-    it('should auto-generate ID if not provided', () => {
+    it('should throw error if id is not provided', () => {
+      expect(() => {
+        new ContextConfigBuilder({
+          tenantId,
+          projectId,
+          agentId,
+        } as any); // Use 'as any' to bypass TypeScript checking for this test
+      }).toThrow('contextConfig requires an explicit id field');
+    });
+
+    it('should use provided ID', () => {
+      const testId = 'test-context-config-id';
       const config = new ContextConfigBuilder({
+        id: testId,
         tenantId,
         projectId,
         agentId,
       });
 
       const id = config.getId();
-      expect(id).toBeDefined();
-      expect(typeof id).toBe('string');
-      expect(id.length).toBeGreaterThan(0);
+      expect(id).toBe(testId);
     });
 
     it('should use default values for tenantId, projectId, agentId if not provided', () => {
-      const config = new ContextConfigBuilder({});
+      const config = new ContextConfigBuilder({
+        id: 'test-defaults-id',
+      });
 
       const obj = config.toObject();
       expect(obj.tenantId).toBe('default');
@@ -62,9 +74,11 @@ describe('ContextConfig', () => {
     });
 
     it('should throw error when getting ID if not set', () => {
-      const config = new ContextConfigBuilder({});
+      const config = new ContextConfigBuilder({
+        id: 'temp-id',
+      });
 
-      // Override the id to empty
+      // Override the id to empty after construction
       (config as any).config.id = undefined;
 
       expect(() => config.getId()).toThrow('Context config ID is not set');

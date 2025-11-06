@@ -1,6 +1,6 @@
+import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
-import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 
 async function NewExternalAgentPage({

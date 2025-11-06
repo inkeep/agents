@@ -7,7 +7,12 @@ icon: "TbInputSpark"
 <Snippet file="multi-agent-framework/artifacts.mdx" />
 
 <Callout>
-**Quick Start**: Citation artifacts are automatically included when you create a new project with `npx @inkeep/create-agents`. You'll find the complete implementation in `artifact-components/citation.ts` in your project. They provide a ready-to-use example for source attribution (for example, when citing webpages) and are automatically rendered by the Inkeep widget with professional styling and interactions.
+  **Quick Start**: Citation artifacts are automatically included when you create
+  a new project with `npx @inkeep/create-agents`. You'll find the complete
+  implementation in `artifact-components/citation.ts` in your project. They
+  provide a ready-to-use example for source attribution (for example, when
+  citing webpages) and are automatically rendered by the Inkeep widget with
+  professional styling and interactions.
 </Callout>
 
 ## How to create an artifact component
@@ -24,14 +29,16 @@ To visually add the artifact component to the Agent, see the [Sub Agents](/visua
 ## Schema Requirements
 
 <Callout type="warning">
-**Critical**: Your artifact schema must match your tool's output structure. The system uses JMESPath selectors on JSON - it **cannot extract from free text**.
+  **Critical**: Your artifact schema must match your tool's output structure.
+  The system uses JMESPath selectors on JSON - it **cannot extract from free
+  text**.
 </Callout>
 
 ```json
 // ❌ WRONG: Tool returns text, schema expects structured data
 // Tool output: { "result": { "content": [{ "text": "Weather: Sunny, 75°F" }] } }
 {
-  "type": "object", 
+  "type": "object",
   "properties": {
     "temperature": { "type": "number" }, // ❌ Cannot extract number from text
     "condition": { "type": "string" }     // ❌ Cannot extract condition from text
@@ -54,6 +61,7 @@ Use OpenTelemetry traces to debug schema validation issues.
 ### Preview Fields
 
 Set `inPreview: true` on properties for immediate availability. These fields are:
+
 - Shown to other agents for reasoning
 - Streamed in real-time to clients (Vercel AI SDK)
 - Auto-rendered by Inkeep's widget (citations as interactive cards)
@@ -97,37 +105,30 @@ For more details on how artifact data is streamed via the API, see [Data Artifac
             "type": "string"
           }
         },
-        "required": [
-          "type",
-          "text"
-        ],
+        "required": ["type", "text"],
         "additionalProperties": false
       }
     }
   },
-  "required": [
-    "title",
-    "url",
-    "content",
-    "record_type"
-  ],
+  "required": ["title", "url", "content", "record_type"],
   "additionalProperties": false
 }
 ```
 
 Citation artifacts that are named `citation` and have `title` and `url` preview fields are auto-rendered by Inkeep's widget in two ways:
+
 - **Inline footnotes**: Numbered references [1], [2], etc. appear inline with the response text
 - **Interactive cards**: Source cards with title, URL, and content appear below the response for detailed exploration
 
 <Callout>
-**Important**: The artifact must have a name of `citation` in order to be auto-rendered by Inkeep's widget.
+  **Important**: The artifact must have a name of `citation` in order to be
+  auto-rendered by Inkeep's widget.
 </Callout>
 
-<img
+<Image
   src="/images/citation-widget-example.png"
   alt="Citation artifact rendered as an interactive card in the Inkeep widget showing source attribution"
-  width="100%"
-  style={{ borderRadius: "10px", marginTop: "1rem" }}
+  style={{ marginTop: "1rem" }}
 />
 
 ## Artifact Name & Description Generation
@@ -155,14 +156,15 @@ Each agent uses its configured summarizer model for artifact generation:
 const researchAgent = subAgent({
   id: "research-agent",
   name: "Research Agent",
-  prompt: "You are a research agent that can generate artifact names and descriptions",
+  prompt:
+    "You are a research agent that can generate artifact names and descriptions",
   models: {
-    base: { model: "claude-sonnet-4-0" },
+    base: { model: "anthropic/claude-sonnet-4-0" },
     summarizer: {
-      model: "gpt-4.1-mini", // This model generates artifact names/descriptions
+      model: "openai/gpt-4.1-mini", // This model generates artifact names/descriptions
       providerOptions: {
         temperature: 0.2, // Lower temperature for consistent naming
-        maxTokens: 512,
+        maxOutputTokens: 512,
       },
     },
   },

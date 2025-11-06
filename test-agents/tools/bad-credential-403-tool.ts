@@ -5,4 +5,3 @@ export const badCredential403Tool = mcpTool({
   name: `bad credential 403 tool`,
   serverUrl: `https://broken-mcp-one.vercel.app/api/mcp`,
 });
-

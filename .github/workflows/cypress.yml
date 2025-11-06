@@ -1,0 +1,80 @@
+name: Cypress
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches: ['*']
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # Create necessary directories for postinstall scripts
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          # Ensure agents-manage-ui dependencies are properly installed
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        env:
+          HUSKY: 0
+
+      # Clean database files before running tests
+      - name: Clean database files
+        run: |
+          echo "Cleaning up any existing database files..."
+          find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
+
+      # Run Cypress E2E tests using composite action
+      - name: Run Cypress E2E Tests
+        uses: ./.github/composite-actions/cypress-e2e
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

@@ -130,7 +130,7 @@ export function ArtifactComponentForm({
           <JsonSchemaInput
             control={form.control}
             name="props"
-            label="Props (JSON schema with inPreview indicators)"
+            label="Properties"
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
           />

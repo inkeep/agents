@@ -2,11 +2,13 @@
 
 Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
 
+Get started with the [docs](https://docs.inkeep.com) or [1-minute quick start](https://docs.inkeep.com/get-started/quick-start).
+
 ## Two ways to build
 
 ### No-Code Visual Builder
 
-A no-code canvas so any team can create and own the Agents they care about. 
+A no-code, drag-and-drop canvas so any team can create and own the Agents they care about. 
 
 <img
   src="agents-docs/public/gifs/drag-n-drop.gif"
@@ -17,34 +19,30 @@ A no-code canvas so any team can create and own the Agents they care about.
 
 ### TypeScript Agents SDK
 
-A code-first framework so engineering teams can build with the tools they expect.
+A code-first framework so engineering teams can build with typesafety, intellisense, CI/CD, and the tools they expect.
 
-   ```typescript
-   import { agent, subAgent } from "@inkeep/agents-sdk";
+```typescript
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { consoleMcp } from "./mcp";
 
-   const helloAgent = subAgent({
-     id: "hello-agent",
-     name: "Hello Agent",
-     description: "Says hello",
-     prompt: 'Only reply with the word "hello", but you may do it in different variations like h3110, h3110w0rld, h3110w0rld! etc...',
-   });
+const helloAgent = subAgent({
+  id: "hello-agent",
+  name: "Hello Agent",
+  description: "Says hello",
+  canUse: () => [consoleMcp], 
+  prompt: 'Reply to the user and console log "hello world" in fun variations like h3llo world.',
+});
 
-   export const basicAgent = agent({
-     id: "basic-agent",
-     name: "Basic Agent",
-     description: "A basic agent",
-     defaultSubAgent: helloAgent,
-     subAgents: () => [helloAgent],
-   });
-   ```
+export const basicAgent = agent({
+  id: "basic-agent",
+  name: "Basic Agent",
+  description: "A basic agent",
+  defaultSubAgent: helloAgent,
+  subAgents: () => [helloAgent],
+});
+```
 
 The **Visual Builder and TypeScript SDK are fully interoperable**: technical and non-technical teams can edit and manage Agents in either format and collaborate with others at any time.
-
-<div align="left">
-
-[Docs](https://docs.inkeep.com) • [Quick Start](https://docs.inkeep.com/get-started/quick-start) • [Video](https://www.youtube.com/watch?v=4FuEnAEPqwU)
-
-</div>
 
 ## Use Cases
 
@@ -67,7 +65,9 @@ Agents can also be used for **AI Workflow Automation** like:
 - Observability via a Traces UI & OpenTelemetry
 - Easy deployment using Vercel or Docker
 
-For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide. For managed cloud hosting, [sign up](https://inkeep.com/cloud-waitlist) to get notified when available.
+For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
+
+Interested in a managed platform? Sign up for the [Inkeep Cloud waitlist](https://inkeep.com/cloud-waitlist) or learn about [Inkeep Enterprise](https://inkeep.com/enterprise).
 
 ## Architecture
 
@@ -80,7 +80,7 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 - **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
 - **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.
 
-Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers. The `agents-sdk`/ `agents-manage-api` share many concepts with the AI SDK, and `agents-run-api` outputs a data stream compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) and [AI Elements](https://ai-sdk.dev/elements/overview) primitives for custom UIs.
+Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers, so it's compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) hook other AI primatives.
 
 ## License and Community
 
@@ -90,4 +90,4 @@ Inkeep is designed to be extensible and open: use the LLM provider of your choic
 
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
-[Follow us](https://docs.inkeep.com/community/inkeep-community) to stay up to date, get help, and share feedback.
+[Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.

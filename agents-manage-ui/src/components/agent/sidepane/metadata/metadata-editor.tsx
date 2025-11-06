@@ -22,8 +22,8 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
-import { CollapsibleSettings } from '../collapsible-settings';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
+import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField, TextareaField } from '../nodes/form-fields';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
@@ -226,7 +226,7 @@ function MetadataEditor() {
               value={models.base.providerOptions || ''}
               placeholder={`{
     "temperature": 0.7,
-    "maxTokens": 2048
+    "maxOutputTokens": 2048
 }`}
             />
           )}
@@ -286,7 +286,7 @@ function MetadataEditor() {
               value={models.structuredOutput.providerOptions || ''}
               placeholder={`{
   "temperature": 0.1,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
             />
           )}
@@ -345,7 +345,7 @@ function MetadataEditor() {
               value={models.summarizer.providerOptions || ''}
               placeholder={`{
   "temperature": 0.3,
-  "maxTokens": 1024
+  "maxOutputTokens": 1024
 }`}
             />
           )}

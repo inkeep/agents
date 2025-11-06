@@ -56,7 +56,7 @@ export function ProviderIcon({
   const [imageError, setImageError] = useState(false);
 
   const iconUrl = getLocalIconUrl(provider);
-  
+
   // If no matching icon found, show fallback immediately
   if (!iconUrl) {
     return (

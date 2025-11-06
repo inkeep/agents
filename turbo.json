@@ -94,10 +94,6 @@
       "dependsOn": ["build"],
       "outputs": []
     },
-    "@inkeep/examples#test": {
-      "dependsOn": ["build"],
-      "outputs": []
-    },
     "test:watch": {
       "cache": false,
       "persistent": true

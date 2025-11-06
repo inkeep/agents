@@ -1,5 +1,12 @@
 import './env'; // Load environment files first (needed by instrumentation)
 import './instrumentation'; // Initialize Langfuse tracing second
+
+// Silence config loading logs for cleaner CLI output
+import { getLogger } from '@inkeep/agents-core';
+
+const configLogger = getLogger('config');
+configLogger.updateOptions({ level: 'silent' });
+
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +16,7 @@ import { configGetCommand, configListCommand, configSetCommand } from './command
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
-import { pullProjectCommand } from './commands/pull';
+import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
 
@@ -32,6 +39,7 @@ program
   .option('--project <template>', 'Project template to add')
   .option('--mcp <template>', 'MCP template to add')
   .option('--target-path <path>', 'Target path to add the template to')
+  .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
   .option('--config <path>', 'Path to configuration file')
   .action(async (template, options) => {
     await addCommand({ template, ...options });
@@ -97,18 +105,23 @@ program
 
 program
   .command('pull')
-  .description('Pull entire project configuration from backend and update local files')
-  .option('--project <project-id>', 'Project ID or path to project directory')
+  .description('Pull project configuration with clean, efficient code generation')
+  .option(
+    '--project <project-id>',
+    'Override project ID (defaults to local project ID from index.ts)'
+  )
   .option('--config <path>', 'Path to configuration file')
-  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option(
     '--env <environment>',
     'Environment file to generate (development, staging, production). Defaults to development'
   )
-  .option('--json', 'Generate project data JSON file instead of updating files')
-  .option('--debug', 'Enable debug logging for LLM generation')
+  .option('--json', 'Output project data as JSON instead of generating files')
+  .option('--debug', 'Enable debug logging')
+  .option('--verbose', 'Enable verbose logging')
+  .option('--force', 'Force regeneration even if no changes detected')
+  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .action(async (options) => {
-    await pullProjectCommand(options);
+    await pullV3Command(options);
   });
 
 program
@@ -133,6 +146,7 @@ program
   .option('--export', 'Export the Next.js project source files', false)
   .option('--output-dir <dir>', 'Output directory for build files', './inkeep-dev')
   .option('--path', 'Output the path to the Dashboard UI', false)
+  .option('--open-browser', 'Open the browser', false)
   .action(async (options) => {
     await devCommand({
       port: parseInt(options.port, 10),
@@ -141,6 +155,7 @@ program
       outputDir: options.outputDir,
       path: options.path,
       export: options.export,
+      openBrowser: options.openBrowser,
     });
   });
 

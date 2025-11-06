@@ -1,5 +1,5 @@
 ---
-title: Live Debugger, Traces, and OTEL Telemetry 
+title: Live Debugger, Traces, and OTEL Telemetry
 sidebarTitle: Traces
 description: Set up SigNoz to enable full observability with traces and live debugging capabilities for your agents.
 icon: "LuActivity"
@@ -16,11 +16,9 @@ The Inkeep Agent Framework provides powerful **traces** and **live debugging** c
 - **Full observability** - Complete OpenTelemetry instrumentation for monitoring
 - **Performance insights** - Identify bottlenecks and optimize agent performance
 
-<img
+<Image
   src="/images/live-traces.png"
   alt="Live traces interface showing real-time agent execution"
-  width="100%"
-  style={{ borderRadius: "10px" }}
 />
 
 ## Setup Options
@@ -28,11 +26,14 @@ The Inkeep Agent Framework provides powerful **traces** and **live debugging** c
 You can set up SigNoz in two ways:
 
 1. **Cloud Setup**: Use SigNoz Cloud
-2. **Local Setup**: Run SigNoz locally using Docker 
+2. **Local Setup**: Run SigNoz locally using Docker
 
 ## Option 1: SigNoz Cloud Setup
 
-<YouTubeVideo videoId="F8n6427hjUE" title="SigNoz Cloud Setup" caption="Visual guide to the SigNoz Cloud Setup steps" />
+<Video
+  src="https://www.youtube.com/watch?v=F8n6427hjUE&t=3s"
+  title="SigNoz Cloud Setup steps"
+/>
 
 ### Step 1: Create a SigNoz Cloud Project
 
@@ -43,13 +44,15 @@ You can set up SigNoz in two ways:
 
 You'll need to collect three pieces of information from your SigNoz dashboard:
 
-1. **API Key**: 
+1. **API Key**:
+
    - Navigate to Settings → Workspace Settings → API Keys → New Key
    - Choose any role (Admin, Editor, or Viewer) - Viewer is sufficient for observability
    - Set the expiration field to "No Expiry" to prevent the key from expiring
    - Copy the generated API key
 
 2. **Ingestion Key**:
+
    - Navigate to Settings → Workspace Settings → Ingestion
    - Set the expiration field to "No Expiry" to prevent the key from expiring
    - Copy the ingestion key
@@ -72,6 +75,7 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 ### Step 4: Verify Cloud Setup
 
 1. Restart your development environment:
+
    ```bash
    pnpm dev
    ```
@@ -82,7 +86,10 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 ## Option 2: Local SigNoz Setup
 
-<YouTubeVideo videoId="DWuL4AeRzAA" title="Local SigNoz Setup" caption="Visual guide to the Local SigNoz Setup steps" />
+<Video
+  src="https://www.youtube.com/watch?v=DWuL4AeRzAA&t=3s"
+  title="Local SigNoz Setup steps"
+/>
 
 ### Prerequisites
 
@@ -106,6 +113,7 @@ docker-compose --profile signoz up -d
 ```
 
 This will start:
+
 - SigNoz frontend (accessible at `http://localhost:3080`)
 - SigNoz query service
 - SigNoz OTEL collector
@@ -138,6 +146,7 @@ To get your SigNoz API key:
 ### Step 4: Verify Setup
 
 1. Restart your Inkeep agents:
+
    ```bash
    pnpm dev
    ```
@@ -161,23 +170,19 @@ If you're using the Visual Builder:
 
 The traces overview shows conversation metrics and recent activity:
 
-<img
+<Image
   src="/images/trace-overview.png"
   alt="Traces overview dashboard showing conversation metrics and recent activity"
-  width="100%"
-  style={{ borderRadius: "10px" }}
 />
 
 Click on any conversation to see detailed execution flow:
 
-<img
+<Image
   src="/images/trace-detail.png"
   alt="Detailed conversation trace showing step-by-step execution and timing"
-  width="100%"
-  style={{ borderRadius: "10px" }}
 />
 
-<Snippet file="copy-trace.mdx"/>
+<Snippet file="copy-trace.mdx" />
 
 ### 2. SigNoz Dashboard
 
@@ -191,8 +196,6 @@ For detailed analysis and further debugging:
    - Performance metrics
    - Error information
    - Agent-to-agent communication flows
-
-
 
 For more detailed information on using traces, see the [SigNoz Usage guide](/typescript-sdk/signoz-usage).
 

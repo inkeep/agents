@@ -378,7 +378,8 @@ export class Agent {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
-            'ai.subAgentName': this.config.name || 'unknown',
+            'subAgent.name': this.config.name || 'unknown',
+            'subAgent.id': this.config.id || 'unknown',
             'agent.id': this.config.agentId || 'unknown',
           });
         }
@@ -789,7 +790,8 @@ export class Agent {
                 originalToolName: tool.name,
               }),
               'ai.toolType': 'mcp',
-              'ai.subAgentName': this.config.name || 'unknown',
+              'subAgent.name': this.config.name || 'unknown',
+              'subAgent.id': this.config.id || 'unknown',
               'conversation.id': this.conversationId || 'unknown',
               'agent.id': this.config.agentId || 'unknown',
               'tenant.id': this.config.tenantId || 'unknown',
@@ -1677,8 +1679,8 @@ export class Agent {
       'agent.generate',
       {
         attributes: {
-          'subagent.id': this.config.id,
-          'subagent.name': this.config.name,
+          'subAgent.id': this.config.id,
+          'subAgent.name': this.config.name,
         },
       },
       async (span) => {
@@ -1890,6 +1892,10 @@ export class Agent {
                 functionId: this.config.id,
                 recordInputs: true,
                 recordOutputs: true,
+                metadata: {
+                  subAgentId: this.config.id,
+                  subAgentName: this.config.name,
+                },
               },
               abortSignal: AbortSignal.timeout(timeoutMs),
             });
@@ -2023,6 +2029,8 @@ export class Agent {
                 recordOutputs: true,
                 metadata: {
                   phase: 'planning',
+                  subAgentId: this.config.id,
+                  subAgentName: this.config.name,
                 },
               },
               abortSignal: AbortSignal.timeout(timeoutMs),
@@ -2198,6 +2206,8 @@ ${output}${structureHintsFormatted}`;
                     recordOutputs: true,
                     metadata: {
                       phase: 'structured_generation',
+                      subAgentId: this.config.id,
+                      subAgentName: this.config.name,
                     },
                   },
                   abortSignal: AbortSignal.timeout(phase2TimeoutMs),
@@ -2277,6 +2287,8 @@ ${output}${structureHintsFormatted}`;
                       recordOutputs: true,
                       metadata: {
                         phase: 'structured_generation',
+                        subAgentId: this.config.id,
+                        subAgentName: this.config.name,
                       },
                     },
                     abortSignal: AbortSignal.timeout(phase2TimeoutMs),

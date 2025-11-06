@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { generateOGImage } from './og';
-import { source } from '@/lib/source';
 import type { NextRequest } from 'next/server';
+import { source } from '@/lib/source';
+import { generateOGImage } from './og';
 
 const font = readFileSync('./src/app/api/docs-og/[...slug]/Inter-Regular.ttf');
 const fontSemiBold = readFileSync('./src/app/api/docs-og/[...slug]/Inter-SemiBold.ttf');

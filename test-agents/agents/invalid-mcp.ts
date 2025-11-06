@@ -4,6 +4,7 @@ import { invalidMcpTool } from '../tools/invalid-mcp-tool.ts';
 export const invalidMcpWeatherAgent = agent({
   id: 'invalid-mcp-weather-agent',
   name: `Weather Agent (Invalid MCP Endpoint)`,
+  description: `Test agent that uses the invalid MCP endpoint.`,
   defaultSubAgent: subAgent({
     id: 'invalid-mcp-weather-assistant',
     name: `Weather Assistant`,
@@ -25,4 +26,3 @@ Always be friendly and informative when helping users with weather queries.`,
     canUse: () => [invalidMcpTool],
   }),
 });
-

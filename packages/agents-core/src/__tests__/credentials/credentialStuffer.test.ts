@@ -610,9 +610,13 @@ describe('CredentialStuffer', () => {
 
       const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
-      expect(mockTemplateRender).toHaveBeenCalledWith('Bearer {{token}} {{secret}}', { headers: mockContext }, {
-        strict: true,
-      });
+      expect(mockTemplateRender).toHaveBeenCalledWith(
+        'Bearer {{token}} {{secret}}',
+        { headers: mockContext },
+        {
+          strict: true,
+        }
+      );
 
       expect(result).toEqual({
         headers: {
@@ -640,12 +644,20 @@ describe('CredentialStuffer', () => {
       const result = await credentialStuffer.getCredentialsFromHeaders(mockContextWithIds, headers);
 
       expect(mockTemplateRender).toHaveBeenCalledTimes(2);
-      expect(mockTemplateRender).toHaveBeenCalledWith('application/json', { headers: mockContext }, {
-        strict: true,
-      });
-      expect(mockTemplateRender).toHaveBeenCalledWith('static-value', { headers: mockContext }, {
-        strict: true,
-      });
+      expect(mockTemplateRender).toHaveBeenCalledWith(
+        'application/json',
+        { headers: mockContext },
+        {
+          strict: true,
+        }
+      );
+      expect(mockTemplateRender).toHaveBeenCalledWith(
+        'static-value',
+        { headers: mockContext },
+        {
+          strict: true,
+        }
+      );
 
       expect(result).toEqual({
         headers: {

@@ -19,7 +19,7 @@ import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
-import { MCPStreamHelper } from '../utils/stream-helpers.js';
+import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 
 const logger = getLogger('ExecutionHandler');
@@ -379,7 +379,8 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'ai.subAgent.name': currentAgentId,
+                'subAgent.name': agentConfig?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
               });
 
               // Store the agent response in the database with both text and parts
@@ -441,9 +442,9 @@ export class ExecutionHandler {
               logger.info({}, 'Cleaning up streamHelper');
               unregisterStreamHelper(requestId);
 
-              // Extract captured response if using MCPStreamHelper
+              // Extract captured response if using BufferingStreamHelper
               let response: string | undefined;
-              if (sseHelper instanceof MCPStreamHelper) {
+              if (sseHelper instanceof BufferingStreamHelper) {
                 const captured = sseHelper.getCapturedResponse();
                 response = captured.text || 'No response content';
               }

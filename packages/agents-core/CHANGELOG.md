@@ -1,5 +1,85 @@
 # @inkeep/agents-core
 
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+
+## 0.31.0
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+
+## 0.30.4
+
+### Patch Changes
+
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+
+## 0.29.11
+
+### Patch Changes
+
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+## 0.29.10
+
+### Patch Changes
+
+- 0663c46: open browser flag
+
+## 0.29.9
+
+## 0.29.8
+
+## 0.29.7
+
 ## 0.29.6
 
 ### Patch Changes

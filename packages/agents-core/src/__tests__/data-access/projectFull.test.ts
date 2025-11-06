@@ -1,4 +1,3 @@
-import { generateId } from '../../utils/conversations';
 import { describe, expect, it } from 'vitest';
 import {
   createFullProjectServerSide,
@@ -7,6 +6,7 @@ import {
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
 import type { FullProjectDefinition } from '../../types/entities';
+import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { dbClient } from '../setup';
 

@@ -6,6 +6,7 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
+import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import type {
   AgentToolConfigLookup,
@@ -40,7 +41,6 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   agentToolConfigLookup: AgentToolConfigLookup;
@@ -54,7 +54,6 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  isOpen,
   dataComponentLookup,
   artifactComponentLookup,
   agentToolConfigLookup,
@@ -186,32 +185,24 @@ export function SidePane({
     subAgentTeamAgentConfigLookup,
   ]);
 
-  const showBackButton = useMemo(() => {
-    return selectedNode || selectedEdge;
-  }, [selectedNode, selectedEdge]);
+  const showBackButton = selectedNode || selectedEdge;
 
   return (
-    <SidePaneLayout.Root isOpen={isOpen}>
-      {isOpen && (
-        <>
-          <SidePaneLayout.Header>
-            <div className="flex items-center relative">
-              {showBackButton && <SidePaneLayout.BackButton onClick={backToAgent} />}
-              <Heading
-                heading={heading}
-                Icon={HeadingIcon}
-                className={
-                  showBackButton
-                    ? 'transition-all duration-300 ease-in-out group-hover:translate-x-8'
-                    : ''
-                }
-              />
-            </div>
-            <SidePaneLayout.CloseButton onClick={onClose} />
-          </SidePaneLayout.Header>
-          <SidePaneLayout.Content>{editorContent}</SidePaneLayout.Content>
-        </>
-      )}
+    <SidePaneLayout.Root>
+      <SidePaneLayout.Header>
+        <div className="flex items-center relative">
+          {showBackButton && <SidePaneLayout.BackButton onClick={backToAgent} />}
+          <Heading
+            heading={heading}
+            Icon={HeadingIcon}
+            className={cn(
+              showBackButton && 'transition-all duration-300 ease-in-out group-hover:translate-x-8'
+            )}
+          />
+        </div>
+        <SidePaneLayout.CloseButton onClick={onClose} />
+      </SidePaneLayout.Header>
+      <SidePaneLayout.Content>{editorContent}</SidePaneLayout.Content>
     </SidePaneLayout.Root>
   );
 }

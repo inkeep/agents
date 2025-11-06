@@ -1,8 +1,8 @@
 import { and, count, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
+import { generateId } from '../utils/conversations';
 
 /**
  * Validate artifact data before database insertion
@@ -116,8 +116,7 @@ async function tryFallbackInsert(
         };
 
         await db.insert(ledgerArtifacts).values([minimalRow]);
-      } catch (_finalError: any) {
-      }
+      } catch (_finalError: any) {}
     }
   }
 }
@@ -248,7 +247,6 @@ export const addLedgerArtifacts =
         return;
       } catch (error: any) {
         lastError = error;
-
 
         const isRetryable =
           error.code === 'SQLITE_BUSY' ||

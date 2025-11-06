@@ -1,0 +1,61 @@
+{
+  "name": "@inkeep/ai-sdk-provider",
+  "version": "0.31.2",
+  "description": "AI SDK provider for Inkeep Agent Framework",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest --run",
+    "test:watch": "vitest --watch",
+    "lint": "biome lint src",
+    "lint:fix": "biome check --write src",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
+  },
+  "keywords": [
+    "ai",
+    "ai-sdk",
+    "inkeep",
+    "agents",
+    "provider",
+    "llm"
+  ],
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "@ai-sdk/provider": "^2.0.0",
+    "@ai-sdk/provider-utils": "^3.0.12",
+    "@inkeep/agents-core": "workspace:*",
+    "ai": "5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "packages/ai-sdk-provider"
+  }
+}
