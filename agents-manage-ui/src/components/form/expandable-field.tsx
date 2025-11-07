@@ -26,9 +26,11 @@ interface ExpandableFieldProps {
   open: DialogProps['open'];
   onOpenChange: DialogProps['onOpenChange'];
   hasError?: boolean;
+  id: string;
 }
 
 export function ExpandableField({
+  id,
   uri,
   label,
   children,
@@ -52,7 +54,7 @@ export function ExpandableField({
   const content = (
     <>
       <div className="flex items-center justify-between">
-        <Label className={cn(hasError && 'text-red-600', 'gap-1')} onClick={handleClick}>
+        <Label id={id} className={cn(hasError && 'text-red-600', 'gap-1')} onClick={handleClick}>
           {label}
           {isRequired && <span className="text-red-500">*</span>}
         </Label>

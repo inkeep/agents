@@ -48,8 +48,11 @@ export function ExpandablePromptEditor({
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
   }, [monaco, uri]);
 
+  const id = `${name}-label`;
+
   return (
     <ExpandableField
+      id={id}
       open={open}
       onOpenChange={onOpenChange}
       uri={uri}
@@ -75,6 +78,7 @@ export function ExpandablePromptEditor({
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', className)}
         hasDynamicHeight={!open}
+        aria-labelledby={id}
         {...props}
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
