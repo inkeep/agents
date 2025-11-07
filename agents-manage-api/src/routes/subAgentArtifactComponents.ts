@@ -3,6 +3,7 @@ import {
   ArtifactComponentApiSelectSchema,
   associateArtifactComponentWithAgent,
   commonGetErrorResponses,
+  ComponentAssociationSchema,
   createApiError,
   ErrorResponseSchema,
   ExistsResponseSchema,
@@ -17,6 +18,8 @@ import {
   SubAgentArtifactComponentApiInsertSchema,
   SubAgentArtifactComponentApiSelectSchema,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
+  TenantProjectAgentSubAgentIdParamsSchema,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
@@ -31,18 +34,14 @@ app.openapi(
     operationId: 'get-artifact-components-for-agent',
     tags: ['Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
-      }),
+      params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(ArtifactComponentApiSelectSchema),
-            }),
+            schema: SingleResponseSchema(z.array(ArtifactComponentApiSelectSchema)),
           },
         },
       },
@@ -79,14 +78,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(
-                z.object({
-                  subAgentId: z.string(),
-                  createdAt: z.string(),
-                })
-              ),
-            }),
+            schema: SingleResponseSchema(z.array(ComponentAssociationSchema)),
           },
         },
       },
@@ -199,8 +191,7 @@ app.openapi(
     operationId: 'remove-artifact-component-from-agent',
     tags: ['Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
         artifactComponentId: z.string(),
       }),
     },
@@ -246,8 +237,7 @@ app.openapi(
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
         artifactComponentId: z.string(),
       }),
     },
