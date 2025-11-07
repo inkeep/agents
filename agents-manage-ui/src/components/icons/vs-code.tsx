@@ -4,7 +4,7 @@ import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 export const VSCodeIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
   <SvgIcon ref={ref} {...props} strokeWidth={0}>
     <title>VS Code icon</title>
-    <g clip-path="url(#clip0_22_190)">
+    <g clipPath="url(#clip0_22_190)">
       <path
         d="M18.0011 0.957249C18.0011 0.203854 17.1576 0.203846 16.7827 0.29802C17.3075 -0.116349 17.9231 -0.0158829 18.1417 0.10968L23.2103 2.59498C23.6933 2.83179 23.9996 3.32452 23.9996 3.86449V20.2141C23.9996 20.7613 23.6851 21.2593 23.1923 21.4923L18.4229 23.7475C18.0948 23.8887 17.3825 24.2372 16.7827 23.7474C17.5325 23.8888 17.9387 23.3551 18.0011 22.9941V0.957249Z"
         fill="currentColor"

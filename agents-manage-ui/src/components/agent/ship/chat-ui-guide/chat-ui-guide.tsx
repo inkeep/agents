@@ -13,6 +13,7 @@ interface ChatUIProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
   aiChatSettings: InkeepAIChatSettings;
+  shouldEmitDataOperations: boolean;
 }
 
 export function ChatUIGuide() {
@@ -30,6 +31,7 @@ export function ChatUIGuide() {
         introMessage: 'Hi! How can I help?',
         placeholder: 'How do I get started?',
       },
+      shouldEmitDataOperations: true,
     },
   });
   const allValues = form.watch();
@@ -38,6 +40,7 @@ export function ChatUIGuide() {
   const aiChatSettings = allValues.aiChatSettings ?? {
     agentUrl,
   };
+  const shouldEmitDataOperations = allValues.shouldEmitDataOperations ?? true;
 
   return (
     <Tabs defaultValue="preview">
@@ -62,11 +65,14 @@ export function ChatUIGuide() {
       <TabsContent value="preview">
         <div className="flex flex-row gap-12 w-full">
           <ChatUIPreviewForm form={form} />
-          <div className="flex-1 h-[500px]">
+          <div className="flex-3/5 w-full h-[500px]">
             <ChatUIPreview
               component={component}
               baseSettings={baseSettings}
               aiChatSettings={aiChatSettings}
+              shouldEmitDataOperations={shouldEmitDataOperations}
+              // force re-render when shouldEmitDataOperations changes otherwise the headers will not be updated
+              key={shouldEmitDataOperations ? 'true' : 'false'}
             />
           </div>
         </div>
@@ -75,7 +81,11 @@ export function ChatUIGuide() {
         <ChatUICode
           component={component}
           baseSettings={{ ...baseSettings }}
-          aiChatSettings={{ ...aiChatSettings, apiKey: 'INKEEP_AGENT_API_KEY' }}
+          aiChatSettings={{
+            ...aiChatSettings,
+            apiKey: 'INKEEP_AGENT_API_KEY',
+            headers: { 'x-emit-operations': shouldEmitDataOperations ? 'true' : 'false' },
+          }}
         />
       </TabsContent>
     </Tabs>

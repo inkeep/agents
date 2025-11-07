@@ -3,6 +3,7 @@ import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui
 import { SidebarIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { ChatUIComponent } from './chat-ui-preview-form';
 
 const styleOverrides = `
@@ -24,6 +25,7 @@ export interface ChatUIPreviewProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
   aiChatSettings: InkeepAIChatSettings;
+  shouldEmitDataOperations: boolean;
 }
 const componentMap = {
   [ChatUIComponent.EMBEDDED_CHAT]: InkeepEmbeddedChat,
@@ -31,18 +33,24 @@ const componentMap = {
   [ChatUIComponent.SIDEBAR_CHAT]: InkeepSidebarChat,
 };
 
-export function ChatUIPreview({ component, baseSettings, aiChatSettings }: ChatUIPreviewProps) {
+export function ChatUIPreview({
+  component,
+  baseSettings,
+  aiChatSettings,
+  shouldEmitDataOperations,
+}: ChatUIPreviewProps) {
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
     agentId: string;
   }>();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
 
   const Component = componentMap[component];
 
   return (
     <div
-      className={`relative flex flex-row gap-2 h-full w-full justify-between ${component === ChatUIComponent.SIDEBAR_CHAT ? 'rounded-lg border bg-sidebar' : 'bg-background'}`}
+      className={`relative flex flex-row gap-2 h-full w-full  ${component === ChatUIComponent.EMBEDDED_CHAT ? 'bg-background justify-center' : 'rounded-lg border bg-sidebar justify-between'}`}
     >
       {component === ChatUIComponent.SIDEBAR_CHAT && (
         <div className="p-4">
@@ -53,7 +61,7 @@ export function ChatUIPreview({ component, baseSettings, aiChatSettings }: ChatU
         </div>
       )}
       <div
-        className={`h-full ${component === ChatUIComponent.SIDEBAR_CHAT ? 'rounded-[0_9px_9px_0]' : 'w-full'}`}
+        className={`h-full ${component === ChatUIComponent.SIDEBAR_CHAT ? 'rounded-[0_9px_9px_0]' : 'w-full'} ${component === ChatUIComponent.EMBEDDED_CHAT ? 'max-w-[500px]' : ''}`}
       >
         <Component
           shouldAutoFocusInput={false}
@@ -86,6 +94,8 @@ export function ChatUIPreview({ component, baseSettings, aiChatSettings }: ChatU
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId,
+              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              'x-emit-operations': shouldEmitDataOperations ? 'true' : 'false',
             },
           }}
         />

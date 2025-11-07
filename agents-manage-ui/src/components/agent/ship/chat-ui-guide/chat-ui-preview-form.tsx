@@ -1,8 +1,11 @@
-import type { UseFormReturn } from 'react-hook-form';
+import { Info } from 'lucide-react';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { ColorPickerInput } from '@/components/ui/color-picker';
 import { Form, FormItem, FormLabel } from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export enum ChatUIComponent {
   EMBEDDED_CHAT = 'Embedded Chat',
@@ -16,7 +19,7 @@ interface ChatUIPreviewFormProps {
 export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
   return (
     <Form {...form}>
-      <form className="space-y-8 flex-1">
+      <form className="space-y-8 flex-2/5">
         <GenericSelect
           control={form.control}
           name="component"
@@ -54,6 +57,26 @@ export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
           label="Placeholder"
           placeholder="How do I get started?"
         />
+        <FormItem className="relative flex flex-row gap-2 items-center w-full justify-between">
+          <div className="flex flex-row gap-2 items-center">
+            <FormLabel>Show data operations</FormLabel>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="w-3 h-3 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                Controls whether data operations are included in the response stream.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Controller
+            control={form.control}
+            name="shouldEmitDataOperations"
+            render={({ field }) => (
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+        </FormItem>
       </form>
     </Form>
   );
