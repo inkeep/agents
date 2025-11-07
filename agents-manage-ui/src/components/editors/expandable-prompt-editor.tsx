@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
-type PromptEditorProps = ComponentProps<typeof PromptEditor>;
+type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
+  name: string;
+};
 
 export function ExpandablePromptEditor({
   label,
   isRequired = false,
   className,
   error,
+  name,
   ...props
 }: {
   label: string;
@@ -22,7 +25,7 @@ export function ExpandablePromptEditor({
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
-  const uri = `${open ? 'small' : 'full'}-${props.id}.template` as const;
+  const uri = `${open ? 'small' : 'full'}-${name}.template` as const;
 
   const handleAddVariable = useCallback(() => {
     if (!monaco) {
@@ -49,7 +52,7 @@ export function ExpandablePromptEditor({
     <ExpandableField
       open={open}
       onOpenChange={onOpenChange}
-      name={props.id || 'expandable-textarea'}
+      uri={uri}
       label={label}
       isRequired={isRequired}
       hasError={!!error}
