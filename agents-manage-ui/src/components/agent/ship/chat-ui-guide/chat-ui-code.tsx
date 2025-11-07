@@ -2,6 +2,7 @@ import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui
 import { TabsContent } from '@radix-ui/react-tabs';
 import { Streamdown } from 'streamdown';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { indentJson, replaceTemplatePlaceholders } from '../utils';
 import { ChatUIComponent } from './chat-ui-preview-form';
 import {
   jsChatButtonTemplate,
@@ -19,14 +20,6 @@ interface ChatUICodeProps {
   aiChatSettings: InkeepAIChatSettings;
 }
 
-const replacePlaceholders = (template: string, replacements: Record<string, string>): string => {
-  let result = template;
-  for (const [key, value] of Object.entries(replacements)) {
-    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
-  }
-  return result;
-};
-
 const generateReactCode = (
   component: ChatUIComponent,
   componentName: string,
@@ -38,7 +31,7 @@ const generateReactCode = (
       ? reactSidebarComponentTemplate
       : reactComponentTemplate;
 
-  const componentCode = replacePlaceholders(componentTemplate, {
+  const componentCode = replaceTemplatePlaceholders(componentTemplate, {
     COMPONENT_NAME: componentName,
     BASE_SETTINGS: baseSettingsJson,
     AI_CHAT_SETTINGS: aiChatSettingsJson,
@@ -58,7 +51,7 @@ const generateJavaScriptCode = (
     [ChatUIComponent.EMBEDDED_CHAT]: jsEmbeddedChatTemplate,
   };
 
-  const componentCode = replacePlaceholders(componentTemplates[component], {
+  const componentCode = replaceTemplatePlaceholders(componentTemplates[component], {
     BASE_SETTINGS: baseSettingsJson,
     AI_CHAT_SETTINGS: aiChatSettingsJson,
   });
@@ -73,14 +66,6 @@ export const ChatUICode = ({ component, baseSettings, aiChatSettings }: ChatUICo
     [ChatUIComponent.SIDEBAR_CHAT]: 'InkeepSidebarChat',
   };
   const componentName = componentMap[component];
-
-  const indentJson = (json: string, spaces: number): string => {
-    const indent = ' '.repeat(spaces);
-    return json
-      .split('\n')
-      .map((line, index) => (index === 0 ? line : `${indent}${line}`))
-      .join('\n');
-  };
 
   const baseSettingsJson = indentJson(JSON.stringify(baseSettings, null, 2), 2);
   const aiChatSettingsJson = indentJson(JSON.stringify(aiChatSettings, null, 2), 2);
