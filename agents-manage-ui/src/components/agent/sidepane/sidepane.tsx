@@ -35,6 +35,7 @@ import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
 import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
 import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 interface SidePaneProps {
   selectedNodeId: string | null;
@@ -64,6 +65,7 @@ export function SidePane({
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
+  const errors = useAgentStore((state) => state.errors);
 
   const selectedEdge = useMemo(
     () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
@@ -183,6 +185,8 @@ export function SidePane({
     credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
+    // Rerender sidepane when errors changes
+    errors,
   ]);
 
   const showBackButton = selectedNode || selectedEdge;
