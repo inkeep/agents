@@ -1,5 +1,13 @@
 # @inkeep/agents-run-api
 
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+
 ## 0.31.3
 
 ### Patch Changes

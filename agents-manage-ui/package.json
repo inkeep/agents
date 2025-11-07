@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.31.3",
+  "version": "0.31.4",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -94,6 +94,7 @@
     "pino": "^9.9.0",
     "pino-pretty": "^13.1.1",
     "react": "19.1.1",
+    "react-colorful": "^5.6.1",
     "react-day-picker": "^9.9.0",
     "react-dom": "19.1.1",
     "react-error-boundary": "^6.0.0",
