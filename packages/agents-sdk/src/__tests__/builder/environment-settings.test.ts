@@ -10,8 +10,8 @@ const createMockCredential = (id: string, overrides = {}) => ({
   type: CredentialStoreType.memory,
   credentialStoreId: 'memory-default',
   retrievalParams: { key: `${id.toUpperCase()}_KEY` },
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   ...overrides,
 });
 
