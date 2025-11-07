@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import type { AgentNodeData, MCPNodeData } from '@/components/agent/configuration/node-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
-import { serializeAgentData } from '../serialize';
+import { isContextConfigParseError, serializeAgentData } from '../serialize';
 
 describe('serializeAgentData', () => {
   describe('models object processing', () => {
@@ -414,6 +414,73 @@ describe('serializeAgentData', () => {
         toolSelection: null, // null means all tools are selected
         headers: null,
       });
+    });
+  });
+
+  describe('`contextConfig` parsing', () => {
+    const baseNodes: Node<AgentNodeData>[] = [];
+    const edges: Edge[] = [];
+
+    it('throws when `contextVariables` contains invalid JSON', () => {
+      try {
+        serializeAgentData(
+          baseNodes,
+          edges,
+          {
+            // @ts-expect-error -- fixme
+            contextConfig: { contextVariables: '{' },
+          },
+          {},
+          {},
+          {}
+        );
+        throw new Error('Expected `serializeAgentData` to throw');
+      } catch (error) {
+        expect(isContextConfigParseError(error)).toBe(true);
+        if (isContextConfigParseError(error)) {
+          expect(error.field).toBe('contextVariables');
+        }
+      }
+    });
+
+    it('throws when `headersSchema` contains invalid JSON', () => {
+      try {
+        serializeAgentData(
+          baseNodes,
+          edges,
+          {
+            // @ts-expect-error -- ignore
+            contextConfig: { headersSchema: '{' },
+          },
+          {},
+          {},
+          {}
+        );
+        throw new Error('Expected `serializeAgentData` to throw');
+      } catch (error) {
+        expect(isContextConfigParseError(error)).toBe(true);
+        if (isContextConfigParseError(error)) {
+          expect(error.field).toBe('headersSchema');
+        }
+      }
+    });
+
+    it('allows valid JSON payloads', () => {
+      const result = serializeAgentData(
+        baseNodes,
+        edges,
+        // @ts-expect-error -- ignore
+        {
+          contextConfig: {
+            contextVariables: '{"foo":"bar"}',
+            headersSchema: '{"type":"object"}',
+          },
+        },
+        {},
+        {},
+        {}
+      );
+      expect(result).toBeTruthy();
     });
   });
 });
