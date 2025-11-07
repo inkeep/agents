@@ -29,7 +29,7 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
           <PopoverTrigger asChild>
             <Button
               aria-label="color picker"
-              className="hover:transparent text-gray-500 hover:text-gray-700 dark:text-whiteAlpha-500 dark:hover:text-whiteAlpha-600 flex flex-row gap-2 rounded w-6 h-6"
+              className="flex flex-row gap-2 rounded w-6 h-6"
               size="sm"
               variant="ghost"
               style={{ background: color }}

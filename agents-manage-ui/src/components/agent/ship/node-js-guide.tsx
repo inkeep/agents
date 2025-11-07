@@ -13,7 +13,7 @@ export function NodeJsGuide() {
     <div>
       <Header.Container>
         <Header.Title title="Node.js Backend" />
-        <DocsLink href={`${DOCS_BASE_URL}/talk-to-your-agents/vercel-ai-sdk/stream-text`} />
+        <DocsLink href={`${DOCS_BASE_URL}/talk-to-your-agents/chat-api`} />
       </Header.Container>
       <Streamdown>
         {`Example Next.js API route (\`app/api/chat/route.ts\`):
