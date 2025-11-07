@@ -1,5 +1,29 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+  - @inkeep/agents-manage-api@0.31.4
+  - @inkeep/agents-run-api@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- ce3720a: animate MCP node which throws an error
+- ea4b251: remove `as React.CSSProperties` type casting
+- 43edec7: rename `Flow` component with `AgentReactFlowConsumer`
+- c1299f0: Prevent page jumps when Monaco editor is inside tab
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-manage-api@0.31.3
+  - @inkeep/agents-run-api@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes

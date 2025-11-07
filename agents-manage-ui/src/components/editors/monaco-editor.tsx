@@ -179,8 +179,8 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           container.style.height = `${contentHeight}px`;
         }
       }
+      // Initial update — otherwise, when the Monaco editor is inside a tab, the page may jump on scroll without it
       updateHeight();
-
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
     setupHighlighter(isDark);

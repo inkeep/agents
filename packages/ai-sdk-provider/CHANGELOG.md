@@ -1,5 +1,21 @@
 # @inkeep/ai-sdk-provider
 
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes
