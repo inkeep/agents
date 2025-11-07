@@ -24,6 +24,7 @@ interface ExpandableFieldProps {
   isRequired?: boolean;
   open: DialogProps['open'];
   onOpenChange: DialogProps['onOpenChange'];
+  hasError?: boolean;
 }
 
 export function ExpandableField({
@@ -34,11 +35,12 @@ export function ExpandableField({
   isRequired = false,
   open,
   onOpenChange,
+  hasError,
 }: ExpandableFieldProps) {
   const content = (
     <>
       <div className="flex items-center justify-between">
-        <Label className="gap-1" htmlFor={name}>
+        <Label className={cn(hasError && 'text-red-600', 'gap-1')} htmlFor={name}>
           {label}
           {isRequired && <span className="text-red-500">*</span>}
         </Label>
