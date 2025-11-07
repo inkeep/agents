@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDateString } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 
@@ -19,7 +19,8 @@ export function ViewExternalAgentDetails({
   projectId: string;
 }) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const normalized = normalizeDateString(dateString);
+    return new Date(normalized).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

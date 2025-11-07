@@ -7,7 +7,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { MCPTool } from '@/lib/types/tools';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDateString } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
