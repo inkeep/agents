@@ -69,10 +69,10 @@ export const InputField: FC<InputFieldProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        data-invalid={error ? '' : undefined}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(
           'w-full',
-          'data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
+          'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
           className
         )}
         disabled={disabled}
@@ -120,10 +120,10 @@ export const TextareaField: FC<TextareaFieldProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        data-invalid={error ? '' : undefined}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(
           'w-full',
-          'data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
+          'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
           maxHeight,
           className
         )}
