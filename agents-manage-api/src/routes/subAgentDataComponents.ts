@@ -185,7 +185,7 @@ app.openapi(
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },
@@ -231,7 +231,7 @@ app.openapi(
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },

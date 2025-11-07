@@ -191,7 +191,7 @@ app.openapi(
     operationId: 'remove-artifact-component-from-agent',
     tags: ['Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),
       }),
     },
@@ -237,7 +237,7 @@ app.openapi(
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agent Artifact Component Relations'],
     request: {
-      params: TenantProjectAgentSubAgentIdParamsSchema.extend({
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         artifactComponentId: z.string(),
       }),
     },
