@@ -519,21 +519,29 @@ export function serializeAgentData(
       }
     }
   }
+  const contextVariablesInput = metadata?.contextConfig?.contextVariables?.trim();
+  const parsedContextVariables = safeJsonParse(contextVariablesInput);
+  if (contextVariablesInput && !parsedContextVariables) {
+    throw createContextConfigParseError('contextVariables');
+  }
 
-  const parsedContextVariables = safeJsonParse(metadata?.contextConfig?.contextVariables);
-
-  const parsedHeadersSchema = safeJsonParse(metadata?.contextConfig?.headersSchema);
+  const headersSchemaInput = metadata?.contextConfig?.headersSchema?.trim();
+  const parsedHeadersSchema = safeJsonParse(headersSchemaInput);
+  if (headersSchemaInput && !parsedHeadersSchema) {
+    throw createContextConfigParseError('headersSchema');
+  }
 
   const hasContextConfig =
-    metadata?.contextConfig &&
-    ((parsedContextVariables &&
-      typeof parsedContextVariables === 'object' &&
-      parsedContextVariables !== null &&
-      Object.keys(parsedContextVariables).length > 0) ||
-      (parsedHeadersSchema &&
+    Boolean(
+      parsedContextVariables &&
+        typeof parsedContextVariables === 'object' &&
+        Object.keys(parsedContextVariables).length
+    ) ||
+    Boolean(
+      parsedHeadersSchema &&
         typeof parsedHeadersSchema === 'object' &&
-        parsedHeadersSchema !== null &&
-        Object.keys(parsedHeadersSchema).length > 0));
+        Object.keys(parsedHeadersSchema).length
+    );
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
