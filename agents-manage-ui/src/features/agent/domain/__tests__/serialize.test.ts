@@ -427,7 +427,7 @@ describe('serializeAgentData', () => {
           baseNodes,
           edges,
           {
-            // @ts-expect-error -- fixme
+            // @ts-expect-error -- ignore
             contextConfig: { contextVariables: '{' },
           },
           {},
