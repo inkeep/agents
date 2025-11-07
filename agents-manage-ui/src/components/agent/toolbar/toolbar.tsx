@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { isMacOs } from '@/lib/utils';
+import { ShipModal } from '../ship/ship-modal';
 
 interface ToolbarProps {
   onSubmit: () => void;
@@ -55,6 +56,7 @@ export function Toolbar({
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
+      {!inPreviewDisabled && <ShipModal />}
       {dirty || inPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
