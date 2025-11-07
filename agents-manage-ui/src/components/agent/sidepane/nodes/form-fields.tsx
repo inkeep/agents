@@ -1,5 +1,5 @@
 import { Info } from 'lucide-react';
-import type { FC } from 'react';
+import type { FC, Ref, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,7 +11,7 @@ interface BaseFieldProps {
   name: string;
   label: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   placeholder?: string;
   error?: string;
   className?: string;
@@ -23,10 +23,12 @@ interface BaseFieldProps {
 
 interface InputFieldProps extends BaseFieldProps {
   type?: 'text' | 'email' | 'password' | 'url';
+  ref?: Ref<HTMLInputElement>;
 }
 
 interface TextareaFieldProps extends BaseFieldProps {
   maxHeight?: string;
+  ref?: Ref<HTMLTextAreaElement>;
 }
 
 export const InputField: FC<InputFieldProps> = ({
@@ -69,7 +71,8 @@ export const InputField: FC<InputFieldProps> = ({
         placeholder={placeholder}
         data-invalid={error ? '' : undefined}
         className={cn(
-          'w-full data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
+          'w-full',
+          'data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
           className
         )}
         disabled={disabled}
@@ -119,7 +122,8 @@ export const TextareaField: FC<TextareaFieldProps> = ({
         placeholder={placeholder}
         data-invalid={error ? '' : undefined}
         className={cn(
-          'w-full data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
+          'w-full',
+          'data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300',
           maxHeight,
           className
         )}
