@@ -43,8 +43,8 @@ export const InputField: FC<InputFieldProps> = ({
   description,
   tooltip,
   type = 'text',
-  isRequired = false,
-  disabled = false,
+  isRequired,
+  disabled,
   ref,
 }) => {
   return (
@@ -94,8 +94,8 @@ export const TextareaField: FC<TextareaFieldProps> = ({
   description,
   tooltip,
   maxHeight = 'max-h-96',
-  isRequired = false,
-  disabled = false,
+  isRequired,
+  disabled,
   ref,
 }) => {
   return (
