@@ -77,6 +77,7 @@ export function ExpandableJsonEditor({
       name={name}
       label={label}
       className={className}
+      hasError={!!error}
       actions={
         <Button
           type="button"
@@ -99,7 +100,7 @@ export function ExpandableJsonEditor({
         className={cn(!open && error && 'max-h-96')}
         hasDynamicHeight={!open}
       />
-      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm mt-1 text-red-600 absolute -bottom-6">{error}</p>}
     </ExpandableField>
   );
 }

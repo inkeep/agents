@@ -52,6 +52,7 @@ export function ExpandablePromptEditor({
       name={props.id || 'expandable-textarea'}
       label={label}
       isRequired={isRequired}
+      hasError={!!error}
       actions={
         <Button
           size="sm"
@@ -73,7 +74,7 @@ export function ExpandablePromptEditor({
         hasDynamicHeight={!open}
         {...props}
       />
-      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm mt-1 text-red-600 absolute -bottom-6">{error}</p>}
     </ExpandableField>
   );
 }

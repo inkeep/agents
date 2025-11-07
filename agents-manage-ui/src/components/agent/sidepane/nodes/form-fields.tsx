@@ -71,7 +71,6 @@ export const InputField: FC<InputFieldProps> = ({
         placeholder={placeholder}
         aria-invalid={error ? 'true' : undefined}
         className={cn(
-          'w-full',
           'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
           className
         )}
@@ -122,7 +121,6 @@ export const TextareaField: FC<TextareaFieldProps> = ({
         placeholder={placeholder}
         aria-invalid={error ? 'true' : undefined}
         className={cn(
-          'w-full',
           'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
           maxHeight,
           className

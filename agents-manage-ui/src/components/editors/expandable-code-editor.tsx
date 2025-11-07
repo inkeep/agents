@@ -38,6 +38,7 @@ export function ExpandableCodeEditor({
       label={label}
       className={className}
       isRequired={isRequired}
+      hasError={!!error}
     >
       <CodeEditor
         id={name}
@@ -48,7 +49,7 @@ export function ExpandableCodeEditor({
         hasDynamicHeight={!open}
         className={cn(!open && error && 'max-h-96')}
       />
-      {error && <p className="text-sm mt-1 text-destructive">{error}</p>}
+      {error && <p className="text-sm mt-1 text-red-600">{error}</p>}
     </ExpandableField>
   );
 }
