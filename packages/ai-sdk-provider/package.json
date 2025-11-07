@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/ai-sdk-provider",
-  "version": "0.31.4",
+  "version": "0.31.5",
   "description": "AI SDK provider for Inkeep Agent Framework",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
