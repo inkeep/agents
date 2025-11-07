@@ -74,7 +74,7 @@ export function ExpandablePromptEditor({
         hasDynamicHeight={!open}
         {...props}
       />
-      {error && <p className="text-sm mt-1 text-red-600 absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
   );
 }
