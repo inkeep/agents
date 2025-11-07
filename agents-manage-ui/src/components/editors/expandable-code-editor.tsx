@@ -29,19 +29,18 @@ export function ExpandableCodeEditor({
   isRequired,
 }: ExpandableCodeEditorProps) {
   const [open, setOpen] = useState(false);
-
+  const uri = `${open ? 'small' : 'full'}-${name}.jsx` as const;
   return (
     <ExpandableField
       open={open}
       onOpenChange={setOpen}
-      name={name}
+      uri={uri}
       label={label}
       className={className}
       isRequired={isRequired}
       hasError={!!error}
     >
       <CodeEditor
-        id={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}

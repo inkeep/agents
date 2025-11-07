@@ -67,14 +67,14 @@ export function ExpandableJsonEditor({
     !!(externalError || internalError)
   );
   const [open, setOpen] = useState(false);
-
+  const uri = `${open ? 'small' : 'full'}-${name}.json` as const;
   const error = externalError || internalError;
 
   return (
     <ExpandableField
       open={open}
       onOpenChange={setOpen}
-      name={name}
+      uri={uri}
       label={label}
       className={className}
       hasError={!!error}
@@ -92,7 +92,6 @@ export function ExpandableJsonEditor({
       }
     >
       <JsonEditor
-        id={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
