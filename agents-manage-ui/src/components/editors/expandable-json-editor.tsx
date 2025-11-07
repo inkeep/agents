@@ -96,7 +96,7 @@ export function ExpandableJsonEditor({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        aria-invalid={!!error}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(!open && error && 'max-h-96')}
         hasDynamicHeight={!open}
       />

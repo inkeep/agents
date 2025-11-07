@@ -69,7 +69,7 @@ export function ExpandablePromptEditor({
       <PromptEditor
         uri={uri}
         autoFocus={open}
-        aria-invalid={!!error}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', className)}
         hasDynamicHeight={!open}
         {...props}
