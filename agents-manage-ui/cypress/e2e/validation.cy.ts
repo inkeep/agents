@@ -11,9 +11,11 @@ describe('Validation', () => {
     cy.contains('Save').click();
 
     // Check for validation errors
-    cy.contains('Validation Errors (1)').should('exist');
+    cy.contains('Validation Errors (2)').should('exist');
     cy.contains('Sub Agent Errors (1)').click();
     cy.contains('Sub Agent is missing required field: Prompt').should('exist');
+    cy.contains('Agent Configuration Errors (1)').click();
+    cy.contains('Agent Name is too short. Please provide a valid value').should('exist');
   });
 
   it('should not allow save invalid JSON', () => {
