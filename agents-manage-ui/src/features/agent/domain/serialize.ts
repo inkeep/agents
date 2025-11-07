@@ -91,7 +91,7 @@ export function serializeAgentData(
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
