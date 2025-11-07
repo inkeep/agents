@@ -43,6 +43,7 @@ export function ExpandableCodeEditor({
       hasError={!!error}
     >
       <CodeEditor
+        uri={uri}
         value={value}
         onChange={onChange}
         placeholder={placeholder}

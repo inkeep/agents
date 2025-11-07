@@ -93,6 +93,7 @@ export function ExpandableJsonEditor({
       }
     >
       <JsonEditor
+        uri={uri}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
