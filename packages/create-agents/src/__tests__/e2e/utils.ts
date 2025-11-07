@@ -253,3 +253,6 @@ export async function waitForServerReady(url: string, timeout: number): Promise<
     `Server not ready at ${url} after ${elapsed}ms (${attempts} attempts)${errorDetails}`
   );
 }
+const monorepoRoot = path.join(__dirname, '../../../../../');
+
+await linkLocalPackages('/Users/mileskaming-thanassi/test-pg', monorepoRoot);
