@@ -1,11 +1,10 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  type CredentialStoreRegistry,
-  CredentialStoreListResponseSchema,
-  CredentialStoreSchema,
-  commonGetErrorResponses,
   CreateCredentialInStoreRequestSchema,
   CreateCredentialInStoreResponseSchema,
+  CredentialStoreListResponseSchema,
+  type CredentialStoreRegistry,
+  commonGetErrorResponses,
   createApiError,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,

@@ -13,9 +13,9 @@ import {
   listFunctionTools,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
-  TenantProjectAgentIdParamsSchema,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';

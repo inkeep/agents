@@ -1,8 +1,8 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
-  commonGetErrorResponses,
   ComponentAssociationSchema,
+  commonGetErrorResponses,
   createApiError,
   DataComponentApiSelectSchema,
   ErrorResponseSchema,
@@ -19,7 +19,6 @@ import {
   SubAgentDataComponentApiSelectSchema,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
-  TenantProjectAgentSubAgentIdParamsSchema
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';

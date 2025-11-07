@@ -20,10 +20,10 @@ import {
   RelatedAgentInfoSchema,
   SingleResponseSchema,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
-  TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 

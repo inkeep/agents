@@ -36,8 +36,18 @@ import {
 
 export const StopWhenSchema = z
   .object({
-    transferCountIs: z.number().min(1).max(100).optional().describe('The maximum number of transfers to trigger the stop condition.'),
-    stepCountIs: z.number().min(1).max(1000).optional().describe('The maximum number of steps to trigger the stop condition.'),
+    transferCountIs: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('The maximum number of transfers to trigger the stop condition.'),
+    stepCountIs: z
+      .number()
+      .min(1)
+      .max(1000)
+      .optional()
+      .describe('The maximum number of steps to trigger the stop condition.'),
   })
   .openapi('StopWhen');
 
@@ -72,7 +82,10 @@ export const resourceIdSchema = z
 export const ModelSettingsSchema = z
   .object({
     model: z.string().optional().describe('The model to use for the project.'),
-    providerOptions: z.record(z.string(), z.any()).optional().describe('The provider options to use for the project.'),
+    providerOptions: z
+      .record(z.string(), z.any())
+      .optional()
+      .describe('The provider options to use for the project.'),
   })
   .openapi('ModelSettings');
 
