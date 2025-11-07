@@ -259,11 +259,23 @@ export const createTaskHandler = (
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
-      // TODO: dbResultToMcpTool use here is debatable, since does not take into account "selected tools"
+      // Convert db tools to MCP tools and filter by selectedTools
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(
-            async (item) => await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry)
+            async (item) => {
+              const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+              
+              // Filter available tools based on selectedTools for this agent-tool relationship
+              if (item.selectedTools && item.selectedTools.length > 0) {
+                const selectedToolsSet = new Set(item.selectedTools);
+                mcpTool.availableTools = mcpTool.availableTools?.filter(tool => 
+                  selectedToolsSet.has(tool.name)
+                ) || [];
+              }
+              
+              return mcpTool;
+            }
           )
         )) ?? [];
 
@@ -294,22 +306,123 @@ export const createTaskHandler = (
             subAgentRelations: [],
             transferRelations: [],
           })),
-          transferRelations: enhancedInternalRelations
-            .filter((relation) => relation.relationType === 'transfer')
-            .map((relation) => ({
-              baseUrl: config.baseUrl,
-              apiKey: config.apiKey,
-              id: relation.id,
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              name: relation.name,
-              description: relation.description,
-              prompt: '',
-              delegateRelations: [],
-              subAgentRelations: [],
-              transferRelations: [],
-            })),
+          transferRelations: await Promise.all(
+            enhancedInternalRelations
+              .filter((relation) => relation.relationType === 'transfer')
+              .map(async (relation) => {
+                // For internal agents, try to fetch tools and relations
+                // For external/team agents, we'll only get tools (if available)
+                const targetToolsForAgent = await getToolsForAgent(dbClient)({
+                  scopes: {
+                    tenantId: config.tenantId,
+                    projectId: config.projectId,
+                    agentId: config.agentId,
+                    subAgentId: relation.id,
+                  },
+                });
+
+                // Try to get transfer and delegate relations for internal agents only
+                let targetTransferRelations = { data: [] };
+                let targetDelegateRelations = { data: [] };
+                
+                try {
+                  // Only attempt to get relations for internal agents (same tenant/project/agent)
+                  const [transferRel, delegateRel] = await Promise.all([
+                    getRelatedAgentsForAgent(dbClient)({
+                      scopes: {
+                        tenantId: config.tenantId,
+                        projectId: config.projectId,
+                        agentId: config.agentId,
+                        subAgentId: relation.id,
+                      },
+                    }),
+                    getExternalAgentsForSubAgent(dbClient)({
+                      scopes: {
+                        tenantId: config.tenantId,
+                        projectId: config.projectId,
+                        agentId: config.agentId,
+                        subAgentId: relation.id,
+                      },
+                    }),
+                  ]);
+                  targetTransferRelations = transferRel;
+                  targetDelegateRelations = delegateRel;
+                } catch (err) {
+                  logger.info({ 
+                    agentId: relation.id, 
+                    error: err.message 
+                  }, 'Could not fetch relations for target agent (likely external/team agent), using basic info only');
+                }
+
+                const targetAgentTools: McpTool[] = await Promise.all(
+                  targetToolsForAgent.data.map(
+                    async (item) => {
+                      const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+                      
+                      // Filter available tools based on selectedTools for this agent-tool relationship
+                      if (item.selectedTools && item.selectedTools.length > 0) {
+                        const selectedToolsSet = new Set(item.selectedTools);
+                        mcpTool.availableTools = mcpTool.availableTools?.filter(tool => 
+                          selectedToolsSet.has(tool.name)
+                        ) || [];
+                      }
+                      
+                      return mcpTool;
+                    }
+                  )
+                ) ?? [];
+
+                // Build transfer relations for target agent (if available)
+                const targetTransferRelationsConfig = targetTransferRelations.data
+                  .filter((rel) => rel.relationType === 'transfer')
+                  .map((rel) => ({
+                    baseUrl: config.baseUrl,
+                    apiKey: config.apiKey,
+                    id: rel.id,
+                    tenantId: config.tenantId,
+                    projectId: config.projectId,
+                    agentId: config.agentId,
+                    name: rel.name,
+                    description: rel.description,
+                    prompt: '',
+                    delegateRelations: [],
+                    subAgentRelations: [],
+                    transferRelations: [],
+                    // Note: Not including tools for nested relations to avoid infinite recursion
+                  }));
+
+                // Build delegate relations for target agent (if available)
+                const targetDelegateRelationsConfig = targetDelegateRelations.data.map((rel) => ({
+                  type: 'external' as const,
+                  config: {
+                    id: rel.externalAgent.id,
+                    name: rel.externalAgent.name,
+                    description: rel.externalAgent.description || '',
+                    baseUrl: rel.externalAgent.baseUrl,
+                    headers: rel.headers,
+                    credentialReferenceId: rel.externalAgent.credentialReferenceId,
+                    relationId: rel.id,
+                    relationType: 'delegate',
+                  },
+                }));
+
+                return {
+                  baseUrl: config.baseUrl,
+                  apiKey: config.apiKey,
+                  id: relation.id,
+                  tenantId: config.tenantId,
+                  projectId: config.projectId,
+                  agentId: config.agentId,
+                  name: relation.name,
+                  description: relation.description,
+                  prompt: '',
+                  delegateRelations: targetDelegateRelationsConfig,
+                  subAgentRelations: [],
+                  transferRelations: targetTransferRelationsConfig,
+                  tools: targetAgentTools, // Include target agent's tools for transfer descriptions
+                };
+              })
+          ),
           delegateRelations: [
             ...enhancedInternalRelations
               .filter((relation) => relation.relationType === 'delegate')
@@ -325,9 +438,10 @@ export const createTaskHandler = (
                   name: relation.name,
                   description: relation.description,
                   prompt: '',
-                  delegateRelations: [],
+                  delegateRelations: [], // Simplified - no nested relations
                   subAgentRelations: [],
                   transferRelations: [],
+                  tools: [], // Tools are defined in config files, not DB
                 },
               })),
             ...externalRelations.data.map((relation) => ({
