@@ -47,6 +47,7 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
 
   beforeEach(async () => {
     db = await createTestDatabaseClient();
+    vi.clearAllMocks();
   });
 
   describe('getSubAgentTeamAgentRelationById', () => {
@@ -330,7 +331,9 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
   describe('deleteSubAgentTeamAgentRelation', () => {
     it('should delete a sub-agent team agent relation', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: testRelationId }]),
+        }),
       });
 
       const mockDb = {
@@ -349,7 +352,9 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
 
     it('should return false when no rows affected', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 0 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -441,7 +446,9 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
   describe('deleteSubAgentTeamAgentRelationsBySubAgent', () => {
     it('should delete all relations for a subagent', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 2 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'rel-1' }, { id: 'rel-2' }]),
+        }),
       });
 
       const mockDb = {
@@ -465,7 +472,9 @@ describe('SubAgentTeamAgentRelations Data Access', () => {
       };
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 3 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'rel-1' }, { id: 'rel-2' }, { id: 'rel-3' }]),
+        }),
       });
 
       const mockDb = {

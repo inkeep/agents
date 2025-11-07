@@ -9,7 +9,7 @@ import {
   updateTool,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 import type { ToolInsert } from '../../types/index';
 
 describe('Tools Data Access', () => {
@@ -20,9 +20,9 @@ describe('Tools Data Access', () => {
   const testToolId = 'test-tool';
   const testSubAgentId = 'test-sub-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
-    vi.restoreAllMocks();
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
+    vi.clearAllMocks();
   });
 
   describe('getToolById', () => {

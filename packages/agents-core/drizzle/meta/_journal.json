@@ -1,110 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1759338566165,
-      "tag": "0000_material_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1759453676635,
-      "tag": "0001_eminent_fixer",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1759804621486,
-      "tag": "0002_bumpy_romulus",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1759970956091,
-      "tag": "0003_soft_forgotten_one",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1759974668186,
-      "tag": "0004_melted_omega_flight",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1760028262290,
-      "tag": "0005_wide_shriek",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1760053343084,
-      "tag": "0006_damp_lenny_balinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1760126352847,
-      "tag": "0007_mighty_typhoid_mary",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1760457692776,
-      "tag": "0008_mysterious_crusher_hogan",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1760480808208,
-      "tag": "0009_old_black_cat",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1760564153811,
-      "tag": "0010_wet_vampiro",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1760738344628,
-      "tag": "0011_slippery_korg",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "6",
-      "when": 1761082381737,
-      "tag": "0012_salty_psynapse",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1761162910152,
-      "tag": "0013_shocking_blur",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "6",
-      "when": 1761227891220,
-      "tag": "0014_broad_hellfire_club",
+      "version": "7",
+      "when": 1762211854801,
+      "tag": "0000_strong_wolfpack",
       "breakpoints": true
     }
   ]

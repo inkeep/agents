@@ -1,325 +1,99 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "657e0b92-37d2-44e7-b7ac-e81525e4c4c2",
+  "id": "54caa6d8-d6d0-43ab-abf1-c88fa0566b8e",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "agent_artifact_components": {
-      "name": "agent_artifact_components",
+    "public.agent": {
+      "name": "agent",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "artifact_component_id": {
-          "name": "artifact_component_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_artifact_components_agent_fk": {
-          "name": "agent_artifact_components_agent_fk",
-          "tableFrom": "agent_artifact_components",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_artifact_components_artifact_component_fk": {
-          "name": "agent_artifact_components_artifact_component_fk",
-          "tableFrom": "agent_artifact_components",
-          "tableTo": "artifact_components",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "artifact_component_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agent_artifact_components_tenant_id_project_id_graph_id_agent_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "agent_id",
-            "id"
-          ],
-          "name": "agent_artifact_components_tenant_id_project_id_graph_id_agent_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agent_data_components": {
-      "name": "agent_data_components",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "data_component_id": {
-          "name": "data_component_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_data_components_agent_fk": {
-          "name": "agent_data_components_agent_fk",
-          "tableFrom": "agent_data_components",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_data_components_data_component_fk": {
-          "name": "agent_data_components_data_component_fk",
-          "tableFrom": "agent_data_components",
-          "tableTo": "data_components",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "data_component_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agent_data_components_tenant_id_project_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "name": "agent_data_components_tenant_id_project_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agent_graph": {
-      "name": "agent_graph",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "default_agent_id": {
-          "name": "default_agent_id",
-          "type": "text",
+        "default_sub_agent_id": {
+          "name": "default_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "context_config_id": {
           "name": "context_config_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "models": {
           "name": "models",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "status_updates": {
           "name": "status_updates",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "graph_prompt": {
-          "name": "graph_prompt",
+        "prompt": {
+          "name": "prompt",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "stop_when": {
           "name": "stop_when",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "agent_graph_project_fk": {
-          "name": "agent_graph_project_fk",
-          "tableFrom": "agent_graph",
+        "agent_project_fk": {
+          "name": "agent_project_fk",
+          "tableFrom": "agent",
           "tableTo": "projects",
           "columnsFrom": [
             "tenant_id",
@@ -334,500 +108,150 @@
         }
       },
       "compositePrimaryKeys": {
-        "agent_graph_tenant_id_project_id_id_pk": {
+        "agent_tenant_id_project_id_id_pk": {
+          "name": "agent_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "agent_graph_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "agent_relations": {
-      "name": "agent_relations",
+    "public.api_keys": {
+      "name": "api_keys",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "source_agent_id": {
-          "name": "source_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_agent_id": {
-          "name": "target_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "external_agent_id": {
-          "name": "external_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "relation_type": {
-          "name": "relation_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_relations_graph_fk": {
-          "name": "agent_relations_graph_fk",
-          "tableFrom": "agent_relations",
-          "tableTo": "agent_graph",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agent_relations_tenant_id_project_id_graph_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "name": "agent_relations_tenant_id_project_id_graph_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agent_tool_relations": {
-      "name": "agent_tool_relations",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tool_id": {
-          "name": "tool_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "selected_tools": {
-          "name": "selected_tools",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "headers": {
-          "name": "headers",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agent_tool_relations_agent_fk": {
-          "name": "agent_tool_relations_agent_fk",
-          "tableFrom": "agent_tool_relations",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_tool_relations_tool_fk": {
-          "name": "agent_tool_relations_tool_fk",
-          "tableFrom": "agent_tool_relations",
-          "tableTo": "tools",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "tool_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agent_tool_relations_tenant_id_project_id_graph_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "name": "agent_tool_relations_tenant_id_project_id_graph_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agents": {
-      "name": "agents",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "conversation_history_config": {
-          "name": "conversation_history_config",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "models": {
-          "name": "models",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "stop_when": {
-          "name": "stop_when",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "agents_graph_fk": {
-          "name": "agents_graph_fk",
-          "tableFrom": "agents",
-          "tableTo": "agent_graph",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "graph_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "agents_tenant_id_project_id_graph_id_id_pk": {
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "graph_id",
-            "id"
-          ],
-          "name": "agents_tenant_id_project_id_graph_id_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "api_keys": {
-      "name": "api_keys",
-      "columns": {
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "public_id": {
           "name": "public_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "key_hash": {
           "name": "key_hash",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "key_prefix": {
           "name": "key_prefix",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "last_used_at": {
           "name": "last_used_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {
-        "api_keys_public_id_unique": {
-          "name": "api_keys_public_id_unique",
+        "api_keys_tenant_agent_idx": {
+          "name": "api_keys_tenant_agent_idx",
           "columns": [
-            "public_id"
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": true
-        },
-        "api_keys_tenant_graph_idx": {
-          "name": "api_keys_tenant_graph_idx",
-          "columns": [
-            "tenant_id",
-            "graph_id"
-          ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "api_keys_prefix_idx": {
           "name": "api_keys_prefix_idx",
           "columns": [
-            "key_prefix"
+            {
+              "expression": "key_prefix",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "api_keys_public_id_idx": {
           "name": "api_keys_public_id_idx",
           "columns": [
-            "public_id"
+            {
+              "expression": "public_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -846,14 +270,14 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "api_keys_graph_fk": {
-          "name": "api_keys_graph_fk",
+        "api_keys_agent_fk": {
+          "name": "api_keys_agent_fk",
           "tableFrom": "api_keys",
-          "tableTo": "agent_graph",
+          "tableTo": "agent",
           "columnsFrom": [
             "tenant_id",
             "project_id",
-            "graph_id"
+            "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
@@ -865,76 +289,72 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "api_keys_public_id_unique": {
+          "name": "api_keys_public_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "public_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "artifact_components": {
+    "public.artifact_components": {
       "name": "artifact_components",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "summary_props": {
-          "name": "summary_props",
-          "type": "blob",
+        "props": {
+          "name": "props",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "full_props": {
-          "name": "full_props",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -957,123 +377,131 @@
       },
       "compositePrimaryKeys": {
         "artifact_components_tenant_id_project_id_id_pk": {
+          "name": "artifact_components_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "artifact_components_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "context_cache": {
+    "public.context_cache": {
       "name": "context_cache",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "conversation_id": {
           "name": "conversation_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "context_config_id": {
           "name": "context_config_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "context_variable_key": {
           "name": "context_variable_key",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "value": {
           "name": "value",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "request_hash": {
           "name": "request_hash",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "fetched_at": {
           "name": "fetched_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "fetch_source": {
           "name": "fetch_source",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "fetch_duration_ms": {
           "name": "fetch_duration_ms",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {
         "context_cache_lookup_idx": {
           "name": "context_cache_lookup_idx",
           "columns": [
-            "conversation_id",
-            "context_config_id",
-            "context_variable_key"
+            {
+              "expression": "conversation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "context_config_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "context_variable_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1095,98 +523,88 @@
       },
       "compositePrimaryKeys": {
         "context_cache_tenant_id_project_id_id_pk": {
+          "name": "context_cache_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "context_cache_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "context_configs": {
+    "public.context_configs": {
       "name": "context_configs",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "text",
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "description": {
-          "name": "description",
-          "type": "text",
+        "headers_schema": {
+          "name": "headers_schema",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "request_context_schema": {
-          "name": "request_context_schema",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "context_variables": {
           "name": "context_variables",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "context_configs_project_fk": {
-          "name": "context_configs_project_fk",
+        "context_configs_agent_fk": {
+          "name": "context_configs_agent_fk",
           "tableFrom": "context_configs",
-          "tableTo": "projects",
+          "tableTo": "agent",
           "columnsFrom": [
             "tenant_id",
-            "project_id"
+            "project_id",
+            "agent_id"
           ],
           "columnsTo": [
             "tenant_id",
+            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -1194,92 +612,86 @@
         }
       },
       "compositePrimaryKeys": {
-        "context_configs_tenant_id_project_id_id_pk": {
+        "context_configs_tenant_id_project_id_agent_id_id_pk": {
+          "name": "context_configs_tenant_id_project_id_agent_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
+            "agent_id",
             "id"
-          ],
-          "name": "context_configs_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "conversations": {
+    "public.conversations": {
       "name": "conversations",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "active_agent_id": {
-          "name": "active_agent_id",
-          "type": "text",
+        "active_sub_agent_id": {
+          "name": "active_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "title": {
           "name": "title",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "last_context_resolution": {
           "name": "last_context_resolution",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "metadata": {
           "name": "metadata",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -1302,77 +714,78 @@
       },
       "compositePrimaryKeys": {
         "conversations_tenant_id_project_id_id_pk": {
+          "name": "conversations_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "conversations_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "credential_references": {
+    "public.credential_references": {
       "name": "credential_references",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
         },
         "type": {
           "name": "type",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "credential_store_id": {
           "name": "credential_store_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "retrieval_params": {
           "name": "retrieval_params",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -1395,77 +808,78 @@
       },
       "compositePrimaryKeys": {
         "credential_references_tenant_id_project_id_id_pk": {
+          "name": "credential_references_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "credential_references_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "data_components": {
+    "public.data_components": {
       "name": "data_components",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "props": {
           "name": "props",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
+        },
+        "render": {
+          "name": "render",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -1488,114 +902,92 @@
       },
       "compositePrimaryKeys": {
         "data_components_tenant_id_project_id_id_pk": {
+          "name": "data_components_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "data_components_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "external_agents": {
+    "public.external_agents": {
       "name": "external_agents",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "base_url": {
           "name": "base_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "credential_reference_id": {
           "name": "credential_reference_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "headers": {
-          "name": "headers",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "external_agents_graph_fk": {
-          "name": "external_agents_graph_fk",
+        "external_agents_project_fk": {
+          "name": "external_agents_project_fk",
           "tableFrom": "external_agents",
-          "tableTo": "agent_graph",
+          "tableTo": "projects",
           "columnsFrom": [
             "tenant_id",
-            "project_id",
-            "graph_id"
+            "project_id"
           ],
           "columnsTo": [
             "tenant_id",
-            "project_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -1620,183 +1012,384 @@
         }
       },
       "compositePrimaryKeys": {
-        "external_agents_tenant_id_project_id_graph_id_id_pk": {
+        "external_agents_tenant_id_project_id_id_pk": {
+          "name": "external_agents_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
-            "graph_id",
             "id"
-          ],
-          "name": "external_agents_tenant_id_project_id_graph_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "ledger_artifacts": {
-      "name": "ledger_artifacts",
+    "public.function_tools": {
+      "name": "function_tools",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "task_id": {
-          "name": "task_id",
-          "type": "text",
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tool_call_id": {
-          "name": "tool_call_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "context_id": {
-          "name": "context_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'source'"
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
+        },
+        "function_id": {
+          "name": "function_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "function_tools_agent_fk": {
+          "name": "function_tools_agent_fk",
+          "tableFrom": "function_tools",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "function_tools_function_fk": {
+          "name": "function_tools_function_fk",
+          "tableFrom": "function_tools",
+          "tableTo": "functions",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "function_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "function_tools_tenant_id_project_id_agent_id_id_pk": {
+          "name": "function_tools_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.functions": {
+      "name": "functions",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_schema": {
+          "name": "input_schema",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "execute_code": {
+          "name": "execute_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dependencies": {
+          "name": "dependencies",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "functions_project_fk": {
+          "name": "functions_project_fk",
+          "tableFrom": "functions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "functions_tenant_id_project_id_id_pk": {
+          "name": "functions_tenant_id_project_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ledger_artifacts": {
+      "name": "ledger_artifacts",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context_id": {
+          "name": "context_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'source'"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "parts": {
           "name": "parts",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "metadata": {
           "name": "metadata",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "summary": {
           "name": "summary",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "mime": {
           "name": "mime",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "visibility": {
           "name": "visibility",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'context'"
         },
         "allowed_agents": {
           "name": "allowed_agents",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "derived_from": {
           "name": "derived_from",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {
         "ledger_artifacts_task_id_idx": {
           "name": "ledger_artifacts_task_id_idx",
           "columns": [
-            "task_id"
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "ledger_artifacts_tool_call_id_idx": {
           "name": "ledger_artifacts_tool_call_id_idx",
           "columns": [
-            "tool_call_id"
+            {
+              "expression": "tool_call_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "ledger_artifacts_context_id_idx": {
           "name": "ledger_artifacts_context_id_idx",
           "columns": [
-            "context_id"
+            {
+              "expression": "context_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": false
-        },
-        "ledger_artifacts_task_context_name_unique": {
-          "name": "ledger_artifacts_task_context_name_unique",
-          "columns": [
-            "task_id",
-            "context_id",
-            "name"
-          ],
-          "isUnique": true
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1818,164 +1411,163 @@
       },
       "compositePrimaryKeys": {
         "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
+          "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id",
             "task_id"
-          ],
-          "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk"
+          ]
         }
       },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "ledger_artifacts_task_context_name_unique": {
+          "name": "ledger_artifacts_task_context_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "task_id",
+            "context_id",
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "messages": {
+    "public.messages": {
       "name": "messages",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "conversation_id": {
           "name": "conversation_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "from_agent_id": {
-          "name": "from_agent_id",
-          "type": "text",
+        "from_sub_agent_id": {
+          "name": "from_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "to_agent_id": {
-          "name": "to_agent_id",
-          "type": "text",
+        "to_sub_agent_id": {
+          "name": "to_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "from_external_agent_id": {
-          "name": "from_external_agent_id",
-          "type": "text",
+        "from_external_sub_agent_id": {
+          "name": "from_external_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
-        "to_external_agent_id": {
-          "name": "to_external_agent_id",
-          "type": "text",
+        "to_external_sub_agent_id": {
+          "name": "to_external_sub_agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
+        },
+        "from_team_agent_id": {
+          "name": "from_team_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_team_agent_id": {
+          "name": "to_team_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
         },
         "content": {
           "name": "content",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "visibility": {
           "name": "visibility",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": "'user-facing'"
         },
         "message_type": {
           "name": "message_type",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": "'chat'"
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         },
         "task_id": {
           "name": "task_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "parent_message_id": {
           "name": "parent_message_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "a2a_task_id": {
           "name": "a2a_task_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "a2a_session_id": {
           "name": "a2a_session_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "metadata": {
           "name": "metadata",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -1998,154 +1590,1028 @@
       },
       "compositePrimaryKeys": {
         "messages_tenant_id_project_id_id_pk": {
+          "name": "messages_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "messages_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "projects": {
+    "public.projects": {
       "name": "projects",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "models": {
           "name": "models",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "stop_when": {
           "name": "stop_when",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "projects_tenant_id_id_pk": {
+          "name": "projects_tenant_id_id_pk",
           "columns": [
             "tenant_id",
             "id"
-          ],
-          "name": "projects_tenant_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "task_relations": {
-      "name": "task_relations",
+    "public.sub_agent_artifact_components": {
+      "name": "sub_agent_artifact_components",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "parent_task_id": {
-          "name": "parent_task_id",
-          "type": "text",
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
-        "child_task_id": {
-          "name": "child_task_id",
-          "type": "text",
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artifact_component_id": {
+          "name": "artifact_component_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_artifact_components_sub_agent_fk": {
+          "name": "sub_agent_artifact_components_sub_agent_fk",
+          "tableFrom": "sub_agent_artifact_components",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_artifact_components_artifact_component_fk": {
+          "name": "sub_agent_artifact_components_artifact_component_fk",
+          "tableFrom": "sub_agent_artifact_components",
+          "tableTo": "artifact_components",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "artifact_component_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_artifact_components_tenant_id_project_id_agent_id_sub_agent_id_id_pk": {
+          "name": "sub_agent_artifact_components_tenant_id_project_id_agent_id_sub_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_data_components": {
+      "name": "sub_agent_data_components",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_component_id": {
+          "name": "data_component_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_data_components_sub_agent_fk": {
+          "name": "sub_agent_data_components_sub_agent_fk",
+          "tableFrom": "sub_agent_data_components",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_data_components_data_component_fk": {
+          "name": "sub_agent_data_components_data_component_fk",
+          "tableFrom": "sub_agent_data_components",
+          "tableTo": "data_components",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "data_component_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_data_components_tenant_id_project_id_id_pk": {
+          "name": "sub_agent_data_components_tenant_id_project_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_external_agent_relations": {
+      "name": "sub_agent_external_agent_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_agent_id": {
+          "name": "external_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headers": {
+          "name": "headers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_external_agent_relations_sub_agent_fk": {
+          "name": "sub_agent_external_agent_relations_sub_agent_fk",
+          "tableFrom": "sub_agent_external_agent_relations",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_external_agent_relations_external_agent_fk": {
+          "name": "sub_agent_external_agent_relations_external_agent_fk",
+          "tableFrom": "sub_agent_external_agent_relations",
+          "tableTo": "external_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "external_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_function_tool_relations": {
+      "name": "sub_agent_function_tool_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "function_tool_id": {
+          "name": "function_tool_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_function_tool_relations_sub_agent_fk": {
+          "name": "sub_agent_function_tool_relations_sub_agent_fk",
+          "tableFrom": "sub_agent_function_tool_relations",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_function_tool_relations_function_tool_fk": {
+          "name": "sub_agent_function_tool_relations_function_tool_fk",
+          "tableFrom": "sub_agent_function_tool_relations",
+          "tableTo": "function_tools",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "function_tool_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_function_tool_relations_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agent_function_tool_relations_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_relations": {
+      "name": "sub_agent_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_sub_agent_id": {
+          "name": "source_sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_sub_agent_id": {
+          "name": "target_sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
         },
         "relation_type": {
           "name": "relation_type",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_relations_agent_fk": {
+          "name": "sub_agent_relations_agent_fk",
+          "tableFrom": "sub_agent_relations",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_relations_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agent_relations_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_team_agent_relations": {
+      "name": "sub_agent_team_agent_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_agent_id": {
+          "name": "target_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headers": {
+          "name": "headers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_team_agent_relations_sub_agent_fk": {
+          "name": "sub_agent_team_agent_relations_sub_agent_fk",
+          "tableFrom": "sub_agent_team_agent_relations",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_team_agent_relations_target_agent_fk": {
+          "name": "sub_agent_team_agent_relations_target_agent_fk",
+          "tableFrom": "sub_agent_team_agent_relations",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "target_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_team_agent_relations_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agent_team_agent_relations_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agent_tool_relations": {
+      "name": "sub_agent_tool_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tool_id": {
+          "name": "tool_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selected_tools": {
+          "name": "selected_tools",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "headers": {
+          "name": "headers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agent_tool_relations_agent_fk": {
+          "name": "sub_agent_tool_relations_agent_fk",
+          "tableFrom": "sub_agent_tool_relations",
+          "tableTo": "sub_agents",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "sub_agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_agent_tool_relations_tool_fk": {
+          "name": "sub_agent_tool_relations_tool_fk",
+          "tableFrom": "sub_agent_tool_relations",
+          "tableTo": "tools",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "tool_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agent_tool_relations_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agent_tool_relations_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sub_agents": {
+      "name": "sub_agents",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
+          "notNull": true
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conversation_history_config": {
+          "name": "conversation_history_config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "models": {
+          "name": "models",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stop_when": {
+          "name": "stop_when",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sub_agents_agents_fk": {
+          "name": "sub_agents_agents_fk",
+          "tableFrom": "sub_agents",
+          "tableTo": "agent",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_agents_tenant_id_project_id_agent_id_id_pk": {
+          "name": "sub_agents_tenant_id_project_id_agent_id_id_pk",
+          "columns": [
+            "tenant_id",
+            "project_id",
+            "agent_id",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.task_relations": {
+      "name": "task_relations",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_task_id": {
+          "name": "parent_task_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "child_task_id": {
+          "name": "child_task_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "relation_type": {
+          "name": "relation_type",
+          "type": "varchar(255)",
+          "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'parent_child'"
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -2168,109 +2634,102 @@
       },
       "compositePrimaryKeys": {
         "task_relations_tenant_id_project_id_id_pk": {
+          "name": "task_relations_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "task_relations_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "tasks": {
+    "public.tasks": {
       "name": "tasks",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "graph_id": {
-          "name": "graph_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "agent_id": {
           "name": "agent_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
+        },
+        "sub_agent_id": {
+          "name": "sub_agent_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
         },
         "context_id": {
           "name": "context_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "metadata": {
           "name": "metadata",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "tasks_agent_fk": {
-          "name": "tasks_agent_fk",
+        "tasks_sub_agent_fk": {
+          "name": "tasks_sub_agent_fk",
           "tableFrom": "tasks",
-          "tableTo": "agents",
+          "tableTo": "sub_agents",
           "columnsFrom": [
             "tenant_id",
             "project_id",
-            "graph_id",
-            "agent_id"
+            "agent_id",
+            "sub_agent_id"
           ],
           "columnsTo": [
             "tenant_id",
             "project_id",
-            "graph_id",
+            "agent_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -2279,105 +2738,102 @@
       },
       "compositePrimaryKeys": {
         "tasks_tenant_id_project_id_id_pk": {
+          "name": "tasks_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "tasks_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "tools": {
+    "public.tools": {
       "name": "tools",
+      "schema": "",
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "project_id": {
           "name": "project_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": false
         },
         "config": {
           "name": "config",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "credential_reference_id": {
           "name": "credential_reference_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "headers": {
           "name": "headers",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "image_url": {
           "name": "image_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "capabilities": {
           "name": "capabilities",
-          "type": "blob",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "last_error": {
           "name": "last_error",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -2400,26 +2856,29 @@
       },
       "compositePrimaryKeys": {
         "tools_tenant_id_project_id_id_pk": {
+          "name": "tools_tenant_id_project_id_id_pk",
           "columns": [
             "tenant_id",
             "project_id",
             "id"
-          ],
-          "name": "tools_tenant_id_project_id_id_pk"
+          ]
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "views": {},
   "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
+    "tables": {}
   }
 }

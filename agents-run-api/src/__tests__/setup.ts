@@ -39,8 +39,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
-import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -72,9 +71,6 @@ beforeAll(async () => {
   const logger = getLogger('Test Setup');
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
-
-    // Temporarily disable foreign key constraints for tests due to composite key issues
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
 
     // Use path relative to project root to work with both direct and turbo execution
     const migrationsPath = process.cwd().includes('agents-run-api')

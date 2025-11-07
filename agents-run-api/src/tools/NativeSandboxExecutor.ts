@@ -217,7 +217,7 @@ export class NativeSandboxExecutor {
             poolKey,
             useCount: sandbox.useCount,
             sandboxDir: sandbox.sandboxDir,
-            lastUsed: new Date(sandbox.lastUsed).toISOString(),
+            lastUsed: new Date(sandbox.lastUsed),
           },
           'Reusing cached sandbox'
         );

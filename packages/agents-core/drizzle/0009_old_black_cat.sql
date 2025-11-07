@@ -1,1 +1,0 @@
-ALTER TABLE `projects` DROP COLUMN `sandbox_config`;

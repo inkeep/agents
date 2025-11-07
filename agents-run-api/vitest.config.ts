@@ -19,7 +19,6 @@ export default defineProject({
     },
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-key-for-tests',
     },
   },

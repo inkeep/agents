@@ -19,6 +19,7 @@ describe('Agent Data Access', () => {
 
   beforeEach(async () => {
     db = await createTestDatabaseClient();
+    vi.clearAllMocks();
   });
 
   describe('createAgent', () => {

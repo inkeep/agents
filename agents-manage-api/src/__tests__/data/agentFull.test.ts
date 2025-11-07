@@ -24,51 +24,6 @@ vi.mock('../../logger.js', () => ({
 }));
 
 describe('Agent Full Service Layer - Unit Tests', () => {
-  // Helper function to create test tool data
-  // const createTestToolData = (id: string, suffix = '') => ({
-  //   id,
-  //   name: `Test Tool${suffix}`,
-  //   config: {
-  //     type: 'mcp',
-  //     mcp: {
-  //       server: {
-  //         url: `http://localhost:300${suffix || '1'}`,
-  //       },
-  //     },
-  //   },
-  //   status: 'unknown' as const,
-  //   capabilities: { tools: true },
-  //   lastHealthCheck: new Date().toISOString(),
-  //   availableTools: [
-  //     {
-  //       name: `testTool${suffix}`,
-  //       description: `Test tool function${suffix}`,
-  //     },
-  //   ],
-  // });
-
-  // Helper function to create test data component data
-  // const createTestDataComponentData = (id: string, suffix = '') => ({
-  //   id,
-  //   name: `Test DataComponent${suffix}`,
-  //   description: `Test data component description${suffix}`,
-  //   props: {
-  //     type: 'object',
-  //     properties: {
-  //       items: {
-  //         type: 'array',
-  //         items: { type: 'string' },
-  //         description: `Test items array${suffix}`,
-  //       },
-  //       title: {
-  //         type: 'string',
-  //         description: `Test title${suffix}`,
-  //       },
-  //     },
-  //     required: ['items'],
-  //   },
-  // });
-
   // Helper function to create full agent data
   const createFullAgentData = (
     agentId?: string,

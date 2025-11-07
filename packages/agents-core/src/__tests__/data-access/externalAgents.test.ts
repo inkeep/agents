@@ -12,7 +12,7 @@ import {
   updateExternalAgent,
 } from '../../data-access/externalAgents';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 describe('External Agents Data Access', () => {
   let db: DatabaseClient;
@@ -20,8 +20,9 @@ describe('External Agents Data Access', () => {
   const testProjectId = 'project-456';
   const testExternalAgentId = 'external-agent-789';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = await createTestDatabaseClient();
+    vi.clearAllMocks();
   });
 
   describe('createExternalAgent', () => {

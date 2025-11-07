@@ -3,7 +3,6 @@ import { defineProject } from 'vitest/config';
 export default defineProject({
   test: {
     name: 'agents-core',
-    setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     environment: 'node',
     testTimeout: 60000, // 60 seconds for A2A client tests
@@ -18,7 +17,6 @@ export default defineProject({
     },
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
     },
   },
 });
