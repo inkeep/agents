@@ -33,7 +33,7 @@ function safeJsonParse(jsonString: string | undefined | null): any {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Error parsing JSON:', error);
+    console.warn('Error parsing JSON:', error);
     return undefined;
   }
 }
@@ -557,7 +557,7 @@ export function serializeAgentData(
 
   const result: FullAgentDefinition = {
     id: metadata?.id || generateId(),
-    name: metadata?.name || 'Untitled Agent',
+    name: metadata?.name ?? '',
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,
