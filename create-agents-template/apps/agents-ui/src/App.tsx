@@ -5,7 +5,7 @@ import { TemperatureList } from './TemperatureList';
 
 const embeddedChatProps: InkeepEmbeddedChatProps = {
   aiChatSettings: {
-    graphUrl: 'http://localhost:3003/api/chat',
+    agentUrl: 'http://localhost:3003/api/chat',
     headers: {
       tz: 'US/Pacific', //Add timezone if different from US/Pacific.
       // You can find a timezone list here: https://github.com/davidayalas/current-time?tab=readme-ov-file
