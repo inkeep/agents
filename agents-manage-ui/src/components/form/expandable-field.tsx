@@ -56,7 +56,7 @@ export function ExpandableField({
           )}
         </div>
       </div>
-      <div className={cn('relative', open && 'grow')}>{children}</div>
+      <div className={cn('relative space-y-2', open && 'grow')}>{children}</div>
     </>
   );
 
