@@ -226,6 +226,7 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 export const AgentSelectSchema = createSelectSchema(agents);
 export const AgentInsertSchema = createInsertSchema(agents).extend({
   id: resourceIdSchema,
+  name: z.string().trim().nonempty(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
