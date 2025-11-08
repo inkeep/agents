@@ -55,7 +55,7 @@ export function JsonSchemaInput<T extends FieldValues>({
             ) : (
               <JsonSchemaBuilder value={value} onChange={field.onChange} />
             )}
-            <span className="absolute flex items-center end-0 top-0 gap-2 text-sm">
+            <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">
               JSON
               <Switch checked={isJsonSchemaModeChecked} onCheckedChange={setJsonSchemaMode} />
             </span>
