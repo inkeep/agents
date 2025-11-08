@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.6
+
+### Patch Changes
+
+- afffd8f: - Small ui design tweaks
+  - @inkeep/agents-manage-api@0.31.6
+  - @inkeep/agents-run-api@0.31.6
+  - @inkeep/agents-core@0.31.6
+
 ## 0.31.5
 
 ### Patch Changes
