@@ -1698,7 +1698,7 @@ export class Agent {
           // Set streaming helper from registry if available
           this.streamRequestId = streamRequestId;
           this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
-          
+
           // Update ArtifactService with this agent's artifact components
           if (streamRequestId && this.artifactComponents.length > 0) {
             agentSessionManager.updateArtifactComponents(streamRequestId, this.artifactComponents);

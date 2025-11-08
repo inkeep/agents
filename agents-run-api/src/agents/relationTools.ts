@@ -26,17 +26,19 @@ import { toolSessionManager } from './ToolSessionManager';
 const logger = getLogger('relationships Tools');
 
 const generateTransferToolDescription = (config: AgentConfig): string => {
-
   // Generate tools section from the agent's available tools
   let toolsSection = '';
-  
+
   // Generate transfer relations section
   let transferSection = '';
   if (config.transferRelations && config.transferRelations.length > 0) {
-    const transferList = config.transferRelations.map(transfer => 
-      `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
-    ).join('\n');
-    
+    const transferList = config.transferRelations
+      .map(
+        (transfer) =>
+          `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
+      )
+      .join('\n');
+
     transferSection = `
 
 Can Transfer To:
@@ -46,22 +48,30 @@ ${transferList}`;
   // Generate delegate relations section
   let delegateSection = '';
   if (config.delegateRelations && config.delegateRelations.length > 0) {
-    const delegateList = config.delegateRelations.map(delegate => 
-      `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
-    ).join('\n');
-    
+    const delegateList = config.delegateRelations
+      .map(
+        (delegate) =>
+          `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
+      )
+      .join('\n');
+
     delegateSection = `
 
 Can Delegate To:
 ${delegateList}`;
   }
-  
+
   if (config.tools && config.tools.length > 0) {
-    const toolDescriptions = config.tools.map(tool => {
-      const toolsList = tool.availableTools?.map(t => `  - ${t.name}: ${t.description || 'No description available'}`).join('\n') || '';
-      return `MCP Server: ${tool.name}\n${toolsList}`;
-    }).join('\n\n');
-    
+    const toolDescriptions = config.tools
+      .map((tool) => {
+        const toolsList =
+          tool.availableTools
+            ?.map((t) => `  - ${t.name}: ${t.description || 'No description available'}`)
+            .join('\n') || '';
+        return `MCP Server: ${tool.name}\n${toolsList}`;
+      })
+      .join('\n\n');
+
     toolsSection = `
 
 Available Tools & Capabilities:
@@ -86,18 +96,23 @@ const generateDelegateToolDescription = (delegateRelation: DelegateRelation): st
   let toolsSection = '';
   let transferSection = '';
   let delegateSection = '';
-  
+
   // For internal delegate relations (AgentConfig), include rich information
   if (delegateRelation.type === 'internal' && 'tools' in config) {
     const agentConfig = config as AgentConfig;
-    
+
     // Generate tools section
     if (agentConfig.tools && agentConfig.tools.length > 0) {
-      const toolDescriptions = agentConfig.tools.map(tool => {
-        const toolsList = tool.availableTools?.map(t => `  - ${t.name}: ${t.description || 'No description available'}`).join('\n') || '';
-        return `MCP Server: ${tool.name}\n${toolsList}`;
-      }).join('\n\n');
-      
+      const toolDescriptions = agentConfig.tools
+        .map((tool) => {
+          const toolsList =
+            tool.availableTools
+              ?.map((t) => `  - ${t.name}: ${t.description || 'No description available'}`)
+              .join('\n') || '';
+          return `MCP Server: ${tool.name}\n${toolsList}`;
+        })
+        .join('\n\n');
+
       toolsSection = `
 
 Available Tools & Capabilities:
@@ -106,10 +121,13 @@ ${toolDescriptions}`;
 
     // Generate transfer relations section
     if (agentConfig.transferRelations && agentConfig.transferRelations.length > 0) {
-      const transferList = agentConfig.transferRelations.map(transfer => 
-        `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
-      ).join('\n');
-      
+      const transferList = agentConfig.transferRelations
+        .map(
+          (transfer) =>
+            `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
+        )
+        .join('\n');
+
       transferSection = `
 
 Can Transfer To:
@@ -118,17 +136,20 @@ ${transferList}`;
 
     // Generate delegate relations section
     if (agentConfig.delegateRelations && agentConfig.delegateRelations.length > 0) {
-      const delegateList = agentConfig.delegateRelations.map(delegate => 
-        `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
-      ).join('\n');
-      
+      const delegateList = agentConfig.delegateRelations
+        .map(
+          (delegate) =>
+            `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
+        )
+        .join('\n');
+
       delegateSection = `
 
 Can Delegate To:
 ${delegateList}`;
     }
   }
-  
+
   const finalDescription = `Delegate a specific task to another agent.
 
 Agent Information:

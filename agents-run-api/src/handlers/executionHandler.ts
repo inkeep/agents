@@ -321,10 +321,12 @@ export class ExecutionHandler {
             role: 'agent',
             content: {
               text: transferReason,
-              parts: [{
-                kind: 'text',
-                text: transferReason,
-              }],
+              parts: [
+                {
+                  kind: 'text',
+                  text: transferReason,
+                },
+              ],
             },
             visibility: 'user-facing',
             messageType: 'chat',
@@ -333,7 +335,9 @@ export class ExecutionHandler {
           });
 
           // Keep the original user message and add a continuation prompt
-          currentMessage = currentMessage + "\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.";
+          currentMessage =
+            currentMessage +
+            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,

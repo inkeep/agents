@@ -315,7 +315,6 @@ export class ArtifactService {
         taskId: this.context.taskId,
       });
 
-
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
       }
@@ -580,7 +579,6 @@ export class ArtifactService {
 
     const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
     const fullValidation = validateAgainstSchema(fullData, fullSchema);
-
 
     // Block artifact creation if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {

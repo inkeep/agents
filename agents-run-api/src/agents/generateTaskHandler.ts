@@ -262,21 +262,18 @@ export const createTaskHandler = (
       // Convert db tools to MCP tools and filter by selectedTools
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
-          toolsForAgent.data.map(
-            async (item) => {
-              const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
-              
-              // Filter available tools based on selectedTools for this agent-tool relationship
-              if (item.selectedTools && item.selectedTools.length > 0) {
-                const selectedToolsSet = new Set(item.selectedTools);
-                mcpTool.availableTools = mcpTool.availableTools?.filter(tool => 
-                  selectedToolsSet.has(tool.name)
-                ) || [];
-              }
-              
-              return mcpTool;
+          toolsForAgent.data.map(async (item) => {
+            const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+
+            // Filter available tools based on selectedTools for this agent-tool relationship
+            if (item.selectedTools && item.selectedTools.length > 0) {
+              const selectedToolsSet = new Set(item.selectedTools);
+              mcpTool.availableTools =
+                mcpTool.availableTools?.filter((tool) => selectedToolsSet.has(tool.name)) || [];
             }
-          )
+
+            return mcpTool;
+          })
         )) ?? [];
 
       const agent = new Agent(
@@ -324,7 +321,7 @@ export const createTaskHandler = (
                 // Try to get transfer and delegate relations for internal agents only
                 let targetTransferRelations: any = { data: [] };
                 let targetDelegateRelations: any = { data: [] };
-                
+
                 try {
                   // Only attempt to get relations for internal agents (same tenant/project/agent)
                   const [transferRel, delegateRel] = await Promise.all([
@@ -348,29 +345,36 @@ export const createTaskHandler = (
                   targetTransferRelations = transferRel;
                   targetDelegateRelations = delegateRel;
                 } catch (err: any) {
-                  logger.info({ 
-                    agentId: relation.id, 
-                    error: err?.message || 'Unknown error'
-                  }, 'Could not fetch relations for target agent (likely external/team agent), using basic info only');
+                  logger.info(
+                    {
+                      agentId: relation.id,
+                      error: err?.message || 'Unknown error',
+                    },
+                    'Could not fetch relations for target agent (likely external/team agent), using basic info only'
+                  );
                 }
 
-                const targetAgentTools: McpTool[] = await Promise.all(
-                  targetToolsForAgent.data.map(
-                    async (item) => {
-                      const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
-                      
+                const targetAgentTools: McpTool[] =
+                  (await Promise.all(
+                    targetToolsForAgent.data.map(async (item) => {
+                      const mcpTool = await dbResultToMcpTool(
+                        item.tool,
+                        dbClient,
+                        credentialStoreRegistry
+                      );
+
                       // Filter available tools based on selectedTools for this agent-tool relationship
                       if (item.selectedTools && item.selectedTools.length > 0) {
                         const selectedToolsSet = new Set(item.selectedTools);
-                        mcpTool.availableTools = mcpTool.availableTools?.filter(tool => 
-                          selectedToolsSet.has(tool.name)
-                        ) || [];
+                        mcpTool.availableTools =
+                          mcpTool.availableTools?.filter((tool) =>
+                            selectedToolsSet.has(tool.name)
+                          ) || [];
                       }
-                      
+
                       return mcpTool;
-                    }
-                  )
-                ) ?? [];
+                    })
+                  )) ?? [];
 
                 // Build transfer relations for target agent (if available)
                 const targetTransferRelationsConfig = targetTransferRelations.data
@@ -392,19 +396,21 @@ export const createTaskHandler = (
                   }));
 
                 // Build delegate relations for target agent (if available)
-                const targetDelegateRelationsConfig = targetDelegateRelations.data.map((rel: any) => ({
-                  type: 'external' as const,
-                  config: {
-                    id: rel.externalAgent.id,
-                    name: rel.externalAgent.name,
-                    description: rel.externalAgent.description || '',
-                    baseUrl: rel.externalAgent.baseUrl,
-                    headers: rel.headers,
-                    credentialReferenceId: rel.externalAgent.credentialReferenceId,
-                    relationId: rel.id,
-                    relationType: 'delegate',
-                  },
-                }));
+                const targetDelegateRelationsConfig = targetDelegateRelations.data.map(
+                  (rel: any) => ({
+                    type: 'external' as const,
+                    config: {
+                      id: rel.externalAgent.id,
+                      name: rel.externalAgent.name,
+                      description: rel.externalAgent.description || '',
+                      baseUrl: rel.externalAgent.baseUrl,
+                      headers: rel.headers,
+                      credentialReferenceId: rel.externalAgent.credentialReferenceId,
+                      relationId: rel.id,
+                      relationType: 'delegate',
+                    },
+                  })
+                );
 
                 return {
                   baseUrl: config.baseUrl,

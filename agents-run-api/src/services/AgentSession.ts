@@ -1354,7 +1354,6 @@ Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
 
 Make it specific and relevant.`;
 
-
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
