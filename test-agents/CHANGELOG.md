@@ -1,5 +1,12 @@
 # test-agents
 
+## 0.1.7
+
+### Patch Changes
+
+- @inkeep/agents-cli@0.31.6
+- @inkeep/agents-sdk@0.31.6
+
 ## 0.1.6
 
 ### Patch Changes
