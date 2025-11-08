@@ -333,8 +333,8 @@ export const createTaskHandler = (
                         tenantId: config.tenantId,
                         projectId: config.projectId,
                         agentId: config.agentId,
-                        subAgentId: relation.id,
-                      } as any,
+                      },
+                      subAgentId: relation.id,
                     }),
                     getExternalAgentsForSubAgent(dbClient)({
                       scopes: {
