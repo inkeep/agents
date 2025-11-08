@@ -36,8 +36,18 @@ import {
 
 export const StopWhenSchema = z
   .object({
-    transferCountIs: z.number().min(1).max(100).optional(),
-    stepCountIs: z.number().min(1).max(1000).optional(),
+    transferCountIs: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('The maximum number of transfers to trigger the stop condition.'),
+    stepCountIs: z
+      .number()
+      .min(1)
+      .max(1000)
+      .optional()
+      .describe('The maximum number of steps to trigger the stop condition.'),
   })
   .openapi('StopWhen');
 
@@ -61,18 +71,21 @@ export const resourceIdSchema = z
   .string()
   .min(MIN_ID_LENGTH)
   .max(MAX_ID_LENGTH)
+  .describe('Resource identifier')
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
   .openapi({
-    description: 'Resource identifier',
     example: 'resource_789',
   });
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional(),
-    providerOptions: z.record(z.string(), z.any()).optional(),
+    model: z.string().optional().describe('The model to use for the project.'),
+    providerOptions: z
+      .record(z.string(), z.any())
+      .optional()
+      .describe('The provider options to use for the project.'),
   })
   .openapi('ModelSettings');
 
@@ -550,6 +563,74 @@ export const CredentialReferenceApiUpdateSchema = createApiUpdateSchema(
     type: z.enum(CredentialStoreType).optional(),
   })
   .openapi('CredentialReferenceUpdate');
+
+export const CredentialStoreSchema = z
+  .object({
+    id: z.string().describe('Unique identifier of the credential store'),
+    type: z.enum(CredentialStoreType),
+    available: z.boolean().describe('Whether the store is functional and ready to use'),
+    reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
+  })
+  .openapi('CredentialStore');
+
+export const CredentialStoreListResponseSchema = z
+  .object({
+    data: z.array(CredentialStoreSchema).describe('List of credential stores'),
+  })
+  .openapi('CredentialStoreListResponse');
+
+export const CreateCredentialInStoreRequestSchema = z
+  .object({
+    key: z.string().describe('The credential key'),
+    value: z.string().describe('The credential value'),
+    metadata: z
+      .record(z.string(), z.string())
+      .nullish()
+      .describe('The metadata for the credential'),
+  })
+  .openapi('CreateCredentialInStoreRequest');
+
+export const CreateCredentialInStoreResponseSchema = z
+  .object({
+    data: z.object({
+      key: z.string().describe('The credential key'),
+      storeId: z.string().describe('The store ID where credential was created'),
+      createdAt: z.string().describe('ISO timestamp of creation'),
+    }),
+  })
+  .openapi('CreateCredentialInStoreResponse');
+
+export const RelatedAgentInfoSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+  })
+  .openapi('RelatedAgentInfo');
+
+export const ComponentAssociationSchema = z
+  .object({
+    subAgentId: z.string(),
+    createdAt: z.string(),
+  })
+  .openapi('ComponentAssociation');
+
+export const OAuthLoginQuerySchema = z
+  .object({
+    tenantId: z.string().min(1, 'Tenant ID is required'),
+    projectId: z.string().min(1, 'Project ID is required'),
+    toolId: z.string().min(1, 'Tool ID is required'),
+  })
+  .openapi('OAuthLoginQuery');
+
+export const OAuthCallbackQuerySchema = z
+  .object({
+    code: z.string().min(1, 'Authorization code is required'),
+    state: z.string().min(1, 'State parameter is required'),
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .openapi('OAuthCallbackQuery');
 
 export const McpToolSchema = ToolInsertSchema.extend({
   imageUrl: imageUrlSchema,

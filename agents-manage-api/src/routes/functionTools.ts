@@ -13,10 +13,10 @@ import {
   listFunctionTools,
   PaginationQueryParamsSchema,
   SingleResponseSchema,
+  TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -76,9 +76,7 @@ app.openapi(
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
@@ -185,9 +183,7 @@ app.openapi(
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -251,9 +247,7 @@ app.openapi(
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {

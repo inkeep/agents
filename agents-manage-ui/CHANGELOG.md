@@ -1,5 +1,24 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.6
+
+### Patch Changes
+
+- afffd8f: - Small ui design tweaks
+  - @inkeep/agents-manage-api@0.31.6
+  - @inkeep/agents-run-api@0.31.6
+  - @inkeep/agents-core@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- 6fd7b05: - Add ship modal with instructions for how to utilize the agents
+- 19e8375: - Bump agents-ui package to 0.15.2
+  - @inkeep/agents-manage-api@0.31.5
+  - @inkeep/agents-run-api@0.31.5
+  - @inkeep/agents-core@0.31.5
+
 ## 0.31.4
 
 ### Patch Changes
