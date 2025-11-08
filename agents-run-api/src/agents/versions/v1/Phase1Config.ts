@@ -462,6 +462,7 @@ ${creationInstructions}
     const artifactSummary =
       summaryData.length > 0 ? JSON.stringify(summaryData, null, 2) : 'No summary data available';
 
+
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
     artifactXml = artifactXml.replace('{{ARTIFACT_DESCRIPTION}}', artifact.description || '');
     artifactXml = artifactXml.replace('{{TASK_ID}}', artifact.taskId || '');

@@ -322,7 +322,7 @@ export class ExecutionHandler {
             content: {
               text: transferReason,
               parts: [{
-                type: 'text',
+                kind: 'text',
                 text: transferReason,
               }],
             },

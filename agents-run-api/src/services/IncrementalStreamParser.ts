@@ -74,6 +74,7 @@ export class IncrementalStreamParser {
       } catch (_error) {}
     }
 
+
     this.artifactParser = new ArtifactParser(tenantId, {
       ...artifactParserOptions,
       contextId,

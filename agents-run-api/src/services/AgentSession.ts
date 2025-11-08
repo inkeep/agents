@@ -1354,6 +1354,7 @@ Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
 
 Make it specific and relevant.`;
 
+
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
@@ -1515,16 +1516,8 @@ Make it specific and relevant.`;
             result = object;
           }
 
-          const artifactService = new ArtifactService({
-            tenantId: artifactData.tenantId,
-            projectId: artifactData.projectId,
-            contextId: artifactData.contextId,
-            taskId: artifactData.taskId,
-            sessionId: this.sessionId,
-          });
-
           try {
-            await artifactService.saveArtifact({
+            await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,

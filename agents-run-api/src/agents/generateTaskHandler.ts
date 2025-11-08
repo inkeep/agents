@@ -322,8 +322,8 @@ export const createTaskHandler = (
                 });
 
                 // Try to get transfer and delegate relations for internal agents only
-                let targetTransferRelations = { data: [] };
-                let targetDelegateRelations = { data: [] };
+                let targetTransferRelations: any = { data: [] };
+                let targetDelegateRelations: any = { data: [] };
                 
                 try {
                   // Only attempt to get relations for internal agents (same tenant/project/agent)
@@ -334,7 +334,7 @@ export const createTaskHandler = (
                         projectId: config.projectId,
                         agentId: config.agentId,
                         subAgentId: relation.id,
-                      },
+                      } as any,
                     }),
                     getExternalAgentsForSubAgent(dbClient)({
                       scopes: {
@@ -347,10 +347,10 @@ export const createTaskHandler = (
                   ]);
                   targetTransferRelations = transferRel;
                   targetDelegateRelations = delegateRel;
-                } catch (err) {
+                } catch (err: any) {
                   logger.info({ 
                     agentId: relation.id, 
-                    error: err.message 
+                    error: err?.message || 'Unknown error'
                   }, 'Could not fetch relations for target agent (likely external/team agent), using basic info only');
                 }
 
@@ -374,8 +374,8 @@ export const createTaskHandler = (
 
                 // Build transfer relations for target agent (if available)
                 const targetTransferRelationsConfig = targetTransferRelations.data
-                  .filter((rel) => rel.relationType === 'transfer')
-                  .map((rel) => ({
+                  .filter((rel: any) => rel.relationType === 'transfer')
+                  .map((rel: any) => ({
                     baseUrl: config.baseUrl,
                     apiKey: config.apiKey,
                     id: rel.id,
@@ -392,7 +392,7 @@ export const createTaskHandler = (
                   }));
 
                 // Build delegate relations for target agent (if available)
-                const targetDelegateRelationsConfig = targetDelegateRelations.data.map((rel) => ({
+                const targetDelegateRelationsConfig = targetDelegateRelations.data.map((rel: any) => ({
                   type: 'external' as const,
                   config: {
                     id: rel.externalAgent.id,

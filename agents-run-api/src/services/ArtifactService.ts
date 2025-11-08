@@ -298,11 +298,23 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
       });
+
 
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
@@ -356,7 +368,19 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -556,6 +580,7 @@ export class ArtifactService {
 
     const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
     const fullValidation = validateAgainstSchema(fullData, fullSchema);
+
 
     // Block artifact creation if required fields are missing from summary data
     if (!summaryValidation.hasRequiredFields) {
