@@ -8,7 +8,6 @@ export default defineProject({
     setupFiles: ['./vitest.setup.ts'],
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
       INKEEP_AGENTS_MANAGE_API_URL: 'http://localhost:3002',
       INKEEP_AGENTS_RUN_API_URL: 'http://localhost:3003',
     },

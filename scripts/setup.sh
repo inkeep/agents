@@ -27,24 +27,9 @@ if [ ! -f ".env" ]; then
   
   # Get the current directory path for the database file
   CURRENT_DIR=$(pwd)
-  DB_PATH="${CURRENT_DIR}/local.db"
-  
-  # Replace the empty DB_FILE_NAME with the current directory path
-  if command -v sed >/dev/null 2>&1; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS requires -i '' for in-place editing
-      sed -i '' "s|^DB_FILE_NAME=.*|DB_FILE_NAME=file:${DB_PATH}|" .env
-    else
-      # Linux
-      sed -i "s|^DB_FILE_NAME=.*|DB_FILE_NAME=file:${DB_PATH}|" .env
-    fi
-  else
-    echo -e "${RED}  ⚠ sed not available, please manually set DB_FILE_NAME=file:${DB_PATH}${NC} and then rerun this script."
-    exit 1
-  fi
+  DATABASE_URL="postgresql://appuser:password@localhost:5432/inkeep_agents"
   
   echo -e "${GREEN}✓${NC} Created .env from template"
-  echo -e "${GREEN}✓${NC} Set DB_FILE_NAME to file:${DB_PATH}"
   echo -e "${YELLOW}  → Please edit .env with your API keys and configuration${NC}"
 else
   echo -e "${GREEN}✓${NC} .env already exists"

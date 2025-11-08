@@ -9,6 +9,21 @@ on:
     branches: ['*']
   merge_group:
 
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: inkeep_agents
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: password
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5  # Will fail after 5 retries = ~50 seconds
+    ports:
+      - 5432:5432
+      
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -85,7 +100,6 @@ jobs:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          DB_FILE_NAME: test.db
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
           HUSKY: 0
