@@ -1,44 +1,20 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  CreateCredentialInStoreRequestSchema,
+  CreateCredentialInStoreResponseSchema,
+  CredentialStoreListResponseSchema,
   type CredentialStoreRegistry,
-  CredentialStoreType,
   commonGetErrorResponses,
   createApiError,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
-
-const CredentialStoreSchema = z.object({
-  id: z.string().describe('Unique identifier of the credential store'),
-  type: z.enum(CredentialStoreType),
-  available: z.boolean().describe('Whether the store is functional and ready to use'),
-  reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
-});
-
-const CredentialStoreListResponseSchema = z.object({
-  data: z.array(CredentialStoreSchema).describe('List of credential stores'),
-});
-
-const CreateCredentialInStoreRequestSchema = z.object({
-  key: z.string().describe('The credential key'),
-  value: z.string().describe('The credential value'),
-  metadata: z.record(z.string(), z.string()).nullish().describe('The metadata for the credential'),
-});
-
-const CreateCredentialInStoreResponseSchema = z.object({
-  data: z.object({
-    key: z.string().describe('The credential key'),
-    storeId: z.string().describe('The store ID where credential was created'),
-    createdAt: z.string().describe('ISO timestamp of creation'),
-  }),
-});
 
 app.openapi(
   createRoute({
@@ -93,9 +69,7 @@ app.openapi(
     operationId: 'create-credential-in-store',
     tags: ['Credential Store'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({
-        id: z.string().describe('The credential store ID'),
-      }),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
