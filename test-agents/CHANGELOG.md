@@ -1,5 +1,14 @@
 # test-agents
 
+## 0.1.8
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-cli@0.31.7
+  - @inkeep/agents-sdk@0.31.7
+
 ## 0.1.7
 
 ### Patch Changes
