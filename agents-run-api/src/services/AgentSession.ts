@@ -1515,16 +1515,8 @@ Make it specific and relevant.`;
             result = object;
           }
 
-          const artifactService = new ArtifactService({
-            tenantId: artifactData.tenantId,
-            projectId: artifactData.projectId,
-            contextId: artifactData.contextId,
-            taskId: artifactData.taskId,
-            sessionId: this.sessionId,
-          });
-
           try {
-            await artifactService.saveArtifact({
+            await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
