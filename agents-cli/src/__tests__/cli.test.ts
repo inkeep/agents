@@ -167,7 +167,6 @@ describe('Inkeep CLI', () => {
     it('should be executable', () => {
       // This test ensures the CLI can be executed without throwing
       const result = runCli(['--version']);
-      console.log(result);
 
       expect(result.exitCode).toBe(0);
     });
