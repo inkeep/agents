@@ -6,6 +6,7 @@ export default defineProject({
     globals: true,
     environment: 'node',
     testTimeout: 60000, // 60 seconds for A2A client tests
+    hookTimeout: 60000, // 60 seconds for setup/teardown hooks
     exclude: ['node_modules', 'dist'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
