@@ -956,8 +956,7 @@ export const evalSuiteConfigEvaluator = pgTable(
  * 
  * Execution instance of an eval suite config. Represents a single run that
  * evaluates conversations based on the suite configuration. Links to a
- * specific suite config. Has a one-to-many relationship
- * with evalSuiteRunEvaluator to track which evaluators are used.
+ * specific suite config.
  * 
  * Can evaluate conversations from a dataset (datasetId set) or evaluate
  * past conversations based on filters in the suite config (datasetId null).
@@ -988,39 +987,6 @@ export const evalSuiteRun = pgTable(
       columns: [table.tenantId, table.projectId, table.suiteConfigId],
       foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
       name: 'eval_suite_run_config_fk',
-    }).onDelete('cascade'),
-  ]
-);
-
-/**
- * Eval Suite Run Evaluator join table
- * 
- * Links evaluators to a specific suite run execution. Many-to-many
- * relationship that tracks which evaluators are used in a particular run.
- * Each run can use multiple evaluators
- * 
- * Includes: evalSuiteRunId, evaluatorId, and timestamps
- */
-export const evalSuiteRunEvaluator = pgTable(
-  'eval_suite_run_evaluators',
-  {
-    id: text('id').primaryKey(),
-    evalSuiteRunId: text('eval_suite_run_id').notNull(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    evaluatorId: text('evaluator_id').notNull(),
-    ...timestamps,
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.evalSuiteRunId],
-      foreignColumns: [evalSuiteRun.id],
-      name: 'eval_suite_run_evaluators_run_fk',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.evaluatorId],
-      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
-      name: 'eval_suite_run_evaluators_evaluator_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -1476,7 +1442,6 @@ export const evaluatorRelations = relations(evaluator, ({ one, many }) => ({
     references: [projects.tenantId, projects.id],
   }),
   evalResults: many(evalResult),
-  evalSuiteRuns: many(evalSuiteRunEvaluator),
   evalSuiteConfigs: many(evalSuiteConfigEvaluator),
 }));
 
@@ -1522,19 +1487,7 @@ export const evalSuiteRunRelations = relations(evalSuiteRun, ({ one, many }) => 
     fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.suiteConfigId],
     references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
   }),
-  evaluators: many(evalSuiteRunEvaluator),
   results: many(evalResult),
-}));
-
-export const evalSuiteRunEvaluatorRelations = relations(evalSuiteRunEvaluator, ({ one }) => ({
-  evalSuiteRun: one(evalSuiteRun, {
-    fields: [evalSuiteRunEvaluator.evalSuiteRunId],
-    references: [evalSuiteRun.id],
-  }),
-  evaluator: one(evaluator, {
-    fields: [evalSuiteRunEvaluator.tenantId, evalSuiteRunEvaluator.projectId, evalSuiteRunEvaluator.evaluatorId],
-    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
-  }),
 }));
 
 export const evalResultRelations = relations(evalResult, ({ one }) => ({
