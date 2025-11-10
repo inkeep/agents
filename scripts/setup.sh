@@ -78,6 +78,7 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # 7. Setup database
 echo ""
 echo "Setting up database..."
+docker-compose up -f docker-compose.db.yml -d
 pnpm --filter @inkeep/agents-core db:migrate
 echo -e "${GREEN}✓${NC} Database ready"
 
