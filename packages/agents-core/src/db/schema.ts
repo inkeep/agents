@@ -958,10 +958,7 @@ export const evalSuiteConfigEvaluator = pgTable(
  * evaluates conversations based on the suite configuration. Links to a
  * specific suite config.
  * 
- * Can evaluate conversations from a dataset (datasetId set) or evaluate
- * past conversations based on filters in the suite config (datasetId null).
- * 
- * Includes: name, description, datasetId (optional), suiteConfigId,
+ * Includes: name, description, suiteConfigId,
  * status (pending/done/failed), and timestamps
  */
 export const evalSuiteRun = pgTable(
@@ -972,17 +969,11 @@ export const evalSuiteRun = pgTable(
     projectId: text('project_id').notNull(),
     name: text('name').notNull(),
     description: text('description').notNull(),
-    datasetId: text('dataset_id'), // Optional - null when evaluating past conversations
     suiteConfigId: text('suite_config_id').notNull(),
     status: text('status').$type<'done'|'failed'>().notNull(),
     ...timestamps,
   },
   (table) => [
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.datasetId],
-      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
-      name: 'eval_suite_run_dataset_fk',
-    }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.suiteConfigId],
       foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
@@ -1425,7 +1416,6 @@ export const datasetRelations = relations(dataset, ({ one, many }) => ({
   }),
   items: many(datasetItem),
   datasetRuns: many(datasetRun),
-  evalSuiteRuns: many(evalSuiteRun),
 }));
 
 export const datasetItemRelations = relations(datasetItem, ({ one, many }) => ({
@@ -1479,10 +1469,6 @@ export const evalSuiteConfigEvaluatorRelations = relations(evalSuiteConfigEvalua
 }));
 
 export const evalSuiteRunRelations = relations(evalSuiteRun, ({ one, many }) => ({
-  dataset: one(dataset, {
-    fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.datasetId],
-    references: [dataset.tenantId, dataset.projectId, dataset.id],
-  }),
   suiteConfig: one(evalSuiteConfig, {
     fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.suiteConfigId],
     references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
