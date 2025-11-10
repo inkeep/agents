@@ -19,7 +19,7 @@ jobs:
     services:
       postgres:
         image: postgres:18
-        environment:
+        env:
           POSTGRES_DB: inkeep_agents
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: password

@@ -114,11 +114,11 @@ jobs:
   create-agents-e2e:
     runs-on: ubuntu-latest
     name: Create Agents E2E Tests
-    
+
     services:
       postgres:
         image: postgres:18
-        environment:
+        env:
           POSTGRES_DB: inkeep_agents
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: password
