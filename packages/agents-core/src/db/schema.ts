@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -25,7 +26,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
-import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
+import type { AgentStopWhen, ModelSettings, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -679,6 +680,390 @@ export const credentialReferences = pgTable(
   ]
 );
 
+/**
+ * Dataset table
+ * 
+ * A collection of test cases/items used for evaluation. Contains dataset items
+ * that define input/output pairs for testing agents. Used for batch evaluation
+ * runs where conversations are created from dataset items. Each datasetRun
+ * specifies which agent to use when executing the dataset.
+ * 
+ * Includes: name, description, metadata (for tagging?? can also remove this), and timestamps
+ */
+export const dataset = pgTable(
+  'dataset',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'dataset_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Dataset Item table
+ * 
+ * Individual test case within a dataset. Contains the input messages to send
+ * to an agent and optionally expected output or simulation configuration.
+ * When a dataset run executes, it creates conversations from these items.
+ * 
+ * Includes: input messages, expected output, simulation config (user persona,
+ * agent definition, max turns, stopping conditions), and timestamps
+ */
+export const datasetItem = pgTable(
+  'dataset_item',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    datasetId: text('dataset_id').notNull(),
+    input: jsonb('input').$type<{
+      messages: Array<{ role: string; content: MessageContent }>;
+      headers?: Record<string, string>;
+    }>(),
+    expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
+    simulationConfig: jsonb('simulation_config').$type<{
+      userPersona: string;
+      initialMessage?: string;
+      maxTurns?: number;
+      stoppingCondition?: string;
+      simulatingAgentDefinition: {
+        name: string;
+        description: string;
+        prompt: string;
+        modelConfig: Record<string, unknown>;
+        temperature?: number;
+      };
+    }>(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'dataset_item_dataset_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Evaluator table
+ * 
+ * Defines an evaluation function that assesses agent performance. Contains
+ * the prompt/instructions for the evaluator, output schema for structured
+ * results, and model configuration. Used by eval suite configs to evaluate
+ * conversations.
+ * 
+ * The modelConfig is optional and will default to the modelConfig from the eval suite config if not provided.
+ * 
+ * Includes: name, description, prompt, schema (output structure),
+ * modelConfig (for the evaluator LLM), and timestamps
+ */
+export const evaluator = pgTable(
+  'evaluator',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    prompt: text('prompt').notNull(),
+    schema: jsonb('schema').$type<Record<string, unknown>>().notNull(),
+    modelConfig: jsonb('model_config').$type<ModelSettings>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'evaluator_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Dataset Run table
+ * 
+ * Execution of a suite of items from a dataset. Represents a batch run that
+ * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
+ * status and links to conversations created during the run via
+ * datasetRunConversations join table.
+ * NO EVAL STUFF IS DONE HERE
+ * 
+ * Each run specifies which agent to use for creating conversations from the dataset items.
+
+ * 
+ * Includes: dataset reference, agentId (the agent to use for this run),
+ * and timestamps
+ */
+export const datasetRun = pgTable(
+  'dataset_run',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    datasetId: text('dataset_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'dataset_run_dataset_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'dataset_run_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Dataset Run Conversations join table
+ * 
+ * Links conversations created during a dataset run execution. One-to-many
+ * relationship where one datasetRun can create many conversations, but each
+ * conversation belongs to exactly one datasetRun. Used to track which
+ * conversations were generated from which dataset run.
+ * 
+ * Includes: datasetRunId, conversationId (unique constraint ensures one conversation
+ * per datasetRun), and timestamps
+ */
+export const datasetRunConversations = pgTable(
+  'dataset_run_conversations',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    datasetRunId: text('dataset_run_id').notNull(),
+    conversationId: text('conversation_id').notNull(),
+    projectId: text('project_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.datasetRunId],
+      foreignColumns: [datasetRun.id],
+      name: 'dataset_run_conversations_run_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'dataset_run_conversations_conversation_fk',
+    }).onDelete('cascade'),
+    unique('dataset_run_conversations_unique').on(
+      table.datasetRunId,
+      table.conversationId
+    ),
+  ]
+);
+
+/**
+ * Eval Suite Config table
+ * 
+ * Reusable suite configuration for batch dataset runs or batch conversations.
+ * Defines which conversations/dataset runs to evaluate (via filters) and which evaluators
+ * to use. Can configure run frequency and model config that can be overridden
+ * by specific evaluators. Attaches evaluators via evalSuiteConfigEvaluator join.
+ * 
+ * Includes: name, description, modelConfig (default for evaluators),
+ * runFrequency (weekly/daily/monthly, nullable), filtering config (agentIds,
+ * datasetRunId, conversationIds, dateRange), sampleRate for sampling,
+ * and timestamps
+ */
+export const evalSuiteConfig = pgTable(
+  'eval_suite_config',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    modelConfig: jsonb('model_config').$type<ModelSettings>(),
+    runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', on demaind
+    // Filtering configuration
+    agentIds: jsonb('agent_ids').$type<string[]>(),
+    datasetRunId: text('dataset_run_id'), // For filtering by dataset run
+    conversationIds: jsonb('conversation_ids').$type<string[]>(), // Only for past conversations
+    dateRange: jsonb('date_range').$type<{
+      startDate: string;
+      endDate: string;
+    }>(), // For filtering past conversations by date range
+    sampleRate: doublePrecision('sample_rate'), // Sampling configuration
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'eval_suite_config_project_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.datasetRunId],
+      foreignColumns: [datasetRun.id],
+      name: 'eval_suite_config_dataset_run_fk',
+    }).onDelete('set null'),
+  ]
+);
+
+/**
+ * Eval Suite Config Evaluator join table
+ * 
+ * Links evaluators to eval suite configs. Many-to-many relationship that
+ * attaches evaluators to a suite configuration. The evaluator's own modelConfig
+ * (if set) takes precedence, otherwise the suite config's modelConfig is used.
+ * 
+ * Includes: suiteConfigId, evaluatorId, and timestamps
+ */
+export const evalSuiteConfigEvaluator = pgTable(
+  'eval_suite_config_evaluator',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    suiteConfigId: text('suite_config_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.suiteConfigId],
+      foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+      name: 'eval_suite_config_evaluator_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'eval_suite_config_evaluator_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Eval Suite Run table
+ * 
+ * Execution instance of an eval suite config. Represents a single run that
+ * evaluates conversations based on the suite configuration. Links to a
+ * specific suite config. Has a one-to-many relationship
+ * with evalSuiteRunEvaluator to track which evaluators are used.
+ * 
+ * Can evaluate conversations from a dataset (datasetId set) or evaluate
+ * past conversations based on filters in the suite config (datasetId null).
+ * 
+ * Includes: name, description, datasetId (optional), suiteConfigId,
+ * status (pending/done/failed), and timestamps
+ */
+export const evalSuiteRun = pgTable(
+  'eval_suite_run',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    datasetId: text('dataset_id'), // Optional - null when evaluating past conversations
+    suiteConfigId: text('suite_config_id').notNull(),
+    status: text('status').$type<'done'|'failed'>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'eval_suite_run_dataset_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.suiteConfigId],
+      foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+      name: 'eval_suite_run_config_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Eval Suite Run Evaluator join table
+ * 
+ * Links evaluators to a specific suite run execution. Many-to-many
+ * relationship that tracks which evaluators are used in a particular run.
+ * Each run can use multiple evaluators
+ * 
+ * Includes: evalSuiteRunId, evaluatorId, and timestamps
+ */
+export const evalSuiteRunEvaluator = pgTable(
+  'eval_suite_run_evaluators',
+  {
+    id: text('id').primaryKey(),
+    evalSuiteRunId: text('eval_suite_run_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.evalSuiteRunId],
+      foreignColumns: [evalSuiteRun.id],
+      name: 'eval_suite_run_evaluators_run_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'eval_suite_run_evaluators_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Eval Result table
+ * 
+ * Stores the result of evaluating a conversation with a specific evaluator.
+ * Contains the evaluation output, reasoning, and status. Linked to
+ * a suite run. Each result represents one evaluator's assessment of one
+ * conversation.
+ * 
+ * Includes: conversationId, evaluatorId, suiteRunId,
+ * datasetItemId (optional), status (done/failed), reasoning,
+ * metadata (structured evaluation output), and timestamps
+ */
+export const evalResult = pgTable(
+  'eval_result',
+  {
+    id: text('id').primaryKey(),
+    suiteRunId: text('suite_run_id').notNull(), // References evalSuiteRun.id
+    datasetItemId: text('dataset_item_id'),
+    conversationId: text('conversation_id').notNull(),
+    status: text('status').$type<'done'|'failed'>().notNull(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    reasoning: text('reasoning'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [ 
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'eval_result_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'eval_result_evaluator_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.datasetItemId],
+      foreignColumns: [datasetItem.id],
+      name: 'eval_result_dataset_item_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   project: one(projects, {
     fields: [tasks.tenantId, tasks.projectId],
@@ -713,6 +1098,9 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   ledgerArtifacts: many(ledgerArtifacts),
   credentialReferences: many(credentialReferences),
+  datasets: many(dataset),
+  evaluators: many(evaluator),
+  evalSuiteConfigs: many(evalSuiteConfig),
 }));
 
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
@@ -1056,3 +1444,129 @@ export const subAgentTeamAgentRelationsRelations = relations(
     }),
   })
 );
+
+export const datasetRelations = relations(dataset, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [dataset.tenantId, dataset.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  items: many(datasetItem),
+  datasetRuns: many(datasetRun),
+  evalSuiteRuns: many(evalSuiteRun),
+}));
+
+export const datasetItemRelations = relations(datasetItem, ({ one, many }) => ({
+  dataset: one(dataset, {
+    fields: [datasetItem.tenantId, datasetItem.projectId, datasetItem.datasetId],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+  evalResults: many(evalResult),
+}));
+
+export const evaluatorRelations = relations(evaluator, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [evaluator.tenantId, evaluator.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  evalResults: many(evalResult),
+  evalSuiteRuns: many(evalSuiteRunEvaluator),
+  evalSuiteConfigs: many(evalSuiteConfigEvaluator),
+}));
+
+export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
+  dataset: one(dataset, {
+    fields: [datasetRun.tenantId, datasetRun.projectId, datasetRun.datasetId],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+  conversations: many(datasetRunConversations),
+  evalSuiteConfigs: many(evalSuiteConfig),
+}));
+
+export const evalSuiteConfigRelations = relations(evalSuiteConfig, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  datasetRun: one(datasetRun, {
+    fields: [evalSuiteConfig.datasetRunId],
+    references: [datasetRun.id],
+  }),
+  runs: many(evalSuiteRun),
+  evaluators: many(evalSuiteConfigEvaluator),
+}));
+
+export const evalSuiteConfigEvaluatorRelations = relations(evalSuiteConfigEvaluator, ({ one }) => ({
+  suiteConfig: one(evalSuiteConfig, {
+    fields: [evalSuiteConfigEvaluator.tenantId, evalSuiteConfigEvaluator.projectId, evalSuiteConfigEvaluator.suiteConfigId],
+    references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [evalSuiteConfigEvaluator.tenantId, evalSuiteConfigEvaluator.projectId, evalSuiteConfigEvaluator.evaluatorId],
+    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+  }),
+}));
+
+export const evalSuiteRunRelations = relations(evalSuiteRun, ({ one, many }) => ({
+  dataset: one(dataset, {
+    fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.datasetId],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+  suiteConfig: one(evalSuiteConfig, {
+    fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.suiteConfigId],
+    references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+  }),
+  evaluators: many(evalSuiteRunEvaluator),
+  results: many(evalResult),
+}));
+
+export const evalSuiteRunEvaluatorRelations = relations(evalSuiteRunEvaluator, ({ one }) => ({
+  evalSuiteRun: one(evalSuiteRun, {
+    fields: [evalSuiteRunEvaluator.evalSuiteRunId],
+    references: [evalSuiteRun.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [evalSuiteRunEvaluator.tenantId, evalSuiteRunEvaluator.projectId, evalSuiteRunEvaluator.evaluatorId],
+    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+  }),
+}));
+
+export const evalResultRelations = relations(evalResult, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [evalResult.tenantId, evalResult.projectId, evalResult.conversationId],
+    references: [conversations.tenantId, conversations.projectId, conversations.id],
+    relationName: 'conversationEvalResults',
+  }),
+  evaluator: one(evaluator, {
+    fields: [evalResult.tenantId, evalResult.projectId, evalResult.evaluatorId],
+    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+  }),
+  datasetItem: one(datasetItem, {
+    fields: [evalResult.datasetItemId],
+    references: [datasetItem.id],
+  }),
+  evalSuiteRun: one(evalSuiteRun, {
+    fields: [evalResult.suiteRunId],
+    references: [evalSuiteRun.id],
+  }),
+}));
+
+export const conversationsEvalRelations = relations(conversations, ({ many }) => ({
+  evalResults: many(evalResult, {
+    relationName: 'conversationEvalResults',
+  }),
+}));
+
+export const datasetRunConversationsRelations = relations(datasetRunConversations, ({ one }) => ({
+  datasetRun: one(datasetRun, {
+    fields: [datasetRunConversations.datasetRunId],
+    references: [datasetRun.id],
+  }),
+  conversation: one(conversations, {
+    fields: [
+      datasetRunConversations.tenantId,
+      datasetRunConversations.projectId,
+      datasetRunConversations.conversationId,
+    ],
+    references: [conversations.tenantId, conversations.projectId, conversations.id],
+  }),
+}));
