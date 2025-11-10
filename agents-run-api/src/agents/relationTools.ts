@@ -16,6 +16,12 @@ import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import z from 'zod';
 import { A2AClient } from '../a2a/client';
+import {
+  DELEGATION_TOOL_BACKOFF_EXPONENT,
+  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+} from '../constants/execution-limits';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -24,6 +30,9 @@ import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
+
+// Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
+const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 
 const generateTransferToolDescription = (config: AgentConfig): string => {
   // Generate tools section from the agent's available tools
@@ -364,12 +373,12 @@ export function createDelegateToAgentTool({
         retryConfig: {
           strategy: 'backoff',
           retryConnectionErrors: true,
-          statusCodes: ['429', '500', '502', '503', '504'],
+          statusCodes: [...A2A_RETRY_STATUS_CODES],
           backoff: {
-            initialInterval: 100,
-            maxInterval: 10000,
-            exponent: 2,
-            maxElapsedTime: 20000, // 1 minute max retry time
+            initialInterval: DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+            maxInterval: DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+            exponent: DELEGATION_TOOL_BACKOFF_EXPONENT,
+            maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
       });

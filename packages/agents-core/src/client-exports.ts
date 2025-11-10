@@ -7,6 +7,18 @@
  */
 
 import { z } from 'zod';
+import { schemaValidationDefaults } from './constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
 import { CredentialStoreType, MCPTransportType } from './types';
 
 import {
@@ -206,16 +218,20 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
     .optional(),
   stopWhen: z
     .object({
-      transferCountIs: z.number().min(1).max(100).optional(),
+      transferCountIs: z
+        .number()
+        .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+        .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+        .optional(),
     })
     .optional(),
-  prompt: z.string().max(5000).optional(),
+  prompt: z.string().max(VALIDATION_AGENT_PROMPT_MAX_CHARS).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),
-      numEvents: z.number().min(1).max(100).optional(),
-      timeInSeconds: z.number().min(1).max(600).optional(),
-      prompt: z.string().max(2000).optional(),
+      numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+      timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+      prompt: z.string().max(VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS).optional(),
       statusComponents: z
         .array(
           z.object({
