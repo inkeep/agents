@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getUpdateCommand, type PackageManager } from '../package-manager';
 
 describe('package-manager', () => {
@@ -59,9 +59,7 @@ describe('package-manager', () => {
     it('should throw error for potentially malicious input', async () => {
       const { executeUpdate } = await import('../package-manager');
       // @ts-expect-error Testing invalid input
-      await expect(executeUpdate('npm && rm -rf /')).rejects.toThrow(
-        'Unsupported package manager'
-      );
+      await expect(executeUpdate('npm && rm -rf /')).rejects.toThrow('Unsupported package manager');
     });
   });
 });

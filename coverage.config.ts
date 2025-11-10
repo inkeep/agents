@@ -136,9 +136,8 @@ export function getMonorepoThresholds(): CoverageThresholds {
  */
 export function generateVitestCoverageConfig(packageName: string) {
   // Special case: 'monorepo' uses minimum thresholds across all packages
-  const thresholds = packageName === 'monorepo'
-    ? getMonorepoThresholds()
-    : getPackageThresholds(packageName);
+  const thresholds =
+    packageName === 'monorepo' ? getMonorepoThresholds() : getPackageThresholds(packageName);
 
   return {
     provider: 'v8' as const,

@@ -1,5 +1,206 @@
 # @inkeep/agents-manage-ui
 
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-run-api@0.31.7
+  - @inkeep/agents-manage-api@0.31.7
+  - @inkeep/agents-core@0.31.7
+
+## 0.31.6
+
+### Patch Changes
+
+- afffd8f: - Small ui design tweaks
+  - @inkeep/agents-manage-api@0.31.6
+  - @inkeep/agents-run-api@0.31.6
+  - @inkeep/agents-core@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- 6fd7b05: - Add ship modal with instructions for how to utilize the agents
+- 19e8375: - Bump agents-ui package to 0.15.2
+  - @inkeep/agents-manage-api@0.31.5
+  - @inkeep/agents-run-api@0.31.5
+  - @inkeep/agents-core@0.31.5
+
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+  - @inkeep/agents-manage-api@0.31.4
+  - @inkeep/agents-run-api@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- ce3720a: animate MCP node which throws an error
+- ea4b251: remove `as React.CSSProperties` type casting
+- 43edec7: rename `Flow` component with `AgentReactFlowConsumer`
+- c1299f0: Prevent page jumps when Monaco editor is inside tab
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-manage-api@0.31.3
+  - @inkeep/agents-run-api@0.31.3
+
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-manage-api@0.31.2
+  - @inkeep/agents-run-api@0.31.2
+  - @inkeep/agents-core@0.31.2
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-manage-api@0.31.1
+  - @inkeep/agents-run-api@0.31.1
+  - @inkeep/agents-core@0.31.1
+
+## 0.31.0
+
+### Minor Changes
+
+- c92cb22: Implement a Simple Edit mode for the JSON Schema editor, enabling users to modify the schema via an HTML form.
+- 3bfcc67: Make the Side Pane and Playground Pane (Try It! button) resizable and persist their sizes in localStorage.
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+- 970a058: import `<Playground />` with `next/dynamic` to improve `/agents/*` first load page sizes
+- Updated dependencies [eadc8f8]
+- Updated dependencies [48a3e3e]
+- Updated dependencies [b98fd0a]
+  - @inkeep/agents-manage-api@0.31.0
+  - @inkeep/agents-run-api@0.31.0
+  - @inkeep/agents-core@0.31.0
+
+## 0.30.4
+
+### Patch Changes
+
+- aeacd5f: call `generateId` only once during initial rendering
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+- Updated dependencies [26b89c6]
+- Updated dependencies [4a73629]
+  - @inkeep/agents-core@0.30.4
+  - @inkeep/agents-manage-api@0.30.4
+  - @inkeep/agents-run-api@0.30.4
+
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+- Updated dependencies [73569ce]
+  - @inkeep/agents-core@0.30.3
+  - @inkeep/agents-run-api@0.30.3
+  - @inkeep/agents-manage-api@0.30.3
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+- Updated dependencies [09ac1b4]
+  - @inkeep/agents-core@0.30.2
+  - @inkeep/agents-manage-api@0.30.2
+  - @inkeep/agents-run-api@0.30.2
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+- Updated dependencies [8b889f4]
+- Updated dependencies [c6502dd]
+- Updated dependencies [c2f5582]
+- Updated dependencies [99bf28a]
+  - @inkeep/agents-manage-api@0.30.1
+  - @inkeep/agents-run-api@0.30.1
+  - @inkeep/agents-core@0.30.1
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+- Updated dependencies [e95f0d3]
+- Updated dependencies [94fe795]
+  - @inkeep/agents-core@0.30.0
+  - @inkeep/agents-manage-api@0.30.0
+  - @inkeep/agents-run-api@0.30.0
+
+## 0.29.11
+
+### Patch Changes
+
+- 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+- 69c303e: fix validation errors for Sub Agents and setup Cypress e2e tests
+- Updated dependencies [dba5a31]
+- Updated dependencies [b0817aa]
+  - @inkeep/agents-core@0.29.11
+  - @inkeep/agents-manage-api@0.29.11
+  - @inkeep/agents-run-api@0.29.11
+
+## 0.29.10
+
+### Patch Changes
+
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+  - @inkeep/agents-manage-api@0.29.10
+  - @inkeep/agents-run-api@0.29.10
+
+## 0.29.9
+
+### Patch Changes
+
+- cd5b846: - Update agents-ui to latest, update docs to reflect renaming of modalSettings to openSettings"
+  - @inkeep/agents-manage-api@0.29.9
+  - @inkeep/agents-run-api@0.29.9
+  - @inkeep/agents-core@0.29.9
+
+## 0.29.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.29.8
+- @inkeep/agents-run-api@0.29.8
+- @inkeep/agents-core@0.29.8
+
 ## 0.29.7
 
 ### Patch Changes

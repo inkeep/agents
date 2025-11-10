@@ -1,0 +1,147 @@
+---
+title: Use Inkeep agents with Vercel AI SDK
+sidebarTitle: Inkeep Provider
+description: A custom AI SDK provider that lets you use Inkeep agents with generateText, streamText, and other AI SDK functions.
+icon: LuZap
+keywords: Vercel AI SDK, provider, generateText, streamText, tool calling, agents
+---
+
+## Overview
+
+The `@inkeep/ai-sdk-provider` package is a custom AI SDK provider that exposes Inkeep agents through the Vercel AI SDK. This lets you call your agents with `generateText()` and `streamText()`.
+
+## Installation
+
+```bash
+npm install @inkeep/ai-sdk-provider ai
+```
+
+## Basic Usage
+
+### Text Generation
+
+```typescript
+import { generateText } from 'ai';
+import { createInkeep } from '@inkeep/ai-sdk-provider';
+
+const inkeep = createInkeep({
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL, // Required
+  apiKey: '<your-agent-api-key>', // Created in the Agents Dashboard
+  headers: { // Optional if you are developing locally and don't want to use an api key
+    'x-inkeep-agent-id': 'your-agent-id',
+    'x-inkeep-tenant-id': 'your-tenant-id',
+    'x-inkeep-project-id': 'your-project-id',
+  },
+});
+
+const { text } = await generateText({
+  model: inkeep(),
+  prompt: 'What is the weather in NYC?',
+});
+
+console.log(text);
+```
+
+### Streaming Responses
+
+```typescript
+import { streamText } from 'ai';
+import { createInkeep } from '@inkeep/ai-sdk-provider';
+
+const inkeep = createInkeep({
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
+  headers: {
+    'x-emit-operations': 'true', // Enable tool event streaming
+  },
+});
+
+const result = await streamText({
+  model: inkeep(),
+  prompt: 'Plan an event in NYC',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Configuration
+
+### Provider Settings
+
+```typescript
+createInkeep({
+  baseURL: string,        // Required. Your agents-run-api URL
+  apiKey?: string,        // Optional. Bearer token for authentication
+  headers?: Record<string, string>, // Optional. Additional headers
+})
+```
+
+### Provider Options
+
+Pass options when creating a provider instance:
+
+```typescript
+const provider = inkeep({
+  conversationId: 'conv-456',
+  headers: { 'user-id': 'user-789' },
+});
+```
+
+## Tool Call Observability
+
+To receive tool call and result events in your stream, include the `x-emit-operations` header:
+
+```typescript
+const inkeep = createInkeep({
+  baseURL: process.env.INKEEP_AGENTS_RUN_API_URL,
+  apiKey: '<your-agent-api-key>', // The agent ID is encoded in the API key
+  headers: {
+    'x-emit-operations': 'true',
+  },
+});
+
+const result = await streamText({
+  model: inkeep(),
+  prompt: 'Search for recent papers on AI',
+});
+
+for await (const event of result.fullStream) {
+  switch (event.type) {
+    case 'tool-call':
+      console.log(`Calling: ${event.toolName}`);
+      break;
+    case 'tool-result':
+      console.log(`Result: ${event.toolName}`);
+      break;
+  }
+}
+```
+
+### Supported Stream Events
+
+**Text events** (always emitted):
+- `text-start`, `text-delta`, `text-end`
+
+**Tool events** (requires `x-emit-operations: true`):
+- `tool-call` - Tool invocations (including agent transfers and delegations)
+- `tool-result` - Tool results (including delegation returns)
+
+**Control events** (always emitted):
+- `finish` - Stream completion with usage stats
+- `error` - Stream errors
+
+## Next Steps
+
+<Cards>
+  <Card title="useChat Hook" icon="LuCode" href="/talk-to-your-agents/vercel-ai-sdk/use-chat">
+    Build React chat interfaces with streaming responses.
+  </Card>
+  <Card title="AI Elements" icon="LuPackage" href="/talk-to-your-agents/vercel-ai-sdk/ai-elements">
+    Use prebuilt UI components for chat experiences.
+  </Card>
+  <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
+    Learn about the underlying HTTP API endpoint.
+  </Card>
+</Cards>

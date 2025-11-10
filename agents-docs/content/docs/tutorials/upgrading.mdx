@@ -1,0 +1,37 @@
+---
+title: Upgrading your Inkeep version
+sidebarTitle: Upgrading
+description: Upgrade the packages that make up the Inkeep Agent Framework
+icon: "LuPackage"
+---
+
+## Overview
+
+The Inkeep Agent Framework is composed of several npm packages:
+
+- [`@inkeep/agents-manage-api`](https://www.npmjs.com/package/@inkeep/agents-manage-api): The API for managing projects and agent configurations.
+- [`@inkeep/agents-run-api`](https://www.npmjs.com/package/@inkeep/agents-run-api): The API for executing conversations with your agents.
+- [`@inkeep/agents-manage-ui`](https://www.npmjs.com/package/@inkeep/agents-manage-ui): The UI for the visual builder and dashboard.
+- [`@inkeep/agents-core`](https://www.npmjs.com/package/@inkeep/agents-core): The core shared functionality of the agent framework.
+- [`@inkeep/agents-sdk`](https://www.npmjs.com/package/@inkeep/agents-sdk): The TypeScript SDK for building multi-agent systems.
+- [`@inkeep/agents-cli`](https://www.npmjs.com/package/@inkeep/agents-cli): The CLI for managing and interacting with the agent framework.
+- [`@inkeep/agents-ui`](https://www.npmjs.com/package/@inkeep/agents-ui): The UI library containing chat widget components.
+
+## Upgrading the quickstart template
+
+If you used the `npx @inkeep/create-agents` CLI command to create your workspace, run the following command from the workspace root:
+
+```bash
+pnpm upgrade-agents
+```
+
+This will update all the packages to the latest version and migrate your database schema to the latest version.
+
+## Upgrading the Agent CLI
+
+If you installed the `@inkeep/agents-cli` package globally, you can upgrade it to the latest version by running the following command:
+
+```bash
+inkeep update
+```
+

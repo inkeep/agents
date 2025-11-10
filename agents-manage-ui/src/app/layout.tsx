@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { AppSidebar } from '@/components/sidebar-nav/sidebar-nav';
-import { ThemeProvider } from 'next-themes';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
@@ -63,12 +63,10 @@ export default function RootLayout({
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
               <SidebarProvider
-                style={
-                  {
-                    '--sidebar-width': 'calc(var(--spacing) * 62)',
-                    '--header-height': 'calc(var(--spacing) * 12)',
-                  } as React.CSSProperties
-                }
+                style={{
+                  '--sidebar-width': 'calc(var(--spacing) * 62)',
+                  '--header-height': 'calc(var(--spacing) * 12)',
+                }}
               >
                 <AppSidebar variant="inset" />
                 <SidebarInset>{children}</SidebarInset>

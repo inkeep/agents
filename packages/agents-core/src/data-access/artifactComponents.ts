@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { generateId } from '../utils/conversations';
 import {
   artifactComponents,
   subAgentArtifactComponents,
@@ -18,6 +17,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../types/utility';
+import { generateId } from '../utils/conversations';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
 export const getArtifactComponentById =

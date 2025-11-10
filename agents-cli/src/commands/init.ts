@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
 
 export interface InitOptions {
   path?: string;
@@ -136,20 +136,38 @@ export async function initCommand(options?: InitOptions) {
     process.exit(0);
   }
 
-  const apiUrl = await p.text({
-    message: 'Enter the API URL:',
-    defaultValue: 'http://localhost:3002',
-    validate: (input) => {
-      try {
+  const validateUrl = (input: string) => {
+    try {
+      if (input && input.trim() !== '') {
         new URL(input);
         return undefined;
-      } catch {
-        return 'Please enter a valid URL';
       }
-    },
+      return undefined;
+    } catch {
+      return 'Please enter a valid URL';
+    }
+  };
+
+  const manageApiUrl = await p.text({
+    message: 'Enter the Management API URL:',
+    placeholder: 'http://localhost:3002',
+    defaultValue: 'http://localhost:3002',
+    validate: validateUrl,
   });
 
-  if (p.isCancel(apiUrl)) {
+  if (p.isCancel(manageApiUrl)) {
+    p.cancel('Operation cancelled');
+    process.exit(0);
+  }
+
+  const runApiUrl = await p.text({
+    message: 'Enter the Run API URL:',
+    placeholder: 'http://localhost:3003',
+    defaultValue: 'http://localhost:3003',
+    validate: validateUrl,
+  });
+
+  if (p.isCancel(runApiUrl)) {
     p.cancel('Operation cancelled');
     process.exit(0);
   }
@@ -160,10 +178,10 @@ export async function initCommand(options?: InitOptions) {
 export default defineConfig({
   tenantId: '${tenantId}',
   agentsManageApi: {
-    url: '${apiUrl}',
+    url: '${manageApiUrl}',
   },
   agentsRunApi: {
-    url: '${apiUrl}',
+    url: '${runApiUrl}',
   },
 });
 `;

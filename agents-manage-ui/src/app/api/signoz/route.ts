@@ -109,13 +109,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   const logger = getLogger('signoz-config-check');
-  
-  logger.info({ 
-    hasUrl: !!SIGNOZ_URL, 
-    hasApiKey: !!SIGNOZ_API_KEY,
-    url: SIGNOZ_URL 
-  }, 'Checking SigNoz configuration');
-  
+
+  logger.info(
+    {
+      hasUrl: !!SIGNOZ_URL,
+      hasApiKey: !!SIGNOZ_API_KEY,
+      url: SIGNOZ_URL,
+    },
+    'Checking SigNoz configuration'
+  );
+
   // First check if credentials are set
   if (!SIGNOZ_URL || !SIGNOZ_API_KEY) {
     logger.warn('SigNoz credentials not set');
@@ -127,7 +130,7 @@ export async function GET() {
   }
 
   // Test the connection with minimal authenticated query
-  // 200/400 = valid API key 
+  // 200/400 = valid API key
   try {
     const testPayload = {
       start: Date.now() - 300000, // 5 minutes ago
@@ -155,23 +158,29 @@ export async function GET() {
       },
     });
 
-    logger.info({ 
-      status: response.status,
-    }, 'SigNoz health check successful (authenticated)');
-    
+    logger.info(
+      {
+        status: response.status,
+      },
+      'SigNoz health check successful (authenticated)'
+    );
+
     return NextResponse.json({
       status: 'ok',
       configured: true,
     });
   } catch (error) {
-    logger.error({ 
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: axios.isAxiosError(error) ? error.code : undefined,
-      status: axios.isAxiosError(error) ? error.response?.status : undefined,
-      responseData: axios.isAxiosError(error) ? error.response?.data : undefined,
-    }, 'SigNoz connection test failed');
-    
+    logger.error(
+      {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: axios.isAxiosError(error) ? error.code : undefined,
+        status: axios.isAxiosError(error) ? error.response?.status : undefined,
+        responseData: axios.isAxiosError(error) ? error.response?.data : undefined,
+      },
+      'SigNoz connection test failed'
+    );
+
     let errorMessage = 'Failed to connect to SigNoz';
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {

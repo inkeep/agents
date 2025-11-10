@@ -209,7 +209,6 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -239,6 +238,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
@@ -397,6 +398,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -515,7 +520,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -558,6 +567,14 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -621,8 +638,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -820,7 +837,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.ARTIFACT_SUB_AGENT_ID,
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -915,6 +936,30 @@ export async function GET(
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
       if (agentId || agentName) break;
     }
+
+    let allSpanAttributes: Array<{
+      spanId: string;
+      traceId: string;
+      timestamp: string;
+      data: Record<string, any>;
+    }> = [];
+    try {
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(
+        conversationId,
+        SIGNOZ_URL,
+        SIGNOZ_API_KEY
+      );
+    } catch (e) {
+      const logger = getLogger('span-attributes');
+      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
+    }
+
+    const spanIdToParentSpanId = new Map<string, string | null>();
+    for (const spanAttr of allSpanAttributes) {
+      const parentSpanId = spanAttr.data[SPAN_KEYS.PARENT_SPAN_ID] || null;
+      spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
+    }
+
     // activities
     type Activity = {
       id: string;
@@ -929,9 +974,9 @@ export async function GET(
         | 'ai_model_streamed_text'
         | 'ai_model_streamed_object'
         | 'artifact_processing';
-      name: string;
       description: string;
       timestamp: string;
+      parentSpanId?: string | null;
       status: 'success' | 'error' | 'pending';
       subAgentId?: string;
       subAgentName?: string;
@@ -1020,15 +1065,17 @@ export async function GET(
           getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
         : '';
 
+      const toolCall = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: toolCall,
         type: ACTIVITY_TYPES.TOOL_CALL,
-        name,
         toolName: name,
         description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(toolCall) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
@@ -1058,12 +1105,13 @@ export async function GET(
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
       } catch {}
 
+      const contextResolution = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextResolution,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context fetch ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextResolution) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
@@ -1088,12 +1136,13 @@ export async function GET(
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
       } catch {}
 
+      const contextHandle = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextHandle,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context handle ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextHandle) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
@@ -1107,12 +1156,13 @@ export async function GET(
     for (const span of userMessageSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: userMessageSpanId,
         type: ACTIVITY_TYPES.USER_MESSAGE,
-        name: ACTIVITY_NAMES.USER_MESSAGE,
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
+        parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
         subAgentName: ACTIVITY_NAMES.USER,
@@ -1127,19 +1177,16 @@ export async function GET(
     for (const span of aiAssistantSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const aiAssistantMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiAssistantMessageSpanId,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
-        name: ACTIVITY_NAMES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
+        parentSpanId: spanIdToParentSpanId.get(aiAssistantMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: AGENT_IDS.AI_ASSISTANT,
-        subAgentName: getString(
-          span,
-          SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
@@ -1157,15 +1204,24 @@ export async function GET(
       const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
+      const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
-        name: ACTIVITY_NAMES.AI_TEXT_GENERATION,
         description: 'AI model generating text response',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(aiGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
@@ -1186,12 +1242,13 @@ export async function GET(
       const otelStatusCode = getString(span, SPAN_KEYS.OTEL_STATUS_CODE, '');
       const otelStatusDescription = getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
 
+      const agentGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: agentGeneration,
         type: ACTIVITY_TYPES.AGENT_GENERATION,
-        name: 'agent.generate',
         description: hasError ? 'Agent generation failed' : 'Agent generation',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(agentGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         result: hasError
           ? statusMessage || 'Agent generation failed'
@@ -1199,7 +1256,8 @@ export async function GET(
         hasError,
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
       });
     }
 
@@ -1207,15 +1265,24 @@ export async function GET(
     for (const span of aiStreamingSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-        name: ACTIVITY_NAMES.AI_STREAMING_TEXT,
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
@@ -1232,14 +1299,15 @@ export async function GET(
     for (const span of aiStreamingObjectSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
-        name: ACTIVITY_NAMES.AI_STREAMING_OBJECT,
         description: 'AI model streaming object response',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI streaming object failed'
@@ -1256,12 +1324,13 @@ export async function GET(
     // context fetchers
     for (const span of contextFetcherSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const contextFetcher = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: '',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextFetcher) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: UNKNOWN_VALUE,
         subAgentName: 'Context Fetcher',
@@ -1278,21 +1347,22 @@ export async function GET(
       const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
       const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
 
+      const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: artifactProcessing,
         type: 'artifact_processing',
-        name: 'Artifact Processing',
         description: 'Artifact processed',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(artifactProcessing) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || 'Unknown Agent',
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? 'Artifact processing failed' : 'Artifact processed successfully',
         artifactId: getString(span, SPAN_KEYS.ARTIFACT_ID, '') || undefined,
         artifactType: artifactType || undefined,
         artifactName: artifactName || undefined,
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
-        artifactSubAgentId: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
       });
     }
@@ -1301,6 +1371,21 @@ export async function GET(
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
     const operationEndTime = allSpanTimes.length > 0 ? Math.max(...allSpanTimes) : null;
+
+    // Resolve parentSpanId to nearest ancestor activity
+    const activityIds = new Set(activities.map((a) => a.id));
+    function findAncestorActivity(spanId: string): string | undefined {
+      if (!spanId) return undefined;
+      if (activityIds.has(spanId)) return spanId;
+      const parentSpanId = spanIdToParentSpanId.get(spanId);
+      if (!parentSpanId) return undefined;
+      return findAncestorActivity(parentSpanId);
+    }
+    for (const activity of activities) {
+      if (activity.parentSpanId) {
+        activity.parentSpanId = findAncestorActivity(activity.parentSpanId) || undefined;
+      }
+    }
 
     // Sort activities by pre-parsed timestamps
     activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -1350,23 +1435,6 @@ export async function GET(
     }
 
     const openAICallsCount = aiGenerationSpans.length;
-
-    let allSpanAttributes: Array<{
-      spanId: string;
-      traceId: string;
-      timestamp: string;
-      data: Record<string, any>;
-    }> = [];
-    try {
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(
-        conversationId,
-        SIGNOZ_URL,
-        SIGNOZ_API_KEY
-      );
-    } catch (e) {
-      const logger = getLogger('span-attributes');
-      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
-    }
 
     const conversation = {
       conversationId,

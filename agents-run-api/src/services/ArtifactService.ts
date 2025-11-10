@@ -176,7 +176,7 @@ export class ArtifactService {
 
       let previewSchema: any = null;
       let fullSchema: any = null;
-      
+
       if (component?.props) {
         previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
         fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
@@ -235,7 +235,13 @@ export class ArtifactService {
         data: cleanedSummaryData,
       };
 
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId, schemaValidation);
+      await this.persistArtifact(
+        request,
+        cleanedSummaryData,
+        cleanedFullData,
+        subAgentId,
+        schemaValidation
+      );
 
       await this.cacheArtifact(
         request.artifactId,
@@ -292,7 +298,18 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -350,7 +367,19 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -532,11 +561,11 @@ export class ArtifactService {
       const expectedFields = schema?.properties ? Object.keys(schema.properties) : [];
       const missingFields = expectedFields.filter((field: string) => !(field in (data || {})));
       const extraFields = actualFields.filter((field: string) => !expectedFields.includes(field));
-      
+
       // Check required fields specifically
       const requiredFields = schema?.required || [];
       const missingRequired = requiredFields.filter((field: string) => !(field in (data || {})));
-      
+
       return {
         hasExpectedFields: missingFields.length === 0,
         missingFields,
@@ -555,12 +584,12 @@ export class ArtifactService {
     if (!summaryValidation.hasRequiredFields) {
       const error = new Error(
         `Cannot save artifact: Missing required fields [${summaryValidation.missingRequired.join(', ')}] ` +
-        `for '${artifactType}' schema. ` +
-        `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
-        `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
-        `Consider using a different artifact component type that matches your data structure.`
+          `for '${artifactType}' schema. ` +
+          `Required: [${summaryValidation.missingRequired.join(', ')}]. ` +
+          `Found: [${summaryValidation.actualFields.join(', ')}]. ` +
+          `Consider using a different artifact component type that matches your data structure.`
       );
-      
+
       logger.error(
         {
           artifactId,
@@ -571,7 +600,7 @@ export class ArtifactService {
         },
         'Blocking artifact save due to missing required fields'
       );
-      
+
       throw error;
     }
 
@@ -609,7 +638,7 @@ export class ArtifactService {
     return {
       summary: summaryValidation,
       full: fullValidation,
-      schemaFound: !!(originalProps),
+      schemaFound: !!originalProps,
     };
   }
 
@@ -646,8 +675,24 @@ export class ArtifactService {
             artifactType: request.type,
           },
           schemaValidation: schemaValidation || {
-            summary: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [], hasRequiredFields: true, missingRequired: [] },
-            full: { hasExpectedFields: true, missingFields: [], extraFields: [], expectedFields: [], actualFields: [], hasRequiredFields: true, missingRequired: [] },
+            summary: {
+              hasExpectedFields: true,
+              missingFields: [],
+              extraFields: [],
+              expectedFields: [],
+              actualFields: [],
+              hasRequiredFields: true,
+              missingRequired: [],
+            },
+            full: {
+              hasExpectedFields: true,
+              missingFields: [],
+              extraFields: [],
+              expectedFields: [],
+              actualFields: [],
+              hasRequiredFields: true,
+              missingRequired: [],
+            },
             schemaFound: false,
           },
           tenantId: this.context.tenantId,

@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { NODE_WIDTH } from '@/features/agent/domain/deserialize';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { cn } from '@/lib/utils';
 import type { AgentNodeData } from '../configuration/node-types';
 import { agentNodeSourceHandleId, agentNodeTargetHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
 import { NodeTab } from './node-tab';
-import { cn } from '@/lib/utils';
 
 const ListSection = ({
   title,
@@ -44,7 +44,7 @@ const ListSection = ({
 
 export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const { data, selected, id } = props;
-  const { name, isDefault, description, models } = data;
+  const { name, isDefault, description, models, status } = data;
   const modelName = models?.base?.model;
 
   const { dataComponentLookup, artifactComponentLookup } = useAgentStore((state) => ({
@@ -71,16 +71,17 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
         .filter(Boolean) || [],
     [data?.artifactComponents, artifactComponentLookup]
   );
-
+  const isDelegating = status === 'delegating';
+  const isExecuting = status === 'executing';
   return (
     <div className="relative">
-      {isDefault && <NodeTab isSelected={selected || data.isDelegating}>Default</NodeTab>}
+      {isDefault && <NodeTab isSelected={selected || isDelegating}>Default</NodeTab>}
       <BaseNode
-        isSelected={selected || data.isDelegating}
+        isSelected={selected || isDelegating}
         className={cn(
           isDefault && 'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          data.isExecuting && 'node-executing'
+          isExecuting && 'node-executing'
         )}
         style={{ width: NODE_WIDTH }}
       >

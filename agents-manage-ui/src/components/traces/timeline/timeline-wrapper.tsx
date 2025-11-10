@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
 import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
-import { ActivityTimeline } from '@/components/traces/timeline/activity-timeline';
+import { HierarchicalTimeline } from '@/components/traces/timeline/hierarchical-timeline';
 import { renderPanelContent } from '@/components/traces/timeline/render-panel-content';
 import type {
   ActivityItem,
@@ -363,7 +363,9 @@ export function TimelineWrapper({
         <div className="bg-background h-full flex flex-col py-4">
           <div className="flex-shrink-0">
             <div className="flex items-center justify-between px-6 pb-4">
-              <div className="text-foreground text-md font-medium">Activity timeline</div>
+              <div className="flex items-center gap-2">
+                <div className="text-foreground text-md font-medium">Activity timeline</div>
+              </div>
               <div className="flex items-center gap-2">
                 {/* Copy JSON Button */}
                 {onCopyTrace && (
@@ -435,7 +437,7 @@ export function TimelineWrapper({
                 initial="smooth"
               >
                 <StickToBottom.Content>
-                  <ActivityTimeline
+                  <HierarchicalTimeline
                     activities={sortedActivities}
                     onSelect={(activity) => {
                       setSelected({
@@ -469,7 +471,7 @@ export function TimelineWrapper({
               </StickToBottom>
             ) : (
               <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50">
-                <ActivityTimeline
+                <HierarchicalTimeline
                   activities={sortedActivities}
                   onSelect={(activity) => {
                     setSelected({

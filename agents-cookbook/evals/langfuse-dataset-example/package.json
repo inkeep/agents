@@ -1,0 +1,24 @@
+{
+  "name": "langfuse-script",
+  "version": "1.0.0",
+  "description": "Langfuse dataset evaluation script",
+  "type": "module",
+  "scripts": {
+    "langfuse-init-example": "tsx langfuse-example.ts",
+    "langfuse-run-dataset": "tsx langfuse-dataset.ts"
+  },
+  "dependencies": {
+    "@langfuse/tracing": "^4.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^2.1.0",
+    "@opentelemetry/core": "^2.1.0",
+    "@opentelemetry/sdk-trace-node": "^2.1.0",
+    "dotenv": "^16.4.5",
+    "langfuse": "^3.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

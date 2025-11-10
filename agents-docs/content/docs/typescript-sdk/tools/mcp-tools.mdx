@@ -1,27 +1,29 @@
 ---
-title: MCP Tools
+title: Register MCP Servers as Tools
+sidebarTitle: MCP Tools
 description: Learn how to add and configure MCP tools for your agents
 icon: "LuHammer"
 ---
 
 MCP tools connect to external servers that implement the MCP standard. This allows you to integrate with a wide ecosystem of existing tools and services.
 
-Creating MCP tools is a two step process:
+Using MCP tools is a two step process:
 
 ### Step 1: Get an MCP server URL
 
-Creating an MCP server is covered in the [How to create MCP servers](/tutorials/how-to-create-mcp-servers/overview) tutorial.
+You need access to an MCP server before you can use its tools. Learn about connecting to Native servers, using Composio, or building Custom servers in the [MCP Servers tutorial](/tutorials/mcp-servers/overview).
 
-### Step 2: Create an MCP tool and use it in your sub agent
+### Step 2: Register the MCP server as a tool in your agent
 
 ```typescript
 import { subAgent, mcpTool } from "@inkeep/agents-sdk";
 
+// Register an existing MCP server as a tool
 const knowledgeBaseTool = mcpTool({
   id: "knowledge-base-tool",
   name: "knowledge_base",
   description: "Search the company knowledge base for information",
-  serverUrl: "https://kb.yourcompany.com/mcp",
+  serverUrl: "https://kb.yourcompany.com/mcp", // URL of your deployed MCP server
 });
 
 const qaAgent = subAgent({
@@ -126,50 +128,50 @@ Creating environment-aware MCP tools is a two step process:
 <Tabs>
   <Tab title="Development Config">
     ```typescript title="projects/my-project/environments/development.env.ts"
-    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
-    import { CredentialStoreType } from '@inkeep/agents-core';
+import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+import { CredentialStoreType } from '@inkeep/agents-core';
 
-    export const development = registerEnvironmentSettings({
-      mcpServers: {
-        'customer_support_tool': mcpTool({
-          id: 'customer-support-tool',
-          name: 'Customer Support Tool',
-          description: 'Customer Support Tool for development',
-          serverUrl: 'http://localhost:3000/customer-support/mcp',
-        })
-      },
-    });
+export const development = registerEnvironmentSettings({
+  mcpServers: {
+    'customer_support_tool': mcpTool({
+      id: 'customer-support-tool',
+      name: 'Customer Support Tool',
+      description: 'Customer Support Tool for development',
+      serverUrl: 'http://localhost:3000/customer-support/mcp',
+    })
+  },
+});
     ```
   </Tab>
 
   <Tab title="Production Config">
     ```typescript title="projects/my-project/environments/production.env.ts"
-    import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
-    import { CredentialStoreType } from '@inkeep/agents-core';
+import { registerEnvironmentSettings, mcpTool } from '@inkeep/agents-sdk';
+import { CredentialStoreType } from '@inkeep/agents-core';
 
-    export const production = registerEnvironmentSettings({
-      mcpServers: {
-        'customer_support_tool': mcpTool({
-          id: 'customer-support-tool',
-          name: 'Customer Support Tool',
-          description: 'Customer Support Tool for production',
-          serverUrl: 'https://customer-support.example.com/mcp',
-        })
-      },
-    });
+export const production = registerEnvironmentSettings({
+  mcpServers: {
+    'customer_support_tool': mcpTool({
+      id: 'customer-support-tool',
+      name: 'Customer Support Tool',
+      description: 'Customer Support Tool for production',
+      serverUrl: 'https://customer-support.example.com/mcp',
+    })
+  },
+});
     ```
   </Tab>
 
   <Tab title="Index File">
     ```typescript title="projects/my-project/environments/index.ts"
-    import { createEnvironmentSettings } from '@inkeep/agents-sdk';
-    import { development } from './development.env';
-    import { production } from './production.env';
+import { createEnvironmentSettings } from '@inkeep/agents-sdk';
+import { development } from './development.env';
+import { production } from './production.env';
 
-    export const envSettings = createEnvironmentSettings({
-      development,
-      production,
-    });
+export const envSettings = createEnvironmentSettings({
+  development,
+  production,
+});
     ```
   </Tab>
 </Tabs>

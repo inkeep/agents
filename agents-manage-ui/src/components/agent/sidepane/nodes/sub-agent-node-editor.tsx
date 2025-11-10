@@ -18,10 +18,10 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
-import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
 

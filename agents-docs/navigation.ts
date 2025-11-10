@@ -6,29 +6,9 @@ export default {
         {
           group: 'Get Started',
           icon: 'LuZap',
-          pages: [
-            'get-started/quick-start',
-            'get-started/push-pull',
-            'get-started/traces',
-            'get-started/upgrading',
-          ],
+          pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
-      ],
-    },
-    {
-      group: 'Tutorials',
-      pages: [
-        {
-          group: 'MCP Server Setup Guide',
-          icon: 'LuWrench',
-          pages: [
-            'tutorials/how-to-create-mcp-servers/overview',
-            'tutorials/how-to-create-mcp-servers/prebuilt-provider-hosted-mcps',
-            'tutorials/how-to-create-mcp-servers/prebuilt-composio-mcps',
-            'tutorials/how-to-create-mcp-servers/inkeep',
-          ],
-        },      
       ],
     },
     {
@@ -36,14 +16,12 @@ export default {
       icon: 'LuCode',
       pages: [
         'typescript-sdk/agent-settings',
+        'typescript-sdk/models',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: [
-            'typescript-sdk/tools/mcp-tools',
-            'typescript-sdk/tools/function-tools',
-          ],
+          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
         },
         {
           group: 'Credentials',
@@ -152,12 +130,10 @@ export default {
               ],
             },
             {
-              group: "Customization",
-              icon: "LuBrush",
-              pages: [
-                'ui-components/customization/styling',
-              ]
-            }
+              group: 'Customization',
+              icon: 'LuBrush',
+              pages: ['ui-components/customization/styling'],
+            },
           ],
         },
         {
@@ -170,6 +146,22 @@ export default {
         },
         'talk-to-your-agents/a2a',
         'troubleshooting',
+      ],
+    },
+    {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'MCP Servers',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },
+        'tutorials/upgrading',
       ],
     },
     {

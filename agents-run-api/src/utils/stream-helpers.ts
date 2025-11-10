@@ -675,10 +675,10 @@ export function createVercelStreamHelper(writer: VercelUIWriter) {
 }
 
 /**
- * MCP Stream Helper that captures content instead of streaming
- * Used for MCP tool responses which require a single response message
+ * Buffering Stream Helper that captures content instead of streaming
+ * Used for MCP tool responses and non-streaming API responses that require a single complete message
  */
-export class MCPStreamHelper implements StreamHelper {
+export class BufferingStreamHelper implements StreamHelper {
   private capturedText = '';
   private capturedData: any[] = [];
   private capturedOperations: OperationEvent[] = [];
@@ -738,7 +738,7 @@ export class MCPStreamHelper implements StreamHelper {
   }
 
   /**
-   * Get the captured response for MCP tool result
+   * Get the captured response for non-streaming output
    */
   getCapturedResponse(): {
     text: string;
@@ -757,6 +757,10 @@ export class MCPStreamHelper implements StreamHelper {
   }
 }
 
-export function createMCPStreamHelper(): MCPStreamHelper {
-  return new MCPStreamHelper();
+export function createBufferingStreamHelper(): BufferingStreamHelper {
+  return new BufferingStreamHelper();
 }
+
+// Alias for backwards compatibility with MCP usage
+export const createMCPStreamHelper = createBufferingStreamHelper;
+export type MCPStreamHelper = BufferingStreamHelper;

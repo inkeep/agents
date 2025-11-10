@@ -22,7 +22,7 @@ const footerLinks = [
     label: 'LinkedIn',
   },
   {
-    href: 'https://twitter.com/inkeep_ai',
+    href: 'https://twitter.com/inkeep',
     iconName: 'FaXTwitter',
     label: 'X (Twitter)',
   },
@@ -32,13 +32,11 @@ export function AppSidebar() {
   return (
     <Sidebar
       className="fixed top-[calc(var(--fd-banner-height)_+_var(--fd-nav-height))] h-[--fd-sidebar-height)] border-gray-100 dark:border-gray-800 "
-      style={
-        {
-          '--fd-sidebar-height': 'calc(100dvh - var(--fd-banner-height) - var(--fd-nav-height))',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--scrollbar-thumb-color) transparent',
-        } as object
-      }
+      style={{
+        '--fd-sidebar-height': 'calc(100dvh - var(--fd-banner-height) - var(--fd-nav-height))',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'var(--scrollbar-thumb-color) transparent',
+      }}
     >
       <List groups={docsGroups} />
       <SidebarFooter className="relative bg-[hsl(var(--sidebar-background))] lg:bg-background">

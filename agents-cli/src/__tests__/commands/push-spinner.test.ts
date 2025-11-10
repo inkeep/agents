@@ -1,5 +1,5 @@
-import * as p from '@clack/prompts';
 import { existsSync } from 'node:fs';
+import * as p from '@clack/prompts';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { pushCommand } from '../../commands/push';
 

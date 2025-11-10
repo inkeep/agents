@@ -1,18 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { McpServer } from '@alcyone-labs/modelcontextprotocol-sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js';
+import type { CallToolResult } from '@alcyone-labs/modelcontextprotocol-sdk/types.js';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { contextValidationMiddleware, HeadersScopeSchema } from '@inkeep/agents-core';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod/v3';
-
-function createMCPSchema<T>(schema: z.ZodType<T>): any {
-  return schema;
-}
-
 import type { ExecutionContext } from '@inkeep/agents-core';
 import {
   type CredentialStoreRegistry,
+  contextValidationMiddleware,
   createMessage,
   createOrGetConversation,
   generateId,
@@ -21,11 +15,13 @@ import {
   getConversationId,
   getRequestExecutionContext,
   getSubAgentById,
+  HeadersScopeSchema,
   handleContextResolution,
   updateConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
+import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -319,7 +315,7 @@ const getServer = async (
     'send-query-to-agent',
     `Send a query to the ${agent.name} agent. The agent has the following description: ${agent.description}`,
     {
-      query: createMCPSchema(z.string().describe('The query to send to the agent')),
+      query: z.string().describe('The query to send to the agent'),
     },
     async ({ query }): Promise<CallToolResult> => {
       try {

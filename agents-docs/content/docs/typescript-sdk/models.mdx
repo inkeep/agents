@@ -1,0 +1,221 @@
+---
+title: Model Configuration
+description: Configure AI models for your Agents and Sub Agents
+icon: "LuBrain"
+---
+
+Configure models at **Project** (required), **Agent**, or **Sub Agent** levels. Settings inherit down the hierarchy.
+
+## Configuration Hierarchy
+
+You **must configure at least the base model** at the project level:
+
+```typescript
+// inkeep.config.ts
+export default defineConfig({
+  models: {
+    base: {
+      model: "anthropic/claude-sonnet-4-5",
+      providerOptions: { temperature: 0.7, maxOutputTokens: 2048 }
+    }
+  }
+});
+```
+
+Override at agent or sub agent level:
+
+```typescript
+const myAgent = agent({
+  models: {
+    base: { model: "openai/gpt-4.1" }  // Override project default
+  }
+});
+
+const mySubAgent = subAgent({
+  models: {
+    structuredOutput: { model: "openai/gpt-4.1-mini" }  // Override for JSON output
+  }
+});
+```
+
+## Model Types
+
+| Type | Purpose | Fallback |
+|------|---------|----------|
+| `base` | Text generation and reasoning | **Required at project level** |
+| `structuredOutput` | JSON/structured output only | Falls back to `base` |
+| `summarizer` | Summaries and status updates | Falls back to `base` |
+
+## Supported Models
+
+| Provider | Example Models | API Key |
+|----------|----------------|---------|
+| **Anthropic** | `anthropic/claude-sonnet-4-5`<br/>`anthropic/claude-haiku-4-5` | `ANTHROPIC_API_KEY` |
+| **OpenAI** | `openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
+| **Google** | `google/gemini-2.5-flash`<br/>`google/gemini-2.5-flash-lite` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| **OpenRouter** | `openrouter/anthropic/claude-sonnet-4-0`<br/>`openrouter/meta-llama/llama-3.1-405b` | `OPENROUTER_API_KEY` |
+| **Gateway** | `gateway/openai/gpt-4.1-mini` | `AI_GATEWAY_API_KEY` |
+
+<Note>*`openai/gpt-5`, `openai/gpt-5-mini`, and `openai/gpt-5-nano` require a verified OpenAI organization. If your organization is not yet verified, these models will not be available.</Note>
+
+### Pinned vs Unpinned Models
+
+**Pinned models** include a specific date or version (e.g., `anthropic/claude-sonnet-4-20250514`) and always use that exact version.
+
+**Unpinned models** use generic identifiers (e.g., `anthropic/claude-sonnet-4-5`) and let the provider choose the latest version, which may change over time as providers update their models.
+
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",  // Unpinned - provider chooses version
+    // vs
+    model: "anthropic/claude-sonnet-4-20250514"  // Pinned - exact version
+  }
+}
+```
+
+The TypeScript SDK also provides constants for common models:
+
+```typescript
+import { Models } from "@inkeep/agents-sdk";
+
+models: {
+  base: {
+    model: Models.ANTHROPIC_CLAUDE_SONNET_4_5,  // Type-safe constants
+  }
+}
+```
+
+## Provider Options
+
+Inkeep Agents supports all [Vercel AI SDK provider options](https://ai-sdk.dev/providers/ai-sdk-providers/).
+
+### Complete Examples
+
+**Basic configuration:**
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",
+    providerOptions: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      topP: 0.95,
+      seed: 12345,
+      maxDuration: 30,
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "maxOutputTokens": 4096,
+  "temperature": 0.7,
+  "topP": 0.95,
+  "seed": 12345,
+  "maxDuration": 30
+}
+```
+</Tab>
+</Tabs>
+
+**OpenAI with reasoning:**
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "openai/o1-preview",
+    providerOptions: {
+      openai: { reasoningEffort: 'medium' }, // 'low' | 'medium' | 'high'
+      maxOutputTokens: 4096
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "openai": { "reasoningEffort": "medium" },
+  "maxOutputTokens": 4096
+}
+```
+</Tab>
+</Tabs>
+
+**Anthropic with thinking:**
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'enabled', budgetTokens: 8000 },
+        temperature: 0.5
+      }
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "anthropic": {
+    "thinking": { "type": "enabled", "budgetTokens": 8000 }
+  },
+  "temperature": 0.5
+}
+```
+</Tab>
+</Tabs>
+
+**Google with thinking:**
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "google/gemini-2.5-flash",
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingBudget: 8192, includeThoughts: true }
+      },
+      temperature: 0.7
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "google": {
+    "thinkingConfig": { "thinkingBudget": 8192, "includeThoughts": true }
+  },
+  "temperature": 0.7
+}
+```
+</Tab>
+</Tabs>
+
+## CLI Defaults
+
+When using `inkeep init`, defaults are set based on your chosen provider:
+
+| Provider | Base | Structured Output | Summarizer |
+|----------|------|-------------------|------------|
+| **Anthropic** | `claude-sonnet-4-5` | `claude-sonnet-4-5` | `claude-sonnet-4-5` |
+| **OpenAI** | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` |
+| **Google** | `gemini-2.5-flash` | `gemini-2.5-flash-lite` | `gemini-2.5-flash-lite` |

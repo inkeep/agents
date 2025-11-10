@@ -33,6 +33,7 @@ export interface ActivityItem {
   name?: string;
   description: string;
   timestamp: string;
+  parentSpanId?: string | null;
   subAgentId?: string;
   subAgentName?: string;
   toolName?: string;

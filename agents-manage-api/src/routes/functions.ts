@@ -8,13 +8,13 @@ import {
   FunctionApiUpdateSchema,
   FunctionListResponse,
   FunctionResponse,
+  generateId,
   getFunction,
   listFunctions,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   upsertFunction,
-  generateId,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';

@@ -6,7 +6,12 @@ import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import fs from 'fs-extra';
 import color from 'picocolors';
-import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
+import {
+  type ContentReplacement,
+  cloneTemplate,
+  cloneTemplateLocal,
+  getAvailableTemplates,
+} from './templates.js';
 
 // Shared validation utility
 const DIRECTORY_VALIDATION = {
@@ -29,6 +34,10 @@ const DIRECTORY_VALIDATION = {
     return undefined;
   },
 };
+
+const agentsTemplateRepo = 'https://github.com/inkeep/agents/create-agents-template';
+
+const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/template-projects';
 const execAsync = promisify(exec);
 
 const manageApiPort = '3002';
@@ -80,6 +89,7 @@ type FileConfig = {
   modelSettings: Record<string, any>;
   customProject?: boolean;
   disableGit?: boolean;
+  localPrefix?: string;
 };
 
 export const createAgents = async (
@@ -92,9 +102,21 @@ export const createAgents = async (
     template?: string;
     customProjectId?: string;
     disableGit?: boolean;
+    localAgentsPrefix?: string;
+    localTemplatesPrefix?: string;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId, disableGit } = args;
+  let {
+    dirName,
+    openAiKey,
+    anthropicKey,
+    googleKey,
+    template,
+    customProjectId,
+    disableGit,
+    localAgentsPrefix,
+    localTemplatesPrefix,
+  } = args;
   const tenantId = 'default';
 
   let projectId: string;
@@ -104,7 +126,7 @@ export const createAgents = async (
     projectId = customProjectId;
     templateName = '';
   } else if (template) {
-    const availableTemplates = await getAvailableTemplates();
+    const availableTemplates = await getAvailableTemplates(localTemplatesPrefix);
     if (!availableTemplates.includes(template)) {
       p.cancel(
         `${color.red('✗')} Template "${template}" not found\n\n` +
@@ -229,12 +251,6 @@ export const createAgents = async (
   s.start('Creating directory structure...');
 
   try {
-    const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
-
-    const projectTemplateRepo = templateName
-      ? `https://github.com/inkeep/agents-cookbook/template-projects/${templateName}`
-      : null;
-
     const directoryPath = path.resolve(process.cwd(), dirName);
 
     if (await fs.pathExists(directoryPath)) {
@@ -251,8 +267,11 @@ export const createAgents = async (
       await fs.emptyDir(directoryPath);
     }
 
-    s.message('Building template...');
-    await cloneTemplate(agentsTemplateRepo, directoryPath);
+    s.message('Building template (this may take a while)...');
+    await cloneTemplateHelper({
+      targetPath: directoryPath,
+      localPrefix: localAgentsPrefix,
+    });
 
     process.chdir(directoryPath);
 
@@ -274,7 +293,7 @@ export const createAgents = async (
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    if (projectTemplateRepo) {
+    if (templateName && templateName.length > 0) {
       s.message('Creating project template folder...');
       const templateTargetPath = `src/projects/${projectId}`;
 
@@ -286,8 +305,12 @@ export const createAgents = async (
           },
         },
       ];
-
-      await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
+      await cloneTemplateHelper({
+        templateName,
+        targetPath: templateTargetPath,
+        localPrefix: localTemplatesPrefix,
+        replacements: contentReplacements,
+      });
     } else {
       s.message('Creating empty project folder...');
       await fs.ensureDir(`src/projects/${projectId}`);
@@ -385,14 +408,18 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 
 async function createInkeepConfig(config: FileConfig) {
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-  const config = defineConfig({
-    tenantId: "${config.tenantId}",
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
-  });
-      
-  export default config;`;
+    
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+  },
+});
+    
+export default config;`;
   await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
@@ -411,6 +438,12 @@ export const myProject = project({
 
 async function installDependencies() {
   await execAsync('pnpm install');
+  try {
+    await execAsync('pnpm upgrade-agents');
+  } catch (error) {
+    console.warn('Warning: Package upgrade failed, continuing with current versions');
+    console.warn(error instanceof Error ? error.message : 'Unknown error');
+  }
 }
 
 async function initializeGit() {
@@ -432,17 +465,18 @@ async function isPortAvailable(port: number): Promise<boolean> {
   const net = await import('node:net');
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once('error', () => {
-      resolve(false);
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // Only treat EADDRINUSE as "port in use", other errors might be transient
+      resolve(err.code === 'EADDRINUSE' ? false : true);
     });
     server.once('listening', () => {
-      server.close();
-      resolve(true);
+      server.close(() => {
+        resolve(true);
+      });
     });
-    server.listen(port);
+    server.listen(port, 'localhost');
   });
 }
-
 /**
  * Display port conflict error and exit
  */
@@ -483,6 +517,25 @@ async function checkPortsAvailability(): Promise<void> {
   }
 }
 
+/**
+ * Wait for a server to be ready by polling a health endpoint
+ */
+async function waitForServerReady(url: string, timeout: number): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Server not ready yet, continue polling
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
+  }
+  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
+}
+
 async function setupProjectInDatabase(config: FileConfig) {
   // Proactively check if ports are available BEFORE starting servers
   await checkPortsAvailability();
@@ -496,8 +549,6 @@ async function setupProjectInDatabase(config: FileConfig) {
     shell: true,
     windowsHide: true,
   });
-
-  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   // Track if port errors occur during startup (as a safety fallback)
   const portErrors = { runApi: false, manageApi: false };
@@ -527,8 +578,17 @@ async function setupProjectInDatabase(config: FileConfig) {
 
   devProcess.stdout.on('data', checkForPortErrors);
 
-  // Give servers time to start
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  // Wait for servers to be ready
+  try {
+    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
+    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
+  } catch (error) {
+    // If servers don't start, we'll still try push but it will likely fail
+    console.warn(
+      'Warning: Servers may not be fully ready:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
 
   // Check if any port errors occurred during startup
   if (portErrors.runApi || portErrors.manageApi) {
@@ -572,6 +632,30 @@ async function setupDatabase() {
     throw new Error(
       `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+}
+
+async function cloneTemplateHelper(options: {
+  targetPath: string;
+  templateName?: string;
+  localPrefix?: string;
+  replacements?: ContentReplacement[];
+}) {
+  const { targetPath, templateName, localPrefix, replacements } = options;
+  // If local prefix is provided, use it to clone the template. This is useful for local development and testing.
+  if (localPrefix && localPrefix.length > 0) {
+    if (templateName) {
+      const fullTemplatePath = path.join(localPrefix, templateName);
+      await cloneTemplateLocal(fullTemplatePath, targetPath, replacements);
+    } else {
+      await cloneTemplateLocal(localPrefix, targetPath, replacements);
+    }
+  } else {
+    if (templateName) {
+      await cloneTemplate(`${projectTemplateRepo}/${templateName}`, targetPath, replacements);
+    } else {
+      await cloneTemplate(agentsTemplateRepo, targetPath, replacements);
+    }
   }
 }
 

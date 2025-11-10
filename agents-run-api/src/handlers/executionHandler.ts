@@ -5,6 +5,7 @@ import {
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
+  getArtifactComponentsForAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -21,7 +22,7 @@ import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
-import { MCPStreamHelper } from '../utils/stream-helpers.js';
+import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 
 const logger = getLogger('ExecutionHandler');
@@ -314,7 +315,32 @@ export class ExecutionHandler {
 
           logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
-          currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
+          // Store the transfer response as an assistant message in conversation history
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [
+                {
+                  kind: 'text',
+                  text: transferReason,
+                },
+              ],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentAgentId,
+            taskId: task.id,
+          });
+
+          // Keep the original user message and add a continuation prompt
+          currentMessage =
+            currentMessage +
+            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,
@@ -382,7 +408,8 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'ai.subAgent.name': currentAgentId,
+                'subAgent.name': agentConfig?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
               });
 
               // Store the agent response in the database with both text and parts
@@ -444,9 +471,9 @@ export class ExecutionHandler {
               logger.info({}, 'Cleaning up streamHelper');
               unregisterStreamHelper(requestId);
 
-              // Extract captured response if using MCPStreamHelper
+              // Extract captured response if using BufferingStreamHelper
               let response: string | undefined;
-              if (sseHelper instanceof MCPStreamHelper) {
+              if (sseHelper instanceof BufferingStreamHelper) {
                 const captured = sseHelper.getCapturedResponse();
                 response = captured.text || 'No response content';
               }
