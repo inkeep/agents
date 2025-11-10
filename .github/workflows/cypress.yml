@@ -27,7 +27,7 @@ jobs:
           --health-cmd "pg_isready -U appuser"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5  # Will fail after 5 retries = ~50 seconds
+          --health-retries 5
         ports:
           - 5432:5432
 
