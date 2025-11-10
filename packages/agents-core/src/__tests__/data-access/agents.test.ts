@@ -9,7 +9,7 @@ import {
   updateAgent,
 } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Agent Data Access', () => {
   let db: DatabaseClient;
@@ -17,7 +17,7 @@ describe('Agent Data Access', () => {
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

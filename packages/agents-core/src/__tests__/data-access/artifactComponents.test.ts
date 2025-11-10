@@ -16,7 +16,7 @@ import {
   updateArtifactComponent,
 } from '../../data-access/artifactComponents';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Artifact Components Data Access', () => {
   let db: DatabaseClient;
@@ -26,7 +26,7 @@ describe('Artifact Components Data Access', () => {
   const testSubAgentId = 'test-sub-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

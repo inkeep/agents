@@ -11,7 +11,7 @@ import {
   updateMessage,
 } from '../../data-access/messages';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Messages Data Access', () => {
   let db: DatabaseClient;
@@ -21,7 +21,7 @@ describe('Messages Data Access', () => {
   const testTaskId = 'test-task';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

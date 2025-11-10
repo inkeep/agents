@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getFullAgentDefinition } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('AgentFull Data Access - getFullAgentDefinition', () => {
   let db: DatabaseClient;
@@ -10,7 +10,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
   const testAgentId = 'test-agent-1';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

@@ -6,7 +6,7 @@ import {
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
@@ -16,7 +16,7 @@ describe('projectFull data access', () => {
   const logger = getLogger('test');
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
   const tenantId = `tenant-${generateId()}`;

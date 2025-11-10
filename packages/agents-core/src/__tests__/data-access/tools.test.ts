@@ -9,7 +9,7 @@ import {
   updateTool,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import type { ToolInsert } from '../../types/index';
 
 describe('Tools Data Access', () => {
@@ -21,7 +21,7 @@ describe('Tools Data Access', () => {
   const testSubAgentId = 'test-sub-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

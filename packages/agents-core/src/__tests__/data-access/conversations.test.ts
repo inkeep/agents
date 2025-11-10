@@ -12,7 +12,7 @@ import {
   updateConversationActiveAgent,
 } from '../../data-access/conversations';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import type { ConversationUpdate } from '../../types/index';
 
 describe('Conversations Data Access', () => {
@@ -23,7 +23,7 @@ describe('Conversations Data Access', () => {
   const testConversationId = 'test-conversation';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

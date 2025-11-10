@@ -11,7 +11,7 @@ import {
   updateContextConfig,
 } from '../../data-access/contextConfigs';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Context Configs Data Access', () => {
   let db: DatabaseClient;
@@ -20,7 +20,7 @@ describe('Context Configs Data Access', () => {
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

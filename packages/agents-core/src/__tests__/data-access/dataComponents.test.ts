@@ -14,7 +14,7 @@ import {
   updateDataComponent,
 } from '../../data-access/dataComponents';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import type { DataComponentInsert } from '../../types/index';
 
 describe('Data Components Data Access', () => {
@@ -26,7 +26,7 @@ describe('Data Components Data Access', () => {
   const testSubAgentId = 'sub-agent-123';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

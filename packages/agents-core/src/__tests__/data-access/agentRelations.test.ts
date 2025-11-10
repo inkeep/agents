@@ -16,7 +16,7 @@ import {
   validateSubAgent,
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
@@ -25,7 +25,7 @@ describe('Agent Relations Data Access', () => {
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

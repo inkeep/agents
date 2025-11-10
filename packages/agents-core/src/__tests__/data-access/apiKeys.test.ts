@@ -13,7 +13,7 @@ import {
   updateApiKeyLastUsed,
 } from '../../data-access/apiKeys';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import {
   extractPublicId,
   generateApiKey,
@@ -30,7 +30,7 @@ describe('API Keys Data Access', () => {
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

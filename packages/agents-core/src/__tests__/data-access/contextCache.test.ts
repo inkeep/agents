@@ -11,7 +11,7 @@ import {
   setCacheEntry,
 } from '../../data-access/contextCache';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import type { ContextCacheInsert } from '../../types/entities';
 
 describe('Context Cache Data Access', () => {
@@ -23,7 +23,7 @@ describe('Context Cache Data Access', () => {
   const testContextVariableKey = 'testVariable';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

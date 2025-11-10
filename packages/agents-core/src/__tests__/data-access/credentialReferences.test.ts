@@ -12,7 +12,7 @@ import {
   updateCredentialReference,
 } from '../../data-access/credentialReferences';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
 
@@ -23,7 +23,7 @@ describe('Credential References Data Access', () => {
   const testCredentialId = 'test-credential';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

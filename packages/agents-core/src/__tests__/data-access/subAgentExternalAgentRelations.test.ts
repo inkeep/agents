@@ -14,7 +14,7 @@ import {
   upsertSubAgentExternalAgentRelation,
 } from '../../data-access/subAgentExternalAgentRelations';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('SubAgentExternalAgentRelations Data Access', () => {
   let db: DatabaseClient;
@@ -45,7 +45,7 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   };
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 

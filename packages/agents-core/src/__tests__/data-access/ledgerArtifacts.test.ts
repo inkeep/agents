@@ -8,7 +8,7 @@ import {
   getLedgerArtifactsByContext,
 } from '../../data-access/ledgerArtifacts';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('Ledger Artifacts Data Access', () => {
   let db: DatabaseClient;
@@ -19,7 +19,7 @@ describe('Ledger Artifacts Data Access', () => {
   const testArtifactId = 'artifact-xyz';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
     vi.clearAllMocks();
   });
 
