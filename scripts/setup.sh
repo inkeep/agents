@@ -78,7 +78,14 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # 7. Setup database
 echo ""
 echo "Setting up database..."
-docker-compose up -f docker-compose.db.yml -d
+if ! docker-compose -f docker-compose.db.yml up -d; then
+  echo -e "${YELLOW}⚠️  Warning: Could not start local database with Docker${NC}"
+  echo "   This is OK if the db is already running or you're using a cloud-hosted database (Neon, Vercel Postgres, etc.)"
+  echo "   Make sure DATABASE_URL is set in your .env file"
+  echo "\n"
+  echo "\n"
+fi
+
 pnpm --filter @inkeep/agents-core db:migrate
 echo -e "${GREEN}✓${NC} Database ready"
 
