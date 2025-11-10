@@ -215,7 +215,10 @@ export class NativeSandboxExecutor {
 
     if (sandbox && existsSync(sandbox.sandboxDir)) {
       const now = Date.now();
-      if (now - sandbox.lastUsed < FUNCTION_TOOL_SANDBOX_POOL_TTL_MS && sandbox.useCount < FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
+      if (
+        now - sandbox.lastUsed < FUNCTION_TOOL_SANDBOX_POOL_TTL_MS &&
+        sandbox.useCount < FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+      ) {
         sandbox.lastUsed = now;
         sandbox.useCount++;
         logger.debug(
@@ -273,7 +276,10 @@ export class NativeSandboxExecutor {
       const keysToDelete: string[] = [];
 
       for (const [key, sandbox] of Object.entries(this.sandboxPool)) {
-        if (now - sandbox.lastUsed > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS || sandbox.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
+        if (
+          now - sandbox.lastUsed > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+          sandbox.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+        ) {
           this.cleanupSandbox(sandbox.sandboxDir);
           keysToDelete.push(key);
         }

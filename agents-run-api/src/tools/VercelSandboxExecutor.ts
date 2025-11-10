@@ -85,7 +85,10 @@ export class VercelSandboxExecutor {
     const age = now - cached.createdAt;
 
     // Check if sandbox is still valid
-    if (age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS || cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
+    if (
+      age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+      cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+    ) {
       logger.debug(
         {
           dependencyHash,
@@ -166,34 +169,34 @@ export class VercelSandboxExecutor {
    * Start periodic cleanup of expired sandboxes
    */
   private startPoolCleanup(): void {
-    this.cleanupInterval = setInterval(
-      () => {
-        const now = Date.now();
-        const toRemove: string[] = [];
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const toRemove: string[] = [];
 
-        for (const [hash, cached] of this.sandboxPool.entries()) {
-          const age = now - cached.createdAt;
-          if (age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS || cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT) {
-            toRemove.push(hash);
-          }
+      for (const [hash, cached] of this.sandboxPool.entries()) {
+        const age = now - cached.createdAt;
+        if (
+          age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+          cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+        ) {
+          toRemove.push(hash);
         }
+      }
 
-        if (toRemove.length > 0) {
-          logger.info(
-            {
-              count: toRemove.length,
-              poolSize: this.sandboxPool.size,
-            },
-            'Cleaning up expired sandboxes'
-          );
+      if (toRemove.length > 0) {
+        logger.info(
+          {
+            count: toRemove.length,
+            poolSize: this.sandboxPool.size,
+          },
+          'Cleaning up expired sandboxes'
+        );
 
-          for (const hash of toRemove) {
-            this.removeSandbox(hash);
-          }
+        for (const hash of toRemove) {
+          this.removeSandbox(hash);
         }
-      },
-      FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS
-    );
+      }
+    }, FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS);
   }
 
   /**

@@ -1,5 +1,5 @@
-import { loadEnvironmentFiles } from '../../env';
 import { z } from 'zod';
+import { loadEnvironmentFiles } from '../../env';
 import { schemaValidationDefaults } from './defaults';
 
 // Load all environment files using shared logic
@@ -9,7 +9,10 @@ loadEnvironmentFiles();
 // This ensures we only define constants once in defaults.ts
 const constantsSchema = z.object(
   Object.fromEntries(
-    Object.keys(schemaValidationDefaults).map((key) => [`AGENTS_${key}`, z.coerce.number().optional()])
+    Object.keys(schemaValidationDefaults).map((key) => [
+      `AGENTS_${key}`,
+      z.coerce.number().optional(),
+    ])
   ) as Record<string, z.ZodOptional<z.ZodNumber>>
 );
 

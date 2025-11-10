@@ -8,24 +8,24 @@ import type {
   TransferData,
 } from '@inkeep/agents-core';
 import {
-  getSubAgentById,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  getSubAgentById,
 } from '@inkeep/agents-core';
-import {
-  STATUS_UPDATE_DEFAULT_NUM_EVENTS,
-  STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
-  ARTIFACT_GENERATION_MAX_RETRIES,
-  ARTIFACT_SESSION_MAX_PENDING,
-  ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
-  ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
-  ARTIFACT_GENERATION_BACKOFF_MAX_MS,
-} from '../constants/execution-limits';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { toolSessionManager } from '../agents/ToolSessionManager';
+import {
+  ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
+  ARTIFACT_GENERATION_BACKOFF_MAX_MS,
+  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_SESSION_MAX_PENDING,
+  ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
+  STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
+  STATUS_UPDATE_DEFAULT_NUM_EVENTS,
+} from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';

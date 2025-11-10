@@ -12,16 +12,16 @@ import {
   SPAN_KEYS,
   TemplateEngine,
 } from '@inkeep/agents-core';
-import {
-  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
-  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
-  DELEGATION_TOOL_BACKOFF_EXPONENT,
-  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
-} from '../constants/execution-limits';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import z from 'zod';
 import { A2AClient } from '../a2a/client';
+import {
+  DELEGATION_TOOL_BACKOFF_EXPONENT,
+  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+} from '../constants/execution-limits';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';

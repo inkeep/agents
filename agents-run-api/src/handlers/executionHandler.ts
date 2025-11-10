@@ -12,11 +12,11 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
-import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
+import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';

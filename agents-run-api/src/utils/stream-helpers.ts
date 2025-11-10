@@ -1,10 +1,10 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
+import { parsePartialJson } from 'ai';
 import {
   STREAM_BUFFER_MAX_SIZE_BYTES,
-  STREAM_TEXT_GAP_THRESHOLD_MS,
   STREAM_MAX_LIFETIME_MS,
+  STREAM_TEXT_GAP_THRESHOLD_MS,
 } from '../constants/execution-limits';
-import { parsePartialJson } from 'ai';
 import type { ErrorEvent, OperationEvent } from './agent-operations';
 
 export interface StreamHelper {

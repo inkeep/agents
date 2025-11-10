@@ -1,7 +1,7 @@
 import { generateId } from '@inkeep/agents-core';
 import {
-  SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS,
   SESSION_CLEANUP_INTERVAL_MS,
+  SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS,
 } from '../constants/execution-limits';
 import { getLogger } from '../logger';
 

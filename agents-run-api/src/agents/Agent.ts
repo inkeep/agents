@@ -29,15 +29,6 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
-  AGENT_EXECUTION_MAX_GENERATION_STEPS,
-  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
-  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
-  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
-  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
-  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
-  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
-} from '../constants/execution-limits';
-import {
   generateObject,
   generateText,
   streamObject,
@@ -47,6 +38,15 @@ import {
   tool,
 } from 'ai';
 import { z } from 'zod';
+import {
+  AGENT_EXECUTION_MAX_GENERATION_STEPS,
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
+} from '../constants/execution-limits';
 import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
@@ -2181,11 +2181,17 @@ ${output}${structureHintsFormatted}`;
 
               // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
               const configuredPhase2Timeout = structuredModelSettings.maxDuration
-                ? Math.min(structuredModelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
+                ? Math.min(
+                    structuredModelSettings.maxDuration * 1000,
+                    LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+                  )
                 : LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS;
 
               // Ensure timeout doesn't exceed maximum
-              const phase2TimeoutMs = Math.min(configuredPhase2Timeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
+              const phase2TimeoutMs = Math.min(
+                configuredPhase2Timeout,
+                LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+              );
 
               if (
                 structuredModelSettings.maxDuration &&
