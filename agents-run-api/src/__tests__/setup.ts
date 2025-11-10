@@ -83,7 +83,7 @@ beforeAll(async () => {
     logger.error({ error }, 'Failed to apply database migrations');
     throw error;
   }
-});
+}, 60000);
 
 afterEach(() => {
   // Any cleanup if needed

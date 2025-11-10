@@ -10,17 +10,16 @@ icon: "brand/VercelIcon"
 
 If you do not have an Inkeep project already, [follow these steps](/get-started/quick-start) to create one. Then push your project to a repository on GitHub.
 
-### Step 2: Create a Turso Database
+### Step 2: Create a Postgres Database
 
-Create a Turso database on [**Vercel Marketplace**](https://vercel.com/marketplace/tursocloud) or directly at [**Turso Cloud**](https://app.turso.tech/).
+Create a Postgres database on the [**Vercel Marketplace**](https://vercel.com/marketplace/neon) or directly at [**Neon**](https://neon.tech/):
 
-### Step 3: Save your Turso Database URL and Auth Token
+### Step 3: Configure Database Connection
 
-Create a token for your database, and then save the URL and token created.
+Set your database connection string as an environment variable:
 
 ```
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+DATABASE_URL=
 ```
 
 ### Step 4: Create a Vercel account
@@ -43,8 +42,7 @@ ENVIRONMENT=production
 
 INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
 
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+DATABASE_URL=
 
 NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
@@ -54,8 +52,7 @@ NANGO_SERVER_URL=https://api.nango.dev
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ENVIRONMENT`                            | `production`                                                                                                                                                       |
 | `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` in Step 7.                        |
-| `TURSO_DATABASE_URL`                     | Turso database URL you saved from Step 3                                                                                                                           |
-| `TURSO_AUTH_TOKEN`                       | Turso auth token you saved from Step 3                                                                                                                             |
+| `DATABASE_URL`                           | Postgres connection string from Step 3 (e.g., `postgresql://user:password@host:5432/database`)                                                                    |
 | `NANGO_SECRET_KEY`                       | Nango secret key from your [Nango Cloud account](/get-started/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments. |
 | `NANGO_SERVER_URL`                       | `https://api.nango.dev`                                                                                                                                            |
 
@@ -79,8 +76,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=
 
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
 
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+DATABASE_URL=
 
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://ingest.us.signoz.cloud:443/v1/traces
 OTEL_EXPORTER_OTLP_TRACES_HEADERS=signoz-ingestion-key=<your-ingestion-key>
@@ -98,8 +94,7 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `OPENAI_API_KEY`                      | Your OpenAI API key                                                                                                                                                                                                                        |
 | `GOOGLE_GENERATIVE_AI_API_KEY`        | Your Google Gemini API key                                                                                                                                                                                                                 |
 | `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` in Step 7.                                                                                                   |
-| `TURSO_DATABASE_URL`                  | Turso database URL you saved from Step 3                                                                                                                                                                                                   |
-| `TURSO_AUTH_TOKEN`                    | Turso auth token you saved from Step 3                                                                                                                                                                                                     |
+| `DATABASE_URL`                        | Postgres connection string from Step 3 (e.g., `postgresql://user:password@host:5432/database`)                                                                                                                                            |
 | `NANGO_SECRET_KEY`                    | Nango secret key from your [Nango Cloud account](/get-started/credentials#option-1-nango-cloud-setup). Note: Local Nango setup won't work with Vercel deployments.                                                                         |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`  | `https://ingest.us.signoz.cloud:443/v1/traces`                                                                                                                                                                                             |
 | `OTEL_EXPORTER_OTLP_TRACES_HEADERS`   | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments. |
