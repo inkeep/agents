@@ -95,9 +95,8 @@ export function useConversationStats(
       options?.searchQuery,
       options?.agentId,
       pageSize,
-      currentPage,
     ]
-  ); // Use stable values instead of options object
+  );
 
   const refresh = useCallback(() => {
     fetchData(currentPage);
