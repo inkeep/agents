@@ -11,8 +11,8 @@ import {
   setCacheEntry,
 } from '../../data-access/contextCache';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import type { ContextCacheInsert } from '../../types/entities';
+import { testDbClient } from '../setup';
 
 describe('Context Cache Data Access', () => {
   let db: DatabaseClient;

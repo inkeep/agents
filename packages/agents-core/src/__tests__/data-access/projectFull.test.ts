@@ -6,10 +6,10 @@ import {
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
+import { testDbClient } from '../setup';
 
 describe('projectFull data access', () => {
   let db: DatabaseClient;

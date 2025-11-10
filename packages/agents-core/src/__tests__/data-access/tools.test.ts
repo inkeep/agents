@@ -9,8 +9,8 @@ import {
   updateTool,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import type { ToolInsert } from '../../types/index';
+import { testDbClient } from '../setup';
 
 describe('Tools Data Access', () => {
   let db: DatabaseClient;

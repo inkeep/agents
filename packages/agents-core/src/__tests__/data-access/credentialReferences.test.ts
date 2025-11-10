@@ -12,9 +12,9 @@ import {
   updateCredentialReference,
 } from '../../data-access/credentialReferences';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
+import { testDbClient } from '../setup';
 
 describe('Credential References Data Access', () => {
   let db: DatabaseClient;

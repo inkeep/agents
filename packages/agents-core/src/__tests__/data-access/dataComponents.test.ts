@@ -14,8 +14,8 @@ import {
   updateDataComponent,
 } from '../../data-access/dataComponents';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import type { DataComponentInsert } from '../../types/index';
+import { testDbClient } from '../setup';
 
 describe('Data Components Data Access', () => {
   let db: DatabaseClient;

@@ -13,7 +13,6 @@ import {
   updateApiKeyLastUsed,
 } from '../../data-access/apiKeys';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import {
   extractPublicId,
   generateApiKey,
@@ -22,6 +21,7 @@ import {
   maskApiKey,
   validateApiKey,
 } from '../../utils/apiKeys';
+import { testDbClient } from '../setup';
 
 describe('API Keys Data Access', () => {
   let db: DatabaseClient;

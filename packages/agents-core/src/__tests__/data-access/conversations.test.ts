@@ -12,8 +12,8 @@ import {
   updateConversationActiveAgent,
 } from '../../data-access/conversations';
 import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
 import type { ConversationUpdate } from '../../types/index';
+import { testDbClient } from '../setup';
 
 describe('Conversations Data Access', () => {
   let db: DatabaseClient;
