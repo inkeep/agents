@@ -714,8 +714,9 @@ export const dataset = pgTable(
  * to an agent and optionally expected output or simulation configuration.
  * When a dataset run executes, it creates conversations from these items.
  * 
- * Includes: input messages, expected output, simulation config (user persona,
- * agent definition, max turns, stopping conditions), and timestamps
+ * Includes: input (messages array with optional headers), expected output (array of messages),
+ * simulation config (user persona, initialMessage with headers, stopWhen conditions,
+ * agentDefinition with name/description/prompt/modelConfig), and timestamps
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -759,10 +760,10 @@ export const datasetItem = pgTable(
  * 
  * Defines an evaluation function that assesses agent performance. Contains
  * the prompt/instructions for the evaluator, output schema for structured
- * results, and model configuration. Used by eval suite configs to evaluate
+ * results, and model configuration. Used by evaluation suite configs to evaluate
  * conversations.
  * 
- * The modelConfig is optional and will default to the modelConfig from the eval suite config if not provided.
+ * The modelConfig is optional and will default to the modelConfig from the evaluation suite config if not provided.
  * 
  * Includes: name, description, prompt, schema (output structure),
  * modelConfig (for the evaluator LLM), and timestamps
@@ -827,8 +828,9 @@ export const datasetRun = pgTable(
  * conversation belongs to exactly one datasetRun. Used to track which
  * conversations were generated from which dataset run.
  * 
- * Includes: datasetRunId, conversationId (unique constraint ensures one conversation
- * per datasetRun), and timestamps
+ * Includes: datasetRunId (composite FK to datasetRun), conversationId (composite FK to conversations),
+ * unique constraint on (datasetRunId, conversationId) ensures one conversation per datasetRun,
+ * and timestamps
  */
 export const datasetRunConversations = pgTable(
   'dataset_run_conversations',
@@ -866,9 +868,9 @@ export const datasetRunConversations = pgTable(
  * by specific evaluators. Attaches evaluators via evaluationSuiteConfigEvaluator join.
  * 
  * Includes: name, description, modelConfig (default for evaluators),
- * runFrequency (weekly/daily/monthly, nullable), filtering config (agentIds,
- * datasetRunId, conversationIds, dateRange), sampleRate for sampling,
- * and timestamps
+ * runFrequency (weekly/daily/monthly/on_demand), filtering config (agentIds array,
+ * datasetRunIds array, conversationIds array, dateRange with startDate/endDate),
+ * sampleRate for sampling, and timestamps
  */
 export const evaluationSuiteConfig = pgTable(
   'evaluation_suite_config',
@@ -935,10 +937,10 @@ export const evaluationSuiteConfigEvaluator = pgTable(
  * 
  * Execution instance of an evaluation suite config. Represents a single run that
  * evaluates conversations based on the evaluation suite configuration. Links to a
- * specific evaluation suite config.
+ * specific evaluation suite config. Results are stored in evaluationResult table.
  * 
- * Includes: name, description, evaluationSuiteConfigId,
- * status (done/failed), and timestamps
+ * Includes: evaluationSuiteConfigId (foreign key to evaluationSuiteConfig),
+ * and timestamps
  */
 export const evaluationSuiteRun = pgTable(
   'evaluation_suite_run',
@@ -961,13 +963,13 @@ export const evaluationSuiteRun = pgTable(
  * Evaluation Result table
  * 
  * Stores the result of evaluating a conversation with a specific evaluator.
- * Contains the evaluation output, reasoning, and status. Linked to
- * an evaluation run. Each result represents one evaluator's assessment of one
- * conversation.
+ * Contains the evaluation output. Linked to an evaluation suite run and optionally
+ * a dataset item. Each result represents one evaluator's assessment of one conversation.
  * 
- * Includes: conversationId, evaluatorId, evaluationRunId,
- * datasetItemId (optional), status (done/failed), reasoning,
- * metadata (structured evaluation output), and timestamps
+ * Includes: conversationId (required), evaluatorId (required),
+ * evaluationSuiteRunId (optional, links to evaluationSuiteRun),
+ * datasetItemId (optional, links to datasetItem if evaluated from a dataset),
+ * output (evaluation result as MessageContent), and timestamps
  */
 export const evaluationResult = pgTable(
   'evaluation_result',
