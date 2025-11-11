@@ -5,6 +5,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   unique,
@@ -23,7 +24,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
-import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
+import type { AgentStopWhen, ModelSettings, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
   tenantId: text('tenant_id').notNull(),
@@ -679,6 +680,223 @@ export const credentialReferences = sqliteTable(
   ]
 );
 
+export const dataset = sqliteTable(
+  'dataset',
+  {
+    ...tenantScoped,
+    ...uiProperties,
+    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+  ]
+);
+
+export const datasetItem = sqliteTable(
+  'dataset_item',
+  {
+    id: text('id').notNull(),
+    datasetId: text('dataset_id').notNull(),
+    input: blob('input', { mode: 'json' }).$type<{
+      messages: Array<{ role: string; content: MessageContent }>;
+      headers?: Record<string, string>;
+    }>(),
+    expectedOutput: blob('expected_output', { mode: 'json' }).$type<Array<{ role: string; content: MessageContent }>>(),
+    simulationConfig: blob('simulation_config', { mode: 'json' }).$type<{
+      userPersona: string;
+      initialMessage?: string;
+      maxTurns?: number;
+      stoppingCondition?: string;
+      simulatingAgentDefinition: {
+        name: string;
+        description: string;
+        prompt: string;
+        model: string;
+        temperature?: number;
+      };
+    }>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [dataset.id],
+      name: 'dataset_item_dataset_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const evaluator = sqliteTable(
+  'evaluator',
+  {
+    ...tenantScoped,
+    ...uiProperties,
+    prompt: text('prompt').notNull(),
+    schema: blob('schema', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    modelConfig: blob('model_config', { mode: 'json' }).$type<ModelSettings>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+  ]
+);
+
+export const evalTestSuiteConfig = sqliteTable(
+  'eval_test_suite_config',
+  {
+    ...tenantScoped,
+    ...uiProperties,
+    modelConfig: blob('model_config', { mode: 'json' }).$type<ModelSettings>(),
+    runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', 
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+  ]
+);
+
+export const evalTestSuiteRun = sqliteTable(
+  'eval_test_suite_run',
+  {
+    id: text('id').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    datasetId: text('dataset_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    testSuiteConfigId: text('test_suite_config_id').notNull(),
+    status: text('status').$type<'pending'|'done'|'failed'>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    foreignKey({
+      columns: [table.datasetId],
+      foreignColumns: [dataset.id],
+      name: 'eval_test_suite_run_dataset_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.agentId],
+      foreignColumns: [agents.id],
+      name: 'eval_test_suite_run_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.testSuiteConfigId],
+      foreignColumns: [evalTestSuiteConfig.id],
+      name: 'eval_test_suite_run_config_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const evalTestSuiteRunEvaluator = sqliteTable(
+  'eval_test_suite_run_evaluators',
+  {
+    id: text('id').notNull(),
+    evalTestSuiteRunId: text('eval_test_suite_run_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    foreignKey({
+      columns: [table.evalTestSuiteRunId],
+      foreignColumns: [evalTestSuiteRun.id],
+      name: 'eval_test_suite_run_evaluators_run_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
+      name: 'eval_test_suite_run_evaluators_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const evalResult = sqliteTable(
+  'eval_result',
+  {
+    id: text('id').notNull(),
+    suiteRunId: text('suite_run_id'),
+    datasetItemId: text('dataset_item_id'),
+    conversationId: text('conversation_id').notNull(),
+    status: text('status').$type<'pending'|'done'|'failed'>().notNull(),
+    tenantId: text('tenant_id').notNull(),
+    projectId: text('project_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    reasoning: text('reasoning'),
+    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }), 
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'eval_result_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
+      name: 'eval_result_evaluator_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.datasetItemId],
+      foreignColumns: [datasetItem.id],
+      name: 'eval_result_dataset_item_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const 
+conversationEvaluationConfig = sqliteTable(
+  'conversation_evaluation_config',
+  {
+    ...tenantScoped,
+    ...uiProperties,
+    conversationFilter: blob('conversation_filter', { mode: 'json' }).$type<{
+      agentIds?: string[];
+      projectIds?: string[];
+      dateRange?: {
+        startDate: string;
+        endDate: string;
+      };
+      conversationIds?: string[];
+    }>(),
+    modelConfig: blob('model_config', { mode: 'json' }).$type<ModelSettings>(),
+    sampleRate: real('sample_rate'), 
+    isActive: integer('is_active', { mode: 'boolean' }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+  ]
+);
+
+export const conversationEvaluationConfigEvaluator = sqliteTable(
+  'conversation_evaluation_config_evaluator',
+  {
+    id: text('id').notNull(),
+    conversationEvaluationConfigId: text('conversation_evaluation_config_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.conversationEvaluationConfigId],
+      foreignColumns: [conversationEvaluationConfig.tenantId, conversationEvaluationConfig.id],
+      name: 'conv_eval_config_evaluator_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.id],
+      name: 'conv_eval_config_evaluator_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   project: one(projects, {
     fields: [tasks.tenantId, tasks.projectId],
@@ -783,6 +1001,7 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
+  evalTestSuiteRuns: many(evalTestSuiteRun),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -1056,3 +1275,94 @@ export const subAgentTeamAgentRelationsRelations = relations(
     }),
   })
 );
+
+export const datasetRelations = relations(dataset, ({ many }) => ({
+  items: many(datasetItem),
+  evalTestSuiteRuns: many(evalTestSuiteRun),
+}));
+
+export const datasetItemRelations = relations(datasetItem, ({ one, many }) => ({
+  dataset: one(dataset, {
+    fields: [datasetItem.datasetId],
+    references: [dataset.id],
+  }),
+  evalResults: many(evalResult),
+}));
+
+export const evaluatorRelations = relations(evaluator, ({ many }) => ({
+  evalResults: many(evalResult),
+  evalTestSuiteRuns: many(evalTestSuiteRunEvaluator),
+}));
+
+export const evalTestSuiteConfigRelations = relations(evalTestSuiteConfig, ({ many }) => ({
+  runs: many(evalTestSuiteRun),
+}));
+
+export const evalTestSuiteRunRelations = relations(evalTestSuiteRun, ({ one, many }) => ({
+  dataset: one(dataset, {
+    fields: [evalTestSuiteRun.datasetId],
+    references: [dataset.id],
+  }),
+  agent: one(agents, {
+    fields: [evalTestSuiteRun.agentId],
+    references: [agents.id],
+  }),
+  testSuiteConfig: one(evalTestSuiteConfig, {
+    fields: [evalTestSuiteRun.testSuiteConfigId],
+    references: [evalTestSuiteConfig.id],
+  }),
+  evaluators: many(evalTestSuiteRunEvaluator),
+  results: many(evalResult),
+}));
+
+export const evalTestSuiteRunEvaluatorRelations = relations(evalTestSuiteRunEvaluator, ({ one }) => ({
+  evalTestSuiteRun: one(evalTestSuiteRun, {
+    fields: [evalTestSuiteRunEvaluator.evalTestSuiteRunId],
+    references: [evalTestSuiteRun.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [evalTestSuiteRunEvaluator.evaluatorId],
+    references: [evaluator.id],
+  }),
+}));
+
+export const conversationEvaluationConfigRelations = relations(conversationEvaluationConfig, ({ many }) => ({
+  evaluators: many(conversationEvaluationConfigEvaluator),
+}));
+
+export const conversationEvaluationConfigEvaluatorRelations = relations(conversationEvaluationConfigEvaluator, ({ one }) => ({
+  conversationEvaluationConfig: one(conversationEvaluationConfig, {
+    fields: [conversationEvaluationConfigEvaluator.conversationEvaluationConfigId],
+    references: [conversationEvaluationConfig.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [conversationEvaluationConfigEvaluator.evaluatorId],
+    references: [evaluator.id],
+  }),
+}));
+
+export const evalResultRelations = relations(evalResult, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [evalResult.conversationId],
+    references: [conversations.id],
+    relationName: 'conversationEvalResults',
+  }),
+  evaluator: one(evaluator, {
+    fields: [evalResult.evaluatorId],
+    references: [evaluator.id],
+  }),
+  datasetItem: one(datasetItem, {
+    fields: [evalResult.datasetItemId],
+    references: [datasetItem.id],
+  }),
+  evalTestSuiteRun: one(evalTestSuiteRun, {
+    fields: [evalResult.suiteRunId],
+    references: [evalTestSuiteRun.id],
+  }),
+}));
+
+export const conversationsEvalRelations = relations(conversations, ({ many }) => ({
+  evalResults: many(evalResult, {
+    relationName: 'conversationEvalResults',
+  }),
+}));

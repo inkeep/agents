@@ -4,6 +4,7 @@ import {
   Activity,
   BookOpen,
   Component,
+  FlaskConical,
   Globe,
   Key,
   Layers,
@@ -86,6 +87,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: Activity,
           },
           {
+            title: 'Evaluations',
+            url: `/${tenantId}/evaluations`,
+            icon: FlaskConical,
+          },
+          {
             title: 'Components',
             url: `/${tenantId}/projects/${projectId}/components`,
             icon: Component,
@@ -106,6 +112,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: 'Projects',
             url: `/${tenantId}/projects`,
             icon: Layers,
+          },
+          {
+            title: 'Evaluations',
+            url: `/${tenantId}/evaluations`,
+            icon: FlaskConical,
           },
         ];
   return (

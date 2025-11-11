@@ -27,6 +27,17 @@ export {
   registerEnvironmentSettings,
 } from './environment-settings';
 export {
+  type CreateTestSuiteConfigParams,
+  createTestSuiteConfigViaAPI,
+  deleteTestSuiteConfigViaAPI,
+  getTestSuiteConfigViaAPI,
+  listTestSuiteConfigsViaAPI,
+  runDatasetEvalViaAPI,
+  type TestSuiteConfig,
+  type UpdateTestSuiteConfigParams,
+  updateTestSuiteConfigViaAPI,
+} from './evaluationClient';
+export {
   ExternalAgent,
   externalAgent,
   externalAgents,
