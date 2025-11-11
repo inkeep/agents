@@ -149,7 +149,6 @@ function AgentReactFlowConsumer({
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
-  const dirty = useAgentStore((state) => state.dirty);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
   const pendingNavigationRef = useRef<PendingNavigation>(null);
@@ -297,10 +296,11 @@ function AgentReactFlowConsumer({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata, dirty } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
+    dirty: state.dirty,
   }));
   const {
     setNodes,
