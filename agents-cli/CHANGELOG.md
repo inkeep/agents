@@ -1,5 +1,23 @@
 # @inkeep/agents-cli
 
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [ed8abd5]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-ui@0.32.0
+  - @inkeep/agents-sdk@0.32.0
+
 ## 0.31.7
 
 ### Patch Changes
