@@ -67,7 +67,7 @@ export function ExpandableJsonEditor({
     !!(externalError || internalError)
   );
   const [open, setOpen] = useState(false);
-  const uri = `${open ? 'small' : 'full'}-${name}.json` as const;
+  const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   const error = externalError || internalError;
   const id = `${name}-label`;
   return (
