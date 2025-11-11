@@ -14,8 +14,27 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { toast } from 'sonner';
+import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -30,16 +49,37 @@ import {
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
+import {
+  agentNodeSourceHandleId,
+  agentNodeTargetHandleId,
+  externalAgentNodeTargetHandleId,
+  type MCPNodeData,
+  mcpNodeHandleId,
+  NodeType,
+  newNodeDefaults,
+  nodeTypes,
+  teamAgentNodeTargetHandleId,
+} from './configuration/node-types';
+import { AgentErrorSummary } from './error-display/agent-error-summary';
+import { DefaultMarker } from './markers/default-marker';
+import { SelectedMarker } from './markers/selected-marker';
+import NodeLibrary from './node-library/node-library';
+import { SidePane } from './sidepane/sidepane';
+import { Toolbar } from './toolbar/toolbar';
 
+// The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
   loading: () => <EditorLoadingSkeleton className="p-6" />,
@@ -74,29 +114,6 @@ export type SubAgentExternalAgentConfigLookup = Record<
 // SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
 export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
 
-import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { useIsMounted } from '@/hooks/use-is-mounted';
-import type { ExternalAgent } from '@/lib/api/external-agents';
-import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
-import {
-  agentNodeSourceHandleId,
-  agentNodeTargetHandleId,
-  externalAgentNodeTargetHandleId,
-  type MCPNodeData,
-  mcpNodeHandleId,
-  NodeType,
-  newNodeDefaults,
-  nodeTypes,
-  teamAgentNodeTargetHandleId,
-} from './configuration/node-types';
-import { AgentErrorSummary } from './error-display/agent-error-summary';
-import { DefaultMarker } from './markers/default-marker';
-import { SelectedMarker } from './markers/selected-marker';
-import NodeLibrary from './node-library/node-library';
-import { SidePane } from './sidepane/sidepane';
-import { Toolbar } from './toolbar/toolbar';
-
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
   return `edge-${low}-${high}`;
@@ -112,6 +129,8 @@ interface AgentProps {
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
+
+type PendingNavigation = () => void;
 
 function AgentReactFlowConsumer({
   agent,
@@ -130,6 +149,11 @@ function AgentReactFlowConsumer({
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
+  const dirty = useAgentStore((state) => state.dirty);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
+  const pendingNavigationRef = useRef<PendingNavigation>(null);
+  const isNavigatingRef = useRef(false);
 
   const initialNodes = useMemo<Node[]>(
     () => [
@@ -638,7 +662,7 @@ function AgentReactFlowConsumer({
     [setEdges, setNodes, edges, setQueryState]
   );
 
-  const onSubmit = useCallback(async () => {
+  const onSubmit = useCallback(async (): Promise<boolean> => {
     // Check for orphaned tools before saving
     const warningMessage = detectOrphanedToolsAndGetWarning(
       nodes,
@@ -679,7 +703,7 @@ function AgentReactFlowConsumer({
         setErrors(errorSummary);
         const summaryMessage = getErrorSummaryMessage(errorSummary);
         toast.error(summaryMessage);
-        return;
+        return false;
       }
       throw error;
     }
@@ -706,7 +730,7 @@ function AgentReactFlowConsumer({
       const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
-      return;
+      return false;
     }
 
     const res = await saveAgent(
@@ -776,21 +800,22 @@ function AgentReactFlowConsumer({
         setMetadata('id', res.data.id);
         router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
-    } else {
-      try {
-        const errorSummary = parseAgentValidationErrors(res.error);
-        setErrors(errorSummary);
-
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
-      } catch (parseError) {
-        // Fallback for unparseable errors
-        console.error('Failed to parse validation errors:', parseError);
-        toast.error('Failed to save agent', {
-          closeButton: true,
-        });
-      }
+      return true;
     }
+    try {
+      const errorSummary = parseAgentValidationErrors(res.error);
+      setErrors(errorSummary);
+
+      const summaryMessage = getErrorSummaryMessage(errorSummary);
+      toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+    } catch (parseError) {
+      // Fallback for unparseable errors
+      console.error('Failed to parse validation errors:', parseError);
+      toast.error('Failed to save agent', {
+        closeButton: true,
+      });
+    }
+    return false;
   }, [
     nodes,
     edges,
@@ -812,6 +837,94 @@ function AgentReactFlowConsumer({
     subAgentTeamAgentConfigLookup,
     externalAgentLookup,
   ]);
+
+  const handleGoBack = useCallback(() => {
+    pendingNavigationRef.current = null;
+    setShowUnsavedDialog(false);
+  }, []);
+
+  const proceedWithNavigation = useCallback(() => {
+    const navigate = pendingNavigationRef.current;
+    handleGoBack();
+
+    if (!navigate) {
+      return;
+    }
+    isNavigatingRef.current = true;
+    navigate();
+  }, [handleGoBack]);
+
+  const handleSaveAndLeave = useCallback(() => {
+    if (!pendingNavigationRef.current || isSavingPendingNavigation) {
+      return;
+    }
+    startSavingPendingNavigation(async () => {
+      const saved = await onSubmit();
+      if (saved) {
+        proceedWithNavigation();
+      }
+      setShowUnsavedDialog(false);
+    });
+  }, [isSavingPendingNavigation, onSubmit, proceedWithNavigation]);
+
+  useEffect(() => {
+    if (!dirty) {
+      return;
+    }
+    const requestNavigationConfirmation = (navigate: PendingNavigation) => {
+      pendingNavigationRef.current = navigate;
+      setShowUnsavedDialog(true);
+    };
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!dirty || isNavigatingRef.current) {
+        return;
+      }
+      const el = event.target;
+      const href = (el as HTMLAnchorElement | null)?.href;
+      if (
+        !href ||
+        href.startsWith('#') ||
+        href.startsWith('javascript:') ||
+        href.startsWith('mailto:') ||
+        href.startsWith('tel:')
+      ) {
+        return;
+      }
+      const url = new URL(href, location.href);
+      event.preventDefault();
+      requestNavigationConfirmation(() => {
+        if (url.origin === location.origin) {
+          router.push(`${url.pathname}${url.search}${url.hash}`);
+        } else {
+          location.href = url.href;
+        }
+      });
+    };
+
+    document.addEventListener('click', handleDocumentClick, true);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [dirty, router]);
+
+  useEffect(() => {
+    if (!dirty) {
+      requestAnimationFrame(handleGoBack);
+      return;
+    }
+    // Catches browser closing window
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (isNavigatingRef.current) {
+        return;
+      }
+      event.preventDefault();
+      setShowUnsavedDialog(true);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [dirty, handleGoBack]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
@@ -979,6 +1092,35 @@ function AgentReactFlowConsumer({
           </ResizablePanel>
         </>
       )}
+      <Dialog
+        open={showUnsavedDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleGoBack();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. Are you sure you want to leave this page and discard your
+              changes?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleGoBack} className="sm:mr-auto">
+              Go back
+            </Button>
+            <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
+              Discard
+            </Button>
+            <Button onClick={handleSaveAndLeave} disabled={isSavingPendingNavigation}>
+              {isSavingPendingNavigation ? 'Saving...' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ResizablePanelGroup>
   );
 }

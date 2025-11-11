@@ -6,8 +6,10 @@ import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
+type MaybePromise<T> = T | Promise<T>;
+
 interface ToolbarProps {
-  onSubmit: () => void;
+  onSubmit: () => MaybePromise<boolean>;
   inPreviewDisabled?: boolean;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
