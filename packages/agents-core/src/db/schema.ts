@@ -688,7 +688,8 @@ export const credentialReferences = pgTable(
 );
 
 /**
- * Dataset table
+/**
+ * Dataset table (CONFIG LAYER)
  * 
  * A collection of test cases/items used for evaluation. Contains dataset items
  * that define input/output pairs for testing agents. Used for batch evaluation
@@ -715,7 +716,7 @@ export const dataset = pgTable(
 );
 
 /**
- * Dataset Item table
+ * Dataset Item table (CONFIG LAYER)
  * 
  * Individual test case within a dataset. Contains the input messages to send
  * to an agent and optionally expected output or simulation configuration.
@@ -754,12 +755,11 @@ export const datasetItem = pgTable(
 );
 
 /**
- * Evaluator table
+ * Evaluator table (CONFIG LAYER)
  * 
- * Defines an evaluation function that assesses agent performance. Contains
+ * Contains
  * the prompt/instructions for the evaluator, output schema for structured
- * results, and model configuration. Used by evaluation suite configs to evaluate
- * conversations.
+ * results, and model configuration.
  * 
  * Includes: name, description, prompt, schema (output structure),
  * model (required model config for the evaluator LLM), and timestamps
@@ -785,7 +785,7 @@ export const evaluator = pgTable(
 );
 
 /**
- * Dataset Run Config table
+ * Dataset Run Config table (CONFIG LAYER)
  * 
  * Recurring policy configuration for running datasets.
  * Example: "Run weekly with agent X against dataset Y (1000 items)"
@@ -828,7 +828,8 @@ export const datasetRunConfig = pgTable(
 );
 
 /**
- * Dataset Run table
+/**
+ * Dataset Run table (RUNTIME STORAGE)
  * 
  * Execution of a suite of items from a dataset. Represents a batch run that
  * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
@@ -865,7 +866,7 @@ export const datasetRun = pgTable(
 );
 
 /**
- * Dataset Run Conversation Relations join table
+ * Dataset Run Conversation Relations join table (RUNTIME STORAGE)
  * 
  * Links conversations created during a dataset run execution. One-to-many
  * relationship where one datasetRun can create many conversations, but each
@@ -904,7 +905,7 @@ export const datasetRunConversationRelations = pgTable(
 );
 
 /**
- * Evaluation Suite Config table (Policy)
+ * Evaluation Suite Config table (CONFIG LAYER)
  * 
  * Recurring policy configuration that defines when and what to evaluate.
  * Example: "Run daily against conversations for agentId X from the last day"
@@ -947,7 +948,7 @@ export const evaluationSuiteConfig = pgTable(
 );
 
 /**
- * Evaluation Suite Config Evaluator Relations join table
+ * Evaluation Suite Config Evaluator Relations join table (CONFIG LAYER)
  * 
  * Links evaluators to evaluation suite configs. Many-to-many relationship that
  * attaches evaluators to an evaluation suite configuration. Each evaluator must
@@ -979,7 +980,7 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
 );
 
 /**
- * Evaluation Job table (Job Config)
+ * Evaluation Job table (CONFIG LAYER)
  * 
  * Configuration for a one-off evaluation job to be executed.
  * Example: "Evaluate all conversations in datasetRunId 1234"
@@ -1012,7 +1013,7 @@ export const evaluationJob = pgTable(
 );
 
 /**
- * Evaluation Suite Run table (Historical Records)
+ * Evaluation Suite Run table (RUNTIME STORAGE)
  * 
  * Historical record created when an evaluation job or evaluation suite config completes.
  * Represents a completed evaluation run. Links to both the evaluationJob (if created from a job)
@@ -1047,7 +1048,7 @@ export const evaluationSuiteRun = pgTable(
 );
 
 /**
- * Evaluation Result table
+ * Evaluation Result table (RUNTIME STORAGE)
  * 
  * Stores the result of evaluating a conversation with a specific evaluator.
  * Contains the evaluation output. Linked to an evaluation suite run and optionally
