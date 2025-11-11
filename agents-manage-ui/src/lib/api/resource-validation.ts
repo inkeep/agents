@@ -5,7 +5,7 @@
  * Follows the same pattern as backend resourceIdSchema validation
  */
 
-export class ResourceValidationError extends Error {
+class ResourceValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ResourceValidationError';
@@ -26,7 +26,7 @@ export interface ResourceValidationOptions {
 /**
  * Generic resource ID validation function
  */
-export function validateResourceId(id: string, options: ResourceValidationOptions): void {
+function validateResourceId(id: string, options: ResourceValidationOptions): void {
   const { resourceName, minLength = 1, maxLength = 255, pattern = /^[a-zA-Z0-9_-]+$/ } = options;
 
   if (!id) {
@@ -57,7 +57,7 @@ export function validateResourceId(id: string, options: ResourceValidationOption
 /**
  * Safe validation that returns boolean instead of throwing
  */
-export function isValidResourceId(id: string, options: ResourceValidationOptions): boolean {
+function isValidResourceId(id: string, options: ResourceValidationOptions): boolean {
   try {
     validateResourceId(id, options);
     return true;
@@ -91,7 +91,7 @@ export function validateProjectId(projectId: string): void {
 /**
  * Safe tenant ID validation
  */
-export function isValidTenantId(tenantId: string): boolean {
+function isValidTenantId(tenantId: string): boolean {
   return isValidResourceId(tenantId, {
     resourceName: 'Tenant ID',
     maxLength: 50,
@@ -101,7 +101,7 @@ export function isValidTenantId(tenantId: string): boolean {
 /**
  * Safe project ID validation
  */
-export function isValidProjectId(projectId: string): boolean {
+function isValidProjectId(projectId: string): boolean {
   return isValidResourceId(projectId, {
     resourceName: 'Project ID',
     maxLength: 255,

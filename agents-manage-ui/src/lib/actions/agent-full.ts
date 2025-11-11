@@ -60,7 +60,7 @@ export async function getAllAgentsAction(
 /**
  * Fetch barebones metadata for all agents in a project to be used with team agent relations
  */
-export async function fetchTeamAgentsAction(
+async function fetchTeamAgentsAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<TeamAgent[]>> {
@@ -232,7 +232,7 @@ export async function deleteFullAgentAction(
  * Validate agent data without making an API call
  * Useful for form validation on the client side
  */
-export async function validateAgentData(data: unknown): Promise<ActionResult<FullAgentDefinition>> {
+async function validateAgentData(data: unknown): Promise<ActionResult<FullAgentDefinition>> {
   try {
     const validatedData = FullAgentDefinitionSchema.parse(data);
     return {

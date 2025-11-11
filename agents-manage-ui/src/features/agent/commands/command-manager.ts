@@ -4,7 +4,7 @@ export interface Command {
   undo(): void;
 }
 
-export class CommandManager {
+class CommandManager {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
   private txBuffer: Command[] | null = null;

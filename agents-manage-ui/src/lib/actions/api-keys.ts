@@ -15,7 +15,7 @@ import type { ActionResult } from './types';
 /**
  * Fetch all API keys
  */
-export async function fetchApiKeysAction(
+async function fetchApiKeysAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<ApiKey[]>> {

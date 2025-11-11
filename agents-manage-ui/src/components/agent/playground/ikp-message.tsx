@@ -524,5 +524,3 @@ export const IkpMessage: FC<IkpMessageProps> = ({
     </div>
   );
 };
-
-export default IkpMessage;
