@@ -11,8 +11,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { cn } from '@/lib/utils';
 
 type DialogProps = Required<ComponentProps<typeof Dialog>>;
 

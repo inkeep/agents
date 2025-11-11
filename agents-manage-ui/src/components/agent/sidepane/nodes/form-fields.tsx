@@ -1,5 +1,5 @@
 import { Info } from 'lucide-react';
-import type { FC, Ref, ChangeEvent } from 'react';
+import type { ChangeEvent, FC, Ref } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

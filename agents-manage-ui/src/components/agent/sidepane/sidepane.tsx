@@ -2,6 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
@@ -35,7 +36,6 @@ import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
 import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
 import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 interface SidePaneProps {
   selectedNodeId: string | null;
