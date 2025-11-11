@@ -43,6 +43,7 @@
   },
   "clean-package": "./clean-package.config.json",
   "dependencies": {
+    "@electric-sql/pglite": "^0.3.13",
     "@hono/node-server": "^1.14.3",
     "@hono/zod-openapi": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.17.2",
@@ -80,7 +81,6 @@
     "keytar": "^7.9.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.13",
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/pg": "^8.15.6",
