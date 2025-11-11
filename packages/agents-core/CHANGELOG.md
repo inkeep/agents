@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+
 ## 0.32.0
 
 ### Minor Changes

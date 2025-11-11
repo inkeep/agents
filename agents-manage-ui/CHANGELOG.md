@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-api@0.32.1
+  - @inkeep/agents-run-api@0.32.1
+
 ## 0.32.0
 
 ### Minor Changes
