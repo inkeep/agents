@@ -74,8 +74,9 @@ app.openapi(
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
-      // Handle duplicate project creation (SQLite primary key constraint)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
+      // Handle duplicate project creation (PostgreSQL unique constraint violation)
+      logger.error({ error }, 'Error creating project');
+      if (error?.cause?.code === '23505') {
         throw createApiError({
           code: 'conflict',
           message: `Project with ID '${projectData.id}' already exists`,

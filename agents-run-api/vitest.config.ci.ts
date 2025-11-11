@@ -22,7 +22,6 @@ export default defineConfig({
     },
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-key-for-tests',
     },
     // Use sophisticated coverage system (agents-run-api uses baseline thresholds)

@@ -56,8 +56,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         name: 'Default Agent',
         description: 'A helpful assistant',
         prompt: 'You are a helpful assistant.',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     ),
     createOrGetConversation: vi.fn().mockReturnValue(

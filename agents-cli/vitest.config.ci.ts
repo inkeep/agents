@@ -11,7 +11,6 @@ export default defineConfig({
     environment: 'node',
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
     },
     testTimeout: 180000, // 3 minute timeout for CI tests
     hookTimeout: 60000, // 1 minute timeout for setup/teardown hooks

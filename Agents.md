@@ -127,7 +127,7 @@ describe('MyFeature', () => {
 Required environment variables in `.env` files:
 ```
 ENVIRONMENT=development|production|test
-DB_FILE_NAME=path/to/sqlite.db
+DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 PORT=3002
 ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional

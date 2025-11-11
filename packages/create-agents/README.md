@@ -132,7 +132,7 @@ MANAGE_API_PORT=3002
 RUN_API_PORT=3003
 
 # Database
-DB_FILE_NAME=file:./local.db
+DATABASE_URL=your-pg-database-url-here
 
 # Environment
 ENVIRONMENT=development
