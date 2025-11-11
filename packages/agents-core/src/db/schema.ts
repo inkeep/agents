@@ -702,7 +702,6 @@ export const dataset = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (table) => [
@@ -728,9 +727,7 @@ export const dataset = pgTable(
 export const datasetItem = pgTable(
   'dataset_item',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
+    ...projectScoped,
     datasetId: text('dataset_id').notNull(),
     input: jsonb('input').$type<{
       messages: Array<{ role: string; content: MessageContent }>;
@@ -739,20 +736,20 @@ export const datasetItem = pgTable(
     expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
     simulationConfig: jsonb('simulation_config').$type<{
       userPersona: string;
-      initialMessage?: string;
+      initialMessage?: { role: string; content: MessageContent };
       maxTurns?: number;
       stoppingCondition?: string;
-      simulatingAgentDefinition: {
+      AgentDefinition: {
         name: string;
         description: string;
         prompt: string;
-        modelConfig: Record<string, unknown>;
-        temperature?: number;
+        modelConfig: ModelSettings;
       };
     }>(),
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.datasetId],
       foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
@@ -806,30 +803,22 @@ export const evaluator = pgTable(
  * Each run specifies which agent to use for creating conversations from the dataset items.
 
  * 
- * Includes: dataset reference, agentId (the agent to use for this run),
+ * Includes: dataset reference,
  * and timestamps
  */
 export const datasetRun = pgTable(
   'dataset_run',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
+    ...projectScoped,
     datasetId: text('dataset_id').notNull(),
-    agentId: text('agent_id').notNull(),
-    status: text('status').$type<'done'|'failed'>().notNull(),
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.datasetId],
       foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
       name: 'dataset_run_dataset_fk',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'dataset_run_agent_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -848,14 +837,13 @@ export const datasetRun = pgTable(
 export const datasetRunConversations = pgTable(
   'dataset_run_conversations',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
+    ...projectScoped,
     datasetRunId: text('dataset_run_id').notNull(),
     conversationId: text('conversation_id').notNull(),
-    projectId: text('project_id').notNull(),
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.datasetRunId],
       foreignColumns: [datasetRun.id],
@@ -895,7 +883,7 @@ export const evalSuiteConfig = pgTable(
     runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', on demaind
     // Filtering configuration
     agentIds: jsonb('agent_ids').$type<string[]>(),
-    datasetRunId: text('dataset_run_id'), // For filtering by dataset run
+    datasetRunIds: jsonb('dataset_run_ids').$type<string[]>(),
     conversationIds: jsonb('conversation_ids').$type<string[]>(), // Only for past conversations
     dateRange: jsonb('date_range').$type<{
       startDate: string;
@@ -911,11 +899,6 @@ export const evalSuiteConfig = pgTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'eval_suite_config_project_fk',
     }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.datasetRunId],
-      foreignColumns: [datasetRun.id],
-      name: 'eval_suite_config_dataset_run_fk',
-    }).onDelete('set null'),
   ]
 );
 
@@ -931,18 +914,17 @@ export const evalSuiteConfig = pgTable(
 export const evalSuiteConfigEvaluator = pgTable(
   'eval_suite_config_evaluator',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
+    ...projectScoped,
     suiteConfigId: text('suite_config_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.suiteConfigId],
       foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
-      name: 'eval_suite_config_evaluator_config_fk',
+      name: 'eval_suite_config_evaluator_suite_config_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluatorId],
@@ -965,16 +947,12 @@ export const evalSuiteConfigEvaluator = pgTable(
 export const evalSuiteRun = pgTable(
   'eval_suite_run',
   {
-    id: text('id').primaryKey(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
-    name: text('name').notNull(),
-    description: text('description').notNull(),
+    ...projectScoped,
     suiteConfigId: text('suite_config_id').notNull(),
-    status: text('status').$type<'done'|'failed'>().notNull(),
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.suiteConfigId],
       foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
@@ -998,19 +976,16 @@ export const evalSuiteRun = pgTable(
 export const evalResult = pgTable(
   'eval_result',
   {
-    id: text('id').primaryKey(),
-    suiteRunId: text('suite_run_id').notNull(), // References evalSuiteRun.id
-    datasetItemId: text('dataset_item_id'),
+    ...projectScoped,
     conversationId: text('conversation_id').notNull(),
-    status: text('status').$type<'done'|'failed'>().notNull(),
-    tenantId: text('tenant_id').notNull(),
-    projectId: text('project_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
-    reasoning: text('reasoning'),
-    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    suiteRunId: text('suite_run_id'),
+    datasetItemId: text('dataset_item_id'),
+    output: jsonb('output').$type<MessageContent>(),
     ...timestamps,
   },
-  (table) => [ 
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.conversationId],
       foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
@@ -1022,10 +997,15 @@ export const evalResult = pgTable(
       name: 'eval_result_evaluator_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.datasetItemId],
-      foreignColumns: [datasetItem.id],
+      columns: [table.suiteRunId],
+      foreignColumns: [evalSuiteRun.id],
+      name: 'eval_result_suite_run_fk',
+    }).onDelete('set null'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetItemId],
+      foreignColumns: [datasetItem.tenantId, datasetItem.projectId, datasetItem.id],
       name: 'eval_result_dataset_item_fk',
-    }).onDelete('cascade'),
+    }).onDelete('set null'),
   ]
 );
 
@@ -1450,10 +1430,6 @@ export const evalSuiteConfigRelations = relations(evalSuiteConfig, ({ one, many 
     fields: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  datasetRun: one(datasetRun, {
-    fields: [evalSuiteConfig.datasetRunId],
-    references: [datasetRun.id],
-  }),
   runs: many(evalSuiteRun),
   evaluators: many(evalSuiteConfigEvaluator),
 }));
@@ -1488,8 +1464,8 @@ export const evalResultRelations = relations(evalResult, ({ one }) => ({
     references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
   }),
   datasetItem: one(datasetItem, {
-    fields: [evalResult.datasetItemId],
-    references: [datasetItem.id],
+    fields: [evalResult.tenantId, evalResult.projectId, evalResult.datasetItemId],
+    references: [datasetItem.tenantId, datasetItem.projectId, datasetItem.id],
   }),
   evalSuiteRun: one(evalSuiteRun, {
     fields: [evalResult.suiteRunId],
