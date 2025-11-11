@@ -736,10 +736,13 @@ export const datasetItem = pgTable(
     expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
     simulationConfig: jsonb('simulation_config').$type<{
       userPersona: string;
-      initialMessage?: { role: string; content: MessageContent };
-      maxTurns?: number;
-      stoppingCondition?: string;
-      AgentDefinition: {
+      initialMessage?: {
+        role: string;
+        content: MessageContent;
+        headers?: Record<string, string>;
+      };
+      stopWhen?: StopWhen;
+      agentDefinition: {
         name: string;
         description: string;
         prompt: string;
@@ -845,8 +848,8 @@ export const datasetRunConversations = pgTable(
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.datasetRunId],
-      foreignColumns: [datasetRun.id],
+      columns: [table.tenantId, table.projectId, table.datasetRunId],
+      foreignColumns: [datasetRun.tenantId, datasetRun.projectId, datasetRun.id],
       name: 'dataset_run_conversations_run_fk',
     }).onDelete('cascade'),
     foreignKey({
@@ -862,20 +865,20 @@ export const datasetRunConversations = pgTable(
 );
 
 /**
- * Eval Suite Config table
+ * Evaluation Suite Config table
  * 
  * Reusable suite configuration for batch dataset runs or batch conversations.
  * Defines which conversations/dataset runs to evaluate (via filters) and which evaluators
  * to use. Can configure run frequency and model config that can be overridden
- * by specific evaluators. Attaches evaluators via evalSuiteConfigEvaluator join.
+ * by specific evaluators. Attaches evaluators via evaluationSuiteConfigEvaluator join.
  * 
  * Includes: name, description, modelConfig (default for evaluators),
  * runFrequency (weekly/daily/monthly, nullable), filtering config (agentIds,
  * datasetRunId, conversationIds, dateRange), sampleRate for sampling,
  * and timestamps
  */
-export const evalSuiteConfig = pgTable(
-  'eval_suite_config',
+export const evaluationSuiteConfig = pgTable(
+  'evaluation_suite_config',
   {
     ...projectScoped,
     ...uiProperties,
@@ -897,89 +900,89 @@ export const evalSuiteConfig = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
-      name: 'eval_suite_config_project_fk',
+      name: 'evaluation_suite_config_project_fk',
     }).onDelete('cascade'),
   ]
 );
 
 /**
- * Eval Suite Config Evaluator join table
+ * Evaluation Suite Config Evaluator join table
  * 
- * Links evaluators to eval suite configs. Many-to-many relationship that
- * attaches evaluators to a suite configuration. The evaluator's own modelConfig
- * (if set) takes precedence, otherwise the suite config's modelConfig is used.
+ * Links evaluators to evaluation suite configs. Many-to-many relationship that
+ * attaches evaluators to an evaluation suite configuration. The evaluator's own modelConfig
+ * (if set) takes precedence, otherwise the evaluation suite config's modelConfig is used.
  * 
- * Includes: suiteConfigId, evaluatorId, and timestamps
+ * Includes: evaluationSuiteConfigId, evaluatorId, and timestamps
  */
-export const evalSuiteConfigEvaluator = pgTable(
-  'eval_suite_config_evaluator',
+export const evaluationSuiteConfigEvaluator = pgTable(
+  'evaluation_suite_config_evaluator',
   {
     ...projectScoped,
-    suiteConfigId: text('suite_config_id').notNull(),
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
     ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.suiteConfigId],
-      foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
-      name: 'eval_suite_config_evaluator_suite_config_fk',
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+      name: 'evaluation_suite_config_evaluator_evaluation_suite_config_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluatorId],
       foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
-      name: 'eval_suite_config_evaluator_evaluator_fk',
+      name: 'evaluation_suite_config_evaluator_evaluator_fk',
     }).onDelete('cascade'),
   ]
 );
 
 /**
- * Eval Suite Run table
+ * Evaluation Suite Run table
  * 
- * Execution instance of an eval suite config. Represents a single run that
- * evaluates conversations based on the suite configuration. Links to a
- * specific suite config.
+ * Execution instance of an evaluation suite config. Represents a single run that
+ * evaluates conversations based on the evaluation suite configuration. Links to a
+ * specific evaluation suite config.
  * 
- * Includes: name, description, suiteConfigId,
+ * Includes: name, description, evaluationSuiteConfigId,
  * status (done/failed), and timestamps
  */
-export const evalSuiteRun = pgTable(
-  'eval_suite_run',
+export const evaluationSuiteRun = pgTable(
+  'evaluation_suite_run',
   {
     ...projectScoped,
-    suiteConfigId: text('suite_config_id').notNull(),
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
     ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.suiteConfigId],
-      foreignColumns: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
-      name: 'eval_suite_run_config_fk',
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+      name: 'evaluation_suite_run_evaluation_suite_config_fk',
     }).onDelete('cascade'),
   ]
 );
 
 /**
- * Eval Result table
+ * Evaluation Result table
  * 
  * Stores the result of evaluating a conversation with a specific evaluator.
  * Contains the evaluation output, reasoning, and status. Linked to
- * a suite run. Each result represents one evaluator's assessment of one
+ * an evaluation run. Each result represents one evaluator's assessment of one
  * conversation.
  * 
- * Includes: conversationId, evaluatorId, suiteRunId,
+ * Includes: conversationId, evaluatorId, evaluationRunId,
  * datasetItemId (optional), status (done/failed), reasoning,
  * metadata (structured evaluation output), and timestamps
  */
-export const evalResult = pgTable(
-  'eval_result',
+export const evaluationResult = pgTable(
+  'evaluation_result',
   {
     ...projectScoped,
     conversationId: text('conversation_id').notNull(),
     evaluatorId: text('evaluator_id').notNull(),
-    suiteRunId: text('suite_run_id'),
+    evaluationSuiteRunId: text('evaluation_suite_run_id'),
     datasetItemId: text('dataset_item_id'),
     output: jsonb('output').$type<MessageContent>(),
     ...timestamps,
@@ -989,22 +992,22 @@ export const evalResult = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId, table.conversationId],
       foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
-      name: 'eval_result_conversation_fk',
+      name: 'evaluation_result_conversation_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluatorId],
       foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
-      name: 'eval_result_evaluator_fk',
+      name: 'evaluation_result_evaluator_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.suiteRunId],
-      foreignColumns: [evalSuiteRun.id],
-      name: 'eval_result_suite_run_fk',
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteRunId],
+      foreignColumns: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.id],
+      name: 'evaluation_result_evaluation_suite_run_fk',
     }).onDelete('set null'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.datasetItemId],
       foreignColumns: [datasetItem.tenantId, datasetItem.projectId, datasetItem.id],
-      name: 'eval_result_dataset_item_fk',
+      name: 'evaluation_result_dataset_item_fk',
     }).onDelete('set null'),
   ]
 );
@@ -1045,7 +1048,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   credentialReferences: many(credentialReferences),
   datasets: many(dataset),
   evaluators: many(evaluator),
-  evalSuiteConfigs: many(evalSuiteConfig),
+  evaluationSuiteConfigs: many(evaluationSuiteConfig),
 }));
 
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
@@ -1404,7 +1407,7 @@ export const datasetItemRelations = relations(datasetItem, ({ one, many }) => ({
     fields: [datasetItem.tenantId, datasetItem.projectId, datasetItem.datasetId],
     references: [dataset.tenantId, dataset.projectId, dataset.id],
   }),
-  evalResults: many(evalResult),
+  evaluationResults: many(evaluationResult),
 }));
 
 export const evaluatorRelations = relations(evaluator, ({ one, many }) => ({
@@ -1412,8 +1415,8 @@ export const evaluatorRelations = relations(evaluator, ({ one, many }) => ({
     fields: [evaluator.tenantId, evaluator.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  evalResults: many(evalResult),
-  evalSuiteConfigs: many(evalSuiteConfigEvaluator),
+  evaluationResults: many(evaluationResult),
+  evaluationSuiteConfigs: many(evaluationSuiteConfigEvaluator),
 }));
 
 export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
@@ -1422,67 +1425,66 @@ export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
     references: [dataset.tenantId, dataset.projectId, dataset.id],
   }),
   conversations: many(datasetRunConversations),
-  evalSuiteConfigs: many(evalSuiteConfig),
 }));
 
-export const evalSuiteConfigRelations = relations(evalSuiteConfig, ({ one, many }) => ({
+export const evaluationSuiteConfigRelations = relations(evaluationSuiteConfig, ({ one, many }) => ({
   project: one(projects, {
-    fields: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId],
+    fields: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  runs: many(evalSuiteRun),
-  evaluators: many(evalSuiteConfigEvaluator),
+  runs: many(evaluationSuiteRun),
+  evaluators: many(evaluationSuiteConfigEvaluator),
 }));
 
-export const evalSuiteConfigEvaluatorRelations = relations(evalSuiteConfigEvaluator, ({ one }) => ({
-  suiteConfig: one(evalSuiteConfig, {
-    fields: [evalSuiteConfigEvaluator.tenantId, evalSuiteConfigEvaluator.projectId, evalSuiteConfigEvaluator.suiteConfigId],
-    references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+export const evaluationSuiteConfigEvaluatorRelations = relations(evaluationSuiteConfigEvaluator, ({ one }) => ({
+  evaluationSuiteConfig: one(evaluationSuiteConfig, {
+    fields: [evaluationSuiteConfigEvaluator.tenantId, evaluationSuiteConfigEvaluator.projectId, evaluationSuiteConfigEvaluator.evaluationSuiteConfigId],
+    references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
   }),
   evaluator: one(evaluator, {
-    fields: [evalSuiteConfigEvaluator.tenantId, evalSuiteConfigEvaluator.projectId, evalSuiteConfigEvaluator.evaluatorId],
+    fields: [evaluationSuiteConfigEvaluator.tenantId, evaluationSuiteConfigEvaluator.projectId, evaluationSuiteConfigEvaluator.evaluatorId],
     references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
   }),
 }));
 
-export const evalSuiteRunRelations = relations(evalSuiteRun, ({ one, many }) => ({
-  suiteConfig: one(evalSuiteConfig, {
-    fields: [evalSuiteRun.tenantId, evalSuiteRun.projectId, evalSuiteRun.suiteConfigId],
-    references: [evalSuiteConfig.tenantId, evalSuiteConfig.projectId, evalSuiteConfig.id],
+export const evaluationSuiteRunRelations = relations(evaluationSuiteRun, ({ one, many }) => ({
+  evaluationSuiteConfig: one(evaluationSuiteConfig, {
+    fields: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.evaluationSuiteConfigId],
+    references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
   }),
-  results: many(evalResult),
+  results: many(evaluationResult),
 }));
 
-export const evalResultRelations = relations(evalResult, ({ one }) => ({
+export const evaluationResultRelations = relations(evaluationResult, ({ one }) => ({
   conversation: one(conversations, {
-    fields: [evalResult.tenantId, evalResult.projectId, evalResult.conversationId],
+    fields: [evaluationResult.tenantId, evaluationResult.projectId, evaluationResult.conversationId],
     references: [conversations.tenantId, conversations.projectId, conversations.id],
-    relationName: 'conversationEvalResults',
+    relationName: 'conversationEvaluationResults',
   }),
   evaluator: one(evaluator, {
-    fields: [evalResult.tenantId, evalResult.projectId, evalResult.evaluatorId],
+    fields: [evaluationResult.tenantId, evaluationResult.projectId, evaluationResult.evaluatorId],
     references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
   }),
   datasetItem: one(datasetItem, {
-    fields: [evalResult.tenantId, evalResult.projectId, evalResult.datasetItemId],
+    fields: [evaluationResult.tenantId, evaluationResult.projectId, evaluationResult.datasetItemId],
     references: [datasetItem.tenantId, datasetItem.projectId, datasetItem.id],
   }),
-  evalSuiteRun: one(evalSuiteRun, {
-    fields: [evalResult.suiteRunId],
-    references: [evalSuiteRun.id],
+  evaluationSuiteRun: one(evaluationSuiteRun, {
+    fields: [evaluationResult.tenantId, evaluationResult.projectId, evaluationResult.evaluationSuiteRunId],
+    references: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.id],
   }),
 }));
 
-export const conversationsEvalRelations = relations(conversations, ({ many }) => ({
-  evalResults: many(evalResult, {
-    relationName: 'conversationEvalResults',
+export const conversationsEvaluatorRelations = relations(conversations, ({ many }) => ({
+  evaluationResults: many(evaluationResult, {
+    relationName: 'conversationEvaluationResults',
   }),
 }));
 
 export const datasetRunConversationsRelations = relations(datasetRunConversations, ({ one }) => ({
   datasetRun: one(datasetRun, {
-    fields: [datasetRunConversations.datasetRunId],
-    references: [datasetRun.id],
+    fields: [datasetRunConversations.tenantId, datasetRunConversations.projectId, datasetRunConversations.datasetRunId],
+    references: [datasetRun.tenantId, datasetRun.projectId, datasetRun.id],
   }),
   conversation: one(conversations, {
     fields: [
