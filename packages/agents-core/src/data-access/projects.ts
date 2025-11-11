@@ -1,5 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import {
   agents,
   artifactComponents,
@@ -139,12 +140,14 @@ export const listProjects =
 /**
  * List all unique project IDs within a tenant with pagination
  */
-export const listProjectsPaginated =
-  (db: DatabaseClient) =>
-  async (params: {
-    tenantId: string;
-    pagination?: PaginationConfig;
-  }): Promise<{
+export const listProjectsPaginated = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      tenantId: string;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{
     data: ProjectSelect[];
     pagination: PaginationResult;
   }> => {
@@ -170,7 +173,8 @@ export const listProjectsPaginated =
       data: data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 /**
  * Get resource counts for a specific project
@@ -253,9 +257,8 @@ export const countProjects =
 /**
  * Get a single project by ID
  */
-export const getProject =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
+export const getProject = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
     const result = await db.query.projects.findFirst({
       where: and(
         eq(projects.tenantId, params.scopes.tenantId),
@@ -263,7 +266,8 @@ export const getProject =
       ),
     });
     return result || null;
-  };
+  }
+);
 
 /**
  * Create a new project

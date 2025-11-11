@@ -88,6 +88,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit, status } = c.req.valid('query');
+    const resolvedRef = c.get('resolvedRef');
 
     let result: {
       data: McpTool[];
@@ -103,7 +104,7 @@ app.openapi(
 
     // Filter by status if provided
     if (status) {
-      const dbResult = await listTools(dbClient)({
+      const dbResult = await listTools(dbClient, resolvedRef)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
@@ -120,7 +121,7 @@ app.openapi(
       };
     } else {
       // Use paginated results from operations
-      const dbResult = await listTools(dbClient)({
+      const dbResult = await listTools(dbClient, resolvedRef)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
@@ -163,7 +164,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
+    const resolvedRef = c.get('resolvedRef');
+    const tool = await getToolById(dbClient, resolvedRef)({ scopes: { tenantId, projectId }, toolId: id });
     if (!tool) {
       throw createApiError({
         code: 'not_found',

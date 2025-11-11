@@ -3,6 +3,7 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
+import type { BaseAppVariables } from '../types/app';
 
 type Permission = {
   [resource: string]: string | string[];
@@ -29,7 +30,7 @@ function formatPermissionsForDisplay(permissions: Permission): string[] {
   return formatted;
 }
 
-export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuthVariables>(
+export const requirePermission = <Env extends { Variables: BaseAppVariables } = { Variables: BaseAppVariables }>(
   permissions: Permission
 ) =>
   createMiddleware<Env>(async (c, next) => {

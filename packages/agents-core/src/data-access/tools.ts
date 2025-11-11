@@ -4,6 +4,7 @@ import type { CredentialStoreRegistry } from '../credential-stores';
 import type { NangoCredentialData } from '../credential-stores/nango-store';
 import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { subAgentToolRelations, tools } from '../db/schema';
 import type { CredentialReferenceSelect } from '../types/index';
 import {
@@ -351,8 +352,8 @@ export const dbResultToMcpTool = async (
   };
 };
 
-export const getToolById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
+export const getToolById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -361,11 +362,11 @@ export const getToolById =
       ),
     });
     return result ?? null;
-  };
+  }
+);
 
-export const listTools =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
+export const listTools = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -393,7 +394,8 @@ export const listTools =
       data: toolsDbResults,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => {
   const now = new Date().toISOString();

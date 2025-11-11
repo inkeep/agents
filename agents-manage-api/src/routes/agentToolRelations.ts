@@ -74,6 +74,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit, subAgentId, toolId } = c.req.valid('query');
+    const resolvedRef = c.get('resolvedRef');
 
     let result: {
       data: SubAgentToolRelationSelect[];
@@ -87,7 +88,7 @@ app.openapi(
 
     // Filter by agent if provided
     if (subAgentId) {
-      const dbResult = await getAgentToolRelationByAgent(dbClient)({
+      const dbResult = await getAgentToolRelationByAgent(dbClient, resolvedRef)({
         scopes: { tenantId, projectId, agentId, subAgentId },
         pagination: { page, limit },
       });
@@ -98,7 +99,7 @@ app.openapi(
     }
     // Filter by tool if provided
     else if (toolId) {
-      const dbResult = await getAgentToolRelationByTool(dbClient)({
+      const dbResult = await getAgentToolRelationByTool(dbClient, resolvedRef)({
         scopes: { tenantId, projectId, agentId },
         toolId,
         pagination: { page, limit },
@@ -110,7 +111,7 @@ app.openapi(
     }
     // Default: get all agent tool relations
     else {
-      const dbResult = await listAgentToolRelations(dbClient)({
+      const dbResult = await listAgentToolRelations(dbClient, resolvedRef)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -148,7 +149,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const agentToolRelation = await getAgentToolRelationById(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const agentToolRelation = await getAgentToolRelationById(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId, subAgentId: id },
       relationId: id,
     });
@@ -192,8 +194,8 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId, toolId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
-
-    const dbResult = await getAgentsForTool(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const dbResult = await getAgentsForTool(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId },
       toolId,
       pagination: { page, limit },

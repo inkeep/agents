@@ -41,7 +41,7 @@ app.use('/:id', async (c, next) => {
   }
   return next();
 });
-
+  
 app.openapi(
   createRoute({
     method: 'get',
@@ -70,8 +70,9 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const resolvedRef = c.get('resolvedRef');
 
-    const result = await listDataComponentsPaginated(dbClient)({
+    const result = await listDataComponentsPaginated(dbClient, resolvedRef)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -103,7 +104,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const dataComponent = await getDataComponent(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const dataComponent = await getDataComponent(dbClient, resolvedRef)({
       scopes: { tenantId, projectId },
       dataComponentId: id,
     });

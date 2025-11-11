@@ -1,4 +1,4 @@
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
+import type { CredentialStoreRegistry, ResolvedRef, ServerConfig } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 
 /**
@@ -11,6 +11,7 @@ export type BaseAppVariables = {
   userEmail: string;
   tenantId: string;
   tenantRole: string;
+  resolvedRef: ResolvedRef;
 };
 
 /**

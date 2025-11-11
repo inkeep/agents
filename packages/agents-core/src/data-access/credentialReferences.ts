@@ -1,5 +1,6 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { credentialReferences, externalAgents, tools } from '../db/schema';
 import type {
   CredentialReferenceInsert,
@@ -19,12 +20,14 @@ export type CredentialReferenceWithResources = CredentialReferenceSelect & {
 /**
  * Get a credential reference by ID
  */
-export const getCredentialReference =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    id: string;
-  }): Promise<CredentialReferenceSelect | undefined> => {
+export const getCredentialReference = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      id: string;
+    }
+  ): Promise<CredentialReferenceSelect | undefined> => {
     return await db.query.credentialReferences.findFirst({
       where: and(
         eq(credentialReferences.tenantId, params.scopes.tenantId),
@@ -32,7 +35,8 @@ export const getCredentialReference =
         eq(credentialReferences.id, params.id)
       ),
     });
-  };
+  }
+);
 
 /**
  * Get a user-scoped credential reference by toolId and userId
@@ -57,12 +61,14 @@ export const getUserScopedCredentialReference =
 /**
  * Get a credential reference by ID with its related tools
  */
-export const getCredentialReferenceWithResources =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    id: string;
-  }): Promise<CredentialReferenceWithResources | undefined> => {
+export const getCredentialReferenceWithResources = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      id: string;
+    }
+  ): Promise<CredentialReferenceWithResources | undefined> => {
     const [credential, relatedTools, relatedExternalAgents] = await Promise.all([
       db.query.credentialReferences.findFirst({
         where: and(
@@ -102,14 +108,14 @@ export const getCredentialReferenceWithResources =
       tools: relatedTools,
       externalAgents: relatedExternalAgents,
     };
-  };
+  }
+);
 
 /**
  * List all credential references for a tenant/project
  */
-export const listCredentialReferences =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
+export const listCredentialReferences = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
     return await db.query.credentialReferences.findMany({
       where: and(
         eq(credentialReferences.tenantId, params.scopes.tenantId),
@@ -117,17 +123,20 @@ export const listCredentialReferences =
       ),
       orderBy: [desc(credentialReferences.createdAt)],
     });
-  };
+  }
+);
 
 /**
  * List credential references with pagination
  */
-export const listCredentialReferencesPaginated =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    pagination?: PaginationConfig;
-  }): Promise<{
+export const listCredentialReferencesPaginated = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{
     data: CredentialReferenceSelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -158,7 +167,8 @@ export const listCredentialReferencesPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 /**
  * Create a new credential reference
@@ -250,22 +260,24 @@ export const deleteCredentialReference =
 /**
  * Check if a credential reference exists
  */
-export const hasCredentialReference =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
+export const hasCredentialReference = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const credential = await getCredentialReference(db)(params);
     return credential !== null;
-  };
+  }
+);
 
 /**
  * Get credential reference by ID (simple version without tools)
  */
-export const getCredentialReferenceById =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    id: string;
-  }): Promise<CredentialReferenceSelect | null> => {
+export const getCredentialReferenceById = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      id: string;
+    }
+  ): Promise<CredentialReferenceSelect | null> => {
     const result = await db.query.credentialReferences.findFirst({
       where: and(
         eq(credentialReferences.tenantId, params.scopes.tenantId),
@@ -275,14 +287,14 @@ export const getCredentialReferenceById =
     });
 
     return result || null;
-  };
+  }
+);
 
 /**
  * Count credential references for a tenant/project
  */
-export const countCredentialReferences =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
+export const countCredentialReferences = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(credentialReferences)
@@ -295,7 +307,8 @@ export const countCredentialReferences =
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
-  };
+  }
+);
 
 /**
  * Upsert a credential reference (create if it doesn't exist, update if it does)

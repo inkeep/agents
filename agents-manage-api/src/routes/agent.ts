@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono} from '@hono/zod-openapi';
 import {
   AgentApiInsertSchema,
   AgentApiUpdateSchema,
@@ -22,6 +22,7 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
+  ResolvedRef,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
@@ -32,17 +33,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ agent: ['create'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['create'] })(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ agent: ['update'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ agent: ['delete'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['delete'] })(c, next);
   }
   return next();
 });
@@ -75,6 +76,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const resolvedRef = c.get('resolvedRef');
 
     const result = await listAgentsPaginated(dbClient)({
       scopes: { tenantId, projectId },
@@ -108,7 +110,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const agent = await getAgentById(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+
+    const agent = await getAgentById(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId: id },
     });
 
@@ -147,8 +151,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
+    const resolvedRef = c.get('resolvedRef');
 
-    const relatedAgents = await getAgentSubAgentInfos(dbClient)({
+    const relatedAgents = await getAgentSubAgentInfos(dbClient, resolvedRef)({
       scopes: { tenantId, projectId },
       agentId: agentId,
       subAgentId: subAgentId,
@@ -190,8 +195,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
+    const resolvedRef = c.get('resolvedRef');
 
-    const fullAgent = await getFullAgentDefinition(dbClient)({
+    const fullAgent = await getFullAgentDefinition(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId },
     });
 
@@ -345,7 +351,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const deleted = await deleteAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: id },
+       scopes: { tenantId, projectId, agentId: id },
     });
 
     if (!deleted) {

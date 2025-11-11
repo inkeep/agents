@@ -69,8 +69,9 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const resolvedRef = c.get('resolvedRef');
 
-    const result = await listContextConfigsPaginated(dbClient)({
+    const result = await listContextConfigsPaginated(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -102,7 +103,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const contextConfig = await getContextConfigById(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const contextConfig = await getContextConfigById(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId },
       id,
     });

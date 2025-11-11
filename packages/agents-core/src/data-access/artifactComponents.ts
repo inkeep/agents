@@ -1,5 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import {
   artifactComponents,
   subAgentArtifactComponents,
@@ -20,8 +21,8 @@ import type {
 import { generateId } from '../utils/conversations';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 
-export const getArtifactComponentById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
+export const getArtifactComponentById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.artifactComponents.findFirst({
       where: and(
         eq(artifactComponents.tenantId, params.scopes.tenantId),
@@ -29,10 +30,11 @@ export const getArtifactComponentById =
         eq(artifactComponents.id, params.id)
       ),
     });
-  };
+  }
+);
 
-export const listArtifactComponents =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+export const listArtifactComponents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }) => {
     return await db
       .select()
       .from(artifactComponents)
@@ -43,14 +45,17 @@ export const listArtifactComponents =
         )
       )
       .orderBy(desc(artifactComponents.createdAt));
-  };
+  }
+);
 
-export const listArtifactComponentsPaginated =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    pagination?: PaginationConfig;
-  }): Promise<{
+export const listArtifactComponentsPaginated = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{
     data: ArtifactComponentSelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -82,7 +87,8 @@ export const listArtifactComponentsPaginated =
       data,
       pagination: { page, limit, total: totalNumber, pages },
     };
-  };
+  }
+);
 
 export const createArtifactComponent =
   (db: DatabaseClient) => async (params: ArtifactComponentInsert) => {
@@ -165,8 +171,8 @@ export const deleteArtifactComponent =
     }
   };
 
-export const getArtifactComponentsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+export const getArtifactComponentsForAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig }) => {
     return await db
       .select({
         id: artifactComponents.id,
@@ -192,7 +198,8 @@ export const getArtifactComponentsForAgent =
         )
       )
       .orderBy(desc(artifactComponents.createdAt));
-  };
+  }
+);
 
 export const associateArtifactComponentWithAgent =
   (db: DatabaseClient) =>
@@ -252,9 +259,8 @@ export const deleteAgentArtifactComponentRelationByAgent =
     return result.length > 0;
   };
 
-export const getAgentsUsingArtifactComponent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
+export const getAgentsUsingArtifactComponent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
     return await db
       .select({
         agentId: subAgentArtifactComponents.agentId,
@@ -270,11 +276,11 @@ export const getAgentsUsingArtifactComponent =
         )
       )
       .orderBy(desc(subAgentArtifactComponents.createdAt));
-  };
+  }
+);
 
-export const isArtifactComponentAssociatedWithAgent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
+export const isArtifactComponentAssociatedWithAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     const result = await db
       .select({ id: subAgentArtifactComponents.id })
       .from(subAgentArtifactComponents)
@@ -290,11 +296,11 @@ export const isArtifactComponentAssociatedWithAgent =
       .limit(1);
 
     return result.length > 0;
-  };
+  }
+);
 
-export const agentHasArtifactComponents =
-  (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
+export const agentHasArtifactComponents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const result = await db
       .select({ count: count() })
       .from(subAgentArtifactComponents)
@@ -327,11 +333,11 @@ export const agentHasArtifactComponents =
     const totalNumber = typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
 
     return totalNumber > 0;
-  };
+  }
+);
 
-export const countArtifactComponents =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
+export const countArtifactComponents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(artifactComponents)
@@ -344,11 +350,11 @@ export const countArtifactComponents =
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
-  };
+  }
+);
 
-export const countArtifactComponentsForAgent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig }): Promise<number> => {
+export const countArtifactComponentsForAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(subAgentArtifactComponents)
@@ -363,7 +369,8 @@ export const countArtifactComponentsForAgent =
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
-  };
+  }
+);
 
 /**
  * Upsert agent-artifact component relation (create if it doesn't exist, no-op if it does)

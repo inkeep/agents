@@ -71,8 +71,9 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const resolvedRef = c.get('resolvedRef');
 
-    const result = await listArtifactComponentsPaginated(dbClient)({
+    const result = await listArtifactComponentsPaginated(dbClient, resolvedRef)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -104,7 +105,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const artifactComponent = await getArtifactComponentById(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const artifactComponent = await getArtifactComponentById(dbClient, resolvedRef)({
       scopes: { tenantId, projectId },
       id,
     });

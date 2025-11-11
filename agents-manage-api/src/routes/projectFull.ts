@@ -84,10 +84,10 @@ app.openapi(
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
     try {
-      const createdProject = await createFullProjectServerSide(dbClient, logger)(
-        { tenantId, projectId: validatedProjectData.id },
-        validatedProjectData
-      );
+      const createdProject = await createFullProjectServerSide(dbClient)({
+        scopes: { tenantId, projectId: validatedProjectData.id },
+        projectData: validatedProjectData,
+      });
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -132,14 +132,11 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
-      const project: FullProjectDefinition | null = await getFullProject(
-        dbClient,
-        logger
-      )({
-        scopes: { tenantId, projectId },
-      });
+      const project: FullProjectDefinition | null = await getFullProject(dbClient, resolvedRef)(
+        { scopes: { tenantId, projectId } });
 
       if (!project) {
         throw createApiError({
@@ -219,24 +216,21 @@ app.openapi(
         });
       }
 
-      const existingProject: FullProjectDefinition | null = await getFullProject(
-        dbClient,
-        logger
-      )({
+      const existingProject: FullProjectDefinition | null = await getFullProject(dbClient, undefined)({
         scopes: { tenantId, projectId },
       });
       const isCreate = !existingProject;
 
       // Update/create the full project using server-side data layer operations
       const updatedProject: FullProjectDefinition = isCreate
-        ? await createFullProjectServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedProjectData
-          )
-        : await updateFullProjectServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedProjectData
-          );
+        ? await createFullProjectServerSide(dbClient)({
+            scopes: { tenantId, projectId },
+            projectData: validatedProjectData,
+          })
+        : await updateFullProjectServerSide(dbClient)({
+            scopes: { tenantId, projectId },
+            projectData: validatedProjectData,
+          });
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error) {
@@ -285,10 +279,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFullProject(
-        dbClient,
-        logger
-      )({
+      const deleted = await deleteFullProject(dbClient)({
         scopes: { tenantId, projectId },
       });
 

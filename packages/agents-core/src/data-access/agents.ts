@@ -1,6 +1,7 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import {
   agents,
   artifactComponents,
@@ -27,8 +28,8 @@ import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
 
-export const getAgentById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const getAgentById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
     const result = await db.query.agents.findFirst({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
@@ -37,10 +38,11 @@ export const getAgentById =
       ),
     });
     return result ?? null;
-  };
+  }
+);
 
-export const getAgentWithDefaultSubAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const getAgentWithDefaultSubAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
     const result = await db.query.agents.findFirst({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
@@ -52,21 +54,22 @@ export const getAgentWithDefaultSubAgent =
       },
     });
     return result ?? null;
-  };
+  }
+);
 
-export const listAgents =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+export const listAgents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }) => {
     return await db.query.agents.findMany({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
         eq(agents.projectId, params.scopes.projectId)
       ),
     });
-  };
+  }
+);
 
-export const listAgentsPaginated =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
+export const listAgentsPaginated = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -96,7 +99,8 @@ export const listAgentsPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 export const createAgent = (db: DatabaseClient) => async (data: AgentInsert) => {
   const now = new Date().toISOString();
@@ -192,35 +196,37 @@ export const deleteAgent = (db: DatabaseClient) => async (params: { scopes: Agen
 /**
  * Helper function to fetch component relationships using efficient joins
  */
-export const fetchComponentRelationships =
-  (db: DatabaseClient) =>
+export const fetchComponentRelationships = createDataAccessFn(
   async <T extends Record<string, unknown>>(
-    scopes: ProjectScopeConfig,
-    subAgentIds: string[],
-    config: {
-      relationTable: PgTable<any>;
-      componentTable: PgTable<any>;
-      relationIdField: unknown;
-      componentIdField: unknown;
-      subAgentIdField: unknown;
-      selectFields: Record<string, unknown>;
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      subAgentIds: string[];
+      config: {
+        relationTable: PgTable<any>;
+        componentTable: PgTable<any>;
+        relationIdField: unknown;
+        componentIdField: unknown;
+        subAgentIdField: unknown;
+        selectFields: Record<string, unknown>;
+      };
     }
   ): Promise<Record<string, T>> => {
     const componentsObject: Record<string, T> = {};
 
-    if (subAgentIds.length > 0) {
+    if (params.subAgentIds.length > 0) {
       const results = await db
-        .select(config.selectFields as any)
-        .from(config.relationTable)
+        .select(params.config.selectFields as any)
+        .from(params.config.relationTable)
         .innerJoin(
-          config.componentTable,
-          eq(config.relationIdField as any, config.componentIdField as any)
+          params.config.componentTable,
+          eq(params.config.relationIdField as any, params.config.componentIdField as any)
         )
         .where(
           and(
-            eq((config.relationTable as any).tenantId, scopes.tenantId),
-            eq((config.relationTable as any).projectId, scopes.projectId),
-            inArray(config.subAgentIdField as any, subAgentIds)
+            eq((params.config.relationTable as any).tenantId, params.scopes.tenantId),
+            eq((params.config.relationTable as any).projectId, params.scopes.projectId),
+            inArray(params.config.subAgentIdField as any, params.subAgentIds)
           )
         );
 
@@ -230,19 +236,19 @@ export const fetchComponentRelationships =
     }
 
     return componentsObject;
-  };
+  }
+);
 
-export const getAgentSubAgentInfos =
-  (db: DatabaseClient) =>
-  async ({
-    scopes: { tenantId, projectId },
-    agentId,
-    subAgentId,
-  }: {
-    scopes: ProjectScopeConfig;
-    agentId: string;
-    subAgentId: string;
-  }) => {
+export const getAgentSubAgentInfos = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      agentId: string;
+      subAgentId: string;
+    }
+  ) => {
+    const { scopes: { tenantId, projectId }, agentId, subAgentId } = params;
     const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -272,15 +278,17 @@ export const getAgentSubAgentInfos =
     );
 
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
-  };
+  }
+);
 
-export const getFullAgentDefinition =
-  (db: DatabaseClient) =>
-  async ({
-    scopes: { tenantId, projectId, agentId },
-  }: {
-    scopes: AgentScopeConfig;
-  }): Promise<FullAgentDefinition | null> => {
+export const getFullAgentDefinition = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+    }
+  ): Promise<FullAgentDefinition | null> => {
+    const { scopes: { tenantId, projectId, agentId } } = params;
     const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -568,17 +576,21 @@ export const getFullAgentDefinition =
       const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
       const subAgentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
-        relationTable: subAgentDataComponents,
-        componentTable: dataComponents,
-        relationIdField: subAgentDataComponents.dataComponentId,
-        componentIdField: dataComponents.id,
-        subAgentIdField: subAgentDataComponents.subAgentId,
-        selectFields: {
-          id: dataComponents.id,
-          name: dataComponents.name,
-          description: dataComponents.description,
-          props: dataComponents.props,
+      await fetchComponentRelationships(db)({
+        scopes: { tenantId, projectId },
+        subAgentIds,
+        config: {
+          relationTable: subAgentDataComponents,
+          componentTable: dataComponents,
+          relationIdField: subAgentDataComponents.dataComponentId,
+          componentIdField: dataComponents.id,
+          subAgentIdField: subAgentDataComponents.subAgentId,
+          selectFields: {
+            id: dataComponents.id,
+            name: dataComponents.name,
+            description: dataComponents.description,
+            props: dataComponents.props,
+          },
         },
       });
     } catch (error) {
@@ -589,17 +601,21 @@ export const getFullAgentDefinition =
       const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
       const subAgentIds = Array.from(internalAgentIds);
 
-      await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
-        relationTable: subAgentArtifactComponents,
-        componentTable: artifactComponents,
-        relationIdField: subAgentArtifactComponents.artifactComponentId,
-        componentIdField: artifactComponents.id,
-        subAgentIdField: subAgentArtifactComponents.subAgentId,
-        selectFields: {
-          id: artifactComponents.id,
-          name: artifactComponents.name,
-          description: artifactComponents.description,
-          props: artifactComponents.props,
+      await fetchComponentRelationships(db)({
+        scopes: { tenantId, projectId },
+        subAgentIds,
+        config: {
+          relationTable: subAgentArtifactComponents,
+          componentTable: artifactComponents,
+          relationIdField: subAgentArtifactComponents.artifactComponentId,
+          componentIdField: artifactComponents.id,
+          subAgentIdField: subAgentArtifactComponents.subAgentId,
+          selectFields: {
+            id: artifactComponents.id,
+            name: artifactComponents.name,
+            description: artifactComponents.description,
+            props: artifactComponents.props,
+          },
         },
       });
     } catch (error) {
@@ -787,7 +803,8 @@ export const getFullAgentDefinition =
     }
 
     return result as FullAgentDefinition;
-  };
+  }
+);
 
 /**
  * Upsert an agent (create if it doesn't exist, update if it does)

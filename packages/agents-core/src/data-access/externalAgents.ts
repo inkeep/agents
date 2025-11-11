@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { externalAgents } from '../db/schema';
 import type {
   ExternalAgentInsert,
@@ -23,12 +24,14 @@ export const createExternalAgent =
 /**
  * Get external agent by ID
  */
-export const getExternalAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    externalAgentId: string;
-  }): Promise<ExternalAgentSelect | null> => {
+export const getExternalAgent = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      externalAgentId: string;
+    }
+  ): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
@@ -38,17 +41,20 @@ export const getExternalAgent =
     });
 
     return result || null;
-  };
+  }
+);
 
 /**
  * Get external agent by base URL
  */
-export const getExternalAgentByUrl =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    baseUrl: string;
-  }): Promise<ExternalAgentSelect | null> => {
+export const getExternalAgentByUrl = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      baseUrl: string;
+    }
+  ): Promise<ExternalAgentSelect | null> => {
     const result = await db.query.externalAgents.findFirst({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
@@ -58,14 +64,14 @@ export const getExternalAgentByUrl =
     });
 
     return result || null;
-  };
+  }
+);
 
 /**
  * List external agents for a project
  */
-export const listExternalAgents =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<ExternalAgentSelect[]> => {
+export const listExternalAgents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<ExternalAgentSelect[]> => {
     return await db.query.externalAgents.findMany({
       where: and(
         eq(externalAgents.tenantId, params.scopes.tenantId),
@@ -73,17 +79,20 @@ export const listExternalAgents =
       ),
       orderBy: [asc(externalAgents.name)],
     });
-  };
+  }
+);
 
 /**
  * List external agents with pagination
  */
-export const listExternalAgentsPaginated =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    pagination?: PaginationConfig;
-  }): Promise<{
+export const listExternalAgentsPaginated = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{
     data: ExternalAgentSelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -125,7 +134,8 @@ export const listExternalAgentsPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 /**
  * Update an existing external agent
@@ -229,29 +239,28 @@ export const deleteExternalAgent =
 /**
  * Check if an external agent exists
  */
-export const externalAgentExists =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; externalAgentId: string }): Promise<boolean> => {
+export const externalAgentExists = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; externalAgentId: string }): Promise<boolean> => {
     const agent = await getExternalAgent(db)(params);
     return agent !== null;
-  };
+  }
+);
 
 /**
  * Check if an external agent exists by URL
  */
-export const externalAgentUrlExists =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; baseUrl: string }): Promise<boolean> => {
+export const externalAgentUrlExists = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; baseUrl: string }): Promise<boolean> => {
     const agent = await getExternalAgentByUrl(db)(params);
     return agent !== null;
-  };
+  }
+);
 
 /**
  * Count external agents for a project
  */
-export const countExternalAgents =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
+export const countExternalAgents = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(externalAgents)
@@ -264,4 +273,5 @@ export const countExternalAgents =
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;
-  };
+  }
+);

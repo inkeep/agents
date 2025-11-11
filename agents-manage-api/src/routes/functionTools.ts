@@ -70,9 +70,10 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
-      const result = await listFunctionTools(dbClient)({
+      const result = await listFunctionTools(dbClient, resolvedRef)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -112,9 +113,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
-      const functionTool = await getFunctionToolById(dbClient)({
+      const functionTool = await getFunctionToolById(dbClient, resolvedRef)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });

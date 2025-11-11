@@ -1,5 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { functions } from '../db/schema';
 import type { FunctionApiInsert } from '../types/entities';
 import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
@@ -65,12 +66,14 @@ export const upsertFunction =
 /**
  * Get a function by ID (project-scoped)
  */
-export const getFunction =
-  (db: DatabaseClient) =>
-  async (params: {
-    functionId: string;
-    scopes: ProjectScopeConfig;
-  }): Promise<FunctionApiInsert | null> => {
+export const getFunction = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      functionId: string;
+      scopes: ProjectScopeConfig;
+    }
+  ): Promise<FunctionApiInsert | null> => {
     const { functionId, scopes } = params;
     const { tenantId, projectId } = scopes;
 
@@ -87,14 +90,14 @@ export const getFunction =
       .limit(1);
 
     return result[0] || null;
-  };
+  }
+);
 
 /**
  * List all functions for a project
  */
-export const listFunctions =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<FunctionApiInsert[]> => {
+export const listFunctions = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<FunctionApiInsert[]> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
@@ -104,7 +107,8 @@ export const listFunctions =
       .where(and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId)));
 
     return result;
-  };
+  }
+);
 
 /**
  * List all functions for a project with pagination

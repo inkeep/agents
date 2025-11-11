@@ -9,12 +9,10 @@ import type { DatabaseClient } from '../../db/client';
 import { createTestOrganization } from '../../db/test-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
-import { getLogger } from '../../utils/logger';
 import { testDbClient } from '../setup';
 
 describe('projectFull data access', () => {
   let db: DatabaseClient;
-  const logger = getLogger('test');
   const tenantId = `tenant-${generateId()}`;
 
   beforeEach(async () => {
@@ -105,10 +103,10 @@ describe('projectFull data access', () => {
       const projectId = `project-${generateId()}`;
       const projectData = createTestProjectDefinition(projectId);
 
-      const result = await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectData
-      );
+      const result = await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -122,10 +120,10 @@ describe('projectFull data access', () => {
       const projectId = `project-${generateId()}`;
       const projectData = createTestProjectWithAgents(projectId);
 
-      const result = await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectData
-      );
+      const result = await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -151,10 +149,10 @@ describe('projectFull data access', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        minimalProject
-      );
+      const result = await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: minimalProject,
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -169,13 +167,10 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData });
 
       // Retrieve it
-      const result = await getFullProject(
-        db,
-        logger
-      )({
+      const result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -190,10 +185,7 @@ describe('projectFull data access', () => {
     it('should return null for non-existent project', async () => {
       const nonExistentId = `project-${generateId()}`;
 
-      const result = await getFullProject(
-        db,
-        logger
-      )({
+      const result = await getFullProject(db)({
         scopes: { tenantId, projectId: nonExistentId },
       });
 
@@ -205,13 +197,10 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData });
 
       // Retrieve it
-      const result = await getFullProject(
-        db,
-        logger
-      )({
+      const result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -228,13 +217,10 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent and tools
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData });
 
       // Retrieve it
-      const result = await getFullProject(
-        db,
-        logger
-      )({
+      const result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -261,7 +247,7 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, originalData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: originalData });
 
       // Update it
       const updatedData = {
@@ -270,10 +256,10 @@ describe('projectFull data access', () => {
         description: 'Updated description',
       };
 
-      const result = await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedData
-      );
+      const result = await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedData,
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -286,10 +272,10 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Try to update a non-existent project (should create it)
-      const result = await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectData
-      );
+      const result = await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(projectId);
@@ -301,7 +287,7 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, originalData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: originalData });
 
       // Update with new models and stopWhen
       const updatedData = {
@@ -316,10 +302,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      const result = await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedData
-      );
+      const result = await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedData,
+      });
 
       expect(result).toBeDefined();
       expect(result.models).toEqual(updatedData.models);
@@ -361,12 +347,9 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectWithTools);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithTools });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.tools).toBeDefined();
@@ -379,15 +362,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneTool
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneTool,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.tools).toBeDefined();
@@ -419,12 +399,9 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectWithFunctions);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithFunctions });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.functions).toBeDefined();
@@ -438,15 +415,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneFunction
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneFunction,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.functions).toBeDefined();
@@ -480,15 +454,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectWithCredentials
-      );
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithCredentials,
+      });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.credentialReferences).toBeDefined();
@@ -502,15 +473,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneCredential
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneCredential,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.credentialReferences).toBeDefined();
@@ -542,15 +510,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectWithExternalAgents
-      );
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithExternalAgents,
+      });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.externalAgents).toBeDefined();
@@ -564,15 +529,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneExternalAgent
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneExternalAgent,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.externalAgents).toBeDefined();
@@ -614,15 +576,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectWithDataComponents
-      );
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithDataComponents,
+      });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.dataComponents).toBeDefined();
@@ -636,15 +595,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneDataComponent
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneDataComponent,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.dataComponents).toBeDefined();
@@ -674,15 +630,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        projectWithArtifactComponents
-      );
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithArtifactComponents,
+      });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.artifactComponents).toBeDefined();
@@ -696,15 +649,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneArtifactComponent
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneArtifactComponent,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.artifactComponents).toBeDefined();
@@ -764,12 +714,9 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectWithAgents);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithAgents });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.agents).toBeDefined();
@@ -782,15 +729,12 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithOneAgent
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneAgent,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.agents).toBeDefined();
@@ -821,12 +765,9 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectWithTools);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithTools });
 
-      let result = await getFullProject(
-        db,
-        logger
-      )({
+      let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.tools).toBeDefined();
@@ -837,15 +778,12 @@ describe('projectFull data access', () => {
         tools: {},
       };
 
-      await updateFullProjectServerSide(db, logger)(
-        { tenantId, projectId },
-        updatedProjectWithNoTools
-      );
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithNoTools,
+      });
 
-      result = await getFullProject(
-        db,
-        logger
-      )({
+      result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(result?.tools).toBeDefined();
@@ -859,23 +797,17 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData });
 
       // Delete it
-      const deleted = await deleteFullProject(
-        db,
-        logger
-      )({
+      const deleted = await deleteFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
       expect(deleted).toBe(true);
 
       // Verify it's deleted
-      const result = await getFullProject(
-        db,
-        logger
-      )({
+      const result = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -885,10 +817,7 @@ describe('projectFull data access', () => {
     it('should return false for non-existent project', async () => {
       const nonExistentId = `project-${generateId()}`;
 
-      const deleted = await deleteFullProject(
-        db,
-        logger
-      )({
+      const deleted = await deleteFullProject(db)({
         scopes: { tenantId, projectId: nonExistentId },
       });
 
@@ -900,32 +829,23 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectWithAgents(projectId);
 
       // Create the project with agent
-      await createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData);
+      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData });
 
       // Verify the project exists
-      let project = await getFullProject(
-        db,
-        logger
-      )({
+      let project = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(project).toBeDefined();
 
       // Delete the project
-      const deleted = await deleteFullProject(
-        db,
-        logger
-      )({
+      const deleted = await deleteFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
       expect(deleted).toBe(true);
 
       // Verify the project and all its resources are deleted
-      project = await getFullProject(
-        db,
-        logger
-      )({
+      project = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       expect(project).toBeNull();
@@ -940,10 +860,10 @@ describe('projectFull data access', () => {
       } as FullProjectDefinition;
 
       await expect(
-        createFullProjectServerSide(db, logger)(
-          { tenantId, projectId: invalidData.id },
-          invalidData
-        )
+        createFullProjectServerSide(db)({
+          scopes: { tenantId, projectId: invalidData.id },
+          projectData: invalidData,
+        })
       ).rejects.toThrow();
     });
 
@@ -952,14 +872,14 @@ describe('projectFull data access', () => {
       const projectData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db, logger)(
-        { tenantId, projectId: projectData.id },
-        projectData
-      );
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId: projectData.id },
+        projectData,
+      });
 
       // Try to create the same project again (should cause conflict)
       await expect(
-        createFullProjectServerSide(db, logger)({ tenantId, projectId }, projectData)
+        createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData })
       ).rejects.toThrow();
     });
   });

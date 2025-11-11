@@ -1,5 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { conversations, messages } from '../db/schema';
 import type {
   ConversationHistoryConfig,
@@ -12,13 +13,15 @@ import type {
 } from '../types/index';
 import { getConversationId } from '../utils/conversations';
 
-export const listConversations =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    userId?: string;
-    pagination?: PaginationConfig;
-  }): Promise<{ conversations: ConversationSelect[]; total: number }> => {
+export const listConversations = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      userId?: string;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{ conversations: ConversationSelect[]; total: number }> => {
     const { userId, pagination } = params;
 
     const page = pagination?.page || 1;
@@ -53,7 +56,8 @@ export const listConversations =
       conversations: conversationList,
       total: typeof total === 'string' ? Number.parseInt(total, 10) : (total as number),
     };
-  };
+  }
+);
 
 export const createConversation = (db: DatabaseClient) => async (params: ConversationInsert) => {
   const now = new Date().toISOString();
@@ -145,9 +149,8 @@ export const updateConversationActiveAgent =
   };
 
 //simpler getConversation
-export const getConversation =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
+export const getConversation = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
         eq(conversations.tenantId, params.scopes.tenantId),
@@ -155,7 +158,8 @@ export const getConversation =
         eq(conversations.id, params.conversationId)
       ),
     });
-  };
+  }
+);
 
 export const createOrGetConversation =
   (db: DatabaseClient) => async (input: ConversationInsert) => {
@@ -261,13 +265,15 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
 /**
  * Get conversation history with filtering and context management
  */
-export const getConversationHistory =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    conversationId: string;
-    options?: ConversationHistoryConfig;
-  }) => {
+export const getConversationHistory = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: ProjectScopeConfig;
+      conversationId: string;
+      options?: ConversationHistoryConfig;
+    }
+  ) => {
     const { scopes, conversationId, options = {} } = params;
     const { tenantId, projectId } = scopes;
 
@@ -310,14 +316,14 @@ export const getConversationHistory =
     }
 
     return chronologicalHistory;
-  };
+  }
+);
 
 /**
  * Get active agent for a conversation
  */
-export const getActiveAgentForConversation =
-  (db: DatabaseClient) =>
-  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
+export const getActiveAgentForConversation = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
         eq(conversations.tenantId, params.scopes.tenantId),
@@ -325,7 +331,8 @@ export const getActiveAgentForConversation =
         eq(conversations.id, params.conversationId)
       ),
     });
-  };
+  }
+);
 
 /**
  * Set active agent for a conversation (upsert operation)

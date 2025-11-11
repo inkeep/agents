@@ -1,12 +1,13 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { agents, subAgents, subAgentTeamAgentRelations } from '../db/schema';
 import type { SubAgentTeamAgentRelationInsert } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../types/utility';
 
-export const getSubAgentTeamAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+export const getSubAgentTeamAgentRelationById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return db.query.subAgentTeamAgentRelations.findFirst({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -16,11 +17,11 @@ export const getSubAgentTeamAgentRelationById =
         eq(subAgentTeamAgentRelations.id, params.relationId)
       ),
     });
-  };
+  }
+);
 
-export const listSubAgentTeamAgentRelations =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
+export const listSubAgentTeamAgentRelations = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -47,10 +48,11 @@ export const listSubAgentTeamAgentRelations =
     const pages = Math.ceil(total / limit);
 
     return { data, pagination: { page, limit, total, pages } };
-  };
+  }
+);
 
-export const getSubAgentTeamAgentRelations =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+export const getSubAgentTeamAgentRelations = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig }) => {
     return await db.query.subAgentTeamAgentRelations.findMany({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -59,10 +61,11 @@ export const getSubAgentTeamAgentRelations =
         eq(subAgentTeamAgentRelations.subAgentId, params.scopes.subAgentId)
       ),
     });
-  };
+  }
+);
 
-export const getSubAgentTeamAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const getSubAgentTeamAgentRelationsByAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgentTeamAgentRelations.findMany({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -70,15 +73,18 @@ export const getSubAgentTeamAgentRelationsByAgent =
         eq(subAgentTeamAgentRelations.agentId, params.scopes.agentId)
       ),
     });
-  };
+  }
+);
 
-export const getSubAgentTeamAgentRelationsByTeamAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    targetAgentId: string;
-    pagination?: PaginationConfig;
-  }) => {
+export const getSubAgentTeamAgentRelationsByTeamAgent = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+      targetAgentId: string;
+      pagination?: PaginationConfig;
+    }
+  ) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -108,11 +114,11 @@ export const getSubAgentTeamAgentRelationsByTeamAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
-export const getTeamAgentsForSubAgent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
+export const getTeamAgentsForSubAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -183,15 +189,18 @@ export const getTeamAgentsForSubAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
-export const getSubAgentsForTeamAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    targetAgentId: string;
-    pagination?: PaginationConfig;
-  }) => {
+export const getSubAgentsForTeamAgent = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+      targetAgentId: string;
+      pagination?: PaginationConfig;
+    }
+  ) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -260,7 +269,8 @@ export const getSubAgentsForTeamAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 export const createSubAgentTeamAgentRelation =
   (db: DatabaseClient) =>
@@ -293,9 +303,8 @@ export const createSubAgentTeamAgentRelation =
 /**
  * Check if sub-agent team agent relation exists by params
  */
-export const getSubAgentTeamAgentRelationByParams =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; targetAgentId: string }) => {
+export const getSubAgentTeamAgentRelationByParams = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; targetAgentId: string }) => {
     return db.query.subAgentTeamAgentRelations.findFirst({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -305,7 +314,8 @@ export const getSubAgentTeamAgentRelationByParams =
         eq(subAgentTeamAgentRelations.targetAgentId, params.targetAgentId)
       ),
     });
-  };
+  }
+);
 
 /**
  * Upsert sub-agent team agent relation (create if it doesn't exist, update if it does)

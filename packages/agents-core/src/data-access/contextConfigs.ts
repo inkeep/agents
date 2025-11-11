@@ -1,12 +1,13 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { contextConfigs } from '../db/schema';
 import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 import { generateId } from '../utils/conversations';
 
-export const getContextConfigById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {
+export const getContextConfigById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; id: string }) => {
     return await db.query.contextConfigs.findFirst({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -15,10 +16,11 @@ export const getContextConfigById =
         eq(contextConfigs.id, params.id)
       ),
     });
-  };
+  }
+);
 
-export const listContextConfigs =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const listContextConfigs = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
     return await db.query.contextConfigs.findMany({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -27,14 +29,17 @@ export const listContextConfigs =
       ),
       orderBy: [desc(contextConfigs.createdAt)],
     });
-  };
+  }
+);
 
-export const listContextConfigsPaginated =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    pagination?: PaginationConfig;
-  }): Promise<{
+export const listContextConfigsPaginated = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+      pagination?: PaginationConfig;
+    }
+  ): Promise<{
     data: any[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -71,7 +76,8 @@ export const listContextConfigsPaginated =
         pages,
       },
     };
-  };
+  }
+);
 
 export const createContextConfig = (db: DatabaseClient) => async (params: ContextConfigInsert) => {
   const id = params.id || generateId();
@@ -172,16 +178,15 @@ export const deleteContextConfig =
     }
   };
 
-export const hasContextConfig =
-  (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; id: string }): Promise<boolean> => {
+export const hasContextConfig = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; id: string }): Promise<boolean> => {
     const contextConfig = await getContextConfigById(db)(params);
     return contextConfig !== null;
-  };
+  }
+);
 
-export const countContextConfigs =
-  (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<number> => {
+export const countContextConfigs = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(contextConfigs)
@@ -195,7 +200,8 @@ export const countContextConfigs =
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
-  };
+  }
+);
 
 /**
  * Upsert a context config (create if it doesn't exist, update if it does)

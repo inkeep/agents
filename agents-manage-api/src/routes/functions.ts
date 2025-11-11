@@ -113,10 +113,11 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
       // Functions are project-scoped
-      const functionData = await getFunction(dbClient)({
+      const functionData = await getFunction(dbClient, resolvedRef)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -236,7 +237,7 @@ app.openapi(
     const updateData = c.req.valid('json');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(dbClient, undefined)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -256,7 +257,7 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      const updated = await getFunction(dbClient)({
+      const updated = await getFunction(dbClient, undefined)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -295,7 +296,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(dbClient, undefined)({
         functionId: id,
         scopes: { tenantId, projectId },
       });

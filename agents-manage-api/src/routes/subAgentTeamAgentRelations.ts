@@ -72,10 +72,11 @@ app.openapi(
     const { page = 1, limit = 10 } = c.req.valid('query');
     const pageNum = Number(page);
     const limitNum = Math.min(Number(limit), 100);
+    const resolvedRef = c.get('resolvedRef');
 
     try {
       const result: { data: SubAgentTeamAgentRelationApiSelect[]; pagination: Pagination } =
-        await listSubAgentTeamAgentRelations(dbClient)({
+        await listSubAgentTeamAgentRelations(dbClient, resolvedRef)({
           scopes: { tenantId, projectId, agentId, subAgentId },
           pagination: { page: pageNum, limit: limitNum },
         });
@@ -114,7 +115,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId, id } = c.req.valid('param');
-    const relation = (await getSubAgentTeamAgentRelationById(dbClient)({
+    const resolvedRef = c.get('resolvedRef');
+    const relation = (await getSubAgentTeamAgentRelationById(dbClient, resolvedRef)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: id,
     })) as SubAgentTeamAgentRelationApiSelect | null;
@@ -164,7 +166,7 @@ app.openapi(
     const body = await c.req.valid('json');
 
     // Check for duplicate relation
-    const existingRelations = await listSubAgentTeamAgentRelations(dbClient)({
+    const existingRelations = await listSubAgentTeamAgentRelations(dbClient, undefined)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       pagination: { page: 1, limit: 1000 },
     });

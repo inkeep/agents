@@ -1,5 +1,6 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { projects, subAgents, subAgentToolRelations } from '../db/schema';
 import type { FullAgentDefinition } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
@@ -43,23 +44,14 @@ import {
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
+import { getLogger } from '../utils/logger';
 
-export interface AgentLogger {
-  info(obj: Record<string, any>, msg?: string): void;
-  error(obj: Record<string, any>, msg?: string): void;
-}
-
-const defaultLogger: AgentLogger = {
-  info: () => {},
-  error: () => {},
-};
-
+const logger = getLogger('agentFull');
 /**
  * Apply execution limits inheritance from project to Agents and Sub Agents
  */
 async function applyExecutionLimitsInheritance(
   db: DatabaseClient,
-  logger: AgentLogger,
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
 ): Promise<void> {
@@ -159,7 +151,7 @@ async function applyExecutionLimitsInheritance(
  * This function creates a complete agent with all agents, tools, and relationships.
  */
 export const createFullAgentServerSide =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: DatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -170,7 +162,7 @@ export const createFullAgentServerSide =
 
     validateAgentStructure(typed);
 
-    await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
+    await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typed);
 
     try {
       logger.info(
@@ -725,7 +717,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: DatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -751,7 +743,6 @@ export const updateFullAgentServerSide =
 
     await applyExecutionLimitsInheritance(
       db,
-      logger,
       { tenantId, projectId },
       typedAgentDefinition
     );
@@ -766,7 +757,7 @@ export const updateFullAgentServerSide =
           { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
         );
-        return createFullAgentServerSide(db, logger)(scopes, agentData);
+        return createFullAgentServerSide(db)(scopes, agentData);
       }
 
       const existingAgentModels = existingAgent.models;
@@ -1583,52 +1574,56 @@ export const updateFullAgentServerSide =
 /**
  * Get a complete agent definition by ID
  */
-export const getFullAgent =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
-  async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
-    const { scopes } = params;
-    const { tenantId, projectId } = scopes;
+export const getFullAgent = () =>
+  createDataAccessFn(
+    async (
+      db: DatabaseClient,
+      params: { scopes: AgentScopeConfig }
+    ): Promise<FullAgentDefinition | null> => {
+      const { scopes } = params;
+      const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition');
+      logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition');
 
-    try {
-      const agent = await getFullAgentDefinition(db)({
-        scopes: { tenantId, projectId, agentId: scopes.agentId },
-      });
+      try {
+        const agent = await getFullAgentDefinition(db)({
+          scopes: { tenantId, projectId, agentId: scopes.agentId },
+        });
 
-      if (!agent) {
-        logger.info({ tenantId, agentId: scopes.agentId }, 'Agent not found');
-        return null;
+        if (!agent) {
+          logger.info({ tenantId, agentId: scopes.agentId }, 'Agent not found');
+          return null;
+        }
+
+        logger.info(
+          {
+            tenantId,
+            agentId: scopes.agentId,
+            agentCount: Object.keys(agent.subAgents).length,
+          },
+          'Full agent retrieved successfully'
+        );
+
+        return agent;
+      } catch (error) {
+        logger.error(
+          {
+            tenantId,
+            agentId: scopes.agentId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to retrieve full agent'
+        );
+        throw error;
       }
-
-      logger.info(
-        {
-          tenantId,
-          agentId: scopes.agentId,
-          agentCount: Object.keys(agent.subAgents).length,
-        },
-        'Full agent retrieved successfully'
-      );
-
-      return agent;
-    } catch (error) {
-      logger.error(
-        {
-          tenantId,
-          agentId: scopes.agentId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to retrieve full agent'
-      );
-      throw error;
     }
-  };
+  );
 
 /**
  * Delete a complete agent and cascade to all related entities
  */
 export const deleteFullAgent =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: DatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const { tenantId, projectId, agentId } = params.scopes;
 

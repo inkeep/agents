@@ -1,12 +1,13 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { DatabaseClient } from '../db/client';
+import { createDataAccessFn } from '../db/data-access-helper';
 import { externalAgents, subAgentExternalAgentRelations, subAgents } from '../db/schema';
 import type { SubAgentExternalAgentRelationInsert } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../types/utility';
 
-export const getSubAgentExternalAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+export const getSubAgentExternalAgentRelationById = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return db.query.subAgentExternalAgentRelations.findFirst({
       where: and(
         eq(subAgentExternalAgentRelations.tenantId, params.scopes.tenantId),
@@ -16,11 +17,11 @@ export const getSubAgentExternalAgentRelationById =
         eq(subAgentExternalAgentRelations.id, params.relationId)
       ),
     });
-  };
+  }
+);
 
-export const listSubAgentExternalAgentRelations =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
+export const listSubAgentExternalAgentRelations = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -47,10 +48,11 @@ export const listSubAgentExternalAgentRelations =
     const pages = Math.ceil(total / limit);
 
     return { data, pagination: { page, limit, total, pages } };
-  };
+  }
+);
 
-export const getSubAgentExternalAgentRelations =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+export const getSubAgentExternalAgentRelations = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig }) => {
     return await db.query.subAgentExternalAgentRelations.findMany({
       where: and(
         eq(subAgentExternalAgentRelations.tenantId, params.scopes.tenantId),
@@ -59,10 +61,11 @@ export const getSubAgentExternalAgentRelations =
         eq(subAgentExternalAgentRelations.subAgentId, params.scopes.subAgentId)
       ),
     });
-  };
+  }
+);
 
-export const getSubAgentExternalAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const getSubAgentExternalAgentRelationsByAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgentExternalAgentRelations.findMany({
       where: and(
         eq(subAgentExternalAgentRelations.tenantId, params.scopes.tenantId),
@@ -70,15 +73,18 @@ export const getSubAgentExternalAgentRelationsByAgent =
         eq(subAgentExternalAgentRelations.agentId, params.scopes.agentId)
       ),
     });
-  };
+  }
+);
 
-export const getSubAgentExternalAgentRelationsByExternalAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    externalAgentId: string;
-    pagination?: PaginationConfig;
-  }) => {
+export const getSubAgentExternalAgentRelationsByExternalAgent = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+      externalAgentId: string;
+      pagination?: PaginationConfig;
+    }
+  ) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -108,11 +114,11 @@ export const getSubAgentExternalAgentRelationsByExternalAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
-export const getExternalAgentsForSubAgent =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
+export const getExternalAgentsForSubAgent = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -181,15 +187,18 @@ export const getExternalAgentsForSubAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
-export const getSubAgentsForExternalAgent =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: AgentScopeConfig;
-    externalAgentId: string;
-    pagination?: PaginationConfig;
-  }) => {
+export const getSubAgentsForExternalAgent = createDataAccessFn(
+  async (
+    db: DatabaseClient,
+    params: {
+      scopes: AgentScopeConfig;
+      externalAgentId: string;
+      pagination?: PaginationConfig;
+    }
+  ) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -259,7 +268,8 @@ export const getSubAgentsForExternalAgent =
       data,
       pagination: { page, limit, total, pages },
     };
-  };
+  }
+);
 
 export const createSubAgentExternalAgentRelation =
   (db: DatabaseClient) =>
@@ -292,9 +302,8 @@ export const createSubAgentExternalAgentRelation =
 /**
  * Check if sub-agent external agent relation exists by params
  */
-export const getSubAgentExternalAgentRelationByParams =
-  (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; externalAgentId: string }) => {
+export const getSubAgentExternalAgentRelationByParams = createDataAccessFn(
+  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; externalAgentId: string }) => {
     return db.query.subAgentExternalAgentRelations.findFirst({
       where: and(
         eq(subAgentExternalAgentRelations.tenantId, params.scopes.tenantId),
@@ -304,7 +313,8 @@ export const getSubAgentExternalAgentRelationByParams =
         eq(subAgentExternalAgentRelations.externalAgentId, params.externalAgentId)
       ),
     });
-  };
+  }
+);
 
 /**
  * Upsert sub-agent external agent relation (create if it doesn't exist, update if it does)
