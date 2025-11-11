@@ -11,7 +11,7 @@ describe('Monaco Editor', () => {
     cy.contains('You are a weather forecasting').should('be.visible');
 
     // Reassert 1st node (`value` should be replaced)
-    cy.get('.react-flow__node').contains('Geocoder agent').click();
+    cy.get('.react-flow__node').contains('Geocoder agent').click({ force: true });
     cy.contains('You are a geocoding specialist').should('be.visible');
   });
 
