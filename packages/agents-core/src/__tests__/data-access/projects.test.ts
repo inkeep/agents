@@ -561,8 +561,8 @@ describe('Projects Data Access', () => {
         tenantId: testTenantId,
         name: 'Test Project',
         description: 'A test project',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const mockQuery = {
@@ -621,8 +621,8 @@ describe('Projects Data Access', () => {
 
       const expectedProject = {
         ...projectData,
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -654,8 +654,8 @@ describe('Projects Data Access', () => {
         id: testProjectId1,
         tenantId: testTenantId,
         ...updateData,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       };
 
       const mockUpdate = vi.fn().mockReturnValue({

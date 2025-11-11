@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 import { type ParsedHttpRequest, validateHeaders } from '../../middleware/contextValidation';
-import { dbClient } from '../setup';
 
 // Mock the data access functions
 const mockGetAgentWithDefaultSubAgent = vi.fn();
@@ -15,7 +16,9 @@ vi.mock('../../data-access/contextConfigs', () => ({
 }));
 
 describe('validateHeaders - Integration with Flattened Headers', () => {
-  beforeEach(() => {
+  let dbClient: DatabaseClient;
+  beforeEach(async () => {
+    dbClient = await createTestDatabaseClient();
     vi.clearAllMocks();
   });
 

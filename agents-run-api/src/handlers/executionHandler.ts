@@ -154,11 +154,8 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        if (
-          error?.message?.includes('UNIQUE constraint failed') ||
-          error?.message?.includes('PRIMARY KEY constraint failed') ||
-          error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY'
-        ) {
+        // Handle duplicate task (PostgreSQL unique constraint violation)
+        if (error?.cause?.code === '23505') {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'
@@ -183,7 +180,7 @@ export class ExecutionHandler {
 
       logger.debug(
         {
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           executionType: 'create_initial_task',
           conversationId,
           agentId,
@@ -441,7 +438,7 @@ export class ExecutionHandler {
                   status: 'completed',
                   metadata: {
                     ...task.metadata,
-                    completed_at: new Date().toISOString(),
+                    completed_at: new Date(),
                     response: {
                       text: textContent,
                       parts: responseParts,
@@ -509,7 +506,7 @@ export class ExecutionHandler {
                 status: 'failed',
                 metadata: {
                   ...task.metadata,
-                  failed_at: new Date().toISOString(),
+                  failed_at: new Date(),
                   error: errorMessage,
                 },
               },
@@ -537,7 +534,7 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },
@@ -565,7 +562,7 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },

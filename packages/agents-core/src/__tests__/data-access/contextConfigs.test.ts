@@ -11,7 +11,7 @@ import {
   updateContextConfig,
 } from '../../data-access/contextConfigs';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { testDbClient } from '../setup';
 
 describe('Context Configs Data Access', () => {
   let db: DatabaseClient;
@@ -19,8 +19,9 @@ describe('Context Configs Data Access', () => {
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getContextConfigById', () => {
