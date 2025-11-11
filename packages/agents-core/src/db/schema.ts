@@ -868,8 +868,8 @@ export const datasetRunConversations = pgTable(
  * by specific evaluators. Attaches evaluators via evaluationSuiteConfigEvaluator join.
  * 
  * Includes: name, description, modelConfig (default for evaluators),
- * runFrequency (weekly/daily/monthly/on_demand), filtering config (agentIds array,
- * datasetRunIds array, conversationIds array, dateRange with startDate/endDate),
+ * runFrequency (weekly/daily/monthly/on_demand), filters object (optional agentIds,
+ * datasetRunIds, conversationIds arrays, and dateRange with startDate/endDate),
  * sampleRate for sampling, and timestamps
  */
 export const evaluationSuiteConfig = pgTable(
@@ -878,16 +878,17 @@ export const evaluationSuiteConfig = pgTable(
     ...projectScoped,
     ...uiProperties,
     modelConfig: jsonb('model_config').$type<ModelSettings>(),
-    runFrequency: text('run_frequency').notNull(), // e.g., 'weekly', 'daily', 'monthly', on demaind
-    // Filtering configuration
-    agentIds: jsonb('agent_ids').$type<string[]>(),
-    datasetRunIds: jsonb('dataset_run_ids').$type<string[]>(),
-    conversationIds: jsonb('conversation_ids').$type<string[]>(), // Only for past conversations
-    dateRange: jsonb('date_range').$type<{
-      startDate: string;
-      endDate: string;
-    }>(), // For filtering past conversations by date range
-    sampleRate: doublePrecision('sample_rate'), // Sampling configuration
+    runFrequency: text('run_frequency').$type<'weekly' | 'daily' | 'monthly' | 'on_demand'>().notNull(),
+    filters: jsonb('filters').$type<{
+      agentIds?: string[];
+      datasetRunIds?: string[];
+      conversationIds?: string[];
+      dateRange?: {
+        startDate: string;
+        endDate: string;
+      };
+    }>(),
+    sampleRate: doublePrecision('sample_rate'), 
     ...timestamps,
   },
   (table) => [
