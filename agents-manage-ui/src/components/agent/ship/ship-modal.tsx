@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import type { ComponentType } from 'react';
+import type { ComponentType, FC } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { VercelIcon } from '@/components/icons/vercel';
 import { Button } from '@/components/ui/button';
@@ -81,13 +81,13 @@ const shipModalTabItems: TabItem[] = [
   },
 ];
 
-export function ShipModal() {
+export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) => {
   const params = useParams();
   const { tenantId, projectId } = params;
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className={buttonClassName}>
           <RocketIcon className="size-4" />
           Ship
         </Button>
@@ -140,4 +140,4 @@ export function ShipModal() {
       </DialogContent>
     </Dialog>
   );
-}
+};

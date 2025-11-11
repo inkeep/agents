@@ -22,11 +22,11 @@ export function Toolbar({
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
 
-  const commonProps: ComponentProps<typeof Button> = {
+  const commonProps = {
     className: 'backdrop-blur-3xl',
     type: 'button',
     variant: 'outline',
-  };
+  } satisfies ComponentProps<typeof Button>;
 
   const PreviewButton = (
     <Button
@@ -56,7 +56,7 @@ export function Toolbar({
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
-      {!inPreviewDisabled && <ShipModal />}
+      {!inPreviewDisabled && <ShipModal buttonClassName={commonProps.className} />}
       {dirty || inPreviewDisabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
