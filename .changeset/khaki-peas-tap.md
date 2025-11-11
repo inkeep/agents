@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-SubAgent prompt editor updates when switching nodes
+should update the SubAgent prompt editor when switching nodes
