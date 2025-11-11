@@ -879,7 +879,7 @@ function AgentReactFlowConsumer({
       if (!dirty || isNavigatingRef.current) {
         return;
       }
-      const el = event.target;
+      const el = (event.target as HTMLElement | null)?.closest('a[href]');
       const href = (el as HTMLAnchorElement | null)?.href;
       if (
         !href ||
