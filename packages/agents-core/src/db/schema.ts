@@ -28,27 +28,27 @@ import type {
 import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
-  tenantId: varchar('tenant_id', { length: 255 }).notNull(),
-  id: varchar('id', { length: 255 }).notNull(),
+  tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+  id: varchar('id', { length: 256 }).notNull(),
 };
 
 const projectScoped = {
   ...tenantScoped,
-  projectId: varchar('project_id', { length: 255 }).notNull(),
+  projectId: varchar('project_id', { length: 256 }).notNull(),
 };
 
 const agentScoped = {
   ...projectScoped,
-  agentId: varchar('agent_id', { length: 255 }).notNull(),
+  agentId: varchar('agent_id', { length: 256 }).notNull(),
 };
 
 const subAgentScoped = {
   ...agentScoped,
-  subAgentId: varchar('sub_agent_id', { length: 255 }).notNull(),
+  subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
 };
 
 const uiProperties = {
-  name: varchar('name', { length: 255 }).notNull(),
+  name: varchar('name', { length: 256 }).notNull(),
   description: text('description').notNull(),
 };
 
@@ -76,10 +76,10 @@ export const agents = pgTable(
   'agent',
   {
     ...projectScoped,
-    name: varchar('name', { length: 255 }).notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
-    defaultSubAgentId: varchar('default_sub_agent_id', { length: 255 }),
-    contextConfigId: varchar('context_config_id', { length: 255 }),
+    defaultSubAgentId: varchar('default_sub_agent_id', { length: 256 }),
+    contextConfigId: varchar('context_config_id', { length: 256 }),
     models: jsonb('models').$type<Models>(),
     statusUpdates: jsonb('status_updates').$type<StatusUpdateSettings>(),
     prompt: text('prompt'),
@@ -122,16 +122,16 @@ export const contextCache = pgTable(
   {
     ...projectScoped,
 
-    conversationId: varchar('conversation_id', { length: 255 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
 
-    contextConfigId: varchar('context_config_id', { length: 255 }).notNull(),
-    contextVariableKey: varchar('context_variable_key', { length: 255 }).notNull(),
+    contextConfigId: varchar('context_config_id', { length: 256 }).notNull(),
+    contextVariableKey: varchar('context_variable_key', { length: 256 }).notNull(),
     value: jsonb('value').$type<unknown>().notNull(),
 
-    requestHash: varchar('request_hash', { length: 255 }),
+    requestHash: varchar('request_hash', { length: 256 }),
 
     fetchedAt: timestamp('fetched_at', { mode: 'string' }).notNull().defaultNow(),
-    fetchSource: varchar('fetch_source', { length: 255 }),
+    fetchSource: varchar('fetch_source', { length: 256 }),
     fetchDurationMs: integer('fetch_duration_ms'),
 
     ...timestamps,
@@ -178,9 +178,9 @@ export const subAgentRelations = pgTable(
   'sub_agent_relations',
   {
     ...agentScoped,
-    sourceSubAgentId: varchar('source_sub_agent_id', { length: 255 }).notNull(),
-    targetSubAgentId: varchar('target_sub_agent_id', { length: 255 }),
-    relationType: varchar('relation_type', { length: 255 }),
+    sourceSubAgentId: varchar('source_sub_agent_id', { length: 256 }).notNull(),
+    targetSubAgentId: varchar('target_sub_agent_id', { length: 256 }),
+    relationType: varchar('relation_type', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -199,7 +199,7 @@ export const externalAgents = pgTable(
     ...projectScoped,
     ...uiProperties,
     baseUrl: text('base_url').notNull(),
-    credentialReferenceId: varchar('credential_reference_id', { length: 255 }),
+    credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -225,8 +225,8 @@ export const tasks = pgTable(
   'tasks',
   {
     ...subAgentScoped,
-    contextId: varchar('context_id', { length: 255 }).notNull(),
-    status: varchar('status', { length: 255 }).notNull(),
+    contextId: varchar('context_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 256 }).notNull(),
     metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
     ...timestamps,
   },
@@ -244,9 +244,9 @@ export const taskRelations = pgTable(
   'task_relations',
   {
     ...projectScoped,
-    parentTaskId: varchar('parent_task_id', { length: 255 }).notNull(),
-    childTaskId: varchar('child_task_id', { length: 255 }).notNull(),
-    relationType: varchar('relation_type', { length: 255 }).default('parent_child'),
+    parentTaskId: varchar('parent_task_id', { length: 256 }).notNull(),
+    childTaskId: varchar('child_task_id', { length: 256 }).notNull(),
+    relationType: varchar('relation_type', { length: 256 }).default('parent_child'),
     ...timestamps,
   },
   (table) => [
@@ -285,7 +285,7 @@ export const subAgentDataComponents = pgTable(
   'sub_agent_data_components',
   {
     ...subAgentScoped,
-    dataComponentId: varchar('data_component_id', { length: 255 }).notNull(),
+    dataComponentId: varchar('data_component_id', { length: 256 }).notNull(),
     createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
@@ -325,7 +325,7 @@ export const subAgentArtifactComponents = pgTable(
   'sub_agent_artifact_components',
   {
     ...subAgentScoped,
-    artifactComponentId: varchar('artifact_component_id', { length: 255 }).notNull(),
+    artifactComponentId: varchar('artifact_component_id', { length: 256 }).notNull(),
     createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
@@ -353,7 +353,7 @@ export const tools = pgTable(
   'tools',
   {
     ...projectScoped,
-    name: varchar('name', { length: 255 }).notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
 
     config: jsonb('config')
@@ -363,7 +363,7 @@ export const tools = pgTable(
       }>()
       .notNull(),
 
-    credentialReferenceId: varchar('credential_reference_id', { length: 255 }),
+    credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
     headers: jsonb('headers').$type<Record<string, string>>(),
 
     imageUrl: text('image_url'),
@@ -388,9 +388,9 @@ export const functionTools = pgTable(
   'function_tools',
   {
     ...agentScoped,
-    name: varchar('name', { length: 255 }).notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
-    functionId: varchar('function_id', { length: 255 }).notNull(),
+    functionId: varchar('function_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -431,7 +431,7 @@ export const subAgentToolRelations = pgTable(
   'sub_agent_tool_relations',
   {
     ...subAgentScoped,
-    toolId: varchar('tool_id', { length: 255 }).notNull(),
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
     selectedTools: jsonb('selected_tools').$type<string[] | null>(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
@@ -455,7 +455,7 @@ export const subAgentExternalAgentRelations = pgTable(
   'sub_agent_external_agent_relations',
   {
     ...subAgentScoped,
-    externalAgentId: varchar('external_agent_id', { length: 255 }).notNull(),
+    externalAgentId: varchar('external_agent_id', { length: 256 }).notNull(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
@@ -478,7 +478,7 @@ export const subAgentTeamAgentRelations = pgTable(
   'sub_agent_team_agent_relations',
   {
     ...subAgentScoped,
-    targetAgentId: varchar('target_agent_id', { length: 255 }).notNull(),
+    targetAgentId: varchar('target_agent_id', { length: 256 }).notNull(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
@@ -501,7 +501,7 @@ export const subAgentFunctionToolRelations = pgTable(
   'sub_agent_function_tool_relations',
   {
     ...subAgentScoped,
-    functionToolId: varchar('function_tool_id', { length: 255 }).notNull(),
+    functionToolId: varchar('function_tool_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -528,8 +528,8 @@ export const conversations = pgTable(
   'conversations',
   {
     ...projectScoped,
-    userId: varchar('user_id', { length: 255 }),
-    activeSubAgentId: varchar('active_sub_agent_id', { length: 255 }).notNull(),
+    userId: varchar('user_id', { length: 256 }),
+    activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
     title: text('title'),
     lastContextResolution: timestamp('last_context_resolution', { mode: 'string' }),
     metadata: jsonb('metadata').$type<ConversationMetadata>(),
@@ -549,30 +549,30 @@ export const messages = pgTable(
   'messages',
   {
     ...projectScoped,
-    conversationId: varchar('conversation_id', { length: 255 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
 
-    role: varchar('role', { length: 255 }).notNull(),
+    role: varchar('role', { length: 256 }).notNull(),
 
-    fromSubAgentId: varchar('from_sub_agent_id', { length: 255 }),
-    toSubAgentId: varchar('to_sub_agent_id', { length: 255 }),
+    fromSubAgentId: varchar('from_sub_agent_id', { length: 256 }),
+    toSubAgentId: varchar('to_sub_agent_id', { length: 256 }),
 
-    fromExternalAgentId: varchar('from_external_sub_agent_id', { length: 255 }),
+    fromExternalAgentId: varchar('from_external_sub_agent_id', { length: 256 }),
 
-    toExternalAgentId: varchar('to_external_sub_agent_id', { length: 255 }),
+    toExternalAgentId: varchar('to_external_sub_agent_id', { length: 256 }),
 
-    fromTeamAgentId: varchar('from_team_agent_id', { length: 255 }),
-    toTeamAgentId: varchar('to_team_agent_id', { length: 255 }),
+    fromTeamAgentId: varchar('from_team_agent_id', { length: 256 }),
+    toTeamAgentId: varchar('to_team_agent_id', { length: 256 }),
 
     content: jsonb('content').$type<MessageContent>().notNull(),
 
-    visibility: varchar('visibility', { length: 255 }).notNull().default('user-facing'),
-    messageType: varchar('message_type', { length: 255 }).notNull().default('chat'),
+    visibility: varchar('visibility', { length: 256 }).notNull().default('user-facing'),
+    messageType: varchar('message_type', { length: 256 }).notNull().default('chat'),
 
-    taskId: varchar('task_id', { length: 255 }),
-    parentMessageId: varchar('parent_message_id', { length: 255 }),
+    taskId: varchar('task_id', { length: 256 }),
+    parentMessageId: varchar('parent_message_id', { length: 256 }),
 
-    a2aTaskId: varchar('a2a_task_id', { length: 255 }),
-    a2aSessionId: varchar('a2a_session_id', { length: 255 }),
+    a2aTaskId: varchar('a2a_task_id', { length: 256 }),
+    a2aSessionId: varchar('a2a_session_id', { length: 256 }),
 
     metadata: jsonb('metadata').$type<MessageMetadata>(),
 
@@ -593,21 +593,21 @@ export const ledgerArtifacts = pgTable(
   {
     ...projectScoped,
 
-    taskId: varchar('task_id', { length: 255 }).notNull(),
-    toolCallId: varchar('tool_call_id', { length: 255 }),
-    contextId: varchar('context_id', { length: 255 }).notNull(),
+    taskId: varchar('task_id', { length: 256 }).notNull(),
+    toolCallId: varchar('tool_call_id', { length: 256 }),
+    contextId: varchar('context_id', { length: 256 }).notNull(),
 
-    type: varchar('type', { length: 255 }).notNull().default('source'),
-    name: varchar('name', { length: 255 }),
+    type: varchar('type', { length: 256 }).notNull().default('source'),
+    name: varchar('name', { length: 256 }),
     description: text('description'),
     parts: jsonb('parts').$type<Part[] | null>(),
     metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
 
     summary: text('summary'),
     mime: jsonb('mime').$type<string[] | null>(),
-    visibility: varchar('visibility', { length: 255 }).default('context'),
+    visibility: varchar('visibility', { length: 256 }).default('context'),
     allowedAgents: jsonb('allowed_agents').$type<string[] | null>(),
-    derivedFrom: varchar('derived_from', { length: 255 }),
+    derivedFrom: varchar('derived_from', { length: 256 }),
 
     ...timestamps,
   },
@@ -633,10 +633,10 @@ export const apiKeys = pgTable(
   'api_keys',
   {
     ...agentScoped,
-    publicId: varchar('public_id', { length: 255 }).notNull().unique(),
-    keyHash: varchar('key_hash', { length: 255 }).notNull(),
-    keyPrefix: varchar('key_prefix', { length: 255 }).notNull(),
-    name: varchar('name', { length: 255 }),
+    publicId: varchar('public_id', { length: 256 }).notNull().unique(),
+    keyHash: varchar('key_hash', { length: 256 }).notNull(),
+    keyPrefix: varchar('key_prefix', { length: 256 }).notNull(),
+    name: varchar('name', { length: 256 }),
     lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
     expiresAt: timestamp('expires_at', { mode: 'string' }),
     ...timestamps,
@@ -663,9 +663,9 @@ export const credentialReferences = pgTable(
   'credential_references',
   {
     ...projectScoped,
-    name: varchar('name', { length: 255 }).notNull(),
-    type: varchar('type', { length: 255 }).notNull(),
-    credentialStoreId: varchar('credential_store_id', { length: 255 }).notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
+    type: varchar('type', { length: 256 }).notNull(),
+    credentialStoreId: varchar('credential_store_id', { length: 256 }).notNull(),
     retrievalParams: jsonb('retrieval_params').$type<Record<string, unknown>>(),
     ...timestamps,
   },
