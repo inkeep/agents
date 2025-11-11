@@ -906,6 +906,9 @@ importers:
 
   packages/agents-core:
     dependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.3.13
+        version: 0.3.13
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.4)
@@ -1003,9 +1006,6 @@ importers:
         specifier: ^4.1.11
         version: 4.1.12
     devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.3.13
-        version: 0.3.13
       '@types/jmespath':
         specifier: ^0.15.2
         version: 0.15.2
