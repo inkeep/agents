@@ -147,7 +147,7 @@ function MetadataEditor() {
       />
       <div className="space-y-2">
         <ExpandablePromptEditor
-          id="agent-prompt"
+          name="agent-prompt"
           label="Agent prompt"
           value={prompt}
           onChange={(value) => updateMetadata('prompt', value)}

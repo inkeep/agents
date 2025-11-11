@@ -67,16 +67,18 @@ export function ExpandableJsonEditor({
     !!(externalError || internalError)
   );
   const [open, setOpen] = useState(false);
-
+  const uri = `${open ? 'small' : 'full'}-${name}.json` as const;
   const error = externalError || internalError;
-
+  const id = `${name}-label`;
   return (
     <ExpandableField
+      id={id}
       open={open}
       onOpenChange={setOpen}
-      name={name}
+      uri={uri}
       label={label}
       className={className}
+      hasError={!!error}
       actions={
         <Button
           type="button"
@@ -91,15 +93,16 @@ export function ExpandableJsonEditor({
       }
     >
       <JsonEditor
-        id={name}
+        uri={uri}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        aria-invalid={!!error}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(!open && error && 'max-h-96')}
         hasDynamicHeight={!open}
+        aria-labelledby={id}
       />
-      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
   );
 }
