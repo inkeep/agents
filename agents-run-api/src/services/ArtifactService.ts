@@ -298,7 +298,18 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -356,7 +367,19 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,

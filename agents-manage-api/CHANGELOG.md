@@ -1,5 +1,25 @@
 # @inkeep/agents-manage-api
 
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-core@0.31.7
+
+## 0.31.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- @inkeep/agents-core@0.31.5
+
 ## 0.31.4
 
 ### Patch Changes

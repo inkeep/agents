@@ -1,5 +1,20 @@
 import { z } from '@hono/zod-openapi';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
 import {
   agents,
   apiKeys,
@@ -36,8 +51,18 @@ import {
 
 export const StopWhenSchema = z
   .object({
-    transferCountIs: z.number().min(1).max(100).optional(),
-    stepCountIs: z.number().min(1).max(1000).optional(),
+    transferCountIs: z
+      .number()
+      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+      .optional()
+      .describe('The maximum number of transfers to trigger the stop condition.'),
+    stepCountIs: z
+      .number()
+      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
+      .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
+      .optional()
+      .describe('The maximum number of steps to trigger the stop condition.'),
   })
   .openapi('StopWhen');
 
@@ -61,18 +86,21 @@ export const resourceIdSchema = z
   .string()
   .min(MIN_ID_LENGTH)
   .max(MAX_ID_LENGTH)
+  .describe('Resource identifier')
   .regex(URL_SAFE_ID_PATTERN, {
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   })
   .openapi({
-    description: 'Resource identifier',
     example: 'resource_789',
   });
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional(),
-    providerOptions: z.record(z.string(), z.any()).optional(),
+    model: z.string().optional().describe('The model to use for the project.'),
+    providerOptions: z
+      .record(z.string(), z.any())
+      .optional()
+      .describe('The provider options to use for the project.'),
   })
   .openapi('ModelSettings');
 
@@ -552,6 +580,74 @@ export const CredentialReferenceApiUpdateSchema = createApiUpdateSchema(
   })
   .openapi('CredentialReferenceUpdate');
 
+export const CredentialStoreSchema = z
+  .object({
+    id: z.string().describe('Unique identifier of the credential store'),
+    type: z.enum(CredentialStoreType),
+    available: z.boolean().describe('Whether the store is functional and ready to use'),
+    reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
+  })
+  .openapi('CredentialStore');
+
+export const CredentialStoreListResponseSchema = z
+  .object({
+    data: z.array(CredentialStoreSchema).describe('List of credential stores'),
+  })
+  .openapi('CredentialStoreListResponse');
+
+export const CreateCredentialInStoreRequestSchema = z
+  .object({
+    key: z.string().describe('The credential key'),
+    value: z.string().describe('The credential value'),
+    metadata: z
+      .record(z.string(), z.string())
+      .nullish()
+      .describe('The metadata for the credential'),
+  })
+  .openapi('CreateCredentialInStoreRequest');
+
+export const CreateCredentialInStoreResponseSchema = z
+  .object({
+    data: z.object({
+      key: z.string().describe('The credential key'),
+      storeId: z.string().describe('The store ID where credential was created'),
+      createdAt: z.string().describe('ISO timestamp of creation'),
+    }),
+  })
+  .openapi('CreateCredentialInStoreResponse');
+
+export const RelatedAgentInfoSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+  })
+  .openapi('RelatedAgentInfo');
+
+export const ComponentAssociationSchema = z
+  .object({
+    subAgentId: z.string(),
+    createdAt: z.string(),
+  })
+  .openapi('ComponentAssociation');
+
+export const OAuthLoginQuerySchema = z
+  .object({
+    tenantId: z.string().min(1, 'Tenant ID is required'),
+    projectId: z.string().min(1, 'Project ID is required'),
+    toolId: z.string().min(1, 'Tool ID is required'),
+  })
+  .openapi('OAuthLoginQuery');
+
+export const OAuthCallbackQuerySchema = z
+  .object({
+    code: z.string().min(1, 'Authorization code is required'),
+    state: z.string().min(1, 'State parameter is required'),
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .openapi('OAuthCallbackQuery');
+
 export const McpToolSchema = ToolInsertSchema.extend({
   imageUrl: imageUrlSchema,
   availableTools: z.array(McpToolDefinitionSchema).optional(),
@@ -623,7 +719,12 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
-    timeout: z.number().min(0).optional().default(10000).optional(),
+    timeout: z
+      .number()
+      .min(0)
+      .optional()
+      .default(CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT)
+      .optional(),
   })
   .openapi('FetchConfig');
 
@@ -781,9 +882,15 @@ export const StatusComponentSchema = z
 export const StatusUpdateSchema = z
   .object({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(100).optional(),
-    timeInSeconds: z.number().min(1).max(600).optional(),
-    prompt: z.string().max(2000, 'Custom prompt cannot exceed 2000 characters').optional(),
+    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    prompt: z
+      .string()
+      .max(
+        VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+        `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
+      )
+      .optional(),
     statusComponents: z.array(StatusComponentSchema).optional(),
   })
   .openapi('StatusUpdate');
@@ -844,7 +951,13 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
-  prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
+  prompt: z
+    .string()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .optional(),
 });
 
 export const PaginationSchema = z

@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+
+## 0.31.6
+
+## 0.31.5
+
 ## 0.31.4
 
 ### Patch Changes

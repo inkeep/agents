@@ -1,9 +1,11 @@
 import {
+  AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
+  getArtifactComponentsForAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -14,6 +16,7 @@ import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
+import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
@@ -42,7 +45,7 @@ interface ExecutionResult {
 }
 
 export class ExecutionHandler {
-  private readonly MAX_ERRORS = 3;
+  private readonly MAX_ERRORS = AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS;
 
   /**
    * performs exeuction loop
@@ -195,7 +198,8 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
+      const maxTransfers =
+        agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
       while (iterations < maxTransfers) {
         iterations++;
@@ -311,7 +315,32 @@ export class ExecutionHandler {
 
           logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
-          currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
+          // Store the transfer response as an assistant message in conversation history
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [
+                {
+                  kind: 'text',
+                  text: transferReason,
+                },
+              ],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentAgentId,
+            taskId: task.id,
+          });
+
+          // Keep the original user message and add a continuation prompt
+          currentMessage =
+            currentMessage +
+            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,

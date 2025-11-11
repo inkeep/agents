@@ -9,6 +9,8 @@ import {
   FullProjectDefinitionSchema,
   getFullProject,
   SingleResponseSchema,
+  TenantParamsSchema,
+  TenantProjectParamsSchema,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -18,30 +20,6 @@ import { getLogger } from '../logger';
 const logger = getLogger('projectFull');
 
 const app = new OpenAPIHono();
-
-// Schema for path parameters with projectId
-const ProjectIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-  })
-  .openapi('ProjectIdParams');
-
-// Schema for tenant parameters only
-const TenantParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-  })
-  .openapi('TenantParams');
 
 app.openapi(
   createRoute({
@@ -120,7 +98,7 @@ app.openapi(
     description:
       'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
     request: {
-      params: ProjectIdParamsSchema,
+      params: TenantProjectParamsSchema,
     },
     responses: {
       200: {
@@ -180,7 +158,7 @@ app.openapi(
     description:
       'Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     request: {
-      params: ProjectIdParamsSchema,
+      params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -276,7 +254,7 @@ app.openapi(
     description:
       'Delete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)',
     request: {
-      params: ProjectIdParamsSchema,
+      params: TenantProjectParamsSchema,
     },
     responses: {
       204: {

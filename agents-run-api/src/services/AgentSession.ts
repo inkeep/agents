@@ -7,12 +7,25 @@ import type {
   SummaryEvent,
   TransferData,
 } from '@inkeep/agents-core';
-import { getSubAgentById } from '@inkeep/agents-core';
+import {
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  getSubAgentById,
+} from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { ModelFactory } from '../agents/ModelFactory';
 import { toolSessionManager } from '../agents/ToolSessionManager';
+import {
+  ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
+  ARTIFACT_GENERATION_BACKOFF_MAX_MS,
+  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_SESSION_MAX_PENDING,
+  ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
+  STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
+  STATUS_UPDATE_DEFAULT_NUM_EVENTS,
+} from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -182,8 +195,8 @@ export class AgentSession {
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
   private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_ARTIFACT_RETRIES = 3;
-  private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
+  private readonly MAX_ARTIFACT_RETRIES = ARTIFACT_GENERATION_MAX_RETRIES;
+  private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
@@ -317,8 +330,8 @@ export class AgentSession {
       summarizerModel,
       baseModel,
       config: {
-        numEvents: config.numEvents || 1,
-        timeInSeconds: config.timeInSeconds || 2,
+        numEvents: config.numEvents || STATUS_UPDATE_DEFAULT_NUM_EVENTS,
+        timeInSeconds: config.timeInSeconds || STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
         ...config,
       },
     };
@@ -754,8 +767,8 @@ export class AgentSession {
         return;
       }
 
-      // Keep only last 3 summaries to avoid context getting too large
-      if (this.previousSummaries.length > 3) {
+      // Keep only last N summaries to avoid context getting too large
+      if (this.previousSummaries.length > ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES) {
         this.previousSummaries.shift();
       }
 
@@ -891,8 +904,8 @@ export class AgentSession {
                 projectId: this.projectId,
                 conversationId: this.sessionId,
                 options: {
-                  limit: 10, // Get recent conversation context
-                  maxOutputTokens: 2000,
+                  limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
+                  maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
                 },
                 filters: {},
               });
@@ -1497,7 +1510,10 @@ Make it specific and relevant.`;
                     );
 
                     if (attempt < maxRetries) {
-                      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
+                      const backoffMs = Math.min(
+                        ARTIFACT_GENERATION_BACKOFF_INITIAL_MS * 2 ** (attempt - 1),
+                        ARTIFACT_GENERATION_BACKOFF_MAX_MS
+                      );
                       await new Promise((resolve) => setTimeout(resolve, backoffMs));
                     }
                   }
@@ -1515,16 +1531,8 @@ Make it specific and relevant.`;
             result = object;
           }
 
-          const artifactService = new ArtifactService({
-            tenantId: artifactData.tenantId,
-            projectId: artifactData.projectId,
-            contextId: artifactData.contextId,
-            taskId: artifactData.taskId,
-            sessionId: this.sessionId,
-          });
-
           try {
-            await artifactService.saveArtifact({
+            await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
