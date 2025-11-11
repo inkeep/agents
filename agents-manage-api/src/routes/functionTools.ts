@@ -9,10 +9,10 @@ import {
   FunctionToolApiUpdateSchema,
   generateId,
   getFunctionToolById,
-  ListResponseSchema,
   listFunctionTools,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  FunctionToolListResponse,
+  FunctionToolResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of function tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolListResponse,
           },
         },
       },
@@ -83,7 +83,7 @@ app.openapi(
         description: 'Function tool retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -139,7 +139,7 @@ app.openapi(
         description: 'Function tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -197,7 +197,7 @@ app.openapi(
         description: 'Function tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },

@@ -14,7 +14,9 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  SingleResponseSchema,
+  ComponentAssociationListResponse,
+  DataComponentArrayResponse,
+  SubAgentDataComponentResponse,
   SubAgentDataComponentApiInsertSchema,
   SubAgentDataComponentApiSelectSchema,
   TenantProjectAgentParamsSchema,
@@ -40,7 +42,7 @@ app.openapi(
         description: 'Data components retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(DataComponentApiSelectSchema)),
+            schema: DataComponentArrayResponse,
           },
         },
       },
@@ -75,7 +77,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ComponentAssociationSchema)),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -116,7 +118,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
+            schema: SubAgentDataComponentResponse,
           },
         },
       },
