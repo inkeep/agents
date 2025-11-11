@@ -12,9 +12,9 @@ import {
 } from '../schemas';
 
 const FIELD_MODIFIERS: Record<string, (schema: z.ZodTypeAny) => z.ZodTypeAny> = {
-  id: (schema) => z.string().describe('Resource identifier'),
-  name: (schema) => z.string().describe('Name'),
-  description: (schema) => z.string().describe('Description'),
+  id: (_schema) => z.string().describe('Resource identifier'),
+  name: (_schema) => z.string().describe('Name'),
+  description: (_schema) => z.string().describe('Description'),
   tenantId: (schema) => schema.describe('Tenant identifier'),
   projectId: (schema) => schema.describe('Project identifier'),
   agentId: (schema) => schema.describe('Agent identifier'),
