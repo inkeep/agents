@@ -723,7 +723,8 @@ export const dataset = pgTable(
  * 
  * Includes: input (messages array with optional headers), expected output (array of messages),
  * simulation config (user persona, initialMessage with headers, stopWhen conditions,
- * agentDefinition with name/description/prompt/modelConfig), and timestamps
+ * agentDefinition with prompt/modelConfig), and timestamps
+ * simulationConfig is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -744,8 +745,6 @@ export const datasetItem = pgTable(
       };
       stopWhen?: StopWhen;
       agentDefinition: {
-        name: string;
-        description: string;
         prompt: string;
         modelConfig: ModelSettings;
       };
