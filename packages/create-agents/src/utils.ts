@@ -326,23 +326,15 @@ export const createAgents = async (
       await initializeGit();
     }
 
-    s.message('Setting up database...');
-    await setupDatabase();
-
-    s.message('Pushing project...');
-    await setupProjectInDatabase(config);
-    s.message('Project setup complete!');
+    await checkPortsAvailability();
 
     s.stop();
 
     p.note(
-      `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
-        `${color.yellow('Ready to go!')}\n\n` +
-        `${color.green('✓')} Project created in file system\n` +
-        `${color.green('✓')} Database configured\n` +
-        `${color.green('✓')} Project added to database\n\n` +
+      `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
+        `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
         `  • Manage API: http://localhost:3002\n` +
@@ -369,7 +361,6 @@ async function createWorkspaceStructure() {
 
 async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
-  const dbPath = process.cwd().replace(/\\/g, '/');
 
   const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
 
@@ -377,7 +368,7 @@ async function createEnvironmentFiles(config: FileConfig) {
 ENVIRONMENT=development
 
 # Database
-DB_FILE_NAME=file:${dbPath}/local.db
+DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
@@ -401,6 +392,9 @@ NANGO_SECRET_KEY=
 
 # JWT Signing Secret
 INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
+
+# initial project information
+DEFAULT_PROJECT_ID=${config.projectId}
 `;
 
   await fs.writeFile('.env', envContent);
@@ -514,124 +508,6 @@ async function checkPortsAvailability(): Promise<void> {
       runApi: !runApiAvailable,
       manageApi: !manageApiAvailable,
     });
-  }
-}
-
-/**
- * Wait for a server to be ready by polling a health endpoint
- */
-async function waitForServerReady(url: string, timeout: number): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // Server not ready yet, continue polling
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
-  }
-  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
-}
-
-async function setupProjectInDatabase(config: FileConfig) {
-  // Proactively check if ports are available BEFORE starting servers
-  await checkPortsAvailability();
-
-  // Start development servers in background
-  const { spawn } = await import('node:child_process');
-  const devProcess = spawn('pnpm', ['dev:apis'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    detached: true,
-    cwd: process.cwd(),
-    shell: true,
-    windowsHide: true,
-  });
-
-  // Track if port errors occur during startup (as a safety fallback)
-  const portErrors = { runApi: false, manageApi: false };
-
-  // Regex patterns for detecting port errors in output
-  const portErrorPatterns = {
-    runApi: new RegExp(
-      `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
-      'i'
-    ),
-    manageApi: new RegExp(
-      `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
-      'i'
-    ),
-  };
-
-  // Monitor output for port errors (fallback in case ports become unavailable between check and start)
-  const checkForPortErrors = (data: Buffer) => {
-    const output = data.toString();
-    if (portErrorPatterns.runApi.test(output)) {
-      portErrors.runApi = true;
-    }
-    if (portErrorPatterns.manageApi.test(output)) {
-      portErrors.manageApi = true;
-    }
-  };
-
-  devProcess.stdout.on('data', checkForPortErrors);
-
-  // Wait for servers to be ready
-  try {
-    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
-    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
-  } catch (error) {
-    // If servers don't start, we'll still try push but it will likely fail
-    console.warn(
-      'Warning: Servers may not be fully ready:',
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-
-  // Check if any port errors occurred during startup
-  if (portErrors.runApi || portErrors.manageApi) {
-    displayPortConflictError(portErrors);
-  }
-
-  // Run inkeep push
-  try {
-    await execAsync(
-      `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
-    );
-  } catch (_error) {
-  } finally {
-    if (devProcess.pid) {
-      try {
-        if (process.platform === 'win32') {
-          // Windows: Use taskkill to kill process tree
-          await execAsync(`taskkill /pid ${devProcess.pid} /T /F`);
-        } else {
-          // Unix: Use negative PID to kill process group
-          process.kill(-devProcess.pid, 'SIGTERM');
-
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          try {
-            process.kill(-devProcess.pid, 'SIGKILL');
-          } catch {}
-        }
-      } catch (_error) {
-        console.log('Note: Dev servers may still be running in background');
-      }
-    }
-  }
-}
-
-async function setupDatabase() {
-  try {
-    await execAsync('pnpm db:migrate');
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  } catch (error) {
-    throw new Error(
-      `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
   }
 }
 

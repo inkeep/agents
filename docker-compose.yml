@@ -28,9 +28,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
+      - DATABASE_URL
       - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
       - NANGO_SECRET_KEY
@@ -48,9 +46,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
+      - DATABASE_URL
       - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
       - INKEEP_AGENTS_JWT_SIGNING_SECRET
       - ANTHROPIC_API_KEY
@@ -74,9 +70,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
+      - DATABASE_URL
     volumes:
       - inkeep-agents-db:/inkeep-agents/db
     restart: "no"

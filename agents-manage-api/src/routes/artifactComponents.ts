@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiInsertSchema,
-  ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
   ArtifactComponentListResponse,
   ArtifactComponentResponse,
@@ -162,8 +161,8 @@ app.openapi(
 
       return c.json({ data: artifactComponent }, 201);
     } catch (error: any) {
-      // Handle duplicate artifact component (primary key constraint)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
+      // Handle duplicate artifact component (PostgreSQL unique constraint violation)
+      if (error?.cause?.code === '23505') {
         throw createApiError({
           code: 'conflict',
           message: `Artifact component with ID '${finalId}' already exists`,

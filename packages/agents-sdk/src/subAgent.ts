@@ -508,10 +508,6 @@ export class SubAgent implements SubAgentInterface {
       // TODO: Load data components from database for this agent
       // This needs to be replaced with an HTTP API call
       const existingComponents: DataComponentApiInsert[] = [];
-      // const existingComponents = await getDataComponentsForAgent(dbClient)({
-      //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   subAgentId: this.getId(),
-      // });
 
       // Convert database format to config format
       const dbDataComponents = existingComponents.map((component: any) => ({
@@ -586,10 +582,6 @@ export class SubAgent implements SubAgentInterface {
       // TODO: Load artifact components from database for this agent
       // This needs to be replaced with an HTTP API call
       const existingComponents: ArtifactComponentApiInsert[] = [];
-      // const existingComponents = await getArtifactComponentsForAgent(dbClient)({
-      //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   subAgentId: this.getId(),
-      // });
 
       // Convert database format to config format
       const dbArtifactComponents = existingComponents.map((component: any) => ({

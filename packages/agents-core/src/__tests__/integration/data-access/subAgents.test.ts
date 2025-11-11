@@ -9,8 +9,8 @@ import {
 } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import { createTestDatabaseClient } from '../../../db/test-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
+import { testDbClient } from '../../setup';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: DatabaseClient;
@@ -19,8 +19,7 @@ describe('Agents Data Access - Integration Tests', () => {
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
+    db = testDbClient;
 
     // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];

@@ -1,5 +1,15 @@
 # test-agents
 
+## 0.1.9
+
+### Patch Changes
+
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-cli@0.32.0
+  - @inkeep/agents-sdk@0.32.0
+
 ## 0.1.8
 
 ### Patch Changes

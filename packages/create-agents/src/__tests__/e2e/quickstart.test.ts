@@ -76,7 +76,7 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /OPENAI_API_KEY=test-openai-key/,
-      /DB_FILE_NAME=file:.*\/local\.db/,
+      /DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
       /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/localhost:3002"/,
       /INKEEP_AGENTS_RUN_API_URL="http:\/\/localhost:3003"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated

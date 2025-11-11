@@ -95,9 +95,10 @@ export const clearConversationCache =
           eq(contextCache.projectId, params.scopes.projectId),
           eq(contextCache.conversationId, params.conversationId)
         )
-      );
+      )
+      .returning();
 
-    return result.rowsAffected || 0;
+    return result.length;
   };
 
 /**
@@ -114,9 +115,10 @@ export const clearContextConfigCache =
           eq(contextCache.projectId, params.scopes.projectId),
           eq(contextCache.contextConfigId, params.contextConfigId)
         )
-      );
+      )
+      .returning();
 
-    return result.rowsAffected || 0;
+    return result.length;
   };
 
 /**
@@ -132,9 +134,10 @@ export const cleanupTenantCache =
           eq(contextCache.tenantId, params.scopes.tenantId),
           eq(contextCache.projectId, params.scopes.projectId)
         )
-      );
+      )
+      .returning();
 
-    return result.rowsAffected || 0;
+    return result.length;
   };
 
 /**
@@ -157,9 +160,10 @@ export const invalidateHeadersCache =
           eq(contextCache.contextConfigId, params.contextConfigId),
           eq(contextCache.contextVariableKey, 'headers')
         )
-      );
+      )
+      .returning();
 
-    return result.rowsAffected || 0;
+    return result.length;
   };
 
 /**
@@ -186,9 +190,10 @@ export const invalidateInvocationDefinitionsCache =
             eq(contextCache.contextConfigId, params.contextConfigId),
             eq(contextCache.contextVariableKey, definitionId)
           )
-        );
+        )
+        .returning();
 
-      totalRowsAffected += result.rowsAffected || 0;
+      totalRowsAffected += result.length;
     }
 
     return totalRowsAffected;

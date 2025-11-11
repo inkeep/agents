@@ -1218,8 +1218,9 @@ export const updateFullAgentServerSide =
                   eq(subAgentToolRelations.agentId, finalAgentId),
                   eq(subAgentToolRelations.subAgentId, subAgentId)
                 )
-              );
-            deletedCount = result.rowsAffected || 0;
+              )
+              .returning();
+            deletedCount = result.length;
           } else {
             const result = await db
               .delete(subAgentToolRelations)
@@ -1231,8 +1232,9 @@ export const updateFullAgentServerSide =
                   eq(subAgentToolRelations.subAgentId, subAgentId),
                   not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
-              );
-            deletedCount = result.rowsAffected || 0;
+              )
+              .returning();
+            deletedCount = result.length;
           }
 
           if (deletedCount > 0) {
