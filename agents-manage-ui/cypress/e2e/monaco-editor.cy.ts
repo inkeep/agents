@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 describe('Monaco Editor', () => {
-  it('SubAgent prompt editor updates when switching nodes', () => {
+  it('should update the SubAgent prompt editor when switching nodes', () => {
     // Assert 1st node
     cy.visit('/default/projects/my-weather-project/agents/weather-agent?nodeId=geocoder-agent');
     cy.contains('You are a geocoding specialist').should('be.visible');
@@ -15,7 +15,7 @@ describe('Monaco Editor', () => {
     cy.contains('You are a geocoding specialist').should('be.visible');
   });
 
-  it('Clicking on the `<label>` focuses the editor', () => {
+  it('should focus the editor when clicking on the `<label>`', () => {
     cy.visit('/default/projects/my-weather-project/agents/weather-agent?nodeId=geocoder-agent');
     cy.contains('You are a geocoding specialist').should('be.visible');
     cy.get('#prompt-label').click();
