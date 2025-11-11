@@ -3,7 +3,6 @@ import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { createSelectSchema as drizzleCreateSelectSchema } from 'drizzle-zod';
 import { describe, expect, it } from 'vitest';
 import {
-  AgentInsertSchema,
   AgentSelectSchema,
   ProjectInsertSchema,
   ProjectSelectSchema,
