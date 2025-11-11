@@ -29,7 +29,7 @@ export function ExpandableCodeEditor({
   isRequired,
 }: ExpandableCodeEditorProps) {
   const [open, setOpen] = useState(false);
-  const uri = `${open ? 'small' : 'full'}-${name}.jsx` as const;
+  const uri = `${open ? 'expanded-' : ''}${name}.jsx` as const;
   const id = `${name}-label`;
   return (
     <ExpandableField
