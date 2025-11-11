@@ -163,7 +163,7 @@ describe('Schema Wrapper Functions', () => {
       });
 
       const schema = createSelectSchemaForTest(testTable, {
-        id: (s) => s.describe('Custom ID description'),
+        id: (s: z.ZodTypeAny) => s.describe('Custom ID description'),
       });
 
       const idSchema = schema.shape.id;
