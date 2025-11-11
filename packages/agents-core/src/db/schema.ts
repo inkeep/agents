@@ -688,7 +688,7 @@ export const credentialReferences = pgTable(
  * runs where conversations are created from dataset items. Each datasetRun
  * specifies which agent to use when executing the dataset.
  * 
- * Includes: name, description, metadata (for tagging?? can also remove this), and timestamps
+ * Includes: name, description, and timestamps
  */
 export const dataset = pgTable(
   'dataset',
@@ -729,18 +729,10 @@ export const datasetItem = pgTable(
       headers?: Record<string, string>;
     }>(),
     expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
-    simulationConfig: jsonb('simulation_config').$type<{
-      userPersona: string;
-      initialMessage?: {
-        role: string;
-        content: MessageContent;
-        headers?: Record<string, string>;
-      };
+    simulationAgentDefinition: jsonb('simulation_agent_definition').$type<{
       stopWhen?: StopWhen;
-      agentDefinition: {
-        prompt: string;
-        modelConfig: ModelSettings;
-      };
+      prompt: string;
+      model: ModelSettings;
     }>(),
     ...timestamps,
   },
@@ -762,10 +754,8 @@ export const datasetItem = pgTable(
  * results, and model configuration. Used by evaluation suite configs to evaluate
  * conversations.
  * 
- * The modelConfig is optional and will default to the modelConfig from the evaluation suite config if not provided.
- * 
  * Includes: name, description, prompt, schema (output structure),
- * modelConfig (for the evaluator LLM), and timestamps
+ * model (required model config for the evaluator LLM), and timestamps
  */
 export const evaluator = pgTable(
   'evaluator',
@@ -774,7 +764,7 @@ export const evaluator = pgTable(
     ...uiProperties,
     prompt: text('prompt').notNull(),
     schema: jsonb('schema').$type<Record<string, unknown>>().notNull(),
-    modelConfig: jsonb('model_config').$type<ModelSettings>(),
+    model: jsonb('model').$type<ModelSettings>().notNull(),
     ...timestamps,
   },
   (table) => [
@@ -788,25 +778,68 @@ export const evaluator = pgTable(
 );
 
 /**
+ * Dataset Run Config table
+ * 
+ * Recurring policy configuration for running datasets.
+ * Example: "Run weekly with agent X against dataset Y (1000 items)"
+ * 
+ * When triggered (based on runFrequency cron), creates a datasetRun that executes
+ * all items in the dataset, creating conversations with the specified agent.
+ * 
+ * Includes: name, description, runFrequency (cron expression string),
+ * datasetId (which dataset to run), agentId (which agent to use for conversations),
+ * and timestamps
+ */
+export const datasetRunConfig = pgTable(
+  'dataset_run_config',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * 0" for weekly)
+    datasetId: text('dataset_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'dataset_run_config_project_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'dataset_run_config_dataset_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'dataset_run_config_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
  * Dataset Run table
  * 
  * Execution of a suite of items from a dataset. Represents a batch run that
  * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
  * status and links to conversations created during the run via
- * datasetRunConversations join table.
+ * datasetRunConversationRelations join table.
  * NO EVAL STUFF IS DONE HERE
  * 
- * Each run specifies which agent to use for creating conversations from the dataset items.
 
  * 
- * Includes: dataset reference,
- * and timestamps
+ * Includes: datasetId (which dataset to run),
+ * datasetRunConfigId (required: always created from a config), and timestamps
  */
 export const datasetRun = pgTable(
   'dataset_run',
   {
     ...projectScoped,
     datasetId: text('dataset_id').notNull(),
+    datasetRunConfigId: text('dataset_run_config_id').notNull(), 
     ...timestamps,
   },
   (table) => [
@@ -816,11 +849,16 @@ export const datasetRun = pgTable(
       foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
       name: 'dataset_run_dataset_fk',
     }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
+      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+      name: 'dataset_run_dataset_run_config_fk',
+    }).onDelete('cascade'),
   ]
 );
 
 /**
- * Dataset Run Conversations join table
+ * Dataset Run Conversation Relations join table
  * 
  * Links conversations created during a dataset run execution. One-to-many
  * relationship where one datasetRun can create many conversations, but each
@@ -831,8 +869,8 @@ export const datasetRun = pgTable(
  * unique constraint on (datasetRunId, conversationId) ensures one conversation per datasetRun,
  * and timestamps
  */
-export const datasetRunConversations = pgTable(
-  'dataset_run_conversations',
+export const datasetRunConversationRelations = pgTable(
+  'dataset_run_conversation_relations',
   {
     ...projectScoped,
     datasetRunId: text('dataset_run_id').notNull(),
@@ -844,14 +882,14 @@ export const datasetRunConversations = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId, table.datasetRunId],
       foreignColumns: [datasetRun.tenantId, datasetRun.projectId, datasetRun.id],
-      name: 'dataset_run_conversations_run_fk',
+      name: 'dataset_run_conversation_relations_run_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.conversationId],
       foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
-      name: 'dataset_run_conversations_conversation_fk',
+      name: 'dataset_run_conversation_relations_conversation_fk',
     }).onDelete('cascade'),
-    unique('dataset_run_conversations_unique').on(
+    unique('dataset_run_conversation_relations_unique').on(
       table.datasetRunId,
       table.conversationId
     ),
@@ -859,16 +897,26 @@ export const datasetRunConversations = pgTable(
 );
 
 /**
- * Evaluation Suite Config table
+ * Evaluation Suite Config table (Policy)
  * 
- * Reusable suite configuration for batch dataset runs or batch conversations.
- * Defines which conversations/dataset runs to evaluate (via filters) and which evaluators
- * to use. Can configure run frequency and model config that can be overridden
- * by specific evaluators. Attaches evaluators via evaluationSuiteConfigEvaluator join.
+ * Recurring policy configuration that defines when and what to evaluate.
+ * Example: "Run daily against conversations for agentId X from the last day"
  * 
- * Includes: name, description, modelConfig (default for evaluators),
- * runFrequency (weekly/daily/monthly/on_demand), filters object (optional agentIds,
- * datasetRunIds, conversationIds arrays, and dateRange with startDate/endDate),
+ * When triggered (based on runFrequency cron), creates an evaluationSuiteRun with
+ * computed filters based on the policy criteria.
+ * 
+ * Policy-level filters:
+ * - agentIds: Which agents' conversations to evaluate
+ * - anything else?????
+ * 
+ * The time window is inferred from runFrequency:
+ * - Daily → evaluates conversations from the last day
+ * - Weekly → evaluates conversations from the last week
+ * - Monthly → evaluates conversations from the last month
+ *
+ * 
+ * Includes: name, description, runFrequency (cron expression string),
+ * agentIds (array of agent IDs to filter conversations),
  * sampleRate for sampling, and timestamps
  */
 export const evaluationSuiteConfig = pgTable(
@@ -876,18 +924,9 @@ export const evaluationSuiteConfig = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    modelConfig: jsonb('model_config').$type<ModelSettings>(),
-    runFrequency: text('run_frequency').$type<'weekly' | 'daily' | 'monthly' | 'on_demand'>().notNull(),
-    filters: jsonb('filters').$type<{
-      agentIds?: string[];
-      datasetRunIds?: string[];
-      conversationIds?: string[];
-      dateRange?: {
-        startDate: string;
-        endDate: string;
-      };
-    }>(),
-    sampleRate: doublePrecision('sample_rate'), 
+    runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * *" for daily)
+    agentIds: jsonb('agent_ids').$type<string[] | null>(), // Which agents to evaluate
+    sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
   (table) => [
@@ -901,16 +940,16 @@ export const evaluationSuiteConfig = pgTable(
 );
 
 /**
- * Evaluation Suite Config Evaluator join table
+ * Evaluation Suite Config Evaluator Relations join table
  * 
  * Links evaluators to evaluation suite configs. Many-to-many relationship that
- * attaches evaluators to an evaluation suite configuration. The evaluator's own modelConfig
- * (if set) takes precedence, otherwise the evaluation suite config's modelConfig is used.
+ * attaches evaluators to an evaluation suite configuration. Each evaluator must
+ * have its own model configuration defined.
  * 
  * Includes: evaluationSuiteConfigId, evaluatorId, and timestamps
  */
-export const evaluationSuiteConfigEvaluator = pgTable(
-  'evaluation_suite_config_evaluator',
+export const evaluationSuiteConfigEvaluatorRelations = pgTable(
+  'evaluation_suite_config_evaluator_relations',
   {
     ...projectScoped,
     evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
@@ -922,35 +961,76 @@ export const evaluationSuiteConfigEvaluator = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
       foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
-      name: 'evaluation_suite_config_evaluator_evaluation_suite_config_fk',
+      name: 'evaluation_suite_config_evaluator_relations_evaluation_suite_config_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluatorId],
       foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
-      name: 'evaluation_suite_config_evaluator_evaluator_fk',
+      name: 'evaluation_suite_config_evaluator_relations_evaluator_fk',
     }).onDelete('cascade'),
   ]
 );
 
 /**
- * Evaluation Suite Run table
+ * Evaluation Job table (Job Config)
  * 
- * Execution instance of an evaluation suite config. Represents a single run that
- * evaluates conversations based on the evaluation suite configuration. Links to a
- * specific evaluation suite config. Results are stored in evaluationResult table.
+ * Configuration for a one-off evaluation job to be executed.
+ * Example: "Evaluate all conversations in datasetRunId 1234"
  * 
- * Includes: evaluationSuiteConfigId (foreign key to evaluationSuiteConfig),
+ * Created manually or by external systems. Contains job-specific filters like
+ * datasetRunIds, conversationIds, and absolute dateRange.
+ * 
+ * When a job completes, an evaluationSuiteRun is created with evaluationJobId set.
+ * 
+ * Includes: jobFilters (specific filters for this job execution: datasetRunIds, conversationIds,
+ * dateRange with absolute dates), and timestamps
+ */
+export const evaluationJob = pgTable(
+  'evaluation_job',
+  {
+    ...projectScoped,
+    jobFilters: jsonb('job_filters').$type<{
+      datasetRunIds?: string[];
+      conversationIds?: string[];
+      dateRange?: {
+        startDate: string;
+        endDate: string;
+      };
+    }>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+  ]
+);
+
+/**
+ * Evaluation Suite Run table (Historical Records)
+ * 
+ * Historical record created when an evaluation job or evaluation suite config completes.
+ * Represents a completed evaluation run. Links to both the evaluationJob (if created from a job)
+ * and evaluationSuiteConfig (if created from a policy trigger).
+ * Results are stored in evaluationResult table.
+ * 
+ * Includes: evaluationJobId (optional: if created from a job),
+ * evaluationSuiteConfigId (optional: if created from a policy trigger),
  * and timestamps
  */
 export const evaluationSuiteRun = pgTable(
   'evaluation_suite_run',
   {
     ...projectScoped,
-    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    evaluationJobId: text('evaluation_job_id'), // Optional: if created from a job
+    evaluationSuiteConfigId: text('evaluation_suite_config_id'), // Optional: if created from a policy
     ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationJobId],
+      foreignColumns: [evaluationJob.tenantId, evaluationJob.projectId, evaluationJob.id],
+      name: 'evaluation_suite_run_evaluation_job_fk',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
       foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
@@ -1044,6 +1124,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   datasets: many(dataset),
   evaluators: many(evaluator),
   evaluationSuiteConfigs: many(evaluationSuiteConfig),
+  datasetRunConfigs: many(datasetRunConfig),
 }));
 
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
@@ -1411,7 +1492,23 @@ export const evaluatorRelations = relations(evaluator, ({ one, many }) => ({
     references: [projects.tenantId, projects.id],
   }),
   evaluationResults: many(evaluationResult),
-  evaluationSuiteConfigs: many(evaluationSuiteConfigEvaluator),
+  evaluationSuiteConfigs: many(evaluationSuiteConfigEvaluatorRelations),
+}));
+
+export const datasetRunConfigRelations = relations(datasetRunConfig, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  dataset: one(dataset, {
+    fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.datasetId],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+  agent: one(agents, {
+    fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  runs: many(datasetRun),
 }));
 
 export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
@@ -1419,7 +1516,11 @@ export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
     fields: [datasetRun.tenantId, datasetRun.projectId, datasetRun.datasetId],
     references: [dataset.tenantId, dataset.projectId, dataset.id],
   }),
-  conversations: many(datasetRunConversations),
+  datasetRunConfig: one(datasetRunConfig, {
+    fields: [datasetRun.tenantId, datasetRun.projectId, datasetRun.datasetRunConfigId],
+    references: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+  }),
+  conversations: many(datasetRunConversationRelations),
 }));
 
 export const evaluationSuiteConfigRelations = relations(evaluationSuiteConfig, ({ one, many }) => ({
@@ -1428,21 +1529,32 @@ export const evaluationSuiteConfigRelations = relations(evaluationSuiteConfig, (
     references: [projects.tenantId, projects.id],
   }),
   runs: many(evaluationSuiteRun),
-  evaluators: many(evaluationSuiteConfigEvaluator),
+  evaluators: many(evaluationSuiteConfigEvaluatorRelations),
 }));
 
-export const evaluationSuiteConfigEvaluatorRelations = relations(evaluationSuiteConfigEvaluator, ({ one }) => ({
+export const evaluationSuiteConfigEvaluatorRelationsRelations = relations(evaluationSuiteConfigEvaluatorRelations, ({ one }) => ({
   evaluationSuiteConfig: one(evaluationSuiteConfig, {
-    fields: [evaluationSuiteConfigEvaluator.tenantId, evaluationSuiteConfigEvaluator.projectId, evaluationSuiteConfigEvaluator.evaluationSuiteConfigId],
+    fields: [evaluationSuiteConfigEvaluatorRelations.tenantId, evaluationSuiteConfigEvaluatorRelations.projectId, evaluationSuiteConfigEvaluatorRelations.evaluationSuiteConfigId],
     references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
   }),
   evaluator: one(evaluator, {
-    fields: [evaluationSuiteConfigEvaluator.tenantId, evaluationSuiteConfigEvaluator.projectId, evaluationSuiteConfigEvaluator.evaluatorId],
+    fields: [evaluationSuiteConfigEvaluatorRelations.tenantId, evaluationSuiteConfigEvaluatorRelations.projectId, evaluationSuiteConfigEvaluatorRelations.evaluatorId],
     references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
   }),
 }));
 
+export const evaluationJobRelations = relations(evaluationJob, ({ one }) => ({
+  run: one(evaluationSuiteRun, {
+    fields: [evaluationJob.tenantId, evaluationJob.projectId, evaluationJob.id],
+    references: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.evaluationJobId],
+  }),
+}));
+
 export const evaluationSuiteRunRelations = relations(evaluationSuiteRun, ({ one, many }) => ({
+  evaluationJob: one(evaluationJob, {
+    fields: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.evaluationJobId],
+    references: [evaluationJob.tenantId, evaluationJob.projectId, evaluationJob.id],
+  }),
   evaluationSuiteConfig: one(evaluationSuiteConfig, {
     fields: [evaluationSuiteRun.tenantId, evaluationSuiteRun.projectId, evaluationSuiteRun.evaluationSuiteConfigId],
     references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
@@ -1476,16 +1588,16 @@ export const conversationsEvaluatorRelations = relations(conversations, ({ many 
   }),
 }));
 
-export const datasetRunConversationsRelations = relations(datasetRunConversations, ({ one }) => ({
+export const datasetRunConversationRelationsRelations = relations(datasetRunConversationRelations, ({ one }) => ({
   datasetRun: one(datasetRun, {
-    fields: [datasetRunConversations.tenantId, datasetRunConversations.projectId, datasetRunConversations.datasetRunId],
+    fields: [datasetRunConversationRelations.tenantId, datasetRunConversationRelations.projectId, datasetRunConversationRelations.datasetRunId],
     references: [datasetRun.tenantId, datasetRun.projectId, datasetRun.id],
   }),
   conversation: one(conversations, {
     fields: [
-      datasetRunConversations.tenantId,
-      datasetRunConversations.projectId,
-      datasetRunConversations.conversationId,
+      datasetRunConversationRelations.tenantId,
+      datasetRunConversationRelations.projectId,
+      datasetRunConversationRelations.conversationId,
     ],
     references: [conversations.tenantId, conversations.projectId, conversations.id],
   }),
