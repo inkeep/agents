@@ -141,7 +141,7 @@ describe('Schema Wrapper Functions', () => {
 
     it('should not apply modifiers to non-existent fields', () => {
       const schema = ProjectSelectSchema;
-      expect(schema.shape.subAgentId).toBeUndefined();
+      expect('subAgentId' in schema.shape).toBe(false);
     });
 
     it('should handle tables with different field sets', () => {
@@ -150,7 +150,7 @@ describe('Schema Wrapper Functions', () => {
 
       expect(projectSchema.shape.id).toBeDefined();
       expect(subAgentSchema.shape.id).toBeDefined();
-      expect(subAgentSchema.shape.subAgentId).toBeUndefined();
+      expect('subAgentId' in subAgentSchema.shape).toBe(false);
       expect(subAgentSchema.shape.agentId).toBeDefined();
     });
   });
