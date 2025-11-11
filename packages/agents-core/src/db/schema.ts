@@ -810,6 +810,7 @@ export const datasetRun = pgTable(
     projectId: text('project_id').notNull(),
     datasetId: text('dataset_id').notNull(),
     agentId: text('agent_id').notNull(),
+    status: text('status').$type<'done'|'failed'>().notNull(),
     ...timestamps,
   },
   (table) => [
@@ -952,7 +953,7 @@ export const evalSuiteConfigEvaluator = pgTable(
  * specific suite config.
  * 
  * Includes: name, description, suiteConfigId,
- * status (pending/done/failed), and timestamps
+ * status (done/failed), and timestamps
  */
 export const evalSuiteRun = pgTable(
   'eval_suite_run',
