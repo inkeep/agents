@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import NextLink from 'next/link';
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
@@ -49,6 +49,10 @@ export function ProjectSwitcher() {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile } = useSidebar();
 
+  const handleCreateProject = useCallback(() => {
+    setIsProjectDialogOpen(true);
+  }, []);
+
   useEffect(() => {
     if (!tenantId) return;
 
@@ -65,14 +69,13 @@ export function ProjectSwitcher() {
   }, [tenantId]);
 
   if (isLoading) {
-    return <Skeleton className="h-13" />;
+    return <Skeleton className="h-12" />;
   }
   if (!projects.length) {
     return <p className="px-2 text-sm text-muted-foreground">No projects yet</p>;
   }
 
-  const selectedProject = projects.find((p) => p.projectId === projectId) as Project;
-  const projectName = selectedProject.name || selectedProject.projectId;
+  const project = projects.find((p) => p.projectId === projectId) as Project;
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -82,7 +85,11 @@ export function ProjectSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <ProjectItem name={projectName} description={tenantId} icon={ChevronsUpDown} />
+              <ProjectItem
+                name={project.name}
+                description={project.description}
+                icon={ChevronsUpDown}
+              />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -103,11 +110,7 @@ export function ProjectSwitcher() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                setIsProjectDialogOpen(true);
-              }}
-            >
+            <DropdownMenuItem onSelect={handleCreateProject}>
               <Plus />
               Create Project
             </DropdownMenuItem>
