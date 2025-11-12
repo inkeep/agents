@@ -528,6 +528,28 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Normalize component ID generation to ensure consistency across different component representations
+   */
+  private normalizeComponentId(component: any, componentType: 'data' | 'artifact'): string {
+    // First try getId() method if it exists
+    if (component.getId && typeof component.getId === 'function') {
+      return component.getId();
+    }
+    // Then try id property
+    if (component.id) {
+      return component.id;
+    }
+    // Finally, generate from name
+    if (component.name) {
+      return component.name.toLowerCase().replace(/\s+/g, '-');
+    }
+    // If we can't determine an ID, throw an error
+    throw new Error(
+      `${componentType} component must have either id or name property, or implement getId() method`
+    );
+  }
+
+  /**
    * Convert the Project to FullProjectDefinition format
    */
   private async toFullProjectDefinition(): Promise<FullProjectDefinition> {
@@ -544,6 +566,11 @@ export class Project implements ProjectInterface {
       string,
       Array<{ type: string; id: string; agentId?: string }>
     > = {};
+    // Track component IDs and names for better deduplication
+    const seenDataComponentIds = new Set<string>();
+    const seenDataComponentNames = new Map<string, string>(); // name -> id mapping
+    const seenArtifactComponentIds = new Set<string>();
+    const seenArtifactComponentNames = new Map<string, string>(); // name -> id mapping
 
     // Convert all agent to FullAgentDefinition format and collect components
     for (const agent of this.agents) {
@@ -741,33 +768,75 @@ export class Project implements ProjectInterface {
         const subAgentDataComponents = (subAgent as any).getDataComponents?.();
         if (subAgentDataComponents) {
           for (const dataComponent of subAgentDataComponents) {
-            // Handle both DataComponent instances and plain objects
-            let dataComponentId: string;
-            let dataComponentName: string;
-            let dataComponentDescription: string;
-            let dataComponentProps: any;
-            let dataComponentRender: any;
+            try {
+              // Normalize component ID using consistent logic
+              const dataComponentId = this.normalizeComponentId(dataComponent, 'data');
+              
+              // Extract component properties
+              let dataComponentName: string;
+              let dataComponentDescription: string;
+              let dataComponentProps: any;
+              let dataComponentRender: any;
 
-            if (dataComponent.getId) {
-              // DataComponent instance
-              dataComponentId = dataComponent.getId();
-              dataComponentName = dataComponent.getName();
-              dataComponentDescription = dataComponent.getDescription() || '';
-              dataComponentProps = dataComponent.getProps() || {};
-              dataComponentRender = dataComponent.getRender?.() || null;
-            } else {
-              // Plain object from agent config
-              dataComponentId =
-                dataComponent.id ||
-                (dataComponent.name ? dataComponent.name.toLowerCase().replace(/\s+/g, '-') : '');
-              dataComponentName = dataComponent.name || '';
-              dataComponentDescription = dataComponent.description || '';
-              dataComponentProps = dataComponent.props || {};
-              dataComponentRender = dataComponent.render || null;
-            }
+              if (dataComponent.getId && typeof dataComponent.getId === 'function') {
+                // DataComponent instance
+                dataComponentName = dataComponent.getName();
+                dataComponentDescription = dataComponent.getDescription() || '';
+                dataComponentProps = dataComponent.getProps() || {};
+                dataComponentRender = dataComponent.getRender?.() || null;
+              } else {
+                // Plain object from agent config
+                dataComponentName = dataComponent.name || '';
+                dataComponentDescription = dataComponent.description || '';
+                dataComponentProps = dataComponent.props || {};
+                dataComponentRender = dataComponent.render || null;
+              }
 
-            // Only add if not already added (avoid duplicates)
-            if (!dataComponentsObject[dataComponentId] && dataComponentName) {
+              // Skip if no name (invalid component)
+              if (!dataComponentName) {
+                logger.warn(
+                  { dataComponentId, subAgentId: subAgent.getId() },
+                  'Skipping data component without name'
+                );
+                continue;
+              }
+
+              // Check for duplicates by ID
+              if (seenDataComponentIds.has(dataComponentId)) {
+                // Component already exists - verify it's the same component
+                const existingComponent = dataComponentsObject[dataComponentId];
+                if (existingComponent && existingComponent.name !== dataComponentName) {
+                  logger.warn(
+                    {
+                      dataComponentId,
+                      existingName: existingComponent.name,
+                      newName: dataComponentName,
+                      subAgentId: subAgent.getId(),
+                    },
+                    'Data component with same ID but different name detected - using existing'
+                  );
+                }
+                continue;
+              }
+
+              // Check for duplicates by name (case-insensitive)
+              const normalizedName = dataComponentName.toLowerCase().trim();
+              if (seenDataComponentNames.has(normalizedName)) {
+                const existingId = seenDataComponentNames.get(normalizedName);
+                logger.warn(
+                  {
+                    dataComponentId,
+                    existingId,
+                    name: dataComponentName,
+                    subAgentId: subAgent.getId(),
+                  },
+                  'Data component with same name but different ID detected - using existing ID'
+                );
+                // Use the existing ID instead of creating a duplicate
+                continue;
+              }
+
+              // Add component to project-level collection
               dataComponentsObject[dataComponentId] = {
                 id: dataComponentId,
                 name: dataComponentName,
@@ -775,6 +844,17 @@ export class Project implements ProjectInterface {
                 props: dataComponentProps,
                 render: dataComponentRender,
               };
+              seenDataComponentIds.add(dataComponentId);
+              seenDataComponentNames.set(normalizedName, dataComponentId);
+            } catch (error) {
+              logger.error(
+                {
+                  error: error instanceof Error ? error.message : String(error),
+                  subAgentId: subAgent.getId(),
+                },
+                'Failed to process data component'
+              );
+              // Continue processing other components
             }
           }
         }
@@ -783,39 +863,90 @@ export class Project implements ProjectInterface {
         const subAgentArtifactComponents = subAgent.getArtifactComponents();
         if (subAgentArtifactComponents) {
           for (const artifactComponent of subAgentArtifactComponents) {
-            // Handle both ArtifactComponent instances and plain objects
-            let artifactComponentId: string;
-            let artifactComponentName: string;
-            let artifactComponentDescription: string;
-            let artifactComponentProps: any;
+            try {
+              // Normalize component ID using consistent logic
+              const artifactComponentId = this.normalizeComponentId(artifactComponent, 'artifact');
+              
+              // Extract component properties
+              let artifactComponentName: string;
+              let artifactComponentDescription: string;
+              let artifactComponentProps: any;
 
-            if ('getId' in artifactComponent && typeof artifactComponent.getId === 'function') {
-              // ArtifactComponent instance - cast to access methods
-              const component = artifactComponent as any;
-              artifactComponentId = component.getId();
-              artifactComponentName = component.getName();
-              artifactComponentDescription = component.getDescription() || '';
-              artifactComponentProps = component.getProps() || {};
-            } else {
-              // Plain object from agent config
-              artifactComponentId =
-                artifactComponent.id ||
-                (artifactComponent.name
-                  ? artifactComponent.name.toLowerCase().replace(/\s+/g, '-')
-                  : '');
-              artifactComponentName = artifactComponent.name || '';
-              artifactComponentDescription = artifactComponent.description || '';
-              artifactComponentProps = artifactComponent.props || {};
-            }
+              if ('getId' in artifactComponent && typeof artifactComponent.getId === 'function') {
+                // ArtifactComponent instance - cast to access methods
+                const component = artifactComponent as any;
+                artifactComponentName = component.getName();
+                artifactComponentDescription = component.getDescription() || '';
+                artifactComponentProps = component.getProps() || {};
+              } else {
+                // Plain object from agent config
+                artifactComponentName = artifactComponent.name || '';
+                artifactComponentDescription = artifactComponent.description || '';
+                artifactComponentProps = artifactComponent.props || {};
+              }
 
-            // Only add if not already added (avoid duplicates)
-            if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
+              // Skip if no name (invalid component)
+              if (!artifactComponentName) {
+                logger.warn(
+                  { artifactComponentId, subAgentId: subAgent.getId() },
+                  'Skipping artifact component without name'
+                );
+                continue;
+              }
+
+              // Check for duplicates by ID
+              if (seenArtifactComponentIds.has(artifactComponentId)) {
+                // Component already exists - verify it's the same component
+                const existingComponent = artifactComponentsObject[artifactComponentId];
+                if (existingComponent && existingComponent.name !== artifactComponentName) {
+                  logger.warn(
+                    {
+                      artifactComponentId,
+                      existingName: existingComponent.name,
+                      newName: artifactComponentName,
+                      subAgentId: subAgent.getId(),
+                    },
+                    'Artifact component with same ID but different name detected - using existing'
+                  );
+                }
+                continue;
+              }
+
+              // Check for duplicates by name (case-insensitive)
+              const normalizedName = artifactComponentName.toLowerCase().trim();
+              if (seenArtifactComponentNames.has(normalizedName)) {
+                const existingId = seenArtifactComponentNames.get(normalizedName);
+                logger.warn(
+                  {
+                    artifactComponentId,
+                    existingId,
+                    name: artifactComponentName,
+                    subAgentId: subAgent.getId(),
+                  },
+                  'Artifact component with same name but different ID detected - using existing ID'
+                );
+                // Use the existing ID instead of creating a duplicate
+                continue;
+              }
+
+              // Add component to project-level collection
               artifactComponentsObject[artifactComponentId] = {
                 id: artifactComponentId,
                 name: artifactComponentName,
                 description: artifactComponentDescription,
                 props: artifactComponentProps,
               };
+              seenArtifactComponentIds.add(artifactComponentId);
+              seenArtifactComponentNames.set(normalizedName, artifactComponentId);
+            } catch (error) {
+              logger.error(
+                {
+                  error: error instanceof Error ? error.message : String(error),
+                  subAgentId: subAgent.getId(),
+                },
+                'Failed to process artifact component'
+              );
+              // Continue processing other components
             }
           }
         }
@@ -901,13 +1032,53 @@ export class Project implements ProjectInterface {
       const dataComponentDescription = dataComponent.getDescription() || '';
       const dataComponentProps = dataComponent.getProps() || {};
 
-      if (!dataComponentsObject[dataComponentId] && dataComponentName) {
+      // Skip if no name (invalid component)
+      if (!dataComponentName) {
+        logger.warn({ dataComponentId }, 'Skipping project-level data component without name');
+        continue;
+      }
+
+      // Check for duplicates by ID
+      if (seenDataComponentIds.has(dataComponentId)) {
+        const existingComponent = dataComponentsObject[dataComponentId];
+        if (existingComponent && existingComponent.name !== dataComponentName) {
+          logger.warn(
+            {
+              dataComponentId,
+              existingName: existingComponent.name,
+              newName: dataComponentName,
+            },
+            'Project-level data component with same ID but different name detected - using existing'
+          );
+        }
+        continue;
+      }
+
+      // Check for duplicates by name (case-insensitive)
+      const normalizedName = dataComponentName.toLowerCase().trim();
+      if (seenDataComponentNames.has(normalizedName)) {
+        const existingId = seenDataComponentNames.get(normalizedName);
+        logger.warn(
+          {
+            dataComponentId,
+            existingId,
+            name: dataComponentName,
+          },
+          'Project-level data component with same name but different ID detected - using existing ID'
+        );
+        continue;
+      }
+
+      // Add component to project-level collection
+      if (!dataComponentsObject[dataComponentId]) {
         dataComponentsObject[dataComponentId] = {
           id: dataComponentId,
           name: dataComponentName,
           description: dataComponentDescription,
           props: dataComponentProps,
         };
+        seenDataComponentIds.add(dataComponentId);
+        seenDataComponentNames.set(normalizedName, dataComponentId);
       }
     }
 
@@ -918,13 +1089,56 @@ export class Project implements ProjectInterface {
       const artifactComponentDescription = artifactComponent.getDescription() || '';
       const artifactComponentProps = artifactComponent.getProps() || {};
 
-      if (!artifactComponentsObject[artifactComponentId] && artifactComponentName) {
+      // Skip if no name (invalid component)
+      if (!artifactComponentName) {
+        logger.warn(
+          { artifactComponentId },
+          'Skipping project-level artifact component without name'
+        );
+        continue;
+      }
+
+      // Check for duplicates by ID
+      if (seenArtifactComponentIds.has(artifactComponentId)) {
+        const existingComponent = artifactComponentsObject[artifactComponentId];
+        if (existingComponent && existingComponent.name !== artifactComponentName) {
+          logger.warn(
+            {
+              artifactComponentId,
+              existingName: existingComponent.name,
+              newName: artifactComponentName,
+            },
+            'Project-level artifact component with same ID but different name detected - using existing'
+          );
+        }
+        continue;
+      }
+
+      // Check for duplicates by name (case-insensitive)
+      const normalizedName = artifactComponentName.toLowerCase().trim();
+      if (seenArtifactComponentNames.has(normalizedName)) {
+        const existingId = seenArtifactComponentNames.get(normalizedName);
+        logger.warn(
+          {
+            artifactComponentId,
+            existingId,
+            name: artifactComponentName,
+          },
+          'Project-level artifact component with same name but different ID detected - using existing ID'
+        );
+        continue;
+      }
+
+      // Add component to project-level collection
+      if (!artifactComponentsObject[artifactComponentId]) {
         artifactComponentsObject[artifactComponentId] = {
           id: artifactComponentId,
           name: artifactComponentName,
           description: artifactComponentDescription,
           props: artifactComponentProps,
         };
+        seenArtifactComponentIds.add(artifactComponentId);
+        seenArtifactComponentNames.set(normalizedName, artifactComponentId);
       }
     }
 
