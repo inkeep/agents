@@ -10,7 +10,6 @@ import {
   Library,
   LifeBuoy,
   Lock,
-  type LucideIcon,
   Settings,
   Workflow,
 } from 'lucide-react';
@@ -18,7 +17,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import type * as React from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
-import { Logo } from '@/components/logo';
 import { NavGroup } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -30,8 +28,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { InkeepLogo } from '@/icons';
 import type { NavItemProps } from './nav-item';
 
 const bottomNavItems: NavItemProps[] = [
@@ -42,97 +43,96 @@ const bottomNavItems: NavItemProps[] = [
   },
   {
     title: 'Documentation',
-    url: `${DOCS_BASE_URL}/`,
+    url: DOCS_BASE_URL,
     icon: BookOpen,
     isExternal: true,
   },
 ];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const params = useParams();
-  const { tenantId, projectId } = params;
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
+  const { open } = useSidebar();
 
-  const topNavItems: NavItemProps[] =
-    projectId && projectId !== 'undefined'
-      ? [
-          {
-            title: 'Agents',
-            url: `/${tenantId}/projects/${projectId}/agents`,
-            icon: Workflow,
-          },
-          {
-            title: 'API Keys',
-            url: `/${tenantId}/projects/${projectId}/api-keys`,
-            icon: Key,
-          },
-          {
-            title: 'MCP Servers',
-            url: `/${tenantId}/projects/${projectId}/mcp-servers`,
-            icon: MCPIcon as LucideIcon,
-          },
-          {
-            title: 'External Agents',
-            url: `/${tenantId}/projects/${projectId}/external-agents`,
-            icon: Globe,
-          },
-          {
-            title: 'Credentials',
-            url: `/${tenantId}/projects/${projectId}/credentials`,
-            icon: Lock,
-          },
-          {
-            title: 'Traces',
-            url: `/${tenantId}/projects/${projectId}/traces`,
-            icon: Activity,
-          },
-          {
-            title: 'Components',
-            url: `/${tenantId}/projects/${projectId}/components`,
-            icon: Component,
-          },
-          {
-            title: 'Artifacts',
-            url: `/${tenantId}/projects/${projectId}/artifacts`,
-            icon: Library,
-          },
-          {
-            title: 'Settings',
-            url: `/${tenantId}/projects/${projectId}/settings`,
-            icon: Settings,
-          },
-        ]
-      : [
-          {
-            title: 'Projects',
-            url: `/${tenantId}/projects`,
-            icon: Layers,
-          },
-        ];
+  const topNavItems: NavItemProps[] = projectId
+    ? [
+        {
+          title: 'Agents',
+          url: `/${tenantId}/projects/${projectId}/agents`,
+          icon: Workflow,
+        },
+        {
+          title: 'API Keys',
+          url: `/${tenantId}/projects/${projectId}/api-keys`,
+          icon: Key,
+        },
+        {
+          title: 'MCP Servers',
+          url: `/${tenantId}/projects/${projectId}/mcp-servers`,
+          icon: MCPIcon,
+        },
+        {
+          title: 'External Agents',
+          url: `/${tenantId}/projects/${projectId}/external-agents`,
+          icon: Globe,
+        },
+        {
+          title: 'Credentials',
+          url: `/${tenantId}/projects/${projectId}/credentials`,
+          icon: Lock,
+        },
+        {
+          title: 'Traces',
+          url: `/${tenantId}/projects/${projectId}/traces`,
+          icon: Activity,
+        },
+        {
+          title: 'Components',
+          url: `/${tenantId}/projects/${projectId}/components`,
+          icon: Component,
+        },
+        {
+          title: 'Artifacts',
+          url: `/${tenantId}/projects/${projectId}/artifacts`,
+          icon: Library,
+        },
+        {
+          title: 'Settings',
+          url: `/${tenantId}/projects/${projectId}/settings`,
+          icon: Settings,
+        },
+      ]
+    : [
+        {
+          title: 'Projects',
+          url: `/${tenantId}/projects`,
+          icon: Layers,
+        },
+      ];
+
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" variant="sidebar" {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="flex items-center justify-between w-full gap-2">
-              <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5 flex-1">
-                <Link href={tenantId ? `/${tenantId}/projects` : '/'}>
-                  <Logo className="!w-[110px] !h-[32px]" />
-                </Link>
-              </SidebarMenuButton>
-              <ThemeToggle />
-            </div>
+          <SidebarMenuItem className="flex items-center gap-1">
+            <SidebarMenuButton asChild>
+              <Link href={`/${tenantId}/projects`}>
+                <InkeepLogo className="w-18.5!" />
+              </Link>
+            </SidebarMenuButton>
+            <ThemeToggle className={open ? '' : 'hidden'} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="flex flex-col justify-between">
-        {topNavItems.length > 0 && <NavGroup items={topNavItems} />}
+      <SidebarContent className="justify-between">
+        <NavGroup items={topNavItems} />
         <NavGroup items={bottomNavItems} />
       </SidebarContent>
-      {tenantId && projectId && (
+      {projectId && (
         <SidebarFooter>
           <ProjectSwitcher />
         </SidebarFooter>
       )}
+      <SidebarRail />
     </Sidebar>
   );
 }
