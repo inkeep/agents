@@ -790,16 +790,20 @@ export const evaluator = pgTable(
 /**
  * Dataset Run Config table (CONFIG LAYER)
  * 
- * Recurring configuration for running datasets.
- * Example: "Run weekly with agent X against dataset Y (1000 items)"
+ * Holds the config for running datasets (runFrequency, datasetId).
+ * Join table with agents (many-to-many).
  * 
- * When triggered (based on runFrequency cron), creates a datasetRun that executes
- * all items in the dataset, creating conversations with the specified agents.
+ * Example: "Run weekly with agent X against dataset Y"
+ * Run (and evaluate) after every change to agent X.
+ * 
+ * If you want to also run the evals, link to EvaluationSuiteConfig via join table.
  * 
  * one to many relationship with datasetRun
+ * many to many relationship with agents (via join table)
+ * many to many relationship with evaluationSuiteConfig (via join table)
  * 
  * Includes: name, description, runFrequency (cron expression string),
- * datasetId (which dataset to run), agentIds (array of agent IDs to use for conversations), sampleRate (for sampling the dataset),
+ * datasetId (which dataset to run),
  * and timestamps
  */
 export const datasetRunConfig = pgTable(
@@ -809,8 +813,6 @@ export const datasetRunConfig = pgTable(
     ...uiProperties,
     runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * 0" for weekly)
     datasetId: text('dataset_id').notNull(),
-    agentIds: jsonb('agent_ids').$type<string[]>().notNull(), // Which agents to use for conversations
-    sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
   (table) => [
@@ -824,6 +826,72 @@ export const datasetRunConfig = pgTable(
       columns: [table.tenantId, table.projectId, table.datasetId],
       foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
       name: 'dataset_run_config_dataset_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Dataset Run Config Agent Relations join table (CONFIG LAYER)
+ * 
+ * Links agents to dataset run configs. Many-to-many relationship that
+ * allows one dataset run config to use multiple agents, and one agent to be used
+ * by multiple dataset run configs.
+ * 
+ * Includes: datasetRunConfigId, agentId, and timestamps
+ */
+export const datasetRunConfigAgentRelations = pgTable(
+  'dataset_run_config_agent_relations',
+  {
+    ...projectScoped,
+    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
+      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+      name: 'dataset_run_config_agent_relations_dataset_run_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'dataset_run_config_agent_relations_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Dataset Run Config Evaluation Suite Config Relations join table (CONFIG LAYER)
+ * 
+ * Links dataset run configs to evaluation suite configs. Many-to-many relationship that
+ * allows one dataset run config to trigger multiple evaluation suites, and one evaluation
+ * suite config to be triggered by multiple dataset run configs.
+ * 
+ * When a datasetRun completes, it can trigger evaluations using the linked evaluation suite configs.
+ * 
+ * Includes: datasetRunConfigId, evaluationSuiteConfigId, and timestamps
+ */
+export const datasetRunConfigEvaluationSuiteConfigRelations = pgTable(
+  'dataset_run_config_evaluation_suite_config_relations',
+  {
+    ...projectScoped,
+    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
+      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+      name: 'dataset_run_config_evaluation_suite_config_relations_dataset_run_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+      name: 'dataset_run_config_evaluation_suite_config_relations_evaluation_suite_config_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -907,26 +975,18 @@ export const datasetRunConversationRelations = pgTable(
 /**
  * Evaluation Suite Config table (CONFIG LAYER)
  * 
- * Recurring configuration that defines when and what to evaluate.
- * Example: "Run daily against conversations for agentId X from the last day"
+ * Configuration that defines what to evaluate. Contains filters and evaluators.
+ * Example: "Evaluate conversations for agentId X with filters Y"
  * 
- * When triggered (based on runFrequency cron), creates an evaluationRun with
- * computed filters based on the criteria.
+ * Linked to one or more evaluationRunConfigs (via join table) that define when to run (runFrequency).
+ * When triggered, creates an evaluationRun with computed filters based on the criteria.
  * 
  * Configuration-level filters:
- * - agentIds: Which agents' conversations to evaluate
- * - anything else?????
+ * - Filters stored in filters JSONB field
  * 
- * The time window is inferred from runFrequency:
- * - Daily → evaluates conversations from the last day
- * - Weekly → evaluates conversations from the last week
- * - Monthly → evaluates conversations from the last month
+ * many to many relationship with evaluationRunConfig
  * 
- * one to many relationship with evaluationRun
- *
- * 
- * Includes: name, description, runFrequency (cron expression string),
- * agentIds (array of agent IDs to filter conversations),
+ * Includes: name, description, filters (JSONB for evaluation criteria),
  * sampleRate for sampling, and timestamps
  */
 export const evaluationSuiteConfig = pgTable(
@@ -934,8 +994,7 @@ export const evaluationSuiteConfig = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * *" for daily)
-    agentIds: jsonb('agent_ids').$type<string[]>(), // Which agents to evaluate
+    filters: jsonb('filters').$type<Record<string, unknown>>(), // Filters for the evaluation suite
     sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
@@ -977,6 +1036,77 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
       columns: [table.tenantId, table.projectId, table.evaluatorId],
       foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
       name: 'evaluation_suite_config_evaluator_relations_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Evaluation Run Config table (CONFIG LAYER)
+ * 
+ * Defines when to run evaluations. Specifies the run frequency (cron expression) and
+ * the time window to evaluate. Can be linked to multiple evaluation suite configs via join table.
+ * many to many relationship with evaluationSuiteConfig
+ * 
+ * When triggered (based on runFrequency cron), creates an evaluationRun that evaluates
+ * conversations within the specified timeWindow.
+ * 
+ * Examples:
+ * - Run daily, evaluate conversations from the last week
+ * - Run weekly, evaluate conversations from the last month
+ * - Run monthly, evaluate conversations from the last 3 months
+ * 
+ * one to many relationship with evaluationRun
+ * 
+ * Includes: runFrequency (cron expression string), timeWindow (duration string like "7d", "1w", "1m"),
+ * and timestamps
+ */
+export const evaluationRunConfig = pgTable(
+  'evaluation_run_config',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * *" for daily)
+    timeWindow: text('time_window').notNull(), // duration string (e.g., "7d" for 7 days, "1w" for 1 week, "1m" for 1 month)
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'evaluation_run_config_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Evaluation Run Config Evaluation Suite Config Relations join table (CONFIG LAYER)
+ * 
+ * Links evaluation run configs to evaluation suite configs. Many-to-many relationship that
+ * allows one suite config to have multiple run schedules, and one run config to be used
+ * by multiple suite configs.
+ * 
+ * Includes: evaluationRunConfigId, evaluationSuiteConfigId, and timestamps
+ */
+export const evaluationRunConfigEvaluationSuiteConfigRelations = pgTable(
+  'evaluation_run_config_evaluation_suite_config_relations',
+  {
+    ...projectScoped,
+    evaluationRunConfigId: text('evaluation_run_config_id').notNull(),
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationRunConfigId],
+      foreignColumns: [evaluationRunConfig.tenantId, evaluationRunConfig.projectId, evaluationRunConfig.id],
+      name: 'evaluation_run_config_evaluation_suite_config_relations_evaluation_run_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+      name: 'evaluation_run_config_evaluation_suite_config_relations_evaluation_suite_config_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -1056,14 +1186,14 @@ export const evaluationJobConfigEvaluatorRelations = pgTable(
 /**
  * Evaluation Run table (RUNTIME STORAGE)
  * 
- * Record created when an evaluation job config or evaluation suite config is triggered.
+ * Record created when an evaluation job config or evaluation run config is triggered.
  * Represents a completed evaluation run. Links to the evaluationJobConfig (if created from a job)
- * and evaluationSuiteConfig (if created from a suite config).
+ * or evaluationRunConfig (if created from a run config).
  * Results are stored in evaluationResult table.
  * one to many relationship with evaluationResult
  * 
  * Includes: evaluationJobConfigId (optional: if created from a job),
- * evaluationSuiteConfigId (optional: if created from a policy trigger),
+ * evaluationRunConfigId (optional: if created from a run config),
  * and timestamps
  */
 export const evaluationRun = pgTable(
@@ -1071,7 +1201,7 @@ export const evaluationRun = pgTable(
   {
     ...projectScoped,
     evaluationJobConfigId: text('evaluation_job_config_id'), // Optional: if created from a job
-    evaluationSuiteConfigId: text('evaluation_suite_config_id'), // Optional: if created from a policy
+    evaluationRunConfigId: text('evaluation_run_config_id'), // Optional: if created from a run config
     ...timestamps,
   },
   (table) => [
@@ -1082,9 +1212,9 @@ export const evaluationRun = pgTable(
       name: 'evaluation_run_evaluation_job_config_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
-      foreignColumns: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
-      name: 'evaluation_run_evaluation_suite_config_fk',
+      columns: [table.tenantId, table.projectId, table.evaluationRunConfigId],
+      foreignColumns: [evaluationRunConfig.tenantId, evaluationRunConfig.projectId, evaluationRunConfig.id],
+      name: 'evaluation_run_evaluation_run_config_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -1547,7 +1677,31 @@ export const datasetRunConfigRelations = relations(datasetRunConfig, ({ one, man
     fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.datasetId],
     references: [dataset.tenantId, dataset.projectId, dataset.id],
   }),
+  agents: many(datasetRunConfigAgentRelations),
+  evaluationSuiteConfigs: many(datasetRunConfigEvaluationSuiteConfigRelations),
   runs: many(datasetRun),
+}));
+
+export const datasetRunConfigAgentRelationsRelations = relations(datasetRunConfigAgentRelations, ({ one }) => ({
+  datasetRunConfig: one(datasetRunConfig, {
+    fields: [datasetRunConfigAgentRelations.tenantId, datasetRunConfigAgentRelations.projectId, datasetRunConfigAgentRelations.datasetRunConfigId],
+    references: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+  }),
+  agent: one(agents, {
+    fields: [datasetRunConfigAgentRelations.tenantId, datasetRunConfigAgentRelations.projectId, datasetRunConfigAgentRelations.agentId],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+}));
+
+export const datasetRunConfigEvaluationSuiteConfigRelationsRelations = relations(datasetRunConfigEvaluationSuiteConfigRelations, ({ one }) => ({
+  datasetRunConfig: one(datasetRunConfig, {
+    fields: [datasetRunConfigEvaluationSuiteConfigRelations.tenantId, datasetRunConfigEvaluationSuiteConfigRelations.projectId, datasetRunConfigEvaluationSuiteConfigRelations.datasetRunConfigId],
+    references: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+  }),
+  evaluationSuiteConfig: one(evaluationSuiteConfig, {
+    fields: [datasetRunConfigEvaluationSuiteConfigRelations.tenantId, datasetRunConfigEvaluationSuiteConfigRelations.projectId, datasetRunConfigEvaluationSuiteConfigRelations.evaluationSuiteConfigId],
+    references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+  }),
 }));
 
 export const datasetRunRelations = relations(datasetRun, ({ one, many }) => ({
@@ -1567,7 +1721,8 @@ export const evaluationSuiteConfigRelations = relations(evaluationSuiteConfig, (
     fields: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  runs: many(evaluationRun),
+  runConfigs: many(evaluationRunConfigEvaluationSuiteConfigRelations),
+  datasetRunConfigs: many(datasetRunConfigEvaluationSuiteConfigRelations),
   evaluators: many(evaluationSuiteConfigEvaluatorRelations),
 }));
 
@@ -1605,14 +1760,34 @@ export const evaluationJobConfigRelations = relations(evaluationJobConfig, ({ on
   evaluators: many(evaluationJobConfigEvaluatorRelations),
 }));
 
+export const evaluationRunConfigEvaluationSuiteConfigRelationsRelations = relations(evaluationRunConfigEvaluationSuiteConfigRelations, ({ one }) => ({
+  evaluationRunConfig: one(evaluationRunConfig, {
+    fields: [evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, evaluationRunConfigEvaluationSuiteConfigRelations.projectId, evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId],
+    references: [evaluationRunConfig.tenantId, evaluationRunConfig.projectId, evaluationRunConfig.id],
+  }),
+  evaluationSuiteConfig: one(evaluationSuiteConfig, {
+    fields: [evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, evaluationRunConfigEvaluationSuiteConfigRelations.projectId, evaluationRunConfigEvaluationSuiteConfigRelations.evaluationSuiteConfigId],
+    references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+  }),
+}));
+
+export const evaluationRunConfigRelations = relations(evaluationRunConfig, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [evaluationRunConfig.tenantId, evaluationRunConfig.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  suiteConfigs: many(evaluationRunConfigEvaluationSuiteConfigRelations),
+  runs: many(evaluationRun),
+}));
+
 export const evaluationRunRelations = relations(evaluationRun, ({ one, many }) => ({
   evaluationJobConfig: one(evaluationJobConfig, {
     fields: [evaluationRun.tenantId, evaluationRun.projectId, evaluationRun.evaluationJobConfigId],
     references: [evaluationJobConfig.tenantId, evaluationJobConfig.projectId, evaluationJobConfig.id],
   }),
-  evaluationSuiteConfig: one(evaluationSuiteConfig, {
-    fields: [evaluationRun.tenantId, evaluationRun.projectId, evaluationRun.evaluationSuiteConfigId],
-    references: [evaluationSuiteConfig.tenantId, evaluationSuiteConfig.projectId, evaluationSuiteConfig.id],
+  evaluationRunConfig: one(evaluationRunConfig, {
+    fields: [evaluationRun.tenantId, evaluationRun.projectId, evaluationRun.evaluationRunConfigId],
+    references: [evaluationRunConfig.tenantId, evaluationRunConfig.projectId, evaluationRunConfig.id],
   }),
   results: many(evaluationResult),
 }));
