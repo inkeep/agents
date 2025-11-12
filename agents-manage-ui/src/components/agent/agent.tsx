@@ -17,6 +17,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
+import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -61,7 +62,6 @@ import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
-import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {

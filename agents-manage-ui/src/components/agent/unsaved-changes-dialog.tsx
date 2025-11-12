@@ -1,4 +1,5 @@
-import { type FC, useCallback, useTransition, useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { type FC, useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useRouter } from 'next/navigation';
 
 type PendingNavigation = () => void;
 
