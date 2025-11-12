@@ -249,11 +249,14 @@ export const addLedgerArtifacts =
         lastError = error;
 
         const isRetryable =
-          error.code === 'SQLITE_BUSY' ||
-          error.code === 'SQLITE_LOCKED' ||
+          error.cause.code === '40P01' ||
+          error.cause.code === '40001' ||
+          error.cause.code === '55P03' ||
           error.message?.includes('database is locked') ||
           error.message?.includes('busy') ||
-          error.message?.includes('timeout');
+          error.message?.includes('timeout') ||
+          error.message?.includes('deadlock') ||
+          error.message?.includes('serialization failure');
 
         if (!isRetryable || attempt === maxRetries) {
           await tryFallbackInsert(db, rows, error);

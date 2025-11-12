@@ -1,6 +1,5 @@
 import { getLogger } from '@inkeep/agents-core';
-import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
 
@@ -9,9 +8,6 @@ beforeAll(async () => {
   const logger = getLogger('Test Setup');
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
-
-    // Enable foreign key constraints to test proper relationships
-    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
 
     // Use path relative to project root to work with both direct and turbo execution
     const migrationsPath = process.cwd().includes('agents-manage-api')

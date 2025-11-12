@@ -299,9 +299,10 @@ export const deleteSubAgentRelation =
           eq(subAgentRelations.agentId, params.scopes.agentId),
           eq(subAgentRelations.id, params.relationId)
         )
-      );
+      )
+      .returning();
 
-    return (result.rowsAffected || 0) > 0;
+    return result.length > 0;
   };
 
 export const deleteAgentRelationsByAgent =
@@ -313,8 +314,9 @@ export const deleteAgentRelationsByAgent =
           eq(subAgentRelations.tenantId, params.scopes.tenantId),
           eq(subAgentRelations.agentId, params.scopes.agentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const createAgentToolRelation =
@@ -387,9 +389,10 @@ export const deleteAgentToolRelation =
           eq(subAgentToolRelations.agentId, params.scopes.agentId),
           eq(subAgentToolRelations.id, params.relationId)
         )
-      );
+      )
+      .returning();
 
-    return (result.rowsAffected || 0) > 0;
+    return result.length > 0;
   };
 
 export const deleteAgentToolRelationByAgent =
@@ -403,8 +406,9 @@ export const deleteAgentToolRelationByAgent =
           eq(subAgentToolRelations.agentId, params.scopes.agentId),
           eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const getAgentToolRelationById =

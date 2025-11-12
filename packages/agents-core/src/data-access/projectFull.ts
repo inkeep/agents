@@ -66,8 +66,6 @@ export const createFullProjectServerSide =
         models: typed.models,
         stopWhen: typed.stopWhen,
         tenantId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       logger.info({ projectId: typed.id }, 'Creating project metadata');

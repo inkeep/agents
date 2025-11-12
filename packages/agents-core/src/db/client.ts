@@ -1,37 +1,53 @@
-import { createClient } from '@libsql/client';
-import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import { drizzle } from 'drizzle-orm/libsql';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { PgliteDatabase } from 'drizzle-orm/pglite';
+import { Pool } from 'pg';
+import { env, loadEnvironmentFiles } from '../env';
 import * as schema from './schema';
+import { createTestDatabaseClientNoMigrations } from './test-client';
 
-export type DatabaseClient = LibSQLDatabase<typeof schema>;
+loadEnvironmentFiles();
+
+// Union type that accepts both production (node-postgres) and test (PGlite) clients
+export type DatabaseClient = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
 
 export interface DatabaseConfig {
-  url: string;
-  authToken?: string;
+  connectionString?: string;
+  poolSize?: number;
+  ssl?: boolean;
   logger?: {
     logQuery: (query: string, params: unknown[]) => void;
   };
 }
 
 /**
- * Creates a database client with the specified configuration
+ * Creates a PostgreSQL database client with connection pooling
  */
-export function createDatabaseClient(config: DatabaseConfig): DatabaseClient {
-  const client = createClient({
-    url: config.url,
-    authToken: config.authToken,
+export function createDatabaseClient(config: DatabaseConfig = {}): DatabaseClient {
+  const connectionString = config.connectionString || process.env.DATABASE_URL;
+
+  if (env.ENVIRONMENT === 'test') {
+    return createTestDatabaseClientNoMigrations();
+  }
+
+  if (!connectionString) {
+    throw new Error(
+      'DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
+    );
+  }
+
+  const pool = new Pool({
+    connectionString,
+    max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 10,
   });
 
-  return drizzle(client, {
+  // Handle pool errors
+  pool.on('error', (err) => {
+    console.error('Unexpected PostgreSQL pool error:', err);
+  });
+
+  return drizzle(pool, {
     schema,
     logger: config.logger,
   });
-}
-
-/**
- * Creates an in-memory database client for testing
- */
-export function createInMemoryDatabaseClient(): DatabaseClient {
-  const db = createDatabaseClient({ url: ':memory:' });
-  return db;
 }

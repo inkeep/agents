@@ -85,7 +85,6 @@ jobs:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          DB_FILE_NAME: test.db
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
           HUSKY: 0
@@ -115,6 +114,21 @@ jobs:
   create-agents-e2e:
     runs-on: ubuntu-latest
     name: Create Agents E2E Tests
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code

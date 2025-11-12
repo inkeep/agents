@@ -6,15 +6,15 @@ import {
   deleteSubAgentExternalAgentRelation,
   ErrorResponseSchema,
   getSubAgentExternalAgentRelationById,
-  ListResponseSchema,
   listSubAgentExternalAgentRelations,
   type Pagination,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentExternalAgentRelationApiInsertSchema,
   type SubAgentExternalAgentRelationApiSelect,
   SubAgentExternalAgentRelationApiSelectSchema,
   SubAgentExternalAgentRelationApiUpdateSchema,
+  SubAgentExternalAgentRelationListResponse,
+  SubAgentExternalAgentRelationResponse,
   TenantProjectAgentSubAgentIdParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentExternalAgentRelation,
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of sub agent external agent relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentExternalAgentRelationApiSelectSchema),
+            schema: SubAgentExternalAgentRelationListResponse,
           },
         },
       },
@@ -85,7 +85,7 @@ app.openapi(
         description: 'Sub Agent external agent relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentExternalAgentRelationApiSelectSchema),
+            schema: SubAgentExternalAgentRelationResponse,
           },
         },
       },
@@ -132,7 +132,7 @@ app.openapi(
         description: 'Sub Agent External Agent Relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentExternalAgentRelationApiSelectSchema),
+            schema: SubAgentExternalAgentRelationResponse,
           },
         },
       },
@@ -196,7 +196,7 @@ app.openapi(
         description: 'Sub Agent external agent relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentExternalAgentRelationApiSelectSchema),
+            schema: SubAgentExternalAgentRelationResponse,
           },
         },
       },
