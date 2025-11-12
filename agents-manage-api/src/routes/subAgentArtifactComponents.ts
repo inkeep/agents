@@ -1,7 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiSelectSchema,
+  ArtifactComponentArrayResponse,
   associateArtifactComponentWithAgent,
+  ComponentAssociationListResponse,
   ComponentAssociationSchema,
   commonGetErrorResponses,
   createApiError,
@@ -14,9 +16,9 @@ import {
   isArtifactComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeArtifactComponentFromAgent,
-  SingleResponseSchema,
   SubAgentArtifactComponentApiInsertSchema,
   SubAgentArtifactComponentApiSelectSchema,
+  SubAgentArtifactComponentResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentIdParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
@@ -41,7 +43,7 @@ app.openapi(
         description: 'Artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ArtifactComponentApiSelectSchema)),
+            schema: ArtifactComponentArrayResponse,
           },
         },
       },
@@ -78,7 +80,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ComponentAssociationSchema)),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -119,7 +121,7 @@ app.openapi(
         description: 'Agent artifact component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentArtifactComponentApiSelectSchema),
+            schema: SubAgentArtifactComponentResponse,
           },
         },
       },

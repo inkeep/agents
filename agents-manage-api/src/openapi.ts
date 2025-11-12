@@ -1,8 +1,9 @@
 import { swaggerUI } from '@hono/swagger-ui';
-import type { Context } from 'hono';
+import type { OpenAPIHono } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 import { env } from './env';
 
-export function setupOpenAPIRoutes(app: any) {
+export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
@@ -16,7 +17,7 @@ export function setupOpenAPIRoutes(app: any) {
         servers: [
           {
             url: env.AGENTS_MANAGE_API_URL,
-            description: 'Development server',
+            description: 'API Server',
           },
         ],
       });

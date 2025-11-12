@@ -151,7 +151,8 @@
     },
     "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
-      "cache": false
+      "cache": false,
+      "outputs": []
     }
   }
 }

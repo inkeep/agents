@@ -424,7 +424,6 @@ export const upsertDataComponent =
           props: params.data.props,
         },
       });
-    } else {
-      return await createDataComponent(db)(params.data);
     }
+    return await createDataComponent(db)(params.data);
   };

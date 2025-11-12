@@ -474,7 +474,6 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
         headers: params.data.headers,
       },
     });
-  } else {
-    return await createTool(db)(params.data);
   }
+  return await createTool(db)(params.data);
 };

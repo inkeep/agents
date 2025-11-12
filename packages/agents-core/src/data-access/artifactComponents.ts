@@ -405,7 +405,6 @@ export const upsertArtifactComponent =
           props: params.data.props,
         },
       });
-    } else {
-      return await createArtifactComponent(db)(params.data);
     }
+    return await createArtifactComponent(db)(params.data);
   };
