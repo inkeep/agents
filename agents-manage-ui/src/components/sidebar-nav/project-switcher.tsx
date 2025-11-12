@@ -77,51 +77,47 @@ export function ProjectSwitcher() {
 
   const project = projects.find((p) => p.projectId === projectId) as Project;
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuButton
+          size="lg"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        >
+          <ProjectItem
+            name={project.name}
+            description={project.description}
+            icon={ChevronsUpDown}
+          />
+        </SidebarMenuButton>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+        side={isMobile ? 'bottom' : 'right'}
+        align="end"
+        sideOffset={4}
+      >
+        {projects.map((project) => (
+          <DropdownMenuItem key={project.projectId} asChild>
+            <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
               <ProjectItem
-                name={project.name}
+                name={project.name || project.projectId}
                 description={project.description}
-                icon={ChevronsUpDown}
+                icon={project.projectId === projectId && Check}
               />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? 'bottom' : 'right'}
-            align="end"
-            sideOffset={4}
-          >
-            {projects.map((project) => (
-              <DropdownMenuItem key={project.projectId} asChild>
-                <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
-                  <ProjectItem
-                    name={project.name || project.projectId}
-                    description={project.description}
-                    icon={project.projectId === projectId && Check}
-                  />
-                </NextLink>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleCreateProject}>
-              <Plus />
-              Create Project
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <NewProjectDialog
-          tenantId={tenantId}
-          open={isProjectDialogOpen}
-          onOpenChange={setIsProjectDialogOpen}
-        />
-      </SidebarMenuItem>
-    </SidebarMenu>
+            </NextLink>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={handleCreateProject}>
+          <Plus />
+          Create Project
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+      <NewProjectDialog
+        tenantId={tenantId}
+        open={isProjectDialogOpen}
+        onOpenChange={setIsProjectDialogOpen}
+      />
+    </DropdownMenu>
   );
 }
