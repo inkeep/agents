@@ -15,7 +15,6 @@ import { ProjectForm } from './form/project-form';
 
 interface NewProjectDialogProps {
   tenantId: string;
-  triggerButton?: React.ReactNode;
   children?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -23,7 +22,6 @@ interface NewProjectDialogProps {
 
 export function NewProjectDialog({
   tenantId,
-  triggerButton,
   children,
   open: controlledOpen,
   onOpenChange,
@@ -42,14 +40,12 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {(children || triggerButton) && (
+      {children && (
         <DialogTrigger asChild>
-          {children || triggerButton || (
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Project
-            </Button>
-          )}
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Project
+          </Button>
         </DialogTrigger>
       )}
       <DialogContent className="!max-w-2xl">

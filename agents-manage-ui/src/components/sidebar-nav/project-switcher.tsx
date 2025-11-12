@@ -2,7 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
@@ -28,18 +27,11 @@ export function ProjectSwitcher() {
       });
   }, [tenantId]);
 
-  return (
-    <div className="flex flex-col gap-2">
-      {isLoading ? (
-        <Skeleton className="h-13 w-full" />
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col gap-2 px-2">
-          <p className="text-sm text-muted-foreground">No projects yet</p>
-          <NewProjectDialog tenantId={tenantId} />
-        </div>
-      ) : (
-        <ProjectSelector projects={projects} selectedProjectId={projectId} tenantId={tenantId} />
-      )}
-    </div>
-  );
+  if (isLoading) {
+    return <Skeleton className="h-13" />;
+  }
+  if (!projects.length) {
+    return <p className="px-2 text-sm text-muted-foreground">No projects yet</p>;
+  }
+  return <ProjectSelector projects={projects} selectedProjectId={projectId} tenantId={tenantId} />;
 }
