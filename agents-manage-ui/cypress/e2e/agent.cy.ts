@@ -13,7 +13,8 @@ describe('Agent', () => {
         const beforeUnloadEvent = new win.Event('beforeunload');
         win.dispatchEvent(beforeUnloadEvent);
       });
-      cy.get('[role=dialog]').contains('Unsaved changes').should('be.visible');
+      cy.get('[role=dialog]').contains('Save changes').click();
+      cy.get('[role=dialog]').should('not.exist');
     });
 
     it('should navigates to the page when changes are discarded', () => {

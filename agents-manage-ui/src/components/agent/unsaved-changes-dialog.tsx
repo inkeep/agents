@@ -42,7 +42,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
   }, [handleGoBack]);
 
   const handleSaveAndLeave = useCallback(() => {
-    if (!pendingNavigationRef.current || isSavingPendingNavigation) {
+    if (isSavingPendingNavigation) {
       return;
     }
     startSavingPendingNavigation(async () => {
