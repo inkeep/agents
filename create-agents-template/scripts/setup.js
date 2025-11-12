@@ -82,13 +82,13 @@ async function setupProjectInDatabase() {
   }
 
   // Step 2: Run database migrations
-  logStep(2, 'Running database migrations');
+  logStep(2, 'Running database migrations and upgrading packages');
   try {
-    const { stdout, stderr } = await execAsync('pnpm db:migrate');
+    const { stdout, stderr } = await execAsync('pnpm upgrade-agents');
     if (stdout) {
       console.log(`${colors.dim}  ${stdout.trim()}${colors.reset}`);
     }
-    logSuccess('Database migrations completed successfully');
+    logSuccess('Upgrades completed successfully');
   } catch (error) {
     logError('Failed to run database migrations', error);
     logWarning('This may cause issues with the setup. Consider checking your database schema.');
