@@ -16,7 +16,7 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
           ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
           : process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
-            : env.AGENTS_MANAGE_API_URL;
+            : env.INKEEP_AGENTS_MANAGE_API_URL;
 
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
