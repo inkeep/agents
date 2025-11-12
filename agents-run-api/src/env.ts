@@ -26,25 +26,7 @@ const envSchema = z.object({
 
 const parseEnv = () => {
   try {
-    const parsedEnv = envSchema.parse(process.env);
-
-    // Handle backward compatibility: prefer INKEEP_AGENTS_RUN_API_URL, fallback to AGENTS_RUN_API_URL
-    const runApiUrl =
-      process.env.INKEEP_AGENTS_RUN_API_URL || process.env.AGENTS_RUN_API_URL || 'http://localhost:3003';
-
-    // Warn if using deprecated variable
-    if (process.env.AGENTS_RUN_API_URL && !process.env.INKEEP_AGENTS_RUN_API_URL) {
-      console.warn(
-        '⚠️  DEPRECATED: AGENTS_RUN_API_URL is deprecated. Please use INKEEP_AGENTS_RUN_API_URL instead. ' +
-          'This will be removed in a future version.'
-      );
-    }
-
-    return {
-      ...parsedEnv,
-      // Expose standardized name, resolving from either variable
-      INKEEP_AGENTS_RUN_API_URL: runApiUrl,
-    };
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map((issue) => issue.path.join('.'));
