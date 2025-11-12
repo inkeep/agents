@@ -5,7 +5,6 @@ import type {
   CredentialReferenceApiInsert,
   DataComponentApiInsert,
   FullAgentDefinition,
-  McpTransportConfig,
   ModelSettings,
   StatusUpdateSettings,
   SubAgentApiInsert,
@@ -126,41 +125,8 @@ export interface ToolConfig extends ToolInsert {
   schema?: z.ZodJSONSchema;
 }
 
-export interface ServerConfig {
-  type: string;
-  version?: string;
-}
-
-export interface MCPToolConfig {
-  id: string;
-  name: string;
-  tenantId?: string;
-  description?: string;
-  credential?: CredentialReferenceApiInsert;
-  server?: ServerConfig;
-  serverUrl: string;
-  toolName?: string;
-  activeTools?: string[];
-  headers?: Record<string, string>;
-  mcpType?: 'nango' | 'generic';
-  transport?: McpTransportConfig;
-  imageUrl?: string; // Optional image URL for custom tool icon
-}
-
-export interface FetchDefinitionConfig {
-  id: string;
-  name?: string;
-  trigger: 'initialization' | 'invocation';
-  url: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: Record<string, unknown>;
-  transform?: string;
-  responseSchema?: z.ZodSchema<any>;
-  defaultValue?: unknown;
-  timeout?: number;
-  credential?: CredentialReferenceApiInsert;
-}
+// Re-export MCPToolConfig from core to ensure consistency
+export type { MCPToolConfig } from '@inkeep/agents-core';
 
 export type { FunctionToolConfig } from '@inkeep/agents-core';
 
