@@ -221,7 +221,6 @@ export function createTargetedTypeScriptPlaceholders(
     const savings = originalSize - processedSize;
     const savingsPercentage = originalSize > 0 ? (savings / originalSize) * 100 : 0;
 
-
     return {
       processedContent,
       replacements,
@@ -265,56 +264,9 @@ export function restoreTargetedTypeScriptPlaceholders(
   for (const placeholder of sortedPlaceholders) {
     const originalValue = replacements[placeholder];
 
-    // Check if placeholder exists in content
+    // Skip if placeholder doesn't exist in content
     if (!restoredContent.includes(placeholder)) {
-      // Try to find and fix common corruption patterns
-      const placeholderType = placeholder.match(/<(\w+)_/)?.[1];
-      if (placeholderType === 'INPUT_SCHEMA') {
-        // Common pattern: "}te: async" should be "},\n  execute: async"
-        const corruptedPattern = /}te:\s*async\s*\(/;
-        if (corruptedPattern.test(restoredContent)) {
-          restoredContent = restoredContent.replace(corruptedPattern, '},\n  execute: async (');
-          // After fixing structure, we need to insert the inputSchema before the execute
-          // Find where to insert the inputSchema
-          const executeMatch = restoredContent.match(/(,\s*\n\s*execute:\s*async)/);
-          if (executeMatch) {
-            const insertPoint = restoredContent.indexOf(executeMatch[0]);
-            // Insert inputSchema before execute
-            restoredContent = 
-              restoredContent.slice(0, insertPoint) + 
-              ',\n  inputSchema: ' + originalValue + 
-              restoredContent.slice(insertPoint);
-          }
-          continue;
-        }
-      }
-      
-      // If we can't fix the corruption, continue
       continue;
-    }
-
-    // Additional check: Look for corruption patterns even when placeholder exists
-    const placeholderType = placeholder.match(/<(\w+)_/)?.[1];
-    if (placeholderType === 'INPUT_SCHEMA') {
-      // Check if the context around an existing placeholder is corrupted
-      const placeholderIndex = restoredContent.indexOf(placeholder);
-      if (placeholderIndex > 0) {
-        const beforePlaceholder = restoredContent.slice(Math.max(0, placeholderIndex - 10), placeholderIndex);
-        const afterPlaceholder = restoredContent.slice(placeholderIndex + placeholder.length, placeholderIndex + placeholder.length + 20);
-        
-        // Look for the "}te:" pattern around the placeholder
-        if (beforePlaceholder.includes('}te:') || afterPlaceholder.includes('}te:')) {
-          // Fix the corruption by replacing the problematic pattern
-          const beforeFix = restoredContent.slice(0, placeholderIndex);
-          const afterFix = restoredContent.slice(placeholderIndex + placeholder.length);
-          
-          // Replace "}te:" with "},\n  execute:" in the surrounding context
-          const fixedBefore = beforeFix.replace(/}te:\s*$/, '},\n  execute: ');
-          const fixedAfter = afterFix.replace(/^te:\s*/, 'execute: ');
-          
-          restoredContent = fixedBefore + placeholder + fixedAfter;
-        }
-      }
     }
 
     // Simple string replacement (placeholders are unique and safe)

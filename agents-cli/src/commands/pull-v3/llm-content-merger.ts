@@ -227,7 +227,6 @@ Return only the merged TypeScript code without any explanation or markdown forma
     });
 
     let mergedContent = result.text.trim();
-    
 
     // Strip code fences if the LLM wrapped the response in code blocks
     mergedContent = stripCodeFences(mergedContent);

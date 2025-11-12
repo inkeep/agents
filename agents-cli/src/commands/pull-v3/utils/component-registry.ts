@@ -366,7 +366,6 @@ export class ComponentRegistry {
     }
   }
 
-
   /**
    * Normalize path to project-relative format using existing registry paths as templates
    */
@@ -442,7 +441,6 @@ export class ComponentRegistry {
   getAllComponents(): ComponentInfo[] {
     return Array.from(this.componentsByTypeAndId.values());
   }
-
 
   /**
    * Clear all components (for testing)

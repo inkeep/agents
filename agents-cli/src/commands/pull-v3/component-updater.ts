@@ -204,7 +204,6 @@ function generateUpdatedComponentContent(
   environment: string,
   actualFilePath?: string
 ): string {
-  
   const defaultStyle = {
     quotes: 'single' as const,
     indentation: '  ',
@@ -225,7 +224,7 @@ function generateUpdatedComponentContent(
       const contextConfigData = parentInfo?.contextConfigData;
       const parentModels = parentInfo ? remoteProject.agents?.[parentInfo.parentAgentId]?.models : undefined;
 
-      const result = generateSubAgentFile(
+      return generateSubAgentFile(
         componentId,
         componentData,
         defaultStyle,
@@ -235,7 +234,6 @@ function generateUpdatedComponentContent(
         parentModels,
         actualFilePath
       );
-      return result;
     }
     case 'tools':
       return generateMcpToolFile(componentId, componentData, defaultStyle, localRegistry);
@@ -306,8 +304,6 @@ export async function updateModifiedComponents(
     copyProjectToTemp(projectRoot, tempDirName);
     console.log(chalk.green(`✅ Project copied to temp directory`));
   }
-
-  // Environment-aware MCP tools are now handled automatically by the environment generator
 
   // Get all modified components across all types
   const allModifiedComponents: Array<{ type: string; id: string }> = [];

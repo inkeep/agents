@@ -100,7 +100,8 @@ export function generateFetchDefinitionDefinition(
   fetchId: string,
   fetchData: any,
   style: CodeStyle = DEFAULT_STYLE,
-  headersVarName?: string
+  headersVarName?: string,
+  registry?: ComponentRegistry
 ): string {
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
@@ -146,6 +147,12 @@ export function generateFetchDefinitionDefinition(
     } else {
       lines.push(`${indentation}defaultValue: ${JSON.stringify(fetchData.defaultValue)},`);
     }
+  }
+
+  // credentialReferenceId - handle credential references
+  if (fetchData.credentialReferenceId && registry) {
+    const validKey = registry.getVariableName(fetchData.credentialReferenceId, 'credentials');
+    lines.push(`${indentation}credentialReference: ${validKey},`);
   }
 
   // Remove trailing comma from last line
@@ -355,7 +362,8 @@ export function generateContextConfigFile(
           varName,
           varData,
           style,
-          headersVarName
+          headersVarName,
+          registry
         );
         definitions.push(fetchDefinition);
       }

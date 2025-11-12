@@ -5,8 +5,6 @@
  * of difference strings. Based on pull-v2's compareProjectDefinitions approach.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import type { ComponentRegistry, ComponentType } from './utils/component-registry';
@@ -307,8 +305,6 @@ function compareComponentsDirectly(
   // Compare project-level fields
   changes.push(...compareProjectFields(localProject, remoteProject, debug));
 
-  // Environment file detection removed for simplicity
-
   return changes;
 }
 
@@ -402,7 +398,6 @@ function compareSubAgents(
 
   const localIds = Object.keys(localSubAgents);
   const remoteIds = Object.keys(remoteSubAgents);
-
 
   // Find added subAgents
   remoteIds
@@ -859,7 +854,6 @@ function getDetailedFieldChanges(
 ): FieldChange[] {
   const changes: FieldChange[] = [];
 
-
   // Prevent infinite recursion
   if (depth > 10) return changes;
 
@@ -951,7 +945,6 @@ function getDetailedFieldChanges(
     for (const key of allKeys) {
       const fieldPath = basePath ? `${basePath}.${key}` : key;
 
-
       // Check if this field path should be ignored
       const shouldIgnore = ignoredFields.some((ignored) => {
         // Exact field path match (e.g., "contextConfig.id")
@@ -975,7 +968,6 @@ function getDetailedFieldChanges(
 
       const oldValue = oldObj[key];
       const newValue = newObj[key];
-
 
       if (!(key in oldObj)) {
         // Only report as added if the new value is not empty
@@ -1019,14 +1011,6 @@ function getDetailedFieldChanges(
         }
         
         // Both exist and at least one is not empty, compare recursively
-        
-        // Debug logging for artifact component deep fields
-        if (fieldPath.includes('props.properties.content.items.properties')) {
-          console.log(`🔍 DEBUG: Recursing into ${fieldPath} at depth ${depth + 1}`);
-          console.log(`  Old value type: ${typeof oldValue}`);
-          console.log(`  New value type: ${typeof newValue}`);
-        }
-        
         const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
         changes.push(...recursiveChanges);
       }
@@ -1037,14 +1021,6 @@ function getDetailedFieldChanges(
   // Handle primitives
   if (oldObj !== newObj) {
     const fieldPath = basePath || 'value';
-    
-    // Debug logging for artifact component fields
-    if (basePath.includes('props.properties.content.items.properties.type.description')) {
-      console.log(`🔍 DEBUG: Found primitive change at ${fieldPath}:`);
-      console.log(`  Old: "${oldObj}"`);
-      console.log(`  New: "${newObj}"`);
-    }
-    
     changes.push({
       field: fieldPath,
       changeType: 'modified',
