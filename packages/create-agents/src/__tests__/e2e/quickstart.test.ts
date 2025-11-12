@@ -51,7 +51,10 @@ describe('create-agents quickstart e2e', () => {
       testDir
     );
     // Verify the CLI completed successfully
-    expect(result.exitCode).toBe(0);
+    expect(
+      result.exitCode,
+      `CLI failed with exit code ${result.exitCode}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
+    ).toBe(0);
 
     console.log('CLI completed successfully');
 
@@ -148,7 +151,10 @@ describe('create-agents quickstart e2e', () => {
         30000
       );
 
-      expect(pushResult.exitCode).toBe(0);
+      expect(
+        pushResult.exitCode,
+        `Push failed with exit code ${pushResult.exitCode}\nstdout: ${pushResult.stdout}\nstderr: ${pushResult.stderr}`
+      ).toBe(0);
 
       console.log('Testing API requests');
       // Test API requests
@@ -175,7 +181,10 @@ describe('create-agents quickstart e2e', () => {
         30000
       );
 
-      expect(pushResultLocal.exitCode).toBe(0);
+      expect(
+        pushResultLocal.exitCode,
+        `Push with local packages failed with exit code ${pushResultLocal.exitCode}\nstdout: ${pushResultLocal.stdout}\nstderr: ${pushResultLocal.stderr}`
+      ).toBe(0);
 
       // Test that the project works with local packages
       const responseLocal = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
