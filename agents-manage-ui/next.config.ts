@@ -13,6 +13,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_CI: process.env.CI,
+  },
   output: 'standalone',
   turbopack: {
     rules: {
