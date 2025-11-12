@@ -78,7 +78,6 @@ export async function compareProjects(
 
   // Debug logging removed
 
-
   return {
     hasChanges: changes.length > 0,
     changeCount: changes.length,
@@ -727,7 +726,6 @@ function compareComponentMaps(
       });
 
       if (!comparison.isEqual) {
-
         changes.push({
           componentType,
           componentId: id,
@@ -1521,7 +1519,6 @@ function compareFetchDefinitions(
       });
 
       if (!comparison.isEqual) {
-
         changes.push({
           componentType: 'fetchDefinitions' as ComponentType,
           componentId: fetchId,

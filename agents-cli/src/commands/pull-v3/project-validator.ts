@@ -318,7 +318,6 @@ async function validateProjectEquivalence(
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
 
-
     // Use existing project comparator instead of custom logic
 
     // Create a temporary registry for the temp project (needed by compareProjects)
