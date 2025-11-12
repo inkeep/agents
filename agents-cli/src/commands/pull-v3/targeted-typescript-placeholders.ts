@@ -69,7 +69,7 @@ export function createTargetedTypeScriptPlaceholders(
         if (!valueNode) return;
 
         // Get the exact text that will be replaced (no trimming to match boundaries)
-        const valueText = valueNode.getText();
+        let valueText = valueNode.getText();
         if (valueText.trim().length < MIN_REPLACEMENT_LENGTH) return;
 
         let placeholderPrefix = '';
@@ -95,24 +95,86 @@ export function createTargetedTypeScriptPlaceholders(
             return; // Skip this property
         }
 
-        // Get precise boundaries - use getFullStart and ensure we don't go beyond property boundaries
+        // Get precise boundaries and fix them if needed
         const start = valueNode.getStart(sourceFile);
-        const end = valueNode.getEnd();
+        let end = valueNode.getEnd();
         
         // Validate that the boundaries don't extend beyond the property assignment
         const propertyAssignment = node; // The PropertyAssignment node
         const propertyEnd = propertyAssignment.getEnd();
         
-        // Debug boundary information
-        console.log(`🔍 BOUNDARY DEBUG for ${propertyName}:`);
-        console.log(`  Value node: start=${start}, end=${end}`);
-        console.log(`  Property: start=${propertyAssignment.getStart(sourceFile)}, end=${propertyEnd}`);
-        console.log(`  Value text: "${valueText.slice(0, 50)}..."`);
-        console.log(`  Text after value: "${content.slice(end, end + 20)}"`);
+        // For inputSchema specifically, we need to find the actual end of the object
+        if (propertyName === 'inputSchema') {
+          // The inputSchema should end after the closing brace and comma
+          // Let's search from the start position forward to find the correct boundary
+          let searchStart = start;
+          let braceCount = 0;
+          let correctEnd = -1;
+          let inString = false;
+          let stringChar = '';
+          
+          for (let i = searchStart; i < content.length; i++) {
+            const char = content[i];
+            const prevChar = i > 0 ? content[i - 1] : '';
+            
+            // Handle string literals
+            if ((char === '"' || char === "'") && prevChar !== '\\') {
+              if (!inString) {
+                inString = true;
+                stringChar = char;
+              } else if (char === stringChar) {
+                inString = false;
+                stringChar = '';
+              }
+            }
+            
+            if (!inString) {
+              if (char === '{') {
+                braceCount++;
+              } else if (char === '}') {
+                braceCount--;
+                
+                // When we close all braces and find a comma, that's our end
+                if (braceCount === 0) {
+                  // Look ahead for comma and whitespace
+                  let j = i + 1;
+                  while (j < content.length && /\s/.test(content[j])) {
+                    j++;
+                  }
+                  if (j < content.length && content[j] === ',') {
+                    correctEnd = j + 1; // Include the comma
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          
+          if (correctEnd > start && correctEnd < end + 100) { // Sanity check
+            end = correctEnd;
+            valueText = content.slice(start, end);
+          }
+        } else {
+          // For other properties, check if AST boundary is incorrect
+          const textAfterValue = content.slice(end, end + 20);
+          if (!textAfterValue.match(/^\s*[,}]/)) {
+            // Search backwards from the AST end position to find the actual value end
+            let correctEnd = end;
+            while (correctEnd > start && !content.slice(correctEnd, correctEnd + 10).match(/^\s*[,}]/)) {
+              correctEnd--;
+            }
+            
+            if (correctEnd > start) {
+              end = correctEnd;
+              valueText = content.slice(start, end);
+            } else {
+              return; // Skip this replacement to avoid corruption
+            }
+          }
+        }
         
         // If the value boundary extends beyond the property boundary, something is wrong
         if (end > propertyEnd) {
-          console.log(`WARNING: ${propertyName} value boundary extends beyond property boundary, skipping`);
           return;
         }
         
@@ -120,16 +182,12 @@ export function createTargetedTypeScriptPlaceholders(
         
         // Ensure getText() matches the actual slice - this is critical for correctness
         if (valueText !== actualText) {
-          console.log(`WARNING: ${propertyName} getText() doesn't match slice boundaries, skipping`);
-          console.log(`  getText(): "${valueText.slice(0, 50)}..."`);
-          console.log(`  actualText: "${actualText.slice(0, 50)}..."`);
           return; // Skip this replacement to avoid corruption
         }
         
-        // Additional validation: ensure the replacement doesn't contain parts of other properties
-        const textAfterValue = content.slice(end, end + 20);
-        if (!textAfterValue.match(/^\s*[,}]/)) {
-          console.log(`WARNING: ${propertyName} boundary seems to cut into next property: "${textAfterValue}", skipping`);
+        // Final validation: ensure the replacement doesn't contain parts of other properties
+        const finalTextAfterValue = content.slice(end, end + 20);
+        if (!finalTextAfterValue.match(/^\s*[,}]/)) {
           return;
         }
 
@@ -206,6 +264,58 @@ export function restoreTargetedTypeScriptPlaceholders(
 
   for (const placeholder of sortedPlaceholders) {
     const originalValue = replacements[placeholder];
+
+    // Check if placeholder exists in content
+    if (!restoredContent.includes(placeholder)) {
+      // Try to find and fix common corruption patterns
+      const placeholderType = placeholder.match(/<(\w+)_/)?.[1];
+      if (placeholderType === 'INPUT_SCHEMA') {
+        // Common pattern: "}te: async" should be "},\n  execute: async"
+        const corruptedPattern = /}te:\s*async\s*\(/;
+        if (corruptedPattern.test(restoredContent)) {
+          restoredContent = restoredContent.replace(corruptedPattern, '},\n  execute: async (');
+          // After fixing structure, we need to insert the inputSchema before the execute
+          // Find where to insert the inputSchema
+          const executeMatch = restoredContent.match(/(,\s*\n\s*execute:\s*async)/);
+          if (executeMatch) {
+            const insertPoint = restoredContent.indexOf(executeMatch[0]);
+            // Insert inputSchema before execute
+            restoredContent = 
+              restoredContent.slice(0, insertPoint) + 
+              ',\n  inputSchema: ' + originalValue + 
+              restoredContent.slice(insertPoint);
+          }
+          continue;
+        }
+      }
+      
+      // If we can't fix the corruption, continue
+      continue;
+    }
+
+    // Additional check: Look for corruption patterns even when placeholder exists
+    const placeholderType = placeholder.match(/<(\w+)_/)?.[1];
+    if (placeholderType === 'INPUT_SCHEMA') {
+      // Check if the context around an existing placeholder is corrupted
+      const placeholderIndex = restoredContent.indexOf(placeholder);
+      if (placeholderIndex > 0) {
+        const beforePlaceholder = restoredContent.slice(Math.max(0, placeholderIndex - 10), placeholderIndex);
+        const afterPlaceholder = restoredContent.slice(placeholderIndex + placeholder.length, placeholderIndex + placeholder.length + 20);
+        
+        // Look for the "}te:" pattern around the placeholder
+        if (beforePlaceholder.includes('}te:') || afterPlaceholder.includes('}te:')) {
+          // Fix the corruption by replacing the problematic pattern
+          const beforeFix = restoredContent.slice(0, placeholderIndex);
+          const afterFix = restoredContent.slice(placeholderIndex + placeholder.length);
+          
+          // Replace "}te:" with "},\n  execute:" in the surrounding context
+          const fixedBefore = beforeFix.replace(/}te:\s*$/, '},\n  execute: ');
+          const fixedAfter = afterFix.replace(/^te:\s*/, 'execute: ');
+          
+          restoredContent = fixedBefore + placeholder + fixedAfter;
+        }
+      }
+    }
 
     // Simple string replacement (placeholders are unique and safe)
     restoredContent = restoredContent.replace(placeholder, originalValue);

@@ -220,8 +220,6 @@ Return only the merged TypeScript code without any explanation or markdown forma
 
     // Estimate prompt tokens before sending
     const estimatedPromptTokens = estimateTokens(processedPrompt);
-    
-
 
     const result = await generateText({
       model: getAvailableModel(),

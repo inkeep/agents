@@ -722,16 +722,33 @@ function compareComponentMaps(
   // Find modified components with detailed field changes
   const commonIds = localIds.filter((id) => remoteIds.includes(id));
   commonIds.forEach((id) => {
-    const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
-    if (fieldChanges.length > 0) {
-      const summary = generateComponentChangeSummary(componentType, fieldChanges);
-      changes.push({
-        componentType,
-        componentId: id,
-        changeType: 'modified',
-        changedFields: fieldChanges,
-        summary,
-      });
+    // For artifact components, use simple JSON comparison since they're already in JSON schema format
+    if (componentType === 'artifactComponents') {
+      const localJson = JSON.stringify(localMap[id], null, 2);
+      const remoteJson = JSON.stringify(remoteMap[id], null, 2);
+      
+      if (localJson !== remoteJson) {
+        changes.push({
+          componentType,
+          componentId: id,
+          changeType: 'modified',
+          summary: `Modified ${componentType}: ${id}`,
+        });
+      }
+    } else {
+      // Use detailed field changes for other component types
+      const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
+      
+      if (fieldChanges.length > 0) {
+        const summary = generateComponentChangeSummary(componentType, fieldChanges);
+        changes.push({
+          componentType,
+          componentId: id,
+          changeType: 'modified',
+          changedFields: fieldChanges,
+          summary,
+        });
+      }
     }
   });
 
@@ -842,6 +859,7 @@ function getDetailedFieldChanges(
 ): FieldChange[] {
   const changes: FieldChange[] = [];
 
+
   // Prevent infinite recursion
   if (depth > 10) return changes;
 
@@ -933,6 +951,7 @@ function getDetailedFieldChanges(
     for (const key of allKeys) {
       const fieldPath = basePath ? `${basePath}.${key}` : key;
 
+
       // Check if this field path should be ignored
       const shouldIgnore = ignoredFields.some((ignored) => {
         // Exact field path match (e.g., "contextConfig.id")
@@ -956,6 +975,7 @@ function getDetailedFieldChanges(
 
       const oldValue = oldObj[key];
       const newValue = newObj[key];
+
 
       if (!(key in oldObj)) {
         // Only report as added if the new value is not empty
@@ -999,6 +1019,14 @@ function getDetailedFieldChanges(
         }
         
         // Both exist and at least one is not empty, compare recursively
+        
+        // Debug logging for artifact component deep fields
+        if (fieldPath.includes('props.properties.content.items.properties')) {
+          console.log(`🔍 DEBUG: Recursing into ${fieldPath} at depth ${depth + 1}`);
+          console.log(`  Old value type: ${typeof oldValue}`);
+          console.log(`  New value type: ${typeof newValue}`);
+        }
+        
         const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
         changes.push(...recursiveChanges);
       }
@@ -1009,6 +1037,14 @@ function getDetailedFieldChanges(
   // Handle primitives
   if (oldObj !== newObj) {
     const fieldPath = basePath || 'value';
+    
+    // Debug logging for artifact component fields
+    if (basePath.includes('props.properties.content.items.properties.type.description')) {
+      console.log(`🔍 DEBUG: Found primitive change at ${fieldPath}:`);
+      console.log(`  Old: "${oldObj}"`);
+      console.log(`  New: "${newObj}"`);
+    }
+    
     changes.push({
       field: fieldPath,
       changeType: 'modified',
