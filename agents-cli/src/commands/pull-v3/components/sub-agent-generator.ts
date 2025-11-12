@@ -17,6 +17,7 @@ import {
   removeTrailingComma,
   toCamelCase,
 } from '../utils/generator-utils';
+import { compareJsonObjects } from '../../../utils/json-comparator';
 
 /**
  * Check if subAgent models are different from parent agent models (or project models)
@@ -52,8 +53,12 @@ function hasDistinctModels(subAgentModels: any, parentModels: any): boolean {
           // One is falsy, other isn't - they're different
           return true;
         }
-        // Both exist, compare as JSON
-        if (JSON.stringify(subAgentOptions) !== JSON.stringify(parentOptions)) {
+        // Both exist, compare semantically to ignore property ordering
+        const comparison = compareJsonObjects(subAgentOptions, parentOptions, { 
+          ignoreArrayOrder: true,
+          showDetails: false 
+        });
+        if (!comparison.isEqual) {
           return true;
         }
       }

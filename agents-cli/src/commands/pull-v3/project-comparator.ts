@@ -7,6 +7,7 @@
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import { compareJsonObjects } from '../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from './utils/component-registry';
 
 export interface ComponentChange {
@@ -76,6 +77,36 @@ export async function compareProjects(
   const componentChanges = groupChangesByType(changes);
 
   // Debug logging removed
+
+  // Debug: Show all detected changes in detail
+  if (debug && changes.length > 0) {
+    console.log(chalk.yellow(`\n🔍 DETAILED CHANGES ANALYSIS (${changes.length} total changes):`));
+    changes.forEach((change, index) => {
+      console.log(chalk.cyan(`\n--- Change #${index + 1} ---`));
+      console.log(chalk.gray(`Component: ${change.componentType}:${change.componentId}`));
+      console.log(chalk.gray(`Change Type: ${change.changeType}`));
+      if (change.summary) {
+        console.log(chalk.gray(`Summary: ${change.summary}`));
+      }
+      
+      if (change.changedFields && change.changedFields.length > 0) {
+        console.log(chalk.gray(`Field Changes (${change.changedFields.length}):`));
+        change.changedFields.forEach((field, fieldIndex) => {
+          console.log(chalk.yellow(`  ${fieldIndex + 1}. ${field.field} (${field.changeType})`));
+          if (field.description) {
+            console.log(chalk.gray(`     Description: ${field.description}`));
+          }
+          if (field.oldValue !== undefined) {
+            console.log(chalk.red(`     Old: ${JSON.stringify(field.oldValue)}`));
+          }
+          if (field.newValue !== undefined) {
+            console.log(chalk.green(`     New: ${JSON.stringify(field.newValue)}`));
+          }
+        });
+      }
+    });
+    console.log(chalk.yellow(`\n--- END DETAILED CHANGES ---\n`));
+  }
 
   return {
     hasChanges: changes.length > 0,
@@ -717,12 +748,24 @@ function compareComponentMaps(
   // Find modified components with detailed field changes
   const commonIds = localIds.filter((id) => remoteIds.includes(id));
   commonIds.forEach((id) => {
-    // For artifact components, use simple JSON comparison since they're already in JSON schema format
+    // For artifact components, use semantic JSON comparison to ignore property ordering
     if (componentType === 'artifactComponents') {
-      const localJson = JSON.stringify(localMap[id], null, 2);
-      const remoteJson = JSON.stringify(remoteMap[id], null, 2);
+      const comparison = compareJsonObjects(localMap[id], remoteMap[id], { 
+        ignoreArrayOrder: true,
+        showDetails: false 
+      });
       
-      if (localJson !== remoteJson) {
+      if (!comparison.isEqual) {
+        if (debug) {
+          console.log(chalk.yellow(`\n🔍 ARTIFACT COMPONENT DIFFERENCE: ${id}`));
+          console.log(chalk.red(`LOCAL JSON:`));
+          console.log(JSON.stringify(localMap[id], null, 2));
+          console.log(chalk.green(`REMOTE JSON:`));
+          console.log(JSON.stringify(remoteMap[id], null, 2));
+          console.log(chalk.cyan(`Semantic comparison result: not equal`));
+          console.log(chalk.cyan(`END ARTIFACT COMPONENT DIFFERENCE\n`));
+        }
+        
         changes.push({
           componentType,
           componentId: id,
@@ -1510,9 +1553,36 @@ function compareFetchDefinitions(
         summary: `Removed fetchDefinition: ${fetchId}`,
       });
     } else if (local && remote) {
-      const localStr = JSON.stringify(local, null, 2);
-      const remoteStr = JSON.stringify(remote, null, 2);
-      if (localStr !== remoteStr) {
+      const comparison = compareJsonObjects(local, remote, { 
+        ignoreArrayOrder: true,
+        showDetails: true 
+      });
+      
+      if (!comparison.isEqual) {
+        console.log(`🔍 [FetchDefinition ${fetchId}] Detected differences:`);
+        console.log(`   📍 Local credentialReferenceId: ${local.credentialReferenceId} (type: ${typeof local.credentialReferenceId})`);
+        console.log(`   📍 Remote credentialReferenceId: ${remote.credentialReferenceId} (type: ${typeof remote.credentialReferenceId})`);
+        console.log(`   📍 Local has credentialReferenceId property: ${local.hasOwnProperty('credentialReferenceId')}`);
+        console.log(`   📍 Remote has credentialReferenceId property: ${remote.hasOwnProperty('credentialReferenceId')}`);
+        
+        // Show all keys in both objects
+        console.log(`   🔑 Local keys: ${JSON.stringify(Object.keys(local).sort())}`);
+        console.log(`   🔑 Remote keys: ${JSON.stringify(Object.keys(remote).sort())}`);
+        
+        // Compare key fields specifically
+        const keyFields = ['credentialReferenceId', 'fetchConfig', 'responseSchema', 'trigger', 'name'];
+        for (const field of keyFields) {
+          const localVal = local[field];
+          const remoteVal = remote[field];
+          const fieldComparison = compareJsonObjects(localVal, remoteVal, { ignoreArrayOrder: true });
+          
+          if (!fieldComparison.isEqual) {
+            console.log(`   🔄 ${field} differs:`);
+            console.log(`      Local:  ${JSON.stringify(localVal, null, 2)}`);
+            console.log(`      Remote: ${JSON.stringify(remoteVal, null, 2)}`);
+          }
+        }
+        
         changes.push({
           componentType: 'fetchDefinitions' as ComponentType,
           componentId: fetchId,

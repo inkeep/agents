@@ -53,9 +53,14 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
           differences.push(`~ ${key}: array length differs (${val1.length} vs ${val2.length})`);
         }
       } else if (typeof val1 === 'object' && typeof val2 === 'object' && val1 !== null && val2 !== null) {
-        const subKeys1 = Object.keys(val1).length;
-        const subKeys2 = Object.keys(val2).length;
+        const keys1 = Object.keys(val1);
+        const keys2 = Object.keys(val2);
+        const subKeys1 = keys1.length;
+        const subKeys2 = keys2.length;
         if (subKeys1 !== subKeys2) {
+          console.log(`🔍 [${key}] Key count mismatch:`);
+          console.log(`   Local keys (${subKeys1}):`, keys1.sort());
+          console.log(`   Remote keys (${subKeys2}):`, keys2.sort());
           differences.push(`~ ${key}: object size differs (${subKeys1} vs ${subKeys2} keys)`);
         }
       } else if (typeof val1 !== typeof val2) {

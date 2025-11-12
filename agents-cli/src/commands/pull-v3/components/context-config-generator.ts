@@ -6,7 +6,7 @@
  */
 
 import { jsonSchemaToZod } from 'json-schema-to-zod';
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
   DEFAULT_STYLE,
@@ -53,10 +53,13 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
       return `[${items}]`;
     }
 
-    const entries = Object.entries(obj).map(([key, val]) => {
-      const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
-      return `${processedKey}: ${processValue(val)}`;
-    });
+    // Only include properties that have defined values
+    const entries = Object.entries(obj)
+      .filter(([key, val]) => val !== undefined && val !== null)
+      .map(([key, val]) => {
+        const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
+        return `${processedKey}: ${processValue(val)}`;
+      });
 
     return `{\n    ${entries.join(',\n    ')}\n  }`;
   };
@@ -129,10 +132,15 @@ export function generateFetchDefinitionDefinition(
 
   // fetchConfig - handle template variables in URLs and headers
   if (fetchData.fetchConfig) {
+    console.log(`🔍 [FetchDef ${fetchId}] Original fetchConfig keys:`, Object.keys(fetchData.fetchConfig));
+    console.log(`🔍 [FetchDef ${fetchId}] Original fetchConfig:`, JSON.stringify(fetchData.fetchConfig, null, 2));
+    
     const processedFetchConfig = processFetchConfigTemplates(
       fetchData.fetchConfig,
       headersVarName || 'headers'
     );
+    console.log(`🔍 [FetchDef ${fetchId}] Processed fetchConfig:`, processedFetchConfig);
+    
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
 
@@ -265,7 +273,8 @@ export function generateContextConfigDefinition(
 export function generateContextConfigImports(
   contextId: string,
   contextData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: ComponentRegistry
 ): string[] {
   const imports: string[] = [];
 
@@ -291,6 +300,41 @@ export function generateContextConfigImports(
   // Import zod for schema validation
   if (hasSchemas(contextData)) {
     imports.push(generateImport(['z'], 'zod', style));
+  }
+
+  // Import credentials if any fetchDefinitions reference them
+  if (registry && contextData.contextVariables) {
+    const credentialRefs: Array<{ id: string; type: ComponentType }> = [];
+    
+    console.log(`🔍 [Context ${contextId}] Checking for credential references in contextVariables:`, Object.keys(contextData.contextVariables));
+    
+    // Collect all credential references from fetchDefinitions
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
+      if (varData && typeof varData === 'object' && varData.credentialReferenceId) {
+        console.log(`   ✅ Found credential reference in ${varName}: ${varData.credentialReferenceId}`);
+        credentialRefs.push({
+          id: varData.credentialReferenceId,
+          type: 'credentials'
+        });
+      } else {
+        console.log(`   ℹ️  Variable ${varName} has no credentialReferenceId:`, { hasCredRef: !!varData?.credentialReferenceId, type: typeof varData });
+      }
+    }
+    
+    if (credentialRefs.length > 0) {
+      // Get the current file path from registry (no hardcoded paths)
+      const contextComponent = registry.get(contextId, 'contextConfigs');
+      if (contextComponent) {
+        console.log(`   📦 Generating credential imports for ${contextComponent.filePath}:`, credentialRefs.map(r => r.id));
+        const credentialImports = registry.getImportsForFile(contextComponent.filePath, credentialRefs);
+        console.log(`   📥 Generated ${credentialImports.length} credential imports:`, credentialImports);
+        imports.push(...credentialImports);
+      } else {
+        console.log(`   ⚠️  Context component not found in registry: ${contextId}`);
+      }
+    } else {
+      console.log(`   ℹ️  No credential references found in context ${contextId}`);
+    }
   }
 
   return imports;
@@ -328,7 +372,7 @@ export function generateContextConfigFile(
   registry?: ComponentRegistry,
   agentId?: string
 ): string {
-  const imports = generateContextConfigImports(contextId, contextData, style);
+  const imports = generateContextConfigImports(contextId, contextData, style, registry);
   const definitions: string[] = [];
 
   // Generate headers if present

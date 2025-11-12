@@ -17,6 +17,7 @@ import {
   removeTrailingComma,
   toCamelCase,
 } from '../utils/generator-utils';
+import { compareJsonObjects } from '../../../utils/json-comparator';
 
 /**
  * Format statusUpdates configuration with statusComponents references
@@ -159,8 +160,12 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
           // One is falsy, other isn't - they're different
           return true;
         }
-        // Both exist, compare as JSON
-        if (JSON.stringify(agentOptions) !== JSON.stringify(projectOptions)) {
+        // Both exist, compare semantically to ignore property ordering
+        const comparison = compareJsonObjects(agentOptions, projectOptions, { 
+          ignoreArrayOrder: true,
+          showDetails: false 
+        });
+        if (!comparison.isEqual) {
           return true;
         }
       }
