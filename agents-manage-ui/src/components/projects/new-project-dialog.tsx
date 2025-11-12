@@ -13,7 +13,7 @@ import { ProjectForm } from './form/project-form';
 
 interface NewProjectDialogProps {
   tenantId: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -38,7 +38,7 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="!max-w-2xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>

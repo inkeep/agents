@@ -22,11 +22,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from 'lucide-react';
+import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, Plus, Sparkles } from 'lucide-react';
+import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 
 export function ProjectSwitcher() {
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { isMobile } = useSidebar();
 
@@ -57,11 +59,9 @@ export function ProjectSwitcher() {
     email: 'dima@inkeep.com',
   };
 
-  // return <ProjectSelector projects={projects} selectedProjectId={projectId} tenantId={tenantId} />;
-
-  const selectedProject = projects.find((p) => p.projectId === projectId);
-
-  return (
+  const selectedProject = projects.find((p) => p.projectId === projectId) as Project;
+  const projectName = selectedProject.name || selectedProject.projectId;
+  const foo = (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
@@ -71,12 +71,13 @@ export function ProjectSwitcher() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg uppercase">
+                  {projectName.slice(0, 2)}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-medium">{projectName}</span>
+                <span className="truncate text-xs">{tenantId}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -122,13 +123,29 @@ export function ProjectSwitcher() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            <DropdownMenuItem
+              onSelect={() => {
+                setIsProjectDialogOpen(true);
+              }}
+            >
+              <Plus />
+              Create Project
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <NewProjectDialog
+          tenantId={tenantId}
+          open={isProjectDialogOpen}
+          onOpenChange={setIsProjectDialogOpen}
+        />
       </SidebarMenuItem>
     </SidebarMenu>
+  );
+
+  return (
+    <>
+      {foo}
+      <ProjectSelector projects={projects} selectedProjectId={projectId} tenantId={tenantId} />
+    </>
   );
 }
