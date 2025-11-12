@@ -14,26 +14,9 @@ import {
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  type ComponentProps,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
@@ -78,6 +61,7 @@ import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
+import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
@@ -130,8 +114,6 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
-type PendingNavigation = () => void;
-
 function AgentReactFlowConsumer({
   agent,
   dataComponentLookup = {},
@@ -149,10 +131,6 @@ function AgentReactFlowConsumer({
   }>();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [isSavingPendingNavigation, startSavingPendingNavigation] = useTransition();
-  const pendingNavigationRef = useRef<PendingNavigation>(null);
-  const isNavigatingRef = useRef(false);
 
   const initialNodes = useMemo<Node[]>(
     () => [
@@ -296,11 +274,10 @@ function AgentReactFlowConsumer({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata, dirty } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
-    dirty: state.dirty,
   }));
   const {
     setNodes,
@@ -838,94 +815,6 @@ function AgentReactFlowConsumer({
     externalAgentLookup,
   ]);
 
-  const handleGoBack = useCallback(() => {
-    pendingNavigationRef.current = null;
-    setShowUnsavedDialog(false);
-  }, []);
-
-  const proceedWithNavigation = useCallback(() => {
-    const navigate = pendingNavigationRef.current;
-    handleGoBack();
-
-    if (!navigate) {
-      return;
-    }
-    isNavigatingRef.current = true;
-    navigate();
-  }, [handleGoBack]);
-
-  const handleSaveAndLeave = useCallback(() => {
-    if (!pendingNavigationRef.current || isSavingPendingNavigation) {
-      return;
-    }
-    startSavingPendingNavigation(async () => {
-      const saved = await onSubmit();
-      if (saved) {
-        proceedWithNavigation();
-      }
-      setShowUnsavedDialog(false);
-    });
-  }, [isSavingPendingNavigation, onSubmit, proceedWithNavigation]);
-
-  useEffect(() => {
-    if (!dirty) {
-      return;
-    }
-    const requestNavigationConfirmation = (navigate: PendingNavigation) => {
-      pendingNavigationRef.current = navigate;
-      setShowUnsavedDialog(true);
-    };
-    const handleDocumentClick = (event: MouseEvent) => {
-      if (!dirty || isNavigatingRef.current) {
-        return;
-      }
-      const el = (event.target as HTMLElement | null)?.closest('a[href]');
-      const href = (el as HTMLAnchorElement | null)?.href;
-      if (
-        !href ||
-        href.startsWith('#') ||
-        href.startsWith('javascript:') ||
-        href.startsWith('mailto:') ||
-        href.startsWith('tel:')
-      ) {
-        return;
-      }
-      const url = new URL(href, location.href);
-      event.preventDefault();
-      requestNavigationConfirmation(() => {
-        if (url.origin === location.origin) {
-          router.push(`${url.pathname}${url.search}${url.hash}`);
-        } else {
-          location.href = url.href;
-        }
-      });
-    };
-
-    document.addEventListener('click', handleDocumentClick, true);
-    return () => {
-      document.removeEventListener('click', handleDocumentClick, true);
-    };
-  }, [dirty, router]);
-
-  useEffect(() => {
-    if (!dirty) {
-      requestAnimationFrame(handleGoBack);
-      return;
-    }
-    // Catches browser closing window
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (isNavigatingRef.current) {
-        return;
-      }
-      event.preventDefault();
-      setShowUnsavedDialog(true);
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [dirty, handleGoBack]);
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     const onCompletion = () => {
@@ -1092,35 +981,7 @@ function AgentReactFlowConsumer({
           </ResizablePanel>
         </>
       )}
-      <Dialog
-        open={showUnsavedDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            handleGoBack();
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Unsaved changes</DialogTitle>
-            <DialogDescription>
-              You have unsaved changes. Are you sure you want to leave this page and discard your
-              changes?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={handleGoBack} className="sm:mr-auto">
-              Go back
-            </Button>
-            <Button variant="secondary" onClick={proceedWithNavigation} className="max-sm:order-1">
-              Discard
-            </Button>
-            <Button onClick={handleSaveAndLeave} disabled={isSavingPendingNavigation}>
-              {isSavingPendingNavigation ? 'Saving...' : 'Save changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UnsavedChangesDialog onSubmit={onSubmit} />
     </ResizablePanelGroup>
   );
 }
