@@ -88,6 +88,10 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
 
+    console.log('Setting up project in database');
+    await runCommand('pnpm', ['setup-dev'], projectDir);
+    console.log('Project setup in database');
+
     console.log('Starting dev servers');
     // Start dev servers in background with output monitoring
     const devProcess = execa('pnpm', ['dev'], {
