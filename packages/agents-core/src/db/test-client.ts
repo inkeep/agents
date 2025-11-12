@@ -7,8 +7,8 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { DatabaseClient } from './client';
 import * as schema from './schema';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const FILENAME = fileURLToPath(import.meta.url);
+const DIRNAME = dirname(FILENAME);
 
 /**
  * Creates a test database client using an in-memory PostgreSQL database (PGlite)
@@ -22,7 +22,7 @@ export async function createTestDatabaseClient(drizzleDir?: string): Promise<Dat
   // Initialize schema by running ALL migration SQL files
   try {
     if (!drizzleDir) {
-      drizzleDir = join(__dirname, '../../drizzle');
+      drizzleDir = join(DIRNAME, '../../drizzle');
     }
     await migrate(db, { migrationsFolder: drizzleDir });
   } catch (error) {
