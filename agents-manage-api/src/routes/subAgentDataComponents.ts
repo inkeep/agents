@@ -1,10 +1,12 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
+  ComponentAssociationListResponse,
   ComponentAssociationSchema,
   commonGetErrorResponses,
   createApiError,
   DataComponentApiSelectSchema,
+  DataComponentArrayResponse,
   ErrorResponseSchema,
   ExistsResponseSchema,
   getAgentsUsingDataComponent,
@@ -14,11 +16,9 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  ComponentAssociationListResponse,
-  DataComponentArrayResponse,
-  SubAgentDataComponentResponse,
   SubAgentDataComponentApiInsertSchema,
   SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
