@@ -254,6 +254,7 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 export const AgentSelectSchema = createSelectSchema(agents);
 export const AgentInsertSchema = createInsertSchema(agents).extend({
   id: resourceIdSchema,
+  name: z.string().trim().nonempty(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -927,6 +928,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
+  prompt: z.string().trim().nonempty(),
   canDelegateTo: z
     .array(
       z.union([

@@ -247,8 +247,9 @@ export const deleteAgentArtifactComponentRelationByAgent =
           eq(subAgentArtifactComponents.agentId, params.scopes.agentId),
           eq(subAgentArtifactComponents.subAgentId, params.scopes.subAgentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const getAgentsUsingArtifactComponent =

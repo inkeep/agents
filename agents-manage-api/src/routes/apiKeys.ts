@@ -2,7 +2,6 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
-  ApiKeyApiSelectSchema,
   ApiKeyApiUpdateSchema,
   ApiKeyListResponse,
   ApiKeyResponse,
@@ -185,8 +184,8 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle foreign key constraint violations (invalid agentId)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
+      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
+      if (error?.cause?.code === '23503') {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid agentId - agent does not exist',

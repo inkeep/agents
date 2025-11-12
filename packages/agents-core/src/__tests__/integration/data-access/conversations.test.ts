@@ -8,8 +8,8 @@ import {
 import { createSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import { createTestDatabaseClient } from '../../../db/test-client';
 import type { ConversationInsert } from '../../../types/index';
+import { testDbClient } from '../../setup';
 import { createTestAgentData, createTestSubAgentData } from '../helpers';
 
 const createTestConversationData = (
@@ -41,7 +41,7 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
+    db = testDbClient;
 
     // Create test projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];

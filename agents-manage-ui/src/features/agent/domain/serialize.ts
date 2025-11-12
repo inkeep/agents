@@ -22,6 +22,31 @@ export type ExtendedAgent = InternalAgentDefinition & {
   type: 'internal';
 };
 
+type ContextConfigParseError = Error & {
+  field: 'contextVariables' | 'headersSchema';
+};
+
+const createContextConfigParseError = (
+  field: ContextConfigParseError['field']
+): ContextConfigParseError => {
+  const message =
+    field === 'contextVariables'
+      ? 'Context variables must be valid JSON'
+      : 'Headers schema must be valid JSON';
+  const error = new Error(message) as ContextConfigParseError;
+  error.name = 'ContextConfigParseError';
+  error.field = field;
+  return error;
+};
+
+export function isContextConfigParseError(error: unknown): error is ContextConfigParseError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const candidate = error as Record<string, unknown>;
+  return candidate.name === 'ContextConfigParseError' && typeof candidate.field === 'string';
+}
+
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
 /**
@@ -33,7 +58,7 @@ function safeJsonParse(jsonString: string | undefined | null): any {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Error parsing JSON:', error);
+    console.warn('Error parsing JSON:', error);
     return undefined;
   }
 }
@@ -93,7 +118,7 @@ export function serializeAgentData(
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
@@ -519,21 +544,29 @@ export function serializeAgentData(
       }
     }
   }
+  const contextVariablesInput = metadata?.contextConfig?.contextVariables?.trim();
+  const parsedContextVariables = safeJsonParse(contextVariablesInput);
+  if (contextVariablesInput && !parsedContextVariables) {
+    throw createContextConfigParseError('contextVariables');
+  }
 
-  const parsedContextVariables = safeJsonParse(metadata?.contextConfig?.contextVariables);
-
-  const parsedHeadersSchema = safeJsonParse(metadata?.contextConfig?.headersSchema);
+  const headersSchemaInput = metadata?.contextConfig?.headersSchema?.trim();
+  const parsedHeadersSchema = safeJsonParse(headersSchemaInput);
+  if (headersSchemaInput && !parsedHeadersSchema) {
+    throw createContextConfigParseError('headersSchema');
+  }
 
   const hasContextConfig =
-    metadata?.contextConfig &&
-    ((parsedContextVariables &&
-      typeof parsedContextVariables === 'object' &&
-      parsedContextVariables !== null &&
-      Object.keys(parsedContextVariables).length > 0) ||
-      (parsedHeadersSchema &&
+    Boolean(
+      parsedContextVariables &&
+        typeof parsedContextVariables === 'object' &&
+        Object.keys(parsedContextVariables).length
+    ) ||
+    Boolean(
+      parsedHeadersSchema &&
         typeof parsedHeadersSchema === 'object' &&
-        parsedHeadersSchema !== null &&
-        Object.keys(parsedHeadersSchema).length > 0));
+        Object.keys(parsedHeadersSchema).length
+    );
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
@@ -557,7 +590,7 @@ export function serializeAgentData(
 
   const result: FullAgentDefinition = {
     id: metadata?.id || generateId(),
-    name: metadata?.name || 'Untitled Agent',
+    name: metadata?.name ?? '',
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,

@@ -8,9 +8,9 @@ import {
   updateTool,
 } from '../../../data-access/tools';
 import type { DatabaseClient } from '../../../db/client';
-import { createTestDatabaseClient } from '../../../db/test-client';
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
+import { testDbClient } from '../../setup';
 
 // Helper function to create test project data with unique IDs
 const createProjectData = ({ suffix = '' }: { suffix?: string } = {}) => {
@@ -67,7 +67,7 @@ describe('Tools Data Access - Integration Tests', () => {
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
+    db = testDbClient;
   });
 
   describe('createTool & getToolById', () => {

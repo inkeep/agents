@@ -1,15 +1,14 @@
 import {
   type AgentStopWhen,
   type CredentialReferenceApiInsert,
-  createDatabaseClient,
   type FullAgentDefinition,
   getLogger,
-  getProject,
   type StatusUpdateSettings,
 } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
+import { getFullProjectViaAPI } from './projectFullClient';
 import type {
   AgentConfig,
   AgentInterface,
@@ -54,7 +53,6 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
-  private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -69,16 +67,6 @@ export class Agent implements AgentInterface {
     this.credentials = resolveGetter(config.credentials);
     this.models = config.models;
 
-    // Initialize database client
-    // In test environment, always use in-memory database
-    const dbUrl =
-      process.env.ENVIRONMENT === 'test'
-        ? ':memory:'
-        : process.env.DB_FILE_NAME || process.env.DATABASE_URL || ':memory:';
-
-    this.dbClient = createDatabaseClient({
-      url: dbUrl,
-    });
     this.statusUpdateSettings = config.statusUpdates;
     this.prompt = config.prompt;
     // Set stopWhen - preserve original config or set default during inheritance
@@ -880,9 +868,7 @@ export class Agent implements AgentInterface {
    */
   private async getProjectModelDefaults(): Promise<typeof this.models | undefined> {
     try {
-      const project = await getProject(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      });
+      const project = await getFullProjectViaAPI(this.tenantId, this.projectId, this.baseURL);
 
       return (project as any)?.models;
     } catch (error) {
@@ -905,9 +891,7 @@ export class Agent implements AgentInterface {
     { transferCountIs?: number; stepCountIs?: number } | undefined
   > {
     try {
-      const project = await getProject(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      });
+      const project = await getFullProjectViaAPI(this.tenantId, this.projectId, this.baseURL);
 
       return (project as any)?.stopWhen;
     } catch (error) {

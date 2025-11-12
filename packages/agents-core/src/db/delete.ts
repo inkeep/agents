@@ -1,56 +1,30 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { sql } from 'drizzle-orm';
 import { env } from '../env';
+import { createDatabaseClient } from './client';
 
 /**
- * Deletes the database file from the filesystem
- * This removes the entire database file, not just the data
+ * Drops all tables, sequences, types, and functions from the public schema
+ * WARNING: This is destructive and cannot be undone!
  */
 export async function deleteDatabase() {
-  console.log(`🗑️  Deleting database for environment: ${env.ENVIRONMENT}`);
-  console.log(`📁 Database path: ${env.DB_FILE_NAME}`);
+  console.log(`🗑️  Deleting all database objects for environment: ${env.ENVIRONMENT}`);
   console.log('---');
 
+  const dbClient = createDatabaseClient();
+
   try {
-    // Extract the actual file path from the DB_FILE_NAME
-    // Remove 'file:' prefix if present
-    const initialDbPath = env.DB_FILE_NAME ?? 'local.db';
-    const dbFilePath = initialDbPath.startsWith('file:')
-      ? initialDbPath.replace('file:', '')
-      : initialDbPath;
+    // Drop the entire public schema and everything in it
+    console.log('Dropping public schema and all objects...');
+    await dbClient.execute(sql`DROP SCHEMA IF EXISTS public CASCADE`);
+    console.log('✅ Public schema dropped');
 
-    // Normalize relative paths to always point to project root
-    // This ensures consistent behavior regardless of where the command is run from
-    let resolvedPath: string;
-    if (path.isAbsolute(dbFilePath)) {
-      resolvedPath = dbFilePath;
-    } else {
-      // Calculate project root from this file's location: agents-core/src/db -> project root
-      const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
-      const projectRoot = path.resolve(currentFileDir, '../../../../');
-
-      // If the path is just "local.db" (from .env), put it in project root
-      // Otherwise, resolve it relative to project root
-      if (dbFilePath === 'local.db' || dbFilePath === './local.db') {
-        resolvedPath = path.join(projectRoot, 'local.db');
-      } else {
-        resolvedPath = path.resolve(projectRoot, dbFilePath);
-      }
-    }
-
-    console.log(`📍 Resolved path: ${resolvedPath}`);
-
-    if (!fs.existsSync(resolvedPath)) {
-      console.log('⚠️  Database file does not exist, nothing to delete');
-      return;
-    }
-
-    fs.unlinkSync(resolvedPath);
-    console.log('✅ Database file deleted successfully');
+    // Recreate the empty public schema
+    console.log('Recreating public schema...');
+    await dbClient.execute(sql`CREATE SCHEMA public`);
+    console.log('✅ Public schema recreated');
 
     console.log('---');
-    console.log('🎉 Database deletion completed');
+    console.log('🎉 Database completely wiped - ready for fresh migrations');
   } catch (error) {
     console.error('❌ Failed to delete database:', error);
     throw error;

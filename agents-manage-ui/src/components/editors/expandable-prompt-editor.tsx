@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
-type PromptEditorProps = ComponentProps<typeof PromptEditor>;
+type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
+  name: string;
+};
 
 export function ExpandablePromptEditor({
   label,
   isRequired = false,
   className,
   error,
+  name,
   ...props
 }: {
   label: string;
@@ -22,7 +25,7 @@ export function ExpandablePromptEditor({
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
   const monaco = useMonacoStore((state) => state.monaco);
-  const uri = `${open ? 'small' : 'full'}-${props.id}.template` as const;
+  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
   const handleAddVariable = useCallback(() => {
     if (!monaco) {
@@ -45,13 +48,17 @@ export function ExpandablePromptEditor({
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
   }, [monaco, uri]);
 
+  const id = `${name}-label`;
+
   return (
     <ExpandableField
+      id={id}
       open={open}
       onOpenChange={onOpenChange}
-      name={props.id || 'expandable-textarea'}
+      uri={uri}
       label={label}
       isRequired={isRequired}
+      hasError={!!error}
       actions={
         <Button
           size="sm"
@@ -68,12 +75,13 @@ export function ExpandablePromptEditor({
       <PromptEditor
         uri={uri}
         autoFocus={open}
-        aria-invalid={!!error}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', className)}
         hasDynamicHeight={!open}
+        aria-labelledby={id}
         {...props}
       />
-      {error && <p className="text-sm mt-1 text-destructive absolute -bottom-6">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
   );
 }

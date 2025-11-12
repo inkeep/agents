@@ -1,5 +1,41 @@
 # @inkeep/agents-manage-ui
 
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-api@0.32.1
+  - @inkeep/agents-run-api@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- 185db71: fix validation errors of form fields for:
+
+  - `subAgent.id`
+  - `subAgent.prompt`
+  - `agent.name`
+  - `agent.contextVariables`
+  - `agent.headersSchema`
+
+- ed8abd5: should update the SubAgent prompt editor when switching nodes
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-api@0.32.0
+  - @inkeep/agents-run-api@0.32.0
+
 ## 0.31.7
 
 ### Patch Changes
