@@ -39,6 +39,7 @@ import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+import { CopilotChat } from './copilot/copilot-chat';
 
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
@@ -856,6 +857,7 @@ function AgentReactFlowConsumer({
       autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
+      <CopilotChat agentId={agent?.id} projectId={projectId} tenantId={tenantId} />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
