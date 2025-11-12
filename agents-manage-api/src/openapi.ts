@@ -2,10 +2,41 @@ import { swaggerUI } from '@hono/swagger-ui';
 import type { Context } from 'hono';
 import { env } from './env';
 
+function getServerUrl(c: Context): string {
+  // Priority 1: Extract from request headers (for deployments)
+  const forwardedHost = c.req.header('x-forwarded-host');
+  const forwardedProto = c.req.header('x-forwarded-proto') || 'https';
+  const host = c.req.header('host');
+
+  if (forwardedHost) {
+    // Use forwarded headers if available (common in proxy/load balancer setups)
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (host) {
+    // Use host header, determine protocol from request
+    let protocol = c.req.header('x-forwarded-proto');
+    if (!protocol) {
+      try {
+        const url = new URL(c.req.url);
+        protocol = url.protocol.slice(0, -1); // Remove trailing ':'
+      } catch {
+        // Default to http for localhost, https otherwise
+        protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+      }
+    }
+    return `${protocol}://${host}`;
+  }
+
+  // Priority 2: Fallback to environment variable (AGENTS_MANAGE_API_URL)
+  return env.AGENTS_MANAGE_API_URL;
+}
+
 export function setupOpenAPIRoutes(app: any) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      const serverUrl = getServerUrl(c);
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
@@ -15,8 +46,8 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENTS_MANAGE_API_URL,
-            description: 'Development server',
+            url: serverUrl,
+            description: 'API Server',
           },
         ],
       });
