@@ -1,10 +1,33 @@
 /**
- * Formats an ISO date string as "Mon DD, YYYY", e.g. "Jan 20, 2024".
- * @param {string} isoString - An ISO‐formatted date string, e.g. "2024-01-20T14:45:00Z"
+ * Checks if a date string is in PostgreSQL timestamp format and normalizes it to ISO 8601
+ * PostgreSQL format: "2025-11-07 21:48:24.858" or "2025-11-07 21:48:24"
+ * ISO 8601 format: "2025-11-07T21:48:24.858Z"
+ */
+function normalizeDateString(dateString: string | Date): string | Date {
+  if (typeof dateString !== 'string') {
+    return dateString;
+  }
+
+  // PostgreSQL timestamp format pattern: YYYY-MM-DD HH:MM:SS[.mmm]
+  // Matches: "2025-11-07 21:48:24" or "2025-11-07 21:48:24.858"
+  const pgTimestampPattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/;
+
+  if (pgTimestampPattern.test(dateString)) {
+    // Replace space with 'T' and add 'Z' for UTC
+    return dateString.replace(' ', 'T') + 'Z';
+  }
+
+  return dateString;
+}
+
+/**
+ * Formats an ISO date string or PostgreSQL timestamp string as "Mon DD, YYYY", e.g. "Jan 20, 2024".
+ * @param {string} dateString - An ISO‐formatted date string or PostgreSQL timestamp string, e.g. "2024-01-20T14:45:00Z" or "2025-11-07 21:48:24.858"
  * @returns {string} - Formatted date like "Jan 20, 2024"
  */
-export function formatDate(isoString: string) {
-  const date = new Date(isoString);
+export function formatDate(dateString: string) {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
 
   if (Number.isNaN(date.getTime())) {
     return 'Invalid date';
@@ -23,8 +46,9 @@ export function formatDate(isoString: string) {
   }
 }
 
-export function formatDateTime(isoString: string): string {
-  const date = new Date(isoString);
+export function formatDateTime(dateString: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return 'Invalid date';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -39,7 +63,8 @@ export function formatDateTime(isoString: string): string {
 
 export function formatDateAgo(dateString: string) {
   try {
-    const date = new Date(dateString);
+    const normalized = normalizeDateString(dateString);
+    const date = new Date(normalized);
 
     if (Number.isNaN(date.getTime())) {
       return 'Invalid date';
@@ -59,22 +84,25 @@ export function formatDateAgo(dateString: string) {
 
     if (diffInMinutes < 1) {
       return 'just now';
-    } else if (diffInMinutes < 60) {
+    }
+    if (diffInMinutes < 60) {
       return `${diffInMinutes}m ago`;
-    } else if (diffInHours < 24) {
+    }
+    if (diffInHours < 24) {
       return `${diffInHours}h ago`;
-    } else if (diffInDays < 7) {
+    }
+    if (diffInDays < 7) {
       return `${diffInDays}d ago`;
-    } else if (diffInDays < 30) {
+    }
+    if (diffInDays < 30) {
       const weeks = Math.floor(diffInDays / 7);
       return `${weeks}w ago`;
-    } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-      });
     }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
   } catch (error) {
     console.warn('Error formatting date:', dateString, error);
     return 'Invalid date';

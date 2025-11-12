@@ -6,9 +6,9 @@ import {
   deleteFullProject,
   ErrorResponseSchema,
   type FullProjectDefinition,
+  FullProjectDefinitionResponse,
   FullProjectDefinitionSchema,
   getFullProject,
-  SingleResponseSchema,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
@@ -45,7 +45,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -74,8 +74,9 @@ app.openapi(
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
-      // Handle duplicate project creation (SQLite primary key constraint)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
+      // Handle duplicate project creation (PostgreSQL unique constraint violation)
+      logger.error({ error }, 'Error creating project');
+      if (error?.cause?.code === '23505') {
         throw createApiError({
           code: 'conflict',
           message: `Project with ID '${projectData.id}' already exists`,
@@ -105,7 +106,7 @@ app.openapi(
         description: 'Full project found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -172,7 +173,7 @@ app.openapi(
         description: 'Full project updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -180,7 +181,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },

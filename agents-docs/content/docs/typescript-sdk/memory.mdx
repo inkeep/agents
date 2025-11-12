@@ -1,0 +1,36 @@
+---
+title: Conversation Memory
+sidebarTitle: Memory
+description: Understand how conversation history is managed and included in the context window
+icon: "LuBrain"
+keywords: memory, context window, conversation history, message limits, token limits
+---
+
+## Overview
+
+Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency.
+
+## Default Limits
+
+By default, the system includes conversation history using these limits:
+
+- **50 messages**: Up to the 50 most recent messages from the conversation
+- **4,000 tokens**: Maximum of 4,000 tokens from previous conversation messages
+
+## How It Works
+
+<Steps>
+  <Step>
+    **Message Retrieval**: The system retrieves up to 50 most recent messages from the conversation history
+  </Step>
+  <Step>
+    **Token Calculation**: Messages are processed, calculating token count for each message
+  </Step>
+  <Step>
+    **Exclusion**: If the total token count exceeds 4,000 tokens, older messages are excluded from the context window
+  </Step>
+</Steps>
+
+<Note>
+  The 50-message and 4,000-token limits are fixed and cannot be configured at this time.
+</Note>

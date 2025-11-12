@@ -43,9 +43,8 @@ loadEnvironmentFiles();
 
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  DB_FILE_NAME: z.string().optional(),
-  TURSO_DATABASE_URL: z.string().optional(),
-  TURSO_AUTH_TOKEN: z.string().optional(),
+  DATABASE_URL: z.string().optional(),
+  POSTGRES_POOL_SIZE: z.string().optional(),
   INKEEP_AGENTS_JWT_SIGNING_SECRET: z
     .string()
     .min(32, 'INKEEP_AGENTS_JWT_SIGNING_SECRET must be at least 32 characters')

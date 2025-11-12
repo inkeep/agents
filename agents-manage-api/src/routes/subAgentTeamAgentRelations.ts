@@ -6,15 +6,15 @@ import {
   deleteSubAgentTeamAgentRelation,
   ErrorResponseSchema,
   getSubAgentTeamAgentRelationById,
-  ListResponseSchema,
   listSubAgentTeamAgentRelations,
   type Pagination,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentTeamAgentRelationApiInsertSchema,
   type SubAgentTeamAgentRelationApiSelect,
   SubAgentTeamAgentRelationApiSelectSchema,
   SubAgentTeamAgentRelationApiUpdateSchema,
+  SubAgentTeamAgentRelationListResponse,
+  SubAgentTeamAgentRelationResponse,
   TenantProjectAgentSubAgentIdParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentTeamAgentRelation,
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of sub agent team agent relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationListResponse,
           },
         },
       },
@@ -85,7 +85,7 @@ app.openapi(
         description: 'Sub Agent team agent relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },
@@ -132,7 +132,7 @@ app.openapi(
         description: 'Sub Agent Team Agent Relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },
@@ -196,7 +196,7 @@ app.openapi(
         description: 'Sub Agent team agent relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },

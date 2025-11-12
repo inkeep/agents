@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   ContextConfigApiInsertSchema,
-  ContextConfigApiSelectSchema,
   ContextConfigApiUpdateSchema,
   ContextConfigListResponse,
   ContextConfigResponse,

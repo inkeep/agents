@@ -14,15 +14,9 @@ let hasWarnedManageApi = false;
 function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
     INKEEP_AGENTS_MANAGE_API_URL =
-      process.env.INKEEP_AGENTS_MANAGE_API_URL ||
-      process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
-      DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
+      process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
 
-    if (
-      !process.env.INKEEP_AGENTS_MANAGE_API_URL &&
-      !process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL &&
-      !hasWarnedManageApi
-    ) {
+    if (!process.env.INKEEP_AGENTS_MANAGE_API_URL && !hasWarnedManageApi) {
       console.warn(
         `INKEEP_AGENTS_MANAGE_API_URL is not set, falling back to: ${DEFAULT_INKEEP_AGENTS_MANAGE_API_URL}`
       );

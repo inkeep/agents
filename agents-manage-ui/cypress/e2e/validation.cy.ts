@@ -2,10 +2,7 @@
 
 describe('Validation', () => {
   it('for sub agent validate only `prompt` as required field', () => {
-    cy.visit('/');
-    // Click create graph button
-    cy.contains('Create agent').click();
-
+    cy.visit('/default/projects/my-weather-project/agents/new?pane=agent');
     // Wait for app to initialize and click to save
     cy.get('.react-flow__node-agent').should('be.visible');
     cy.contains('Save').click();

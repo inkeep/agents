@@ -192,13 +192,13 @@ export class McpClient {
 
     if (selectedTools === undefined) {
       return availableTools;
-    } else if (selectedTools.length === 0) {
-      return [];
-    } else {
-      const toolNames = availableTools.map((tool: Tool) => tool.name);
-      this.validateSelectedTools(toolNames, selectedTools);
-      return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
     }
+    if (selectedTools.length === 0) {
+      return [];
+    }
+    const toolNames = availableTools.map((tool: Tool) => tool.name);
+    this.validateSelectedTools(toolNames, selectedTools);
+    return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
   }
 
   async tools() {

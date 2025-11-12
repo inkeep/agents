@@ -1,11 +1,23 @@
 import { swaggerUI } from '@hono/swagger-ui';
-import type { Context } from 'hono';
+import type { OpenAPIHono } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 import { env } from './env';
 
-export function setupOpenAPIRoutes(app: any) {
+export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      // Support Vercel domain names:
+      // - Production: Use VERCEL_PROJECT_PRODUCTION_URL (built-in Vercel env var)
+      // - Preview: Use VERCEL_URL (automatically provided by Vercel)
+      // - Otherwise: Fall back to configured URL
+      const serverUrl =
+        process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : env.INKEEP_AGENTS_MANAGE_API_URL;
+
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
@@ -15,8 +27,8 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENTS_MANAGE_API_URL,
-            description: 'Development server',
+            url: serverUrl,
+            description: 'API Server',
           },
         ],
       });

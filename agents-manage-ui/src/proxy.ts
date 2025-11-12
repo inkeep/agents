@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_NEW_AGENT_PANE } from './hooks/use-side-pane';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   if (pathname.endsWith('/agents/new') && !searchParams.has('pane')) {

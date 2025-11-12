@@ -16,7 +16,7 @@ import {
   validateSubAgent,
 } from '../../data-access/subAgentRelations';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { testDbClient } from '../setup';
 
 describe('Agent Relations Data Access', () => {
   let db: DatabaseClient;
@@ -24,8 +24,9 @@ describe('Agent Relations Data Access', () => {
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getAgentRelationById', () => {
@@ -486,7 +487,9 @@ describe('Agent Relations Data Access', () => {
       const relationId = 'relation-1';
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: relationId }]),
+        }),
       });
 
       const mockDb = {
@@ -590,7 +593,9 @@ describe('Agent Relations Data Access', () => {
       const relationId = 'tool-relation-1';
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: relationId }]),
+        }),
       });
 
       const mockDb = {

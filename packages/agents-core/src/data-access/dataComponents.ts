@@ -314,8 +314,9 @@ export const deleteAgentDataComponentRelationByAgent =
           eq(subAgentDataComponents.agentId, params.scopes.agentId),
           eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 /**
@@ -423,7 +424,6 @@ export const upsertDataComponent =
           props: params.data.props,
         },
       });
-    } else {
-      return await createDataComponent(db)(params.data);
     }
+    return await createDataComponent(db)(params.data);
   };

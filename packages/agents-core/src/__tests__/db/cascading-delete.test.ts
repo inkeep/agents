@@ -4,8 +4,9 @@ import type {
   SubAgentDataComponentInsert,
   TaskInsert,
 } from '@inkeep/agents-core';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { DatabaseClient } from '../../db/client';
 import {
   agents,
   apiKeys,
@@ -28,16 +29,16 @@ import {
   tasks,
   tools,
 } from '../../db/schema';
+import { createTestDatabaseClient } from '../../db/test-client';
 import { generateId } from '../../utils/conversations';
-import { dbClient } from '../setup';
 
 describe('Cascading Delete Tests', () => {
+  let dbClient: DatabaseClient;
   const tenantId = 'test-tenant';
   const projectId = generateId();
 
   beforeAll(async () => {
-    // Enable foreign key constraints for cascading delete tests
-    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
+    dbClient = await createTestDatabaseClient();
   });
 
   beforeEach(async () => {
