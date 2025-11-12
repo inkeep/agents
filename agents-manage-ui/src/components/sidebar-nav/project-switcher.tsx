@@ -70,7 +70,8 @@ export function ProjectSwitcher() {
     return <p className="px-2 text-sm text-muted-foreground">No projects yet</p>;
   }
 
-  const project = projects.find((p) => p.projectId === projectId) as Project;
+  const selectedProject = projects.find((p) => p.projectId === projectId);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -79,8 +80,8 @@ export function ProjectSwitcher() {
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
           <ProjectItem
-            name={project.name}
-            description={project.description}
+            name={selectedProject?.name ?? 'Project not found'}
+            description={tenantId}
             icon={ChevronsUpDown}
           />
         </SidebarMenuButton>
