@@ -5,6 +5,8 @@
  * of difference strings. Based on pull-v2's compareProjectDefinitions approach.
  */
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import type { ComponentRegistry, ComponentType } from './utils/component-registry';
@@ -305,6 +307,8 @@ function compareComponentsDirectly(
   // Compare project-level fields
   changes.push(...compareProjectFields(localProject, remoteProject, debug));
 
+  // Environment file detection removed for simplicity
+
   return changes;
 }
 
@@ -398,6 +402,7 @@ function compareSubAgents(
 
   const localIds = Object.keys(localSubAgents);
   const remoteIds = Object.keys(remoteSubAgents);
+
 
   // Find added subAgents
   remoteIds
@@ -973,7 +978,27 @@ function getDetailedFieldChanges(
           });
         }
       } else {
-        // Both exist, compare recursively
+        // Check if both values are empty using our isEmpty equivalence
+        const oldIsEmpty = isEmpty(oldValue);
+        const newIsEmpty = isEmpty(newValue);
+        
+        // If both are empty, they're equivalent - no change
+        if (oldIsEmpty && newIsEmpty) {
+          continue;
+        }
+        
+        // Special handling for models field - treat inherited models as equivalent to null
+        if (key === 'models') {
+          const oldIsNull = oldValue === null || oldValue === undefined;
+          const newIsNull = newValue === null || newValue === undefined;
+          
+          // If one is null and the other has models, assume inherited models = null equivalence
+          if (oldIsNull !== newIsNull) {
+            continue; // Skip comparison - treat inherited models as equivalent to null
+          }
+        }
+        
+        // Both exist and at least one is not empty, compare recursively
         const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
         changes.push(...recursiveChanges);
       }
@@ -1505,3 +1530,4 @@ function normalizeCanDelegateTo(canDelegateTo: any[]): string[] {
     return String(item);
   });
 }
+

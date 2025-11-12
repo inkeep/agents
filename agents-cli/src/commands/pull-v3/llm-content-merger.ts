@@ -42,6 +42,7 @@ function calculateCostEstimate(promptTokens: number, completionTokens: number): 
   return promptCost + completionCost;
 }
 
+
 interface ComponentMergeRequest {
   oldContent: string;
   newContent: string;
@@ -50,6 +51,16 @@ interface ComponentMergeRequest {
     componentType: string;
   }>;
   filePath: string;
+  newComponents?: Array<{
+    componentId: string;
+    componentType: string;
+    filePath: string;
+  }>;
+  componentsToExport?: Array<{
+    componentId: string;
+    variableName: string;
+    reason: string;
+  }>;
 }
 
 interface ComponentMergeResult {
@@ -71,11 +82,62 @@ interface ComponentMergeResult {
 export async function mergeComponentsWithLLM(
   request: ComponentMergeRequest
 ): Promise<ComponentMergeResult> {
-  const { oldContent, newContent, modifiedComponents, filePath } = request;
+  const { oldContent, newContent, modifiedComponents, filePath, newComponents, componentsToExport } = request;
 
   const componentList = modifiedComponents
     .map((c) => `- ${c.componentType}:${c.componentId}`)
     .join('\n');
+
+  const newComponentsList = newComponents && newComponents.length > 0 
+    ? newComponents.map((c) => {
+        // Calculate correct import path from the current file being written to the new component
+        const currentFilePath = filePath.replace(/^.*\/([^/]+\/[^/]+)$/, '$1'); // Get relative path like 'agents/test-agent.ts'
+        const currentDir = currentFilePath.replace(/\/[^/]+$/, ''); // Get directory like 'agents'
+        
+        // Clean the component file path
+        let componentPath = c.filePath;
+        if (componentPath.includes('.temp-')) {
+          componentPath = componentPath.replace(/^.*\.temp-[^/]+\//, '');
+        }
+        componentPath = componentPath.replace(/\.ts$/, '');
+        
+        // Calculate relative import from current directory to component
+        const importPath = calculateRelativeImportPath(currentDir, componentPath);
+        
+        // Generate variable name (convert kebab-case to camelCase)  
+        const variableName = c.componentId.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        
+        return `- ${c.componentType}:${c.componentId} (import as: import { ${variableName} } from '${importPath}')`;
+      })
+        .join('\n')
+    : '';
+
+  function calculateRelativeImportPath(fromDir: string, toPath: string): string {
+    const fromParts = fromDir.split('/');
+    const toParts = toPath.split('/');
+    
+    // Find common path
+    let commonLength = 0;
+    while (commonLength < fromParts.length && commonLength < toParts.length - 1 && 
+           fromParts[commonLength] === toParts[commonLength]) {
+      commonLength++;
+    }
+    
+    // Calculate relative path
+    const upLevels = fromParts.length - commonLength;
+    let relativePath = '';
+    for (let i = 0; i < upLevels; i++) {
+      relativePath += '../';
+    }
+    relativePath += toParts.slice(commonLength).join('/');
+    
+    return relativePath.startsWith('../') ? relativePath : './' + relativePath;
+  }
+
+  const componentsToExportList = componentsToExport && componentsToExport.length > 0
+    ? componentsToExport.map((c) => `- ${c.variableName} (${c.reason})`)
+        .join('\n')
+    : '';
 
   const prompt = `You are a TypeScript code expert tasked with intelligently merging component updates.
 
@@ -84,7 +146,16 @@ Merge the OLD file content with NEW component definitions, preserving the origin
 
 ## Modified Components to Update
 ${componentList}
+${newComponentsList ? `
+## New Components Available (can be imported)
+${newComponentsList}
+` : ''}${componentsToExportList ? `
+## Components That Need To Be Exported
+The following existing components are referenced by new components and must be exported:
+${componentsToExportList}
 
+Ensure these components have export statements (convert \`const\` to \`export const\`, or add \`export\` to existing declarations).
+` : ''}
 ## Instructions
 0. **Please ensure you focus changes to minimize git diff size.** We want a clean git history.
 1. **Preserve original structure**: Keep imports, exports, comments, and overall file organization
@@ -93,7 +164,13 @@ ${componentList}
 4. **Improve schemas**: Use better zod schemas from the new content where applicable. E.g. if the new content uses something like z.union([z.null(), z.string()]), use z.string().nullable() instead. 
 5. **Keep variable names**: Preserve original variable names and declarations
 6. **Preserve non-component code**: Keep any non-component logic, comments, or utilities
-7. **Please leave all imports at the top of the file.** Don't use .js imports, use .ts imports instead. (import example from './example')
+7. **Smart import handling**: 
+   - Please leave all imports at the top of the file. Don't use .js imports, use .ts imports instead. (import example from './example')
+   - Preserve all imports from the original content that are not modified.
+   - For NEW components listed above, add proper import statements
+   - For components that exist in the same file (modified components), DO NOT add import statements
+   - Remove any incorrect imports from the NEW component definitions that reference same-file components
+   - Use relative paths for imports (e.g., './example' not './example.js')
 8. **Format JavaScript functions for maximum readability**:
    - When you see compressed/minified function code like \`async({params})=>{...code...}\`, expand and prettify it
    - Add proper line breaks, spacing, and indentation to make the function readable
@@ -107,7 +184,7 @@ ${componentList}
      }
      \`\`\`
 
-## OLD Content:
+## OLD File to be updated with new component definitions:
 \`\`\`typescript
 ${oldContent}
 \`\`\`
@@ -143,6 +220,8 @@ Return only the merged TypeScript code without any explanation or markdown forma
 
     // Estimate prompt tokens before sending
     const estimatedPromptTokens = estimateTokens(processedPrompt);
+    
+
 
     const result = await generateText({
       model: getAvailableModel(),
@@ -150,6 +229,7 @@ Return only the merged TypeScript code without any explanation or markdown forma
     });
 
     let mergedContent = result.text.trim();
+    
 
     // Strip code fences if the LLM wrapped the response in code blocks
     mergedContent = stripCodeFences(mergedContent);

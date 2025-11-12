@@ -384,7 +384,8 @@ export function generateAgentImports(
   agentData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
-  contextConfigData?: any
+  contextConfigData?: any,
+  actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
 
@@ -393,7 +394,7 @@ export function generateAgentImports(
 
   // Generate imports for referenced components if registry is available
   if (registry) {
-    const currentFilePath = `agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/${agentId}.ts`;
 
     // Collect all component references with their types
     const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
@@ -451,9 +452,10 @@ export function generateAgentFile(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
   contextConfigData?: any,
-  projectModels?: any
+  projectModels?: any,
+  actualFilePath?: string
 ): string {
-  const imports = generateAgentImports(agentId, agentData, style, registry, contextConfigData);
+  const imports = generateAgentImports(agentId, agentData, style, registry, contextConfigData, actualFilePath);
   const definition = generateAgentDefinition(
     agentId,
     agentData,

@@ -448,17 +448,19 @@ export function generateSubAgentImports(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
   parentAgentId?: string,
-  contextConfigData?: any
+  contextConfigData?: any,
+  actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
 
   // Always import subAgent from SDK
   imports.push(generateImport(['subAgent'], '@inkeep/agents-sdk', style));
 
+
   // Import context config or headers if prompt has template variables
   if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
     const contextConfigId = contextConfigData.id;
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
     const importStatement = registry.getImportStatement(
       currentFilePath,
       contextConfigId,
@@ -471,7 +473,7 @@ export function generateSubAgentImports(
 
   // Generate imports for referenced components if registry is available
   if (registry) {
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
 
     // Build typed component references based on sub-agent data structure
     const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
@@ -566,7 +568,8 @@ export function generateSubAgentFile(
   registry?: ComponentRegistry,
   parentAgentId?: string,
   contextConfigData?: any,
-  parentModels?: any
+  parentModels?: any,
+  actualFilePath?: string
 ): string {
   const imports = generateSubAgentImports(
     agentId,
@@ -574,7 +577,8 @@ export function generateSubAgentFile(
     style,
     registry,
     parentAgentId,
-    contextConfigData
+    contextConfigData,
+    actualFilePath
   );
   const definition = generateSubAgentDefinition(
     agentId,

@@ -534,10 +534,11 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       0
     );
 
+    let newComponentResults: any[] = [];
     if (newComponentCount > 0) {
       s.start('Creating new component files in temp directory...');
       const { createNewComponents } = await import('./new-component-generator');
-      const newComponentResults = await createNewComponents(
+      newComponentResults = await createNewComponents(
         comparison,
         remoteProject,
         localRegistry,
@@ -588,6 +589,18 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     if (modifiedCount > 0) {
       s.start('Applying modified components to temp directory...');
       const { updateModifiedComponents } = await import('./component-updater');
+      
+      // Transform new component results for LLM context
+      const newComponentsForContext = newComponentResults && newComponentResults.length > 0
+        ? newComponentResults
+            .filter(result => result.success)
+            .map(result => ({
+              componentId: result.componentId,
+              componentType: result.componentType,
+              filePath: result.filePath.replace(paths.projectRoot + '/', '') // Convert to relative path
+            }))
+        : undefined;
+      
       const updateResults = await updateModifiedComponents(
         comparison,
         remoteProject,
@@ -595,7 +608,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         paths.projectRoot,
         options.env || 'development',
         options.debug,
-        tempDirName // Use the temp directory we created
+        tempDirName, // Use the temp directory we created
+        newComponentsForContext
       );
       s.message('Modified components applied');
     }

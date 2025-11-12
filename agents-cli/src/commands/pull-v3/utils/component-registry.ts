@@ -8,6 +8,8 @@
  * 3. Reference resolution for code generation
  */
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 export type ComponentType =
@@ -73,9 +75,6 @@ export class ComponentRegistry {
       // No real export name - generate unique name with prefixes if needed
       const baseName = this.toCamelCase(id);
       const uniqueName = this.ensureUniqueName(baseName, type);
-      console.log(
-        `🔧 Registry: ${type}:${id} -> baseName: "${baseName}" -> uniqueName: "${uniqueName}"`
-      );
       name = uniqueName;
       actualExportName = uniqueName;
     }
@@ -142,8 +141,18 @@ export class ComponentRegistry {
     const component = this.get(componentId, componentType);
     if (!component) return undefined;
 
+    // Normalize both paths to the same format for comparison
+    const normalizedFrom = this.normalizeToProjectPath(fromFilePath);
+    const normalizedTo = this.normalizeToProjectPath(component.filePath);
+
+    // Skip import if same file
+    if (normalizedFrom === normalizedTo) {
+      return undefined;
+    }
+
     const relativePath = this.calculateRelativeImport(fromFilePath, component.filePath);
     const importStmt = `import { ${component.exportName} } from '${relativePath}';`;
+
     return importStmt;
   }
 
@@ -357,6 +366,35 @@ export class ComponentRegistry {
     }
   }
 
+
+  /**
+   * Normalize path to project-relative format using existing registry paths as templates
+   */
+  private normalizeToProjectPath(filePath: string): string {
+    // If already in project format (no slashes before known directories), return as-is
+    if (!filePath.includes('/') || filePath.match(/^(agents|tools|environments|data-components)/)) {
+      return filePath;
+    }
+
+    // Find project directories by looking at existing registry paths
+    const knownDirs = new Set<string>();
+    for (const component of this.components.values()) {
+      const firstDir = component.filePath.split('/')[0];
+      if (firstDir) knownDirs.add(firstDir);
+    }
+
+    // Find the last occurrence of any known project directory
+    const segments = filePath.split('/');
+    for (let i = segments.length - 1; i >= 0; i--) {
+      if (knownDirs.has(segments[i])) {
+        return segments.slice(i).join('/');
+      }
+    }
+
+    // Fallback: return the filename
+    return segments[segments.length - 1] || filePath;
+  }
+
   /**
    * Calculate relative import path between files
    */
@@ -366,18 +404,29 @@ export class ComponentRegistry {
     const toParts = toPath.replace('.ts', '').split('/');
 
     // Remove filename from fromPath (keep directory only)
-    fromParts.pop();
+    const fromDir = fromParts.slice(0, -1);
+    const toFile = toParts;
+
+    // Find common path prefix
+    let commonLength = 0;
+    while (commonLength < fromDir.length && 
+           commonLength < toFile.length - 1 && 
+           fromDir[commonLength] === toFile[commonLength]) {
+      commonLength++;
+    }
 
     // Calculate relative path
     let relativePath = '';
 
-    // Go up directories from fromPath
-    for (let i = 0; i < fromParts.length; i++) {
+    // Go up for remaining directories in fromDir after common path
+    const upLevels = fromDir.length - commonLength;
+    for (let i = 0; i < upLevels; i++) {
       relativePath += '../';
     }
 
-    // Add target path
-    relativePath += toParts.join('/');
+    // Add remaining path from toFile after common path
+    const remainingPath = toFile.slice(commonLength).join('/');
+    relativePath += remainingPath;
 
     // Clean up path format
     if (relativePath.startsWith('../')) {
@@ -393,6 +442,7 @@ export class ComponentRegistry {
   getAllComponents(): ComponentInfo[] {
     return Array.from(this.componentsByTypeAndId.values());
   }
+
 
   /**
    * Clear all components (for testing)
