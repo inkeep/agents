@@ -11,6 +11,9 @@ const envSchema = z.object({
     .optional()
     .default('development'),
   DATABASE_URL: z.string().optional(),
+  // Standardized naming - prefer INKEEP_AGENTS_RUN_API_URL
+  INKEEP_AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
+  // Legacy naming - deprecated, will be removed in a future version
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
@@ -28,7 +31,23 @@ const parseEnv = () => {
   try {
     const parsedEnv = envSchema.parse(process.env);
 
-    return parsedEnv;
+    // Handle backward compatibility: prefer INKEEP_AGENTS_RUN_API_URL, fallback to AGENTS_RUN_API_URL
+    const runApiUrl =
+      process.env.INKEEP_AGENTS_RUN_API_URL || process.env.AGENTS_RUN_API_URL || 'http://localhost:3003';
+
+    // Warn if using deprecated variable
+    if (process.env.AGENTS_RUN_API_URL && !process.env.INKEEP_AGENTS_RUN_API_URL) {
+      console.warn(
+        '⚠️  DEPRECATED: AGENTS_RUN_API_URL is deprecated. Please use INKEEP_AGENTS_RUN_API_URL instead. ' +
+          'This will be removed in a future version.'
+      );
+    }
+
+    return {
+      ...parsedEnv,
+      // Expose standardized name, resolving from either variable
+      INKEEP_AGENTS_RUN_API_URL: runApiUrl,
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map((issue) => issue.path.join('.'));
