@@ -17,6 +17,7 @@ export default {
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/models',
+        'typescript-sdk/memory',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',

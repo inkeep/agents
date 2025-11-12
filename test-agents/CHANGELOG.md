@@ -1,5 +1,13 @@
 # test-agents
 
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [c228770]
+  - @inkeep/agents-cli@0.32.2
+  - @inkeep/agents-sdk@0.32.2
+
 ## 0.1.10
 
 ### Patch Changes
