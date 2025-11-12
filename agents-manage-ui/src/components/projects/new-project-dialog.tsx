@@ -1,9 +1,7 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +13,7 @@ import { ProjectForm } from './form/project-form';
 
 interface NewProjectDialogProps {
   tenantId: string;
-  children?: React.ReactNode;
+  children: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -40,14 +38,7 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {children && (
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Project
-          </Button>
-        </DialogTrigger>
-      )}
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="!max-w-2xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>
