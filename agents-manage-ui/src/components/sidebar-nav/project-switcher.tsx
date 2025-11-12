@@ -1,17 +1,11 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import NextLink from 'next/link';
+import { useParams } from 'next/navigation';
 import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { fetchProjectsAction } from '@/lib/actions/projects';
-import type { Project } from '@/lib/types/project';
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar';
+import { NewProjectDialog } from '@/components/projects/new-project-dialog';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
-import { NewProjectDialog } from '@/components/projects/new-project-dialog';
+import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { fetchProjectsAction } from '@/lib/actions/projects';
+import type { Project } from '@/lib/types/project';
 
 const ProjectItem: FC<{
   name: string;

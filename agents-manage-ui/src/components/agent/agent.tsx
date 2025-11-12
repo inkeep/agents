@@ -76,6 +76,7 @@ export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAge
 
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
@@ -96,7 +97,6 @@ import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
-import { useSidebar } from '@/components/ui/sidebar';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
