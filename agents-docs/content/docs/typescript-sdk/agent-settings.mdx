@@ -85,7 +85,7 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `description`        | string   | No       | Brief description of the Sub Agent's purpose and capabilities |
 | `models`             | object   | No       | Model configuration for this Sub Agent. See [Model Configuration](/typescript-sdk/models) |
 | `stopWhen`           | object   | No       | Stop conditions (`stepCountIs`). See [Configuring StopWhen](#configuring-stopwhen) |
-| `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/typescript-sdk/tools/mcp-servers) |
+| `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/tutorials/mcp-servers/overview) for how to find or build MCP servers |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components) |
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
 | `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |

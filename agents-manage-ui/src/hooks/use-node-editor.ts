@@ -22,7 +22,8 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
         nodes.map((node) => {
           if (node.id === selectedNodeId) {
             return { ...node, data: { ...node.data, isDefault }, deletable: !isDefault };
-          } else if (isDefault && node.data.isDefault) {
+          }
+          if (isDefault && node.data.isDefault) {
             return { ...node, data: { ...node.data, isDefault: false }, deletable: true };
           }
           return node;

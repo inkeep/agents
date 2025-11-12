@@ -15,6 +15,7 @@ import {
   DEFAULT_SIGNOZ_URL,
 } from '@/lib/runtime-config/defaults';
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
+import { cn } from '@/lib/utils';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -56,7 +57,11 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetBrainsMono.variable} antialiased`}>
+      <body
+        className={cn(inter.variable, jetBrainsMono.variable, 'antialiased')}
+        // Suppress hydration warnings in development caused by browser extensions
+        suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

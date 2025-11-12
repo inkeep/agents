@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.32.2
+
+### Patch Changes
+
+- c228770: update create-agents setup script
+- Updated dependencies [c228770]
+  - @inkeep/agents-core@0.32.2
+  - @inkeep/agents-manage-api@0.32.2
+  - @inkeep/agents-run-api@0.32.2
+
 ## 0.32.1
 
 ### Patch Changes
