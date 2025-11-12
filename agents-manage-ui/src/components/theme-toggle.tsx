@@ -2,7 +2,7 @@
 
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { type MouseEventHandler, useCallback } from 'react';
+import { type ComponentProps, type FC, type MouseEventHandler, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,13 +10,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
-export function ThemeToggle() {
+type ThemeValue = 'dark' | 'light' | 'system';
+
+const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
+  dark: Moon,
+  light: Sun,
+  system: Monitor,
+};
+
+export const ThemeToggle: FC<ComponentProps<typeof Button>> = ({ className, ...props }) => {
   const { setTheme } = useTheme();
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {
-      const newTheme = event.currentTarget.dataset.theme as 'dark' | 'light' | 'system';
+      const newTheme = event.currentTarget.dataset.theme as ThemeValue;
       setTheme(newTheme);
     },
     [setTheme]
@@ -28,27 +37,30 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
+          className={cn(
+            'size-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground',
+            className
+          )}
+          {...props}
         >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="dark:hidden" />
+          <Moon className="not-dark:hidden" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem data-theme="light" onClick={handleTheme}>
-          <Sun className="mr-2 h-4 w-4" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem data-theme="dark" onClick={handleTheme}>
-          <Moon className="mr-2 h-4 w-4" />
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem data-theme="system" onClick={handleTheme}>
-          <Monitor className="mr-2 h-4 w-4" />
-          System
-        </DropdownMenuItem>
+        {Object.entries(ThemeMap).map(([theme, Comp]) => (
+          <DropdownMenuItem
+            key={theme}
+            data-theme={theme}
+            onClick={handleTheme}
+            className="capitalize gap-4"
+          >
+            <Comp />
+            {theme}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};
