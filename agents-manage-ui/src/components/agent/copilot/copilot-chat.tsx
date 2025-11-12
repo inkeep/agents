@@ -28,6 +28,7 @@ const styleOverrides = `
 }
 `;
 
+// biome-ignore lint/correctness/noUnusedFunctionParameters: these will be used in the future
 export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) {
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
