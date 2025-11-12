@@ -11,6 +11,14 @@ Thank you for your interest in contributing to the Agent Framework! This documen
 
 # Launch the Visual Builder
 
+### Prerequisites
+
+Before getting started, ensure you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [Docker](https://docs.docker.com/get-docker/)
+- [pnpm](https://pnpm.io/installation) version 10 or higher
+
 ### Step 1: Clone the repository
 
 ```
@@ -30,8 +38,8 @@ This will:
 
 1. Create `.env` from the template
 2. Set up user-global config at `~/.inkeep/config`
-3. Install dependencies
-4. Initialize the database
+4. Install dependencies
+5. Initialize the database, starting the postgres docker container and applying migrations
 
 Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
 

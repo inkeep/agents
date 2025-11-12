@@ -15,3 +15,13 @@ procs:
     shell: "node scripts/start-mcp-conditionally.js"
   dashboard:
     shell: "inkeep dev --open-browser"
+
+keymap_term:  # keymap when terminal is focused
+  <q>: { c: quit }
+  <esc>: { c: quit }
+  <C-c>: { c: quit }
+
+keymap_procs:  # keymap when process list is focused
+  <esc>: { c: quit }
+  <q>: { c: quit }
+  <C-c>: { c: quit }

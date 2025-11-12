@@ -1,5 +1,94 @@
 # @inkeep/agents-manage-ui
 
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-api@0.32.1
+  - @inkeep/agents-run-api@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- 185db71: fix validation errors of form fields for:
+
+  - `subAgent.id`
+  - `subAgent.prompt`
+  - `agent.name`
+  - `agent.contextVariables`
+  - `agent.headersSchema`
+
+- ed8abd5: should update the SubAgent prompt editor when switching nodes
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-api@0.32.0
+  - @inkeep/agents-run-api@0.32.0
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-run-api@0.31.7
+  - @inkeep/agents-manage-api@0.31.7
+  - @inkeep/agents-core@0.31.7
+
+## 0.31.6
+
+### Patch Changes
+
+- afffd8f: - Small ui design tweaks
+  - @inkeep/agents-manage-api@0.31.6
+  - @inkeep/agents-run-api@0.31.6
+  - @inkeep/agents-core@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- 6fd7b05: - Add ship modal with instructions for how to utilize the agents
+- 19e8375: - Bump agents-ui package to 0.15.2
+  - @inkeep/agents-manage-api@0.31.5
+  - @inkeep/agents-run-api@0.31.5
+  - @inkeep/agents-core@0.31.5
+
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+  - @inkeep/agents-manage-api@0.31.4
+  - @inkeep/agents-run-api@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- ce3720a: animate MCP node which throws an error
+- ea4b251: remove `as React.CSSProperties` type casting
+- 43edec7: rename `Flow` component with `AgentReactFlowConsumer`
+- c1299f0: Prevent page jumps when Monaco editor is inside tab
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-manage-api@0.31.3
+  - @inkeep/agents-run-api@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes

@@ -1,9 +1,12 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
+  ComponentAssociationListResponse,
+  ComponentAssociationSchema,
   commonGetErrorResponses,
   createApiError,
   DataComponentApiSelectSchema,
+  DataComponentArrayResponse,
   ErrorResponseSchema,
   ExistsResponseSchema,
   getAgentsUsingDataComponent,
@@ -13,10 +16,11 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  SingleResponseSchema,
   SubAgentDataComponentApiInsertSchema,
   SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentResponse,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
@@ -31,18 +35,14 @@ app.openapi(
     operationId: 'get-data-components-for-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
-      }),
+      params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Data components retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(DataComponentApiSelectSchema),
-            }),
+            schema: DataComponentArrayResponse,
           },
         },
       },
@@ -77,14 +77,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(
-                z.object({
-                  subAgentId: z.string(),
-                  createdAt: z.string(),
-                })
-              ),
-            }),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -125,7 +118,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
+            schema: SubAgentDataComponentResponse,
           },
         },
       },
@@ -193,8 +186,7 @@ app.openapi(
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },
@@ -240,8 +232,7 @@ app.openapi(
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },

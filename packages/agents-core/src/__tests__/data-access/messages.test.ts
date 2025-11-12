@@ -11,7 +11,7 @@ import {
   updateMessage,
 } from '../../data-access/messages';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { testDbClient } from '../setup';
 
 describe('Messages Data Access', () => {
   let db: DatabaseClient;
@@ -20,8 +20,9 @@ describe('Messages Data Access', () => {
   const testConversationId = 'test-conversation';
   const testTaskId = 'test-task';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getMessageById', () => {

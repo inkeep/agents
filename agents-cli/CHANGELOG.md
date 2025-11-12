@@ -1,5 +1,86 @@
 # @inkeep/agents-cli
 
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-ui@0.32.1
+  - @inkeep/agents-sdk@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [ed8abd5]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-ui@0.32.0
+  - @inkeep/agents-sdk@0.32.0
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-manage-ui@0.31.7
+  - @inkeep/agents-core@0.31.7
+  - @inkeep/agents-sdk@0.31.7
+
+## 0.31.6
+
+### Patch Changes
+
+- Updated dependencies [afffd8f]
+  - @inkeep/agents-manage-ui@0.31.6
+  - @inkeep/agents-core@0.31.6
+  - @inkeep/agents-sdk@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- Updated dependencies [6fd7b05]
+- Updated dependencies [19e8375]
+  - @inkeep/agents-manage-ui@0.31.5
+  - @inkeep/agents-core@0.31.5
+  - @inkeep/agents-sdk@0.31.5
+
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+  - @inkeep/agents-manage-ui@0.31.4
+  - @inkeep/agents-sdk@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- f91281b: use forked mcp sdk
+- Updated dependencies [ce3720a]
+- Updated dependencies [ea4b251]
+- Updated dependencies [43edec7]
+- Updated dependencies [c1299f0]
+- Updated dependencies [f91281b]
+  - @inkeep/agents-manage-ui@0.31.3
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-sdk@0.31.3
+
 ## 0.31.2
 
 ### Patch Changes

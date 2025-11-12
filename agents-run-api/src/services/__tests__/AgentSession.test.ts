@@ -726,7 +726,7 @@ describe('AgentSession', () => {
             level: 2,
             items: ['a', 'b', 'c'],
           },
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
         },
       };
 

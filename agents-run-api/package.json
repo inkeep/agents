@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.31.2",
+  "version": "0.32.1",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -59,7 +59,7 @@
     "drizzle-orm": "^0.44.4",
     "exit-hook": "^4.0.0",
     "fetch-to-node": "^2.1.0",
-    "hono": "^4.10.3",
+    "hono": "^4.10.4",
     "jmespath": "^0.16.0",
     "json-schema-to-zod": "^2.6.1",
     "nanoid": "^5.1.5",
@@ -85,7 +85,8 @@
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@electric-sql/pglite": "^0.3.13"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

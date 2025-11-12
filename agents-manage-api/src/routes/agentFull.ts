@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createApiError,
@@ -8,7 +9,7 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
-  SingleResponseSchema,
+  TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
@@ -19,24 +20,6 @@ import { getLogger } from '../logger';
 const logger = getLogger('agentFull');
 
 const app = new OpenAPIHono();
-
-// Schema for path parameters with agentId
-const AgentIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-    agentId: z.string().openapi({
-      description: 'Agent identifier',
-      example: 'agent_789',
-    }),
-  })
-  .openapi('AgentIdParams');
 
 app.openapi(
   createRoute({
@@ -62,7 +45,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -101,14 +84,14 @@ app.openapi(
     tags: ['Full Agent'],
     description: 'Retrieve a complete agent definition with all agents, tools, and relationships',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Full agent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -161,7 +144,7 @@ app.openapi(
     description:
       'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -175,7 +158,7 @@ app.openapi(
         description: 'Full agent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -183,7 +166,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -258,7 +241,7 @@ app.openapi(
     description:
       'Delete a complete agent and cascade to all related entities (relationships, not other agents/tools)',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
     },
     responses: {
       204: {

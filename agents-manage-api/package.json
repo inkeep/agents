@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.31.2",
+  "version": "0.32.1",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,7 +28,7 @@
     "@nangohq/types": "^0.69.5",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
-    "hono": "^4.10.3",
+    "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
@@ -48,7 +48,8 @@
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@electric-sql/pglite": "^0.3.13"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

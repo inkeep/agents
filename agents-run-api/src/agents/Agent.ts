@@ -39,6 +39,15 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import {
+  AGENT_EXECUTION_MAX_GENERATION_STEPS,
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
+} from '../constants/execution-limits';
+import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
 } from '../data/conversations';
@@ -79,13 +88,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 }
 
 const logger = getLogger('Agent');
-
-const CONSTANTS = {
-  MAX_GENERATION_STEPS: 12,
-  PHASE_1_TIMEOUT_MS: 270_000,
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000,
-  PHASE_2_TIMEOUT_MS: 90_000,
-} as const;
 
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
@@ -239,10 +241,10 @@ export class Agent {
 
   /**
    * Get the maximum number of generation steps for this agent
-   * Uses agent's stopWhen.stepCountIs config or defaults to CONSTANTS.MAX_GENERATION_STEPS
+   * Uses agent's stopWhen.stepCountIs config or defaults to AGENT_EXECUTION_MAX_GENERATION_STEPS
    */
   private getMaxGenerationSteps(): number {
-    return this.config.stopWhen?.stepCountIs ?? CONSTANTS.MAX_GENERATION_STEPS;
+    return this.config.stopWhen?.stepCountIs ?? AGENT_EXECUTION_MAX_GENERATION_STEPS;
   }
 
   /**
@@ -918,8 +920,8 @@ export class Agent {
               const defaultSandboxConfig: SandboxConfig = {
                 provider: 'native',
                 runtime: 'node22',
-                timeout: 30000,
-                vcpus: 4,
+                timeout: FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+                vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
               const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
@@ -1698,6 +1700,11 @@ export class Agent {
           // Set streaming helper from registry if available
           this.streamRequestId = streamRequestId;
           this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
+
+          // Update ArtifactService with this agent's artifact components
+          if (streamRequestId && this.artifactComponents.length > 0) {
+            agentSessionManager.updateArtifactComponents(streamRequestId, this.artifactComponents);
+          }
           const conversationId = runtimeContext?.metadata?.conversationId;
 
           if (conversationId) {
@@ -1801,25 +1808,24 @@ export class Agent {
 
           // Extract maxDuration from config and convert to milliseconds, or use defaults
           // Add upper bound validation to prevent extremely long timeouts
-          const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
           const configuredTimeout = modelSettings.maxDuration
-            ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
+            ? Math.min(modelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
             : shouldStreamPhase1
-              ? CONSTANTS.PHASE_1_TIMEOUT_MS
-              : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
+              ? LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING
+              : LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING;
 
           // Ensure timeout doesn't exceed maximum
-          const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
+          const timeoutMs = Math.min(configuredTimeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
 
           if (
             modelSettings.maxDuration &&
-            modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
+            modelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
           ) {
             logger.warn(
               {
                 requestedTimeout: modelSettings.maxDuration * 1000,
                 appliedTimeout: timeoutMs,
-                maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+                maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
               },
               'Requested timeout exceeded maximum allowed, capping to 10 minutes'
             );
@@ -2172,9 +2178,35 @@ ${output}${structureHintsFormatted}`;
               const structuredModelSettings = ModelFactory.prepareGenerationConfig(
                 this.getStructuredOutputModel()
               );
-              const phase2TimeoutMs = structuredModelSettings.maxDuration
-                ? structuredModelSettings.maxDuration * 1000
-                : CONSTANTS.PHASE_2_TIMEOUT_MS;
+
+              // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
+              const configuredPhase2Timeout = structuredModelSettings.maxDuration
+                ? Math.min(
+                    structuredModelSettings.maxDuration * 1000,
+                    LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+                  )
+                : LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS;
+
+              // Ensure timeout doesn't exceed maximum
+              const phase2TimeoutMs = Math.min(
+                configuredPhase2Timeout,
+                LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+              );
+
+              if (
+                structuredModelSettings.maxDuration &&
+                structuredModelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+              ) {
+                logger.warn(
+                  {
+                    requestedTimeout: structuredModelSettings.maxDuration * 1000,
+                    appliedTimeout: phase2TimeoutMs,
+                    maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+                    phase: 'structured_generation',
+                  },
+                  'Phase 2 requested timeout exceeded maximum allowed, capping to 10 minutes'
+                );
+              }
 
               const shouldStreamPhase2 = this.getStreamingHelper();
 

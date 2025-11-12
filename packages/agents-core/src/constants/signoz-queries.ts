@@ -82,6 +82,10 @@ export const OPERATORS = {
   EXISTS: 'exists',
   NOT_EXISTS: 'nexists',
 
+  // Set operators
+  IN: 'in',
+  NOT_IN: 'nin',
+
   // Logical operators
   AND: 'AND',
   OR: 'OR',
@@ -159,6 +163,7 @@ export const DATA_SOURCES = {
 /** Aggregate Operators */
 export const AGGREGATE_OPERATORS = {
   COUNT: 'count',
+  COUNT_DISTINCT: 'count_distinct',
   SUM: 'sum',
   AVG: 'avg',
   MIN: 'min',
@@ -174,6 +179,6 @@ export const QUERY_DEFAULTS = {
   DISABLED: false,
   HAVING: [],
   LEGEND: '',
-  LIMIT_UNLIMITED: 10000000000,
+  LIMIT_UNLIMITED: 10000,
   EMPTY_GROUP_BY: [],
 } as const;

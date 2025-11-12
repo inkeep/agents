@@ -10,10 +10,13 @@ import dbClient from '../../data/db/dbClient';
  * @returns Promise that resolves when the project is created
  */
 export async function ensureTestProject(tenantId: string, projectId = 'default'): Promise<void> {
-  await dbClient.run(sql`
-    INSERT OR IGNORE INTO projects (tenant_id, id, name, description, created_at, updated_at)
+  await dbClient.execute(
+    sql`
+    INSERT INTO projects (tenant_id, id, name, description, created_at, updated_at)
     VALUES (${tenantId}, ${projectId}, ${`Test Project ${projectId}`}, ${`Test project for ${projectId}`}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `);
+    ON CONFLICT (tenant_id, id) DO NOTHING
+  `
+  );
 }
 
 /**

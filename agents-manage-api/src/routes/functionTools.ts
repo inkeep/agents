@@ -7,16 +7,16 @@ import {
   FunctionToolApiInsertSchema,
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
+  FunctionToolListResponse,
+  FunctionToolResponse,
   generateId,
   getFunctionToolById,
-  ListResponseSchema,
   listFunctionTools,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -40,7 +40,7 @@ app.openapi(
         description: 'List of function tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolListResponse,
           },
         },
       },
@@ -76,16 +76,14 @@ app.openapi(
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Function tool retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -141,7 +139,7 @@ app.openapi(
         description: 'Function tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -185,9 +183,7 @@ app.openapi(
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -201,7 +197,7 @@ app.openapi(
         description: 'Function tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -251,9 +247,7 @@ app.openapi(
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {

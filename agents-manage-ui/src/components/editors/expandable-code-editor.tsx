@@ -29,26 +29,30 @@ export function ExpandableCodeEditor({
   isRequired,
 }: ExpandableCodeEditorProps) {
   const [open, setOpen] = useState(false);
-
+  const uri = `${open ? 'expanded-' : ''}${name}.jsx` as const;
+  const id = `${name}-label`;
   return (
     <ExpandableField
+      id={id}
       open={open}
       onOpenChange={setOpen}
-      name={name}
+      uri={uri}
       label={label}
       className={className}
       isRequired={isRequired}
+      hasError={!!error}
     >
       <CodeEditor
-        id={name}
+        uri={uri}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        aria-invalid={!!error}
+        aria-invalid={error ? 'true' : undefined}
         hasDynamicHeight={!open}
         className={cn(!open && error && 'max-h-96')}
+        aria-labelledby={id}
       />
-      {error && <p className="text-sm mt-1 text-destructive">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </ExpandableField>
   );
 }

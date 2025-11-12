@@ -19,6 +19,8 @@ import {
   generateId,
   getCredentialReferenceWithResources,
   getToolById,
+  OAuthCallbackQuerySchema,
+  OAuthLoginQuerySchema,
   type ServerConfig,
   updateTool,
 } from '@inkeep/agents-core';
@@ -161,21 +163,6 @@ function generateOAuthCallbackPage(params: {
     </html>
   `;
 }
-
-// OAuth login endpoint schema
-const OAuthLoginQuerySchema = z.object({
-  tenantId: z.string().min(1, 'Tenant ID is required'),
-  projectId: z.string().min(1, 'Project ID is required'),
-  toolId: z.string().min(1, 'Tool ID is required'),
-});
-
-// OAuth callback endpoint schema
-const OAuthCallbackQuerySchema = z.object({
-  code: z.string().min(1, 'Authorization code is required'),
-  state: z.string().min(1, 'State parameter is required'),
-  error: z.string().optional(),
-  error_description: z.string().optional(),
-});
 
 // OAuth login initiation endpoint (public - no API key required)
 app.openapi(

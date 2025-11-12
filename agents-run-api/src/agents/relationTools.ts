@@ -8,6 +8,7 @@ import {
   generateServiceToken,
   getCredentialReference,
   headers,
+  type McpTool,
   SPAN_KEYS,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -15,6 +16,12 @@ import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import z from 'zod';
 import { A2AClient } from '../a2a/client';
+import {
+  DELEGATION_TOOL_BACKOFF_EXPONENT,
+  DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
+  DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+} from '../constants/execution-limits';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -24,26 +31,145 @@ import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 
+// Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
+const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
+
 const generateTransferToolDescription = (config: AgentConfig): string => {
-  return `Hand off the conversation to agent ${config.id}.
+  // Generate tools section from the agent's available tools
+  let toolsSection = '';
+
+  // Generate transfer relations section
+  let transferSection = '';
+  if (config.transferRelations && config.transferRelations.length > 0) {
+    const transferList = config.transferRelations
+      .map(
+        (transfer) =>
+          `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
+      )
+      .join('\n');
+
+    transferSection = `
+
+Can Transfer To:
+${transferList}`;
+  }
+
+  // Generate delegate relations section
+  let delegateSection = '';
+  if (config.delegateRelations && config.delegateRelations.length > 0) {
+    const delegateList = config.delegateRelations
+      .map(
+        (delegate) =>
+          `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
+      )
+      .join('\n');
+
+    delegateSection = `
+
+Can Delegate To:
+${delegateList}`;
+  }
+
+  if (config.tools && config.tools.length > 0) {
+    const toolDescriptions = config.tools
+      .map((tool) => {
+        const toolsList =
+          tool.availableTools
+            ?.map((t) => `  - ${t.name}: ${t.description || 'No description available'}`)
+            .join('\n') || '';
+        return `MCP Server: ${tool.name}\n${toolsList}`;
+      })
+      .join('\n\n');
+
+    toolsSection = `
+
+Available Tools & Capabilities:
+${toolDescriptions}`;
+  }
+
+  const finalDescription = `Hand off the conversation to agent ${config.id}.
 
 Agent Information:
 - ID: ${config.id}
 - Name: ${config.name ?? 'No name provided'}
-- Description: ${config.description ?? 'No description provided'}
+- Description: ${config.description ?? 'No description provided'}${toolsSection}${transferSection}${delegateSection}
 
 Hand off the conversation to agent ${config.id} when the user's request would be better handled by this specialized agent.`;
+
+  return finalDescription;
 };
 
-const generateDelegateToolDescription = (config: DelegateRelation['config']): string => {
-  return `Delegate a specific task to another agent.
+const generateDelegateToolDescription = (delegateRelation: DelegateRelation): string => {
+  const config = delegateRelation.config;
+
+  let toolsSection = '';
+  let transferSection = '';
+  let delegateSection = '';
+
+  // For internal delegate relations (AgentConfig), include rich information
+  if (delegateRelation.type === 'internal' && 'tools' in config) {
+    const agentConfig = config as AgentConfig;
+
+    // Generate tools section
+    if (agentConfig.tools && agentConfig.tools.length > 0) {
+      const toolDescriptions = agentConfig.tools
+        .map((tool) => {
+          const toolsList =
+            tool.availableTools
+              ?.map((t) => `  - ${t.name}: ${t.description || 'No description available'}`)
+              .join('\n') || '';
+          return `MCP Server: ${tool.name}\n${toolsList}`;
+        })
+        .join('\n\n');
+
+      toolsSection = `
+
+Available Tools & Capabilities:
+${toolDescriptions}`;
+    }
+
+    // Generate transfer relations section
+    if (agentConfig.transferRelations && agentConfig.transferRelations.length > 0) {
+      const transferList = agentConfig.transferRelations
+        .map(
+          (transfer) =>
+            `  - ${transfer.name || transfer.id}: ${transfer.description || 'No description available'}`
+        )
+        .join('\n');
+
+      transferSection = `
+
+Can Transfer To:
+${transferList}`;
+    }
+
+    // Generate delegate relations section
+    if (agentConfig.delegateRelations && agentConfig.delegateRelations.length > 0) {
+      const delegateList = agentConfig.delegateRelations
+        .map(
+          (delegate) =>
+            `  - ${delegate.config.name || delegate.config.id}: ${delegate.config.description || 'No description available'} (${delegate.type})`
+        )
+        .join('\n');
+
+      delegateSection = `
+
+Can Delegate To:
+${delegateList}`;
+    }
+  }
+
+  const finalDescription = `Delegate a specific task to another agent.
 
 Agent Information:
 - ID: ${config.id}
 - Name: ${config.name}
 - Description: ${config.description || 'No description provided'}
+- Type: ${delegateRelation.type}${toolsSection}${transferSection}${delegateSection}
 
 Delegate a specific task to agent ${config.id} when it seems like the agent can do relevant work.`;
+
+  return finalDescription;
 };
 
 export const createTransferToAgentTool = ({
@@ -57,8 +183,10 @@ export const createTransferToAgentTool = ({
   subAgent: any; // Will be properly typed as Agent, but avoiding circular import
   streamRequestId?: string;
 }) => {
+  const toolDescription = generateTransferToolDescription(transferConfig);
+
   return tool({
-    description: generateTransferToolDescription(transferConfig),
+    description: toolDescription,
     inputSchema: z.object({}),
     execute: async () => {
       const activeSpan = trace.getActiveSpan();
@@ -134,7 +262,7 @@ export function createDelegateToAgentTool({
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
   return tool({
-    description: generateDelegateToolDescription(delegateConfig.config),
+    description: generateDelegateToolDescription(delegateConfig),
     inputSchema: z.object({ message: z.string() }),
     execute: async (input: { message: string }, context?: any) => {
       const delegationId = `del_${generateId()}`;
@@ -245,12 +373,12 @@ export function createDelegateToAgentTool({
         retryConfig: {
           strategy: 'backoff',
           retryConnectionErrors: true,
-          statusCodes: ['429', '500', '502', '503', '504'],
+          statusCodes: [...A2A_RETRY_STATUS_CODES],
           backoff: {
-            initialInterval: 100,
-            maxInterval: 10000,
-            exponent: 2,
-            maxElapsedTime: 20000, // 1 minute max retry time
+            initialInterval: DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
+            maxInterval: DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
+            exponent: DELEGATION_TOOL_BACKOFF_EXPONENT,
+            maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
       });

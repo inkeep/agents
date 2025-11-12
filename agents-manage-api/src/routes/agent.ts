@@ -4,6 +4,7 @@ import {
   AgentApiUpdateSchema,
   AgentListResponse,
   AgentResponse,
+  AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
@@ -14,16 +15,15 @@ import {
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
-  ListResponseSchema,
   listAgents,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
@@ -116,23 +116,14 @@ app.openapi(
     operationId: 'get-related-agent-infos',
     tags: ['Agent'],
     request: {
-      params: TenantProjectParamsSchema.extend({
-        agentId: z.string(),
-        subAgentId: z.string(),
-      }),
+      params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Related agent infos retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(
-              z.object({
-                id: z.string(),
-                name: z.string(),
-                description: z.string(),
-              })
-            ),
+            schema: RelatedAgentInfoListResponse,
           },
         },
       },
@@ -175,7 +166,7 @@ app.openapi(
         description: 'Full agent definition retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },

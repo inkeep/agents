@@ -1,5 +1,19 @@
 import { z } from '@hono/zod-openapi';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  SUB_AGENT_TURN_GENERATION_STEPS_MAX,
+  SUB_AGENT_TURN_GENERATION_STEPS_MIN,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
 import {
   agents,
   apiKeys,
@@ -33,11 +47,32 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import {
+  createInsertSchema,
+  createSelectSchema,
+  MAX_ID_LENGTH,
+  MIN_ID_LENGTH,
+  registerFieldSchemas,
+  resourceIdSchema,
+  URL_SAFE_ID_PATTERN,
+} from './drizzle-schema-helpers';
+
+export { MAX_ID_LENGTH, MIN_ID_LENGTH, resourceIdSchema, URL_SAFE_ID_PATTERN };
 
 export const StopWhenSchema = z
   .object({
-    transferCountIs: z.number().min(1).max(100).optional(),
-    stepCountIs: z.number().min(1).max(1000).optional(),
+    transferCountIs: z
+      .number()
+      .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+      .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+      .optional()
+      .describe('The maximum number of transfers to trigger the stop condition.'),
+    stepCountIs: z
+      .number()
+      .min(SUB_AGENT_TURN_GENERATION_STEPS_MIN)
+      .max(SUB_AGENT_TURN_GENERATION_STEPS_MAX)
+      .optional()
+      .describe('The maximum number of steps to trigger the stop condition.'),
   })
   .openapi('StopWhen');
 
@@ -53,26 +88,21 @@ export type StopWhen = z.infer<typeof StopWhenSchema>;
 export type AgentStopWhen = z.infer<typeof AgentStopWhenSchema>;
 export type SubAgentStopWhen = z.infer<typeof SubAgentStopWhenSchema>;
 
-export const MIN_ID_LENGTH = 1;
-export const MAX_ID_LENGTH = 255;
-export const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
-
-export const resourceIdSchema = z
-  .string()
-  .min(MIN_ID_LENGTH)
-  .max(MAX_ID_LENGTH)
-  .regex(URL_SAFE_ID_PATTERN, {
-    message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
-  })
-  .openapi({
-    description: 'Resource identifier',
-    example: 'resource_789',
-  });
+const pageNumber = z.coerce.number().min(1).default(1).openapi('PaginationPageQueryParam');
+const limitNumber = z.coerce
+  .number()
+  .min(1)
+  .max(100)
+  .default(10)
+  .openapi('PaginationLimitQueryParam');
 
 export const ModelSettingsSchema = z
   .object({
-    model: z.string().optional(),
-    providerOptions: z.record(z.string(), z.any()).optional(),
+    model: z.string().optional().describe('The model to use for the project.'),
+    providerOptions: z
+      .record(z.string(), z.any())
+      .optional()
+      .describe('The provider options to use for the project.'),
   })
   .openapi('ModelSettings');
 
@@ -226,6 +256,7 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 export const AgentSelectSchema = createSelectSchema(agents);
 export const AgentInsertSchema = createInsertSchema(agents).extend({
   id: resourceIdSchema,
+  name: z.string().trim().nonempty(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -551,6 +582,74 @@ export const CredentialReferenceApiUpdateSchema = createApiUpdateSchema(
   })
   .openapi('CredentialReferenceUpdate');
 
+export const CredentialStoreSchema = z
+  .object({
+    id: z.string().describe('Unique identifier of the credential store'),
+    type: z.enum(CredentialStoreType),
+    available: z.boolean().describe('Whether the store is functional and ready to use'),
+    reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
+  })
+  .openapi('CredentialStore');
+
+export const CredentialStoreListResponseSchema = z
+  .object({
+    data: z.array(CredentialStoreSchema).describe('List of credential stores'),
+  })
+  .openapi('CredentialStoreListResponse');
+
+export const CreateCredentialInStoreRequestSchema = z
+  .object({
+    key: z.string().describe('The credential key'),
+    value: z.string().describe('The credential value'),
+    metadata: z
+      .record(z.string(), z.string())
+      .nullish()
+      .describe('The metadata for the credential'),
+  })
+  .openapi('CreateCredentialInStoreRequest');
+
+export const CreateCredentialInStoreResponseSchema = z
+  .object({
+    data: z.object({
+      key: z.string().describe('The credential key'),
+      storeId: z.string().describe('The store ID where credential was created'),
+      createdAt: z.string().describe('ISO timestamp of creation'),
+    }),
+  })
+  .openapi('CreateCredentialInStoreResponse');
+
+export const RelatedAgentInfoSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+  })
+  .openapi('RelatedAgentInfo');
+
+export const ComponentAssociationSchema = z
+  .object({
+    subAgentId: z.string(),
+    createdAt: z.string(),
+  })
+  .openapi('ComponentAssociation');
+
+export const OAuthLoginQuerySchema = z
+  .object({
+    tenantId: z.string().min(1, 'Tenant ID is required'),
+    projectId: z.string().min(1, 'Project ID is required'),
+    toolId: z.string().min(1, 'Tool ID is required'),
+  })
+  .openapi('OAuthLoginQuery');
+
+export const OAuthCallbackQuerySchema = z
+  .object({
+    code: z.string().min(1, 'Authorization code is required'),
+    state: z.string().min(1, 'State parameter is required'),
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .openapi('OAuthCallbackQuery');
+
 export const McpToolSchema = ToolInsertSchema.extend({
   imageUrl: imageUrlSchema,
   availableTools: z.array(McpToolDefinitionSchema).optional(),
@@ -559,7 +658,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   createdAt: z.date(),
   updatedAt: z.date(),
   expiresAt: z.date().optional(),
-});
+}).openapi('McpTool');
 
 export const MCPToolConfigSchema = McpToolSchema.omit({
   config: true,
@@ -622,7 +721,12 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
-    timeout: z.number().min(0).optional().default(10000).optional(),
+    timeout: z
+      .number()
+      .min(0)
+      .optional()
+      .default(CONTEXT_FETCHER_HTTP_TIMEOUT_MS_DEFAULT)
+      .optional(),
   })
   .openapi('FetchConfig');
 
@@ -780,9 +884,15 @@ export const StatusComponentSchema = z
 export const StatusUpdateSchema = z
   .object({
     enabled: z.boolean().optional(),
-    numEvents: z.number().min(1).max(100).optional(),
-    timeInSeconds: z.number().min(1).max(600).optional(),
-    prompt: z.string().max(2000, 'Custom prompt cannot exceed 2000 characters').optional(),
+    numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+    timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+    prompt: z
+      .string()
+      .max(
+        VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+        `Custom prompt cannot exceed ${VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS} characters`
+      )
+      .optional(),
     statusComponents: z.array(StatusComponentSchema).optional(),
   })
   .openapi('StatusUpdate');
@@ -796,23 +906,29 @@ export const CanUseItemSchema = z
   })
   .openapi('CanUseItem');
 
-export const canDelegateToExternalAgentSchema = z.object({
-  externalAgentId: z.string(),
-  subAgentExternalAgentRelationId: z.string().optional(),
-  headers: z.record(z.string(), z.string()).nullish(),
-});
+export const canDelegateToExternalAgentSchema = z
+  .object({
+    externalAgentId: z.string(),
+    subAgentExternalAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToExternalAgent');
 
-export const canDelegateToTeamAgentSchema = z.object({
-  agentId: z.string(),
-  subAgentTeamAgentRelationId: z.string().optional(),
-  headers: z.record(z.string(), z.string()).nullish(),
-});
+export const canDelegateToTeamAgentSchema = z
+  .object({
+    agentId: z.string(),
+    subAgentTeamAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToTeamAgent');
 
-export const TeamAgentSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-});
+export const TeamAgentSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+  })
+  .openapi('TeamAgent');
 
 export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   type: z.literal('internal'),
@@ -820,6 +936,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
+  prompt: z.string().trim().nonempty(),
   canDelegateTo: z
     .array(
       z.union([
@@ -829,7 +946,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
       ])
     )
     .optional(),
-});
+}).openapi('FullAgentAgentInsert');
 
 export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   subAgents: z.record(z.string(), FullAgentAgentInsertSchema), // Lookup maps for UI to resolve canUse items
@@ -842,13 +959,19 @@ export const AgentWithinContextOfProjectSchema = AgentApiInsertSchema.extend({
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
   stopWhen: AgentStopWhenSchema.optional(),
-  prompt: z.string().max(5000, 'Agent prompt cannot exceed 5000 characters').optional(),
-});
+  prompt: z
+    .string()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .optional(),
+}).openapi('AgentWithinContextOfProject');
 
 export const PaginationSchema = z
   .object({
-    page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(100).default(10),
+    page: pageNumber,
+    limit: limitNumber,
     total: z.number(),
     pages: z.number(),
   })
@@ -888,7 +1011,12 @@ export const RemovedResponseSchema = z
   })
   .openapi('RemovedResponse');
 
-export const ProjectSelectSchema = createSelectSchema(projects);
+export const ProjectSelectSchema = registerFieldSchemas(
+  createSelectSchema(projects).extend({
+    models: ProjectModelSchema.nullable(),
+    stopWhen: StopWhenSchema.nullable(),
+  })
+);
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
     models: ProjectModelSchema,
@@ -898,7 +1026,10 @@ export const ProjectInsertSchema = createInsertSchema(projects)
     createdAt: true,
     updatedAt: true,
   });
-export const ProjectUpdateSchema = ProjectInsertSchema.partial();
+export const ProjectUpdateSchema = ProjectInsertSchema.partial().omit({
+  id: true,
+  tenantId: true,
+});
 
 // Projects API schemas - only omit tenantId since projects table doesn't have projectId
 export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true }).openapi(
@@ -907,9 +1038,7 @@ export const ProjectApiSelectSchema = ProjectSelectSchema.omit({ tenantId: true 
 export const ProjectApiInsertSchema = ProjectInsertSchema.omit({ tenantId: true }).openapi(
   'ProjectCreate'
 );
-export const ProjectApiUpdateSchema = ProjectUpdateSchema.omit({ tenantId: true }).openapi(
-  'ProjectUpdate'
-);
+export const ProjectApiUpdateSchema = ProjectUpdateSchema.openapi('ProjectUpdate');
 
 // Full Project Definition Schema - extends Project with agents and other nested resources
 export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
@@ -924,7 +1053,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   credentialReferences: z.record(z.string(), CredentialReferenceApiInsertSchema).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-});
+}).openapi('FullProjectDefinition');
 
 // Single item response wrappers
 export const ProjectResponse = z
@@ -1085,6 +1214,66 @@ export const SubAgentArtifactComponentListResponse = z
   })
   .openapi('SubAgentArtifactComponentListResponse');
 
+// Missing response schemas for factory function replacement
+export const FullProjectDefinitionResponse = z
+  .object({ data: FullProjectDefinitionSchema })
+  .openapi('FullProjectDefinitionResponse');
+
+export const AgentWithinContextOfProjectResponse = z
+  .object({ data: AgentWithinContextOfProjectSchema })
+  .openapi('AgentWithinContextOfProjectResponse');
+
+export const RelatedAgentInfoListResponse = z
+  .object({
+    data: z.array(RelatedAgentInfoSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('RelatedAgentInfoListResponse');
+
+export const ComponentAssociationListResponse = z
+  .object({ data: z.array(ComponentAssociationSchema) })
+  .openapi('ComponentAssociationListResponse');
+
+export const McpToolResponse = z.object({ data: McpToolSchema }).openapi('McpToolResponse');
+
+export const McpToolListResponse = z
+  .object({
+    data: z.array(McpToolSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('McpToolListResponse');
+
+export const SubAgentTeamAgentRelationResponse = z
+  .object({ data: SubAgentTeamAgentRelationApiSelectSchema })
+  .openapi('SubAgentTeamAgentRelationResponse');
+
+export const SubAgentTeamAgentRelationListResponse = z
+  .object({
+    data: z.array(SubAgentTeamAgentRelationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentTeamAgentRelationListResponse');
+
+export const SubAgentExternalAgentRelationResponse = z
+  .object({ data: SubAgentExternalAgentRelationApiSelectSchema })
+  .openapi('SubAgentExternalAgentRelationResponse');
+
+export const SubAgentExternalAgentRelationListResponse = z
+  .object({
+    data: z.array(SubAgentExternalAgentRelationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentExternalAgentRelationListResponse');
+
+// Array response schemas (no pagination)
+export const DataComponentArrayResponse = z
+  .object({ data: z.array(DataComponentApiSelectSchema) })
+  .openapi('DataComponentArrayResponse');
+
+export const ArtifactComponentArrayResponse = z
+  .object({ data: z.array(ArtifactComponentApiSelectSchema) })
+  .openapi('ArtifactComponentArrayResponse');
+
 export const HeadersScopeSchema = z.object({
   'x-inkeep-tenant-id': z.string().optional().openapi({
     description: 'Tenant identifier',
@@ -1100,62 +1289,78 @@ export const HeadersScopeSchema = z.object({
   }),
 });
 
-const TenantId = z.string().openapi({
+const TenantId = z.string().openapi('TenantIdPathParam', {
+  param: {
+    name: 'tenantId',
+    in: 'path',
+  },
   description: 'Tenant identifier',
   example: 'tenant_123',
 });
 
-const ProjectId = z.string().openapi({
+const ProjectId = z.string().openapi('ProjectIdPathParam', {
+  param: {
+    name: 'projectId',
+    in: 'path',
+  },
   description: 'Project identifier',
   example: 'project_456',
 });
 
-const AgentId = z.string().openapi({
+const AgentId = z.string().openapi('AgentIdPathParam', {
+  param: {
+    name: 'agentId',
+    in: 'path',
+  },
   description: 'Agent identifier',
   example: 'agent_789',
 });
 
-const SubAgentId = z.string().openapi({
+const SubAgentId = z.string().openapi('SubAgentIdPathParam', {
+  param: {
+    name: 'subAgentId',
+    in: 'path',
+  },
   description: 'Sub-agent identifier',
   example: 'sub_agent_123',
 });
 
-export const TenantParamsSchema = z
-  .object({
-    tenantId: TenantId,
-  })
-  .openapi('TenantParams');
+export const TenantParamsSchema = z.object({
+  tenantId: TenantId,
+});
 
 export const TenantIdParamsSchema = TenantParamsSchema.extend({
   id: resourceIdSchema,
-}).openapi('TenantIdParams');
+});
 
 export const TenantProjectParamsSchema = TenantParamsSchema.extend({
   projectId: ProjectId,
-}).openapi('TenantProjectParams');
+});
 
 export const TenantProjectIdParamsSchema = TenantProjectParamsSchema.extend({
   id: resourceIdSchema,
-}).openapi('TenantProjectIdParams');
+});
 
 export const TenantProjectAgentParamsSchema = TenantProjectParamsSchema.extend({
   agentId: AgentId,
-}).openapi('TenantProjectAgentParams');
+});
 
 export const TenantProjectAgentIdParamsSchema = TenantProjectAgentParamsSchema.extend({
   id: resourceIdSchema,
-}).openapi('TenantProjectAgentIdParams');
+});
 
 export const TenantProjectAgentSubAgentParamsSchema = TenantProjectAgentParamsSchema.extend({
   subAgentId: SubAgentId,
-}).openapi('TenantProjectAgentSubAgentParams');
+});
 
 export const TenantProjectAgentSubAgentIdParamsSchema =
   TenantProjectAgentSubAgentParamsSchema.extend({
     id: resourceIdSchema,
-  }).openapi('TenantProjectAgentSubAgentIdParams');
+  });
 
-export const PaginationQueryParamsSchema = z.object({
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(10),
-});
+export const PaginationQueryParamsSchema = z
+  .object({
+    page: pageNumber,
+    limit: limitNumber,
+  })
+  .openapi('PaginationQueryParams');

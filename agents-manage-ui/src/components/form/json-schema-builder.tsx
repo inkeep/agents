@@ -107,12 +107,15 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         <>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Checkbox
-                checked={Boolean(field.isRequired)}
-                onCheckedChange={(checked) =>
-                  updateField(field.id, { isRequired: checked === true })
-                }
-              />
+              {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+              <div>
+                <Checkbox
+                  checked={Boolean(field.isRequired)}
+                  onCheckedChange={(checked) =>
+                    updateField(field.id, { isRequired: checked === true })
+                  }
+                />
+              </div>
             </TooltipTrigger>
             <TooltipContent>Mark this field as required</TooltipContent>
           </Tooltip>
@@ -180,7 +183,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
           <Button
             type="button"
             onClick={() => addChild(field.id)}
-            variant="secondary"
+            variant="link"
             size="sm"
             className="self-start text-xs"
             style={{ marginLeft: indentStyle + 24 + (prefix ? 82 : 0) }}
@@ -248,7 +251,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
     <>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow noHover>
             <TableHead className="w-[15%] text-center">Type</TableHead>
             <TableHead className="w-[42%] text-center">Name</TableHead>
             <TableHead className="text-center">Description</TableHead>
@@ -262,7 +265,7 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
       <Button
         type="button"
         onClick={() => addChild()}
-        variant="secondary"
+        variant="link"
         size="sm"
         className="self-start text-xs"
       >

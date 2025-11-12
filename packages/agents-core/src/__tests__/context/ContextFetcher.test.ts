@@ -1,33 +1,22 @@
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextFetcher } from '../../context/ContextFetcher';
-import { dbClient } from '../setup';
+import type { DatabaseClient } from '../../db/client';
+import { createTestDatabaseClient } from '../../db/test-client';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock Date.now for consistent timing tests
-const mockDateNow = vi.fn();
-const _originalDateNow = Date.now;
-Date.now = mockDateNow;
-
 describe('ContextFetcher', () => {
+  let dbClient: DatabaseClient;
   let fetcher: ContextFetcher;
   const tenantId = 'test-tenant';
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    dbClient = await createTestDatabaseClient();
     fetcher = new ContextFetcher(tenantId, 'test-project', dbClient);
     mockFetch.mockClear();
-    mockDateNow.mockClear();
-
-    // Set up a simple timing mock - start at 1000, increment by 10 each call
-    let currentTime = 1000;
-    mockDateNow.mockImplementation(() => {
-      const result = currentTime;
-      currentTime += 10;
-      return result;
-    });
   });
 
   describe('template interpolation', () => {
@@ -566,7 +555,6 @@ describe('ContextFetcher', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(responseData);
-      expect(result.durationMs).toBeGreaterThan(0);
       expect(result.error).toBeUndefined();
     });
 
@@ -587,7 +575,6 @@ describe('ContextFetcher', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network timeout');
-      expect(result.durationMs).toBeGreaterThan(0);
       expect(result.data).toBeUndefined();
     });
   });

@@ -11,7 +11,7 @@
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "ENVIRONMENT",
-    "DB_FILE_NAME",
+    "DATABASE_URL",
     "PORT",
     "LOG_LEVEL"
   ],

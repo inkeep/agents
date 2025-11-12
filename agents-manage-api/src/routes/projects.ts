@@ -147,12 +147,8 @@ app.openapi(
 
       return c.json({ data: project }, 201);
     } catch (error: any) {
-      if (
-        error?.message?.includes('UNIQUE constraint') ||
-        error?.message?.includes('UNIQUE') ||
-        error?.code === 'SQLITE_CONSTRAINT' ||
-        error?.code === 'SQLITE_ERROR'
-      ) {
+      // Handle duplicate project (PostgreSQL unique constraint violation)
+      if (error?.cause?.code === '23505') {
         throw createApiError({
           code: 'conflict',
           message: 'Project with this ID already exists',

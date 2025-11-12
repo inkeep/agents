@@ -51,7 +51,15 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { getLogger } from '@inkeep/agents-core';
+import {
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
+  FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES,
+  FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
+  FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
+  FUNCTION_TOOL_SANDBOX_QUEUE_WAIT_TIMEOUT_MS,
+} from '../constants/execution-limits';
+import { getLogger } from '../logger';
 import type { SandboxConfig } from '../types/execution-context';
 import { createExecutionWrapper, parseExecutionResult } from './sandbox-utils';
 
@@ -65,7 +73,7 @@ class ExecutionSemaphore {
   private waitQueue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
   private readonly maxWaitTime: number;
 
-  constructor(permits: number, maxWaitTimeMs = 30000) {
+  constructor(permits: number, maxWaitTimeMs = FUNCTION_TOOL_SANDBOX_QUEUE_WAIT_TIMEOUT_MS) {
     this.permits = Math.max(1, permits); // Ensure at least 1 permit
     this.maxWaitTime = maxWaitTimeMs;
   }
@@ -142,8 +150,6 @@ interface SandboxPool {
 export class NativeSandboxExecutor {
   private tempDir: string;
   private sandboxPool: SandboxPool = {};
-  private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
-  private readonly MAX_USE_COUNT = 50;
   private static instance: NativeSandboxExecutor | null = null;
   private executionSemaphores: Map<number, ExecutionSemaphore> = new Map();
 
@@ -209,7 +215,10 @@ export class NativeSandboxExecutor {
 
     if (sandbox && existsSync(sandbox.sandboxDir)) {
       const now = Date.now();
-      if (now - sandbox.lastUsed < this.POOL_TTL && sandbox.useCount < this.MAX_USE_COUNT) {
+      if (
+        now - sandbox.lastUsed < FUNCTION_TOOL_SANDBOX_POOL_TTL_MS &&
+        sandbox.useCount < FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+      ) {
         sandbox.lastUsed = now;
         sandbox.useCount++;
         logger.debug(
@@ -217,7 +226,7 @@ export class NativeSandboxExecutor {
             poolKey,
             useCount: sandbox.useCount,
             sandboxDir: sandbox.sandboxDir,
-            lastUsed: new Date(sandbox.lastUsed).toISOString(),
+            lastUsed: new Date(sandbox.lastUsed),
           },
           'Reusing cached sandbox'
         );
@@ -267,7 +276,10 @@ export class NativeSandboxExecutor {
       const keysToDelete: string[] = [];
 
       for (const [key, sandbox] of Object.entries(this.sandboxPool)) {
-        if (now - sandbox.lastUsed > this.POOL_TTL || sandbox.useCount >= this.MAX_USE_COUNT) {
+        if (
+          now - sandbox.lastUsed > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+          sandbox.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+        ) {
           this.cleanupSandbox(sandbox.sandboxDir);
           keysToDelete.push(key);
         }
@@ -280,7 +292,7 @@ export class NativeSandboxExecutor {
       if (keysToDelete.length > 0) {
         logger.debug({ cleanedCount: keysToDelete.length }, 'Cleaned up expired sandboxes');
       }
-    }, 60000);
+    }, FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS);
   }
 
   private detectModuleType(
@@ -414,7 +426,7 @@ export class NativeSandboxExecutor {
 
       const result = await this.executeInSandbox(
         sandboxDir,
-        config.sandboxConfig?.timeout || 30000,
+        config.sandboxConfig?.timeout || FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
         moduleType,
         config.sandboxConfig
       );
@@ -498,15 +510,18 @@ export class NativeSandboxExecutor {
       let stdout = '';
       let stderr = '';
       let outputSize = 0;
-      const MAX_OUTPUT_SIZE = 1024 * 1024;
 
       node.stdout?.on('data', (data: Buffer) => {
         const dataStr = data.toString();
         outputSize += dataStr.length;
 
-        if (outputSize > MAX_OUTPUT_SIZE) {
+        if (outputSize > FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES) {
           node.kill('SIGTERM');
-          reject(new Error(`Output size exceeded limit of ${MAX_OUTPUT_SIZE} bytes`));
+          reject(
+            new Error(
+              `Output size exceeded limit of ${FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES} bytes`
+            )
+          );
           return;
         }
 
@@ -517,9 +532,13 @@ export class NativeSandboxExecutor {
         const dataStr = data.toString();
         outputSize += dataStr.length;
 
-        if (outputSize > MAX_OUTPUT_SIZE) {
+        if (outputSize > FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES) {
           node.kill('SIGTERM');
-          reject(new Error(`Output size exceeded limit of ${MAX_OUTPUT_SIZE} bytes`));
+          reject(
+            new Error(
+              `Output size exceeded limit of ${FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES} bytes`
+            )
+          );
           return;
         }
 
