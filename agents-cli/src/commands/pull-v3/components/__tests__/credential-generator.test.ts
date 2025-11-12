@@ -76,7 +76,7 @@ describe('Credential Generator', () => {
         "description: 'API key for Inkeep search and context services',"
       );
       expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain("'key': 'INKEEP_API_KEY'");
+      expect(definition).toContain("key: 'INKEEP_API_KEY'");
       expect(definition).toContain('});');
     });
 
@@ -108,21 +108,21 @@ describe('Credential Generator', () => {
         type: 'env',
         credentialStoreId: 'env-default',
       });
-      expect(envDef).toContain("credentialStoreId: 'env-default',");
+      expect(envDef).toContain("credentialStoreId: 'env-default'");
 
       const keychainDef = generateCredentialDefinition('keychain-cred', {
         name: 'Keychain Cred',
         type: 'keychain',
         credentialStoreId: 'keychain-default',
       });
-      expect(keychainDef).toContain("credentialStoreId: 'keychain-default',");
+      expect(keychainDef).toContain("credentialStoreId: 'keychain-default'");
 
       const memoryDef = generateCredentialDefinition('memory-cred', {
         name: 'Memory Cred',
         type: 'memory',
         credentialStoreId: 'memory-default',
       });
-      expect(memoryDef).toContain("credentialStoreId: 'memory-default',");
+      expect(memoryDef).toContain("credentialStoreId: 'memory-default'");
     });
 
     it('should handle env credential with complex retrieval params', () => {
@@ -132,8 +132,8 @@ describe('Credential Generator', () => {
       expect(definition).toContain("type: 'env',");
       expect(definition).toContain("credentialStoreId: 'env-production',");
       expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain("'key': 'DATABASE_URL',");
-      expect(definition).toContain("'fallback': 'postgresql://localhost:5432/app'");
+      expect(definition).toContain("key: 'DATABASE_URL',");
+      expect(definition).toContain("fallback: 'postgresql://localhost:5432/app'");
     });
 
     it('should handle keychain credential with service and account', () => {
@@ -143,19 +143,19 @@ describe('Credential Generator', () => {
       expect(definition).toContain("type: 'keychain',");
       expect(definition).toContain("credentialStoreId: 'keychain-main',");
       expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain("'service': 'slack-bot',");
-      expect(definition).toContain("'account': 'my-workspace'");
+      expect(definition).toContain("service: 'slack-bot',");
+      expect(definition).toContain("account: 'my-workspace'");
     });
 
-    it('should provide default retrieval params when not specified', () => {
+    it('should not generate retrieval params when not specified', () => {
       const definition = generateCredentialDefinition('openai-api-key', {
         name: 'OpenAI API Key',
         type: 'memory',
         credentialStoreId: 'memory-default',
       });
 
-      expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain("'key': 'OPENAI_API_KEY'"); // Auto-generated from ID
+      expect(definition).not.toContain('retrievalParams: {');
+      expect(definition).not.toContain("key: 'OPENAI_API_KEY'"); // Should not auto-generate
     });
 
     it('should throw error for missing required fields', () => {
@@ -197,11 +197,11 @@ describe('Credential Generator', () => {
       const definition = generateCredentialDefinition('complex', complexCredential);
 
       expect(definition).toContain('retrievalParams: {');
-      expect(definition).toContain("'service': 'oauth-service',");
-      expect(definition).toContain("'account': 'user@example.com',");
-      expect(definition).toContain("'config': {");
-      expect(definition).toContain("'timeout': 5000,");
-      expect(definition).toContain("'retries': 3");
+      expect(definition).toContain("service: 'oauth-service',");
+      expect(definition).toContain("account: 'user@example.com',");
+      expect(definition).toContain("config: {");
+      expect(definition).toContain("timeout: 5000,");
+      expect(definition).toContain("retries: 3");
     });
 
     it('should handle different data types in retrieval params', () => {
@@ -219,10 +219,10 @@ describe('Credential Generator', () => {
 
       const definition = generateCredentialDefinition('mixed', mixedParamsCredential);
 
-      expect(definition).toContain("'key': 'API_KEY',");
-      expect(definition).toContain("'port': 3000,");
-      expect(definition).toContain("'enabled': true,");
-      expect(definition).toContain("'timeout': 30.5");
+      expect(definition).toContain("key: 'API_KEY',");
+      expect(definition).toContain("port: 3000,");
+      expect(definition).toContain("enabled: true,");
+      expect(definition).toContain("timeout: 30.5");
     });
   });
 
@@ -381,7 +381,7 @@ describe('Credential Generator', () => {
 
       expect(definition).toContain('export const nullTest = credential({');
       expect(definition).not.toContain('description:');
-      expect(definition).toContain("'key': 'API_KEY'");
+      expect(definition).toContain("key: 'API_KEY'");
       expect(definition).not.toContain('fallback');
     });
 

@@ -96,7 +96,7 @@ export function createTargetedTypeScriptPlaceholders(
         }
 
         // Get precise boundaries and fix them if needed
-        const start = valueNode.getStart(sourceFile);
+        const start = valueNode.getStart();
         let end = valueNode.getEnd();
         
         // Validate that the boundaries don't extend beyond the property assignment
