@@ -29,7 +29,7 @@
   "scripts": {
     "dev": "next -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
-    "build": "NODE_ENV=production next build --webpack && pnpm build:sync",
+    "build": "next build --webpack && pnpm build:sync",
     "start": "next start",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
