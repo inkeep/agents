@@ -738,7 +738,7 @@ export const datasetItem = pgTable(
     input: jsonb('input').$type<{
       messages: Array<{ role: string; content: MessageContent }>;
       headers?: Record<string, string>;
-    }>(),
+    }>().notNull(),
     expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
     simulationAgentDefinition: jsonb('simulation_agent_definition').$type<{
       stopWhen?: StopWhen;
@@ -802,16 +802,20 @@ export const evaluator = pgTable(
  * many to many relationship with agents (via join table)
  * many to many relationship with evaluationSuiteConfig (via join table)
  * 
- * Includes: name, description, runFrequency (cron expression string),
+ * Includes: name, description, runFrequency (cron expression string or null for manual/one-time runs),
  * datasetId (which dataset to run),
  * and timestamps
+ * 
+ * runFrequency behavior:
+ * - If set to a cron expression (e.g., "0 0 * * 0" for weekly): scheduled automatic runs
+ * - If null: manual/one-time runs only (no automatic scheduling)
  */
 export const datasetRunConfig = pgTable(
   'dataset_run_config',
   {
     ...projectScoped,
     ...uiProperties,
-    runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * 0" for weekly)
+    runFrequency: text('run_frequency'), // cron expression string (e.g., "0 0 * * 0" for weekly) or null for manual/one-time runs
     datasetId: text('dataset_id').notNull(),
     ...timestamps,
   },
