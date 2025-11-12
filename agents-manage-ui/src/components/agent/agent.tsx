@@ -8,13 +8,12 @@ import {
   type Node,
   Panel,
   ReactFlow,
-  ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
@@ -62,7 +61,6 @@ import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
-import { useSidebar } from '@/components/ui/sidebar';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
@@ -115,14 +113,14 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
-function AgentReactFlowConsumer({
+export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
   externalAgentLookup = {},
-}: AgentProps) {
+}) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
 
@@ -987,24 +985,4 @@ function AgentReactFlowConsumer({
       <UnsavedChangesDialog onSubmit={onSubmit} />
     </ResizablePanelGroup>
   );
-}
-
-export function Agent(props: AgentProps) {
-  const { setOpen, open: initialOpen } = useSidebar();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore all deps
-  useEffect(() => {
-    // Always collapse sidebar
-    setOpen(false);
-    return () => {
-      // Set initial open when leaving agents page
-      setOpen(initialOpen);
-    };
-  }, []);
-
-  return (
-    <ReactFlowProvider>
-      <AgentReactFlowConsumer {...props} />
-    </ReactFlowProvider>
-  );
-}
+};
