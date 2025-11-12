@@ -76,14 +76,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           startTime: startDate.getTime(),
           endTime: clampedEndMs,
         };
-      } else {
-        // Default to 15 days if custom dates not set
-        const hoursBack = TIME_RANGES['15d'].hours;
-        return {
-          startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-          endTime: currentEndTime,
-        };
       }
+      // Default to 15 days if custom dates not set
+      const hoursBack = TIME_RANGES['15d'].hours;
+      return {
+        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
+        endTime: currentEndTime,
+      };
     }
 
     const hoursBack = TIME_RANGES[selectedTimeRange].hours;

@@ -319,13 +319,12 @@ export async function getAvailableTemplates(localPrefix?: string): Promise<strin
     return response.filter((item: any) =>
       fs.stat(path.join(fullTemplatePath, item)).then((stat) => stat.isDirectory())
     );
-  } else {
-    // Fetch the list of templates from your repo
-    const response = await fetch(
-      `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
-    );
-    const contents = await response.json();
-
-    return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
   }
+  // Fetch the list of templates from your repo
+  const response = await fetch(
+    `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
+  );
+  const contents = await response.json();
+
+  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
 }

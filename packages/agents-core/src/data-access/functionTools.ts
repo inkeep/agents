@@ -170,12 +170,11 @@ export const upsertFunctionTool =
           functionId: params.data.functionId,
         },
       });
-    } else {
-      return await createFunctionTool(db)({
-        data: params.data,
-        scopes,
-      });
     }
+    return await createFunctionTool(db)({
+      data: params.data,
+      scopes,
+    });
   };
 
 export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {

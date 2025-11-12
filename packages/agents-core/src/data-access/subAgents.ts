@@ -142,9 +142,8 @@ export const upsertSubAgent =
         throw new Error('Failed to update agent - no rows affected');
       }
       return updated;
-    } else {
-      return await createSubAgent(db)(params.data);
     }
+    return await createSubAgent(db)(params.data);
   };
 
 export const deleteSubAgent =

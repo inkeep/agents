@@ -268,7 +268,8 @@ export class Agent implements AgentInterface {
               externalAgentId: d.externalAgent.getId(),
               ...(d.headers && { headers: d.headers }),
             };
-          } else if (typeof d === 'object' && 'agent' in d) {
+          }
+          if (typeof d === 'object' && 'agent' in d) {
             return {
               agentId: d.agent.getId(),
               ...(d.headers && { headers: d.headers }),
