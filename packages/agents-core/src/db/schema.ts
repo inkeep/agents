@@ -987,7 +987,11 @@ export const evaluationSuiteConfig = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
-    filters: jsonb('filters').$type<Record<string, unknown>>(), // Filters for the evaluation suite
+    filters: jsonb('filters').$type<{
+      agentIds?: string[];
+      [key: string]: unknown;
+    }>(), // Filters for the evaluation suite (includes agentIds and other filter criteria)
+    //todo: add other filter criteria
     sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
