@@ -50,6 +50,7 @@
       "style": {
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
+        "noUselessElse": "error",
         "useImportType": "error"
       },
       "performance": {

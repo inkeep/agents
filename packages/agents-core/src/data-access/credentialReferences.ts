@@ -305,7 +305,6 @@ export const upsertCredentialReference =
         throw new Error('Failed to update credential reference - no rows affected');
       }
       return updated;
-    } else {
-      return await createCredentialReference(db)(params.data);
     }
+    return await createCredentialReference(db)(params.data);
   };

@@ -84,22 +84,25 @@ export function formatDateAgo(dateString: string) {
 
     if (diffInMinutes < 1) {
       return 'just now';
-    } else if (diffInMinutes < 60) {
+    }
+    if (diffInMinutes < 60) {
       return `${diffInMinutes}m ago`;
-    } else if (diffInHours < 24) {
+    }
+    if (diffInHours < 24) {
       return `${diffInHours}h ago`;
-    } else if (diffInDays < 7) {
+    }
+    if (diffInDays < 7) {
       return `${diffInDays}d ago`;
-    } else if (diffInDays < 30) {
+    }
+    if (diffInDays < 30) {
       const weeks = Math.floor(diffInDays / 7);
       return `${weeks}w ago`;
-    } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-      });
     }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
   } catch (error) {
     console.warn('Error formatting date:', dateString, error);
     return 'Invalid date';
