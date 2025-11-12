@@ -12,12 +12,13 @@
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "drizzle-kit migrate",
     "upgrade-agents": "node scripts/upgrade.js",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "setup-dev": "node scripts/setup.js"
   },
   "dependencies": {
-    "@inkeep/agents-core": "^0.30.3",
-    "@inkeep/agents-manage-ui": "^0.30.3",
-    "@inkeep/agents-sdk": "^0.30.3",
+    "@inkeep/agents-core": "^0.32.1",
+    "@inkeep/agents-manage-ui": "^0.32.1",
+    "@inkeep/agents-sdk": "^0.32.1",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
     "tailwindcss": "^4.1.14",
@@ -25,12 +26,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.2",
-    "@inkeep/agents-cli": "^0.30.3",
+    "@inkeep/agents-cli": "^0.32.1",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.4",
     "mprocs": "^0.7.3",
-    "tsx": "^4.19.0",
     "pg": "^8.16.3",
+    "tsx": "^4.19.0",
     "turbo": "^2.5.5"
   },
   "engines": {

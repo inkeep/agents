@@ -432,12 +432,6 @@ export const myProject = project({
 
 async function installDependencies() {
   await execAsync('pnpm install');
-  try {
-    await execAsync('pnpm upgrade-agents');
-  } catch (error) {
-    console.warn('Warning: Package upgrade failed, continuing with current versions');
-    console.warn(error instanceof Error ? error.message : 'Unknown error');
-  }
 }
 
 async function initializeGit() {
