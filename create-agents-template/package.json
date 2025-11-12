@@ -12,7 +12,8 @@
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "drizzle-kit migrate",
     "upgrade-agents": "node scripts/upgrade.js",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "setup-dev": "node scripts/setup.js"
   },
   "dependencies": {
     "@inkeep/agents-core": "^0.30.3",
