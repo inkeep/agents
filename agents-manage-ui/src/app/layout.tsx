@@ -68,7 +68,7 @@ export default function RootLayout({
                   '--header-height': 'calc(var(--spacing) * 12)',
                 }}
               >
-                <AppSidebar variant="inset" />
+                <AppSidebar />
                 <SidebarInset>{children}</SidebarInset>
               </SidebarProvider>
               <Toaster />

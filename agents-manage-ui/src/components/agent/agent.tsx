@@ -96,6 +96,7 @@ import { SelectedMarker } from './markers/selected-marker';
 import NodeLibrary from './node-library/node-library';
 import { SidePane } from './sidepane/sidepane';
 import { Toolbar } from './toolbar/toolbar';
+import { useSidebar } from '@/components/ui/sidebar';
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
@@ -984,6 +985,18 @@ function AgentReactFlowConsumer({
 }
 
 export function Agent(props: AgentProps) {
+  const { setOpen, open: initialOpen } = useSidebar();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore all deps
+  useEffect(() => {
+    // Always collapse sidebar
+    setOpen(false);
+    return () => {
+      // Set initial open when leaving agents page
+      setOpen(initialOpen);
+    };
+  }, []);
+
   return (
     <ReactFlowProvider>
       <AgentReactFlowConsumer {...props} />
