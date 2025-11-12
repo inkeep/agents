@@ -696,6 +696,8 @@ export const credentialReferences = pgTable(
  * runs where conversations are created from dataset items. Each datasetRun
  * specifies which agent to use when executing the dataset.
  * 
+ * one to many relationship with datasetItem
+ * 
  * Includes: name, description, and timestamps
  */
 export const dataset = pgTable(
@@ -721,6 +723,7 @@ export const dataset = pgTable(
  * Individual test case within a dataset. Contains the input messages to send
  * to an agent and optionally expected output or simulation configuration.
  * When a dataset run executes, it creates conversations from these items.
+ * 
  * 
  * Includes: input (messages array with optional headers), expected output (array of messages),
  * simulation config (user persona, initialMessage with headers, stopWhen conditions,
@@ -791,10 +794,12 @@ export const evaluator = pgTable(
  * Example: "Run weekly with agent X against dataset Y (1000 items)"
  * 
  * When triggered (based on runFrequency cron), creates a datasetRun that executes
- * all items in the dataset, creating conversations with the specified agent.
+ * all items in the dataset, creating conversations with the specified agents.
+ * 
+ * one to many relationship with datasetRun
  * 
  * Includes: name, description, runFrequency (cron expression string),
- * datasetId (which dataset to run), agentId (which agent to use for conversations),
+ * datasetId (which dataset to run), agentIds (array of agent IDs to use for conversations), sampleRate (for sampling the dataset),
  * and timestamps
  */
 export const datasetRunConfig = pgTable(
@@ -804,7 +809,8 @@ export const datasetRunConfig = pgTable(
     ...uiProperties,
     runFrequency: text('run_frequency').notNull(), // cron expression string (e.g., "0 0 * * 0" for weekly)
     datasetId: text('dataset_id').notNull(),
-    agentId: text('agent_id').notNull(),
+    agentIds: jsonb('agent_ids').$type<string[]>().notNull(), // Which agents to use for conversations
+    sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
   (table) => [
@@ -819,15 +825,9 @@ export const datasetRunConfig = pgTable(
       foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
       name: 'dataset_run_config_dataset_fk',
     }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'dataset_run_config_agent_fk',
-    }).onDelete('cascade'),
   ]
 );
 
-/**
 /**
  * Dataset Run table (RUNTIME STORAGE)
  * 
@@ -921,6 +921,8 @@ export const datasetRunConversationRelations = pgTable(
  * - Daily → evaluates conversations from the last day
  * - Weekly → evaluates conversations from the last week
  * - Monthly → evaluates conversations from the last month
+ * 
+ * one to many relationship with evaluationRun
  *
  * 
  * Includes: name, description, runFrequency (cron expression string),
@@ -987,6 +989,8 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
  * 
  * Created manually or by external systems. Contains job-specific filters like
  * datasetRunIds, conversationIds, and absolute dateRange.
+ * 
+ * one to many relationship with evaluationRun
  * 
  * When a job completes, an evaluationRun is created with evaluationJobConfigId set.
  * 
@@ -1056,6 +1060,7 @@ export const evaluationJobConfigEvaluatorRelations = pgTable(
  * Represents a completed evaluation run. Links to the evaluationJobConfig (if created from a job)
  * and evaluationSuiteConfig (if created from a suite config).
  * Results are stored in evaluationResult table.
+ * one to many relationship with evaluationResult
  * 
  * Includes: evaluationJobConfigId (optional: if created from a job),
  * evaluationSuiteConfigId (optional: if created from a policy trigger),
@@ -1541,10 +1546,6 @@ export const datasetRunConfigRelations = relations(datasetRunConfig, ({ one, man
   dataset: one(dataset, {
     fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.datasetId],
     references: [dataset.tenantId, dataset.projectId, dataset.id],
-  }),
-  agent: one(agents, {
-    fields: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.agentId],
-    references: [agents.tenantId, agents.projectId, agents.id],
   }),
   runs: many(datasetRun),
 }));
