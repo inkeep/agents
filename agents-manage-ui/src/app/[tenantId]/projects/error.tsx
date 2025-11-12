@@ -6,9 +6,12 @@ export default function ProjectsErrorBoundary({
   error,
   reset,
 }: {
-  error: Error & { cause?: { code: string; status: number } & { message: string } };
+  error: Error & { cause?: { code: string; status: number; message: string } };
   reset: () => void;
 }) {
+  if (process.env.NEXT_PUBLIC_CI === 'true') {
+    throw error;
+  }
   return (
     <FullPageError
       error={error}
