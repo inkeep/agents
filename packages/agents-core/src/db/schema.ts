@@ -17,6 +17,7 @@ import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
   ConversationMetadata,
+  Filter,
   MessageContent,
   MessageMetadata,
   Models,
@@ -726,9 +727,8 @@ export const dataset = pgTable(
  * 
  * 
  * Includes: input (messages array with optional headers), expected output (array of messages),
- * simulation config (user persona, initialMessage with headers, stopWhen conditions,
- * agentDefinition with prompt/modelConfig), and timestamps
- * simulationConfig is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
+ * simulation agent (stopWhen conditions, prompt/modelConfig), and timestamps
+ * simulationAgent is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -740,7 +740,7 @@ export const datasetItem = pgTable(
       headers?: Record<string, string>;
     }>().notNull(),
     expectedOutput: jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
-    simulationAgentDefinition: jsonb('simulation_agent_definition').$type<{
+    simulationAgent: jsonb('simulation_agent').$type<{
       stopWhen?: StopWhen;
       prompt: string;
       model: ModelSettings;
@@ -802,20 +802,14 @@ export const evaluator = pgTable(
  * many to many relationship with agents (via join table)
  * many to many relationship with evaluationSuiteConfig (via join table)
  * 
- * Includes: name, description, runFrequency (cron expression string or null for manual/one-time runs),
- * datasetId (which dataset to run),
+ * Includes: name, description, datasetId (which dataset to run),
  * and timestamps
- * 
- * runFrequency behavior:
- * - If set to a cron expression (e.g., "0 0 * * 0" for weekly): scheduled automatic runs
- * - If null: manual/one-time runs only (no automatic scheduling)
  */
 export const datasetRunConfig = pgTable(
   'dataset_run_config',
   {
     ...projectScoped,
     ...uiProperties,
-    runFrequency: text('run_frequency'), // cron expression string (e.g., "0 0 * * 0" for weekly) or null for manual/one-time runs
     datasetId: text('dataset_id').notNull(),
     ...timestamps,
   },
@@ -993,16 +987,17 @@ export const datasetRunConversationRelations = pgTable(
  * Includes: name, description, filters (JSONB for evaluation criteria),
  * sampleRate for sampling, and timestamps
  */
+type EvaluationSuiteFilterCriteria = {
+  agentIds?: string[];
+  [key: string]: unknown;
+};
+
 export const evaluationSuiteConfig = pgTable(
   'evaluation_suite_config',
   {
     ...projectScoped,
     ...uiProperties,
-    filters: jsonb('filters').$type<{
-      agentIds?: string[];
-      [key: string]: unknown;
-    }>(), // Filters for the evaluation suite (includes agentIds and other filter criteria)
-    //todo: add other filter criteria
+    filters: jsonb('filters').$type<Filter<EvaluationSuiteFilterCriteria>>(), // Filters for the evaluation suite (supports and/or operations)
     sampleRate: doublePrecision('sample_rate'),
     ...timestamps,
   },
