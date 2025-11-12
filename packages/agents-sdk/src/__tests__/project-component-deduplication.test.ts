@@ -66,7 +66,7 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-1',
         name: 'Sub Agent 1',
         prompt: 'Agent 1 prompt',
-        dataComponents: [sharedDataComponent],
+        dataComponents: () => [sharedDataComponent],
       });
 
       const agent1 = new Agent({
@@ -80,7 +80,7 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-2',
         name: 'Sub Agent 2',
         prompt: 'Agent 2 prompt',
-        dataComponents: [sharedDataComponent],
+        dataComponents: () => [sharedDataComponent],
       });
 
       const agent2 = new Agent({
@@ -131,7 +131,7 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-1',
         name: 'Sub Agent 1',
         prompt: 'Agent 1 prompt',
-        artifactComponents: [sharedArtifactComponent],
+        artifactComponents: () => [sharedArtifactComponent],
       });
 
       const agent1 = new Agent({
@@ -145,7 +145,7 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-2',
         name: 'Sub Agent 2',
         prompt: 'Agent 2 prompt',
-        artifactComponents: [sharedArtifactComponent],
+        artifactComponents: () => [sharedArtifactComponent],
       });
 
       const agent2 = new Agent({
@@ -203,14 +203,14 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-1',
         name: 'Sub Agent 1',
         prompt: 'Agent 1 prompt',
-        dataComponents: [component1],
+        dataComponents: () => [component1],
       });
 
       const subAgent2 = new SubAgent({
         id: 'sub-agent-2',
         name: 'Sub Agent 2',
         prompt: 'Agent 2 prompt',
-        dataComponents: [component2],
+        dataComponents: () => [component2],
       });
 
       const agent1 = new Agent({
@@ -263,7 +263,7 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-1',
         name: 'Sub Agent 1',
         prompt: 'Agent prompt',
-        dataComponents: [agentDataComponent],
+        dataComponents: () => [agentDataComponent],
       });
 
       const agent = new Agent({
@@ -316,14 +316,14 @@ describe('Project Component Deduplication', () => {
         id: 'sub-agent-1',
         name: 'Sub Agent 1',
         prompt: 'Agent 1 prompt',
-        dataComponents: [componentWithGetId],
+        dataComponents: () => [componentWithGetId],
       });
 
       const subAgent2 = new SubAgent({
         id: 'sub-agent-2',
         name: 'Sub Agent 2',
         prompt: 'Agent 2 prompt',
-        dataComponents: [componentPlainObject],
+        dataComponents: () => [componentPlainObject],
       });
 
       const agent1 = new Agent({
