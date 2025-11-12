@@ -475,15 +475,14 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
                 }),
               }),
             };
-          } else {
-            return {
-              from: vi.fn().mockReturnValue({
-                innerJoin: vi.fn().mockReturnValue({
-                  where: vi.fn().mockResolvedValue([]),
-                }),
-              }),
-            };
           }
+          return {
+            from: vi.fn().mockReturnValue({
+              innerJoin: vi.fn().mockReturnValue({
+                where: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          };
         }),
       } as any;
 

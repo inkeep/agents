@@ -1,6 +1,6 @@
 {
   "name": "test-agents",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "type": "module",
   "private": true,
   "dependencies": {
