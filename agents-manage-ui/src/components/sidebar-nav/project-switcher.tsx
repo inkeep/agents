@@ -57,14 +57,14 @@ export function ProjectSwitcher() {
     if (!tenantId) return;
 
     fetchProjectsAction(tenantId)
-      .then((res) => {
-        setIsLoading(false);
-        setProjects(res.success && res.data ? res.data : []);
-      })
+      .then((res) => (res.success && res.data ? res.data : []))
       .catch((error) => {
         console.error('Error fetching projects:', error);
+        return [] as Project[];
+      })
+      .then((projects) => {
         setIsLoading(false);
-        setProjects([]);
+        setProjects(projects);
       });
   }, [tenantId]);
 
