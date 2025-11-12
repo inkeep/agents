@@ -11,22 +11,15 @@ import { ProjectSelector } from './project-selector';
 export function ProjectSwitcher() {
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
-  const params = useParams();
-  const tenantId = params.tenantId;
-  const projectId = params.projectId;
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   useEffect(() => {
     if (!tenantId) return;
 
-    fetchProjectsAction(tenantId as string)
+    fetchProjectsAction(tenantId)
       .then((res) => {
         setIsLoading(false);
-        if (res.success && res.data) {
-          const projectResults = res.data;
-          setProjects(projectResults);
-        } else {
-          setProjects([]);
-        }
+        setProjects(res.success && res.data ? res.data : []);
       })
       .catch((error) => {
         console.error('Error fetching projects:', error);
@@ -38,18 +31,14 @@ export function ProjectSwitcher() {
   return (
     <div className="flex flex-col gap-2">
       {isLoading ? (
-        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-13 w-full" />
       ) : projects.length === 0 ? (
         <div className="flex flex-col gap-2 px-2">
           <p className="text-sm text-muted-foreground">No projects yet</p>
-          <NewProjectDialog tenantId={tenantId as string} />
+          <NewProjectDialog tenantId={tenantId} />
         </div>
       ) : (
-        <ProjectSelector
-          projects={projects}
-          selectedProjectId={projectId as string}
-          tenantId={tenantId as string}
-        />
+        <ProjectSelector projects={projects} selectedProjectId={projectId} tenantId={tenantId} />
       )}
     </div>
   );
