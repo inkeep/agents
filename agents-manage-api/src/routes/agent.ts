@@ -4,6 +4,7 @@ import {
   AgentApiUpdateSchema,
   AgentListResponse,
   AgentResponse,
+  AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
@@ -14,11 +15,9 @@ import {
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
-  ListResponseSchema,
   listAgents,
   PaginationQueryParamsSchema,
-  RelatedAgentInfoSchema,
-  SingleResponseSchema,
+  RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
@@ -124,7 +123,7 @@ app.openapi(
         description: 'Related agent infos retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(RelatedAgentInfoSchema),
+            schema: RelatedAgentInfoListResponse,
           },
         },
       },
@@ -167,7 +166,7 @@ app.openapi(
         description: 'Full agent definition retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
