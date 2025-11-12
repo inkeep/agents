@@ -17,7 +17,7 @@ export function setupOpenAPIRoutes(app: any) {
         servers: [
           {
             url: env.AGENTS_RUN_API_URL,
-            description: 'Development server',
+            description: 'API Server',
           },
         ],
       });
