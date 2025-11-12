@@ -6,9 +6,9 @@ import {
   deleteFullProject,
   ErrorResponseSchema,
   type FullProjectDefinition,
+  FullProjectDefinitionResponse,
   FullProjectDefinitionSchema,
   getFullProject,
-  SingleResponseSchema,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
@@ -45,7 +45,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -106,7 +106,7 @@ app.openapi(
         description: 'Full project found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -173,7 +173,7 @@ app.openapi(
         description: 'Full project updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },
@@ -181,7 +181,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FullProjectDefinitionSchema),
+            schema: FullProjectDefinitionResponse,
           },
         },
       },

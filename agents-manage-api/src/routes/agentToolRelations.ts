@@ -9,14 +9,14 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentToolRelationApiInsertSchema,
   SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
   type SubAgentToolRelationSelect,
+  SubAgentToolRelationListResponse,
+  SubAgentToolRelationResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
@@ -45,7 +45,7 @@ app.openapi(
         description: 'List of agent tool relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
@@ -120,7 +120,7 @@ app.openapi(
         description: 'Agent tool relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -163,7 +163,7 @@ app.openapi(
         description: 'Agents for tool retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
@@ -206,7 +206,7 @@ app.openapi(
         description: 'Agent tool relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -274,7 +274,7 @@ app.openapi(
         description: 'Agent tool relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },

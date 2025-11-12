@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createApiError,
@@ -8,7 +9,6 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
-  SingleResponseSchema,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
@@ -45,7 +45,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -91,7 +91,7 @@ app.openapi(
         description: 'Full agent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -158,7 +158,7 @@ app.openapi(
         description: 'Full agent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -166,7 +166,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },

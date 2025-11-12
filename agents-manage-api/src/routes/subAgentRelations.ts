@@ -9,16 +9,15 @@ import {
   getAgentRelationById,
   getAgentRelationsBySource,
   getSubAgentRelationsByTarget,
-  ListResponseSchema,
   listAgentRelations,
   type Pagination,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentRelationApiInsertSchema,
   type SubAgentRelationApiSelect,
-  SubAgentRelationApiSelectSchema,
   SubAgentRelationApiUpdateSchema,
+  SubAgentRelationListResponse,
   SubAgentRelationQuerySchema,
+  SubAgentRelationResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateAgentRelation,
@@ -44,7 +43,7 @@ app.openapi(
         description: 'List of sub agent relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentRelationApiSelectSchema),
+            schema: SubAgentRelationListResponse,
           },
         },
       },
@@ -107,7 +106,7 @@ app.openapi(
         description: 'Sub Agent relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
+            schema: SubAgentRelationResponse,
           },
         },
       },
@@ -154,7 +153,7 @@ app.openapi(
         description: 'Sub Agent Relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
+            schema: SubAgentRelationResponse,
           },
         },
       },
@@ -237,7 +236,7 @@ app.openapi(
         description: 'Sub Agent relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentRelationApiSelectSchema),
+            schema: SubAgentRelationResponse,
           },
         },
       },
