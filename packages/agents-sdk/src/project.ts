@@ -771,7 +771,7 @@ export class Project implements ProjectInterface {
             try {
               // Normalize component ID using consistent logic
               const dataComponentId = this.normalizeComponentId(dataComponent, 'data');
-              
+
               // Extract component properties
               let dataComponentName: string;
               let dataComponentDescription: string;
@@ -866,7 +866,7 @@ export class Project implements ProjectInterface {
             try {
               // Normalize component ID using consistent logic
               const artifactComponentId = this.normalizeComponentId(artifactComponent, 'artifact');
-              
+
               // Extract component properties
               let artifactComponentName: string;
               let artifactComponentDescription: string;
