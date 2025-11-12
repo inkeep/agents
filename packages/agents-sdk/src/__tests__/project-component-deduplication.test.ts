@@ -5,7 +5,6 @@ import { DataComponent } from '../data-component';
 import type { ProjectConfig } from '../project';
 import { Project } from '../project';
 import { SubAgent } from '../subAgent';
-import type { AgentConfig } from '../types';
 
 // Mock the logger
 vi.mock('../logger', () => ({
@@ -175,12 +174,12 @@ describe('Project Component Deduplication', () => {
       );
 
       // Verify both agents reference the component by ID
-      expect(
-        fullDefinition.agents['agent-1'].subAgents['sub-agent-1'].artifactComponents
-      ).toEqual(['shared-artifact-component']);
-      expect(
-        fullDefinition.agents['agent-2'].subAgents['sub-agent-2'].artifactComponents
-      ).toEqual(['shared-artifact-component']);
+      expect(fullDefinition.agents['agent-1'].subAgents['sub-agent-1'].artifactComponents).toEqual([
+        'shared-artifact-component',
+      ]);
+      expect(fullDefinition.agents['agent-2'].subAgents['sub-agent-2'].artifactComponents).toEqual([
+        'shared-artifact-component',
+      ]);
     });
 
     it('should deduplicate components by name when IDs differ but names match', async () => {
@@ -357,4 +356,3 @@ describe('Project Component Deduplication', () => {
     });
   });
 });
-
