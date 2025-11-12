@@ -59,13 +59,16 @@ function formatRetrievalParams(
   const lines: string[] = ['{'];
 
   for (const [key, value] of Object.entries(retrievalParams)) {
+    // Format the key - only quote it if it contains special characters or starts with number
+    const formattedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `${q}${key}${q}`;
+    
     if (typeof value === 'string') {
-      lines.push(`${indent}${q}${key}${q}: ${formatString(value, q)},`);
+      lines.push(`${indent}${formattedKey}: ${formatString(value, q)},`);
     } else if (typeof value === 'number' || typeof value === 'boolean') {
-      lines.push(`${indent}${q}${key}${q}: ${JSON.stringify(value)},`);
+      lines.push(`${indent}${formattedKey}: ${JSON.stringify(value)},`);
     } else if (typeof value === 'object' && value !== null) {
       lines.push(
-        `${indent}${q}${key}${q}: ${formatRetrievalParams(value, style, indentLevel + 1)},`
+        `${indent}${formattedKey}: ${formatRetrievalParams(value, style, indentLevel + 1)},`
       );
     }
   }
@@ -133,12 +136,6 @@ export function generateCredentialDefinition(
     } else {
       lines.push(`${indentation}retrievalParams: ${formattedParams},`);
     }
-  } else {
-    // Provide default retrieval params based on credential ID
-    const defaultKey = credentialId.toUpperCase().replace(/-/g, '_');
-    lines.push(`${indentation}retrievalParams: {`);
-    lines.push(`${indentation}${indentation}${q}key${q}: ${formatString(defaultKey, q)}`);
-    lines.push(`${indentation}},`);
   }
 
   // Remove trailing comma from last line

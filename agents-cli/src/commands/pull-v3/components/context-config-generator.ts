@@ -5,20 +5,16 @@
  * builder functions from @inkeep/agents-core
  */
 
-import chalk from 'chalk';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { ComponentRegistry } from '../utils/component-registry';
 import {
   type CodeStyle,
   DEFAULT_STYLE,
-  formatObject,
-  formatPromptWithContext,
   formatString,
   generateFileContent,
   generateImport,
   hasTemplateVariables,
   removeTrailingComma,
-  shouldInclude,
   toCamelCase,
 } from '../utils/generator-utils';
 
@@ -36,7 +32,13 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
         );
         return `\`${convertedStr.replace(/`/g, '\\`')}\``;
       } else {
-        return `'${value.replace(/'/g, "\\'")}'`;
+        // Check if string is multi-line or long, use template literals if so
+        const isMultiline = value.includes('\n') || value.length > 80;
+        if (isMultiline) {
+          return `\`${value.replace(/`/g, '\\`')}\``;
+        } else {
+          return `'${value.replace(/'/g, "\\'")}'`;
+        }
       }
     } else if (typeof value === 'object' && value !== null) {
       return processObject(value);
@@ -143,7 +145,8 @@ export function generateFetchDefinitionDefinition(
   // defaultValue
   if (fetchData.defaultValue) {
     if (typeof fetchData.defaultValue === 'string') {
-      lines.push(`${indentation}defaultValue: ${formatString(fetchData.defaultValue, q)},`);
+      const isMultiline = fetchData.defaultValue.includes('\n') || fetchData.defaultValue.length > 80;
+      lines.push(`${indentation}defaultValue: ${formatString(fetchData.defaultValue, q, isMultiline)},`);
     } else {
       lines.push(`${indentation}defaultValue: ${JSON.stringify(fetchData.defaultValue)},`);
     }
