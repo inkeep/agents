@@ -39,11 +39,14 @@ import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
-import { CopilotChat } from './copilot/copilot-chat';
 
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
   loading: () => <EditorLoadingSkeleton className="p-6" />,
+});
+
+const CopilotChat = dynamic(() => import('./copilot/copilot-chat').then((mod) => mod.CopilotChat), {
+  ssr: false,
 });
 
 // Type for agent tool configuration lookup including both selection and headers

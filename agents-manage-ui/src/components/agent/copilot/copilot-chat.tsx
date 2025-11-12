@@ -1,14 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-
-const InkeepSidebarChat = dynamic(
-  () => import('@inkeep/agents-ui').then((mod) => mod.InkeepSidebarChat),
-  {
-    ssr: false,
-  }
-);
 
 interface CopilotChatProps {
   agentId?: string;
