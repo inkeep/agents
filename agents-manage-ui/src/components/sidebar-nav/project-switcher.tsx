@@ -95,7 +95,7 @@ export function ProjectSwitcher() {
           <DropdownMenuItem key={project.projectId} asChild>
             <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
               <ProjectItem
-                name={project.name || project.projectId}
+                name={project.name}
                 description={project.description}
                 icon={project.projectId === projectId && Check}
               />
