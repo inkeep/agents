@@ -199,9 +199,9 @@ describe('Credential Generator', () => {
       expect(definition).toContain('retrievalParams: {');
       expect(definition).toContain("service: 'oauth-service',");
       expect(definition).toContain("account: 'user@example.com',");
-      expect(definition).toContain("config: {");
-      expect(definition).toContain("timeout: 5000,");
-      expect(definition).toContain("retries: 3");
+      expect(definition).toContain('config: {');
+      expect(definition).toContain('timeout: 5000,');
+      expect(definition).toContain('retries: 3');
     });
 
     it('should handle different data types in retrieval params', () => {
@@ -220,9 +220,9 @@ describe('Credential Generator', () => {
       const definition = generateCredentialDefinition('mixed', mixedParamsCredential);
 
       expect(definition).toContain("key: 'API_KEY',");
-      expect(definition).toContain("port: 3000,");
-      expect(definition).toContain("enabled: true,");
-      expect(definition).toContain("timeout: 30.5");
+      expect(definition).toContain('port: 3000,');
+      expect(definition).toContain('enabled: true,');
+      expect(definition).toContain('timeout: 30.5');
     });
   });
 

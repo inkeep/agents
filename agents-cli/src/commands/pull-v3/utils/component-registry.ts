@@ -408,9 +408,11 @@ export class ComponentRegistry {
 
     // Find common path prefix
     let commonLength = 0;
-    while (commonLength < fromDir.length && 
-           commonLength < toFile.length - 1 && 
-           fromDir[commonLength] === toFile[commonLength]) {
+    while (
+      commonLength < fromDir.length &&
+      commonLength < toFile.length - 1 &&
+      fromDir[commonLength] === toFile[commonLength]
+    ) {
       commonLength++;
     }
 

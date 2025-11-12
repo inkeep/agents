@@ -10,7 +10,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import { Project, Node, SyntaxKind } from 'ts-morph';
+import { Node, Project, SyntaxKind } from 'ts-morph';
 
 interface TargetedPlaceholderResult {
   processedContent: string;
@@ -50,7 +50,7 @@ export function createTargetedTypeScriptPlaceholders(
   try {
     // Create a temporary project to parse the TypeScript
     const project = new Project({ useInMemoryFileSystem: true });
-    const sourceFile = project.createSourceFile("temp.ts", content);
+    const sourceFile = project.createSourceFile('temp.ts', content);
 
     // Track all replacements to apply them in order
     const replacementOperations: Array<{
@@ -65,7 +65,7 @@ export function createTargetedTypeScriptPlaceholders(
       if (Node.isPropertyAssignment(node)) {
         const propertyName = node.getName();
         const valueNode = node.getInitializer();
-        
+
         if (!valueNode) return;
 
         // Get the exact text that will be replaced (no trimming to match boundaries)
@@ -73,7 +73,7 @@ export function createTargetedTypeScriptPlaceholders(
         if (valueText.trim().length < MIN_REPLACEMENT_LENGTH) return;
 
         let placeholderPrefix = '';
-        
+
         // Check if this is a field we want to replace
         switch (propertyName) {
           case 'prompt':
@@ -98,11 +98,11 @@ export function createTargetedTypeScriptPlaceholders(
         // Get precise boundaries and fix them if needed
         const start = valueNode.getStart();
         let end = valueNode.getEnd();
-        
+
         // Validate that the boundaries don't extend beyond the property assignment
         const propertyAssignment = node; // The PropertyAssignment node
         const propertyEnd = propertyAssignment.getEnd();
-        
+
         // For inputSchema specifically, we need to find the actual end of the object
         if (propertyName === 'inputSchema') {
           // The inputSchema should end after the closing brace and comma
@@ -112,11 +112,11 @@ export function createTargetedTypeScriptPlaceholders(
           let correctEnd = -1;
           let inString = false;
           let stringChar = '';
-          
+
           for (let i = searchStart; i < content.length; i++) {
             const char = content[i];
             const prevChar = i > 0 ? content[i - 1] : '';
-            
+
             // Handle string literals
             if ((char === '"' || char === "'") && prevChar !== '\\') {
               if (!inString) {
@@ -127,13 +127,13 @@ export function createTargetedTypeScriptPlaceholders(
                 stringChar = '';
               }
             }
-            
+
             if (!inString) {
               if (char === '{') {
                 braceCount++;
               } else if (char === '}') {
                 braceCount--;
-                
+
                 // When we close all braces and find a comma, that's our end
                 if (braceCount === 0) {
                   // Look ahead for comma and whitespace
@@ -149,8 +149,9 @@ export function createTargetedTypeScriptPlaceholders(
               }
             }
           }
-          
-          if (correctEnd > start && correctEnd < end + 100) { // Sanity check
+
+          if (correctEnd > start && correctEnd < end + 100) {
+            // Sanity check
             end = correctEnd;
             valueText = content.slice(start, end);
           }
@@ -160,10 +161,13 @@ export function createTargetedTypeScriptPlaceholders(
           if (!textAfterValue.match(/^\s*[,}]/)) {
             // Search backwards from the AST end position to find the actual value end
             let correctEnd = end;
-            while (correctEnd > start && !content.slice(correctEnd, correctEnd + 10).match(/^\s*[,}]/)) {
+            while (
+              correctEnd > start &&
+              !content.slice(correctEnd, correctEnd + 10).match(/^\s*[,}]/)
+            ) {
               correctEnd--;
             }
-            
+
             if (correctEnd > start) {
               end = correctEnd;
               valueText = content.slice(start, end);
@@ -172,19 +176,19 @@ export function createTargetedTypeScriptPlaceholders(
             }
           }
         }
-        
+
         // If the value boundary extends beyond the property boundary, something is wrong
         if (end > propertyEnd) {
           return;
         }
-        
+
         const actualText = content.slice(start, end);
-        
+
         // Ensure getText() matches the actual slice - this is critical for correctness
         if (valueText !== actualText) {
           return; // Skip this replacement to avoid corruption
         }
-        
+
         // Final validation: ensure the replacement doesn't contain parts of other properties
         const finalTextAfterValue = content.slice(end, end + 20);
         if (!finalTextAfterValue.match(/^\s*[,}]/)) {
@@ -201,20 +205,18 @@ export function createTargetedTypeScriptPlaceholders(
           start: start,
           end: end,
           placeholder,
-          originalText: valueText // This now matches what we'll actually replace
+          originalText: valueText, // This now matches what we'll actually replace
         });
       }
     });
 
     // Apply replacements from end to beginning to maintain positions
     replacementOperations.sort((a, b) => b.start - a.start);
-    
+
     let processedContent = content;
     for (const op of replacementOperations) {
-      processedContent = 
-        processedContent.slice(0, op.start) + 
-        op.placeholder + 
-        processedContent.slice(op.end);
+      processedContent =
+        processedContent.slice(0, op.start) + op.placeholder + processedContent.slice(op.end);
     }
 
     const processedSize = processedContent.length;
@@ -232,7 +234,6 @@ export function createTargetedTypeScriptPlaceholders(
         replacedFields,
       },
     };
-
   } catch (error) {
     // Fallback to original content if AST parsing fails
     return {

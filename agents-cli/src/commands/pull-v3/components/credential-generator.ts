@@ -61,7 +61,7 @@ function formatRetrievalParams(
   for (const [key, value] of Object.entries(retrievalParams)) {
     // Format the key - only quote it if it contains special characters or starts with number
     const formattedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `${q}${key}${q}`;
-    
+
     if (typeof value === 'string') {
       lines.push(`${indent}${formattedKey}: ${formatString(value, q)},`);
     } else if (typeof value === 'number' || typeof value === 'boolean') {

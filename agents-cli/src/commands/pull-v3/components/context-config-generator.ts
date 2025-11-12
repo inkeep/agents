@@ -132,15 +132,11 @@ export function generateFetchDefinitionDefinition(
 
   // fetchConfig - handle template variables in URLs and headers
   if (fetchData.fetchConfig) {
-    console.log(`🔍 [FetchDef ${fetchId}] Original fetchConfig keys:`, Object.keys(fetchData.fetchConfig));
-    console.log(`🔍 [FetchDef ${fetchId}] Original fetchConfig:`, JSON.stringify(fetchData.fetchConfig, null, 2));
-    
     const processedFetchConfig = processFetchConfigTemplates(
       fetchData.fetchConfig,
       headersVarName || 'headers'
     );
-    console.log(`🔍 [FetchDef ${fetchId}] Processed fetchConfig:`, processedFetchConfig);
-    
+
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
 
@@ -153,8 +149,11 @@ export function generateFetchDefinitionDefinition(
   // defaultValue
   if (fetchData.defaultValue) {
     if (typeof fetchData.defaultValue === 'string') {
-      const isMultiline = fetchData.defaultValue.includes('\n') || fetchData.defaultValue.length > 80;
-      lines.push(`${indentation}defaultValue: ${formatString(fetchData.defaultValue, q, isMultiline)},`);
+      const isMultiline =
+        fetchData.defaultValue.includes('\n') || fetchData.defaultValue.length > 80;
+      lines.push(
+        `${indentation}defaultValue: ${formatString(fetchData.defaultValue, q, isMultiline)},`
+      );
     } else {
       lines.push(`${indentation}defaultValue: ${JSON.stringify(fetchData.defaultValue)},`);
     }
@@ -305,35 +304,30 @@ export function generateContextConfigImports(
   // Import credentials if any fetchDefinitions reference them
   if (registry && contextData.contextVariables) {
     const credentialRefs: Array<{ id: string; type: ComponentType }> = [];
-    
-    console.log(`🔍 [Context ${contextId}] Checking for credential references in contextVariables:`, Object.keys(contextData.contextVariables));
-    
+
     // Collect all credential references from fetchDefinitions
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [string, any][]) {
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
+      string,
+      any,
+    ][]) {
       if (varData && typeof varData === 'object' && varData.credentialReferenceId) {
-        console.log(`   ✅ Found credential reference in ${varName}: ${varData.credentialReferenceId}`);
         credentialRefs.push({
           id: varData.credentialReferenceId,
-          type: 'credentials'
+          type: 'credentials',
         });
-      } else {
-        console.log(`   ℹ️  Variable ${varName} has no credentialReferenceId:`, { hasCredRef: !!varData?.credentialReferenceId, type: typeof varData });
       }
     }
-    
+
     if (credentialRefs.length > 0) {
       // Get the current file path from registry (no hardcoded paths)
       const contextComponent = registry.get(contextId, 'contextConfigs');
       if (contextComponent) {
-        console.log(`   📦 Generating credential imports for ${contextComponent.filePath}:`, credentialRefs.map(r => r.id));
-        const credentialImports = registry.getImportsForFile(contextComponent.filePath, credentialRefs);
-        console.log(`   📥 Generated ${credentialImports.length} credential imports:`, credentialImports);
+        const credentialImports = registry.getImportsForFile(
+          contextComponent.filePath,
+          credentialRefs
+        );
         imports.push(...credentialImports);
-      } else {
-        console.log(`   ⚠️  Context component not found in registry: ${contextId}`);
       }
-    } else {
-      console.log(`   ℹ️  No credential references found in context ${contextId}`);
     }
   }
 

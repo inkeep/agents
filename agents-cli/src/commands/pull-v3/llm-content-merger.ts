@@ -42,7 +42,6 @@ function calculateCostEstimate(promptTokens: number, completionTokens: number): 
   return promptCost + completionCost;
 }
 
-
 interface ComponentMergeRequest {
   oldContent: string;
   newContent: string;
@@ -82,47 +81,61 @@ interface ComponentMergeResult {
 export async function mergeComponentsWithLLM(
   request: ComponentMergeRequest
 ): Promise<ComponentMergeResult> {
-  const { oldContent, newContent, modifiedComponents, filePath, newComponents, componentsToExport } = request;
+  const {
+    oldContent,
+    newContent,
+    modifiedComponents,
+    filePath,
+    newComponents,
+    componentsToExport,
+  } = request;
 
   const componentList = modifiedComponents
     .map((c) => `- ${c.componentType}:${c.componentId}`)
     .join('\n');
 
-  const newComponentsList = newComponents && newComponents.length > 0 
-    ? newComponents.map((c) => {
-        // Calculate correct import path from the current file being written to the new component
-        const currentFilePath = filePath.replace(/^.*\/([^/]+\/[^/]+)$/, '$1'); // Get relative path like 'agents/test-agent.ts'
-        const currentDir = currentFilePath.replace(/\/[^/]+$/, ''); // Get directory like 'agents'
-        
-        // Clean the component file path
-        let componentPath = c.filePath;
-        if (componentPath.includes('.temp-')) {
-          componentPath = componentPath.replace(/^.*\.temp-[^/]+\//, '');
-        }
-        componentPath = componentPath.replace(/\.ts$/, '');
-        
-        // Calculate relative import from current directory to component
-        const importPath = calculateRelativeImportPath(currentDir, componentPath);
-        
-        // Generate variable name (convert kebab-case to camelCase)  
-        const variableName = c.componentId.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-        
-        return `- ${c.componentType}:${c.componentId} (import as: import { ${variableName} } from '${importPath}')`;
-      })
-        .join('\n')
-    : '';
+  const newComponentsList =
+    newComponents && newComponents.length > 0
+      ? newComponents
+          .map((c) => {
+            // Calculate correct import path from the current file being written to the new component
+            const currentFilePath = filePath.replace(/^.*\/([^/]+\/[^/]+)$/, '$1'); // Get relative path like 'agents/test-agent.ts'
+            const currentDir = currentFilePath.replace(/\/[^/]+$/, ''); // Get directory like 'agents'
+
+            // Clean the component file path
+            let componentPath = c.filePath;
+            if (componentPath.includes('.temp-')) {
+              componentPath = componentPath.replace(/^.*\.temp-[^/]+\//, '');
+            }
+            componentPath = componentPath.replace(/\.ts$/, '');
+
+            // Calculate relative import from current directory to component
+            const importPath = calculateRelativeImportPath(currentDir, componentPath);
+
+            // Generate variable name (convert kebab-case to camelCase)
+            const variableName = c.componentId.replace(/-([a-z])/g, (_, letter) =>
+              letter.toUpperCase()
+            );
+
+            return `- ${c.componentType}:${c.componentId} (import as: import { ${variableName} } from '${importPath}')`;
+          })
+          .join('\n')
+      : '';
 
   function calculateRelativeImportPath(fromDir: string, toPath: string): string {
     const fromParts = fromDir.split('/');
     const toParts = toPath.split('/');
-    
+
     // Find common path
     let commonLength = 0;
-    while (commonLength < fromParts.length && commonLength < toParts.length - 1 && 
-           fromParts[commonLength] === toParts[commonLength]) {
+    while (
+      commonLength < fromParts.length &&
+      commonLength < toParts.length - 1 &&
+      fromParts[commonLength] === toParts[commonLength]
+    ) {
       commonLength++;
     }
-    
+
     // Calculate relative path
     const upLevels = fromParts.length - commonLength;
     let relativePath = '';
@@ -130,14 +143,14 @@ export async function mergeComponentsWithLLM(
       relativePath += '../';
     }
     relativePath += toParts.slice(commonLength).join('/');
-    
+
     return relativePath.startsWith('../') ? relativePath : './' + relativePath;
   }
 
-  const componentsToExportList = componentsToExport && componentsToExport.length > 0
-    ? componentsToExport.map((c) => `- ${c.variableName} (${c.reason})`)
-        .join('\n')
-    : '';
+  const componentsToExportList =
+    componentsToExport && componentsToExport.length > 0
+      ? componentsToExport.map((c) => `- ${c.variableName} (${c.reason})`).join('\n')
+      : '';
 
   const prompt = `You are a TypeScript code expert tasked with intelligently merging component updates.
 
@@ -146,16 +159,24 @@ Merge the OLD file content with NEW component definitions, preserving the origin
 
 ## Modified Components to Update
 ${componentList}
-${newComponentsList ? `
+${
+  newComponentsList
+    ? `
 ## New Components Available (can be imported)
 ${newComponentsList}
-` : ''}${componentsToExportList ? `
+`
+    : ''
+}${
+  componentsToExportList
+    ? `
 ## Components That Need To Be Exported
 The following existing components are referenced by new components and must be exported:
 ${componentsToExportList}
 
 Ensure these components have export statements (convert \`const\` to \`export const\`, or add \`export\` to existing declarations).
-` : ''}
+`
+    : ''
+}
 ## Instructions
 0. **Please ensure you focus changes to minimize git diff size.** We want a clean git history.
 1. **Preserve original structure**: Keep imports, exports, comments, and overall file organization

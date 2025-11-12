@@ -589,18 +589,19 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     if (modifiedCount > 0) {
       s.start('Applying modified components to temp directory...');
       const { updateModifiedComponents } = await import('./component-updater');
-      
+
       // Transform new component results for LLM context
-      const newComponentsForContext = newComponentResults && newComponentResults.length > 0
-        ? newComponentResults
-            .filter(result => result.success)
-            .map(result => ({
-              componentId: result.componentId,
-              componentType: result.componentType,
-              filePath: result.filePath.replace(paths.projectRoot + '/', '') // Convert to relative path
-            }))
-        : undefined;
-      
+      const newComponentsForContext =
+        newComponentResults && newComponentResults.length > 0
+          ? newComponentResults
+              .filter((result) => result.success)
+              .map((result) => ({
+                componentId: result.componentId,
+                componentType: result.componentType,
+                filePath: result.filePath.replace(paths.projectRoot + '/', ''), // Convert to relative path
+              }))
+          : undefined;
+
       const updateResults = await updateModifiedComponents(
         comparison,
         remoteProject,

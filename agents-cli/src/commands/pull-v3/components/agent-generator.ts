@@ -5,6 +5,7 @@
  * Top-level agents are the main entry points that handle statusUpdates with statusComponents
  */
 
+import { compareJsonObjects } from '../../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -17,7 +18,6 @@ import {
   removeTrailingComma,
   toCamelCase,
 } from '../utils/generator-utils';
-import { compareJsonObjects } from '../../../utils/json-comparator';
 
 /**
  * Format statusUpdates configuration with statusComponents references
@@ -161,9 +161,9 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
           return true;
         }
         // Both exist, compare semantically to ignore property ordering
-        const comparison = compareJsonObjects(agentOptions, projectOptions, { 
+        const comparison = compareJsonObjects(agentOptions, projectOptions, {
           ignoreArrayOrder: true,
-          showDetails: false 
+          showDetails: false,
         });
         if (!comparison.isEqual) {
           return true;
@@ -460,7 +460,14 @@ export function generateAgentFile(
   projectModels?: any,
   actualFilePath?: string
 ): string {
-  const imports = generateAgentImports(agentId, agentData, style, registry, contextConfigData, actualFilePath);
+  const imports = generateAgentImports(
+    agentId,
+    agentData,
+    style,
+    registry,
+    contextConfigData,
+    actualFilePath
+  );
   const definition = generateAgentDefinition(
     agentId,
     agentData,

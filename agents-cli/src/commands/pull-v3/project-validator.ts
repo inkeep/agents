@@ -26,22 +26,19 @@ import { ComponentRegistry } from './utils/component-registry';
  */
 function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[] {
   const differences: string[] = [];
-  
+
   // Get all unique keys from both objects
-  const allKeys = new Set([
-    ...Object.keys(obj1 || {}),
-    ...Object.keys(obj2 || {})
-  ]);
-  
+  const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+
   for (const key of allKeys) {
     const val1 = obj1?.[key];
     const val2 = obj2?.[key];
-    
+
     // Skip certain metadata fields that are expected to be different
     if (key.startsWith('_') || key === 'createdAt' || key === 'updatedAt') {
       continue;
     }
-    
+
     if (val1 === undefined && val2 !== undefined) {
       differences.push(`+ ${key}: ${typeof val2} (only in remote)`);
     } else if (val1 !== undefined && val2 === undefined) {
@@ -52,15 +49,17 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
         if (val1.length !== val2.length) {
           differences.push(`~ ${key}: array length differs (${val1.length} vs ${val2.length})`);
         }
-      } else if (typeof val1 === 'object' && typeof val2 === 'object' && val1 !== null && val2 !== null) {
+      } else if (
+        typeof val1 === 'object' &&
+        typeof val2 === 'object' &&
+        val1 !== null &&
+        val2 !== null
+      ) {
         const keys1 = Object.keys(val1);
         const keys2 = Object.keys(val2);
         const subKeys1 = keys1.length;
         const subKeys2 = keys2.length;
         if (subKeys1 !== subKeys2) {
-          console.log(`🔍 [${key}] Key count mismatch:`);
-          console.log(`   Local keys (${subKeys1}):`, keys1.sort());
-          console.log(`   Remote keys (${subKeys2}):`, keys2.sort());
           differences.push(`~ ${key}: object size differs (${subKeys1} vs ${subKeys2} keys)`);
         }
       } else if (typeof val1 !== typeof val2) {
@@ -77,7 +76,7 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
       }
     }
   }
-  
+
   return differences.slice(0, 10); // Limit to 10 differences to avoid spam
 }
 
@@ -111,28 +110,30 @@ function getComponentFromProject(
       if (project.agents) {
         for (const [agentId, agentData] of Object.entries(project.agents)) {
           if (agentData.contextConfig && agentData.contextConfig.id === componentId) {
-            console.log(chalk.cyan(`   🔍 Found contextConfig ${componentId} in agent ${agentId}`));
             return agentData.contextConfig;
           }
         }
       }
-      console.log(chalk.yellow(`   ⚠️ contextConfig ${componentId} not found in any agent`));
       return null;
     case 'fetchDefinitions':
       // FetchDefinitions are nested within contextConfig.contextVariables
       if (project.agents) {
         for (const [agentId, agentData] of Object.entries(project.agents)) {
           if (agentData.contextConfig?.contextVariables) {
-            for (const [varId, variable] of Object.entries(agentData.contextConfig.contextVariables)) {
-              if (variable && typeof variable === 'object' && (variable as any).id === componentId) {
-                console.log(chalk.cyan(`   🔍 Found fetchDefinition ${componentId} in agent ${agentId}, variable ${varId}`));
+            for (const [varId, variable] of Object.entries(
+              agentData.contextConfig.contextVariables
+            )) {
+              if (
+                variable &&
+                typeof variable === 'object' &&
+                (variable as any).id === componentId
+              ) {
                 return variable;
               }
             }
           }
         }
       }
-      console.log(chalk.yellow(`   ⚠️ fetchDefinition ${componentId} not found in any contextConfig`));
       return null;
     case 'dataComponents':
       return project.dataComponents?.[componentId];
@@ -145,7 +146,6 @@ function getComponentFromProject(
     case 'functionTools':
       return project.functionTools?.[componentId];
     default:
-      console.log(chalk.red(`   ❌ Unknown component type: ${componentType}`));
       return null;
   }
 }
@@ -318,30 +318,6 @@ async function validateProjectEquivalence(
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
 
-    // Debug: Log what we found in the temp project vs remote project
-    console.log(chalk.cyan(`   🔍 Temp project structure loaded:`));
-    console.log(chalk.gray(`      agents: ${tempProjectDefinition.agents ? Object.keys(tempProjectDefinition.agents).join(', ') : 'none'}`));
-    if (tempProjectDefinition.agents) {
-      for (const [agentId, agentData] of Object.entries(tempProjectDefinition.agents)) {
-        console.log(chalk.gray(`        ${agentId}: contextConfig=${!!agentData.contextConfig}, contextConfig.id=${agentData.contextConfig?.id}`));
-        if (agentData.contextConfig?.contextVariables) {
-          const varIds = Object.keys(agentData.contextConfig.contextVariables);
-          console.log(chalk.gray(`          contextVariables: ${varIds.join(', ')}`));
-        }
-      }
-    }
-    
-    console.log(chalk.cyan(`   🔍 Remote project structure:`));
-    console.log(chalk.gray(`      agents: ${remoteProject.agents ? Object.keys(remoteProject.agents).join(', ') : 'none'}`));
-    if (remoteProject.agents) {
-      for (const [agentId, agentData] of Object.entries(remoteProject.agents)) {
-        console.log(chalk.gray(`        ${agentId}: contextConfig=${!!agentData.contextConfig}, contextConfig.id=${agentData.contextConfig?.id}`));
-        if (agentData.contextConfig?.contextVariables) {
-          const varIds = Object.keys(agentData.contextConfig.contextVariables);
-          console.log(chalk.gray(`          contextVariables: ${varIds.join(', ')}`));
-        }
-      }
-    }
 
     // Use existing project comparator instead of custom logic
 
@@ -394,18 +370,20 @@ async function validateProjectEquivalence(
 
               // Show the actual differences
               if (generatedComponent && remoteComponent) {
-                const differences = findKeyDifferences(generatedComponent, remoteComponent, modifiedId);
+                const differences = findKeyDifferences(
+                  generatedComponent,
+                  remoteComponent,
+                  modifiedId
+                );
                 if (differences.length > 0) {
-                  differences.forEach(diff => {
-                    console.log(chalk.yellow(`                ${diff}`));
+                  differences.forEach((diff) => {
+                    // Skip detailed logging
                   });
-                } else {
-                  console.log(chalk.gray(`                No significant differences detected`));
                 }
               } else if (!generatedComponent) {
-                console.log(chalk.red(`                Component missing in generated project`));
+                // Component missing
               } else if (!remoteComponent) {
-                console.log(chalk.red(`                Component missing in remote project`));
+                // Component missing
               }
             }
           }

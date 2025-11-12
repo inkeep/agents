@@ -215,14 +215,24 @@ function generateUpdatedComponentContent(
       // Get contextConfig data if agent has one
       const contextConfigData = componentData.contextConfig;
       const projectModels = remoteProject.models;
-      return generateAgentFile(componentId, componentData, defaultStyle, localRegistry, contextConfigData, projectModels, actualFilePath);
+      return generateAgentFile(
+        componentId,
+        componentData,
+        defaultStyle,
+        localRegistry,
+        contextConfigData,
+        projectModels,
+        actualFilePath
+      );
     }
     case 'subAgents': {
       // Find parent agent info for contextConfig handling
       const parentInfo = findSubAgentWithParent(remoteProject, componentId);
       const parentAgentId = parentInfo?.parentAgentId;
       const contextConfigData = parentInfo?.contextConfigData;
-      const parentModels = parentInfo ? remoteProject.agents?.[parentInfo.parentAgentId]?.models : undefined;
+      const parentModels = parentInfo
+        ? remoteProject.agents?.[parentInfo.parentAgentId]?.models
+        : undefined;
 
       return generateSubAgentFile(
         componentId,
@@ -359,7 +369,7 @@ export async function updateModifiedComponents(
     try {
       // Convert absolute path back to relative path for generators
       const relativeFilePath = filePath.replace(projectRoot + '/', '');
-      
+
       // Read current file content
       const oldContent = readFileSync(filePath, 'utf8');
 
@@ -510,7 +520,7 @@ export async function updateModifiedComponents(
         variableName: string;
         reason: string;
       }> = [];
-      
+
       try {
         componentsToExport = analyzeComponentsToExport(
           newComponents || [],
@@ -725,21 +735,24 @@ function analyzeComponentsToExport(
     const allLocalComponents = localRegistry.getAllComponents();
     for (const localComp of allLocalComponents) {
       // Convert the absolute path from registry back to relative for comparison
-      const localCompRelativePath = localComp.filePath.startsWith('/') 
-        ? localComp.filePath.split('/').slice(-2).join('/') // Take last 2 parts (dir/file)
+      const localCompRelativePath = localComp.filePath.startsWith('/')
+        ? localComp.filePath
+            .split('/')
+            .slice(-2)
+            .join('/') // Take last 2 parts (dir/file)
         : localComp.filePath;
-      
+
       if (localCompRelativePath === currentFilePath) {
         // This component is in the current file
         // Check if any new component might reference it (simplified heuristic)
         // For now, we'll be conservative and export commonly referenced components
         if (shouldComponentBeExported(localComp, newComponents)) {
-          const existingExport = componentsToExport.find(c => c.componentId === localComp.id);
+          const existingExport = componentsToExport.find((c) => c.componentId === localComp.id);
           if (!existingExport) {
             componentsToExport.push({
               componentId: localComp.id,
               variableName: localComp.name,
-              reason: `referenced by new component ${newComp.componentType}:${newComp.componentId}`
+              reason: `referenced by new component ${newComp.componentType}:${newComp.componentId}`,
             });
           }
         }
@@ -759,17 +772,17 @@ function shouldComponentBeExported(
 ): boolean {
   // Export components that are likely to be referenced by new components
   // This is a heuristic - in reality, we'd need to parse the new component files to see exact references
-  
+
   // Export all agents and subAgents as they're commonly referenced
   if (localComponent.type === 'agents' || localComponent.type === 'subAgents') {
     return true;
   }
-  
+
   // Export tools that are commonly used
   if (localComponent.type === 'tools' || localComponent.type === 'functionTools') {
     return true;
   }
-  
+
   // Export context configs as they're often referenced
   if (localComponent.type === 'contextConfigs') {
     return true;
@@ -782,4 +795,3 @@ function shouldComponentBeExported(
 
   return false;
 }
-

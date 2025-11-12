@@ -78,35 +78,6 @@ export async function compareProjects(
 
   // Debug logging removed
 
-  // Debug: Show all detected changes in detail
-  if (debug && changes.length > 0) {
-    console.log(chalk.yellow(`\n🔍 DETAILED CHANGES ANALYSIS (${changes.length} total changes):`));
-    changes.forEach((change, index) => {
-      console.log(chalk.cyan(`\n--- Change #${index + 1} ---`));
-      console.log(chalk.gray(`Component: ${change.componentType}:${change.componentId}`));
-      console.log(chalk.gray(`Change Type: ${change.changeType}`));
-      if (change.summary) {
-        console.log(chalk.gray(`Summary: ${change.summary}`));
-      }
-      
-      if (change.changedFields && change.changedFields.length > 0) {
-        console.log(chalk.gray(`Field Changes (${change.changedFields.length}):`));
-        change.changedFields.forEach((field, fieldIndex) => {
-          console.log(chalk.yellow(`  ${fieldIndex + 1}. ${field.field} (${field.changeType})`));
-          if (field.description) {
-            console.log(chalk.gray(`     Description: ${field.description}`));
-          }
-          if (field.oldValue !== undefined) {
-            console.log(chalk.red(`     Old: ${JSON.stringify(field.oldValue)}`));
-          }
-          if (field.newValue !== undefined) {
-            console.log(chalk.green(`     New: ${JSON.stringify(field.newValue)}`));
-          }
-        });
-      }
-    });
-    console.log(chalk.yellow(`\n--- END DETAILED CHANGES ---\n`));
-  }
 
   return {
     hasChanges: changes.length > 0,
@@ -750,22 +721,13 @@ function compareComponentMaps(
   commonIds.forEach((id) => {
     // For artifact components, use semantic JSON comparison to ignore property ordering
     if (componentType === 'artifactComponents') {
-      const comparison = compareJsonObjects(localMap[id], remoteMap[id], { 
+      const comparison = compareJsonObjects(localMap[id], remoteMap[id], {
         ignoreArrayOrder: true,
-        showDetails: false 
+        showDetails: false,
       });
-      
+
       if (!comparison.isEqual) {
-        if (debug) {
-          console.log(chalk.yellow(`\n🔍 ARTIFACT COMPONENT DIFFERENCE: ${id}`));
-          console.log(chalk.red(`LOCAL JSON:`));
-          console.log(JSON.stringify(localMap[id], null, 2));
-          console.log(chalk.green(`REMOTE JSON:`));
-          console.log(JSON.stringify(remoteMap[id], null, 2));
-          console.log(chalk.cyan(`Semantic comparison result: not equal`));
-          console.log(chalk.cyan(`END ARTIFACT COMPONENT DIFFERENCE\n`));
-        }
-        
+
         changes.push({
           componentType,
           componentId: id,
@@ -776,7 +738,7 @@ function compareComponentMaps(
     } else {
       // Use detailed field changes for other component types
       const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
-      
+
       if (fieldChanges.length > 0) {
         const summary = generateComponentChangeSummary(componentType, fieldChanges);
         changes.push({
@@ -1036,23 +998,23 @@ function getDetailedFieldChanges(
         // Check if both values are empty using our isEmpty equivalence
         const oldIsEmpty = isEmpty(oldValue);
         const newIsEmpty = isEmpty(newValue);
-        
+
         // If both are empty, they're equivalent - no change
         if (oldIsEmpty && newIsEmpty) {
           continue;
         }
-        
+
         // Special handling for models field - treat inherited models as equivalent to null
         if (key === 'models') {
           const oldIsNull = oldValue === null || oldValue === undefined;
           const newIsNull = newValue === null || newValue === undefined;
-          
+
           // If one is null and the other has models, assume inherited models = null equivalence
           if (oldIsNull !== newIsNull) {
             continue; // Skip comparison - treat inherited models as equivalent to null
           }
         }
-        
+
         // Both exist and at least one is not empty, compare recursively
         const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
         changes.push(...recursiveChanges);
@@ -1553,36 +1515,13 @@ function compareFetchDefinitions(
         summary: `Removed fetchDefinition: ${fetchId}`,
       });
     } else if (local && remote) {
-      const comparison = compareJsonObjects(local, remote, { 
+      const comparison = compareJsonObjects(local, remote, {
         ignoreArrayOrder: true,
-        showDetails: true 
+        showDetails: true,
       });
-      
+
       if (!comparison.isEqual) {
-        console.log(`🔍 [FetchDefinition ${fetchId}] Detected differences:`);
-        console.log(`   📍 Local credentialReferenceId: ${local.credentialReferenceId} (type: ${typeof local.credentialReferenceId})`);
-        console.log(`   📍 Remote credentialReferenceId: ${remote.credentialReferenceId} (type: ${typeof remote.credentialReferenceId})`);
-        console.log(`   📍 Local has credentialReferenceId property: ${local.hasOwnProperty('credentialReferenceId')}`);
-        console.log(`   📍 Remote has credentialReferenceId property: ${remote.hasOwnProperty('credentialReferenceId')}`);
-        
-        // Show all keys in both objects
-        console.log(`   🔑 Local keys: ${JSON.stringify(Object.keys(local).sort())}`);
-        console.log(`   🔑 Remote keys: ${JSON.stringify(Object.keys(remote).sort())}`);
-        
-        // Compare key fields specifically
-        const keyFields = ['credentialReferenceId', 'fetchConfig', 'responseSchema', 'trigger', 'name'];
-        for (const field of keyFields) {
-          const localVal = local[field];
-          const remoteVal = remote[field];
-          const fieldComparison = compareJsonObjects(localVal, remoteVal, { ignoreArrayOrder: true });
-          
-          if (!fieldComparison.isEqual) {
-            console.log(`   🔄 ${field} differs:`);
-            console.log(`      Local:  ${JSON.stringify(localVal, null, 2)}`);
-            console.log(`      Remote: ${JSON.stringify(remoteVal, null, 2)}`);
-          }
-        }
-        
+
         changes.push({
           componentType: 'fetchDefinitions' as ComponentType,
           componentId: fetchId,
@@ -1612,4 +1551,3 @@ function normalizeCanDelegateTo(canDelegateTo: any[]): string[] {
     return String(item);
   });
 }
-

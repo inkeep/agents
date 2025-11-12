@@ -5,6 +5,7 @@
  * Sub-agents are the individual agents within an agent graph that handle specific tasks
  */
 
+import { compareJsonObjects } from '../../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -17,7 +18,6 @@ import {
   removeTrailingComma,
   toCamelCase,
 } from '../utils/generator-utils';
-import { compareJsonObjects } from '../../../utils/json-comparator';
 
 /**
  * Check if subAgent models are different from parent agent models (or project models)
@@ -54,9 +54,9 @@ function hasDistinctModels(subAgentModels: any, parentModels: any): boolean {
           return true;
         }
         // Both exist, compare semantically to ignore property ordering
-        const comparison = compareJsonObjects(subAgentOptions, parentOptions, { 
+        const comparison = compareJsonObjects(subAgentOptions, parentOptions, {
           ignoreArrayOrder: true,
-          showDetails: false 
+          showDetails: false,
         });
         if (!comparison.isEqual) {
           return true;
@@ -460,7 +460,6 @@ export function generateSubAgentImports(
 
   // Always import subAgent from SDK
   imports.push(generateImport(['subAgent'], '@inkeep/agents-sdk', style));
-
 
   // Import context config or headers if prompt has template variables
   if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
