@@ -7,11 +7,7 @@ loadEnvironmentFiles();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  // Standardized naming - prefer INKEEP_AGENTS_MANAGE_API_URL
   INKEEP_AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
-  // Legacy naming - deprecated, will be removed in a future version
-  AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
-  AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   DATABASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
