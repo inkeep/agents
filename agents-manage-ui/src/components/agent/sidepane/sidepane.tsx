@@ -72,28 +72,25 @@ export function SidePane({
     [selectedEdgeId, edges]
   );
 
-  const { heading, HeadingIcon } = useMemo(() => {
-    let heading = '';
+  const { HeadingIcon } = useMemo(() => {
     let HeadingIcon: LucideIcon | undefined;
 
     if (selectedNodeId) {
       const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
       const nodeConfig = nodeTypeMap[nodeType];
-      heading = nodeConfig?.name || 'Node';
       HeadingIcon = nodeConfig?.Icon;
     } else if (selectedEdgeId) {
       const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
       const edgeConfig = edgeTypeMap[edgeType];
-      heading = edgeConfig?.name || 'Connection';
       HeadingIcon = edgeConfig?.Icon;
     } else {
-      heading = 'Agent';
       HeadingIcon = Workflow;
     }
 
-    return { heading, HeadingIcon };
+    return { HeadingIcon };
   }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
   const editorContent = useMemo(() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
@@ -185,7 +182,6 @@ export function SidePane({
     credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
-    // Rerender sidepane when errors changes
     errors,
   ]);
 
