@@ -31,8 +31,8 @@ import {
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
-import type { NavItemProps } from './nav-item';
 import { throttle } from '@/lib/utils/throttle';
+import type { NavItemProps } from './nav-item';
 
 const bottomNavItems: NavItemProps[] = [
   {
