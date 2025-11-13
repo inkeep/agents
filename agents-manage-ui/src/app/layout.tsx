@@ -68,6 +68,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
                   '--sidebar-width': 'calc(var(--spacing) * 62)',
                   '--header-height': 'calc(var(--spacing) * 12)',
                 }}
+                defaultOpen={false}
               >
                 <AppSidebar />
                 <SidebarInset>{children}</SidebarInset>
