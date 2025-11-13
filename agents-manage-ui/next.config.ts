@@ -13,6 +13,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_CI: process.env.CI,
+  },
   output: 'standalone',
   turbopack: {
     rules: {
@@ -39,10 +42,6 @@ const nextConfig: NextConfig = {
       ],
     });
     return config;
-  },
-  eslint: {
-    // Disable ESLint during builds on Vercel to avoid deployment failures
-    ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',

@@ -5,9 +5,7 @@ import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 
 async function NewExternalAgentPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/external-agents/new'>) {
   const { tenantId, projectId } = await params;
   let credentials: Credential[] = [];
   try {

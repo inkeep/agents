@@ -2,7 +2,7 @@
 
 import type { IDisposable } from 'monaco-editor';
 import { useTheme } from 'next-themes';
-import { type ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
@@ -18,7 +18,7 @@ function tryJsonParse(json = ''): object {
   }
 }
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({ children }: LayoutProps<'/[tenantId]'>) {
   const { resolvedTheme } = useTheme();
   const { setMonaco, setVariableSuggestions, setMonacoTheme } = useMonacoActions();
   const contextConfig = useAgentStore((state) => state.metadata.contextConfig);

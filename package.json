@@ -35,7 +35,7 @@
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates'",
     "check:fix": "biome check --write",
     "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
-    "clean:turbo": "turbo clean",
+    "clean:turbo": "rm -rf .turbo",
     "prepare": "husky",
     "changeset:quick": "node scripts/quick-changeset.mjs",
     "version": "changeset version",
@@ -65,7 +65,7 @@
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
-    "turbo": "^2.5.5",
+    "turbo": "^2.6.1",
     "unique-names-generator": "^4.7.1",
     "vitest": "^3.2.4"
   },

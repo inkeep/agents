@@ -1,7 +1,8 @@
+import type { FC } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function AgentLoadingSkeleton() {
+const AgentLoadingSkeleton: FC = () => {
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Agents' }, { label: '' }]}>
       <div className="flex h-screen bg-muted/20 dark:bg-background p-4">
@@ -23,4 +24,6 @@ export function AgentLoadingSkeleton() {
       </div>
     </BodyTemplate>
   );
-}
+};
+
+export default AgentLoadingSkeleton;

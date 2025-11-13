@@ -1,3 +1,5 @@
+'use client';
+
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';

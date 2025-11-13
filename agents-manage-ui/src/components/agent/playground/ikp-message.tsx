@@ -248,7 +248,8 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
               {part.content}
             </Streamdown>
           );
-        } else if (part.type === 'inline-operation') {
+        }
+        if (part.type === 'inline-operation') {
           const isLast = inlineOpIndex === inlineOperations.length - 1;
           inlineOpIndex++;
           return <InlineEvent key={index} operation={part.operation} isLast={isLast} />;
@@ -414,7 +415,8 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                         <StreamMarkdown parts={group.parts} />
                       </div>
                     );
-                  } else if (group.type === 'data-component') {
+                  }
+                  if (group.type === 'data-component') {
                     const dataComponentId = group.data.id;
                     const dataComponent = dataComponentId
                       ? dataComponentLookup[dataComponentId]
@@ -448,14 +450,16 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                         </div>
                       </div>
                     );
-                  } else if (group.type === 'data-operation') {
+                  }
+                  if (group.type === 'data-operation') {
                     // Handle inline operations in order
                     return (
                       <div key={`operation-${index}`}>
                         <StreamMarkdown parts={[group]} />
                       </div>
                     );
-                  } else if (group.type === 'data-summary') {
+                  }
+                  if (group.type === 'data-summary') {
                     // Handle inline summaries in order
                     return (
                       <div key={`summary-${index}`}>
