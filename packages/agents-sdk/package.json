@@ -11,7 +11,7 @@
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "lint": "biome lint .",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "prepack": "clean-package",

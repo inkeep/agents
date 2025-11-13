@@ -24,7 +24,7 @@
     "test:integration": "vitest --run src/__tests__/integration/",
     "test:coverage": "vitest --run --coverage",
     "test:watch": "vitest --watch",
-    "lint": "biome lint src",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
     "format:check": "biome format src",

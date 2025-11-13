@@ -7,7 +7,7 @@
     "build": "NODE_ENV=production next build",
     "dev": "next dev --turbo -p 3010",
     "start": "next start",
-    "lint": "biome lint",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "format:check": "biome format",
