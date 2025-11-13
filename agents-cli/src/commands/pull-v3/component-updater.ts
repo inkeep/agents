@@ -480,8 +480,8 @@ export async function updateModifiedComponents(
 
             // Also check for usedBy field (in case it exists in some responses)
             for (const [credId, credData] of Object.entries(remoteProject.credentialReferences)) {
-              if (credData.usedBy) {
-                for (const usage of credData.usedBy) {
+              if ((credData as any).usedBy) {
+                for (const usage of (credData as any).usedBy) {
                   if (
                     usage.type === 'agent' &&
                     usage.id === componentId &&
