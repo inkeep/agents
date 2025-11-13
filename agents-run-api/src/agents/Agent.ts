@@ -6,7 +6,9 @@ import {
   ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  createMessage,
   type DataComponentApiInsert,
+  generateId,
   getContextConfigById,
   getCredentialReference,
   getFullAgentDefinition,
@@ -1375,6 +1377,24 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  /**
+   * Format tool result for storage in conversation history
+   */
+  private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
+    const input = args ? JSON.stringify(args, null, 2) : 'No input';
+    const output = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+
+    return `## Tool: ${toolName}
+
+### 🔧 TOOL_CALL_ID: ${toolCallId}
+
+### Input
+${input}
+
+### Output
+${output}`;
   }
 
   /**

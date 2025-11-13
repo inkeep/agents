@@ -104,13 +104,9 @@ export class ComponentRegistry {
    * Override a credential component with environment settings key
    * This allows env settings registration to take precedence over standalone credentials
    */
-  overrideCredentialWithEnvKey(
-    id: string,
-    filePath: string,
-    envKey: string
-  ): ComponentInfo {
+  overrideCredentialWithEnvKey(id: string, filePath: string, envKey: string): ComponentInfo {
     const typeKey = `credentials:${id}`;
-    
+
     const info: ComponentInfo = {
       id,
       type: 'credentials',
@@ -488,7 +484,6 @@ export function registerAllComponents(
   project: FullProjectDefinition,
   registry: ComponentRegistry
 ): void {
-  
   // Register project
   registry.register(project.id, 'project', 'index.ts');
 

@@ -178,25 +178,28 @@ function parseFileForComponents(
     sourceFile.forEachDescendant((node) => {
       if (Node.isCallExpression(node)) {
         const expression = node.getExpression();
-        
+
         // Check if this is a registerEnvironmentSettings call
-        if (Node.isIdentifier(expression) && expression.getText() === 'registerEnvironmentSettings') {
+        if (
+          Node.isIdentifier(expression) &&
+          expression.getText() === 'registerEnvironmentSettings'
+        ) {
           const args = node.getArguments();
           if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
             const configObject = args[0];
-            
+
             // Look for credentials property
             const credentialsProperty = configObject.getProperty('credentials');
             if (credentialsProperty && Node.isPropertyAssignment(credentialsProperty)) {
               const credentialsValue = credentialsProperty.getInitializer();
-              
+
               if (Node.isObjectLiteralExpression(credentialsValue)) {
                 // Parse each credential in the credentials object
-                credentialsValue.getProperties().forEach(property => {
+                credentialsValue.getProperties().forEach((property) => {
                   if (Node.isPropertyAssignment(property)) {
                     const credentialKey = property.getName(); // e.g., "stripe_api_key"
                     const credentialConfig = property.getInitializer();
-                    
+
                     if (Node.isObjectLiteralExpression(credentialConfig)) {
                       // Inline credential definition - Look for the 'id' property in the credential config
                       const idProperty = credentialConfig.getProperty('id');
@@ -205,7 +208,7 @@ function parseFileForComponents(
                         if (Node.isStringLiteral(idValue)) {
                           const credentialId = idValue.getLiteralValue(); // e.g., "stripe-api-key"
                           const startLine = node.getStartLineNumber();
-                          
+
                           components.push({
                             id: credentialId,
                             type: 'credentials',
@@ -220,14 +223,20 @@ function parseFileForComponents(
                       // Variable reference - need to find the credential ID from the variable
                       // This handles cases like: stripe_api_key: stripeApiKey
                       const variableName = credentialConfig.getText();
-                      
+
                       // Look for the credential variable definition in this file
                       sourceFile.forEachDescendant((varNode) => {
-                        if (Node.isVariableDeclaration(varNode) && varNode.getName() === variableName) {
+                        if (
+                          Node.isVariableDeclaration(varNode) &&
+                          varNode.getName() === variableName
+                        ) {
                           const initializer = varNode.getInitializer();
                           if (Node.isCallExpression(initializer)) {
                             const callExpression = initializer.getExpression();
-                            if (Node.isIdentifier(callExpression) && callExpression.getText() === 'credential') {
+                            if (
+                              Node.isIdentifier(callExpression) &&
+                              callExpression.getText() === 'credential'
+                            ) {
                               const args = initializer.getArguments();
                               if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
                                 const configObject = args[0];
@@ -237,7 +246,7 @@ function parseFileForComponents(
                                   if (Node.isStringLiteral(idValue)) {
                                     const credentialId = idValue.getLiteralValue();
                                     const startLine = node.getStartLineNumber();
-                                    
+
                                     components.push({
                                       id: credentialId,
                                       type: 'credentials',
@@ -263,7 +272,6 @@ function parseFileForComponents(
         }
       }
     });
-
 
     return components;
   } catch (error) {
@@ -299,7 +307,6 @@ function parseCallExpression(
   if (!componentType || !VALID_COMPONENT_TYPES.has(componentType)) {
     return null;
   }
-
 
   // Get the first argument (should be an object literal)
   const args = callExpression.getArguments();
@@ -349,7 +356,6 @@ function parseCallExpression(
 
   const startLine = callExpression.getStartLineNumber();
 
-
   return {
     id: componentId,
     type: componentType,
@@ -370,7 +376,6 @@ function scanProjectForComponents(projectRoot: string, debug: boolean = false): 
     return allComponents;
   }
 
-
   const scanDir = (dir: string) => {
     try {
       const items = readdirSync(dir);
@@ -380,8 +385,10 @@ function scanProjectForComponents(projectRoot: string, debug: boolean = false): 
 
         if (stat.isDirectory()) {
           // Skip node_modules, build directories, and temp validation directories
-          if (!['node_modules', '.next', '.git', 'dist', 'build'].includes(item) && 
-              !item.startsWith('.temp-validation-')) {
+          if (
+            !['node_modules', '.next', '.git', 'dist', 'build'].includes(item) &&
+            !item.startsWith('.temp-validation-')
+          ) {
             scanDir(fullPath);
           }
         } else if (stat.isFile() && ['.ts', '.tsx', '.js', '.jsx'].includes(extname(item))) {
@@ -442,7 +449,7 @@ export function buildComponentRegistryFromParsing(
 
     if (component.variableName) {
       // Component has an actual variable name (declared with const/export const), use it
-      
+
       if (component.overrideExisting && component.type === 'credentials') {
         // Use override method for credentials with env settings keys
         registry.overrideCredentialWithEnvKey(

@@ -351,7 +351,11 @@ export function generateAgentDefinition(
   }
 
   // credentials - function returning array of credential references
-  if (agentData.credentials && Array.isArray(agentData.credentials) && agentData.credentials.length > 0) {
+  if (
+    agentData.credentials &&
+    Array.isArray(agentData.credentials) &&
+    agentData.credentials.length > 0
+  ) {
     if (!registry) {
       throw new Error('Registry is required for credentials generation');
     }

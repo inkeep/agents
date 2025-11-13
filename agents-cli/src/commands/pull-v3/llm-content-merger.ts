@@ -249,7 +249,6 @@ Return only the merged TypeScript code without any explanation or markdown forma
     console.log(processedPrompt);
     console.log(chalk.gray('─'.repeat(80)));
 
-
     const result = await generateText({
       model: getAvailableModel(),
       prompt: processedPrompt,

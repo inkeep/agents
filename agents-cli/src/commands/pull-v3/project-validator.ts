@@ -27,7 +27,7 @@ import { ComponentRegistry } from './utils/component-registry';
 function getObjectPreview(obj: any, maxLength: number = 200): string {
   if (obj === null) return 'null';
   if (obj === undefined) return 'undefined';
-  
+
   try {
     // For objects, try to show meaningful content
     if (typeof obj === 'object') {
@@ -37,9 +37,8 @@ function getObjectPreview(obj: any, maxLength: number = 200): string {
       } else {
         // If it's a render object with component, show component preview
         if (obj.component && typeof obj.component === 'string') {
-          const componentPreview = obj.component.length > 100 
-            ? obj.component.substring(0, 100) + '...'
-            : obj.component;
+          const componentPreview =
+            obj.component.length > 100 ? obj.component.substring(0, 100) + '...' : obj.component;
           return `{component: "${componentPreview}", mockData: ${obj.mockData ? 'present' : 'null'}}`;
         }
         // Otherwise truncate JSON
@@ -63,7 +62,7 @@ function getObjectPreview(obj: any, maxLength: number = 200): string {
  */
 function extractCredentialIds(agentObj: any): string[] {
   const credentialIds: string[] = [];
-  
+
   // Method 1: Direct credentials array (remote API format)
   if (agentObj.credentials && Array.isArray(agentObj.credentials)) {
     agentObj.credentials.forEach((cred: any) => {
@@ -72,7 +71,7 @@ function extractCredentialIds(agentObj: any): string[] {
       }
     });
   }
-  
+
   // Method 2: Via contextConfig fetchDefinitions (generated format)
   if (agentObj.contextConfig?.contextVariables) {
     Object.values(agentObj.contextConfig.contextVariables).forEach((variable: any) => {
@@ -81,7 +80,7 @@ function extractCredentialIds(agentObj: any): string[] {
       }
     });
   }
-  
+
   return [...new Set(credentialIds)]; // Remove duplicates
 }
 
@@ -99,29 +98,35 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
     if (key.startsWith('_') || key === 'createdAt' || key === 'updatedAt') {
       continue;
     }
-    
+
     // Special handling for credentials - compare actual credential usage regardless of structure
     if (key === 'credentials') {
       const creds1 = extractCredentialIds(obj1);
       const creds2 = extractCredentialIds(obj2);
-      
+
       // Sort both arrays for comparison
       creds1.sort();
       creds2.sort();
-      
+
       if (JSON.stringify(creds1) !== JSON.stringify(creds2)) {
-        differences.push(`~ credentials: usage differs (${creds1.join(', ')} vs ${creds2.join(', ')})`);
+        differences.push(
+          `~ credentials: usage differs (${creds1.join(', ')} vs ${creds2.join(', ')})`
+        );
       }
       continue; // Skip normal comparison for credentials
     }
 
     // Check if values are effectively empty (null, undefined, {}, [])
-    const val1IsEmpty = val1 === null || val1 === undefined || 
-                       (Array.isArray(val1) && val1.length === 0) ||
-                       (typeof val1 === 'object' && val1 !== null && Object.keys(val1).length === 0);
-    const val2IsEmpty = val2 === null || val2 === undefined || 
-                       (Array.isArray(val2) && val2.length === 0) ||
-                       (typeof val2 === 'object' && val2 !== null && Object.keys(val2).length === 0);
+    const val1IsEmpty =
+      val1 === null ||
+      val1 === undefined ||
+      (Array.isArray(val1) && val1.length === 0) ||
+      (typeof val1 === 'object' && val1 !== null && Object.keys(val1).length === 0);
+    const val2IsEmpty =
+      val2 === null ||
+      val2 === undefined ||
+      (Array.isArray(val2) && val2.length === 0) ||
+      (typeof val2 === 'object' && val2 !== null && Object.keys(val2).length === 0);
 
     // Skip if both are empty
     if (val1IsEmpty && val2IsEmpty) {
@@ -145,25 +150,45 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
         val2 !== null
       ) {
         // Filter out keys with empty/undefined values AND metadata fields for comparison
-        const keys1 = Object.keys(val1).filter(k => {
+        const keys1 = Object.keys(val1).filter((k) => {
           // Skip metadata fields
-          if (k.startsWith('_') || k === 'createdAt' || k === 'updatedAt' || k === 'tenantId' || k === 'projectId' || k === 'agentId') {
+          if (
+            k.startsWith('_') ||
+            k === 'createdAt' ||
+            k === 'updatedAt' ||
+            k === 'tenantId' ||
+            k === 'projectId' ||
+            k === 'agentId'
+          ) {
             return false;
           }
           const v = val1[k];
-          return !(v === null || v === undefined || 
-                  (Array.isArray(v) && v.length === 0) ||
-                  (typeof v === 'object' && v !== null && Object.keys(v).length === 0));
+          return !(
+            v === null ||
+            v === undefined ||
+            (Array.isArray(v) && v.length === 0) ||
+            (typeof v === 'object' && v !== null && Object.keys(v).length === 0)
+          );
         });
-        const keys2 = Object.keys(val2).filter(k => {
+        const keys2 = Object.keys(val2).filter((k) => {
           // Skip metadata fields
-          if (k.startsWith('_') || k === 'createdAt' || k === 'updatedAt' || k === 'tenantId' || k === 'projectId' || k === 'agentId') {
+          if (
+            k.startsWith('_') ||
+            k === 'createdAt' ||
+            k === 'updatedAt' ||
+            k === 'tenantId' ||
+            k === 'projectId' ||
+            k === 'agentId'
+          ) {
             return false;
           }
           const v = val2[k];
-          return !(v === null || v === undefined || 
-                  (Array.isArray(v) && v.length === 0) ||
-                  (typeof v === 'object' && v !== null && Object.keys(v).length === 0));
+          return !(
+            v === null ||
+            v === undefined ||
+            (Array.isArray(v) && v.length === 0) ||
+            (typeof v === 'object' && v !== null && Object.keys(v).length === 0)
+          );
         });
         const subKeys1 = keys1.length;
         const subKeys2 = keys2.length;
@@ -434,12 +459,14 @@ async function validateProjectEquivalence(
       }),
     ]);
 
-
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
-    
+
     // Debug: Show what the temp project actually loaded
-    console.log(`🔍 Temp project agent keys:`, Object.keys(tempProjectDefinition.agents?.['inkeep-qa-graph'] || {}));
+    console.log(
+      `🔍 Temp project agent keys:`,
+      Object.keys(tempProjectDefinition.agents?.['inkeep-qa-graph'] || {})
+    );
 
     // Use existing project comparator instead of custom logic
 

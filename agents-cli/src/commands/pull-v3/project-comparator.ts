@@ -354,8 +354,8 @@ function compareAgents(
     console.log(`   Local keys:`, Object.keys(localAgents[id]));
     console.log(`   Remote keys:`, Object.keys(remoteAgents[id]));
     const fieldChanges = getDetailedFieldChanges('', localAgents[id], remoteAgents[id]);
-    console.log(`🔍 Agent ${id} field changes:`, fieldChanges.map(fc => fc.field).join(', '));
-    fieldChanges.forEach(fc => {
+    console.log(`🔍 Agent ${id} field changes:`, fieldChanges.map((fc) => fc.field).join(', '));
+    fieldChanges.forEach((fc) => {
       console.log(`   - ${fc.field}: ${fc.changeType} - ${fc.description || 'no description'}`);
     });
     if (fieldChanges.length > 0) {
@@ -505,7 +505,7 @@ function compareTools(
       }
     }
   }
-  
+
   return compareComponentMaps('tools', localTools, remoteTools, debug);
 }
 
@@ -882,7 +882,7 @@ function compareArraysAsSet(
  */
 function extractCredentialIds(agentObj: any): string[] {
   const credentialIds: string[] = [];
-  
+
   // Method 1: Direct credentials array (remote API format)
   if (agentObj.credentials && Array.isArray(agentObj.credentials)) {
     agentObj.credentials.forEach((cred: any) => {
@@ -891,7 +891,7 @@ function extractCredentialIds(agentObj: any): string[] {
       }
     });
   }
-  
+
   // Method 2: Via contextConfig fetchDefinitions (generated format)
   if (agentObj.contextConfig?.contextVariables) {
     Object.values(agentObj.contextConfig.contextVariables).forEach((variable: any) => {
@@ -900,7 +900,7 @@ function extractCredentialIds(agentObj: any): string[] {
       }
     });
   }
-  
+
   return [...new Set(credentialIds)]; // Remove duplicates
 }
 
@@ -1023,16 +1023,16 @@ function getDetailedFieldChanges(
       if (shouldIgnore) {
         continue; // Skip this field
       }
-      
+
       // Special handling for credentials - compare actual credential usage regardless of structure
       if (key === 'credentials' && basePath === '') {
         const oldCredIds = extractCredentialIds(oldObj);
         const newCredIds = extractCredentialIds(newObj);
-        
+
         // Sort both arrays for comparison
         oldCredIds.sort();
         newCredIds.sort();
-        
+
         if (JSON.stringify(oldCredIds) !== JSON.stringify(newCredIds)) {
           changes.push({
             field: fieldPath,
@@ -1100,7 +1100,7 @@ function getDetailedFieldChanges(
   // Handle primitives
   if (oldObj !== newObj) {
     const fieldPath = basePath || 'value';
-    
+
     changes.push({
       field: fieldPath,
       changeType: 'modified',

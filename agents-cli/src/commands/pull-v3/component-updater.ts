@@ -448,16 +448,27 @@ export async function updateModifiedComponents(
           // Standard top-level component lookup
           const remoteComponents = (remoteProject as any)[componentType] || {};
           componentData = remoteComponents[componentId];
-          
+
           // FIX: Reconstruct missing credentials field for agents
-          if (componentType === 'agents' && componentData && !componentData.credentials && remoteProject.credentialReferences) {
+          if (
+            componentType === 'agents' &&
+            componentData &&
+            !componentData.credentials &&
+            remoteProject.credentialReferences
+          ) {
             const agentCredentials: any[] = [];
             const credentialSet = new Set<string>();
-            
+
             // Scan contextConfig.contextVariables for fetchDefinitions that reference credentials
             if (componentData.contextConfig?.contextVariables) {
-              for (const [varName, varData] of Object.entries(componentData.contextConfig.contextVariables)) {
-                if (varData && typeof varData === 'object' && (varData as any).credentialReferenceId) {
+              for (const [varName, varData] of Object.entries(
+                componentData.contextConfig.contextVariables
+              )) {
+                if (
+                  varData &&
+                  typeof varData === 'object' &&
+                  (varData as any).credentialReferenceId
+                ) {
                   const credId = (varData as any).credentialReferenceId;
                   if (remoteProject.credentialReferences[credId] && !credentialSet.has(credId)) {
                     credentialSet.add(credId);
@@ -466,12 +477,16 @@ export async function updateModifiedComponents(
                 }
               }
             }
-            
+
             // Also check for usedBy field (in case it exists in some responses)
             for (const [credId, credData] of Object.entries(remoteProject.credentialReferences)) {
               if (credData.usedBy) {
                 for (const usage of credData.usedBy) {
-                  if (usage.type === 'agent' && usage.id === componentId && !credentialSet.has(credId)) {
+                  if (
+                    usage.type === 'agent' &&
+                    usage.id === componentId &&
+                    !credentialSet.has(credId)
+                  ) {
                     credentialSet.add(credId);
                     agentCredentials.push({ id: credId });
                     break;
@@ -479,7 +494,7 @@ export async function updateModifiedComponents(
                 }
               }
             }
-            
+
             if (agentCredentials.length > 0) {
               componentData.credentials = agentCredentials;
             }

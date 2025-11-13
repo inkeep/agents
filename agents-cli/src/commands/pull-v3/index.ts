@@ -82,14 +82,12 @@ export function enrichCanDelegateToWithTypes(
   project: FullProjectDefinition,
   debug: boolean = false
 ): void {
-
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
   const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
   const externalAgentIds = new Set(
     project.externalAgents ? Object.keys(project.externalAgents) : []
   );
-
 
   // Function to enrich a canDelegateTo array
   const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
@@ -114,7 +112,6 @@ export function enrichCanDelegateToWithTypes(
       } else {
         continue; // Leave as string if we can't determine the type
       }
-
 
       // Replace the string with the enriched object
       canDelegateTo[i] = enrichedItem;
@@ -169,7 +166,6 @@ async function readExistingProject(
         }, 30000);
       }),
     ]);
-
 
     return projectDefinition;
   } catch (error) {
@@ -347,7 +343,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             // Remove the tools field entirely if all tools were project-level
             delete agentData.tools;
           }
-
         }
       }
     }
@@ -391,7 +386,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 7: Read existing project and compare
     // s.start('Reading existing project...');
     const localProject = await readExistingProject(paths.projectRoot, options.debug);
-    
 
     if (!localProject) {
       s.message('No existing project found - treating as new project');
@@ -403,8 +397,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.start('Building component registry from local files...');
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
-    
-    
+
     s.message('Component registry built');
 
     // Step 9: Debug registry to see variable name conflicts

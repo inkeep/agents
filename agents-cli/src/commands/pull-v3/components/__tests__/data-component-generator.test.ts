@@ -344,18 +344,19 @@ describe('Data Component Generator', () => {
           properties: {
             name: { type: 'string' },
             email: { type: 'string' },
-            role: { type: 'string' }
+            role: { type: 'string' },
           },
-          required: ['name', 'email']
+          required: ['name', 'email'],
         },
         render: {
-          component: 'function UserProfile({ name, email, role }) { return <div className="profile"><h2>{name}</h2><p>{email}</p><p>Role: {role}</p></div>; }',
+          component:
+            'function UserProfile({ name, email, role }) { return <div className="profile"><h2>{name}</h2><p>{email}</p><p>Role: {role}</p></div>; }',
           mockData: {
             name: 'John Doe',
             email: 'john@example.com',
-            role: 'Developer'
-          }
-        }
+            role: 'Developer',
+          },
+        },
       };
 
       const definition = generateDataComponentDefinition('user-profile-card', componentData);
@@ -378,9 +379,9 @@ describe('Data Component Generator', () => {
         props: {
           type: 'object',
           properties: {
-            value: { type: 'string' }
-          }
-        }
+            value: { type: 'string' },
+          },
+        },
       };
 
       const definition = generateDataComponentDefinition('simple-data', componentData);
@@ -398,12 +399,12 @@ describe('Data Component Generator', () => {
         props: {
           type: 'object',
           properties: {
-            message: { type: 'string' }
-          }
+            message: { type: 'string' },
+          },
         },
         render: {
-          component: 'function SimpleComponent({ message }) { return <div>{message}</div>; }'
-        }
+          component: 'function SimpleComponent({ message }) { return <div>{message}</div>; }',
+        },
       };
 
       const definition = generateDataComponentDefinition('component-only', componentData);
@@ -421,13 +422,13 @@ describe('Data Component Generator', () => {
         props: {
           type: 'object',
           properties: {
-            data: { type: 'string' }
-          }
+            data: { type: 'string' },
+          },
         },
         render: {
-          mockData: { data: 'test' }
+          mockData: { data: 'test' },
           // Missing component field
-        }
+        },
       };
 
       const definition = generateDataComponentDefinition('invalid-render', componentData);
