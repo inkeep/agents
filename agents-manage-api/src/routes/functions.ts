@@ -15,7 +15,7 @@ import {
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
-import { getLogger } from '../logger';
+  import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';

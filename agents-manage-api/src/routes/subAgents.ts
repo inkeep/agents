@@ -18,7 +18,6 @@ import {
   TenantProjectAgentParamsSchema,
   updateSubAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -70,9 +69,9 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const resolvedRef = c.get('resolvedRef');
 
-    const result = await listSubAgentsPaginated(dbClient)({
+    const db = c.get('db');
+    const result = await listSubAgentsPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -113,9 +112,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const resolvedRef = c.get('resolvedRef');
+    const db = c.get('db');
 
-    const subAgent = await getSubAgentById(dbClient)({
+    const subAgent = await getSubAgentById(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
@@ -170,7 +169,8 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const subAgentId = body.id ? String(body.id) : generateId();
-    const subAgent = await createSubAgent(dbClient)({
+    const db = c.get('db');
+    const subAgent = await createSubAgent(db)({
       ...body,
       id: subAgentId,
       tenantId,
@@ -221,7 +221,8 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedSubAgent = await updateSubAgent(dbClient)({
+    const db = c.get('db');
+    const updatedSubAgent = await updateSubAgent(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
       data: body,
@@ -278,9 +279,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-
+    const db = c.get('db');
+    
     try {
-      const deleted = await deleteSubAgent(dbClient)({
+      const deleted = await deleteSubAgent(db)({
         scopes: { tenantId, projectId, agentId },
         subAgentId: id,
       });

@@ -277,39 +277,36 @@ describe('Branch Module', () => {
       const scopes = {
         tenantId: 'tenant-123',
         projectId: 'project-456',
-        userId: 'user-789',
         branchName: 'feature-x',
       };
 
       const namespace = doltGetBranchNamespace(scopes)();
 
-      expect(namespace).toBe('tenant-123_project-456_user-789_feature-x');
+      expect(namespace).toBe('tenant-123_project-456_feature-x');
     });
 
     it('should handle different scope values', () => {
       const scopes = {
         tenantId: 'acme-corp',
         projectId: 'website',
-        userId: 'john-doe',
         branchName: 'bugfix/login-issue',
       };
 
       const namespace = doltGetBranchNamespace(scopes)();
 
-      expect(namespace).toBe('acme-corp_website_john-doe_bugfix/login-issue');
+      expect(namespace).toBe('acme-corp_website_bugfix/login-issue');
     });
 
     it('should handle empty strings in scopes', () => {
       const scopes = {
         tenantId: '',
         projectId: '',
-        userId: '',
         branchName: '',
       };
 
       const namespace = doltGetBranchNamespace(scopes)();
 
-      expect(namespace).toBe('___');
+      expect(namespace).toBe('__');
     });
   });
 });

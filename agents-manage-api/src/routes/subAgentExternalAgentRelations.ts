@@ -19,7 +19,7 @@ import {
   updateSubAgentExternalAgentRelation,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';

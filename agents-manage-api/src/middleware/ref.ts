@@ -1,4 +1,10 @@
-import { createApiError, isRefWritable, type ResolvedRef, resolveRef } from '@inkeep/agents-core';
+import {
+  createApiError,
+  doltBranch,
+  isRefWritable,
+  type ResolvedRef,
+  resolveRef,
+} from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -11,14 +17,26 @@ export type RefContext = {
 
 export const refMiddleware = async (c: Context, next: Next) => {
   const ref = c.req.query('ref');
+  const path = c.req.path;
 
-  let resolvedRef: ResolvedRef = {
-    type: 'branch',
-    name: 'main',
-    hash: 'main',
-  };
+  // Extract tenantId from /tenants/:tenantId/... path structure
+  // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
+  // tenantId is at index 2
+  const tenantId = path.split('/')[2];
+
+  if (!tenantId) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'Missing tenantId in path',
+    });
+  }
+
+  const tenant_main = `${tenantId}_main`;
+
+  let resolvedRef: ResolvedRef;
 
   if (ref) {
+    // User provided a specific ref
     const refResult = await resolveRef(dbClient)(ref);
     if (!refResult) {
       throw createApiError({
@@ -26,6 +44,26 @@ export const refMiddleware = async (c: Context, next: Next) => {
         message: `Unknown ref: ${ref}`,
       });
     }
+    resolvedRef = refResult;
+  } else {
+    // No ref provided, use tenant main
+    let refResult = await resolveRef(dbClient)(tenant_main);
+
+    if (!refResult) {
+      // Tenant main doesn't exist, create it
+      await doltBranch(dbClient)({ name: tenant_main });
+
+      // Resolve the newly created branch
+      refResult = await resolveRef(dbClient)(tenant_main);
+
+      if (!refResult) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: `Failed to create tenant main branch: ${tenant_main}`,
+        });
+      }
+    }
+
     resolvedRef = refResult;
   }
 

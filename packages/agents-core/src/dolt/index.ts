@@ -1,4 +1,5 @@
 export * from './branch';
+export * from './branches-api';
 export * from './commit';
 export * from './diff';
 export * from './merge';

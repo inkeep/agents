@@ -4,7 +4,6 @@ import { sql } from 'drizzle-orm';
 export type branchScopes = {
   tenantId: string;
   projectId: string;
-  userId: string;
   branchName: string;
 };
 /**
@@ -69,5 +68,5 @@ export const doltActiveBranch = (db: DatabaseClient) => async (): Promise<string
 };
 
 export const doltGetBranchNamespace = (scopes: branchScopes) => (): string => {
-  return `${scopes.tenantId}_${scopes.projectId}_${scopes.userId}_${scopes.branchName}`;
+  return `${scopes.tenantId}_${scopes.projectId}_${scopes.branchName}`;
 };

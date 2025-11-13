@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
+import type { ToolApiSelect } from '@inkeep/agents-core';
 import {
   CredentialReferenceApiSelectSchema,
   CredentialReferenceResponse,
@@ -113,11 +113,10 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) =>
-                await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId)
+              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
             )
           )
-        ).filter((tool) => tool.status === status),
+        ).filter((tool: McpTool) => tool.status === status),
         pagination: dbResult.pagination,
       };
     } else {
@@ -129,8 +128,7 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) =>
-              await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId)
+            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
           )
         ),
         pagination: dbResult.pagination,

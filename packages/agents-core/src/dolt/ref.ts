@@ -12,7 +12,8 @@ export type ResolvedRef = {
 };
 
 export const isValidCommitHash = (ref: string): boolean => {
-  return /^[0-9a-f]{32}$/.test(ref);
+  // Dolt uses base32 encoding for commit hashes (characters 0-9 and a-v)
+  return /^[0-9a-v]{32}$/.test(ref);
 };
 
 export const resolveRef =
