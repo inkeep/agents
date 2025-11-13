@@ -7,7 +7,6 @@
 "@inkeep/agents-sdk": patch
 "@inkeep/ai-sdk-provider": patch
 "@inkeep/create-agents": patch
-"test-agents": patch
 ---
 
 Updated agent cil
