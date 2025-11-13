@@ -460,7 +460,7 @@ async function isPortAvailable(port: number): Promise<boolean> {
     const server = net.createServer();
     server.once('error', (err: NodeJS.ErrnoException) => {
       // Only treat EADDRINUSE as "port in use", other errors might be transient
-      resolve(err.code === 'EADDRINUSE' ? false : true);
+      resolve(err.code !== 'EADDRINUSE');
     });
     server.once('listening', () => {
       server.close(() => {

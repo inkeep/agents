@@ -524,7 +524,6 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
         ...base,
         type: 'boolean',
       };
-    case 'string':
     default:
       return {
         ...base,
