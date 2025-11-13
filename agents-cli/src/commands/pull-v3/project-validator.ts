@@ -446,7 +446,6 @@ async function validateProjectEquivalence(
     const { loadProject } = await import('../../utils/project-loader');
 
     // Load the project from temp directory
-    console.log(`🔍 Loading temp project from: ${tempDir}`);
     const tempProject = await loadProject(tempDir);
 
     // Convert to FullProjectDefinition with timeout
@@ -461,12 +460,6 @@ async function validateProjectEquivalence(
 
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
-
-    // Debug: Show what the temp project actually loaded
-    console.log(
-      `🔍 Temp project agent keys:`,
-      Object.keys(tempProjectDefinition.agents?.['inkeep-qa-graph'] || {})
-    );
 
     // Use existing project comparator instead of custom logic
 
@@ -519,9 +512,6 @@ async function validateProjectEquivalence(
 
               // Show the actual differences
               if (generatedComponent && remoteComponent) {
-                console.log(`\n🔍 findKeyDifferences input for ${modifiedId}:`);
-                console.log(`   Generated keys:`, Object.keys(generatedComponent));
-                console.log(`   Remote keys:`, Object.keys(remoteComponent));
                 const differences = findKeyDifferences(
                   generatedComponent,
                   remoteComponent,

@@ -350,14 +350,7 @@ function compareAgents(
   // Find modified agents with detailed field changes
   const commonIds = localIds.filter((id) => remoteIds.includes(id));
   commonIds.forEach((id) => {
-    console.log(`\n🔍 getDetailedFieldChanges input for ${id}:`);
-    console.log(`   Local keys:`, Object.keys(localAgents[id]));
-    console.log(`   Remote keys:`, Object.keys(remoteAgents[id]));
     const fieldChanges = getDetailedFieldChanges('', localAgents[id], remoteAgents[id]);
-    console.log(`🔍 Agent ${id} field changes:`, fieldChanges.map((fc) => fc.field).join(', '));
-    fieldChanges.forEach((fc) => {
-      console.log(`   - ${fc.field}: ${fc.changeType} - ${fc.description || 'no description'}`);
-    });
     if (fieldChanges.length > 0) {
       const summary = generateAgentChangeSummary(fieldChanges);
       changes.push({
@@ -482,30 +475,6 @@ function compareTools(
   remoteTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  // Debug MCP tool comparisons specifically
-  if (debug) {
-    for (const toolId of Object.keys(localTools)) {
-      if (remoteTools[toolId]) {
-        const localTool = localTools[toolId];
-        const remoteTool = remoteTools[toolId];
-        if (toolId.includes('account-service') || toolId.includes('mcp')) {
-          console.log(`🔍 Debug tool ${toolId}:`);
-          console.log(`   Local description:`, localTool.description);
-          console.log(`   Remote description:`, remoteTool.description);
-          console.log(`   Local config.mcp.description:`, localTool.config?.mcp?.description);
-          console.log(`   Remote config.mcp.description:`, remoteTool.config?.mcp?.description);
-          console.log(`   Local serverUrl:`, localTool.serverUrl);
-          console.log(`   Remote serverUrl:`, remoteTool.serverUrl);
-          console.log(`   Local config.mcp.server.url:`, localTool.config?.mcp?.server?.url);
-          console.log(`   Remote config.mcp.server.url:`, remoteTool.config?.mcp?.server?.url);
-          console.log(`   Local keys:`, Object.keys(localTool));
-          console.log(`   Remote keys:`, Object.keys(remoteTool));
-          console.log(`   Remote config structure:`, JSON.stringify(remoteTool.config, null, 2));
-        }
-      }
-    }
-  }
-
   return compareComponentMaps('tools', localTools, remoteTools, debug);
 }
 

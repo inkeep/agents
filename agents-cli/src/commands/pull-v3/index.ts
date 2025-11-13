@@ -197,7 +197,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
   // Background version check
   performBackgroundVersionCheck();
 
-  console.log(chalk.blue('\n🚀 Pull v3 - Clean & Efficient'));
+  console.log(chalk.blue('\nInkeep Pull:'));
   if (options.introspect) {
     console.log(chalk.gray('  Introspect mode • Complete regeneration • No comparison needed'));
   } else {

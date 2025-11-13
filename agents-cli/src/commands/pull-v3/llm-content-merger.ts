@@ -243,12 +243,6 @@ Return only the merged TypeScript code without any explanation or markdown forma
     // Estimate prompt tokens before sending
     const estimatedPromptTokens = estimateTokens(processedPrompt);
 
-    // Log the merge prompt for debugging
-    console.log(chalk.yellow('\n🔍 LLM Merge Prompt:'));
-    console.log(chalk.gray('─'.repeat(80)));
-    console.log(processedPrompt);
-    console.log(chalk.gray('─'.repeat(80)));
-
     const result = await generateText({
       model: getAvailableModel(),
       prompt: processedPrompt,
