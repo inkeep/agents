@@ -1,3 +1,4 @@
+import { createApiError } from '@inkeep/agents-core/utils';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { dataComponents, subAgentDataComponents } from '../db/schema';
@@ -162,14 +163,16 @@ export const updateDataComponent =
         const errorMessages = propsValidation.errors
           .map((e) => `${e.field}: ${e.message}`)
           .join(', ');
-        throw new Error(`Invalid props schema: ${errorMessages}`);
+        throw createApiError({
+          code: 'bad_request',
+          message: `Invalid props schema: ${errorMessages}`,
+        });
       }
     }
 
-    if (params.data.render !== undefined && params.data.render !== null) {
+    if (params.data.render) {
       if (
         typeof params.data.render === 'object' &&
-        params.data.render !== null &&
         'component' in params.data.render &&
         'mockData' in params.data.render
       ) {
@@ -180,7 +183,10 @@ export const updateDataComponent =
           const errorMessages = renderValidation.errors
             .map((e) => `${e.field}: ${e.message}`)
             .join(', ');
-          throw new Error(`Invalid render: ${errorMessages}`);
+          throw createApiError({
+            code: 'bad_request',
+            message: `Invalid render: ${errorMessages}`,
+          });
         }
       }
     }
