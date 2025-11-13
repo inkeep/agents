@@ -21,7 +21,7 @@ export default function NodeLibrary() {
       ))}
       <Button
         data-inkeep-sidebar-chat-trigger
-        className="normal-case justify-start font-sans dark:bg-input/30  dark:hover:bg-input/50 backdrop-blur-3xl"
+        className="normal-case justify-start font-sans dark:bg-input/30 dark:border-input dark:hover:bg-input/50 backdrop-blur-3xl"
         variant="outline-primary"
       >
         <SparklesIcon />

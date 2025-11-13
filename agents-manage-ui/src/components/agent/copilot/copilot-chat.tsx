@@ -124,7 +124,9 @@ export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) 
             //     },
             //   }
             // ),
-            introMessage: 'Hi! What would you like to build?',
+            introMessage: agentId
+              ? `Hi! What would you like to change about \`${agentId}\`?`
+              : 'Hi! What would you like to build?',
           }}
         />
       </div>
