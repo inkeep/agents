@@ -129,7 +129,8 @@ export async function getScopedHistory({
       options,
     });
 
-    if (!filters || (!filters.subAgentId && !filters.taskId)) {
+
+    if (!filters || (!filters.subAgentId && !filters.taskId && !filters.delegationId && filters.isDelegated === undefined)) {
       return messages;
     }
 
@@ -138,6 +139,7 @@ export async function getScopedHistory({
 
       let matchesAgent = true;
       let matchesTask = true;
+      let matchesDelegation = true;
 
       if (filters.subAgentId) {
         matchesAgent =
@@ -150,19 +152,36 @@ export async function getScopedHistory({
         matchesTask = msg.taskId === filters.taskId || msg.a2aTaskId === filters.taskId;
       }
 
-      if (filters.subAgentId && filters.taskId) {
-        return matchesAgent && matchesTask;
+      // Delegation filtering for tool results
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined) {
+        if (msg.messageType === 'tool-result') {
+          const messageDelegationId = msg.metadata?.a2a_metadata?.delegationId;
+          const messageIsDelegated = msg.metadata?.a2a_metadata?.isDelegated;
+
+
+          if (filters.delegationId) {
+            // If we have a specific delegation ID, show tool results from that delegation OR no delegation (top-level)
+            matchesDelegation = messageDelegationId === filters.delegationId || !messageDelegationId;
+          } else if (filters.isDelegated === false) {
+            // If we're NOT delegated, only show tool results that aren't delegated
+            matchesDelegation = !messageIsDelegated;
+          } else if (filters.isDelegated === true) {
+            // If we ARE delegated but no specific ID, show any delegated tool results
+            matchesDelegation = messageIsDelegated === true;
+          }
+        }
+        // Non-tool-result messages are not affected by delegation filtering
       }
 
-      if (filters.subAgentId) {
-        return matchesAgent;
-      }
+      // Combine all filters
+      const conditions = [];
+      if (filters.subAgentId) conditions.push(matchesAgent);
+      if (filters.taskId) conditions.push(matchesTask);
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined) conditions.push(matchesDelegation);
 
-      if (filters.taskId) {
-        return matchesTask;
-      }
-
-      return false;
+      const finalResult = conditions.length === 0 || conditions.every(Boolean);
+      
+      return finalResult;
     });
 
     return relevantMessages;

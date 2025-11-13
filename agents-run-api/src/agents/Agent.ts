@@ -436,6 +436,8 @@ export class Agent {
                     toolName,
                     toolCallId,
                     timestamp: Date.now(),
+                    delegationId: this.delegationId,
+                    isDelegated: this.isDelegatedAgent,
                   },
                 },
               };
@@ -1471,17 +1473,9 @@ ${output}`;
 
   /**
    * Get the conversation ID for storing tool results
-   * Uses delegation-scoped conversation ID for delegated agents
+   * Always uses the real conversation ID - delegation filtering happens at query time
    */
   private getToolResultConversationId(): string | undefined {
-    if (!this.conversationId) {
-      return undefined;
-    }
-
-    if (this.isDelegatedAgent && this.delegationId) {
-      return `${this.conversationId}-${this.delegationId}`;
-    }
-
     return this.conversationId;
   }
 
@@ -1878,13 +1872,18 @@ ${output}`;
 
           if (historyConfig && historyConfig.mode !== 'none') {
             if (historyConfig.mode === 'full') {
+              const filters = {
+                delegationId: this.delegationId,
+                isDelegated: this.isDelegatedAgent,
+              };
+              
               conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: contextId,
                 currentMessage: userMessage,
                 options: historyConfig,
-                filters: {},
+                filters,
               });
             } else if (historyConfig.mode === 'scoped') {
               conversationHistory = await getFormattedConversationHistory({
@@ -1896,6 +1895,8 @@ ${output}`;
                 filters: {
                   subAgentId: this.config.id,
                   taskId: taskId,
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
                 },
               });
             }
@@ -1938,6 +1939,7 @@ ${output}`;
               'Requested timeout exceeded maximum allowed, capping to 10 minutes'
             );
           }
+
 
           // Build messages for Phase 1 - use thinking prompt if structured output needed
           const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;

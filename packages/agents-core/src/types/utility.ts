@@ -53,6 +53,8 @@ export type SubAgentScopeConfig = AgentScopeConfig & {
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
+  delegationId?: string;
+  isDelegated?: boolean;
 }
 
 export type ConversationHistoryConfig = {
