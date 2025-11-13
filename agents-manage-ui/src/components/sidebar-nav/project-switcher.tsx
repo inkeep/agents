@@ -37,7 +37,7 @@ const ProjectItem: FC<{
   );
 };
 
-export function ProjectSwitcher() {
+export const ProjectSwitcher: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
@@ -66,11 +66,8 @@ export function ProjectSwitcher() {
   if (isLoading) {
     return <Skeleton className="h-12" />;
   }
-  if (!projects.length) {
-    return <p className="px-2 text-sm text-muted-foreground">No projects yet</p>;
-  }
 
-  const selectedProject = projects.find((p) => p.projectId === projectId);
+  const projectName = projects.find((p) => p.projectId === projectId)?.name ?? 'Project not found';
 
   return (
     <DropdownMenu>
@@ -79,11 +76,7 @@ export function ProjectSwitcher() {
           size="lg"
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
-          <ProjectItem
-            name={selectedProject?.name ?? 'Project not found'}
-            description={tenantId}
-            icon={ChevronsUpDown}
-          />
+          <ProjectItem name={projectName} description={tenantId} icon={ChevronsUpDown} />
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -116,4 +109,4 @@ export function ProjectSwitcher() {
       />
     </DropdownMenu>
   );
-}
+};
