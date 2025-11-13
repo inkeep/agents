@@ -1,8 +1,8 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   return (
