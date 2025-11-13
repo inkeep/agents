@@ -65,7 +65,6 @@ async function setupProjectInDatabase() {
 
   // Step 1: Start database
   logStep(1, 'Starting PostgreSQL database');
-  let setupDatabase = false;
   try {
     await execAsync('docker-compose -f docker-compose.db.yml up -d');
     logSuccess('Database container started successfully');
@@ -73,12 +72,29 @@ async function setupProjectInDatabase() {
     logInfo('Waiting for database to be ready (5 seconds)...');
     await new Promise((resolve) => setTimeout(resolve, 5000));
     logSuccess('Database should be ready');
-
-    setupDatabase = true;
   } catch (error) {
-    setupDatabase = false;
-    logError('Failed to start database container', error);
-    logWarning('Continuing anyway (database might already be running)');
+    const errorMessage = error.message || error.toString();
+    const stderr = error.stderr || '';
+    const combinedError = `${errorMessage}\n${stderr}`;
+
+    // Check if it's a port conflict (database might already be running)
+    const isPortConflict =
+      combinedError.includes('port is already allocated') ||
+      combinedError.includes('address already in use') ||
+      combinedError.includes('Bind for 0.0.0.0:5432 failed');
+
+    if (isPortConflict) {
+      logWarning('Database port is already in use (database might already be running)');
+      logInfo('Continuing with setup...');
+    } else {
+      // For other errors, fail fast with clear error message
+      logError('Failed to start database container', error);
+      console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
+      console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
+      console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
+      console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
+      process.exit(1);
+    }
   }
 
   // Step 2: Run database migrations

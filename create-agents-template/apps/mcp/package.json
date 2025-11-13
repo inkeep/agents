@@ -13,7 +13,8 @@
     "@types/react": "19.2.2",
     "mcp-handler": "^1.0.3",
     "next": "^16.0.1",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "zod": "^3.24.2"
   },
   "engines": {
     "node": ">=22.x"

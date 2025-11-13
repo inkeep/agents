@@ -858,6 +858,8 @@ function AgentReactFlowConsumer({
   const isMounted = useIsMounted();
   return (
     <ResizablePanelGroup
+      // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
+      id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"

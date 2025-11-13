@@ -118,7 +118,7 @@ class OAuthService {
         config.logoUri ||
         process.env.OAUTH_CLIENT_LOGO_URI ||
         'https://inkeep.com/images/logos/inkeep-logo-blue.svg',
-      redirectBaseUrl: config.redirectBaseUrl || env.AGENTS_MANAGE_API_URL,
+      redirectBaseUrl: config.redirectBaseUrl || env.INKEEP_AGENTS_MANAGE_API_URL,
     };
   }
 

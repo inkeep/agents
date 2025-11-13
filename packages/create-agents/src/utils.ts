@@ -376,8 +376,13 @@ OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 # Inkeep API URLs
+# Internal URLs (server-side, Docker internal networking)
 INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+
+# Public URLs (client-side, browser accessible)
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
