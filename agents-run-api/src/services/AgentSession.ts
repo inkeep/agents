@@ -902,7 +902,7 @@ export class AgentSession {
               const conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.tenantId,
                 projectId: this.projectId,
-                conversationId: this.contextId,
+                conversationId: this.contextId || 'default',
                 options: {
                   limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
                   maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,

@@ -159,6 +159,7 @@ export const subAgents = pgTable(
     prompt: text('prompt').notNull(),
     conversationHistoryConfig: jsonb('conversation_history_config')
       .$type<ConversationHistoryConfig>()
+      .notNull()
       .default({
         mode: 'full',
         limit: 50,
