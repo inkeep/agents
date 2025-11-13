@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,26 @@ export default function FullPageError({
   onRetry,
   context = 'resource',
 }: FullPageErrorProps) {
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    // Only check navigator.onLine on the client side to avoid hydration mismatch
+    if (typeof navigator !== 'undefined') {
+      setIsOnline(navigator.onLine);
+
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, []);
+
   let statusCode = propStatusCode;
 
   if (!statusCode && error) {
@@ -72,7 +93,7 @@ export default function FullPageError({
     } else if (statusCode === 503) {
       title = 'Service unavailable';
       description = 'The service is temporarily unavailable. Please try again in a few moments.';
-    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    } else if (!isOnline) {
       title = 'Connection error';
       description = 'Unable to connect to the server. Please check your internet connection.';
     }

@@ -8,6 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
+  AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   DATABASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),

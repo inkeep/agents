@@ -351,6 +351,18 @@ importers:
 
   agents-manage-api:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: 2.0.2
+        version: 2.0.2(zod@4.1.12)
+      '@ai-sdk/gateway':
+        specifier: ^1.0.23
+        version: 1.0.41(zod@4.1.12)
+      '@ai-sdk/google':
+        specifier: ^2.0.14
+        version: 2.0.28(zod@4.1.12)
+      '@ai-sdk/openai':
+        specifier: 2.0.11
+        version: 2.0.11(zod@4.1.12)
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.4)
@@ -369,6 +381,12 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.5
         version: 0.69.9
+      '@openrouter/ai-sdk-provider':
+        specifier: ^1.2.0
+        version: 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
+      ai:
+        specifier: ^5.0.11
+        version: 5.0.11(zod@4.1.12)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -551,6 +569,12 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      cron-parser:
+        specifier: ^5.4.0
+        version: 5.4.0
+      cronstrue:
+        specifier: ^3.9.0
+        version: 3.9.0
       dagre:
         specifier: ^0.8.5
         version: 0.8.5
@@ -6209,6 +6233,14 @@ packages:
       typescript:
         optional: true
 
+  cron-parser@5.4.0:
+    resolution: {integrity: sha512-HxYB8vTvnQFx4dLsZpGRa0uHp6X3qIzS3ZJgJ9v6l/5TJMgeWQbLkR5yiJ5hOxGbc9+jCADDnydIe15ReLZnJA==}
+    engines: {node: '>=18'}
+
+  cronstrue@3.9.0:
+    resolution: {integrity: sha512-T3S35zmD0Ai2B4ko6+mEM+k9C6tipe2nB9RLiGT6QL2Wn0Vsn2cCZAC8Oeuf4CaE00GZWVdpYitbpWCNlIWqdA==}
+    hasBin: true
+
   cross-spawn@6.0.6:
     resolution: {integrity: sha512-VqCUuhcd1iB+dsv8gxPttb5iZh/D0iubSP21g36KXdEuf6I5JiioesUVjpCdHV9MZRUfVFlvwtIUyPfxo5trtw==}
     engines: {node: '>=4.8'}
@@ -7996,6 +8028,7 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
+    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -8199,6 +8232,10 @@ packages:
     resolution: {integrity: sha512-w3hD8/SQB7+lzU2r4VdFyzzOzKnUjTZIF/MQJGSSvni7Llewni4vuViRppfRAa2guOsY5k4jZyxw/i9DQHv+dw==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  luxon@3.7.2:
+    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
+    engines: {node: '>=12'}
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -18050,6 +18087,12 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  cron-parser@5.4.0:
+    dependencies:
+      luxon: 3.7.2
+
+  cronstrue@3.9.0: {}
+
   cross-spawn@6.0.6:
     dependencies:
       nice-try: 1.0.5
@@ -20326,6 +20369,8 @@ snapshots:
   lucide-react@0.542.0(react@19.1.1):
     dependencies:
       react: 19.1.1
+
+  luxon@3.7.2: {}
 
   lz-string@1.5.0: {}
 

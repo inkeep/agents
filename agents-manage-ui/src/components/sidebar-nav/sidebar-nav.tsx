@@ -2,8 +2,10 @@
 
 import {
   Activity,
+  BarChart3,
   BookOpen,
   Component,
+  Database,
   Globe,
   Key,
   Layers,
@@ -94,6 +96,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: 'Artifacts',
             url: `/${tenantId}/projects/${projectId}/artifacts`,
             icon: Library,
+          },
+          {
+            title: 'Datasets',
+            url: `/${tenantId}/projects/${projectId}/datasets`,
+            icon: Database,
+          },
+          {
+            title: 'Evaluations',
+            url: `/${tenantId}/projects/${projectId}/evaluations`,
+            icon: BarChart3,
           },
           {
             title: 'Settings',

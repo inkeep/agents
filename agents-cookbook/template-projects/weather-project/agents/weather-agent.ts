@@ -1,5 +1,5 @@
 import { agent, subAgent } from '@inkeep/agents-sdk';
-import { weatherForecast } from '../data-components/weather-forecast';
+// import { weatherForecast } from '../data-components/weather-forecast';
 import { fUI2riwrBVJ6MepT8rjx0 } from '../tools/forecast-weather';
 import { fdxgfv9HL7SXlfynPx8hf } from '../tools/geocode-address';
 
@@ -66,6 +66,6 @@ When users ask about weather:
 You have access to weather forecast data components that can enhance your responses
 with structured weather information.`,
     canDelegateTo: () => [weatherForecaster, geocoderAgent],
-    dataComponents: () => [weatherForecast],
+    // dataComponents: () => [weatherForecast],
   }),
 });
