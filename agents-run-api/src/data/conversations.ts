@@ -23,7 +23,7 @@ export function createDefaultConversationHistoryConfig(
     mode,
     limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
     includeInternal: true,
-    messageTypes: ['chat'],
+    messageTypes: ['chat', 'tool-result'],
     maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   };
 }
@@ -201,10 +201,12 @@ export async function getFullConversationContext(
   conversationId: string,
   maxTokens?: number
 ): Promise<any[]> {
+  const defaultConfig = createDefaultConversationHistoryConfig();
   return await getConversationHistory(dbClient)({
     scopes: { tenantId, projectId },
     conversationId,
     options: {
+      ...defaultConfig,
       limit: 100,
       includeInternal: true,
       maxOutputTokens: maxTokens,
@@ -230,7 +232,7 @@ export async function getFormattedConversationHistory({
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
 }): Promise<string> {
-  const historyOptions = options ?? { includeInternal: true };
+  const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
   const conversationHistory = await getScopedHistory({
     tenantId,
@@ -269,6 +271,10 @@ export async function getFormattedConversationHistory({
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
         const fromSubAgent = msg.fromSubAgentId || 'unknown';
         roleLabel = `${fromSubAgent} to User`;
+      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+        roleLabel = `${fromSubAgent} tool: ${toolName}`;
       } else {
         roleLabel = msg.role || 'system';
       }
