@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { InkeepLogo } from '@/icons';
+import { cn } from '@/lib/utils';
 import type { NavItemProps } from './nav-item';
 
 const bottomNavItems: NavItemProps[] = [
@@ -110,16 +111,23 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       ];
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar" {...props}>
+    <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-1">
             <SidebarMenuButton asChild>
               <Link href={`/${tenantId}/projects`}>
-                <InkeepLogo className="w-18.5!" />
+                <InkeepLogo
+                  role="img"
+                  aria-label="Inkeep Logo"
+                  className={cn(
+                    'transition-all text-[#231F20] dark:text-white h-auto!',
+                    open ? 'w-28!' : 'w-19.5!'
+                  )}
+                />
               </Link>
             </SidebarMenuButton>
-            <ThemeToggle className={open ? '' : 'hidden'} />
+            <ThemeToggle className={cn(!open && 'hidden')} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
