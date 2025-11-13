@@ -1,7 +1,7 @@
+import { WebClient } from '@slack/web-api';
 import { createMcpHandler } from 'mcp-handler';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { WebClient } from '@slack/web-api';
 
 // Store headers globally for access in tools
 let currentRequestHeaders: Headers | null = null;
@@ -38,17 +38,13 @@ const handler = createMcpHandler(
           }
 
           if (!SLACK_TOKEN) {
-            throw new Error(
-              'Slack token not found in headers: must have slack-token header'
-            );
+            throw new Error('Slack token not found in headers: must have slack-token header');
           }
 
           const targetChannel = channel || SLACK_DEFAULT_CHANNEL;
 
           if (!targetChannel) {
-            throw new Error(
-              'No channel specified and slack-default-channel header not set'
-            );
+            throw new Error('No channel specified and slack-default-channel header not set');
           }
 
           // Initialize Slack client with token from headers

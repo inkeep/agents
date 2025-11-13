@@ -34,11 +34,7 @@ export const metadata: Metadata = {
     "Inkeep's multi-agent framework enables multiple specialized AI agents to collaborate and solve complex problems through an agent-based architecture. You can define networks of agents, each with unique instructions, tools, and purposes.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   const runtimeConfig: RuntimeConfig = {
     PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:
       process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
@@ -76,7 +72,7 @@ export default function RootLayout({
                   '--header-height': 'calc(var(--spacing) * 12)',
                 }}
               >
-                <AppSidebar variant="inset" />
+                <AppSidebar />
                 <SidebarInset>{children}</SidebarInset>
               </SidebarProvider>
               <Toaster />
