@@ -7,11 +7,9 @@ import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 
-interface EditExternalAgentPageProps {
-  params: Promise<{ externalAgentId: string; tenantId: string; projectId: string }>;
-}
-
-async function EditExternalAgentPage({ params }: EditExternalAgentPageProps) {
+async function EditExternalAgentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/external-agents/[externalAgentId]/edit'>) {
   const { externalAgentId, tenantId, projectId } = await params;
 
   // Fetch both in parallel with individual error handling

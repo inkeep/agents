@@ -864,6 +864,8 @@ export const Agent: FC<AgentProps> = ({
         id="react-flow-pane"
         order={1}
         minSize={30}
+        // fixes WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering
+        defaultSize={100}
         className="relative"
       >
         <DefaultMarker />
