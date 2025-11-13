@@ -547,6 +547,10 @@ async function validateProjectEquivalence(
   }
 }
 
+// Module-level flag to prevent multiple simultaneous listener setups
+let isWaitingForInput = false;
+let currentKeypressHandler: ((key: string) => void) | null = null;
+
 /**
  * Validate the temp directory by compiling and comparing with remote project
  */
@@ -575,18 +579,36 @@ export async function validateTempDirectory(
     console.log(chalk.red(`   [N] No - Keep temp directory for manual review`));
 
     return new Promise<void>((resolve) => {
-      // Clean up any existing listeners first and increase max listeners
-      process.stdin.removeAllListeners('data');
-      process.stdin.setMaxListeners(15);
+      // Prevent multiple simultaneous listener setups
+      if (isWaitingForInput && currentKeypressHandler) {
+        // Remove the previous handler if it exists
+        process.stdin.removeListener('data', currentKeypressHandler);
+      }
 
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
+      // Clean up any existing listeners
+      process.stdin.removeAllListeners('data');
+      
+      // Ensure stdin is properly configured
+      if (!process.stdin.isRaw) {
+        process.stdin.setRawMode(true);
+      }
+      if (process.stdin.isPaused()) {
+        process.stdin.resume();
+      }
       process.stdin.setEncoding('utf8');
 
       const onKeypress = (key: string) => {
+        // Prevent multiple handlers from executing
+        if (!isWaitingForInput) {
+          return;
+        }
+
+        // Clean up immediately to prevent leaks
+        isWaitingForInput = false;
+        currentKeypressHandler = null;
+        process.stdin.removeAllListeners('data');
         process.stdin.setRawMode(false);
         process.stdin.pause();
-        process.stdin.removeAllListeners('data');
 
         const normalizedKey = key.toLowerCase();
         if (normalizedKey === 'y') {
@@ -613,7 +635,12 @@ export async function validateTempDirectory(
         }
       };
 
-      process.stdin.on('data', onKeypress);
+      // Store handler reference and set flag before adding listener
+      currentKeypressHandler = onKeypress;
+      isWaitingForInput = true;
+      
+      // Use 'once' instead of 'on' to ensure handler is only called once
+      process.stdin.once('data', onKeypress);
       process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));
     });
   } else {
