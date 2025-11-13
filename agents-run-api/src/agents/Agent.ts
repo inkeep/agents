@@ -509,7 +509,23 @@ export class Agent {
         return tool.config?.type === 'mcp';
       }) || [];
 
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const toolsWithMetadata = await Promise.all(
+      mcpTools.map(async (mcpTool) => ({
+        tools: await this.getMcpTool(mcpTool),
+        relationshipId: mcpTool.relationshipId,
+      }))
+    );
+
+    const toolNameToRelationshipId = new Map<string, string>();
+    for (const { tools: toolSet, relationshipId } of toolsWithMetadata) {
+      if (relationshipId) {
+        for (const toolName of Object.keys(toolSet)) {
+          toolNameToRelationshipId.set(toolName, relationshipId);
+        }
+      }
+    }
+
+    const tools = toolsWithMetadata.map((item) => item.tools);
 
     if (!sessionId) {
       const combinedTools = tools.reduce((acc, tool) => {
@@ -535,7 +551,7 @@ export class Agent {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
-
+        const relationshipId = toolNameToRelationshipId.get(toolName);
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
@@ -574,6 +590,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
+                      relationshipId,
                     },
                   });
                 }
