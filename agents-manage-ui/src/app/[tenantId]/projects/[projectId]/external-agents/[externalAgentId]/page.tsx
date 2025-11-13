@@ -4,11 +4,9 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 
-interface ExternalAgentPageProps {
-  params: Promise<{ externalAgentId: string; tenantId: string; projectId: string }>;
-}
-
-async function ExternalAgentPage({ params }: ExternalAgentPageProps) {
+async function ExternalAgentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/external-agents/[externalAgentId]'>) {
   const { externalAgentId, tenantId, projectId } = await params;
 
   let externalAgent: Awaited<ReturnType<typeof fetchExternalAgent>>;

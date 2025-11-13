@@ -14,9 +14,7 @@ const externalAgentsDescription =
 
 async function ExternalAgentsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/external-agents'>) {
   const { tenantId, projectId } = await params;
 
   let externalAgents: Awaited<ReturnType<typeof fetchExternalAgents>>;
