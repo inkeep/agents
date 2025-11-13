@@ -24,9 +24,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -112,22 +110,18 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href={`/${tenantId}/projects`}>
-                <InkeepLogo
-                  role="img"
-                  aria-label="Inkeep Logo"
-                  className={cn(
-                    'transition-all text-[#231F20] dark:text-white h-auto!',
-                    open ? 'w-28!' : 'w-19.5!'
-                  )}
-                />
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarMenuButton asChild>
+          <Link href={`/${tenantId}/projects`}>
+            <InkeepLogo
+              role="img"
+              aria-label="Inkeep Logo"
+              className={cn(
+                'transition-all text-[#231F20] dark:text-white h-auto!',
+                open ? 'w-28!' : 'w-19.5!'
+              )}
+            />
+          </Link>
+        </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent className="justify-between">
         <NavGroup items={topNavItems} />
