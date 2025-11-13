@@ -22,8 +22,69 @@ import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
 
 /**
+ * Get a preview of an object for logging (truncated and formatted)
+ */
+function getObjectPreview(obj: any, maxLength: number = 200): string {
+  if (obj === null) return 'null';
+  if (obj === undefined) return 'undefined';
+  
+  try {
+    // For objects, try to show meaningful content
+    if (typeof obj === 'object') {
+      const jsonStr = JSON.stringify(obj, null, 0);
+      if (jsonStr.length <= maxLength) {
+        return jsonStr;
+      } else {
+        // If it's a render object with component, show component preview
+        if (obj.component && typeof obj.component === 'string') {
+          const componentPreview = obj.component.length > 100 
+            ? obj.component.substring(0, 100) + '...'
+            : obj.component;
+          return `{component: "${componentPreview}", mockData: ${obj.mockData ? 'present' : 'null'}}`;
+        }
+        // Otherwise truncate JSON
+        return jsonStr.substring(0, maxLength) + '...';
+      }
+    } else {
+      // For primitives
+      const str = String(obj);
+      return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+    }
+  } catch (error) {
+    return `[Error stringifying: ${typeof obj}]`;
+  }
+}
+
+/**
  * Find key differences between two objects without full JSON dump
  */
+/**
+ * Extract credential IDs from an agent object, handling different storage structures
+ */
+function extractCredentialIds(agentObj: any): string[] {
+  const credentialIds: string[] = [];
+  
+  // Method 1: Direct credentials array (remote API format)
+  if (agentObj.credentials && Array.isArray(agentObj.credentials)) {
+    agentObj.credentials.forEach((cred: any) => {
+      if (cred.id) {
+        credentialIds.push(cred.id);
+      }
+    });
+  }
+  
+  // Method 2: Via contextConfig fetchDefinitions (generated format)
+  if (agentObj.contextConfig?.contextVariables) {
+    Object.values(agentObj.contextConfig.contextVariables).forEach((variable: any) => {
+      if (variable && typeof variable === 'object' && variable.credentialReferenceId) {
+        credentialIds.push(variable.credentialReferenceId);
+      }
+    });
+  }
+  
+  return [...new Set(credentialIds)]; // Remove duplicates
+}
+
 function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[] {
   const differences: string[] = [];
 
@@ -38,10 +99,38 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
     if (key.startsWith('_') || key === 'createdAt' || key === 'updatedAt') {
       continue;
     }
+    
+    // Special handling for credentials - compare actual credential usage regardless of structure
+    if (key === 'credentials') {
+      const creds1 = extractCredentialIds(obj1);
+      const creds2 = extractCredentialIds(obj2);
+      
+      // Sort both arrays for comparison
+      creds1.sort();
+      creds2.sort();
+      
+      if (JSON.stringify(creds1) !== JSON.stringify(creds2)) {
+        differences.push(`~ credentials: usage differs (${creds1.join(', ')} vs ${creds2.join(', ')})`);
+      }
+      continue; // Skip normal comparison for credentials
+    }
 
-    if (val1 === undefined && val2 !== undefined) {
+    // Check if values are effectively empty (null, undefined, {}, [])
+    const val1IsEmpty = val1 === null || val1 === undefined || 
+                       (Array.isArray(val1) && val1.length === 0) ||
+                       (typeof val1 === 'object' && val1 !== null && Object.keys(val1).length === 0);
+    const val2IsEmpty = val2 === null || val2 === undefined || 
+                       (Array.isArray(val2) && val2.length === 0) ||
+                       (typeof val2 === 'object' && val2 !== null && Object.keys(val2).length === 0);
+
+    // Skip if both are empty
+    if (val1IsEmpty && val2IsEmpty) {
+      continue;
+    }
+
+    if (val1IsEmpty && !val2IsEmpty) {
       differences.push(`+ ${key}: ${typeof val2} (only in remote)`);
-    } else if (val1 !== undefined && val2 === undefined) {
+    } else if (!val1IsEmpty && val2IsEmpty) {
       differences.push(`- ${key}: ${typeof val1} (only in generated)`);
     } else if (val1 !== val2) {
       // For arrays and objects, just show type and length/size differences
@@ -55,8 +144,27 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
         val1 !== null &&
         val2 !== null
       ) {
-        const keys1 = Object.keys(val1);
-        const keys2 = Object.keys(val2);
+        // Filter out keys with empty/undefined values AND metadata fields for comparison
+        const keys1 = Object.keys(val1).filter(k => {
+          // Skip metadata fields
+          if (k.startsWith('_') || k === 'createdAt' || k === 'updatedAt' || k === 'tenantId' || k === 'projectId' || k === 'agentId') {
+            return false;
+          }
+          const v = val1[k];
+          return !(v === null || v === undefined || 
+                  (Array.isArray(v) && v.length === 0) ||
+                  (typeof v === 'object' && v !== null && Object.keys(v).length === 0));
+        });
+        const keys2 = Object.keys(val2).filter(k => {
+          // Skip metadata fields
+          if (k.startsWith('_') || k === 'createdAt' || k === 'updatedAt' || k === 'tenantId' || k === 'projectId' || k === 'agentId') {
+            return false;
+          }
+          const v = val2[k];
+          return !(v === null || v === undefined || 
+                  (Array.isArray(v) && v.length === 0) ||
+                  (typeof v === 'object' && v !== null && Object.keys(v).length === 0));
+        });
         const subKeys1 = keys1.length;
         const subKeys2 = keys2.length;
         if (subKeys1 !== subKeys2) {
@@ -65,13 +173,23 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
       } else if (typeof val1 !== typeof val2) {
         differences.push(`~ ${key}: type differs (${typeof val1} vs ${typeof val2})`);
       } else {
-        // For primitives, show the actual values if they're short
-        const val1Str = String(val1);
-        const val2Str = String(val2);
-        if (val1Str.length < 50 && val2Str.length < 50) {
-          differences.push(`~ ${key}: "${val1Str}" vs "${val2Str}"`);
+        // Special handling for important fields that should show content
+        if (key === 'render' || key === 'component') {
+          // Show detailed render/component differences
+          const val1Preview = getObjectPreview(val1, 200);
+          const val2Preview = getObjectPreview(val2, 200);
+          differences.push(`~ ${key}:`);
+          differences.push(`    Generated: ${val1Preview}`);
+          differences.push(`    Remote:    ${val2Preview}`);
         } else {
-          differences.push(`~ ${key}: values differ (both ${typeof val1})`);
+          // For other values, show them if they're reasonably short
+          const val1Str = String(val1);
+          const val2Str = String(val2);
+          if (val1Str.length < 100 && val2Str.length < 100) {
+            differences.push(`~ ${key}: "${val1Str}" vs "${val2Str}"`);
+          } else {
+            differences.push(`~ ${key}: values differ (both ${typeof val1})`);
+          }
         }
       }
     }
@@ -303,6 +421,7 @@ async function validateProjectEquivalence(
     const { loadProject } = await import('../../utils/project-loader');
 
     // Load the project from temp directory
+    console.log(`🔍 Loading temp project from: ${tempDir}`);
     const tempProject = await loadProject(tempDir);
 
     // Convert to FullProjectDefinition with timeout
@@ -315,8 +434,12 @@ async function validateProjectEquivalence(
       }),
     ]);
 
+
     // Apply the same canDelegateTo enrichment to temp project for fair comparison
     enrichCanDelegateToWithTypes(tempProjectDefinition, false);
+    
+    // Debug: Show what the temp project actually loaded
+    console.log(`🔍 Temp project agent keys:`, Object.keys(tempProjectDefinition.agents?.['inkeep-qa-graph'] || {}));
 
     // Use existing project comparator instead of custom logic
 
@@ -369,6 +492,9 @@ async function validateProjectEquivalence(
 
               // Show the actual differences
               if (generatedComponent && remoteComponent) {
+                console.log(`\n🔍 findKeyDifferences input for ${modifiedId}:`);
+                console.log(`   Generated keys:`, Object.keys(generatedComponent));
+                console.log(`   Remote keys:`, Object.keys(remoteComponent));
                 const differences = findKeyDifferences(
                   generatedComponent,
                   remoteComponent,
@@ -376,13 +502,15 @@ async function validateProjectEquivalence(
                 );
                 if (differences.length > 0) {
                   differences.forEach((diff) => {
-                    // Skip detailed logging
+                    console.log(chalk.gray(`                ${diff}`));
                   });
+                } else {
+                  console.log(chalk.gray(`                No key-level differences detected`));
                 }
               } else if (!generatedComponent) {
-                // Component missing
+                console.log(chalk.red(`                Component missing in generated project`));
               } else if (!remoteComponent) {
-                // Component missing
+                console.log(chalk.red(`                Component missing in remote project`));
               }
             }
           }

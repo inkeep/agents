@@ -333,4 +333,109 @@ describe('Data Component Generator', () => {
       }).toThrow("Missing required fields for data component 'missing-desc': description");
     });
   });
+
+  describe('render attribute support', () => {
+    it('should generate data component with render attribute', () => {
+      const componentData = {
+        name: 'User Profile Card',
+        description: 'Display user profile information',
+        props: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            email: { type: 'string' },
+            role: { type: 'string' }
+          },
+          required: ['name', 'email']
+        },
+        render: {
+          component: 'function UserProfile({ name, email, role }) { return <div className="profile"><h2>{name}</h2><p>{email}</p><p>Role: {role}</p></div>; }',
+          mockData: {
+            name: 'John Doe',
+            email: 'john@example.com',
+            role: 'Developer'
+          }
+        }
+      };
+
+      const definition = generateDataComponentDefinition('user-profile-card', componentData);
+
+      expect(definition).toContain('export const userProfileCard = dataComponent({');
+      expect(definition).toContain("id: 'user-profile-card',");
+      expect(definition).toContain("name: 'User Profile Card',");
+      expect(definition).toContain('render: {');
+      expect(definition).toContain('component: "function UserProfile');
+      expect(definition).toContain('mockData: {');
+      expect(definition).toContain('"name": "John Doe"');
+      expect(definition).toContain('"email": "john@example.com"');
+      expect(definition).toContain('"role": "Developer"');
+    });
+
+    it('should handle data component without render attribute', () => {
+      const componentData = {
+        name: 'Simple Data',
+        description: 'Simple data without render',
+        props: {
+          type: 'object',
+          properties: {
+            value: { type: 'string' }
+          }
+        }
+      };
+
+      const definition = generateDataComponentDefinition('simple-data', componentData);
+
+      expect(definition).toContain('export const simpleData = dataComponent({');
+      expect(definition).not.toContain('render:');
+      expect(definition).not.toContain('component:');
+      expect(definition).not.toContain('mockData:');
+    });
+
+    it('should handle render with component only (no mockData)', () => {
+      const componentData = {
+        name: 'Component Only',
+        description: 'Component with render but no mock data',
+        props: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' }
+          }
+        },
+        render: {
+          component: 'function SimpleComponent({ message }) { return <div>{message}</div>; }'
+        }
+      };
+
+      const definition = generateDataComponentDefinition('component-only', componentData);
+
+      expect(definition).toContain('export const componentOnly = dataComponent({');
+      expect(definition).toContain('render: {');
+      expect(definition).toContain('component: "function SimpleComponent');
+      expect(definition).not.toContain('mockData:');
+    });
+
+    it('should ignore invalid render attribute (missing component)', () => {
+      const componentData = {
+        name: 'Invalid Render',
+        description: 'Component with invalid render',
+        props: {
+          type: 'object',
+          properties: {
+            data: { type: 'string' }
+          }
+        },
+        render: {
+          mockData: { data: 'test' }
+          // Missing component field
+        }
+      };
+
+      const definition = generateDataComponentDefinition('invalid-render', componentData);
+
+      expect(definition).toContain('export const invalidRender = dataComponent({');
+      expect(definition).not.toContain('render:');
+      expect(definition).not.toContain('component:');
+      expect(definition).not.toContain('mockData:');
+    });
+  });
 });

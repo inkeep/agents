@@ -365,8 +365,6 @@ export class Agent implements AgentInterface {
       subAgents: subAgentsObject,
       externalAgents: externalAgentsObject,
       contextConfig: this.contextConfig?.toObject(),
-      // Include tools used by subAgents at agent level (MCP tools only)
-      ...(Object.keys(agentToolsObject).length > 0 && { tools: agentToolsObject }),
       // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),

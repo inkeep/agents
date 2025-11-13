@@ -350,6 +350,24 @@ export function generateAgentDefinition(
     }
   }
 
+  // credentials - function returning array of credential references
+  if (agentData.credentials && Array.isArray(agentData.credentials) && agentData.credentials.length > 0) {
+    if (!registry) {
+      throw new Error('Registry is required for credentials generation');
+    }
+
+    const credentialVars = agentData.credentials.map((cred: any) => {
+      const credVarName = registry.getVariableName(cred.id, 'credentials');
+      if (!credVarName) {
+        throw new Error(`Failed to resolve variable name for credential: ${cred.id}`);
+      }
+      return credVarName;
+    });
+
+    const credentialsArray = `[${credentialVars.join(', ')}]`;
+    lines.push(`${indentation}credentials: () => ${credentialsArray},`);
+  }
+
   // stopWhen - stopping conditions for the agent (only supports transferCountIs)
   if (agentData.stopWhen) {
     const stopWhenFormatted = formatStopWhen(agentData.stopWhen, style, 1);

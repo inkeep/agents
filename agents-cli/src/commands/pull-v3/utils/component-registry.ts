@@ -101,6 +101,33 @@ export class ComponentRegistry {
   }
 
   /**
+   * Override a credential component with environment settings key
+   * This allows env settings registration to take precedence over standalone credentials
+   */
+  overrideCredentialWithEnvKey(
+    id: string,
+    filePath: string,
+    envKey: string
+  ): ComponentInfo {
+    const typeKey = `credentials:${id}`;
+    
+    const info: ComponentInfo = {
+      id,
+      type: 'credentials',
+      name: envKey, // Use the environment settings key
+      filePath,
+      exportName: envKey,
+      isInline: true,
+    };
+
+    // Override existing registration
+    this.componentsByTypeAndId.set(typeKey, info);
+    this.components.set(`${filePath}:${envKey}`, info);
+
+    return info;
+  }
+
+  /**
    * Get component info by ID and type
    */
   get(id: string, type: ComponentType): ComponentInfo | undefined {
@@ -461,6 +488,7 @@ export function registerAllComponents(
   project: FullProjectDefinition,
   registry: ComponentRegistry
 ): void {
+  
   // Register project
   registry.register(project.id, 'project', 'index.ts');
 
@@ -528,16 +556,13 @@ export function registerAllComponents(
   // Register agents
   if (project.agents) {
     for (const agentId of Object.keys(project.agents)) {
-      console.log(`🔧 Registering agent: ${agentId}`);
       registry.register(agentId, 'agents', `agents/${agentId}.ts`);
     }
   }
 
   // Register extracted sub-agents
   const subAgents = extractSubAgents(project);
-  console.log(`🔧 Found subAgents:`, Object.keys(subAgents));
   for (const subAgentId of Object.keys(subAgents)) {
-    console.log(`🔧 Registering subAgent: ${subAgentId}`);
     registry.register(subAgentId, 'subAgents', `agents/sub-agents/${subAgentId}.ts`);
   }
 

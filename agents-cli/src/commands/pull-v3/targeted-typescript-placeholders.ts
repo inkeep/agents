@@ -91,6 +91,9 @@ export function createTargetedTypeScriptPlaceholders(
           case 'props':
             placeholderPrefix = 'PROPS';
             break;
+          case 'render':
+            placeholderPrefix = 'RENDER';
+            break;
           default:
             return; // Skip this property
         }
@@ -103,9 +106,9 @@ export function createTargetedTypeScriptPlaceholders(
         const propertyAssignment = node; // The PropertyAssignment node
         const propertyEnd = propertyAssignment.getEnd();
 
-        // For inputSchema specifically, we need to find the actual end of the object
-        if (propertyName === 'inputSchema') {
-          // The inputSchema should end after the closing brace and comma
+        // For inputSchema and render specifically, we need to find the actual end of the object
+        if (propertyName === 'inputSchema' || propertyName === 'render') {
+          // The object should end after the closing brace and comma
           // Let's search from the start position forward to find the correct boundary
           let searchStart = start;
           let braceCount = 0;

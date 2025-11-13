@@ -210,7 +210,7 @@ Ensure these components have export statements (convert \`const\` to \`export co
 ${oldContent}
 \`\`\`
 
-## NEW Component Definitions:
+## NEW Component Definitions to replace/add to the old file:
 \`\`\`typescript
 ${newContent}
 \`\`\`
@@ -221,11 +221,12 @@ Provide the merged TypeScript file that:
 - Updates ONLY the modified components listed above
 - Maintains consistent code style
 - Uses improved schemas where beneficial
-- Preserves all imports, exports, and other code
+- Preserves all imports, exports, and other code that are necessary to keep the file working.
 - **Formats all function code beautifully with proper spacing, line breaks, and indentation**
 - **Ensures all syntax is valid and compilable TypeScript/JavaScript**
 - Start the code immidiately with the first line of the file, skip any backticks or other formatting announcing that it is a code block or typescript file.
 - Please follow biomes.dev code style.
+- Please remember the NEW component definitions are to replace/add to the old file.
 
 Return only the merged TypeScript code without any explanation or markdown formatting.`;
 
@@ -241,6 +242,13 @@ Return only the merged TypeScript code without any explanation or markdown forma
 
     // Estimate prompt tokens before sending
     const estimatedPromptTokens = estimateTokens(processedPrompt);
+
+    // Log the merge prompt for debugging
+    console.log(chalk.yellow('\n🔍 LLM Merge Prompt:'));
+    console.log(chalk.gray('─'.repeat(80)));
+    console.log(processedPrompt);
+    console.log(chalk.gray('─'.repeat(80)));
+
 
     const result = await generateText({
       model: getAvailableModel(),

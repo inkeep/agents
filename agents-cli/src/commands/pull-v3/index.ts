@@ -82,9 +82,6 @@ export function enrichCanDelegateToWithTypes(
   project: FullProjectDefinition,
   debug: boolean = false
 ): void {
-  if (debug) {
-    console.log(chalk.gray('🔧 Enriching canDelegateTo with type information...'));
-  }
 
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
@@ -93,17 +90,6 @@ export function enrichCanDelegateToWithTypes(
     project.externalAgents ? Object.keys(project.externalAgents) : []
   );
 
-  if (debug) {
-    console.log(chalk.gray(`   Available agents: ${Array.from(agentIds).join(', ') || 'none'}`));
-    console.log(
-      chalk.gray(`   Available subAgents: ${Array.from(subAgentIds).join(', ') || 'none'}`)
-    );
-    console.log(
-      chalk.gray(
-        `   Available externalAgents: ${Array.from(externalAgentIds).join(', ') || 'none'}`
-      )
-    );
-  }
 
   // Function to enrich a canDelegateTo array
   const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
@@ -126,21 +112,9 @@ export function enrichCanDelegateToWithTypes(
       } else if (externalAgentIds.has(id)) {
         enrichedItem = { externalAgentId: id };
       } else {
-        if (debug) {
-          console.log(
-            chalk.yellow(
-              `   Warning: canDelegateTo reference "${id}" in ${context} not found in any component collection`
-            )
-          );
-        }
         continue; // Leave as string if we can't determine the type
       }
 
-      if (debug && enrichedItem) {
-        console.log(
-          chalk.gray(`   Enriched "${id}" in ${context} -> ${JSON.stringify(enrichedItem)}`)
-        );
-      }
 
       // Replace the string with the enriched object
       canDelegateTo[i] = enrichedItem;
@@ -196,6 +170,7 @@ async function readExistingProject(
       }),
     ]);
 
+
     return projectDefinition;
   } catch (error) {
     // If there's any error parsing the existing project, treat as if it doesn't exist
@@ -203,22 +178,6 @@ async function readExistingProject(
     const isCredentialError =
       errorMessage.includes('Credential') && errorMessage.includes('not found');
 
-    if (debug) {
-      if (isCredentialError) {
-        console.log(
-          chalk.yellow('   ⚠ Cannot load existing project - credentials not configured:')
-        );
-        console.log(chalk.gray(`   ${errorMessage}`));
-        console.log(
-          chalk.gray(
-            "   💡 This is expected if you haven't added credentials to environment files yet"
-          )
-        );
-      } else {
-        console.log(chalk.red('   ✗ Error parsing existing project:'));
-        console.log(chalk.red(`   ${errorMessage}`));
-      }
-    }
     return null;
   }
 }
@@ -362,16 +321,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
               };
             }
           });
-          if (options.debug) {
-            const hoistedKeys = Object.keys(agentData.functions).filter(
-              (key) => !remoteProject.functions[key]
-            );
-            if (hoistedKeys.length > 0) {
-              console.log(
-                chalk.gray(`   Hoisted functions from agent ${agentId}: ${hoistedKeys.join(', ')}`)
-              );
-            }
-          }
         }
       }
     }
@@ -399,14 +348,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             delete agentData.tools;
           }
 
-          if (options.debug) {
-            const removedCount = originalToolCount - Object.keys(agentSpecificTools).length;
-            if (removedCount > 0) {
-              console.log(
-                chalk.gray(`   Filtered ${removedCount} project-level tools from agent ${agentId}`)
-              );
-            }
-          }
         }
       }
     }
@@ -450,6 +391,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     // Step 7: Read existing project and compare
     // s.start('Reading existing project...');
     const localProject = await readExistingProject(paths.projectRoot, options.debug);
+    
 
     if (!localProject) {
       s.message('No existing project found - treating as new project');
@@ -461,6 +403,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.start('Building component registry from local files...');
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
+    
+    
     s.message('Component registry built');
 
     // Step 9: Debug registry to see variable name conflicts
