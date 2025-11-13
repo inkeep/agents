@@ -1,5 +1,31 @@
 # @inkeep/agents-manage-ui
 
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+- e70d5ff: show dialog if user tries to leave the agent graph page and there are unsaved changes
+- e1cf7f4: auto collapse sidebar when on the agent graph page / make collapsed view icons only
+
+### Patch Changes
+
+- 1eea0c4: show cypress errors on CI
+- 6fe0005: fix `WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering`
+- 189aec5: fix Next.js warning `⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.`
+- cf9ff7d: fix flacky Cypress tests `No group found for id '...'`
+- 5d6b3aa: Add 'break-words' class to base node component
+- 0d71cac: `suppressHydrationWarning` on development on `<body>` element
+- d95a9de: enable Biome noUselessElse rule
+- 94e5940: dashboard: prefer `PageProps`, `LayoutProps`, `RouteContext` types
+- 6d6a033: add blur to `Ship` button
+- Updated dependencies [b89cbd1]
+- Updated dependencies [d2fa856]
+- Updated dependencies [d95a9de]
+  - @inkeep/agents-core@0.33.0
+  - @inkeep/agents-manage-api@0.33.0
+  - @inkeep/agents-run-api@0.33.0
+
 ## 0.32.2
 
 ### Patch Changes

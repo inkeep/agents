@@ -1,5 +1,30 @@
 # @inkeep/agents-cli
 
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- Updated dependencies [1eea0c4]
+- Updated dependencies [6fe0005]
+- Updated dependencies [b89cbd1]
+- Updated dependencies [e70d5ff]
+- Updated dependencies [d2fa856]
+- Updated dependencies [189aec5]
+- Updated dependencies [cf9ff7d]
+- Updated dependencies [5d6b3aa]
+- Updated dependencies [e1cf7f4]
+- Updated dependencies [0d71cac]
+- Updated dependencies [d95a9de]
+- Updated dependencies [94e5940]
+- Updated dependencies [6d6a033]
+  - @inkeep/agents-manage-ui@0.33.0
+  - @inkeep/agents-core@0.33.0
+  - @inkeep/agents-sdk@0.33.0
+
 ## 0.32.2
 
 ### Patch Changes
