@@ -1,4 +1,3 @@
-import { createApiError } from '@inkeep/agents-core/utils';
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { dataComponents, subAgentDataComponents } from '../db/schema';
@@ -10,6 +9,7 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../types/index';
+import { createApiError } from '../utils';
 import { generateId } from '../utils/conversations';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
 import { validateRender } from '../validation/render-validation';
