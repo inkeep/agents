@@ -218,7 +218,7 @@ CREATE TABLE "sub_agent_artifact_components" (
 	"sub_agent_id" varchar(256) NOT NULL,
 	"artifact_component_id" varchar(256) NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "sub_agent_artifact_components_tenant_id_project_id_agent_id_sub_agent_id_id_pk" PRIMARY KEY("tenant_id","project_id","agent_id","sub_agent_id","id")
+	CONSTRAINT "sub_agent_artifact_components_pk" PRIMARY KEY("tenant_id","project_id","agent_id","sub_agent_id","id")
 );
 --> statement-breakpoint
 CREATE TABLE "sub_agent_data_components" (
@@ -242,7 +242,7 @@ CREATE TABLE "sub_agent_external_agent_relations" (
 	"headers" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
+	CONSTRAINT "sub_agent_external_agent_relations_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
 );
 --> statement-breakpoint
 CREATE TABLE "sub_agent_function_tool_relations" (
@@ -254,7 +254,7 @@ CREATE TABLE "sub_agent_function_tool_relations" (
 	"function_tool_id" varchar(256) NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "sub_agent_function_tool_relations_tenant_id_project_id_agent_id_id_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
+	CONSTRAINT "sub_agent_function_tool_relations_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
 );
 --> statement-breakpoint
 CREATE TABLE "sub_agent_relations" (
@@ -280,7 +280,7 @@ CREATE TABLE "sub_agent_team_agent_relations" (
 	"headers" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "sub_agent_team_agent_relations_tenant_id_project_id_agent_id_id_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
+	CONSTRAINT "sub_agent_team_agent_relations_pk" PRIMARY KEY("tenant_id","project_id","agent_id","id")
 );
 --> statement-breakpoint
 CREATE TABLE "sub_agent_tool_relations" (

@@ -1,11 +1,9 @@
+import { createApiError, isRefWritable, type ResolvedRef, resolveRef } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
-import {
-  createApiError,
-  isRefWritable,
-  resolveRef,
-  type ResolvedRef,
-} from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { getLogger } from '../logger';
+
+const logger = getLogger('ref');
 
 export type RefContext = {
   resolvedRef?: ResolvedRef;
@@ -14,19 +12,24 @@ export type RefContext = {
 export const refMiddleware = async (c: Context, next: Next) => {
   const ref = c.req.query('ref');
 
-  if (!ref) {
-    await next();
-    return;
+  let resolvedRef: ResolvedRef = {
+    type: 'branch',
+    name: 'main',
+    hash: 'main',
+  };
+
+  if (ref) {
+    const refResult = await resolveRef(dbClient)(ref);
+    if (!refResult) {
+      throw createApiError({
+        code: 'not_found',
+        message: `Unknown ref: ${ref}`,
+      });
+    }
+    resolvedRef = refResult;
   }
 
-  const resolvedRef = await resolveRef(dbClient)(ref);
-
-  if (!resolvedRef) {
-    throw createApiError({
-      code: 'not_found',
-      message: `Unknown ref: ${ref}`,
-    });
-  }
+  logger.info({ resolvedRef }, 'Resolved ref');
 
   c.set('resolvedRef', resolvedRef);
 

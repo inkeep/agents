@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { apiKeys } from '../db/schema';
 import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../types/entities';
 import type {
@@ -11,8 +10,8 @@ import type {
 } from '../types/utility';
 import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../utils/apiKeys';
 
-export const getApiKeyById = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; id: string }) => {
+export const getApiKeyById =
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.apiKeys.findFirst({
       where: and(
         eq(apiKeys.tenantId, params.scopes.tenantId),
@@ -20,19 +19,16 @@ export const getApiKeyById = createDataAccessFn(
         eq(apiKeys.id, params.id)
       ),
     });
-  }
-);
+  };
 
-export const getApiKeyByPublicId = createDataAccessFn(
-  async (db: DatabaseClient, params: { publicId: string }) => {
-    return await db.query.apiKeys.findFirst({
-      where: eq(apiKeys.publicId, params.publicId),
-    });
-  }
-);
+export const getApiKeyByPublicId = (db: DatabaseClient) => async (publicId: string) => {
+  return await db.query.apiKeys.findFirst({
+    where: eq(apiKeys.publicId, publicId),
+  });
+};
 
-export const listApiKeys = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; agentId?: string }) => {
+export const listApiKeys =
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
@@ -46,18 +42,15 @@ export const listApiKeys = createDataAccessFn(
       where: and(...conditions),
       orderBy: [desc(apiKeys.createdAt)],
     });
-  }
-);
+  };
 
-export const listApiKeysPaginated = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      pagination?: PaginationConfig;
-      agentId?: string;
-    }
-  ): Promise<{
+export const listApiKeysPaginated =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    pagination?: PaginationConfig;
+    agentId?: string;
+  }): Promise<{
     data: ApiKeySelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -94,8 +87,7 @@ export const listApiKeysPaginated = createDataAccessFn(
       data,
       pagination: { page, limit, total: totalNumber, pages },
     };
-  }
-);
+  };
 
 export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert) => {
   const now = new Date().toISOString();
@@ -255,7 +247,7 @@ export const validateAndGetApiKey = async (
   }
 
   // Direct lookup using publicId (O(1) with unique index)
-  const apiKey = await getApiKeyByPublicId(db)({ publicId });
+  const apiKey = await getApiKeyByPublicId(db)(publicId);
 
   if (!apiKey) {
     return null;

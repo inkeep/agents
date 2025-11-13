@@ -13,7 +13,7 @@ import {
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
@@ -79,15 +79,15 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
     try {
-      const createdProject = await createFullProjectServerSide(dbClient)({
-        scopes: { tenantId, projectId: validatedProjectData.id },
-        projectData: validatedProjectData,
-      });
+      const createdProject = await createFullProjectServerSide(db)(
+        { scopes: { tenantId, projectId: validatedProjectData.id }, projectData: validatedProjectData }
+      );
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -132,10 +132,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const resolvedRef = c.get('resolvedRef');
+    const db = c.get('db');
 
     try {
-      const project: FullProjectDefinition | null = await getFullProject(dbClient, resolvedRef)(
+      const project: FullProjectDefinition | null = await getFullProject(db)(
         { scopes: { tenantId, projectId } });
 
       if (!project) {
@@ -205,6 +205,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const projectData = c.req.valid('json');
+    const db = c.get('db');
 
     try {
       const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
@@ -216,18 +217,18 @@ app.openapi(
         });
       }
 
-      const existingProject: FullProjectDefinition | null = await getFullProject(dbClient, undefined)({
+      const existingProject: FullProjectDefinition | null = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       const isCreate = !existingProject;
 
       // Update/create the full project using server-side data layer operations
       const updatedProject: FullProjectDefinition = isCreate
-        ? await createFullProjectServerSide(dbClient)({
+        ? await createFullProjectServerSide(db)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           })
-        : await updateFullProjectServerSide(dbClient)({
+        : await updateFullProjectServerSide(db)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           });
@@ -277,9 +278,12 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const db = c.get('db');
 
     try {
-      const deleted = await deleteFullProject(dbClient)({
+      const deleted = await deleteFullProject(
+        db
+      )({
         scopes: { tenantId, projectId },
       });
 

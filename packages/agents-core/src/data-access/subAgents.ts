@@ -1,13 +1,11 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { agents, subAgents } from '../db/schema';
-import { createDataAccessFn } from '../db/data-access-helper';
-
 import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 
-export const getSubAgentById = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+export const getSubAgentById =
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const result = await db.query.subAgents.findFirst({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
@@ -17,11 +15,10 @@ export const getSubAgentById = createDataAccessFn(
       ),
     });
     return result;
-  }
-);
+  };
 
-export const listSubAgents = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig }) => {
+export const listSubAgents =
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgents.findMany({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
@@ -29,11 +26,11 @@ export const listSubAgents = createDataAccessFn(
         eq(subAgents.agentId, params.scopes.agentId)
       ),
     });
-  }
-);
+  };
 
-export const listSubAgentsPaginated = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
+export const listSubAgentsPaginated =
+  (db: DatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -62,22 +59,17 @@ export const listSubAgentsPaginated = createDataAccessFn(
       data,
       pagination: { page, limit, total, pages },
     };
-  }
-);
+  };
 
-export const createSubAgent = createDataAccessFn(
-  async (db: DatabaseClient, params: SubAgentInsert) => {
+export const createSubAgent = (db: DatabaseClient) => async (params: SubAgentInsert) => {
     const agent = await db.insert(subAgents).values(params).returning();
 
     return agent[0];
-  }
-);
+  };
 
-export const updateSubAgent = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: { scopes: AgentScopeConfig; subAgentId: string; data: SubAgentUpdate }
-  ) => {
+export const updateSubAgent =
+  (db: DatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentId: string; data: SubAgentUpdate }) => {
     const data = params.data;
 
     // Handle model settings clearing - if empty object with no meaningful values, set to null
@@ -115,13 +107,14 @@ export const updateSubAgent = createDataAccessFn(
 
     return agent[0] ?? null;
   }
-);
+
 
 /**
  * Upsert agent (create if it doesn't exist, update if it does)
  */
-export const upsertSubAgent = createDataAccessFn(
-  async (db: DatabaseClient, params: { data: SubAgentInsert }): Promise<SubAgentSelect> => {
+export const upsertSubAgent =
+  (db: DatabaseClient) =>
+  async (params: { data: SubAgentInsert }): Promise<SubAgentSelect> => {
     const scopes = {
       tenantId: params.data.tenantId,
       projectId: params.data.projectId,
@@ -152,8 +145,7 @@ export const upsertSubAgent = createDataAccessFn(
       return updated;
     }
     return await createSubAgent(db)(params.data);
-  }
-);
+  };
 
 export class SubAgentIsDefaultError extends Error {
   constructor(
@@ -167,8 +159,9 @@ export class SubAgentIsDefaultError extends Error {
   }
 }
 
-export const deleteSubAgent = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+export const deleteSubAgent =
+  (db: DatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const agentUsingAsDefault = await db
       .select()
       .from(agents)
@@ -203,10 +196,9 @@ export const deleteSubAgent = createDataAccessFn(
     });
     return deletedSubAgent === undefined;
   }
-);
 
-export const getSubAgentsByIds = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
+export const getSubAgentsByIds =
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
     if (params.subAgentIds.length === 0) {
       return [];
     }
@@ -222,5 +214,4 @@ export const getSubAgentsByIds = createDataAccessFn(
           inArray(subAgents.id, params.subAgentIds)
         )
       );
-  }
-);
+  };

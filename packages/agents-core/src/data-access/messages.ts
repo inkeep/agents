@@ -1,6 +1,5 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { messages } from '../db/schema';
 import type {
   MessageInsert,
@@ -10,8 +9,8 @@ import type {
   ProjectScopeConfig,
 } from '../types/index';
 
-export const getMessageById = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; messageId: string }) => {
+export const getMessageById =
+  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     return db.query.messages.findFirst({
       where: and(
         eq(messages.tenantId, params.scopes.tenantId),
@@ -19,11 +18,11 @@ export const getMessageById = createDataAccessFn(
         eq(messages.id, params.messageId)
       ),
     });
-  }
-);
+  };
 
-export const listMessages = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; pagination: PaginationConfig }) => {
+export const listMessages =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -42,18 +41,15 @@ export const listMessages = createDataAccessFn(
       .orderBy(desc(messages.createdAt));
 
     return await query;
-  }
-);
+  };
 
-export const getMessagesByConversation = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      conversationId: string;
-      pagination: PaginationConfig;
-    }
-  ) => {
+export const getMessagesByConversation =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    pagination: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -73,11 +69,11 @@ export const getMessagesByConversation = createDataAccessFn(
       .orderBy(desc(messages.createdAt));
 
     return await query;
-  }
-);
+  };
 
-export const getMessagesByTask = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; taskId: string; pagination: PaginationConfig }) => {
+export const getMessagesByTask =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; taskId: string; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -97,19 +93,16 @@ export const getMessagesByTask = createDataAccessFn(
       .orderBy(asc(messages.createdAt));
 
     return await query;
-  }
-);
+  };
 
-export const getVisibleMessages = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      conversationId: string;
-      visibility?: MessageVisibility[];
-      pagination: PaginationConfig;
-    }
-  ) => {
+export const getVisibleMessages =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+    visibility?: MessageVisibility[];
+    pagination: PaginationConfig;
+  }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -132,8 +125,7 @@ export const getVisibleMessages = createDataAccessFn(
       .orderBy(asc(messages.createdAt));
 
     return await query;
-  }
-);
+  };
 
 export const createMessage = (db: DatabaseClient) => async (params: MessageInsert) => {
   const now = new Date().toISOString();
@@ -189,8 +181,9 @@ export const deleteMessage =
     return deleted;
   };
 
-export const countMessagesByConversation = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; conversationId: string }) => {
+export const countMessagesByConversation =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     const result = await db
       .select({ count: count() })
       .from(messages)
@@ -204,5 +197,4 @@ export const countMessagesByConversation = createDataAccessFn(
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
-  }
-);
+  };

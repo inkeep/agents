@@ -29,10 +29,9 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import { deleteTool, listTools, upsertTool } from './tools';
-import { createDataAccessFn } from '../db/data-access-helper';
+import {deleteTool, listTools, upsertTool} from './tools';
 
-const logger = getLogger('projectFull');
+const defaultLogger = getLogger('projectFull');
 
 export type ProjectLogger = ReturnType<typeof getLogger>;
 
@@ -47,11 +46,12 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * Server-side implementation of createFullProject that performs actual database operations.
  * This function creates a complete project with all agent and their nested resources.
  */
-export const createFullProjectServerSide = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: { scopes: ProjectScopeConfig; projectData: FullProjectDefinition }
-  ): Promise<FullProjectDefinition> => {
+export const createFullProjectServerSide =
+  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    projectData: FullProjectDefinition;
+  }): Promise<FullProjectDefinition> => {
     const { scopes, projectData } = params;
     const { tenantId } = scopes;
     const typed = validateAndTypeProjectData(projectData);
@@ -376,7 +376,7 @@ export const createFullProjectServerSide = createDataAccessFn(
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(db)(
+            await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
               agentDataWithoutSubAgents
             );
@@ -424,7 +424,7 @@ export const createFullProjectServerSide = createDataAccessFn(
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(db)(
+              await updateFullAgentServerSide(db, logger)(
                 { tenantId, projectId: typed.id },
                 updateData as any
               );
@@ -454,7 +454,10 @@ export const createFullProjectServerSide = createDataAccessFn(
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      return (await getFullProject(db)({
+      return (await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId: typed.id },
       })) as FullProjectDefinition;
     } catch (error) {
@@ -469,17 +472,17 @@ export const createFullProjectServerSide = createDataAccessFn(
       throw error;
     }
   }
-);
 
 /**
  * Server-side implementation of updateFullProject that performs actual database operations.
  * This function updates a complete project with all agent and their nested resources.
  */
-export const updateFullProjectServerSide = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: { scopes: ProjectScopeConfig; projectData: FullProjectDefinition }
-  ): Promise<FullProjectDefinition> => {
+export const updateFullProjectServerSide =
+  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    projectData: FullProjectDefinition;
+  }): Promise<FullProjectDefinition> => {
     const { scopes, projectData } = params;
     const { tenantId } = scopes;
     const typed = validateAndTypeProjectData(projectData);
@@ -504,7 +507,7 @@ export const updateFullProjectServerSide = createDataAccessFn(
 
       if (!existingProject) {
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
-        return await createFullProjectServerSide(db)({
+        return await createFullProjectServerSide(db, logger)({
           scopes: { tenantId, projectId: typed.id },
           projectData,
         });
@@ -1019,7 +1022,10 @@ export const updateFullProjectServerSide = createDataAccessFn(
       for (const agent of existingAgents) {
         if (!incomingAgentIds.has(agent.id)) {
           try {
-            await deleteFullAgent(db)({
+            await deleteFullAgent(
+              db,
+              logger
+            )({
               scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
             deletedAgentCount++;
@@ -1066,7 +1072,7 @@ export const updateFullProjectServerSide = createDataAccessFn(
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(db)(
+            await updateFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
               agentDataWithProjectResources
             );
@@ -1093,7 +1099,10 @@ export const updateFullProjectServerSide = createDataAccessFn(
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      return (await getFullProject(db)({
+      return (await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId: typed.id },
       })) as FullProjectDefinition;
     } catch (error) {
@@ -1108,13 +1117,13 @@ export const updateFullProjectServerSide = createDataAccessFn(
       throw error;
     }
   }
-);
 
 /**
  * Get a complete project definition with all nested resources
  */
-export const getFullProject = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
+export const getFullProject =
+  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
@@ -1306,7 +1315,7 @@ export const getFullProject = createDataAccessFn(
               'Retrieving full agent definition'
             );
 
-            const fullAgent = await getFullAgent()(db)({
+            const fullAgent = await getFullAgent(db)({
               scopes: { tenantId, projectId, agentId: agent.id },
             });
 
@@ -1375,21 +1384,24 @@ export const getFullProject = createDataAccessFn(
       );
       throw error;
     }
-  }
-);
+  };
 
 /**
  * Delete a complete project and cascade to all related entities
  */
-export const deleteFullProject = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
+export const deleteFullProject =
+  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      const project = await getFullProject(db)({
+      const project = await getFullProject(
+        db,
+        logger
+      )({
         scopes: { tenantId, projectId },
       });
 
@@ -1412,7 +1424,10 @@ export const deleteFullProject = createDataAccessFn(
           try {
             logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
 
-            await deleteFullAgent(db)({
+            await deleteFullAgent(
+              db,
+              logger
+            )({
               scopes: { tenantId, projectId, agentId },
             });
 
@@ -1463,4 +1478,3 @@ export const deleteFullProject = createDataAccessFn(
       throw error;
     }
   }
-);

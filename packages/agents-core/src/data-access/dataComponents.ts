@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { dataComponents, subAgentDataComponents } from '../db/schema';
 import type {
   DataComponentInsert,
@@ -18,14 +17,12 @@ import { validateRender } from '../validation/render-validation';
 /**
  * Get a data component by ID
  */
-export const getDataComponent = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      dataComponentId: string;
-    }
-  ): Promise<DataComponentSelect | null> => {
+export const getDataComponent =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    dataComponentId: string;
+  }): Promise<DataComponentSelect | null> => {
     const result = await db.query.dataComponents.findFirst({
       where: and(
         eq(dataComponents.tenantId, params.scopes.tenantId),
@@ -35,14 +32,14 @@ export const getDataComponent = createDataAccessFn(
     });
 
     return result || null;
-  }
-);
+  };
 
 /**
  * List all data components for a tenant/project
  */
-export const listDataComponents = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<DataComponentSelect[]> => {
+export const listDataComponents =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select()
       .from(dataComponents)
@@ -53,20 +50,17 @@ export const listDataComponents = createDataAccessFn(
         )
       )
       .orderBy(desc(dataComponents.createdAt));
-  }
-);
+  };
 
 /**
  * List data components with pagination
  */
-export const listDataComponentsPaginated = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      pagination?: PaginationConfig;
-    }
-  ): Promise<{
+export const listDataComponentsPaginated =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    pagination?: PaginationConfig;
+  }): Promise<{
     data: DataComponentSelect[];
     pagination: { page: number; limit: number; total: number; pages: number };
   }> => {
@@ -108,8 +102,7 @@ export const listDataComponentsPaginated = createDataAccessFn(
       data,
       pagination: { page, limit, total, pages },
     };
-  }
-);
+  };
 
 /**
  * Create a new data component
@@ -243,8 +236,9 @@ export const deleteDataComponent =
 /**
  * Get data components for a specific agent
  */
-export const getDataComponentsForAgent = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig }): Promise<DataComponentSelect[]> => {
+export const getDataComponentsForAgent =
+  (db: DatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select({
         id: dataComponents.id,
@@ -271,8 +265,7 @@ export const getDataComponentsForAgent = createDataAccessFn(
         )
       )
       .orderBy(desc(dataComponents.createdAt));
-  }
-);
+  };
 
 /**
  * Associate a data component with an agent
@@ -335,8 +328,9 @@ export const deleteAgentDataComponentRelationByAgent =
 /**
  * Get all agents that use a specific data component
  */
-export const getAgentsUsingDataComponent = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
+export const getAgentsUsingDataComponent =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
         subAgentId: subAgentDataComponents.subAgentId,
@@ -351,14 +345,14 @@ export const getAgentsUsingDataComponent = createDataAccessFn(
         )
       )
       .orderBy(desc(subAgentDataComponents.createdAt));
-  }
-);
+  };
 
 /**
  * Check if a data component is associated with an agent
  */
-export const isDataComponentAssociatedWithAgent = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
+export const isDataComponentAssociatedWithAgent =
+  (db: DatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .select({ id: subAgentDataComponents.id })
       .from(subAgentDataComponents)
@@ -374,8 +368,7 @@ export const isDataComponentAssociatedWithAgent = createDataAccessFn(
       .limit(1);
 
     return result.length > 0;
-  }
-);
+  };
 
 /**
  * Upsert agent-data component relation (create if it doesn't exist, no-op if it does)
@@ -397,8 +390,9 @@ export const upsertAgentDataComponentRelation =
 /**
  * Count data components for a tenant/project
  */
-export const countDataComponents = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig }): Promise<number> => {
+export const countDataComponents =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(dataComponents)
@@ -411,8 +405,7 @@ export const countDataComponents = createDataAccessFn(
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;
-  }
-);
+  };
 
 /**
  * Upsert a data component (create if it doesn't exist, update if it does)

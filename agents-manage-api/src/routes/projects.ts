@@ -5,22 +5,17 @@ import {
   createProject,
   deleteProject,
   ErrorResponseSchema,
-  getPoolFromClient,
   getProject,
   listProjectsPaginated,
-  PaginationWithRefQueryParamsSchema,
+  PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
-  RefQueryParamSchema,
-  type ResolvedRef,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
-  withRefConnection,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -54,7 +49,7 @@ app.openapi(
     tags: ['Projects'],
     request: {
       params: TenantParamsSchema,
-      query: PaginationWithRefQueryParamsSchema,
+      query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
@@ -70,12 +65,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const resolvedRef = c.get('resolvedRef');
 
-    const result = await listProjectsPaginated(dbClient, resolvedRef)({
+    const result = await listProjectsPaginated(db)({
       tenantId,
       pagination: { page, limit },
     });
@@ -93,7 +88,6 @@ app.openapi(
     tags: ['Projects'],
     request: {
       params: TenantIdParamsSchema,
-      query: RefQueryParamSchema,
     },
     responses: {
       200: {
@@ -108,10 +102,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
-    const resolvedRef = c.get('resolvedRef') as ResolvedRef | undefined;
-
-    const project = await getProject(dbClient, resolvedRef)({ scopes: { tenantId, projectId: id } });
+    const project = await getProject(db)({ scopes: { tenantId, projectId: id } });
 
     if (!project) {
       throw createApiError({
@@ -163,11 +156,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
-      const project = await createProject(dbClient)({
+      const project = await createProject(db)({
         tenantId,
         ...body,
       });
@@ -217,10 +211,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const project = await updateProject(dbClient)({
+    const project = await updateProject(db)({
       scopes: { tenantId, projectId: id },
       data: body,
     });
@@ -263,10 +258,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
 
     try {
-      const deleted = await deleteProject(dbClient)({
+      const deleted = await deleteProject(db)({
         scopes: { tenantId, projectId: id },
       });
 

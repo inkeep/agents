@@ -13,7 +13,6 @@ import {
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
@@ -79,12 +78,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(dbClient)(
+    const createdAgent = await createFullAgentServerSide(db)(
       { tenantId, projectId },
       validatedAgentData
     );
@@ -117,13 +117,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
-    const resolvedRef = c.get('resolvedRef');
 
     try {
-      const agent: FullAgentDefinition | null = await getFullAgent()(
-        dbClient,
-        resolvedRef
+      const agent: FullAgentDefinition | null = await getFullAgent(
+        db,
+        logger
       )({
         scopes: { tenantId, projectId, agentId },
       });
@@ -193,6 +193,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
@@ -207,9 +208,9 @@ app.openapi(
         });
       }
 
-      const existingAgent: FullAgentDefinition | null = await getFullAgent()(
-        dbClient,
-        undefined
+      const existingAgent: FullAgentDefinition | null = await getFullAgent(
+        db,
+        logger
       )({
         scopes: { tenantId, projectId, agentId },
       });
@@ -217,14 +218,8 @@ app.openapi(
 
       // Update/create the full agent using server-side data layer operations
       const updatedAgent: FullAgentDefinition = isCreate
-        ? await createFullAgentServerSide(dbClient)(
-            { tenantId, projectId },
-            validatedAgentData
-          )
-        : await updateFullAgentServerSide(dbClient)(
-            { tenantId, projectId },
-            validatedAgentData
-          );
+        ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
+        : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
 
       return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
     } catch (error) {
@@ -270,11 +265,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
       const deleted = await deleteFullAgent(
-        dbClient
+        db,
+        logger
       )({
         scopes: { tenantId, projectId, agentId },
       });

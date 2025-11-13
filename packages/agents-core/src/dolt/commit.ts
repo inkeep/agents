@@ -1,7 +1,10 @@
-import type { DatabaseClient } from '../db/client';
 import { sql } from 'drizzle-orm';
+import type { DatabaseClient } from '../db/client';
 /**
  * Stage all changes for commit
+ * params: { tables?: string[] }
+ * tables: array of table names to stage
+ * if no tables are specified, all changes are staged
  */
 export const doltAdd =
   (db: DatabaseClient) =>
@@ -19,12 +22,15 @@ export const doltAdd =
 
 /**
  * Commit staged changes
+ * params: { message: string; author?: { name: string; email: string } }
+ * message: commit message
+ * author: commit author
+ * author is optional, if not provided, the commit will be committed with the default author
  */
 export const doltCommit =
   (db: DatabaseClient) =>
   async (params: {
     message: string;
-
     author?: { name: string; email: string };
   }): Promise<string> => {
     const args: string[] = [];
@@ -38,44 +44,52 @@ export const doltCommit =
       args.push("'--author'", `'${params.author.name} <${params.author.email}>'`);
     }
 
-    const result = await db.execute(sql.raw(`CALL DOLT_COMMIT(${args.join(', ')})`));
+    await db.execute(sql.raw(`CALL DOLT_COMMIT(${args.join(', ')})`));
     return 'Commit successful';
   };
 
+export const doltAddAndCommit =
+  (db: DatabaseClient) =>
+  async (params: {
+    message: string;
+    author?: { name: string; email: string };
+  }): Promise<string> => {
+    await doltAdd(db)({});
+    return doltCommit(db)(params);
+  };
 
 /**
  * Get commit log
  */
 export const doltLog =
-(db: DatabaseClient) =>
-async (params?: {
-  revision?: string;
-  limit?: number;
-}): Promise<
-  {
-    commit_hash: string;
-    committer: string;
-    email: string;
-    date: Date;
-    message: string;
-  }[]
-> => {
-  let query = sql`SELECT * FROM DOLT_LOG()`;
+  (db: DatabaseClient) =>
+  async (params?: {
+    revision?: string;
+    limit?: number;
+  }): Promise<
+    {
+      commit_hash: string;
+      committer: string;
+      email: string;
+      date: Date;
+      message: string;
+    }[]
+  > => {
+    let query = sql`SELECT * FROM DOLT_LOG()`;
 
-  if (params?.revision) {
-    query = sql.raw(`SELECT * FROM DOLT_LOG('${params.revision}')`);
-  }
+    if (params?.revision) {
+      query = sql.raw(`SELECT * FROM DOLT_LOG('${params.revision}')`);
+    }
 
-  const result = await db.execute(query);
-  let rows = result.rows as any[];
+    const result = await db.execute(query);
+    let rows = result.rows as any[];
 
-  if (params?.limit) {
-    rows = rows.slice(0, params.limit);
-  }
+    if (params?.limit) {
+      rows = rows.slice(0, params.limit);
+    }
 
-  return rows;
-};
-
+    return rows;
+  };
 
 /**
  * Reset staged or working changes
@@ -109,53 +123,54 @@ export const doltStatus =
     return result.rows as any[];
   };
 
-
 /**
  * Get hash of a commit/branch
  */
 export const doltHashOf =
-(db: DatabaseClient) =>
-async (params: { revision: string }): Promise<string> => {
-  const result = await db.execute(sql.raw(`SELECT DOLT_HASHOF('${params.revision}') as hash`));
-  return result.rows[0]?.hash as string;
-};
+  (db: DatabaseClient) =>
+  async (params: { revision: string }): Promise<string> => {
+    const result = await db.execute(sql.raw(`SELECT DOLT_HASHOF('${params.revision}') as hash`));
+    return result.rows[0]?.hash as string;
+  };
 
 /**
-* Create a tag
-*/
+ * Create a tag
+ */
 export const doltTag =
-(db: DatabaseClient) =>
-async (params: { name: string; message?: string; revision?: string }): Promise<void> => {
-  const args: string[] = [`'${params.name}'`];
+  (db: DatabaseClient) =>
+  async (params: { name: string; message?: string; revision?: string }): Promise<void> => {
+    const args: string[] = [`'${params.name}'`];
 
-  if (params.message) {
-    args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
-  }
+    if (params.message) {
+      args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
+    }
 
-  if (params.revision) {
-    args.push(`'${params.revision}'`);
-  }
+    if (params.revision) {
+      args.push(`'${params.revision}'`);
+    }
 
-  await db.execute(sql.raw(`CALL DOLT_TAG(${args.join(', ')})`));
-};
+    await db.execute(sql.raw(`CALL DOLT_TAG(${args.join(', ')})`));
+  };
 
 /**
-* Delete a tag
-*/
+ * Delete a tag
+ */
 export const doltDeleteTag =
-(db: DatabaseClient) =>
-async (params: { name: string }): Promise<void> => {
-  await db.execute(sql.raw(`CALL DOLT_TAG('-d', '${params.name}')`));
-};
+  (db: DatabaseClient) =>
+  async (params: { name: string }): Promise<void> => {
+    await db.execute(sql.raw(`CALL DOLT_TAG('-d', '${params.name}')`));
+  };
 
 /**
-* List all tags
-*/
+ * List all tags
+ */
 export const doltListTags =
-(db: DatabaseClient) =>
-async (): Promise<
-  { tag_name: string; tag_hash: string; tagger: string; date: Date; message: string }[]
-> => {
-  const result = await db.execute(sql`SELECT * FROM dolt_tags`);
-  return result.rows as any[];
-};
+  (db: DatabaseClient) =>
+  async (): Promise<
+    { tag_name: string; tag_hash: string; tagger: string; date: Date; message: string }[]
+  > => {
+    const result = await db.execute(sql`SELECT * FROM dolt_tags`);
+    return result.rows as any[];
+  };
+
+// export const createCommitMessage =

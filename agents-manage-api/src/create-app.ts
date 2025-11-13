@@ -12,6 +12,7 @@ import { apiKeyAuth } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
+import { branchScopedDbMiddleware } from './middleware/branch-scoped-db';
 import { refMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { setupOpenAPIRoutes } from './openapi';
 import cliAuthRoutes from './routes/cliAuth';
@@ -229,6 +230,7 @@ function createManagementHono(
   // Ref versioning middleware for all tenant routes
   app.use('/tenants/*', refMiddleware);
   app.use('/tenants/*', writeProtectionMiddleware);
+  app.use('/tenants/*', branchScopedDbMiddleware);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);

@@ -15,6 +15,7 @@ import {
   CredentialReferenceApiSelectSchema,
   CredentialStoreType,
   createCredentialReference,
+  type DatabaseClient,
   generateId,
   getCredentialReferenceWithResources,
   getToolById,
@@ -22,7 +23,6 @@ import {
   OAuthLoginQuerySchema,
   updateTool,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import type { PublicAppVariablesWithServerConfig } from '../types/app';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
@@ -31,13 +31,14 @@ import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
  * Find existing credential or create a new one (idempotent operation)
  */
 async function findOrCreateCredential(
+  db: DatabaseClient,
   tenantId: string,
   projectId: string,
   credentialData: CredentialReferenceApiInsert
 ) {
   try {
     // Try to find existing credential first
-    const existingCredential = await getCredentialReferenceWithResources(dbClient)({
+    const existingCredential = await getCredentialReferenceWithResources(db)({
       scopes: { tenantId, projectId },
       id: credentialData.id,
     });
@@ -51,7 +52,7 @@ async function findOrCreateCredential(
   }
 
   try {
-    const credential = await createCredentialReference(dbClient)({
+    const credential = await createCredentialReference(db)({
       ...credentialData,
       tenantId,
       projectId,
@@ -203,9 +204,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, toolId } = c.req.valid('query');
+    const db = c.get('db');
 
     try {
-      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
+      const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
 
       if (!tool) {
         logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
@@ -267,6 +269,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     try {
       const { code, state, error, error_description } = c.req.valid('query');
 
@@ -314,7 +317,7 @@ app.openapi(
         resourceUrl,
       } = pkceData;
 
-      const tool = await getToolById(dbClient)({
+      const tool = await getToolById(db)({
         scopes: { tenantId, projectId },
         toolId,
       });
@@ -374,10 +377,15 @@ app.openapi(
         throw new Error('No credential store found');
       }
 
-      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
+      const newCredential = await findOrCreateCredential(
+        db,
+        tenantId,
+        projectId,
+        newCredentialData
+      );
 
       // Update MCP tool to link the credential
-      await updateTool(dbClient)({
+      await updateTool(db)({
         scopes: { tenantId, projectId },
         toolId,
         data: {

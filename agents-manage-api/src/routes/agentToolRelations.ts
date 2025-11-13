@@ -20,7 +20,6 @@ import {
   TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -72,9 +71,9 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit, subAgentId, toolId } = c.req.valid('query');
-    const resolvedRef = c.get('resolvedRef');
 
     let result: {
       data: SubAgentToolRelationSelect[];
@@ -88,7 +87,7 @@ app.openapi(
 
     // Filter by agent if provided
     if (subAgentId) {
-      const dbResult = await getAgentToolRelationByAgent(dbClient, resolvedRef)({
+      const dbResult = await getAgentToolRelationByAgent(db)({
         scopes: { tenantId, projectId, agentId, subAgentId },
         pagination: { page, limit },
       });
@@ -99,7 +98,7 @@ app.openapi(
     }
     // Filter by tool if provided
     else if (toolId) {
-      const dbResult = await getAgentToolRelationByTool(dbClient, resolvedRef)({
+      const dbResult = await getAgentToolRelationByTool(db)({
         scopes: { tenantId, projectId, agentId },
         toolId,
         pagination: { page, limit },
@@ -111,7 +110,7 @@ app.openapi(
     }
     // Default: get all agent tool relations
     else {
-      const dbResult = await listAgentToolRelations(dbClient, resolvedRef)({
+      const dbResult = await listAgentToolRelations(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -148,9 +147,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const resolvedRef = c.get('resolvedRef');
-    const agentToolRelation = await getAgentToolRelationById(dbClient, resolvedRef)({
+    const agentToolRelation = await getAgentToolRelationById(db)({
       scopes: { tenantId, projectId, agentId, subAgentId: id },
       relationId: id,
     });
@@ -192,10 +191,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, toolId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
-    const resolvedRef = c.get('resolvedRef');
-    const dbResult = await getAgentsForTool(dbClient, resolvedRef)({
+
+    const dbResult = await getAgentsForTool(db)({
       scopes: { tenantId, projectId, agentId },
       toolId,
       pagination: { page, limit },
@@ -235,10 +235,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const existingRelations = await listAgentToolRelations(dbClient)({
+    const existingRelations = await listAgentToolRelations(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { limit: 1000 },
     });
@@ -255,7 +256,7 @@ app.openapi(
     }
 
     try {
-      const agentToolRelation = await createAgentToolRelation(dbClient)({
+      const agentToolRelation = await createAgentToolRelation(db)({
         scopes: { tenantId, projectId, agentId },
         data: body,
       });
@@ -303,6 +304,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = await c.req.valid('json');
 
@@ -313,7 +315,7 @@ app.openapi(
       });
     }
 
-    const updatedSubAgentToolRelation = await updateAgentToolRelation(dbClient)({
+    const updatedSubAgentToolRelation = await updateAgentToolRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
       data: body,
@@ -355,8 +357,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const deleted = await deleteAgentToolRelation(dbClient)({
+    const deleted = await deleteAgentToolRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
     });

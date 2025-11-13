@@ -1,6 +1,5 @@
 import { and, count, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
 import { generateId } from '../utils/conversations';
@@ -319,16 +318,14 @@ export const addLedgerArtifacts =
  * Retrieve artifacts by taskId, toolCallId, and/or artifactId.
  * At least one of taskId, toolCallId, or artifactId must be provided.
  */
-export const getLedgerArtifacts = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      taskId?: string;
-      toolCallId?: string;
-      artifactId?: string;
-    }
-  ): Promise<Artifact[]> => {
+export const getLedgerArtifacts =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    taskId?: string;
+    toolCallId?: string;
+    artifactId?: string;
+  }): Promise<Artifact[]> => {
     const { scopes, taskId, toolCallId, artifactId } = params;
 
     if (!taskId && !toolCallId && !artifactId) {
@@ -371,20 +368,17 @@ export const getLedgerArtifacts = createDataAccessFn(
         metadata: row.metadata || {},
       })
     );
-  }
-);
+  };
 
 /**
  * Get ledger artifacts by context ID
  */
-export const getLedgerArtifactsByContext = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      contextId: string;
-    }
-  ): Promise<LedgerArtifactSelect[]> => {
+export const getLedgerArtifactsByContext =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    contextId: string;
+  }): Promise<LedgerArtifactSelect[]> => {
     return await db
       .select()
       .from(ledgerArtifacts)
@@ -395,8 +389,7 @@ export const getLedgerArtifactsByContext = createDataAccessFn(
           eq(ledgerArtifacts.contextId, params.contextId)
         )
       );
-  }
-);
+  };
 
 /**
  * Delete ledger artifacts by task ID
@@ -441,8 +434,9 @@ export const deleteLedgerArtifactsByContext =
 /**
  * Count ledger artifacts by task ID
  */
-export const countLedgerArtifactsByTask = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: ProjectScopeConfig; taskId: string }): Promise<number> => {
+export const countLedgerArtifactsByTask =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; taskId: string }): Promise<number> => {
     const result = await db
       .select({ count: count() })
       .from(ledgerArtifacts)
@@ -456,5 +450,4 @@ export const countLedgerArtifactsByTask = createDataAccessFn(
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;
-  }
-);
+  };

@@ -1,6 +1,5 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { functionTools, subAgentFunctionToolRelations } from '../db/schema';
 import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
@@ -12,8 +11,8 @@ const logger = getLogger('functionTools');
 /**
  * Get a function tool by ID (agent-scoped)
  */
-export const getFunctionToolById = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; functionToolId: string }) => {
+export const getFunctionToolById =
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const result = await db
       .select()
       .from(functionTools)
@@ -28,14 +27,14 @@ export const getFunctionToolById = createDataAccessFn(
       .limit(1);
 
     return result[0] ?? null;
-  }
-);
+  };
 
 /**
  * List function tools (agent-scoped)
  */
-export const listFunctionTools = createDataAccessFn(
-  async (db: DatabaseClient, params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
+export const listFunctionTools =
+  (db: DatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
@@ -64,8 +63,7 @@ export const listFunctionTools = createDataAccessFn(
       data: functionToolsDbResults,
       pagination: { page, limit, total, pages },
     };
-  }
-);
+  };
 
 /**
  * Create a function tool (agent-scoped)
@@ -179,14 +177,11 @@ export const upsertFunctionTool =
     });
   };
 
-export const getFunctionToolsForSubAgent = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: { tenantId: string; projectId: string; agentId: string };
-      subAgentId: string;
-    }
-  ) => {
+export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
+  return async (params: {
+    scopes: { tenantId: string; projectId: string; agentId: string };
+    subAgentId: string;
+  }) => {
     const { scopes, subAgentId } = params;
     const { tenantId, projectId, agentId } = scopes;
 
@@ -225,8 +220,8 @@ export const getFunctionToolsForSubAgent = createDataAccessFn(
       );
       throw error;
     }
-  }
-);
+  };
+};
 
 /**
  * Upsert a sub_agent-function tool relation (create if it doesn't exist, update if it does)

@@ -11,8 +11,6 @@ export * from './credential-stores/index';
 export * from './credential-stuffer/index';
 export * from './data-access/index';
 export * from './db/client';
-export * from './db/data-access-helper';
-export * from './db/ref-connection';
 export * from './db/schema';
 export * from './db/test-client';
 export { loadEnvironmentFiles } from './env';

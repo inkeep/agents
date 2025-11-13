@@ -1,6 +1,5 @@
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createDataAccessFn } from '../db/data-access-helper';
 import { contextCache } from '../db/schema';
 import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
@@ -9,16 +8,14 @@ import { generateId } from '../utils/conversations';
 /**
  * Get cached context data for a conversation with optional request hash validation
  */
-export const getCacheEntry = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      conversationId: string;
-      contextConfigId: string;
-      contextVariableKey: string;
-      requestHash?: string;
-    }
-  ): Promise<ContextCacheSelect | null> => {
+export const getCacheEntry =
+  (db: DatabaseClient) =>
+  async (params: {
+    conversationId: string;
+    contextConfigId: string;
+    contextVariableKey: string;
+    requestHash?: string;
+  }): Promise<ContextCacheSelect | null> => {
     try {
       const cacheEntry = await db.query.contextCache.findFirst({
         where: and(
@@ -48,8 +45,7 @@ export const getCacheEntry = createDataAccessFn(
       // Graceful degradation: treat cache errors as cache misses
       return null;
     }
-  }
-);
+  };
 
 /**
  * Set cached context data for a conversation
@@ -206,14 +202,12 @@ export const invalidateInvocationDefinitionsCache =
 /**
  * Get all cache entries for a conversation
  */
-export const getConversationCacheEntries = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      conversationId: string;
-    }
-  ): Promise<ContextCacheSelect[]> => {
+export const getConversationCacheEntries =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId: string;
+  }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({
       where: and(
         eq(contextCache.tenantId, params.scopes.tenantId),
@@ -226,20 +220,17 @@ export const getConversationCacheEntries = createDataAccessFn(
       ...entry,
       value: entry.value as any,
     }));
-  }
-);
+  };
 
 /**
  * Get all cache entries for a context configuration
  */
-export const getContextConfigCacheEntries = createDataAccessFn(
-  async (
-    db: DatabaseClient,
-    params: {
-      scopes: ProjectScopeConfig;
-      contextConfigId: string;
-    }
-  ): Promise<ContextCacheSelect[]> => {
+export const getContextConfigCacheEntries =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    contextConfigId: string;
+  }): Promise<ContextCacheSelect[]> => {
     const result = await db.query.contextCache.findMany({
       where: and(
         eq(contextCache.tenantId, params.scopes.tenantId),
@@ -252,5 +243,4 @@ export const getContextConfigCacheEntries = createDataAccessFn(
       ...entry,
       value: entry.value as any,
     }));
-  }
-);
+  };

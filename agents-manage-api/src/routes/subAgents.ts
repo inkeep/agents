@@ -19,12 +19,9 @@ import {
   updateSubAgent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
-
-const logger = getLogger('subAgents');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -75,7 +72,7 @@ app.openapi(
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const resolvedRef = c.get('resolvedRef');
 
-    const result = await listSubAgentsPaginated(dbClient, resolvedRef)({
+    const result = await listSubAgentsPaginated(dbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -118,7 +115,7 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const resolvedRef = c.get('resolvedRef');
 
-    const subAgent = await getSubAgentById(dbClient, resolvedRef)({
+    const subAgent = await getSubAgentById(dbClient)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
