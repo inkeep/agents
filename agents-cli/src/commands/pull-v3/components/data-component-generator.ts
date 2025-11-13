@@ -108,6 +108,33 @@ export function generateDataComponentDefinition(
     lines.push(`${indentation}props: ${zodSchema},`);
   }
 
+  // Render attribute - handle { component: string, mockData: object }
+  if (componentData.render && typeof componentData.render === 'object') {
+    const render = componentData.render;
+    if (render.component && typeof render.component === 'string') {
+      lines.push(`${indentation}render: {`);
+
+      // For complex render components, use JSON.stringify to properly escape as string
+      const componentString = JSON.stringify(render.component);
+      lines.push(`${indentation}${indentation}component: ${componentString},`);
+
+      // Add mockData if present
+      if (render.mockData && typeof render.mockData === 'object') {
+        const mockDataStr = JSON.stringify(render.mockData, null, 2);
+        const formattedMockData = mockDataStr
+          .split('\n')
+          .map((line, index) => {
+            if (index === 0) return line;
+            return `${indentation}${indentation}${line}`;
+          })
+          .join('\n');
+        lines.push(`${indentation}${indentation}mockData: ${formattedMockData},`);
+      }
+
+      lines.push(`${indentation}},`);
+    }
+  }
+
   // Remove trailing comma from last line
   if (lines.length > 0 && lines[lines.length - 1].endsWith(',')) {
     lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
