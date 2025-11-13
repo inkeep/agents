@@ -1876,7 +1876,7 @@ ${output}`;
                 delegationId: this.delegationId,
                 isDelegated: this.isDelegatedAgent,
               };
-              
+
               conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
@@ -1939,7 +1939,6 @@ ${output}`;
               'Requested timeout exceeded maximum allowed, capping to 10 minutes'
             );
           }
-
 
           // Build messages for Phase 1 - use thinking prompt if structured output needed
           const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
