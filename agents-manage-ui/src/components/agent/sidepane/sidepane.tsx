@@ -72,22 +72,26 @@ export function SidePane({
     [selectedEdgeId, edges]
   );
 
-  const { HeadingIcon } = useMemo(() => {
+  const { heading, HeadingIcon } = useMemo(() => {
+    let heading = '';
     let HeadingIcon: LucideIcon | undefined;
 
     if (selectedNodeId) {
       const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
       const nodeConfig = nodeTypeMap[nodeType];
+      heading = nodeConfig?.name || 'Node';
       HeadingIcon = nodeConfig?.Icon;
     } else if (selectedEdgeId) {
       const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
       const edgeConfig = edgeTypeMap[edgeType];
+      heading = edgeConfig?.name || 'Connection';
       HeadingIcon = edgeConfig?.Icon;
     } else {
+      heading = 'Agent';
       HeadingIcon = Workflow;
     }
 
-    return { HeadingIcon };
+    return { heading, HeadingIcon };
   }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes

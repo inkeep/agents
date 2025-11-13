@@ -284,16 +284,18 @@ export async function deleteFullProjectViaAPI(
 }
 
 export function parseError(errorText: string): string | undefined {
+  let result: string | undefined;
   try {
     const errorJson = JSON.parse(errorText);
     if (errorJson.error) {
       const { error } = errorJson;
-      return error?.message ?? error;
+      result = error?.message ?? error;
     }
   } catch {
     // Use the text as-is if not JSON
     if (errorText) {
-      return errorText;
+      result = errorText;
     }
   }
+  return result;
 }
