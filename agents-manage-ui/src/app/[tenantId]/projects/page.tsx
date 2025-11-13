@@ -30,8 +30,8 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
               description={projectDescription}
               action={
                 <NewProjectDialog tenantId={tenantId}>
-                  <Button size="lg" className="gap-2">
-                    <Plus className="h-4 w-4" />
+                  <Button>
+                    <Plus />
                     Create project
                   </Button>
                 </NewProjectDialog>
@@ -45,8 +45,8 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
             description={emptyStateProjectDescription}
             action={
               <NewProjectDialog tenantId={tenantId}>
-                <Button size="lg" className="gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button size="lg">
+                  <Plus />
                   Create your first project
                 </Button>
               </NewProjectDialog>

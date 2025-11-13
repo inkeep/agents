@@ -1,3 +1,5 @@
+'use client';
+
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { type FC, useEffect, useRef } from 'react';
 
