@@ -19,7 +19,6 @@ import type * as React from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { NavGroup } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
-import { ThemeToggle } from '@/components/theme-toggle';
 import {
   Sidebar,
   SidebarContent,
@@ -114,7 +113,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-1">
+          <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href={`/${tenantId}/projects`}>
                 <InkeepLogo
@@ -127,7 +126,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 />
               </Link>
             </SidebarMenuButton>
-            <ThemeToggle className={cn(!open && 'hidden')} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 
 type ThemeValue = 'dark' | 'light' | 'system';
 
@@ -20,7 +19,7 @@ const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
   system: Monitor,
 };
 
-export const ThemeToggle: FC<ComponentProps<typeof Button>> = ({ className, ...props }) => {
+export const ThemeToggle: FC = () => {
   const { setTheme } = useTheme();
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
@@ -37,11 +36,7 @@ export const ThemeToggle: FC<ComponentProps<typeof Button>> = ({ className, ...p
         <Button
           variant="ghost"
           size="icon"
-          className={cn(
-            'size-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground',
-            className
-          )}
-          {...props}
+          className="size-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
         >
           <Sun className="dark:hidden" />
           <Moon className="not-dark:hidden" />
