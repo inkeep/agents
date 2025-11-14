@@ -324,22 +324,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({ jsonSchemaMode });
     },
     animateGraph(event) {
-      function hasRelationWithSubAgent({
-        relationshipId,
-        subAgentId,
-      }: {
-        relationshipId: unknown;
-        subAgentId: string;
-      }): boolean {
-        if (typeof relationshipId !== 'string') {
-          return false;
-        }
-        const config = get().agentToolConfigLookup[subAgentId];
-        if (!config) {
-          return false;
-        }
-        return Object.keys(config).includes(relationshipId);
-      }
       // @ts-expect-error -- improve types
       const data = event.detail;
       set((state) => {
@@ -403,7 +387,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'tool_call': {
-            const { toolName } = data.details.data;
+            const { toolName, relationshipId } = data.details.data;
             const { subAgentId } = data.details;
             return {
               edges: prevEdges.map((edge) => {
@@ -418,31 +402,22 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 };
               }),
               nodes: changeNodeStatus((node) =>
-                node.data.id === subAgentId ||
-                hasRelationWithSubAgent({
-                  relationshipId: node.data.relationshipId,
-                  subAgentId,
-                })
+                node.data.id === subAgentId || relationshipId === node.data.relationshipId
                   ? 'delegating'
                   : null
               ),
             };
           }
           case 'error': {
-            const { subAgentId } = data.details;
+            const { relationshipId } = data.details;
             return {
               nodes: changeNodeStatus((node) =>
-                hasRelationWithSubAgent({
-                  relationshipId: node.data.relationshipId,
-                  subAgentId,
-                })
-                  ? 'error'
-                  : null
+                relationshipId === node.data.relationshipId ? 'error' : null
               ),
             };
           }
           case 'tool_result': {
-            const { toolName, error } = data.details.data;
+            const { toolName, error, relationshipId } = data.details.data;
             const { subAgentId } = data.details;
             return {
               edges: prevEdges.map((edge) => {
@@ -461,12 +436,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               }),
               nodes: changeNodeStatus((node) => {
                 let status: AnimatedNode['status'] = null;
-                if (
-                  hasRelationWithSubAgent({
-                    subAgentId,
-                    relationshipId: node.data.relationshipId,
-                  })
-                ) {
+                if (relationshipId === node.data.relationshipId) {
                   status = error ? 'error' : 'executing';
                 } else if (node.id === subAgentId) {
                   status = 'delegating';
