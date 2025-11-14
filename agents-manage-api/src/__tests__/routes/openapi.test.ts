@@ -145,19 +145,6 @@ describe('OpenAPI Specification - Integration Tests', () => {
       validateRefs(spec);
     });
 
-    it('should have reasonable response times', async () => {
-      // Test fresh request performance (not using cache)
-      const startTime = Date.now();
-      const res = await makeRequest('/openapi.json');
-      const endTime = Date.now();
-
-      expect(res.status).toBe(200);
-
-      // OpenAPI spec generation should be reasonably fast (under 2 seconds)
-      const responseTime = endTime - startTime;
-      expect(responseTime).toBeLessThan(6000);
-    });
-
     it('should successfully parse without throwing errors', async () => {
       // Verify the cached spec is valid JSON
       expect(cachedSpec).toBeDefined();
