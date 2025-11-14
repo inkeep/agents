@@ -3,14 +3,16 @@
 import { icon } from '@inkeep/docskit';
 import Link from 'fumadocs-core/link';
 import { Button } from '@/components/ui/button';
+import type { ReactNode } from 'react';
 
 interface FooterLinkProps {
   href: string;
-  iconName: string;
+  iconName?: string;
+  icon?: ReactNode;
   label: string;
 }
 
-export function FooterLink({ href, iconName, label }: FooterLinkProps) {
+export function FooterLink({ href, iconName, icon: customIcon, label }: FooterLinkProps) {
   return (
     <Button
       asChild
@@ -20,7 +22,7 @@ export function FooterLink({ href, iconName, label }: FooterLinkProps) {
     >
       <Link href={href}>
         <span className="sr-only">{label}</span>
-        {icon(iconName)}
+        {customIcon || icon(iconName!)}
       </Link>
     </Button>
   );
