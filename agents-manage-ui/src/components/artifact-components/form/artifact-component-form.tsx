@@ -19,6 +19,7 @@ import {
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import { formatJsonField } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
+import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
 import { type ArtifactComponentFormData, artifactComponentSchema } from './validation';
 
@@ -134,6 +135,19 @@ export function ArtifactComponentForm({
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
           />
+
+          {id && (
+            <ComponentRenderGenerator
+              tenantId={tenantId}
+              projectId={projectId}
+              artifactComponentId={id}
+              existingRender={initialData?.render || null}
+              onRenderChanged={(render) => {
+                form.setValue('render', render);
+              }}
+            />
+          )}
+
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>
               Save

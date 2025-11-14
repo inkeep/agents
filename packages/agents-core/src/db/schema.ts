@@ -309,6 +309,10 @@ export const artifactComponents = pgTable(
     ...projectScoped,
     ...uiProperties,
     props: jsonb('props').$type<Record<string, unknown>>(),
+    render: jsonb('render').$type<{
+      component: string;
+      mockData: Record<string, unknown>;
+    }>(),
     ...timestamps,
   },
   (table) => [

@@ -13,13 +13,13 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { updateDataComponent } from '@/lib/api/data-components';
+import { updateArtifactComponent } from '@/lib/api/artifact-components';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
   projectId: string;
-  dataComponentId: string;
+  artifactComponentId: string;
   existingRender?: { component: string; mockData: Record<string, unknown> } | null;
   onRenderChanged?: (
     render: { component: string; mockData: Record<string, unknown> } | null
@@ -29,7 +29,7 @@ interface ComponentPreviewGeneratorProps {
 export function ComponentRenderGenerator({
   tenantId,
   projectId,
-  dataComponentId,
+  artifactComponentId,
   existingRender,
   onRenderChanged,
 }: ComponentPreviewGeneratorProps) {
@@ -53,18 +53,21 @@ export function ComponentRenderGenerator({
     setIsSaved(false);
 
     try {
-      const response = await fetch(`/api/data-components/${dataComponentId}/generate-render`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tenantId,
-          projectId,
-          instructions: instructions || undefined,
-          existingCode: instructions ? render?.component : undefined,
-        }),
-      });
+      const response = await fetch(
+        `/api/artifact-components/${artifactComponentId}/generate-render`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenantId,
+            projectId,
+            instructions: instructions || undefined,
+            existingCode: instructions ? render?.component : undefined,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to generate render');
@@ -124,8 +127,8 @@ export function ComponentRenderGenerator({
   const handleDeletePreview = async () => {
     setIsDeleting(true);
     try {
-      await updateDataComponent(tenantId, projectId, {
-        id: dataComponentId,
+      await updateArtifactComponent(tenantId, projectId, {
+        id: artifactComponentId,
         render: null,
       });
       setRender(null);
@@ -172,7 +175,7 @@ export function ComponentRenderGenerator({
         <div className="space-y-2">
           <h3 className="text-md font-medium">Component Renderer</h3>
           <p className="text-sm text-muted-foreground">
-            Generate a React/Tailwind component based on your schema.
+            Generate a React/Tailwind component based on your artifact schema.
           </p>
         </div>
         <div className="flex gap-2">
