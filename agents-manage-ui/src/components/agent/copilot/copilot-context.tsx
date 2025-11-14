@@ -3,13 +3,18 @@
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
 import { createContext, type ReactNode, type RefObject, useContext, useRef, useState } from 'react';
 
+interface CopilotContextHeaders {
+  messageId?: string;
+  conversationId?: string;
+}
+
 interface CopilotContextValue {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   chatFunctionsRef?: RefObject<AIChatFunctions | null>;
   openCopilot: () => void;
-  conversationId: string | null;
-  setConversationId: (conversationId: string | null) => void;
+  dynamicHeaders: CopilotContextHeaders;
+  setDynamicHeaders: (headers: CopilotContextHeaders) => void;
 }
 
 const CopilotContext = createContext<CopilotContextValue | null>(null);
@@ -17,7 +22,7 @@ const CopilotContext = createContext<CopilotContextValue | null>(null);
 export function CopilotProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
 
   const openCopilot = () => setIsOpen(true);
 
@@ -28,8 +33,8 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         setIsOpen,
         chatFunctionsRef,
         openCopilot,
-        conversationId,
-        setConversationId,
+        dynamicHeaders,
+        setDynamicHeaders,
       }}
     >
       {children}
