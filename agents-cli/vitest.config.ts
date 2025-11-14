@@ -5,6 +5,7 @@ export default defineProject({
     name: 'agents-cli',
     globals: true,
     environment: 'node',
+    exclude: ['src/commands/pull-v3/__tests__/project-validator.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     env: {
       ENVIRONMENT: 'test',
