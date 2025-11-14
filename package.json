@@ -88,7 +88,8 @@
     "// esbuild": "we pin it for Cypress",
     "overrides": {
       "esbuild": "0.25.9",
-      "zod": "^4.1.11"
+      "zod": "^4.1.11",
+      "@inkeep/agents-mcp>zod": "^3.25.7"
     },
     "patchedDependencies": {
       "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch"
