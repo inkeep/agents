@@ -4,6 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
+import { execa } from 'execa';
 import fs from 'fs-extra';
 import color from 'picocolors';
 import {
@@ -436,7 +437,37 @@ export const myProject = project({
 }
 
 async function installDependencies() {
-  await execAsync('pnpm install');
+  // Delete pnpm-lock.yaml if it exists to allow pnpm to regenerate it
+  // This ensures the lockfile matches available packages in the environment
+  const lockfilePath = path.join(process.cwd(), 'pnpm-lock.yaml');
+  if (await fs.pathExists(lockfilePath)) {
+    await fs.remove(lockfilePath);
+  }
+
+  try {
+    // Use execa for better error handling and stderr capture
+    // Use 'pipe' to capture output for error messages, but we'll still show progress via spinner
+    const result = await execa('pnpm', ['install'], {
+      cwd: process.cwd(),
+      stdio: 'pipe', // Capture output for error handling
+    });
+    // Output successful install messages if any
+    if (result.stdout) {
+      console.log(result.stdout);
+    }
+  } catch (error: any) {
+    // Provide better error message with stderr if available
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'Unknown error occurred during dependency installation';
+    const stderr = error?.stderr || '';
+    const stdout = error?.stdout || '';
+    const errorDetails = [errorMessage];
+    if (stdout) errorDetails.push(`stdout: ${stdout}`);
+    if (stderr) errorDetails.push(`stderr: ${stderr}`);
+    throw new Error(`Failed to install dependencies: ${errorDetails.join('\n')}`);
+  }
 }
 
 async function initializeGit() {
