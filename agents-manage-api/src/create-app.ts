@@ -228,6 +228,7 @@ function createManagementHono(
   app.route('/api/invitations', invitationsRoutes);
 
   // Ref versioning middleware for all tenant routes
+
   app.use('/tenants/*', refMiddleware);
   app.use('/tenants/*', writeProtectionMiddleware);
   app.use('/tenants/*', branchScopedDbMiddleware);

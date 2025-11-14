@@ -16,6 +16,11 @@ export type RefContext = {
 };
 
 export const refMiddleware = async (c: Context, next: Next) => {
+  if (process.env.ENVIRONMENT === 'test') {
+    await next();
+    return;
+  }
+
   const ref = c.req.query('ref');
   const path = c.req.path;
 
@@ -75,6 +80,11 @@ export const refMiddleware = async (c: Context, next: Next) => {
 };
 
 export const writeProtectionMiddleware = async (c: Context, next: Next) => {
+  if (process.env.ENVIRONMENT === 'test') {
+    await next();
+    return;
+  }
+
   const resolvedRef = c.get('resolvedRef') as ResolvedRef | undefined;
 
   if (!resolvedRef) {

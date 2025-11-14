@@ -1,8 +1,6 @@
 services:
   db:
-    build: 
-      context: .
-      dockerfile: Dockerfile.doltgres
+    image: inkeep/doltgres:latest
     restart: unless-stopped
     environment:
       DOLTGRES_DATA_DIR: /var/lib/doltgres

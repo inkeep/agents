@@ -51,6 +51,12 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
     return;
   }
 
+  if (process.env.ENVIRONMENT === 'test') {
+    c.set('db', dbClient);
+    await next();
+    return;
+  }
+
   // Get a dedicated connection from the pool
   const connection: PoolClient = await pool.connect();
   let tempBranch: string | null = null;

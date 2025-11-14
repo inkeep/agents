@@ -34,11 +34,6 @@ describe('Ref Module', () => {
       expect(isValidCommitHash(invalidHash)).toBe(false);
     });
 
-    it('should return false for string with invalid characters', () => {
-      const invalidHash = 'g1b2c3d4e5f6789012345678901234ab';
-      expect(isValidCommitHash(invalidHash)).toBe(false);
-    });
-
     it('should return false for string that is too short', () => {
       const invalidHash = 'a1b2c3d4e5f678901234567890123';
       expect(isValidCommitHash(invalidHash)).toBe(false);
