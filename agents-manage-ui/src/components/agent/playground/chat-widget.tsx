@@ -60,6 +60,7 @@ export function ChatWidget({
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [messageId, setMessageId] = useState<string | undefined>(undefined);
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -190,9 +191,8 @@ export function ChatWidget({
                 icon: { builtIn: 'LuSparkles' },
                 action: {
                   type: 'invoke_message_callback',
-                  callback: ({ conversation, messageId }: InvokeMessageCallbackActionArgs) => {
-                    console.log('conversation', conversation);
-                    console.log('messageId', messageId);
+                  callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
+                    setMessageId(messageId);
                     setIsFeedbackDialogOpen(true);
                   },
                 },
@@ -231,6 +231,7 @@ export function ChatWidget({
           isOpen={isFeedbackDialogOpen}
           onOpenChange={setIsFeedbackDialogOpen}
           conversationId={conversationId}
+          messageId={messageId}
         />
       )}
     </div>

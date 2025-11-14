@@ -23,8 +23,8 @@ const styleOverrides = `
 }
 `;
 
-export function CopilotChat({ agentId }: CopilotChatProps) {
-  const { chatFunctionsRef, isOpen, setIsOpen, conversationId, setConversationId } =
+export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) {
+  const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
@@ -49,7 +49,7 @@ export function CopilotChat({ agentId }: CopilotChatProps) {
     <div className="h-full flex flex-row gap-4">
       <div className="flex-1 min-w-0 h-full">
         <InkeepSidebarChat
-          key={conversationId}
+          key={JSON.stringify(dynamicHeaders)}
           openSettings={{
             isOpen: isOpen,
             onOpenChange: setIsOpen,
@@ -58,7 +58,7 @@ export function CopilotChat({ agentId }: CopilotChatProps) {
           baseSettings={{
             onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'chat_clear_button_clicked') {
-                setConversationId(null);
+                setDynamicHeaders({});
               }
             },
             primaryBrandColor: '#3784ff',
@@ -107,14 +107,19 @@ export function CopilotChat({ agentId }: CopilotChatProps) {
             },
             agentUrl: `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`,
             headers: {
+              'x-emit-operations': 'true',
+              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
-              'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
-              // todo what should this header be called?
-              ...(conversationId ? { 'x-inkeep-conversation-id': conversationId } : {}),
-              // TODO we probably need to add some custom headers here to identify the agent and project we are working with but not sure what they will be called yet
+              'x-target-tenant-id': tenantId,
+              'x-target-project-id': projectId,
+              ...(dynamicHeaders?.conversationId
+                ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
+                : {}),
+              ...(dynamicHeaders?.messageId
+                ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
+                : {}),
             },
             exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
             exampleQuestions: agentId

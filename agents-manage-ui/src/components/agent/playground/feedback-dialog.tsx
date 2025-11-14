@@ -17,7 +17,8 @@ import { useCopilotContext } from '../copilot/copilot-context';
 interface FeedbackDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  conversationId: string | null;
+  conversationId?: string;
+  messageId?: string;
 }
 
 const feedbackSchema = z.object({
@@ -29,8 +30,13 @@ const feedbackSchema = z.object({
 
 export type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
-export const FeedbackDialog = ({ isOpen, onOpenChange, conversationId }: FeedbackDialogProps) => {
-  const { chatFunctionsRef, openCopilot, setConversationId } = useCopilotContext();
+export const FeedbackDialog = ({
+  isOpen,
+  onOpenChange,
+  conversationId,
+  messageId,
+}: FeedbackDialogProps) => {
+  const { chatFunctionsRef, openCopilot, setDynamicHeaders } = useCopilotContext();
   const form = useForm<FeedbackFormData>({
     defaultValues: {
       feedback: '',
@@ -42,7 +48,7 @@ export const FeedbackDialog = ({ isOpen, onOpenChange, conversationId }: Feedbac
   const onSubmit = async ({ feedback }: FeedbackFormData) => {
     if (chatFunctionsRef?.current) {
       openCopilot();
-      setConversationId(conversationId);
+      setDynamicHeaders({ conversationId, messageId });
       // todo this is a hack to ensure the message is submitted after the conversation id is set
       setTimeout(() => {
         chatFunctionsRef?.current?.submitMessage(feedback);
