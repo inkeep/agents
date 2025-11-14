@@ -29,7 +29,8 @@
       "!**/out/**",
       "!**/*.css",
       "!**/.source/**",
-      "!**/.vercel/**"
+      "!**/.vercel/**",
+      "!**/tsconfig.json"
     ],
     "rules": {
       "recommended": true,
