@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  boolean,
   doublePrecision,
   foreignKey,
   index,
@@ -1059,6 +1060,7 @@ export const evaluationRunConfig = pgTable(
   {
     ...projectScoped,
     ...uiProperties,
+    isActive: boolean('is_active').notNull().default(true),
     ...timestamps,
   },
   (table) => [
