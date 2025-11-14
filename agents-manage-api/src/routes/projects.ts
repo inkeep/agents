@@ -9,7 +9,6 @@ import {
   listProjectsPaginated,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
-  ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
