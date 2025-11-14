@@ -31,8 +31,6 @@ services:
       - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
-    volumes:
-      - inkeep-agents-db:/inkeep-agents/db
     ports:
       - "3002:3002"
     depends_on:
@@ -56,8 +54,6 @@ services:
       - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
-    volumes:
-      - inkeep-agents-db:/inkeep-agents/db
     ports:
       - "3003:3003"
     depends_on:
@@ -73,7 +69,7 @@ services:
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: password
     volumes:
-      - inkeep-agents-db:/var/lib/postgresql
+      - inkeep-agents-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 2s
@@ -92,4 +88,4 @@ services:
         condition: service_healthy
     restart: "no"
 volumes:
-  inkeep-agents-db:
+  inkeep-agents-db-data:
