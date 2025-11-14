@@ -517,24 +517,25 @@ export class Agent {
       }) || [];
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
-      const combinedTools = tools.reduce((acc, tool) => {
-        return Object.assign(acc, tool) as ToolSet;
-      }, {} as ToolSet);
-
       const wrappedTools: ToolSet = {};
-      for (const [toolName, toolDef] of Object.entries(combinedTools)) {
-        wrappedTools[toolName] = this.wrapToolWithStreaming(
-          toolName,
-          toolDef,
-          streamRequestId,
-          'mcp'
-        );
+      for (const [index, toolSet] of tools.entries()) {
+        const relationshipId = mcpTools[index]?.relationshipId || null;
+        for (const [toolName, toolDef] of Object.entries(toolSet)) {
+          wrappedTools[toolName] = this.wrapToolWithStreaming(
+            toolName,
+            toolDef,
+            streamRequestId,
+            'mcp',
+            relationshipId
+          );
+        }
       }
       return wrappedTools;
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolSet of tools) {
+    for (const [index, toolSet] of tools.entries()) {
+      const relationshipId = mcpTools[index]?.relationshipId || null;
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
