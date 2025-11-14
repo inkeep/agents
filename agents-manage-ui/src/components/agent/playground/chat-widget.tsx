@@ -226,11 +226,13 @@ export function ChatWidget({
           }}
         />
       </div>
-      <FeedbackDialog
-        key={`${conversationId}`}
-        isOpen={isFeedbackDialogOpen}
-        onOpenChange={setIsFeedbackDialogOpen}
-      />
+      {isFeedbackDialogOpen && (
+        <FeedbackDialog
+          isOpen={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+          conversationId={conversationId}
+        />
+      )}
     </div>
   );
 }

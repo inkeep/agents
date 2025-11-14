@@ -1,6 +1,7 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
+import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useCopilotContext } from './copilot-context';
 
@@ -23,7 +24,8 @@ const styleOverrides = `
 `;
 
 export function CopilotChat({ agentId }: CopilotChatProps) {
-  const { chatFunctionsRef, isOpen, setIsOpen } = useCopilotContext();
+  const { chatFunctionsRef, isOpen, setIsOpen, conversationId, setConversationId } =
+    useCopilotContext();
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
     PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
@@ -42,16 +44,23 @@ export function CopilotChat({ agentId }: CopilotChatProps) {
     );
     return null;
   }
+
   return (
     <div className="h-full flex flex-row gap-4">
       <div className="flex-1 min-w-0 h-full">
         <InkeepSidebarChat
+          key={conversationId}
           openSettings={{
             isOpen: isOpen,
             onOpenChange: setIsOpen,
           }}
           position="left"
           baseSettings={{
+            onEvent: async (event: InkeepCallbackEvent) => {
+              if (event.eventName === 'chat_clear_button_clicked') {
+                setConversationId(null);
+              }
+            },
             primaryBrandColor: '#3784ff',
             colorMode: {
               sync: {
@@ -103,6 +112,8 @@ export function CopilotChat({ agentId }: CopilotChatProps) {
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
               'x-emit-operations': 'true',
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              // todo what should this header be called?
+              ...(conversationId ? { 'x-inkeep-conversation-id': conversationId } : {}),
               // TODO we probably need to add some custom headers here to identify the agent and project we are working with but not sure what they will be called yet
             },
             exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
