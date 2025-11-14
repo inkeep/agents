@@ -102,6 +102,7 @@ function validateModel(modelString: string | undefined, modelType: string): stri
 
 export type AgentConfig = {
   id: string;
+  relationId?: string | null;
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -363,7 +364,8 @@ export class Agent {
     toolName: string,
     toolDefinition: any,
     streamRequestId?: string,
-    toolType?: ToolType
+    toolType?: ToolType,
+    relationshipId?: string | null
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -399,8 +401,7 @@ export class Agent {
             toolName,
             input: args,
             toolCallId,
-            // TODO
-            relationshipId: '',
+            relationshipId: relationshipId ?? undefined,
           });
         }
 
@@ -414,8 +415,7 @@ export class Agent {
               output: result,
               toolCallId,
               duration,
-              // TODO
-              relationshipId: '',
+              relationshipId: relationshipId ?? undefined,
             });
           }
 
@@ -431,8 +431,7 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
-              // TODO
-              relationshipId: '',
+              relationshipId: relationshipId ?? undefined,
             });
           }
 
@@ -473,7 +472,8 @@ export class Agent {
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
-            'transfer'
+            'transfer',
+            agentConfig.relationId || null
           ),
         ];
       }),
@@ -502,7 +502,8 @@ export class Agent {
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
-            'delegation'
+            'delegation',
+            relation.config.relationId || null
           ),
         ];
       }),
@@ -577,8 +578,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
-                      // TODO
-                      relationshipId: '',
+                      relationshipId: relationshipId || undefined,
                     },
                   });
                 }
@@ -624,7 +624,8 @@ export class Agent {
           toolName,
           sessionWrappedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          relationshipId
         );
       }
     }
@@ -966,7 +967,8 @@ export class Agent {
           functionToolDef.name,
           aiTool,
           streamRequestId || '',
-          'tool'
+          'tool',
+          (functionToolDef as any).agentToolRelationId || null
         );
       }
     } catch (error) {
@@ -1372,7 +1374,8 @@ export class Agent {
           'thinking_complete',
           thinkingCompleteTool,
           streamRequestId,
-          'tool'
+          'tool',
+          null
         );
       }
     }
