@@ -4,6 +4,7 @@ import { SLACK_URL } from '@/lib/constants';
 import { docsGroups } from '@/lib/source';
 import { Fade } from '../fade';
 import { FooterLink } from './footer-link';
+import { YoutubeIcon } from '@/components/brand-icons';
 
 const footerLinks = [
   {
@@ -25,6 +26,11 @@ const footerLinks = [
     href: 'https://twitter.com/inkeep',
     iconName: 'FaXTwitter',
     label: 'X (Twitter)',
+  },
+  {
+    href: 'https://www.youtube.com/@inkeep-ai',
+    icon: <YoutubeIcon />,
+    label: 'Inkeep on YouTube',
   },
 ];
 
