@@ -868,8 +868,9 @@ export const datasetRunConfigAgentRelations = pgTable(
  * run config to be triggered by multiple dataset run configs.
  * 
  * When a datasetRun completes, it can trigger evaluations using the linked evaluation run configs.
+ * The `enabled` field controls whether this specific evaluation run config should be triggered.
  * 
- * Includes: datasetRunConfigId, evaluationRunConfigId, and timestamps
+ * Includes: datasetRunConfigId, evaluationRunConfigId, enabled (defaults to true), and timestamps
  */
 export const datasetRunConfigEvaluationRunConfigRelations = pgTable(
   'dataset_run_config_evaluation_run_config_relations',
@@ -877,6 +878,7 @@ export const datasetRunConfigEvaluationRunConfigRelations = pgTable(
     ...projectScoped,
     datasetRunConfigId: text('dataset_run_config_id').notNull(),
     evaluationRunConfigId: text('evaluation_run_config_id').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
     ...timestamps,
   },
   (table) => [
@@ -1053,6 +1055,10 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
  * Evaluations are automatically triggered when conversations complete.
  * When a conversation ends, creates an evaluationRun that evaluates that conversation.
  * 
+ * The `excludeDatasetRunConversations` field controls whether this config should skip
+ * conversations that are associated with dataset runs. When true, evaluations will only
+ * run on regular conversations, not dataset run conversations.
+ * 
  * one to many relationship with evaluationRun
  */
 export const evaluationRunConfig = pgTable(
@@ -1061,6 +1067,9 @@ export const evaluationRunConfig = pgTable(
     ...projectScoped,
     ...uiProperties,
     isActive: boolean('is_active').notNull().default(true),
+    excludeDatasetRunConversations: boolean('exclude_dataset_run_conversations')
+      .notNull()
+      .default(true),
     ...timestamps,
   },
   (table) => [

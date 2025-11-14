@@ -20,6 +20,7 @@ import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-l
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
+import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
@@ -476,6 +477,26 @@ export class ExecutionHandler {
               }
 
               logger.info({}, 'ExecutionHandler returning success');
+
+              // Trigger evaluations asynchronously (fire-and-forget)
+              conversationEvaluationTrigger
+                .triggerEvaluationsForConversation({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                })
+                .catch((error) => {
+                  logger.error(
+                    {
+                      error: error instanceof Error ? error.message : String(error),
+                      conversationId,
+                      tenantId,
+                      projectId,
+                    },
+                    'Failed to trigger evaluations for conversation (non-blocking)'
+                  );
+                });
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));

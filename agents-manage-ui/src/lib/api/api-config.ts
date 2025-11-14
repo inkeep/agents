@@ -47,14 +47,57 @@ async function makeApiRequestInternal<T>(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: { code: 'unknown', message: 'Unknown error occurred' },
-      }));
+      let errorData;
+      try {
+        const text = await response.text();
+        errorData = text ? JSON.parse(text) : null;
+      } catch {
+        errorData = null;
+      }
+
+      // Handle Zod validation errors (400 status with errors array)
+      if (response.status === 400 && errorData?.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors
+          .map((err: any) => `${err.name || err.pointer || 'field'}: ${err.detail || err.reason || err.message}`)
+          .join(', ');
+        const errorMessage = `Validation failed: ${validationErrors}`;
+        
+        console.error('API Validation Error Response:', {
+          status: response.status,
+          errorData,
+          validationErrors,
+        });
+
+        throw new ApiError(
+          {
+            code: 'validation_error',
+            message: errorMessage,
+          },
+          response.status
+        );
+      }
+
+      const errorMessage =
+        errorData?.error?.message ||
+        errorData?.message ||
+        errorData?.detail ||
+        `HTTP ${response.status}: ${response.statusText}` ||
+        'Unknown error occurred';
+
+      const errorCode = errorData?.error?.code || errorData?.code || 'unknown';
+
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        errorMessage,
+        errorCode,
+      });
 
       throw new ApiError(
-        errorData.error || {
-          code: 'unknown',
-          message: 'Unknown error occurred',
+        {
+          code: errorCode,
+          message: errorMessage,
         },
         response.status
       );

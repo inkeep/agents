@@ -1,0 +1,899 @@
+import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
+import {
+  createEvaluationResult,
+  createEvaluationRun,
+  type Filter,
+  generateId,
+  getConversation,
+  getConversationHistory,
+  getDatasetRunConversationRelationByConversation,
+  getEvaluationRunConfigById,
+  getEvaluationRunConfigEvaluationSuiteConfigRelations,
+  getEvaluationSuiteConfigById,
+  getEvaluationSuiteConfigEvaluatorRelations,
+  getEvaluatorById,
+  getFullAgent,
+  listEvaluationRunConfigs,
+  updateEvaluationResult,
+} from '@inkeep/agents-core';
+import { generateObject, generateText } from 'ai';
+import { z } from 'zod';
+import { ModelFactory } from '../agents/ModelFactory.js';
+import dbClient from '../data/db/dbClient.js';
+import { env } from '../env.js';
+import { getLogger } from '../logger.js';
+
+const logger = getLogger('ConversationEvaluationTrigger');
+
+type EvaluationSuiteFilterCriteria = {
+  agentIds?: string[];
+  [key: string]: unknown;
+};
+
+/**
+ * Converts JSON Schema objects to Zod schema types
+ */
+function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
+  if (!jsonSchema || typeof jsonSchema !== 'object') {
+    logger.warn({ jsonSchema }, 'Invalid JSON schema provided, using string fallback');
+    return z.string();
+  }
+
+  switch (jsonSchema.type) {
+    case 'object':
+      if (jsonSchema.properties) {
+        const shape: Record<string, z.ZodType<any>> = {};
+        const required = jsonSchema.required || [];
+
+        for (const [key, prop] of Object.entries(jsonSchema.properties)) {
+          const propSchema = prop as Record<string, unknown>;
+          let zodType = jsonSchemaToZod(propSchema);
+
+          if (propSchema.description) {
+            zodType = zodType.describe(String(propSchema.description));
+          }
+
+          if (!required.includes(key)) {
+            zodType = zodType.optional();
+          }
+
+          shape[key] = zodType;
+        }
+        return z.object(shape);
+      }
+      return z.record(z.string(), z.unknown());
+
+    case 'array': {
+      const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
+      let arraySchema = z.array(itemSchema);
+
+      if (jsonSchema.minItems !== undefined) {
+        arraySchema = arraySchema.min(jsonSchema.minItems);
+      }
+      if (jsonSchema.maxItems !== undefined) {
+        arraySchema = arraySchema.max(jsonSchema.maxItems);
+      }
+
+      return arraySchema;
+    }
+
+    case 'string': {
+      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
+        const [first, ...rest] = jsonSchema.enum;
+        return z.enum([String(first), ...rest.map(String)] as [string, ...string[]]);
+      }
+
+      let stringSchema = z.string();
+
+      if (jsonSchema.minLength !== undefined) {
+        stringSchema = stringSchema.min(jsonSchema.minLength);
+      }
+      if (jsonSchema.maxLength !== undefined) {
+        stringSchema = stringSchema.max(jsonSchema.maxLength);
+      }
+
+      return stringSchema;
+    }
+
+    case 'number':
+    case 'integer': {
+      let numberSchema = jsonSchema.type === 'integer' ? z.number().int() : z.number();
+
+      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
+        const enumValues = jsonSchema.enum as number[];
+        if (enumValues.length > 0) {
+          const [first, ...rest] = enumValues;
+          return z.union([z.literal(first), ...rest.map((val) => z.literal(val))] as [
+            z.ZodLiteral<number>,
+            ...z.ZodLiteral<number>[],
+          ]);
+        }
+      }
+
+      if (jsonSchema.minimum !== undefined) {
+        numberSchema = numberSchema.min(jsonSchema.minimum);
+      }
+      if (jsonSchema.maximum !== undefined) {
+        numberSchema = numberSchema.max(jsonSchema.maximum);
+      }
+
+      return numberSchema;
+    }
+
+    case 'boolean':
+      return z.boolean();
+
+    case 'null':
+      return z.null();
+
+    default:
+      logger.warn(
+        {
+          unsupportedType: jsonSchema.type,
+          schema: jsonSchema,
+        },
+        'Unsupported JSON schema type, using unknown validation'
+      );
+      return z.unknown();
+  }
+}
+
+/**
+ * Service for triggering evaluations when conversations complete
+ */
+export class ConversationEvaluationTrigger {
+  /**
+   * Trigger evaluations for a completed conversation
+   * This is called asynchronously after conversation completion
+   */
+  async triggerEvaluationsForConversation(params: {
+    tenantId: string;
+    projectId: string;
+    conversationId: string;
+    specificRunConfigIds?: string[];
+  }): Promise<void> {
+    const { tenantId, projectId, conversationId, specificRunConfigIds } = params;
+
+    try {
+      logger.info(
+        { tenantId, projectId, conversationId, specificRunConfigIds },
+        'Triggering evaluations for conversation'
+      );
+
+      // Get the conversation
+      const conversation = await getConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (!conversation) {
+        logger.warn({ conversationId }, 'Conversation not found, skipping evaluation trigger');
+        return;
+      }
+
+      // Get evaluation run configs - either specific ones or all active ones
+      let runConfigs: typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect[];
+      if (specificRunConfigIds && specificRunConfigIds.length > 0) {
+        // Get specific run configs (for dataset runs - allow inactive ones to be triggered explicitly)
+        const configs = await Promise.all(
+          specificRunConfigIds.map(async (runConfigId) => {
+            const config = await getEvaluationRunConfigById(dbClient)({
+              scopes: { tenantId, projectId, evaluationRunConfigId: runConfigId },
+            });
+            return config;
+          })
+        );
+        // Filter out nulls but allow inactive configs when explicitly specified (for dataset runs)
+        runConfigs = configs.filter(
+          (config): config is NonNullable<typeof config> => config !== null
+        );
+      } else {
+        // Get all active evaluation run configs for the project (normal conversation completion)
+        const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
+          scopes: { tenantId, projectId },
+        });
+        // Filter to only active configs
+        runConfigs = allRunConfigs.filter((config) => config.isActive !== false);
+      }
+
+      if (runConfigs.length === 0) {
+        logger.debug({ tenantId, projectId }, 'No active evaluation run configs found');
+        return;
+      }
+
+      logger.info(
+        { tenantId, projectId, activeRunConfigCount: runConfigs.length },
+        'Found active evaluation run configs'
+      );
+
+      // Check if conversation is from a dataset run
+      const datasetRunRelation = await getDatasetRunConversationRelationByConversation(dbClient)({
+        scopes: { tenantId, projectId, conversationId },
+      });
+
+      const isDatasetRunConversation = datasetRunRelation !== null;
+      const isExplicitTrigger = specificRunConfigIds && specificRunConfigIds.length > 0;
+
+      // Check each run config for matching suite configs
+      for (const runConfig of runConfigs) {
+        try {
+          // Skip if this config excludes dataset run conversations and this is a dataset run conversation
+          // BUT only skip for automatic triggers - explicit triggers from dataset runs should always run
+          if (runConfig.excludeDatasetRunConversations && isDatasetRunConversation && !isExplicitTrigger) {
+            logger.debug(
+              {
+                runConfigId: runConfig.id,
+                conversationId,
+              },
+              'Skipping evaluation run config - excludes dataset run conversations (automatic trigger)'
+            );
+            continue;
+          }
+
+          await this.processRunConfig({
+            tenantId,
+            projectId,
+            conversationId,
+            conversation,
+            runConfigId: runConfig.id,
+          });
+        } catch (error) {
+          logger.error(
+            {
+              error: error instanceof Error ? error.message : String(error),
+              runConfigId: runConfig.id,
+              conversationId,
+            },
+            'Error processing evaluation run config'
+          );
+          // Continue with other run configs even if one fails
+        }
+      }
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          tenantId,
+          projectId,
+          conversationId,
+        },
+        'Failed to trigger evaluations for conversation'
+      );
+      // Don't throw - this is fire-and-forget
+    }
+  }
+
+  /**
+   * Process a single evaluation run config
+   */
+  private async processRunConfig(params: {
+    tenantId: string;
+    projectId: string;
+    conversationId: string;
+    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect;
+    runConfigId: string;
+  }): Promise<void> {
+    const { tenantId, projectId, conversationId, conversation, runConfigId } = params;
+
+    // Get suite configs linked to this run config
+    const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
+      dbClient
+    )({
+      scopes: { tenantId, projectId, evaluationRunConfigId: runConfigId },
+    });
+
+    if (suiteConfigRelations.length === 0) {
+      logger.debug({ runConfigId }, 'No suite configs linked to run config');
+      return;
+    }
+
+    // Check each suite config to see if it matches
+    const matchingSuiteConfigs: Array<{
+      suiteConfigId: string;
+      filters: Filter<EvaluationSuiteFilterCriteria> | null;
+      sampleRate: number | null;
+    }> = [];
+
+    for (const relation of suiteConfigRelations) {
+      const suiteConfig = await getEvaluationSuiteConfigById(dbClient)({
+        scopes: { tenantId, projectId, evaluationSuiteConfigId: relation.evaluationSuiteConfigId },
+      });
+
+      if (!suiteConfig) {
+        logger.warn(
+          { suiteConfigId: relation.evaluationSuiteConfigId },
+          'Suite config not found, skipping'
+        );
+        continue;
+      }
+
+      // Check if filters match
+      const matches = await this.checkSuiteConfigMatch(
+        conversation,
+        suiteConfig.filters,
+        tenantId,
+        projectId
+      );
+
+      if (matches) {
+        // Check sample rate
+        if (suiteConfig.sampleRate !== null && suiteConfig.sampleRate !== undefined) {
+          const random = Math.random();
+          if (random > suiteConfig.sampleRate) {
+            logger.debug(
+              { suiteConfigId: suiteConfig.id, sampleRate: suiteConfig.sampleRate, random },
+              'Conversation filtered out by sample rate'
+            );
+            continue;
+          }
+        }
+
+        matchingSuiteConfigs.push({
+          suiteConfigId: suiteConfig.id,
+          filters: suiteConfig.filters,
+          sampleRate: suiteConfig.sampleRate,
+        });
+      }
+    }
+
+    if (matchingSuiteConfigs.length === 0) {
+      logger.debug({ runConfigId, conversationId }, 'No matching suite configs found');
+      return;
+    }
+
+    logger.info(
+      { runConfigId, conversationId, matchingSuiteConfigCount: matchingSuiteConfigs.length },
+      'Found matching suite configs, creating evaluation run'
+    );
+
+    // Create evaluation run
+    const evaluationRun = await createEvaluationRun(dbClient)({
+      id: generateId(),
+      tenantId,
+      projectId,
+      evaluationRunConfigId: runConfigId,
+    });
+
+    // Execute evaluations for each matching suite config
+    for (const matchingSuiteConfig of matchingSuiteConfigs) {
+      try {
+        await this.executeEvaluationsForSuiteConfig({
+          tenantId,
+          projectId,
+          conversationId,
+          conversation,
+          suiteConfigId: matchingSuiteConfig.suiteConfigId,
+          evaluationRunId: evaluationRun.id,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            suiteConfigId: matchingSuiteConfig.suiteConfigId,
+            evaluationRunId: evaluationRun.id,
+          },
+          'Error executing evaluations for suite config'
+        );
+        // Continue with other suite configs
+      }
+    }
+  }
+
+  /**
+   * Check if suite config filters match the conversation
+   */
+  private async checkSuiteConfigMatch(
+    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect,
+    filters: Filter<EvaluationSuiteFilterCriteria> | null,
+    tenantId: string,
+    projectId: string
+  ): Promise<boolean> {
+    if (!filters) {
+      // No filters means match all
+      return true;
+    }
+
+    return this.evaluateFilter(conversation, filters, tenantId, projectId);
+  }
+
+  /**
+   * Recursively evaluate filter conditions
+   */
+  private async evaluateFilter(
+    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect,
+    filter: Filter<EvaluationSuiteFilterCriteria>,
+    tenantId: string,
+    projectId: string
+  ): Promise<boolean> {
+    // Handle 'and' conditions
+    if ('and' in filter && Array.isArray(filter.and)) {
+      const results = await Promise.all(
+        filter.and.map((subFilter) =>
+          this.evaluateFilter(conversation, subFilter, tenantId, projectId)
+        )
+      );
+      return results.every((result) => result === true);
+    }
+
+    // Handle 'or' conditions
+    if ('or' in filter && Array.isArray(filter.or)) {
+      const results = await Promise.all(
+        filter.or.map((subFilter) =>
+          this.evaluateFilter(conversation, subFilter, tenantId, projectId)
+        )
+      );
+      return results.some((result) => result === true);
+    }
+
+    // Handle direct filter criteria
+    const criteria = filter as EvaluationSuiteFilterCriteria;
+
+    // Check agentIds filter
+    if (criteria.agentIds && Array.isArray(criteria.agentIds) && criteria.agentIds.length > 0) {
+      // Get agentId from conversation's activeSubAgentId
+      if (conversation.activeSubAgentId) {
+        try {
+          const subAgent = await dbClient.query.subAgents.findFirst({
+            where: (subAgents, { eq, and }) =>
+              and(
+                eq(subAgents.tenantId, tenantId),
+                eq(subAgents.projectId, projectId),
+                eq(subAgents.id, conversation.activeSubAgentId)
+              ),
+          });
+
+          if (subAgent && criteria.agentIds.includes(subAgent.agentId)) {
+            return true;
+          }
+        } catch (error) {
+          logger.warn(
+            { error, activeSubAgentId: conversation.activeSubAgentId },
+            'Failed to fetch subagent for filter check'
+          );
+        }
+      }
+      // If agentIds filter is specified but doesn't match, return false
+      return false;
+    }
+
+    // If no specific filters are specified, default to true (match all)
+    return true;
+  }
+
+  /**
+   * Execute evaluations for a suite config
+   */
+  private async executeEvaluationsForSuiteConfig(params: {
+    tenantId: string;
+    projectId: string;
+    conversationId: string;
+    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect;
+    suiteConfigId: string;
+    evaluationRunId: string;
+  }): Promise<void> {
+    const { tenantId, projectId, conversationId, conversation, suiteConfigId, evaluationRunId } =
+      params;
+
+    // Get evaluators for this suite config
+    const evaluatorRelations = await getEvaluationSuiteConfigEvaluatorRelations(dbClient)({
+      scopes: { tenantId, projectId, evaluationSuiteConfigId: suiteConfigId },
+    });
+
+    if (evaluatorRelations.length === 0) {
+      logger.warn({ suiteConfigId }, 'No evaluators found for suite config');
+      return;
+    }
+
+    // Get evaluator details
+    const evaluators = await Promise.all(
+      evaluatorRelations.map((relation) =>
+        getEvaluatorById(dbClient)({
+          scopes: { tenantId, projectId, evaluatorId: relation.evaluatorId },
+        })
+      )
+    );
+
+    const validEvaluators = evaluators.filter((e): e is NonNullable<typeof e> => e !== null);
+
+    if (validEvaluators.length === 0) {
+      logger.warn({ suiteConfigId }, 'No valid evaluators found for suite config');
+      return;
+    }
+
+    logger.info(
+      { suiteConfigId, evaluatorCount: validEvaluators.length },
+      'Executing evaluations for suite config'
+    );
+
+    // Execute each evaluator
+    for (const evaluator of validEvaluators) {
+      try {
+        await this.executeEvaluation({
+          tenantId,
+          projectId,
+          conversationId,
+          conversation,
+          evaluator,
+          evaluationRunId,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            evaluatorId: evaluator.id,
+            conversationId,
+            evaluationRunId,
+          },
+          'Error executing evaluation'
+        );
+        // Continue with other evaluators
+      }
+    }
+  }
+
+  /**
+   * Execute a single evaluation
+   */
+  private async executeEvaluation(params: {
+    tenantId: string;
+    projectId: string;
+    conversationId: string;
+    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect;
+    evaluator: typeof import('@inkeep/agents-core').evaluator.$inferSelect;
+    evaluationRunId: string;
+  }): Promise<void> {
+    const { tenantId, projectId, conversationId, conversation, evaluator, evaluationRunId } =
+      params;
+
+    logger.info(
+      { conversationId, evaluatorId: evaluator.id, evaluationRunId },
+      'Executing evaluation'
+    );
+
+    // Create evaluation result record
+    const evalResult = await createEvaluationResult(dbClient)({
+      id: generateId(),
+      tenantId,
+      projectId,
+      conversationId,
+      evaluatorId: evaluator.id,
+      evaluationRunId,
+    });
+
+    try {
+      // Get conversation history
+      const conversationHistory = await getConversationHistory(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: {
+          includeInternal: false,
+          limit: 100,
+        },
+      });
+
+      // Get agent definition
+      let agentDefinition: FullAgentDefinition | null = null;
+      let agentId: string | null = null;
+
+      try {
+        const activeSubAgentId = conversation.activeSubAgentId;
+        if (activeSubAgentId) {
+          const subAgent = await dbClient.query.subAgents.findFirst({
+            where: (subAgents, { eq, and }) =>
+              and(
+                eq(subAgents.tenantId, tenantId),
+                eq(subAgents.projectId, projectId),
+                eq(subAgents.id, activeSubAgentId)
+              ),
+          });
+
+          if (subAgent) {
+            agentId = subAgent.agentId;
+          }
+
+          if (agentId) {
+            agentDefinition = await getFullAgent(
+              dbClient,
+              logger
+            )({
+              scopes: { tenantId, projectId, agentId },
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn(
+          { error, conversationId, activeSubAgentId: conversation.activeSubAgentId },
+          'Failed to fetch agent definition for evaluation'
+        );
+      }
+
+      // Wait 30 seconds before fetching trace to allow it to be available
+      logger.info({ conversationId }, 'Waiting 30 seconds before fetching trace');
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+
+      // Fetch trace from SigNoz
+      const prettifiedTrace = await this.fetchTraceFromSigNoz(conversationId);
+
+      logger.info(
+        {
+          conversationId,
+          hasTrace: !!prettifiedTrace,
+          traceActivityCount: prettifiedTrace?.timeline?.length || 0,
+        },
+        'Trace fetch completed'
+      );
+
+      const conversationText = JSON.stringify(conversationHistory, null, 2);
+      const agentDefinitionText = agentDefinition
+        ? JSON.stringify(agentDefinition, null, 2)
+        : 'Agent definition not available';
+      const traceText = prettifiedTrace
+        ? JSON.stringify(prettifiedTrace, null, 2)
+        : 'Trace data not available';
+
+      const modelConfig: ModelSettings = (evaluator.model ?? {}) as ModelSettings;
+
+      // Parse schema
+      let schemaObj: Record<string, unknown>;
+      if (typeof evaluator.schema === 'string') {
+        try {
+          schemaObj = JSON.parse(evaluator.schema);
+        } catch (error) {
+          logger.error(
+            { error, schemaString: evaluator.schema },
+            'Failed to parse evaluator schema string'
+          );
+          throw new Error('Invalid evaluator schema format');
+        }
+      } else {
+        schemaObj = evaluator.schema as Record<string, unknown>;
+      }
+
+      const evaluationPrompt = this.buildEvaluationPrompt(
+        evaluator.prompt,
+        agentDefinitionText,
+        conversationText,
+        traceText,
+        schemaObj
+      );
+
+      const llmResponse = await this.callLLM({
+        prompt: evaluationPrompt,
+        modelConfig,
+        schema: schemaObj,
+      });
+
+      // Update evaluation result with output
+      await updateEvaluationResult(dbClient)({
+        scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
+        data: {
+          output: llmResponse.result as any,
+        },
+      });
+
+      logger.info(
+        { conversationId, evaluatorId: evaluator.id, resultId: evalResult.id },
+        'Evaluation completed successfully'
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          conversationId,
+          evaluatorId: evaluator.id,
+          resultId: evalResult.id,
+        },
+        'Evaluation execution failed'
+      );
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await updateEvaluationResult(dbClient)({
+        scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
+        data: {
+          output: { text: `Evaluation failed: ${errorMessage}` } as any,
+        },
+      });
+    }
+  }
+
+  /**
+   * Build evaluation prompt
+   */
+  private buildEvaluationPrompt(
+    evaluatorPrompt: string,
+    agentDefinitionText: string,
+    conversationText: string,
+    traceText: string,
+    schema: Record<string, unknown>
+  ): string {
+    const schemaDescription = JSON.stringify(schema, null, 2);
+
+    return `${evaluatorPrompt}
+
+Agent Definition:
+
+${agentDefinitionText}
+
+Conversation History:
+
+${conversationText}
+
+Execution Trace:
+
+${traceText}
+
+Please evaluate this conversation according to the following schema and return your evaluation as JSON:
+
+${schemaDescription}
+
+Return your evaluation as a JSON object matching the schema above.`;
+  }
+
+  /**
+   * Fetch trace from SigNoz
+   */
+  private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
+    const manageUIUrl = env.AGENTS_MANAGE_UI_URL;
+
+    try {
+      logger.info({ conversationId, manageUIUrl }, 'Fetching trace from SigNoz');
+
+      const traceResponse = await fetch(
+        `${manageUIUrl}/api/signoz/conversations/${conversationId}`
+      );
+
+      if (!traceResponse.ok) {
+        logger.warn(
+          { conversationId, status: traceResponse.status, statusText: traceResponse.statusText },
+          'Failed to fetch trace from SigNoz'
+        );
+        return null;
+      }
+
+      const conversationDetail = (await traceResponse.json()) as any;
+
+      logger.info(
+        { conversationId, activityCount: conversationDetail.activities?.length || 0 },
+        'Trace fetched successfully'
+      );
+
+      const prettifiedTrace = this.formatConversationAsPrettifiedTrace(conversationDetail);
+
+      return prettifiedTrace;
+    } catch (error) {
+      logger.warn(
+        { error, conversationId, manageUIUrl },
+        'Failed to fetch trace from SigNoz, will continue without trace'
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Format conversation detail as prettified trace
+   */
+  private formatConversationAsPrettifiedTrace(conversation: any): any {
+    const trace: any = {
+      metadata: {
+        conversationId: conversation.conversationId,
+        traceId: conversation.traceId,
+        agentName: conversation.agentName,
+        agentId: conversation.agentId,
+        exportedAt: new Date().toISOString(),
+      },
+      timing: {
+        startTime: conversation.conversationStartTime || '',
+        endTime: conversation.conversationEndTime || '',
+        durationMs: conversation.duration || 0,
+      },
+      timeline: (conversation.activities || []).map((activity: any) => {
+        const { id: _id, ...rest } = activity;
+        return {
+          ...rest,
+        };
+      }),
+    };
+
+    return trace;
+  }
+
+  /**
+   * Call LLM API using AI SDK
+   */
+  private async callLLM(params: {
+    prompt: string;
+    modelConfig: ModelSettings;
+    schema: Record<string, unknown>;
+  }): Promise<{ result: Record<string, unknown>; metadata: Record<string, unknown> }> {
+    const { prompt, modelConfig, schema } = params;
+
+    const languageModel = ModelFactory.prepareGenerationConfig(modelConfig);
+    const providerOptions = modelConfig?.providerOptions || {};
+
+    // Convert JSON schema to Zod schema
+    let resultSchema: z.ZodType<any>;
+    try {
+      resultSchema = jsonSchemaToZod(schema);
+    } catch (error) {
+      logger.error({ error, schema }, 'Failed to convert JSON schema to Zod, using fallback');
+      resultSchema = z.record(z.string(), z.unknown());
+    }
+
+    try {
+      const result = await generateObject({
+        ...languageModel,
+        schema: resultSchema,
+        prompt,
+        temperature: (providerOptions.temperature as number) ?? 0.3,
+      });
+
+      return {
+        result: result.object as Record<string, unknown>,
+        metadata: {
+          usage: result.usage,
+        },
+      };
+    } catch (error) {
+      // Fallback to generateText with JSON parsing
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(
+        {
+          error: errorMessage,
+          schema: JSON.stringify(schema, null, 2),
+          promptPreview: prompt.substring(0, 500),
+        },
+        'generateObject failed, falling back to generateText with JSON parsing'
+      );
+
+      try {
+        const schemaDescription = JSON.stringify(schema, null, 2);
+        const enhancedPrompt = `${prompt}
+
+IMPORTANT: You must respond with valid JSON matching this exact schema:
+${schemaDescription}
+
+Return ONLY valid JSON, no markdown formatting, no code blocks.`;
+
+        const textResult = await generateText({
+          ...languageModel,
+          prompt: enhancedPrompt,
+          temperature: (providerOptions.temperature as number) ?? 0.3,
+        });
+
+        let jsonText = textResult.text.trim();
+        const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        if (jsonMatch) {
+          jsonText = jsonMatch[1];
+        }
+
+        const parsed = JSON.parse(jsonText);
+
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Evaluation result is missing or invalid');
+        }
+
+        return {
+          result: parsed as Record<string, unknown>,
+          metadata: {
+            usage: textResult.usage,
+            fallback: true,
+          },
+        };
+      } catch (fallbackError) {
+        logger.error(
+          {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            originalError: errorMessage,
+          },
+          'Failed to parse JSON from generateText fallback'
+        );
+        throw new Error(
+          `Evaluation failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`
+        );
+      }
+    }
+  }
+}
+
+// Export singleton instance
+export const conversationEvaluationTrigger = new ConversationEvaluationTrigger();
