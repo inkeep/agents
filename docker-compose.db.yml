@@ -1,19 +1,21 @@
 services:
   db:
-    image: postgres:18
+    build: 
+      context: .
+      dockerfile: Dockerfile.doltgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: inkeep_agents
-      POSTGRES_USER: appuser
-      POSTGRES_PASSWORD: password
+      DOLTGRES_DATA_DIR: /var/lib/doltgres
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql
+      - doltgres-data:/var/lib/doltgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+      test: ["CMD-SHELL", "PGPASSWORD=password psql -h localhost -U postgres -d postgres -c 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
-  pgdata:
+  doltgres-data:

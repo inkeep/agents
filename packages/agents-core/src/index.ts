@@ -11,6 +11,7 @@ export * from './credential-stores/index';
 export * from './credential-stuffer/index';
 export * from './data-access/index';
 export * from './db/client';
+export * from './db/integration-cleanup';
 export * from './db/schema';
 export * from './db/test-client';
 export * from './dolt/index';

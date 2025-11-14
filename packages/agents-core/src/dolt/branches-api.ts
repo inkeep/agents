@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '../db/client';
+import type { BranchInfo } from '../validation/dolt-schemas';
 import { doltBranch, doltDeleteBranch, doltGetBranchNamespace, doltListBranches } from './branch';
 import type { BranchInfo } from '../validation/dolt-schemas';
 
@@ -7,7 +8,8 @@ export const MAIN_BRANCH_SUFFIX = 'main';
 /**
  * Get the tenant-scoped main branch name
  */
-export const getTenantMainBranch = (tenantId: string): string => `${tenantId}_${MAIN_BRANCH_SUFFIX}`;
+export const getTenantMainBranch = (tenantId: string): string =>
+  `${tenantId}_${MAIN_BRANCH_SUFFIX}`;
 
 /**
  * Check if a branch name (without tenant/project prefix) is a protected branch

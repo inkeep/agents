@@ -1,0 +1,40 @@
+FROM ubuntu:24.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Doltgres version (check https://github.com/dolthub/doltgresql/releases for latest)
+ARG DOLTGRES_VERSION=0.53.0
+
+# Download and install Doltgres
+RUN curl -L "https://github.com/dolthub/doltgresql/releases/download/v${DOLTGRES_VERSION}/doltgresql-linux-amd64.tar.gz" -o doltgres.tar.gz \
+    && tar -xzf doltgres.tar.gz \
+    && mv doltgresql-linux-amd64/bin/doltgres /usr/local/bin/ \
+    && chmod +x /usr/local/bin/doltgres \
+    && rm -rf doltgres.tar.gz doltgresql-linux-amd64
+
+# Create data directory
+RUN mkdir -p /var/lib/doltgresql
+ENV DOLTGRES_DATA_DIR=/var/lib/doltgresql
+
+# Copy config file
+COPY doltgres-config.yml /etc/doltgres/config.yaml
+
+# Copy entrypoint script
+COPY docker-doltgres-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh
+
+# Copy initialization scripts
+COPY init-dolt.sql /docker-entrypoint-initdb.d/
+
+WORKDIR /var/lib/doltgres
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Run doltgres
+ENTRYPOINT ["docker-doltgres-entrypoint.sh"]
