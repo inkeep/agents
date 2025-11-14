@@ -10,36 +10,34 @@ Gram by Speakeasy turns any OpenAPI specification into a production-ready MCP se
 
 Visit [Gram's documentation](https://www.speakeasy.com/docs/gram/getting-started/openapi) for a complete guide.
 
-### Step 1: [Create a Gram account](https://app.getgram.ai/login)
+### Step 1: Sign up for a Gram account
+
+[Sign up](https://app.getgram.ai/login) for a free Gram account.
 
 ### Step 2: Upload your OpenAPI document
 
 <Steps>
   <Step>
-    In the Gram dashboard, click **Toolsets** in the sidebar (under **Create**)
+    Navigate to **Toolsets** in the Gram dashboard sidebar (under **Create**) and click **Get Started**
   </Step>
   <Step>
-    Click **Get Started**
-  </Step>
-  <Step>
-    Upload your OpenAPI document:
-    - Select the OpenAPI document file from your computer
-    - Enter a descriptive name for your API
-    - Click **Upload**
+    Upload your OpenAPI document, provide a descriptive name, and click **Upload**
   </Step>
 </Steps>
 
-Gram parses your OpenAPI document and extracts URL paths, HTTP methods (GET, POST, PUT, DELETE), request schemas (parameters and request bodies), and operation descriptions to help LLMs understand your API.
+Gram extracts URL paths, HTTP methods, request schemas, and operation descriptions from your OpenAPI document to generate tool definitions.
 
 <Note>
-Gram does not require a 100% valid OpenAPI document. As long as the key elements (paths, methods, request schemas, and descriptions) are present, Gram can successfully generate tool definitions.
+Gram works with partial OpenAPI documents as long as key elements (paths, methods, schemas, descriptions) are present.
 </Note>
 
 ### Step 3: Ship 🚢
 
 Your MCP server is ready to ship! Open the MCP page, and open your MCP server by clicking it. Click Enable to allow the MCP server to handle requests.
 
-<Note>To add authentication, set the appropriate environment variables. See [Step 3 in the Gram documentation](https://www.speakeasy.com/docs/gram/getting-started/openapi#step-3-set-environment-variables) for details.</Note>
+### Step 4: Add authentication (optional)
+
+To add authentication, set the appropriate environment variables. See [Step 3 in the Gram documentation](https://www.speakeasy.com/docs/gram/getting-started/openapi#step-3-set-environment-variables) for details.
 
 ### Next steps
 
