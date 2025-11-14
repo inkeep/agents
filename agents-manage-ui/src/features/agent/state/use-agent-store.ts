@@ -387,18 +387,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'tool_call': {
-            const { toolName, relationshipId } = data.details.data;
+            const { relationshipId } = data.details.data;
             const { subAgentId } = data.details;
             return {
               edges: prevEdges.map((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
-                const toolId = node?.data.toolId as string;
-                const toolData = get().toolLookup[toolId];
-                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
-                const hasDots = edge.source === subAgentId && hasTool;
                 return {
                   ...edge,
-                  data: { ...edge.data, delegating: hasDots },
+                  data: { ...edge.data, delegating: relationshipId === node?.data.relationshipId },
                 };
               }),
               nodes: changeNodeStatus((node) =>
