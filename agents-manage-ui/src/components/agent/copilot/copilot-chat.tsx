@@ -1,7 +1,9 @@
 'use client';
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
+import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useCopilotContext } from './copilot-context';
 
 interface CopilotChatProps {
   agentId?: string;
@@ -21,8 +23,9 @@ const styleOverrides = `
 }
 `;
 
-// biome-ignore lint/correctness/noUnusedFunctionParameters: these will be used in the future
-export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) {
+export function CopilotChat({ agentId }: CopilotChatProps) {
+  const { chatFunctionsRef, isOpen, setIsOpen, conversationId, setConversationId } =
+    useCopilotContext();
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
     PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
@@ -41,12 +44,23 @@ export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) 
     );
     return null;
   }
+
   return (
     <div className="h-full flex flex-row gap-4">
       <div className="flex-1 min-w-0 h-full">
         <InkeepSidebarChat
+          key={conversationId}
+          openSettings={{
+            isOpen: isOpen,
+            onOpenChange: setIsOpen,
+          }}
           position="left"
           baseSettings={{
+            onEvent: async (event: InkeepCallbackEvent) => {
+              if (event.eventName === 'chat_clear_button_clicked') {
+                setConversationId(null);
+              }
+            },
             primaryBrandColor: '#3784ff',
             colorMode: {
               sync: {
@@ -86,6 +100,7 @@ export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) 
             },
           }}
           aiChatSettings={{
+            chatFunctionsRef,
             aiAssistantAvatar: {
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
@@ -97,33 +112,27 @@ export function CopilotChat({ agentId, projectId, tenantId }: CopilotChatProps) 
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
               'x-emit-operations': 'true',
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              // todo what should this header be called?
+              ...(conversationId ? { 'x-inkeep-conversation-id': conversationId } : {}),
               // TODO we probably need to add some custom headers here to identify the agent and project we are working with but not sure what they will be called yet
             },
-
-            // components: new Proxy(
-            //   {},
-            //   {
-            //     get: (_, componentName) => {
-            //       const matchingComponent = Object.values(dataComponentLookup).find(
-            //         (component) => component.name === componentName && !!component.render?.component
-            //       );
-
-            //       if (!matchingComponent) {
-            //         return undefined;
-            //       }
-
-            //       const Component = function Component(props: any) {
-            //         return (
-            //           <DynamicComponentRenderer
-            //             code={matchingComponent.render?.component || ''}
-            //             props={props || {}}
-            //           />
-            //         );
-            //       };
-            //       return Component;
-            //     },
-            //   }
-            // ),
+            exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
+            exampleQuestions: agentId
+              ? undefined
+              : [
+                  {
+                    label: 'Build a weather agent',
+                    value: 'Help me build an agent that can tell me the weather in any city.',
+                  },
+                  {
+                    label: 'Build a recipe agent',
+                    value: 'Help me build an agent that can help me find recipes.',
+                  },
+                  {
+                    label: 'Build a travel agent',
+                    value: 'Help me build an agent that can help me plan my travel.',
+                  },
+                ],
             introMessage: agentId
               ? `Hi! What would you like to change about \`${agentId}\`?`
               : 'Hi! What would you like to build?',

@@ -55,6 +55,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
+import { useCopilotContext } from './copilot/copilot-context';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
@@ -126,6 +127,7 @@ export const Agent: FC<AgentProps> = ({
   externalAgentLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
+  const { isOpen: isCopilotChatOpen } = useCopilotContext();
   const router = useRouter();
 
   const { tenantId, projectId } = useParams<{
@@ -393,7 +395,7 @@ export const Agent: FC<AgentProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [showPlayground, fitView]);
+  }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
@@ -908,7 +910,7 @@ export const Agent: FC<AgentProps> = ({
           <Panel
             position="top-right"
             // width of NodeLibrary
-            className="left-52"
+            className="left-40"
           >
             <Toolbar
               onSubmit={onSubmit}

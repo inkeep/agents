@@ -1,13 +1,13 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
-import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
-import { useCallback, useEffect, useRef } from 'react';
+import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { IkpMessage as IkpMessageComponent } from './ikp-message';
+import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -59,6 +59,7 @@ export function ChatWidget({
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -183,7 +184,20 @@ export function ChatWidget({
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
               ...customHeaders,
             },
-
+            messageActions: [
+              {
+                label: 'Improve with AI',
+                icon: { builtIn: 'LuSparkles' },
+                action: {
+                  type: 'invoke_message_callback',
+                  callback: ({ conversation, messageId }: InvokeMessageCallbackActionArgs) => {
+                    console.log('conversation', conversation);
+                    console.log('messageId', messageId);
+                    setIsFeedbackDialogOpen(true);
+                  },
+                },
+              },
+            ],
             components: new Proxy(
               {},
               {
@@ -212,28 +226,13 @@ export function ChatWidget({
           }}
         />
       </div>
+      {isFeedbackDialogOpen && (
+        <FeedbackDialog
+          isOpen={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+          conversationId={conversationId}
+        />
+      )}
     </div>
   );
 }
-
-// using the built in IkpMessage component from agents-ui but leaving this here for reference / testing
-const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
-  const { message, renderMarkdown, renderComponent } = props;
-
-  const lastPart = message.parts[message.parts.length - 1];
-  const isStreaming = !(
-    lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'
-  );
-
-  // Use our new IkpMessage component
-  return (
-    <div>
-      <IkpMessageComponent
-        message={message as any}
-        isStreaming={isStreaming}
-        renderMarkdown={renderMarkdown}
-        renderComponent={renderComponent}
-      />
-    </div>
-  );
-};
