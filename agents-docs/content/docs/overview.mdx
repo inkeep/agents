@@ -1,8 +1,8 @@
 ---
-title: No-Code Agent Builder + Agents SDK
+title: The No-Code + Code Agent Builder
 sidebarTitle: Overview
 icon: "LuBookOpen"
-description: Inkeep is a platform for building Agent-driven Chat Assistants and AI Workflows.
+description: Inkeep is a platform for building Agent Chat Assistants and AI Workflows.
 ---
 
 With Inkeep, you can build AI Agents with a **No-Code Visual Builder** and **Developer SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage their Agents in one platform.
@@ -11,7 +11,7 @@ With Inkeep, you can build AI Agents with a **No-Code Visual Builder** and **Dev
 
 ### No-Code Visual Builder
 
-A no-code canvas so any team can create and own the Agents they care about.
+A drag-and-drop canvas so any team can create and own the Agents they care about.
 
 <Image src="/gifs/drag-n-drop.gif" alt="No-Code Agent Builder demo" />
 
@@ -28,7 +28,7 @@ const helloAgent = subAgent({
   name: "Hello Agent",
   description: "Says hello",
   canUse: () => [consoleMcp], 
-  prompt: 'Reply to the user and console log "hello world" in fun variations like h3llo world.',
+  prompt: `Reply to the user and console log "hello world" with fun variations like h3llo world`,
 });
 
 export const basicAgent = agent({
@@ -78,7 +78,7 @@ Inkeep is designed to be extensible and open: you can use the LLM provider of yo
 
 <Cards>
   <Card
-    title="Follow the Quick Start"
+    title="Follow the <1min Quick Start"
     icon="LuZap"
     href="/get-started/quick-start"
   >

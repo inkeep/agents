@@ -1,15 +1,10 @@
 ---
 title: Quick Start
-description: Start developing your agents with the Inkeep Agent framework
+description: Get started with Inkeep Agents in <1min
 icon: "LuRocket"
 ---
 
 ## Launch your first agent
-
-<Video
-  src="https://www.youtube.com/watch?v=T7ZKQz7Y1-E&t=3s"
-  title="Quick Start steps"
-/>
 
 ### Prerequisites
 
@@ -19,7 +14,7 @@ Before getting started, ensure you have the following installed on your system:
 - [Docker](https://docs.docker.com/get-docker/)
 - [pnpm](https://pnpm.io/installation) version 10 or higher
 
-You can verify your installations by running:
+You can verify by running:
 
 ```bash
 node --version
@@ -29,17 +24,19 @@ docker --version
 
 ### Step 1: Create a new agents project
 
-First, create a new agents project.
+Run the quickstart script on a target folder:
 
 ```bash
-npx @inkeep/create-agents my-agent-directory
+npx @inkeep/create-agents my-agents
 ```
 
-Navigate to the new agents project.
+Navigate to the folder
 
 ```bash
-cd my-agent-directory
+cd my-agents
 ```
+
+Open the folder using your favorite coding editor. To open with Cursor, you can run `cursor .` 
 
 ### Step 2: Run the setup script
 
@@ -55,17 +52,17 @@ pnpm setup-dev
 pnpm dev
 ```
 
-The Visual Builder automatically opens at http://localhost:3000.
+The Visual Builder will auto-open at http://localhost:3000.
 
 ### Step 4: Chat with your agent
 
-Navigate to the Event Planner agent at http://localhost:3000, click **Try it**, and ask about fun activities at a location of your choice.
+Navigate to the **Activities Planner** agent at http://localhost:3000, click **Try it**, and ask about fun activities at a location of your choice:
 
-<Image src="/gifs/event-planner.gif" alt="Chat with your agent" />
+<Image src="/gifs/activities-planner.gif" alt="Chat with your agent" />
 
 ### Step 5: Install Inkeep MCP (optional)
 
-To help with development, add the `Inkeep Agents MCP` to your preferred IDE or MCP client. It has tools to help "vibe code" agents with the Inkeep SDK.
+To help "vibe code" agents with Inkeep, add the `Inkeep Agents MCP` to your preferred IDE.
 
 <div
   style={{
@@ -97,17 +94,7 @@ To add to **Claude Code**, run this in your terminal:
 claude mcp add --transport http inkeep-agents https://agents.inkeep.com/mcp --scope project
 ```
 
-Or manually add to any MCP client:
-
-```json
-{
-  "mcpServers": {
-    "inkeep-agents": {
-      "url": "https://agents.inkeep.com/mcp"
-    }
-  }
-}
-```
+Or manually add `https://agents.inkeep.com/mcp` as an MCP Server to any MCP client.
 
 ### Next steps
 
