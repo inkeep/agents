@@ -1,7 +1,6 @@
 import { ChevronRight, SlackIcon } from 'lucide-react';
-import { YoutubeIcon } from '@/components/brand-icons';
 import Link from 'next/link';
-import { GithubIcon } from '@/components/brand-icons';
+import { GithubIcon, YoutubeIcon } from '@/components/brand-icons';
 import { Fade } from '@/components/fade';
 import { Logo } from '@/components/logo';
 import { MobileSearchTrigger } from '@/components/navbar/mobile-search';
@@ -76,4 +75,3 @@ export const Navbar = () => {
     </div>
   );
 };
-
