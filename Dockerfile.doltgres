@@ -26,7 +26,8 @@ COPY doltgres-config.yml /etc/doltgres/config.yaml
 
 # Copy entrypoint script
 COPY docker-doltgres-entrypoint.sh /usr/local/bin/docker-doltgres-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh && \
+    sed -i 's/\r$//' /usr/local/bin/docker-doltgres-entrypoint.sh
 
 # Copy initialization scripts
 COPY init-dolt.sql /docker-entrypoint-initdb.d/
