@@ -365,7 +365,7 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId?: string | null
+    relationshipId: string | null = null
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -397,12 +397,11 @@ export class Agent {
           toolName.startsWith('delegate_to_');
 
         if (streamRequestId && !isInternalTool) {
-          console.log(111, { relationshipId });
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
             input: args,
             toolCallId,
-            relationshipId: relationshipId ?? undefined,
+            relationshipId,
           });
         }
 
@@ -416,7 +415,7 @@ export class Agent {
               output: result,
               toolCallId,
               duration,
-              relationshipId: relationshipId ?? undefined,
+              relationshipId,
             });
           }
 
@@ -432,7 +431,7 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
-              relationshipId: relationshipId ?? undefined,
+              relationshipId,
             });
           }
 
@@ -577,7 +576,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
-                      relationshipId: relationshipId || undefined,
+                      relationshipId,
                     },
                   });
                 }
