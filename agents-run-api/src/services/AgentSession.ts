@@ -154,7 +154,7 @@ export interface ToolCallData {
   toolName: string;
   input: any;
   toolCallId: string;
-  relationshipId?: string;
+  relationshipId: string | null;
 }
 
 export interface ToolResultData {
@@ -163,7 +163,7 @@ export interface ToolResultData {
   output: any;
   duration?: number;
   error?: string;
-  relationshipId?: string;
+  relationshipId: string | null;
 }
 
 export interface ErrorEventData {
