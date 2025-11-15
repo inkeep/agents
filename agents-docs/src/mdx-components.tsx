@@ -27,9 +27,9 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
+import { Card } from '@/components/mdx/card'; // Add this line
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
-import { Card } from '@/components/mdx/card'; // Add this line
 
 // Snippet component for MDX snippets
 // This is a placeholder that should be replaced by remark-mdx-snippets plugin

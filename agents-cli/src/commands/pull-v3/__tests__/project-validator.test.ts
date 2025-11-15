@@ -141,7 +141,7 @@ describe('Project Validator - Key Listener Leak Prevention', () => {
 
     // Verify that 'once' was called (not 'on' for 'data' event)
     expect(mockStdin.once).toHaveBeenCalled();
-    
+
     // Verify 'on' was NOT called for 'data' event
     const onCalls = mockStdin.on.mock.calls.filter((call: any[]) => call[0] === 'data');
     expect(onCalls.length).toBe(0);
@@ -235,4 +235,3 @@ describe('Project Validator - Key Listener Leak Prevention', () => {
     exitSpy.mockRestore();
   });
 });
-
