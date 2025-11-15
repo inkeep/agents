@@ -7,3 +7,5 @@ export {
 
 export { app } from './mcp-server/mcp-server.js';
 
+export { createMCPServer } from './mcp-server/server.js';
+

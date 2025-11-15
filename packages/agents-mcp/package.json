@@ -10,6 +10,10 @@
     ".": {
       "types": "./esm/index.d.ts",
       "default": "./esm/index.js"
+    },
+    "./src/index": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "bin": {

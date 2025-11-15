@@ -1,10 +1,11 @@
-import { createMCPServer } from '@inkeep/agents-mcp/mcp-server/server.js';
+import { createConsoleLogger, createMCPServer } from '@inkeep/agents-mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { toReqRes } from 'fetch-to-node';
 import { Hono } from 'hono';
 import { getLogger } from '../logger';
 
 const logger = getLogger('mcp');
+const noOpLogger = createConsoleLogger('error');
 
 const app = new Hono();
 
@@ -17,7 +18,7 @@ app.post('/', async (c) => {
     logger.info({}, 'MCP request received');
 
     // Parse request body
-    const body = await c.req.json();
+    // const body = await c.req.json();
 
     // Key Component #1: Create the MCP server instance
     const mcpServer = createMCPServer({
@@ -37,7 +38,7 @@ app.post('/', async (c) => {
     // Using fetch-to-node to convert c.req.raw (Web API Request) to Node.js objects
     const { req, res } = toReqRes(c.req.raw);
 
-    await mcpTransport.handleRequest(req, res, body);
+    await mcpTransport.handleRequest(req, res, c.body);
 
     // Return the response that was written by the transport
     // The transport handles writing to the response, so we return null
