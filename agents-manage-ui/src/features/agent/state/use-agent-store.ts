@@ -389,16 +389,23 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'tool_call': {
             const { relationshipId } = data.details.data;
             const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_call] relationshipId is missing');
+            }
             return {
               edges: prevEdges.map((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
                 return {
                   ...edge,
-                  data: { ...edge.data, delegating: relationshipId === node?.data.relationshipId },
+                  data: {
+                    ...edge.data,
+                    delegating: !!relationshipId && relationshipId === node?.data.relationshipId,
+                  },
                 };
               }),
               nodes: changeNodeStatus((node) =>
-                node.data.id === subAgentId || relationshipId === node.data.relationshipId
+                node.data.id === subAgentId ||
+                (relationshipId && relationshipId === node.data.relationshipId)
                   ? 'delegating'
                   : null
               ),
@@ -406,15 +413,21 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'error': {
             const { relationshipId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: error] relationshipId is missing');
+            }
             return {
               nodes: changeNodeStatus((node) =>
-                relationshipId === node.data.relationshipId ? 'error' : null
+                relationshipId && relationshipId === node.data.relationshipId ? 'error' : null
               ),
             };
           }
           case 'tool_result': {
             const { error, relationshipId } = data.details.data;
             const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_result] relationshipId is missing');
+            }
             return {
               edges: prevEdges.map((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
@@ -424,7 +437,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   data: {
                     ...edge.data,
                     delegating:
-                      subAgentId === edge.source && relationshipId === node?.data.relationshipId
+                      subAgentId === edge.source &&
+                      relationshipId &&
+                      relationshipId === node?.data.relationshipId
                         ? 'inverted'
                         : false,
                   },
@@ -432,7 +447,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               }),
               nodes: changeNodeStatus((node) => {
                 let status: AnimatedNode['status'] = null;
-                if (relationshipId === node.data.relationshipId) {
+                if (relationshipId && relationshipId === node.data.relationshipId) {
                   status = error ? 'error' : 'executing';
                 } else if (node.id === subAgentId) {
                   status = 'delegating';
