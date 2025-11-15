@@ -171,9 +171,8 @@ export function TimelineWrapper({
       setPanelVisible(false);
       const t = setTimeout(() => setPanelVisible(true), 10);
       return () => clearTimeout(t);
-    } else {
-      setPanelVisible(false);
     }
+    setPanelVisible(false);
   }, [selected]);
 
   // Clear selected panel when conversation changes

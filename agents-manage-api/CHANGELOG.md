@@ -1,5 +1,88 @@
 # @inkeep/agents-manage-api
 
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+- Updated dependencies [98f139a]
+  - @inkeep/agents-core@0.33.1
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- Updated dependencies [b89cbd1]
+- Updated dependencies [d2fa856]
+- Updated dependencies [d95a9de]
+  - @inkeep/agents-core@0.33.0
+
+## 0.32.2
+
+### Patch Changes
+
+- c228770: update create-agents setup script
+- Updated dependencies [c228770]
+  - @inkeep/agents-core@0.32.2
+
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- 8d8b6dd: Fix runtime configuration implementation to properly apply environment variable overrides
+
+  This change fixes a critical bug where runtime configuration environment variables were parsed but never actually used by the runtime execution code. The fix includes:
+
+  1. **Core Changes (agents-core)**:
+
+     - Removed `getEnvNumber()` helper function
+     - Bundled all 56 runtime constants into a `runtimeConsts` export object for cleaner imports
+     - Constants now use plain default values instead of reading from `process.env` directly
+
+  2. **Environment Parsing (manage-api & run-api)**:
+
+     - Updated env.ts files to import `runtimeConsts` instead of individual constants
+     - Added missing `AGENTS_VALIDATION_PAGINATION_DEFAULT_LIMIT` to manage-api parsing
+     - Both APIs now properly parse environment variables and create `runtimeConfig` objects
+
+  3. **Runtime Implementation (run-api)**:
+     - Updated 10+ runtime files to import `runtimeConfig` from `../env` instead of from `@inkeep/agents-core`
+     - Fixed files include: Agent.ts, ToolSessionManager.ts, relationTools.ts, a2a/client.ts, AgentSession.ts, stream-helpers.ts, IncrementalStreamParser.ts, conversations.ts
+     - Environment variable overrides now properly affect runtime behavior
+
+  **Impact**: Environment variables documented in `.env.example` files now actually work. Users can configure runtime limits, timeouts, and other behavior via environment variables as intended.
+
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-core@0.31.7
+
 ## 0.31.6
 
 ### Patch Changes

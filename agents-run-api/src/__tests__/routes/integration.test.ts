@@ -49,31 +49,35 @@ const {
 });
 
 // Mock @inkeep/agents-core
-vi.mock('@inkeep/agents-core', () => ({
-  createTask: createTaskMock,
-  getTask: getTaskMock,
-  updateTask: updateTaskMock,
-  createMessage: createMessageMock,
-  getActiveAgentForConversation: getActiveAgentForConversationMock,
-  getFullAgent: getFullAgentMock,
-  getTracer: vi.fn(() => ({
-    startActiveSpan: vi.fn((_name, options, fn) => {
-      // Handle both 2 and 3 argument versions
-      const callback = typeof options === 'function' ? options : fn;
-      return callback({
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    createTask: createTaskMock,
+    getTask: getTaskMock,
+    updateTask: updateTaskMock,
+    createMessage: createMessageMock,
+    getActiveAgentForConversation: getActiveAgentForConversationMock,
+    getFullAgent: getFullAgentMock,
+    getTracer: vi.fn(() => ({
+      startActiveSpan: vi.fn((_name, options, fn) => {
+        // Handle both 2 and 3 argument versions
+        const callback = typeof options === 'function' ? options : fn;
+        return callback({
+          setAttributes: vi.fn(),
+          setStatus: vi.fn(),
+          end: vi.fn(),
+        });
+      }),
+      startSpan: vi.fn(() => ({
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
-      });
-    }),
-    startSpan: vi.fn(() => ({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
+      })),
     })),
-  })),
-  setSpanWithError: vi.fn(),
-}));
+    setSpanWithError: vi.fn(),
+  };
+});
 
 // Mock database client
 vi.mock('../../data/db/dbClient.js', () => ({
@@ -150,11 +154,13 @@ vi.mock('../../utils/tracer.js', () => ({
   },
 }));
 
-vi.mock('../../env.js', () => ({
-  env: {
-    AGENT_BASE_URL: 'http://localhost:3002',
-  },
-}));
+vi.mock('../../env.js', async (importOriginal) => {
+  return {
+    env: {
+      AGENT_BASE_URL: 'http://localhost:3002',
+    },
+  };
+});
 
 vi.mock('../../logger.js', () => {
   const mockLogger = {

@@ -15,6 +15,13 @@ import { tool } from 'ai';
 import { asyncExitHook, gracefulExit } from 'exit-hook';
 import { match } from 'ts-pattern';
 import { z } from 'zod';
+import {
+  MCP_TOOL_CONNECTION_TIMEOUT_MS,
+  MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS,
+  MCP_TOOL_MAX_RECONNECTION_DELAY_MS,
+  MCP_TOOL_MAX_RETRIES,
+  MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
+} from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
 
 interface SharedServerConfig {
@@ -134,15 +141,15 @@ export class McpClient {
     this.transport = new StreamableHTTPClientTransport(new URL(urlString), {
       requestInit: mergedRequestInit,
       reconnectionOptions: {
-        maxRetries: 3,
-        maxReconnectionDelay: 30000,
-        initialReconnectionDelay: 1000,
-        reconnectionDelayGrowFactor: 1.5,
+        maxRetries: MCP_TOOL_MAX_RETRIES,
+        maxReconnectionDelay: MCP_TOOL_MAX_RECONNECTION_DELAY_MS,
+        initialReconnectionDelay: MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS,
+        reconnectionDelayGrowFactor: MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
         ...config.reconnectionOptions,
       },
       sessionId: config.sessionId,
     });
-    await this.client.connect(this.transport, { timeout: 3000 });
+    await this.client.connect(this.transport, { timeout: MCP_TOOL_CONNECTION_TIMEOUT_MS });
   }
 
   async disconnect() {
@@ -185,13 +192,13 @@ export class McpClient {
 
     if (selectedTools === undefined) {
       return availableTools;
-    } else if (selectedTools.length === 0) {
-      return [];
-    } else {
-      const toolNames = availableTools.map((tool: Tool) => tool.name);
-      this.validateSelectedTools(toolNames, selectedTools);
-      return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
     }
+    if (selectedTools.length === 0) {
+      return [];
+    }
+    const toolNames = availableTools.map((tool: Tool) => tool.name);
+    this.validateSelectedTools(toolNames, selectedTools);
+    return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
   }
 
   async tools() {

@@ -282,7 +282,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       await ensureTestProject(tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
-      const expiresAt = '2025-12-31T23:59:59Z';
+      const expiresAt = '2025-12-31 23:59:59';
       const createData = {
         agentId: agentId,
         expiresAt,
@@ -329,7 +329,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       // Wait 1ms to ensure updatedAt will be different
       await new Promise((resolve) => setTimeout(resolve, 1));
 
-      const newExpiresAt = '2025-12-31T23:59:59Z';
+      const newExpiresAt = '2025-12-31 23:59:59';
       const updateData = {
         expiresAt: newExpiresAt,
       };

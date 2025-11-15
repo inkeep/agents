@@ -9,13 +9,13 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentToolRelationApiInsertSchema,
   SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
+  SubAgentToolRelationListResponse,
+  SubAgentToolRelationResponse,
   type SubAgentToolRelationSelect,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
@@ -45,7 +45,7 @@ app.openapi(
         description: 'List of subAgent tool relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
@@ -120,7 +120,7 @@ app.openapi(
         description: 'SubAgent tool relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -163,7 +163,7 @@ app.openapi(
         description: 'SubAgents for tool retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
@@ -206,7 +206,7 @@ app.openapi(
         description: 'SubAgent tool relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -240,15 +240,8 @@ app.openapi(
       });
       return c.json({ data: agentToolRelation }, 201);
     } catch (error) {
-      // Handle foreign key constraint violations
-      if (
-        error instanceof Error &&
-        (error.message.includes('FOREIGN KEY constraint failed') ||
-          error.message.includes('foreign key constraint') ||
-          error.message.includes('SQLITE_CONSTRAINT_FOREIGNKEY') ||
-          (error as any).code === 'SQLITE_CONSTRAINT_FOREIGNKEY' ||
-          (error as any)?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY')
-      ) {
+      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
+      if ((error as any)?.cause?.code === '23503') {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid subAgent ID or tool ID - referenced entity does not exist',
@@ -281,7 +274,7 @@ app.openapi(
         description: 'SubAgent tool relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },

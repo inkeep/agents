@@ -2,14 +2,14 @@
 
 import clsx from 'clsx';
 import { SearchIcon } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import type { ButtonHTMLAttributes } from 'react';
-
-const Kbd = dynamic(() => import('@/components/kbd').then((mod) => mod.Kbd), {
-  ssr: false,
-});
+import { type ButtonHTMLAttributes, useEffect, useState } from 'react';
+import { Kbd } from '@/components/kbd';
 
 export function SearchToggle(props: ButtonHTMLAttributes<HTMLButtonElement>) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   return (
     <button
       type="button"
@@ -23,9 +23,11 @@ export function SearchToggle(props: ButtonHTMLAttributes<HTMLButtonElement>) {
     >
       <SearchIcon className="ms-1 size-4" />
       Search or ask...
-      <div className="ms-auto inline-flex gap-[1px]">
-        <Kbd />
-      </div>
+      {isMounted && (
+        <div className="ms-auto inline-flex gap-[1px]">
+          <Kbd />
+        </div>
+      )}
     </button>
   );
 }

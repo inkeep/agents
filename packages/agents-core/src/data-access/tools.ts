@@ -22,6 +22,7 @@ import {
 import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
+  normalizeDateString,
 } from '../utils';
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
@@ -180,8 +181,8 @@ export const dbResultToMcpTool = async (
       availableTools: [],
       capabilities: capabilities || undefined,
       credentialReferenceId: credentialReferenceId || undefined,
-      createdAt: new Date(createdAt),
-      updatedAt: new Date(dbResult.updatedAt),
+      createdAt: new Date(normalizeDateString(createdAt)),
+      updatedAt: new Date(normalizeDateString(dbResult.updatedAt)),
       lastError: null,
       headers: headers || undefined,
       imageUrl: imageUrl || undefined,
@@ -216,7 +217,7 @@ export const dbResultToMcpTool = async (
             } else if (credentialStore.type === CredentialStoreType.keychain) {
               const oauthTokens = JSON.parse(credentialDataString);
               if (oauthTokens.expires_at) {
-                expiresAt = new Date(oauthTokens.expires_at);
+                expiresAt = new Date(normalizeDateString(oauthTokens.expires_at));
               }
             }
           }
@@ -264,7 +265,7 @@ export const dbResultToMcpTool = async (
     availableTools,
     capabilities: capabilities || undefined,
     credentialReferenceId: credentialReferenceId || undefined,
-    createdAt: new Date(createdAt),
+    createdAt: new Date(normalizeDateString(createdAt)),
     updatedAt: new Date(now),
     expiresAt,
     lastError: lastErrorComputed,
@@ -473,7 +474,6 @@ export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolIns
         headers: params.data.headers,
       },
     });
-  } else {
-    return await createTool(db)(params.data);
   }
+  return await createTool(db)(params.data);
 };

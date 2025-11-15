@@ -8,14 +8,16 @@ import {
   type Node,
   Panel,
   ReactFlow,
-  ReactFlowProvider,
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
+import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {
@@ -23,22 +25,44 @@ import {
   deserializeAgentData,
   type ExtendedFullAgentDefinition,
   extractAgentMetadata,
+  isContextConfigParseError,
   serializeAgentData,
   validateSerializedData,
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
+import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
+import {
+  agentNodeSourceHandleId,
+  agentNodeTargetHandleId,
+  externalAgentNodeTargetHandleId,
+  type MCPNodeData,
+  mcpNodeHandleId,
+  NodeType,
+  newNodeDefaults,
+  nodeTypes,
+  teamAgentNodeTargetHandleId,
+} from './configuration/node-types';
+import { AgentErrorSummary } from './error-display/agent-error-summary';
+import { DefaultMarker } from './markers/default-marker';
+import { SelectedMarker } from './markers/selected-marker';
+import NodeLibrary from './node-library/node-library';
+import { SidePane } from './sidepane/sidepane';
+import { Toolbar } from './toolbar/toolbar';
 
+// The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
   loading: () => <EditorLoadingSkeleton className="p-6" />,
@@ -73,29 +97,6 @@ export type SubAgentExternalAgentConfigLookup = Record<
 // SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
 export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
 
-import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { useIsMounted } from '@/hooks/use-is-mounted';
-import type { ExternalAgent } from '@/lib/api/external-agents';
-import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
-import {
-  agentNodeSourceHandleId,
-  agentNodeTargetHandleId,
-  externalAgentNodeTargetHandleId,
-  type MCPNodeData,
-  mcpNodeHandleId,
-  NodeType,
-  newNodeDefaults,
-  nodeTypes,
-  teamAgentNodeTargetHandleId,
-} from './configuration/node-types';
-import { AgentErrorSummary } from './error-display/agent-error-summary';
-import { DefaultMarker } from './markers/default-marker';
-import { SelectedMarker } from './markers/selected-marker';
-import NodeLibrary from './node-library/node-library';
-import { SidePane } from './sidepane/sidepane';
-import { Toolbar } from './toolbar/toolbar';
-
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
   return `edge-${low}-${high}`;
@@ -112,14 +113,14 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
-function AgentReactFlowConsumer({
+export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
   externalAgentLookup = {},
-}: AgentProps) {
+}) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
 
@@ -637,7 +638,7 @@ function AgentReactFlowConsumer({
     [setEdges, setNodes, edges, setQueryState]
   );
 
-  const onSubmit = useCallback(async () => {
+  const onSubmit = useCallback(async (): Promise<boolean> => {
     // Check for orphaned tools before saving
     const warningMessage = detectOrphanedToolsAndGetWarning(
       nodes,
@@ -652,16 +653,36 @@ function AgentReactFlowConsumer({
       });
     }
 
-    const serializedData = serializeAgentData(
-      nodes,
-      edges,
-      metadata,
-      dataComponentLookup,
-      artifactComponentLookup,
-      agentToolConfigLookup,
-      subAgentExternalAgentConfigLookup,
-      subAgentTeamAgentConfigLookup
-    );
+    let serializedData: ReturnType<typeof serializeAgentData>;
+    try {
+      serializedData = serializeAgentData(
+        nodes,
+        edges,
+        metadata,
+        dataComponentLookup,
+        artifactComponentLookup,
+        agentToolConfigLookup,
+        subAgentExternalAgentConfigLookup,
+        subAgentTeamAgentConfigLookup
+      );
+    } catch (error) {
+      if (isContextConfigParseError(error)) {
+        const errorObjects = [
+          {
+            message: error.message,
+            field: error.field,
+            code: 'invalid_json',
+            path: [error.field],
+          },
+        ];
+        const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
+        setErrors(errorSummary);
+        const summaryMessage = getErrorSummaryMessage(errorSummary);
+        toast.error(summaryMessage);
+        return false;
+      }
+      throw error;
+    }
 
     const functionToolNodeMap = new Map<string, string>();
     nodes.forEach((node) => {
@@ -685,7 +706,7 @@ function AgentReactFlowConsumer({
       const errorSummary = parseAgentValidationErrors(JSON.stringify(errorObjects));
       setErrors(errorSummary);
       toast.error(`Validation failed: ${validationErrors[0].message}`);
-      return;
+      return false;
     }
 
     const res = await saveAgent(
@@ -755,21 +776,22 @@ function AgentReactFlowConsumer({
         setMetadata('id', res.data.id);
         router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
-    } else {
-      try {
-        const errorSummary = parseAgentValidationErrors(res.error);
-        setErrors(errorSummary);
-
-        const summaryMessage = getErrorSummaryMessage(errorSummary);
-        toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
-      } catch (parseError) {
-        // Fallback for unparseable errors
-        console.error('Failed to parse validation errors:', parseError);
-        toast.error('Failed to save agent', {
-          closeButton: true,
-        });
-      }
+      return true;
     }
+    try {
+      const errorSummary = parseAgentValidationErrors(res.error);
+      setErrors(errorSummary);
+
+      const summaryMessage = getErrorSummaryMessage(errorSummary);
+      toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+    } catch (parseError) {
+      // Fallback for unparseable errors
+      console.error('Failed to parse validation errors:', parseError);
+      toast.error('Failed to save agent', {
+        closeButton: true,
+      });
+    }
+    return false;
   }, [
     nodes,
     edges,
@@ -831,6 +853,8 @@ function AgentReactFlowConsumer({
   const isMounted = useIsMounted();
   return (
     <ResizablePanelGroup
+      // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
+      id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
@@ -840,6 +864,8 @@ function AgentReactFlowConsumer({
         id="react-flow-pane"
         order={1}
         minSize={30}
+        // fixes WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering
+        defaultSize={100}
         className="relative"
       >
         <DefaultMarker />
@@ -865,6 +891,7 @@ function AgentReactFlowConsumer({
           fitViewOptions={{
             maxZoom: 1,
           }}
+          minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
           onNodeClick={onNodeClick}
@@ -958,14 +985,7 @@ function AgentReactFlowConsumer({
           </ResizablePanel>
         </>
       )}
+      <UnsavedChangesDialog onSubmit={onSubmit} />
     </ResizablePanelGroup>
   );
-}
-
-export function Agent(props: AgentProps) {
-  return (
-    <ReactFlowProvider>
-      <AgentReactFlowConsumer {...props} />
-    </ReactFlowProvider>
-  );
-}
+};

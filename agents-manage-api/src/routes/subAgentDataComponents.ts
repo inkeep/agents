@@ -1,10 +1,10 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
-  ComponentAssociationSchema,
+  ComponentAssociationListResponse,
   commonGetErrorResponses,
   createApiError,
-  DataComponentApiSelectSchema,
+  DataComponentArrayResponse,
   ErrorResponseSchema,
   ExistsResponseSchema,
   getAgentsUsingDataComponent,
@@ -14,9 +14,8 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  SingleResponseSchema,
   SubAgentDataComponentApiInsertSchema,
-  SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
@@ -28,7 +27,7 @@ const app = new OpenAPIHono();
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId',
+    path: '/agent/{subAgentId}',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
     tags: ['Agent Data Component Relations'],
@@ -40,7 +39,7 @@ app.openapi(
         description: 'Data components retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(DataComponentApiSelectSchema)),
+            schema: DataComponentArrayResponse,
           },
         },
       },
@@ -61,7 +60,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/component/:dataComponentId/agents',
+    path: '/component/{dataComponentId}/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
     tags: ['Agent Data Component Relations'],
@@ -75,7 +74,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ComponentAssociationSchema)),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -116,7 +115,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
+            schema: SubAgentDataComponentResponse,
           },
         },
       },
@@ -179,7 +178,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:subAgentId/component/:dataComponentId',
+    path: '/agent/{subAgentId}/component/{dataComponentId}',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
@@ -225,7 +224,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId/component/:dataComponentId/exists',
+    path: '/agent/{subAgentId}/component/{dataComponentId}/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],

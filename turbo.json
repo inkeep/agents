@@ -11,7 +11,7 @@
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "ENVIRONMENT",
-    "DB_FILE_NAME",
+    "DATABASE_URL",
     "PORT",
     "LOG_LEVEL"
   ],
@@ -151,7 +151,8 @@
     },
     "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
-      "cache": false
+      "cache": false,
+      "outputs": []
     }
   }
 }

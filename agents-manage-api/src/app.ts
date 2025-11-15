@@ -160,7 +160,7 @@ function createManagementHono(
     createRoute({
       method: 'get',
       path: '/health',
-      tags: ['health'],
+      operationId: 'health',
       summary: 'Health check',
       description: 'Check if the management service is healthy',
       responses: {

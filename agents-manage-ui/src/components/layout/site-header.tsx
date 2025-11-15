@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +11,11 @@ export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) 
         <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-accent dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent/50" />
         <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
         <Breadcrumbs items={breadcrumbs} />
+        <Separator
+          orientation="vertical"
+          className="mx-2 data-[orientation=vertical]:h-4 ml-auto"
+        />
+        <ThemeToggle />
       </div>
     </header>
   );

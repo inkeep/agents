@@ -28,17 +28,15 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
+      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
       - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
       - NANGO_SECRET_KEY
-    volumes:
-      - inkeep-agents-db:/inkeep-agents/db
     ports:
       - "3002:3002"
     depends_on:
+      inkeep-agents-db:
+        condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
     extra_hosts:
@@ -48,9 +46,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
+      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
       - INKEEP_AGENTS_JWT_SIGNING_SECRET
       - ANTHROPIC_API_KEY
@@ -60,25 +56,38 @@ services:
       - OTEL_EXPORTER_OTLP_TRACES_HEADERS
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://host.docker.internal:3050}
       - NANGO_SECRET_KEY
-    volumes:
-      - inkeep-agents-db:/inkeep-agents/db
     ports:
       - "3003:3003"
     depends_on:
+      inkeep-agents-db:
+        condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  inkeep-agents-db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inkeep_agents
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: password
+    volumes:
+      - inkeep-agents-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
   inkeep-agents-migrate:
     image: inkeep/agents-migrate:latest
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DB_FILE_NAME=file:/inkeep-agents/db/local.db
-      - TURSO_DATABASE_URL
-      - TURSO_AUTH_TOKEN
-    volumes:
-      - inkeep-agents-db:/inkeep-agents/db
+      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
+    depends_on:
+      inkeep-agents-db:
+        condition: service_healthy
     restart: "no"
   inkeep-agents-manage-ui-protected:
     image: nginx:alpine
@@ -118,4 +127,4 @@ services:
         nginx -g 'daemon off;'
       "
 volumes:
-  inkeep-agents-db:
+  inkeep-agents-db-data:

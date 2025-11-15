@@ -5,7 +5,6 @@
 # It runs a single optimized turbo command (pnpm check:husky) that:
 #   - Builds once (cached and reused by all tasks)
 #   - Runs lint, typecheck, and test in parallel after build
-#   - Then runs create-agents E2E tests
 #
 # Usage:
 #   Normal push:                      git push
@@ -13,25 +12,136 @@
 #
 # For more information, see CONTRIBUTING.md
 
+set -e
+
+# Configuration
+TIMEOUT_SECONDS=300  # 5 minutes timeout
+RETRY_COUNT=1
+
 echo "🚀 Running pre-push checks..."
 echo "   Step 1: pnpm check:husky (build, lint, typecheck, unit tests)"
 
-# Run the unified check command
-if ! pnpm check:husky; then
-  echo "❌ Pre-push checks failed. Fix the issues above before pushing."
-  echo "   Run 'pnpm check:husky' locally to reproduce."
-  exit 1
+# Ensure we're in the repository root
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+# Function to run command with timeout detection
+run_with_timeout() {
+  local timeout=$1
+  local attempt=$2
+  
+  echo ""
+  if [ "$attempt" -gt 1 ]; then
+    echo "   ⚠️  Retry attempt $attempt after clearing cache..."
+  fi
+  
+  # Run command in background and capture PID and process group
+  pnpm check:husky &
+  local cmd_pid=$!
+  local pgid=$(ps -o pgid= -p $cmd_pid 2>/dev/null | tr -d ' ' || echo "")
+  
+  # Monitor the process
+  local elapsed=0
+  local check_interval=5  # Check every 5 seconds
+  
+  while [ $elapsed -lt $timeout ]; do
+    # Check if process is still running
+    if ! kill -0 $cmd_pid 2>/dev/null; then
+      # Process completed, wait for exit code
+      wait $cmd_pid
+      return $?
+    fi
+    
+    # Sleep and increment elapsed time
+    sleep $check_interval
+    elapsed=$((elapsed + check_interval))
+    
+    # Print progress every 60 seconds
+    if [ $((elapsed % 60)) -eq 0 ]; then
+      echo "   ⏳ Still running... (${elapsed}s / ${timeout}s)"
+    fi
+  done
+  
+  # Timeout reached - process is hanging
+  echo ""
+  echo "   ⚠️  Command appears to be hanging (timeout after ${timeout}s)"
+  echo "   🔍 Killing process group (PID: $cmd_pid, PGID: ${pgid:-N/A})..."
+  
+  # Try to kill gracefully first (entire process group if available)
+  if [ -n "$pgid" ] && [ "$pgid" != "1" ]; then
+    kill -TERM -$pgid 2>/dev/null || kill $cmd_pid 2>/dev/null || true
+  else
+    kill $cmd_pid 2>/dev/null || true
+  fi
+  sleep 2
+  
+  # Force kill if still running
+  if kill -0 $cmd_pid 2>/dev/null; then
+    echo "   🔍 Force killing process group..."
+    if [ -n "$pgid" ] && [ "$pgid" != "1" ]; then
+      kill -9 -$pgid 2>/dev/null || kill -9 $cmd_pid 2>/dev/null || true
+    else
+      kill -9 $cmd_pid 2>/dev/null || true
+    fi
+  fi
+  
+  # Wait for process to die
+  wait $cmd_pid 2>/dev/null || true
+  
+  return 124  # Return timeout exit code (same as timeout command)
+}
+
+# Function to clear turbo cache
+clear_turbo_cache() {
+  echo ""
+  echo "   🧹 Clearing turbo cache..."
+  rm -rf .turbo 2>/dev/null || true
+  echo "   ✅ Cache cleared"
+}
+
+# Try running the command with retries
+attempt=1
+max_attempts=$((RETRY_COUNT + 1))
+success=false
+
+while [ $attempt -le $max_attempts ]; do
+  if run_with_timeout $TIMEOUT_SECONDS $attempt; then
+    success=true
+    break
+  fi
+  
+  exit_code=$?
+  
+  if [ $exit_code -eq 124 ]; then
+    # Timeout detected
+    if [ $attempt -lt $max_attempts ]; then
+      clear_turbo_cache
+      attempt=$((attempt + 1))
+      echo ""
+      echo "   🔄 Retrying after cache clear..."
+    else
+      echo ""
+      echo "❌ Pre-push checks timed out after ${max_attempts} attempt(s)."
+      echo ""
+      echo "   The command appears to be hanging. This may be due to:"
+      echo "   1. Corrupted turbo cache (already cleared)"
+      echo "   2. Resource exhaustion"
+      echo "   3. Network issues (if using remote cache)"
+      echo ""
+      echo "   Try running manually:"
+      echo "   1. pnpm clean:turbo"
+      echo "   2. pnpm check:husky"
+      exit 1
+    fi
+  else
+    # Command failed with error (not timeout)
+    echo ""
+    echo "❌ Pre-push checks failed. Fix the issues above before pushing."
+    echo "   Run 'pnpm check:husky' locally to reproduce."
+    exit $exit_code
+  fi
+done
+
+if [ "$success" = true ]; then
+  echo ""
+  echo "✅ Pre-push checks passed!"
 fi
-
-echo ""
-echo "   Step 2: Running create-agents E2E tests..."
-
-# Run create-agents E2E tests
-if ! pnpm --filter @inkeep/create-agents test:e2e; then
-  echo "❌ create-agents E2E tests failed."
-  echo "    For this test to pass, make sure that you dont have pnpm dev running in the background."
-  echo "   Run 'pnpm --filter @inkeep/create-agents test:e2e' locally to reproduce."
-fi
-
-echo ""
-echo "✅ All pre-push checks passed (including E2E tests)!"

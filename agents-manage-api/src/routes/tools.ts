@@ -9,12 +9,12 @@ import {
   ErrorResponseSchema,
   generateId,
   getToolById,
-  ListResponseSchema,
   listTools,
   type McpTool,
+  McpToolListResponse,
+  McpToolResponse,
   McpToolSchema,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   ToolApiInsertSchema,
@@ -52,7 +52,7 @@ app.openapi(
         description: 'List of tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(McpToolSchema),
+            schema: McpToolListResponse,
           },
         },
       },
@@ -125,7 +125,7 @@ app.openapi(
         description: 'Tool found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },
@@ -172,7 +172,7 @@ app.openapi(
         description: 'Tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },
@@ -230,7 +230,7 @@ app.openapi(
         description: 'Tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },

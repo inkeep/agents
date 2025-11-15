@@ -62,6 +62,8 @@ export const monacoStore = create<MonacoState>()(
       },
       async setMonaco() {
         const monaco = await import('monaco-editor');
+        // for cypress
+        window.monaco = monaco;
         set({ monaco });
         monaco.languages.register({ id: TEMPLATE_LANGUAGE });
         monaco.languages.json.jsonDefaults.setDiagnosticsOptions({

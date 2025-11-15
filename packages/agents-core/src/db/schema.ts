@@ -1,14 +1,16 @@
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
-  blob,
   foreignKey,
   index,
   integer,
+  jsonb,
+  pgTable,
   primaryKey,
-  sqliteTable,
   text,
+  timestamp,
   unique,
-} from 'drizzle-orm/sqlite-core';
+  varchar,
+} from 'drizzle-orm/pg-core';
 import type { Part } from '../types/a2a';
 import type {
   ContextFetchDefinition,
@@ -26,62 +28,62 @@ import type {
 import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 const tenantScoped = {
-  tenantId: text('tenant_id').notNull(),
-  id: text('id').notNull(),
+  tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+  id: varchar('id', { length: 256 }).notNull(),
 };
 
 const projectScoped = {
   ...tenantScoped,
-  projectId: text('project_id').notNull(),
+  projectId: varchar('project_id', { length: 256 }).notNull(),
 };
 
 const agentScoped = {
   ...projectScoped,
-  agentId: text('agent_id').notNull(),
+  agentId: varchar('agent_id', { length: 256 }).notNull(),
 };
 
 const subAgentScoped = {
   ...agentScoped,
-  subAgentId: text('sub_agent_id').notNull(),
+  subAgentId: varchar('sub_agent_id', { length: 256 }).notNull(),
 };
 
 const uiProperties = {
-  name: text('name').notNull(),
+  name: varchar('name', { length: 256 }).notNull(),
   description: text('description').notNull(),
 };
 
 const timestamps = {
-  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 };
 
-export const projects = sqliteTable(
+export const projects = pgTable(
   'projects',
   {
     ...tenantScoped,
     ...uiProperties,
 
-    models: text('models', { mode: 'json' }).$type<ProjectModels>(),
+    models: jsonb('models').$type<ProjectModels>(),
 
-    stopWhen: text('stop_when', { mode: 'json' }).$type<StopWhen>(),
+    stopWhen: jsonb('stop_when').$type<StopWhen>(),
 
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
 );
 
-export const agents = sqliteTable(
+export const agents = pgTable(
   'agent',
   {
     ...projectScoped,
-    name: text('name').notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
-    defaultSubAgentId: text('default_sub_agent_id'),
-    contextConfigId: text('context_config_id'),
-    models: text('models', { mode: 'json' }).$type<Models>(),
-    statusUpdates: text('status_updates', { mode: 'json' }).$type<StatusUpdateSettings>(),
+    defaultSubAgentId: varchar('default_sub_agent_id', { length: 256 }),
+    contextConfigId: varchar('context_config_id', { length: 256 }),
+    models: jsonb('models').$type<Models>(),
+    statusUpdates: jsonb('status_updates').$type<StatusUpdateSettings>(),
     prompt: text('prompt'),
-    stopWhen: text('stop_when', { mode: 'json' }).$type<AgentStopWhen>(),
+    stopWhen: jsonb('stop_when').$type<AgentStopWhen>(),
     ...timestamps,
   },
   (table) => [
@@ -94,16 +96,14 @@ export const agents = sqliteTable(
   ]
 );
 
-export const contextConfigs = sqliteTable(
+export const contextConfigs = pgTable(
   'context_configs',
   {
     ...agentScoped,
 
-    headersSchema: blob('headers_schema', { mode: 'json' }).$type<unknown>(),
+    headersSchema: jsonb('headers_schema').$type<unknown>(),
 
-    contextVariables: blob('context_variables', { mode: 'json' }).$type<
-      Record<string, ContextFetchDefinition>
-    >(),
+    contextVariables: jsonb('context_variables').$type<Record<string, ContextFetchDefinition>>(),
 
     ...timestamps,
   },
@@ -117,21 +117,21 @@ export const contextConfigs = sqliteTable(
   ]
 );
 
-export const contextCache = sqliteTable(
+export const contextCache = pgTable(
   'context_cache',
   {
     ...projectScoped,
 
-    conversationId: text('conversation_id').notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
 
-    contextConfigId: text('context_config_id').notNull(),
-    contextVariableKey: text('context_variable_key').notNull(),
-    value: blob('value', { mode: 'json' }).$type<unknown>().notNull(),
+    contextConfigId: varchar('context_config_id', { length: 256 }).notNull(),
+    contextVariableKey: varchar('context_variable_key', { length: 256 }).notNull(),
+    value: jsonb('value').$type<unknown>().notNull(),
 
-    requestHash: text('request_hash'),
+    requestHash: varchar('request_hash', { length: 256 }),
 
-    fetchedAt: text('fetched_at').notNull(),
-    fetchSource: text('fetch_source'),
+    fetchedAt: timestamp('fetched_at', { mode: 'string' }).notNull().defaultNow(),
+    fetchSource: varchar('fetch_source', { length: 256 }),
     fetchDurationMs: integer('fetch_duration_ms'),
 
     ...timestamps,
@@ -151,17 +151,17 @@ export const contextCache = sqliteTable(
   ]
 );
 
-export const subAgents = sqliteTable(
+export const subAgents = pgTable(
   'sub_agents',
   {
     ...agentScoped,
     ...uiProperties,
     prompt: text('prompt').notNull(),
-    conversationHistoryConfig: text('conversation_history_config', {
-      mode: 'json',
-    }).$type<ConversationHistoryConfig>(),
-    models: text('models', { mode: 'json' }).$type<Models>(),
-    stopWhen: text('stop_when', { mode: 'json' }).$type<SubAgentStopWhen>(),
+    conversationHistoryConfig: jsonb(
+      'conversation_history_config'
+    ).$type<ConversationHistoryConfig>(),
+    models: jsonb('models').$type<Models>(),
+    stopWhen: jsonb('stop_when').$type<SubAgentStopWhen>(),
     ...timestamps,
   },
   (table) => [
@@ -174,13 +174,13 @@ export const subAgents = sqliteTable(
   ]
 );
 
-export const subAgentRelations = sqliteTable(
+export const subAgentRelations = pgTable(
   'sub_agent_relations',
   {
     ...agentScoped,
-    sourceSubAgentId: text('source_sub_agent_id').notNull(),
-    targetSubAgentId: text('target_sub_agent_id'),
-    relationType: text('relation_type'),
+    sourceSubAgentId: varchar('source_sub_agent_id', { length: 256 }).notNull(),
+    targetSubAgentId: varchar('target_sub_agent_id', { length: 256 }),
+    relationType: varchar('relation_type', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -193,13 +193,13 @@ export const subAgentRelations = sqliteTable(
   ]
 );
 
-export const externalAgents = sqliteTable(
+export const externalAgents = pgTable(
   'external_agents',
   {
     ...projectScoped,
     ...uiProperties,
     baseUrl: text('base_url').notNull(),
-    credentialReferenceId: text('credential_reference_id'),
+    credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -217,17 +217,17 @@ export const externalAgents = sqliteTable(
         credentialReferences.id,
       ],
       name: 'external_agents_credential_reference_fk',
-    }).onDelete('set null'),
+    }).onDelete('cascade'),
   ]
 );
 
-export const tasks = sqliteTable(
+export const tasks = pgTable(
   'tasks',
   {
     ...subAgentScoped,
-    contextId: text('context_id').notNull(),
-    status: text('status').notNull(),
-    metadata: blob('metadata', { mode: 'json' }).$type<TaskMetadataConfig>(),
+    contextId: varchar('context_id', { length: 256 }).notNull(),
+    status: varchar('status', { length: 256 }).notNull(),
+    metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
     ...timestamps,
   },
   (table) => [
@@ -240,13 +240,13 @@ export const tasks = sqliteTable(
   ]
 );
 
-export const taskRelations = sqliteTable(
+export const taskRelations = pgTable(
   'task_relations',
   {
     ...projectScoped,
-    parentTaskId: text('parent_task_id').notNull(),
-    childTaskId: text('child_task_id').notNull(),
-    relationType: text('relation_type').default('parent_child'),
+    parentTaskId: varchar('parent_task_id', { length: 256 }).notNull(),
+    childTaskId: varchar('child_task_id', { length: 256 }).notNull(),
+    relationType: varchar('relation_type', { length: 256 }).default('parent_child'),
     ...timestamps,
   },
   (table) => [
@@ -259,13 +259,13 @@ export const taskRelations = sqliteTable(
   ]
 );
 
-export const dataComponents = sqliteTable(
+export const dataComponents = pgTable(
   'data_components',
   {
     ...projectScoped,
     ...uiProperties,
-    props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
-    render: blob('render', { mode: 'json' }).$type<{
+    props: jsonb('props').$type<Record<string, unknown>>(),
+    render: jsonb('render').$type<{
       component: string;
       mockData: Record<string, unknown>;
     }>(),
@@ -281,12 +281,12 @@ export const dataComponents = sqliteTable(
   ]
 );
 
-export const subAgentDataComponents = sqliteTable(
+export const subAgentDataComponents = pgTable(
   'sub_agent_data_components',
   {
     ...subAgentScoped,
-    dataComponentId: text('data_component_id').notNull(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    dataComponentId: varchar('data_component_id', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
@@ -303,12 +303,12 @@ export const subAgentDataComponents = sqliteTable(
   ]
 );
 
-export const artifactComponents = sqliteTable(
+export const artifactComponents = pgTable(
   'artifact_components',
   {
     ...projectScoped,
     ...uiProperties,
-    props: blob('props', { mode: 'json' }).$type<Record<string, unknown>>(),
+    props: jsonb('props').$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (table) => [
@@ -321,12 +321,12 @@ export const artifactComponents = sqliteTable(
   ]
 );
 
-export const subAgentArtifactComponents = sqliteTable(
+export const subAgentArtifactComponents = pgTable(
   'sub_agent_artifact_components',
   {
     ...subAgentScoped,
-    artifactComponentId: text('artifact_component_id').notNull(),
-    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+    artifactComponentId: varchar('artifact_component_id', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [
     primaryKey({
@@ -349,26 +349,26 @@ export const subAgentArtifactComponents = sqliteTable(
   ]
 );
 
-export const tools = sqliteTable(
+export const tools = pgTable(
   'tools',
   {
     ...projectScoped,
-    name: text('name').notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
 
-    config: blob('config', { mode: 'json' })
+    config: jsonb('config')
       .$type<{
         type: 'mcp';
         mcp: ToolMcpConfig;
       }>()
       .notNull(),
 
-    credentialReferenceId: text('credential_reference_id'),
-    headers: blob('headers', { mode: 'json' }).$type<Record<string, string>>(),
+    credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
+    headers: jsonb('headers').$type<Record<string, string>>(),
 
     imageUrl: text('image_url'),
 
-    capabilities: blob('capabilities', { mode: 'json' }).$type<ToolServerCapabilities>(),
+    capabilities: jsonb('capabilities').$type<ToolServerCapabilities>(),
 
     lastError: text('last_error'),
 
@@ -384,13 +384,13 @@ export const tools = sqliteTable(
   ]
 );
 
-export const functionTools = sqliteTable(
+export const functionTools = pgTable(
   'function_tools',
   {
     ...agentScoped,
-    name: text('name').notNull(),
+    name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
-    functionId: text('function_id').notNull(),
+    functionId: varchar('function_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -408,13 +408,13 @@ export const functionTools = sqliteTable(
   ]
 );
 
-export const functions = sqliteTable(
+export const functions = pgTable(
   'functions',
   {
     ...projectScoped,
-    inputSchema: blob('input_schema', { mode: 'json' }).$type<Record<string, unknown>>(),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
     executeCode: text('execute_code').notNull(),
-    dependencies: blob('dependencies', { mode: 'json' }).$type<Record<string, string>>(),
+    dependencies: jsonb('dependencies').$type<Record<string, string>>(),
     ...timestamps,
   },
   (table) => [
@@ -427,13 +427,13 @@ export const functions = sqliteTable(
   ]
 );
 
-export const subAgentToolRelations = sqliteTable(
+export const subAgentToolRelations = pgTable(
   'sub_agent_tool_relations',
   {
     ...subAgentScoped,
-    toolId: text('tool_id').notNull(),
-    selectedTools: blob('selected_tools', { mode: 'json' }).$type<string[] | null>(),
-    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    selectedTools: jsonb('selected_tools').$type<string[] | null>(),
+    headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -451,12 +451,12 @@ export const subAgentToolRelations = sqliteTable(
   ]
 );
 
-export const subAgentExternalAgentRelations = sqliteTable(
+export const subAgentExternalAgentRelations = pgTable(
   'sub_agent_external_agent_relations',
   {
     ...subAgentScoped,
-    externalAgentId: text('external_agent_id').notNull(),
-    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
+    externalAgentId: varchar('external_agent_id', { length: 256 }).notNull(),
+    headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -474,12 +474,12 @@ export const subAgentExternalAgentRelations = sqliteTable(
   ]
 );
 
-export const subAgentTeamAgentRelations = sqliteTable(
+export const subAgentTeamAgentRelations = pgTable(
   'sub_agent_team_agent_relations',
   {
     ...subAgentScoped,
-    targetAgentId: text('target_agent_id').notNull(),
-    headers: blob('headers', { mode: 'json' }).$type<Record<string, string> | null>(),
+    targetAgentId: varchar('target_agent_id', { length: 256 }).notNull(),
+    headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -497,11 +497,11 @@ export const subAgentTeamAgentRelations = sqliteTable(
   ]
 );
 
-export const subAgentFunctionToolRelations = sqliteTable(
+export const subAgentFunctionToolRelations = pgTable(
   'sub_agent_function_tool_relations',
   {
     ...subAgentScoped,
-    functionToolId: text('function_tool_id').notNull(),
+    functionToolId: varchar('function_tool_id', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -524,15 +524,15 @@ export const subAgentFunctionToolRelations = sqliteTable(
   ]
 );
 
-export const conversations = sqliteTable(
+export const conversations = pgTable(
   'conversations',
   {
     ...projectScoped,
-    userId: text('user_id'),
-    activeSubAgentId: text('active_sub_agent_id').notNull(),
+    userId: varchar('user_id', { length: 256 }),
+    activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
     title: text('title'),
-    lastContextResolution: text('last_context_resolution'),
-    metadata: blob('metadata', { mode: 'json' }).$type<ConversationMetadata>(),
+    lastContextResolution: timestamp('last_context_resolution', { mode: 'string' }),
+    metadata: jsonb('metadata').$type<ConversationMetadata>(),
     ...timestamps,
   },
   (table) => [
@@ -545,36 +545,36 @@ export const conversations = sqliteTable(
   ]
 );
 
-export const messages = sqliteTable(
+export const messages = pgTable(
   'messages',
   {
     ...projectScoped,
-    conversationId: text('conversation_id').notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
 
-    role: text('role').notNull(),
+    role: varchar('role', { length: 256 }).notNull(),
 
-    fromSubAgentId: text('from_sub_agent_id'),
-    toSubAgentId: text('to_sub_agent_id'),
+    fromSubAgentId: varchar('from_sub_agent_id', { length: 256 }),
+    toSubAgentId: varchar('to_sub_agent_id', { length: 256 }),
 
-    fromExternalAgentId: text('from_external_sub_agent_id'),
+    fromExternalAgentId: varchar('from_external_sub_agent_id', { length: 256 }),
 
-    toExternalAgentId: text('to_external_sub_agent_id'),
+    toExternalAgentId: varchar('to_external_sub_agent_id', { length: 256 }),
 
-    fromTeamAgentId: text('from_team_agent_id'),
-    toTeamAgentId: text('to_team_agent_id'),
+    fromTeamAgentId: varchar('from_team_agent_id', { length: 256 }),
+    toTeamAgentId: varchar('to_team_agent_id', { length: 256 }),
 
-    content: blob('content', { mode: 'json' }).$type<MessageContent>().notNull(),
+    content: jsonb('content').$type<MessageContent>().notNull(),
 
-    visibility: text('visibility').notNull().default('user-facing'),
-    messageType: text('message_type').notNull().default('chat'),
+    visibility: varchar('visibility', { length: 256 }).notNull().default('user-facing'),
+    messageType: varchar('message_type', { length: 256 }).notNull().default('chat'),
 
-    taskId: text('task_id'),
-    parentMessageId: text('parent_message_id'),
+    taskId: varchar('task_id', { length: 256 }),
+    parentMessageId: varchar('parent_message_id', { length: 256 }),
 
-    a2aTaskId: text('a2a_task_id'),
-    a2aSessionId: text('a2a_session_id'),
+    a2aTaskId: varchar('a2a_task_id', { length: 256 }),
+    a2aSessionId: varchar('a2a_session_id', { length: 256 }),
 
-    metadata: blob('metadata', { mode: 'json' }).$type<MessageMetadata>(),
+    metadata: jsonb('metadata').$type<MessageMetadata>(),
 
     ...timestamps,
   },
@@ -588,26 +588,26 @@ export const messages = sqliteTable(
   ]
 );
 
-export const ledgerArtifacts = sqliteTable(
+export const ledgerArtifacts = pgTable(
   'ledger_artifacts',
   {
     ...projectScoped,
 
-    taskId: text('task_id').notNull(),
-    toolCallId: text('tool_call_id'),
-    contextId: text('context_id').notNull(),
+    taskId: varchar('task_id', { length: 256 }).notNull(),
+    toolCallId: varchar('tool_call_id', { length: 256 }),
+    contextId: varchar('context_id', { length: 256 }).notNull(),
 
-    type: text('type').notNull().default('source'),
-    name: text('name'),
+    type: varchar('type', { length: 256 }).notNull().default('source'),
+    name: varchar('name', { length: 256 }),
     description: text('description'),
-    parts: blob('parts', { mode: 'json' }).$type<Part[] | null>(),
-    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    parts: jsonb('parts').$type<Part[] | null>(),
+    metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
 
     summary: text('summary'),
-    mime: blob('mime', { mode: 'json' }).$type<string[] | null>(),
-    visibility: text('visibility').default('context'),
-    allowedAgents: blob('allowed_agents', { mode: 'json' }).$type<string[] | null>(),
-    derivedFrom: text('derived_from'),
+    mime: jsonb('mime').$type<string[] | null>(),
+    visibility: varchar('visibility', { length: 256 }).default('context'),
+    allowedAgents: jsonb('allowed_agents').$type<string[] | null>(),
+    derivedFrom: varchar('derived_from', { length: 256 }),
 
     ...timestamps,
   },
@@ -629,16 +629,16 @@ export const ledgerArtifacts = sqliteTable(
   ]
 );
 
-export const apiKeys = sqliteTable(
+export const apiKeys = pgTable(
   'api_keys',
   {
     ...agentScoped,
-    publicId: text('public_id').notNull().unique(),
-    keyHash: text('key_hash').notNull(),
-    keyPrefix: text('key_prefix').notNull(),
-    name: text('name'),
-    lastUsedAt: text('last_used_at'),
-    expiresAt: text('expires_at'),
+    publicId: varchar('public_id', { length: 256 }).notNull().unique(),
+    keyHash: varchar('key_hash', { length: 256 }).notNull(),
+    keyPrefix: varchar('key_prefix', { length: 256 }).notNull(),
+    name: varchar('name', { length: 256 }),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    expiresAt: timestamp('expires_at', { mode: 'string' }),
     ...timestamps,
   },
   (t) => [
@@ -659,14 +659,14 @@ export const apiKeys = sqliteTable(
 );
 
 // Credential references for CredentialStore implementations
-export const credentialReferences = sqliteTable(
+export const credentialReferences = pgTable(
   'credential_references',
   {
     ...projectScoped,
-    name: text('name').notNull(),
-    type: text('type').notNull(),
-    credentialStoreId: text('credential_store_id').notNull(),
-    retrievalParams: blob('retrieval_params', { mode: 'json' }).$type<Record<string, unknown>>(),
+    name: varchar('name', { length: 256 }).notNull(),
+    type: varchar('type', { length: 256 }).notNull(),
+    credentialStoreId: varchar('credential_store_id', { length: 256 }).notNull(),
+    retrievalParams: jsonb('retrieval_params').$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (t) => [

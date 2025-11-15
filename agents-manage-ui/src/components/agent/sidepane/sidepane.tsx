@@ -2,6 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
@@ -64,6 +65,7 @@ export function SidePane({
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
+  const errors = useAgentStore((state) => state.errors);
 
   const selectedEdge = useMemo(
     () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
@@ -183,6 +185,8 @@ export function SidePane({
     credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
+    // Rerender sidepane when errors changes
+    errors,
   ]);
 
   const showBackButton = selectedNode || selectedEdge;

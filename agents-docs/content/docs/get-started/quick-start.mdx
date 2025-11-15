@@ -11,6 +11,7 @@ icon: "LuRocket"
 Before getting started, ensure you have the following installed on your system:
 
 - [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [Docker](https://docs.docker.com/get-docker/)
 - [pnpm](https://pnpm.io/installation) version 10 or higher
 
 You can verify by running:
@@ -18,6 +19,7 @@ You can verify by running:
 ```bash
 node --version
 pnpm --version
+docker --version
 ```
 
 ### Step 1: Create a new agents project
@@ -34,7 +36,15 @@ Navigate to the folder
 cd my-agents
 ```
 
-### Step 2: Launch the dev environment
+### Step 2: Run the setup script
+
+Ensure Docker Desktop (or Docker daemon) is running before running the setup script.
+
+```bash
+pnpm setup-dev
+```
+
+### Step 3: Launch the dev environment
 
 ```bash
 pnpm dev
@@ -42,13 +52,13 @@ pnpm dev
 
 The Visual Builder will auto-open at http://localhost:3000.
 
-### Step 3: Chat with your agent
+### Step 4: Chat with your agent
 
 Navigate to the **Activities Planner** agent at http://localhost:3000, click **Try it**, and ask about fun activities at a location of your choice:
 
 <Image src="/gifs/activities-planner.gif" alt="Chat with your agent" />
 
-### Step 4: Install Inkeep MCP (optional)
+### Step 5: Install Inkeep MCP (optional)
 
 To help "vibe code" agents with Inkeep, add the `Inkeep Agents MCP` to your preferred IDE.
 

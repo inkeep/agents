@@ -5,14 +5,13 @@ import {
   createFunctionTool,
   deleteFunctionTool,
   FunctionToolApiInsertSchema,
-  FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
+  FunctionToolListResponse,
+  FunctionToolResponse,
   generateId,
   getFunctionToolById,
-  ListResponseSchema,
   listFunctionTools,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
@@ -40,7 +39,7 @@ app.openapi(
         description: 'List of function tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolListResponse,
           },
         },
       },
@@ -71,7 +70,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
@@ -83,7 +82,7 @@ app.openapi(
         description: 'Function tool retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -139,7 +138,7 @@ app.openapi(
         description: 'Function tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -178,7 +177,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
@@ -197,7 +196,7 @@ app.openapi(
         description: 'Function tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -242,7 +241,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],

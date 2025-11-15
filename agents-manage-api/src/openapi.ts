@@ -1,11 +1,23 @@
 import { swaggerUI } from '@hono/swagger-ui';
-import type { Context } from 'hono';
+import type { OpenAPIHono } from '@hono/zod-openapi';
+import type { Context, Env } from 'hono';
 import { env } from './env';
 
-export function setupOpenAPIRoutes(app: any) {
+export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      // Support Vercel domain names:
+      // - Production: Use VERCEL_PROJECT_PRODUCTION_URL (built-in Vercel env var)
+      // - Preview: Use VERCEL_URL (automatically provided by Vercel)
+      // - Otherwise: Fall back to configured URL
+      const serverUrl =
+        process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : env.INKEEP_AGENTS_MANAGE_API_URL;
+
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
@@ -15,8 +27,102 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENTS_MANAGE_API_URL,
-            description: 'Development server',
+            url: serverUrl,
+            description: 'API Server',
+          },
+        ],
+        tags: [
+          {
+            name: 'Agent',
+            description: 'Operations for managing individual agents',
+          },
+          {
+            name: 'Agent Artifact Component Relations',
+            description: 'Operations for managing agent artifact component relationships',
+          },
+          {
+            name: 'Agent Data Component Relations',
+            description: 'Operations for managing agent data component relationships',
+          },
+          {
+            name: 'Agents',
+            description: 'Operations for managing agents',
+          },
+          {
+            name: 'API Keys',
+            description: 'Operations for managing API keys',
+          },
+          {
+            name: 'Artifact Component',
+            description: 'Operations for managing artifact components',
+          },
+          {
+            name: 'Context Config',
+            description: 'Operations for managing context configurations',
+          },
+          {
+            name: 'Credential',
+            description: 'Operations for managing credentials',
+          },
+          {
+            name: 'Credential Store',
+            description: 'Operations for managing credential stores',
+          },
+          {
+            name: 'Data Component',
+            description: 'Operations for managing data components',
+          },
+          {
+            name: 'External Agents',
+            description: 'Operations for managing external agents',
+          },
+          {
+            name: 'Full Agent',
+            description: 'Operations for managing complete agent definitions',
+          },
+          {
+            name: 'Full Project',
+            description: 'Operations for managing complete project definitions',
+          },
+          {
+            name: 'Function Tools',
+            description: 'Operations for managing function tools',
+          },
+          {
+            name: 'Functions',
+            description: 'Operations for managing functions',
+          },
+          {
+            name: 'OAuth',
+            description: 'OAuth authentication endpoints for MCP tools',
+          },
+          {
+            name: 'Projects',
+            description: 'Operations for managing projects',
+          },
+          {
+            name: 'Sub Agent External Agent Relations',
+            description: 'Operations for managing sub agent external agent relationships',
+          },
+          {
+            name: 'Sub Agent Relations',
+            description: 'Operations for managing sub agent relationships',
+          },
+          {
+            name: 'Sub Agent Team Agent Relations',
+            description: 'Operations for managing sub agent team agent relationships',
+          },
+          {
+            name: 'SubAgent',
+            description: 'Operations for managing sub agents',
+          },
+          {
+            name: 'SubAgent Tool Relations',
+            description: 'Operations for managing sub agent tool relationships',
+          },
+          {
+            name: 'Tools',
+            description: 'Operations for managing MCP tools',
           },
         ],
       });

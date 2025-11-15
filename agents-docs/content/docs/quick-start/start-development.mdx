@@ -7,6 +7,7 @@ icon: "LuRocket"
 ### Prerequisites
 
 - Node.js 22+
+- Docker (installation instructions [here](https://docs.docker.com/engine/install))
 - pnpm 10+ (installation instructions [here](https://pnpm.io/installation))
 
 ### Step 1: Create a new agents project
@@ -16,7 +17,13 @@ npx @inkeep/create-agents my-agents
 cd my-agents
 ```
 
-### Step 2: Launch the development environment
+### Step 2: Run the setup script
+
+```bash
+pnpm setup-dev
+```
+
+### Step 3: Launch the development environment
 
 ```bash
 pnpm dev

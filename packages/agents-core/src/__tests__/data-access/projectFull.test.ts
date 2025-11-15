@@ -1,18 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createFullProjectServerSide,
   deleteFullProject,
   getFullProject,
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
+import type { DatabaseClient } from '../../db/client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
-import { dbClient } from '../setup';
+import { testDbClient } from '../setup';
 
 describe('projectFull data access', () => {
-  const db = dbClient;
+  let db: DatabaseClient;
   const logger = getLogger('test');
+
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
+  });
   const tenantId = `tenant-${generateId()}`;
 
   const createTestProjectDefinition = (projectId: string): FullProjectDefinition => ({

@@ -245,7 +245,7 @@ export class CredentialStuffer {
     }
 
     if (!credentialStoreHeaders) {
-      return credentialsFromHeaders ? credentialsFromHeaders.headers : {};
+      return credentialsFromHeaders ? credentialsFromHeaders.headers : { ...headers };
     }
 
     const combinedHeaders = {

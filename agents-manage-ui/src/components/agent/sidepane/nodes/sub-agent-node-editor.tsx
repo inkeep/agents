@@ -144,7 +144,8 @@ export function SubAgentNodeEditor({
 
       <div className="space-y-2">
         <ExpandablePromptEditor
-          id="prompt"
+          key={selectedNode.id}
+          name="prompt"
           value={selectedNode.data.prompt}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."

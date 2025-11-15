@@ -1,8 +1,8 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  ArtifactComponentApiSelectSchema,
+  ArtifactComponentArrayResponse,
   associateArtifactComponentWithAgent,
-  ComponentAssociationSchema,
+  ComponentAssociationListResponse,
   commonGetErrorResponses,
   createApiError,
   ErrorResponseSchema,
@@ -14,11 +14,9 @@ import {
   isArtifactComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeArtifactComponentFromAgent,
-  SingleResponseSchema,
   SubAgentArtifactComponentApiInsertSchema,
-  SubAgentArtifactComponentApiSelectSchema,
+  SubAgentArtifactComponentResponse,
   TenantProjectAgentParamsSchema,
-  TenantProjectAgentSubAgentIdParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
@@ -29,7 +27,7 @@ const app = new OpenAPIHono();
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId',
+    path: '/agent/{subAgentId}',
     summary: 'Get Artifact Components for Agent',
     operationId: 'get-artifact-components-for-agent',
     tags: ['Agent Artifact Component Relations'],
@@ -41,7 +39,7 @@ app.openapi(
         description: 'Artifact components retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ArtifactComponentApiSelectSchema)),
+            schema: ArtifactComponentArrayResponse,
           },
         },
       },
@@ -64,7 +62,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/component/:artifactComponentId/agents',
+    path: '/component/{artifactComponentId}/agents',
     summary: 'Get Agents Using Artifact Component',
     operationId: 'get-agents-using-artifact-component',
     tags: ['Agent Artifact Component Relations'],
@@ -78,7 +76,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(z.array(ComponentAssociationSchema)),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -119,7 +117,7 @@ app.openapi(
         description: 'Agent artifact component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentArtifactComponentApiSelectSchema),
+            schema: SubAgentArtifactComponentResponse,
           },
         },
       },
@@ -186,7 +184,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:subAgentId/component/:artifactComponentId',
+    path: '/agent/{subAgentId}/component/{artifactComponentId}',
     summary: 'Remove Artifact Component from Agent',
     operationId: 'remove-artifact-component-from-agent',
     tags: ['Agent Artifact Component Relations'],
@@ -232,7 +230,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId/component/:artifactComponentId/exists',
+    path: '/agent/{subAgentId}/component/{artifactComponentId}/exists',
     summary: 'Check if Artifact Component is Associated with Agent',
     operationId: 'check-artifact-component-agent-association',
     tags: ['Agent Artifact Component Relations'],

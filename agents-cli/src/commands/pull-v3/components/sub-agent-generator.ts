@@ -5,6 +5,7 @@
  * Sub-agents are the individual agents within an agent graph that handle specific tasks
  */
 
+import { compareJsonObjects } from '../../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -52,8 +53,12 @@ function hasDistinctModels(subAgentModels: any, parentModels: any): boolean {
           // One is falsy, other isn't - they're different
           return true;
         }
-        // Both exist, compare as JSON
-        if (JSON.stringify(subAgentOptions) !== JSON.stringify(parentOptions)) {
+        // Both exist, compare semantically to ignore property ordering
+        const comparison = compareJsonObjects(subAgentOptions, parentOptions, {
+          ignoreArrayOrder: true,
+          showDetails: false,
+        });
+        if (!comparison.isEqual) {
           return true;
         }
       }
@@ -448,7 +453,8 @@ export function generateSubAgentImports(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
   parentAgentId?: string,
-  contextConfigData?: any
+  contextConfigData?: any,
+  actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
 
@@ -458,7 +464,7 @@ export function generateSubAgentImports(
   // Import context config or headers if prompt has template variables
   if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
     const contextConfigId = contextConfigData.id;
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
     const importStatement = registry.getImportStatement(
       currentFilePath,
       contextConfigId,
@@ -471,7 +477,7 @@ export function generateSubAgentImports(
 
   // Generate imports for referenced components if registry is available
   if (registry) {
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
 
     // Build typed component references based on sub-agent data structure
     const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
@@ -566,7 +572,8 @@ export function generateSubAgentFile(
   registry?: ComponentRegistry,
   parentAgentId?: string,
   contextConfigData?: any,
-  parentModels?: any
+  parentModels?: any,
+  actualFilePath?: string
 ): string {
   const imports = generateSubAgentImports(
     agentId,
@@ -574,7 +581,8 @@ export function generateSubAgentFile(
     style,
     registry,
     parentAgentId,
-    contextConfigData
+    contextConfigData,
+    actualFilePath
   );
   const definition = generateSubAgentDefinition(
     agentId,

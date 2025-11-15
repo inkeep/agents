@@ -1,5 +1,89 @@
 # @inkeep/agents-cli
 
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+- Updated dependencies [e1eb8b6]
+- Updated dependencies [98f139a]
+  - @inkeep/agents-manage-ui@0.33.1
+  - @inkeep/agents-core@0.33.1
+  - @inkeep/agents-sdk@0.33.1
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- Updated dependencies [1eea0c4]
+- Updated dependencies [6fe0005]
+- Updated dependencies [b89cbd1]
+- Updated dependencies [e70d5ff]
+- Updated dependencies [d2fa856]
+- Updated dependencies [189aec5]
+- Updated dependencies [cf9ff7d]
+- Updated dependencies [5d6b3aa]
+- Updated dependencies [e1cf7f4]
+- Updated dependencies [0d71cac]
+- Updated dependencies [d95a9de]
+- Updated dependencies [94e5940]
+- Updated dependencies [6d6a033]
+  - @inkeep/agents-manage-ui@0.33.0
+  - @inkeep/agents-core@0.33.0
+  - @inkeep/agents-sdk@0.33.0
+
+## 0.32.2
+
+### Patch Changes
+
+- c228770: update create-agents setup script
+- Updated dependencies [c228770]
+  - @inkeep/agents-core@0.32.2
+  - @inkeep/agents-manage-ui@0.32.2
+  - @inkeep/agents-sdk@0.32.2
+
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-ui@0.32.1
+  - @inkeep/agents-sdk@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [ed8abd5]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-ui@0.32.0
+  - @inkeep/agents-sdk@0.32.0
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-manage-ui@0.31.7
+  - @inkeep/agents-core@0.31.7
+  - @inkeep/agents-sdk@0.31.7
+
 ## 0.31.6
 
 ### Patch Changes
