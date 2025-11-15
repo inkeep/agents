@@ -397,6 +397,7 @@ export class Agent {
           toolName.startsWith('delegate_to_');
 
         if (streamRequestId && !isInternalTool) {
+          console.log(111, { relationshipId });
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
             input: args,
@@ -520,6 +521,7 @@ export class Agent {
       const wrappedTools: ToolSet = {};
       for (const [index, toolSet] of tools.entries()) {
         const relationshipId = mcpTools[index]?.relationshipId || null;
+        console.log(11, 'before mcp', { relationshipId, toolSet });
         for (const [toolName, toolDef] of Object.entries(toolSet)) {
           wrappedTools[toolName] = this.wrapToolWithStreaming(
             toolName,
@@ -536,6 +538,7 @@ export class Agent {
     const wrappedTools: ToolSet = {};
     for (const [index, toolSet] of tools.entries()) {
       const relationshipId = mcpTools[index]?.relationshipId || null;
+      console.log(222, 'before', { relationshipId, toolSet });
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -550,12 +553,7 @@ export class Agent {
             try {
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              if (
-                rawResult &&
-                typeof rawResult === 'object' &&
-                'isError' in rawResult &&
-                rawResult.isError
-              ) {
+              if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
