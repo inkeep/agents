@@ -473,7 +473,7 @@ export class Agent {
             }),
             runtimeContext?.metadata?.streamRequestId,
             'transfer',
-            agentConfig.relationId || null
+            agentConfig.relationId
           ),
         ];
       }),
@@ -503,7 +503,7 @@ export class Agent {
             }),
             runtimeContext?.metadata?.streamRequestId,
             'delegation',
-            relation.config.relationId || null
+            relation.config.relationId
           ),
         ];
       }),
@@ -519,8 +519,7 @@ export class Agent {
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
       for (const [index, toolSet] of tools.entries()) {
-        const relationshipId = mcpTools[index]?.relationshipId || null;
-        console.log(11, 'before mcp', { relationshipId, toolSet });
+        const relationshipId = mcpTools[index]?.relationshipId;
         for (const [toolName, toolDef] of Object.entries(toolSet)) {
           wrappedTools[toolName] = this.wrapToolWithStreaming(
             toolName,
@@ -536,8 +535,7 @@ export class Agent {
 
     const wrappedTools: ToolSet = {};
     for (const [index, toolSet] of tools.entries()) {
-      const relationshipId = mcpTools[index]?.relationshipId || null;
-      console.log(222, 'before', { relationshipId, toolSet });
+      const relationshipId = mcpTools[index]?.relationshipId;
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -966,7 +964,7 @@ export class Agent {
           aiTool,
           streamRequestId || '',
           'tool',
-          (functionToolDef as any).agentToolRelationId || null
+          (functionToolDef as any).agentToolRelationId
         );
       }
     } catch (error) {
