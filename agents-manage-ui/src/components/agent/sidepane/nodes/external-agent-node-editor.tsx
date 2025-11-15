@@ -14,7 +14,8 @@ import type { Credential } from '@/lib/api/credentials';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
 import type { SubAgentExternalAgentConfigLookup } from '../../agent';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
-import { InputField, TextareaField } from './form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;
