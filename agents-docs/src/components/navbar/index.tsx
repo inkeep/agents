@@ -32,27 +32,28 @@ export const Navbar = () => {
 
           <div className="flex-1 flex items-center gap-0.5 md:gap-4 ml-auto justify-end">
             <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="max-sm:hidden text-fd-muted-foreground hover:text-fd-accent-foreground"
-              asChild
-            >
-              <a href={SLACK_URL} target="_blank" rel="noreferrer">
-                <SlackIcon />
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" className="max-sm:hidden" asChild>
-              <a href="https://github.com/inkeep/agents" target="_blank" rel="noreferrer">
-                <GithubIcon  />
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" className="max-sm:hidden" asChild>
-              <a href="https://www.youtube.com/@inkeep-ai" target="_blank" rel="noreferrer">
-                <YoutubeIcon />
-              </a>
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="max-sm:hidden text-fd-muted-foreground hover:text-fd-accent-foreground"
+                asChild
+              >
+                <a href={SLACK_URL} target="_blank" rel="noreferrer">
+                  <SlackIcon />
+                </a>
+              </Button>
+              <Button variant="ghost" size="sm" className="max-sm:hidden" asChild>
+                <a href="https://www.youtube.com/@inkeep-ai" target="_blank" rel="noreferrer">
+                  <YoutubeIcon />
+                </a>
+              </Button>
             </div>
+            <Button variant="outline" size="sm" className="max-sm:hidden" asChild>
+              <a href="https://github.com/inkeep/agents" target="_blank" rel="noreferrer">
+                <GithubIcon />
+                <span>Star</span>
+              </a>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -75,3 +76,4 @@ export const Navbar = () => {
     </div>
   );
 };
+
