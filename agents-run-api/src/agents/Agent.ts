@@ -6,9 +6,7 @@ import {
   ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
-  createMessage,
   type DataComponentApiInsert,
-  generateId,
   getContextConfigById,
   getCredentialReference,
   getFullAgentDefinition,
@@ -102,7 +100,6 @@ function validateModel(modelString: string | undefined, modelType: string): stri
 
 export type AgentConfig = {
   id: string;
-  relationId?: string | null;
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -365,7 +362,7 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId: string | null = null
+    relationshipId?: string
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -472,8 +469,7 @@ export class Agent {
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
-            'transfer',
-            agentConfig.relationId
+            'transfer'
           ),
         ];
       }),
@@ -502,8 +498,7 @@ export class Agent {
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
-            'delegation',
-            relation.config.relationId
+            'delegation'
           ),
         ];
       }),
@@ -963,8 +958,7 @@ export class Agent {
           functionToolDef.name,
           aiTool,
           streamRequestId || '',
-          'tool',
-          (functionToolDef as any).agentToolRelationId
+          'tool'
         );
       }
     } catch (error) {
@@ -1370,8 +1364,7 @@ export class Agent {
           'thinking_complete',
           thinkingCompleteTool,
           streamRequestId,
-          'tool',
-          null
+          'tool'
         );
       }
     }
