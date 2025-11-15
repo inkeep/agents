@@ -1,7 +1,7 @@
 import { Card as OriginalCard } from '@inkeep/docskit/mdx';
+import { ChevronRight } from 'lucide-react';
 import React from 'react';
 import * as brandIcons from '@/components/brand-icons';
-import { ChevronRight } from 'lucide-react';
 
 interface CardProps {
   title: string;
@@ -19,11 +19,11 @@ export function Card({ icon: iconName, ...props }: CardProps) {
   if (iconName?.startsWith('brand/')) {
     const brandIconName = iconName.split('brand/')[1] as keyof typeof brandIcons;
     const BrandIcon = brandIcons[brandIconName];
-    
+
     if (BrandIcon) {
       const Component = props.href ? 'a' : 'div';
       const titleWords = props.title.toString().split(' ');
-      
+
       return (
         <Component
           data-card
@@ -40,7 +40,7 @@ export function Card({ icon: iconName, ...props }: CardProps) {
               <BrandIcon />
             </div>
             <h2 className="mb-2 mt-2 text-base/5 font-semibold text-gray-950 dark:text-white">
-              {titleWords.map((word, i) => 
+              {titleWords.map((word, i) =>
                 i === titleWords.length - 1 ? (
                   <span key={word} className="whitespace-nowrap">
                     {word}
@@ -62,7 +62,7 @@ export function Card({ icon: iconName, ...props }: CardProps) {
       );
     }
   }
-  
+
   // Pass through to original Card for regular lucide icons
   return <OriginalCard {...props} icon={iconName || ''} />;
 }
