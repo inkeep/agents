@@ -1,12 +1,12 @@
 lockVersion: 2.0.0
-id: df9548d1-18eb-4b6f-a066-954ef3e55dad
+id: 371c05e7-5ead-43c8-82a3-ea23a6156086
 management:
   docChecksum: 994f92a015c2f147269931841c29b768
   docVersion: 1.0.0
   speakeasyVersion: 1.657.0
   generationVersion: 2.755.0
-  releaseVersion: 0.0.8
-  configChecksum: c6b129e3863b23d9a05b583c61f82a40
+  releaseVersion: 0.0.1
+  configChecksum: a4de94a553d77a8a1e6ad89476625f86
 features:
   mcp-typescript:
     acceptHeaders: 0.1.0

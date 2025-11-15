@@ -1,9 +1,17 @@
 {
   "name": "@inkeep/agents-mcp",
-  "version": "0.0.8",
+  "version": "0.31.1",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
+  "main": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./esm/index.d.ts",
+      "default": "./esm/index.js"
+    }
+  },
   "bin": {
     "@inkeep/agents-mcp": "bin/mcp-server.js",
     "mcp": "bin/mcp-server.js"

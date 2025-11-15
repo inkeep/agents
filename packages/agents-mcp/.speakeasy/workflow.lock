@@ -8,7 +8,7 @@ sources:
             - latest
             - 1.0.0
 targets:
-    '@inkeep/agents-mcp':
+    inkeep-agents:
         source: Inkeep Agents Manage API
         sourceNamespace: inkeep-agents-manage-api
         sourceRevisionDigest: sha256:147d54f4067b16f521cc1a1d53541467e06fed30783a7bb220b8576c7844b043
@@ -24,6 +24,6 @@ workflow:
             registry:
                 location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-manage-api
     targets:
-        '@inkeep/agents-mcp':
+        inkeep-agents:
             target: mcp-typescript
             source: Inkeep Agents Manage API

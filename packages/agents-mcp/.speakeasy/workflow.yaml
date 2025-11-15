@@ -8,6 +8,6 @@ sources:
         registry:
             location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-manage-api
 targets:
-    '@inkeep/agents-mcp':
+    inkeep-agents:
         target: mcp-typescript
         source: Inkeep Agents Manage API

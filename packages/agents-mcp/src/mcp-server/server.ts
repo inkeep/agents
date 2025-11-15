@@ -130,7 +130,7 @@ export function createMCPServer(deps: {
 }) {
   const server = new McpServer({
     name: "InkeepAgents",
-    version: "0.0.8",
+    version: "0.0.1",
   });
 
   const getClient = deps.getSDK || (() =>

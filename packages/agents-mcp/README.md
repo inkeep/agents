@@ -1,9 +1,9 @@
 # @inkeep/agents-mcp
 
-Model Context Protocol (MCP) Server for the Inkeep Agents API.
+Model Context Protocol (MCP) Server for the *@inkeep/agents-mcp* API.
 
 <div align="left" style="margin-bottom: 0;">
-    <a href="https://www.speakeasy.com/?utm_source=inkeep-agents&utm_campaign=mcp-typescript" class="badge-link">
+    <a href="https://www.speakeasy.com/?utm_source=@inkeep/agents-mcp&utm_campaign=mcp-typescript" class="badge-link">
         <span class="badge-container">
             <span class="badge-icon-section">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 30 30" fill="none" style="vertical-align: middle;"><title>Speakeasy Logo</title><path fill="currentColor" d="m20.639 27.548-19.17-2.724L0 26.1l20.639 2.931 8.456-7.336-1.468-.208-6.988 6.062Z"></path><path fill="currentColor" d="m20.639 23.1 8.456-7.336-1.468-.207-6.988 6.06-6.84-.972-9.394-1.333-2.936-.417L0 20.169l2.937.416L0 23.132l20.639 2.931 8.456-7.334-1.468-.208-6.986 6.062-9.78-1.39 1.468-1.273 8.31 1.18Z"></path><path fill="currentColor" d="m20.639 18.65-19.17-2.724L0 17.201l20.639 2.931 8.456-7.334-1.468-.208-6.988 6.06Z"></path><path fill="currentColor" d="M27.627 6.658 24.69 9.205 20.64 12.72l-7.923-1.126L1.469 9.996 0 11.271l11.246 1.596-1.467 1.275-8.311-1.181L0 14.235l20.639 2.932 8.456-7.334-2.937-.418 2.937-2.549-1.468-.208Z"></path><path fill="currentColor" d="M29.095 3.902 8.456.971 0 8.305l20.639 2.934 8.456-7.337Z"></path></svg>
@@ -325,4 +325,4 @@ For complete documentation including remote deployments, troubleshooting, and CI
 While we value contributions to this MCP Server, the code is generated programmatically. Any manual changes added to internal files will be overwritten on the next generation. 
 We look forward to hearing your feedback. Feel free to open a PR or an issue with a proof of concept and we'll do our best to include it in a future release. 
 
-### MCP Server Created by [Speakeasy](https://www.speakeasy.com/?utm_source=inkeep-agents&utm_campaign=mcp-typescript)
+### MCP Server Created by [Speakeasy](https://www.speakeasy.com/?utm_source=@inkeep/agents-mcp&utm_campaign=mcp-typescript)
