@@ -1,6 +1,5 @@
 import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
 import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestAgentRelationData, createTestSubAgentData } from '../../utils/testSubAgent';
