@@ -77,6 +77,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
 
   const toolBadges = getToolDisplay();
   const isDelegating = data.status === 'delegating';
+  const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
   const hasErrors = data.status === 'error';
   return (
@@ -85,7 +86,8 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         hasErrors && 'ring-2 ring-red-300 border-red-300',
-        isExecuting && 'node-executing'
+        isExecuting && 'node-executing',
+        isInvertedDelegating && 'node-delegating-inverted'
       )}
     >
       <BaseNodeHeader className="flex items-center justify-between gap-2">

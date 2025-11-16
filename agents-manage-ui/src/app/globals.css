@@ -292,3 +292,26 @@ li[data-sonner-toast][data-type="error"] {
   animation: node-pulse 1.5s ease-in-out infinite;
   @apply border-primary border-2;
 }
+
+@keyframes node-inverted-delegate {
+  to {
+    box-shadow: none;
+  }
+}
+
+.node-delegating-inverted {
+  @apply ring-2 ring-primary;
+  animation: node-inverted-delegate 2s steps(1, end) forwards;
+}
+
+@keyframes edge-inverted-delegate {
+  to {
+    stroke: red !important;
+    fill: red !important;
+  }
+}
+
+.edge-delegating-inverted {
+  @apply stroke-green-500;
+  animation: edge-inverted-delegate 2s steps(1, end) forwards;
+}

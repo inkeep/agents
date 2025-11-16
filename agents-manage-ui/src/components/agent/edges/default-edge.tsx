@@ -60,7 +60,11 @@ export function DefaultEdge({
   });
 
   const className =
-    selected || data.status ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
+    selected || data.status
+      ? data.status === 'inverted-delegating'
+        ? 'edge-delegating-inverted'
+        : '!stroke-primary'
+      : '!stroke-border dark:!stroke-muted-foreground';
 
   return (
     <>
