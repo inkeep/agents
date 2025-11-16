@@ -2,24 +2,20 @@
 
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { type FC, useEffect, useRef } from 'react';
+import type { AnimatedEdge } from '../configuration/edge-types';
 
-type DefaultEdgeProps = EdgeProps & {
-  data?: {
-    delegating: boolean | 'inverted';
-  };
-};
-
-export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
-  edgePath,
-  inverted,
-}) => {
+export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePath, status }) => {
   const ref = useRef<SVGAnimateElement>(null);
 
   // Without this useEffect, the animation won't start when this component is rendered dynamically.
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need restart animation when invert is changed
   useEffect(() => {
     ref.current?.beginElement();
-  }, [inverted]);
+  }, [status]);
+
+  if (!status) {
+    return;
+  }
 
   return (
     <circle fill="var(--primary)" r="6">
@@ -28,8 +24,7 @@ export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
         dur="2s"
         path={edgePath}
         fill="freeze"
-        {...(inverted && {
-          pathLength: '1',
+        {...(status === 'inverted-delegating' && {
           keyPoints: '1;0',
           keyTimes: '0;1',
         })}
@@ -37,6 +32,10 @@ export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
     </circle>
   );
 };
+
+interface DefaultEdgeProps extends Omit<EdgeProps, 'data'> {
+  data?: AnimatedEdge;
+}
 
 export function DefaultEdge({
   id,
@@ -49,7 +48,7 @@ export function DefaultEdge({
   label,
   selected,
   markerEnd,
-  data,
+  data = {},
 }: DefaultEdgeProps) {
   const [edgePath] = getBezierPath({
     sourceX,
@@ -61,16 +60,12 @@ export function DefaultEdge({
   });
 
   const className =
-    selected || data?.delegating
-      ? '!stroke-primary'
-      : '!stroke-border dark:!stroke-muted-foreground';
+    selected || data.status ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
 
   return (
     <>
       {/* Animated circles based on delegating direction */}
-      {data?.delegating && (
-        <AnimatedCircle edgePath={edgePath} inverted={data.delegating === 'inverted'} />
-      )}
+      <AnimatedCircle edgePath={edgePath} status={data.status} />
       <BaseEdge
         id={id}
         path={edgePath}

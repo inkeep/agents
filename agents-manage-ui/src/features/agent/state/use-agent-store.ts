@@ -348,8 +348,20 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
 
         switch (data.type) {
           case 'agent_initializing': {
-            // TODO
-            break;
+            return {
+              nodes: prevNodes.map((node) => {
+                if (!node.data.isDefault) {
+                  return node
+                }
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    status: 'delegating',
+                  },
+                };
+              }),
+            };
           }
           case 'delegation_sent':
           case 'transfer': {
@@ -360,7 +372,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 ...edge,
                 data: {
                   ...edge.data,
-                  delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
+                  status:
+                    edge.source === fromSubAgent && edge.target === targetSubAgent
+                      ? 'delegating'
+                      : null,
                 },
               })),
               nodes: changeNodeStatus((node) =>
@@ -375,10 +390,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 ...edge,
                 data: {
                   ...edge.data,
-                  delegating:
+                  status:
                     edge.source === targetSubAgent && edge.target === fromSubAgent
-                      ? 'inverted'
-                      : false,
+                      ? 'inverted-delegating'
+                      : null,
                 },
               })),
               nodes: changeNodeStatus((node) =>
@@ -399,7 +414,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   ...edge,
                   data: {
                     ...edge.data,
-                    delegating: !!relationshipId && relationshipId === node?.data.relationshipId,
+                    status:
+                      !!relationshipId && relationshipId === node?.data.relationshipId
+                        ? 'delegating'
+                        : null,
                   },
                 };
               }),
@@ -436,12 +454,12 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   ...edge,
                   data: {
                     ...edge.data,
-                    delegating:
+                    status:
                       subAgentId === edge.source &&
                       relationshipId &&
                       relationshipId === node?.data.relationshipId
-                        ? 'inverted'
-                        : false,
+                        ? 'inverted-delegating'
+                        : null,
                   },
                 };
               }),
@@ -461,7 +479,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             return {
               edges: prevEdges.map((edge) => ({
                 ...edge,
-                data: { ...edge.data, delegating: false },
+                data: { ...edge.data, status: null },
               })),
               nodes: prevNodes.map((node) => ({
                 ...node,
@@ -474,7 +492,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             return {
               edges: prevEdges.map((node) => ({
                 ...node,
-                data: { ...node.data, delegating: false },
+                data: { ...node.data, status: null },
               })),
               nodes: changeNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
             };

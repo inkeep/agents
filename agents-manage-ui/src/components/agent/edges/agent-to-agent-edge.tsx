@@ -1,10 +1,10 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { ArrowRight, ArrowRightLeft } from 'lucide-react';
 import { AnimatedCircle } from '@/components/agent/edges/default-edge';
-import type { A2AEdgeData } from '../configuration/edge-types';
+import type { A2AEdgeData, AnimatedEdge } from '../configuration/edge-types';
 
-interface AgentToAgentEdgeProps extends EdgeProps {
-  data?: A2AEdgeData;
+interface AgentToAgentEdgeProps extends Omit<EdgeProps, 'data'> {
+  data: AnimatedEdge & A2AEdgeData;
 }
 
 export function AgentToAgentEdge({
@@ -17,13 +17,12 @@ export function AgentToAgentEdge({
   data,
   selected,
 }: AgentToAgentEdgeProps) {
-  const relationships = data?.relationships || {
+  const relationships = data.relationships || {
     transferTargetToSource: false,
     transferSourceToTarget: false,
     delegateTargetToSource: false,
     delegateSourceToTarget: false,
   };
-  const delegating = data?.delegating;
 
   const hasDelegate = relationships.delegateTargetToSource || relationships.delegateSourceToTarget;
   const hasTransfer = relationships.transferTargetToSource || relationships.transferSourceToTarget;
@@ -89,12 +88,12 @@ export function AgentToAgentEdge({
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
   const className =
-    selected || delegating ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
+    selected || data.status ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground';
 
   return (
     <>
       {/* Animated circles based on delegating direction */}
-      {delegating && <AnimatedCircle edgePath={edgePath} inverted={delegating === 'inverted'} />}
+      <AnimatedCircle edgePath={edgePath} status={data.status} />
 
       {/* Render transfer path (solid line) */}
       {hasTransfer && (

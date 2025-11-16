@@ -2,8 +2,8 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, type Node, useStore } from
 import { RefreshCw } from 'lucide-react';
 import type { A2AEdgeData } from '../configuration/edge-types';
 
-interface SelfLoopEdgeProps extends EdgeProps {
-  data?: A2AEdgeData;
+interface SelfLoopEdgeProps extends Omit<EdgeProps, 'data'> {
+  data: A2AEdgeData;
 }
 
 const getNodePositionById = (nodeId: string): ((state: { nodes: Node[] }) => Node | undefined) => {
@@ -15,7 +15,7 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
 
   if (!sourceNode) return null;
 
-  const relationships = data?.relationships || {
+  const relationships = data.relationships || {
     transferTargetToSource: false,
     transferSourceToTarget: false,
     delegateTargetToSource: false,
@@ -75,7 +75,7 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
       {/* Render transfer path (solid line) */}
       {hasTransfer && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}
           path={transferPath}
           style={{
             strokeWidth: 2,
@@ -88,7 +88,7 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
       {/* Render delegate path (dashed line) */}
       {hasDelegate && (
         <BaseEdge
-          className={`${selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}`}
+          className={selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}
           path={hasTransfer ? delegatePath : transferPath}
           style={{
             strokeDasharray: '5,5',
