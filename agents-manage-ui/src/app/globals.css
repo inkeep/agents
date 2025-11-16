@@ -301,12 +301,13 @@ li[data-sonner-toast][data-type="error"] {
 
 .node-delegating-inverted {
   @apply ring-2 ring-primary;
-  animation: node-animation 2s steps(1, end) forwards;
+  animation: node-animation var(--edge-delegating-duration) steps(1, end) forwards;
 }
 
 :root {
   --xy-edge-stroke: var(--border);
   --xy-edge-stroke-selected: var(--primary);
+  --edge-delegating-duration: 2s;
 }
 
 .dark {
@@ -318,7 +319,7 @@ li[data-sonner-toast][data-type="error"] {
 }
 
 .edge-delegating-inverted {
-  animation: edge-animation 2s steps(1, end) forwards;
+  animation: edge-animation var(--edge-delegating-duration) steps(1, end) forwards;
 }
 
 @keyframes edge-animation {
