@@ -9,6 +9,7 @@ import {
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
   getConversation,
+  getConversationId,
   getRequestExecutionContext,
   getSubAgentById,
   handleContextResolution,
@@ -467,7 +468,7 @@ app.openapi(toolApprovalRoute, async (c) => {
     } finally {
       span.end();
     }
-  });
+  }) as any;
 });
 
 export default app;
