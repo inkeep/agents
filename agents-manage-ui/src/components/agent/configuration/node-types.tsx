@@ -20,7 +20,7 @@ export interface AnimatedNode {
   status?: 'delegating' | 'inverted-delegating' | 'executing' | 'error' | null;
 }
 
-export interface MCPNodeData extends AnimatedNode {
+export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   toolId: string;
   subAgentId?: string | null; // null when unconnected, string when connected to specific agent
   relationshipId?: string | null; // null when unconnected, maps to specific DB agent_tool_relation row
@@ -32,7 +32,7 @@ export interface MCPNodeData extends AnimatedNode {
 // Re-export the shared type for consistency
 export type { SubAgentStopWhen };
 
-export interface AgentNodeData extends AnimatedNode {
+export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   id: string;
   name: string;
   description?: string;
@@ -44,7 +44,7 @@ export interface AgentNodeData extends AnimatedNode {
   isDefault?: boolean;
 }
 
-export interface ExternalAgentNodeData {
+export interface ExternalAgentNodeData extends Record<string, unknown> {
   id: string;
   name: string;
   description?: string;
@@ -53,7 +53,7 @@ export interface ExternalAgentNodeData {
   credentialReferenceId?: string | null;
 }
 
-export interface FunctionToolNodeData extends AnimatedNode {
+export interface FunctionToolNodeData extends Record<string, unknown>, AnimatedNode {
   functionToolId: string;
   toolId?: string;
   agentId?: string | null;
@@ -65,7 +65,7 @@ export interface FunctionToolNodeData extends AnimatedNode {
   dependencies?: Record<string, unknown>;
 }
 
-export interface TeamAgentNodeData {
+export interface TeamAgentNodeData extends Record<string, unknown> {
   id: string;
   name: string;
   description?: string;
