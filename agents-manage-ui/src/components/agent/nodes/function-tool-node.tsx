@@ -38,9 +38,9 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
               </div>
               <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
             </div>
-            {description?.trim() ? (
+            {description && (
               <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
-            ) : null}
+            )}
           </div>
           {hasErrors && (
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
