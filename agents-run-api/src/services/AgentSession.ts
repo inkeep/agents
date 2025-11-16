@@ -154,6 +154,8 @@ export interface ToolCallData {
   toolName: string;
   input: any;
   toolCallId: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -162,6 +164,7 @@ export interface ToolResultData {
   output: any;
   duration?: number;
   error?: string;
+  needsApproval?: boolean;
 }
 
 export interface ErrorEventData {

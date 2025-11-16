@@ -380,6 +380,7 @@ export const addToolToAgent =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
     const id = generateId();
     const now = new Date().toISOString();
@@ -395,6 +396,7 @@ export const addToolToAgent =
         toolId: params.toolId,
         selectedTools: params.selectedTools,
         headers: params.headers,
+        toolPolicies: params.toolPolicies,
         createdAt: now,
         updatedAt: now,
       })
@@ -433,6 +435,7 @@ export const upsertSubAgentToolRelation =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
     if (params.relationId) {
@@ -444,6 +447,7 @@ export const upsertSubAgentToolRelation =
           toolId: params.toolId,
           selectedTools: params.selectedTools,
           headers: params.headers,
+          toolPolicies: params.toolPolicies,
         },
       });
     }
