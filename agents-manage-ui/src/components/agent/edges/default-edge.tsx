@@ -3,6 +3,7 @@
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { type FC, useEffect, useRef } from 'react';
 import type { AnimatedEdge } from '../configuration/edge-types';
+import { cn } from '@/lib/utils';
 
 export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePath, status }) => {
   const ref = useRef<SVGAnimateElement>(null);
@@ -17,14 +18,16 @@ export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePa
     return;
   }
 
+  const isInvertedDelegating = status === 'inverted-delegating';
+
   return (
     <circle fill="var(--primary)" r="6">
       <animateMotion
         ref={ref}
         dur="2s"
         path={edgePath}
-        fill="freeze"
-        {...(status === 'inverted-delegating' && {
+        fill={isInvertedDelegating ? 'remove' : 'freeze'}
+        {...(isInvertedDelegating && {
           keyPoints: '1;0',
           keyTimes: '0;1',
         })}
@@ -46,7 +49,6 @@ export function DefaultEdge({
   sourcePosition,
   targetPosition,
   label,
-  selected,
   markerEnd,
   data = {},
 }: DefaultEdgeProps) {
@@ -59,13 +61,6 @@ export function DefaultEdge({
     targetPosition,
   });
 
-  const className =
-    selected || data.status
-      ? data.status === 'inverted-delegating'
-        ? 'edge-delegating-inverted'
-        : '!stroke-primary'
-      : '!stroke-border dark:!stroke-muted-foreground';
-
   return (
     <>
       {/* Animated circles based on delegating direction */}
@@ -76,7 +71,10 @@ export function DefaultEdge({
         label={label}
         markerEnd={markerEnd}
         style={{ strokeWidth: 2 }}
-        className={className}
+        className={cn(
+          data.status && 'edge-delegating',
+          data.status === 'inverted-delegating' && 'edge-delegating-inverted'
+        )}
       />
     </>
   );

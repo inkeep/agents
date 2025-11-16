@@ -75,7 +75,6 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
       {/* Render transfer path (solid line) */}
       {hasTransfer && (
         <BaseEdge
-          className={selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}
           path={transferPath}
           style={{
             strokeWidth: 2,
@@ -88,7 +87,6 @@ export function SelfLoopEdge({ source, data, selected }: SelfLoopEdgeProps) {
       {/* Render delegate path (dashed line) */}
       {hasDelegate && (
         <BaseEdge
-          className={selected ? '!stroke-primary' : '!stroke-border dark:!stroke-muted-foreground'}
           path={hasTransfer ? delegatePath : transferPath}
           style={{
             strokeDasharray: '5,5',

@@ -293,7 +293,7 @@ li[data-sonner-toast][data-type="error"] {
   @apply border-primary border-2;
 }
 
-@keyframes node-inverted-delegate {
+@keyframes node-animation {
   to {
     box-shadow: none;
   }
@@ -301,17 +301,28 @@ li[data-sonner-toast][data-type="error"] {
 
 .node-delegating-inverted {
   @apply ring-2 ring-primary;
-  animation: node-inverted-delegate 2s steps(1, end) forwards;
+  animation: node-animation 2s steps(1, end) forwards;
 }
 
-@keyframes edge-inverted-delegate {
-  to {
-    stroke: red !important;
-    fill: red !important;
-  }
+:root {
+  --xy-edge-stroke: var(--border);
+  --xy-edge-stroke-selected: var(--primary);
+}
+
+.dark {
+  --xy-edge-stroke: var(--muted-foreground);
+}
+
+.edge-delegating {
+  --xy-edge-stroke: var(--primary);
 }
 
 .edge-delegating-inverted {
-  @apply stroke-green-500;
-  animation: edge-inverted-delegate 2s steps(1, end) forwards;
+  animation: edge-animation 2s steps(1, end) forwards;
+}
+
+@keyframes edge-animation {
+  to {
+    --xy-edge-stroke: unset;
+  }
 }

@@ -2,6 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyf
 import { ArrowRight, ArrowRightLeft } from 'lucide-react';
 import { AnimatedCircle } from '@/components/agent/edges/default-edge';
 import type { A2AEdgeData, AnimatedEdge } from '../configuration/edge-types';
+import { cn } from '@/lib/utils';
 
 interface AgentToAgentEdgeProps extends Omit<EdgeProps, 'data'> {
   data: AnimatedEdge & A2AEdgeData;
@@ -87,13 +88,10 @@ export function AgentToAgentEdge({
   const delegateMarkerEnd =
     hasDelegate && relationships.delegateSourceToTarget ? getMarker(!!selected) : undefined;
 
-  const className =
-    selected || data.status
-      ? data.status === 'inverted-delegating'
-        ? 'edge-delegating-inverted'
-        : '!stroke-primary'
-      : '!stroke-border dark:!stroke-muted-foreground';
-
+  const className = cn(
+    data.status && 'edge-delegating',
+    data.status === 'inverted-delegating' && 'edge-delegating-inverted'
+  );
   return (
     <>
       {/* Animated circles based on delegating direction */}

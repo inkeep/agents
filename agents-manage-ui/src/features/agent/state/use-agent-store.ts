@@ -351,7 +351,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             return {
               nodes: prevNodes.map((node) => {
                 if (!node.data.isDefault) {
-                  return node
+                  return node;
                 }
                 return {
                   ...node,
@@ -397,7 +397,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                 },
               })),
               nodes: changeNodeStatus((node) =>
-                node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null
+                node.id === targetSubAgent
+                  ? 'delegating'
+                  : node.id === fromSubAgent
+                    ? 'inverted-delegating'
+                    : null
               ),
             };
           }
@@ -466,7 +470,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               nodes: changeNodeStatus((node) => {
                 let status: AnimatedNode['status'] = null;
                 if (relationshipId && relationshipId === node.data.relationshipId) {
-                  status = error ? 'error' : 'executing';
+                  status = error ? 'error' : 'inverted-delegating';
                 } else if (node.id === subAgentId) {
                   status = 'delegating';
                 }
