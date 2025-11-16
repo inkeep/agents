@@ -2,8 +2,8 @@
 
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { type FC, useEffect, useRef } from 'react';
-import type { AnimatedEdge } from '../configuration/edge-types';
 import { cn } from '@/lib/utils';
+import type { AnimatedEdge } from '../configuration/edge-types';
 
 export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePath, status }) => {
   const ref = useRef<SVGAnimateElement>(null);

@@ -1,8 +1,8 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { ArrowRight, ArrowRightLeft } from 'lucide-react';
 import { AnimatedCircle } from '@/components/agent/edges/default-edge';
-import type { A2AEdgeData, AnimatedEdge } from '../configuration/edge-types';
 import { cn } from '@/lib/utils';
+import type { A2AEdgeData, AnimatedEdge } from '../configuration/edge-types';
 
 interface AgentToAgentEdgeProps extends Omit<EdgeProps, 'data'> {
   data: AnimatedEdge & A2AEdgeData;
