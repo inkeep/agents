@@ -1,5 +1,14 @@
 # @inkeep/ai-sdk-provider
 
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- Updated dependencies [4b2fd62]
+- Updated dependencies [bbbed5e]
+  - @inkeep/agents-core@0.33.2
+
 ## 0.33.1
 
 ### Patch Changes
