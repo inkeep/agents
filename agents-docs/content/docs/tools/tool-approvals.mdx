@@ -246,107 +246,73 @@ async function sendApproval(
 
 ### React Integration Example
 
-```tsx
-import { useState, useEffect } from "react";
-import { useChat } from "ai/react";
-
-interface ApprovalRequest {
-  toolName: string;
-  input: any;
-  toolCallId: string;
-  conversationId: string;
-}
+```js
+import { useChat } from 'ai/react';
 
 export function ChatWithApprovals() {
-  const [approvalRequest, setApprovalRequest] =
-    useState<ApprovalRequest | null>(null);
-
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    api: "/api/chat",
+    api: '/api/chat',
     headers: {
-      "x-emit-operations": "true", // Enable data operations
+      'x-emit-operations': 'true', // Enable data operations
     },
   });
 
-  // Monitor messages for tool approval requests
-  useEffect(() => {
-    // Find the latest data operation message
-    const latestDataOp = messages
-      .filter((msg) => msg.data)
-      .reverse()
-      .find((msg) => {
-        const data = msg.data;
-        return (
-          data.type === "data-operation" &&
-          data.data?.type === "tool_call" &&
-          data.data?.details?.data?.needsApproval
-        );
-      });
-
-    if (latestDataOp?.data) {
-      const { toolName, input, toolCallId, conversationId } =
-        latestDataOp.data.data.details.data;
-
-      // Only show approval if we haven't already handled this tool call
-      if (!approvalRequest || approvalRequest.toolCallId !== toolCallId) {
-        setApprovalRequest({
-          toolName,
-          input,
-          toolCallId,
-          conversationId,
-        });
-      }
-    }
-  }, [messages, approvalRequest]);
-
-  const handleApproval = async (approved: boolean) => {
-    if (!approvalRequest) return;
-
-    try {
-      await sendApproval(
-        approvalRequest.conversationId,
-        approvalRequest.toolCallId,
-        approved
-      );
-
-      setApprovalRequest(null);
-    } catch (error) {
-      console.error("Approval failed:", error);
-    }
+  const handleApproval = async (toolCallId: string, conversationId: string, approved: boolean) => {
+    await fetch('/api/tool-approvals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId,
+        toolCallId,
+        approved,
+      }),
+    });
   };
 
   return (
     <div>
       {/* Chat messages */}
       <div>
-        {messages
-          .filter((msg) => msg.role !== "data") // Hide data operations from chat
-          .map((message) => (
-            <div key={message.id}>
-              <strong>{message.role}:</strong> {message.content}
-            </div>
-          ))}
+        {messages.map((message) => (
+          <div key={message.id}>
+            <strong>{message.role}:</strong> {message.content}
+            {/* Render tool approval buttons inline */}
+            {message.parts?.map((part, index) => {
+              if (
+                part.type === 'data-operation' &&
+                part.data.type === 'tool_call' &&
+                part.data.details.data.needsApproval
+              ) {
+                const { toolName, toolCallId, conversationId } = part.data.details.data;
+
+                return (
+                  <div key={index}>
+                    <button
+                      type="button"
+                      onClick={() => handleApproval(toolCallId, conversationId, true)}
+                    >
+                      Approve {toolName}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproval(toolCallId, conversationId, false)}
+                    >
+                      Deny
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Chat input */}
       <form onSubmit={handleSubmit}>
-        <input
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Ask me anything..."
-        />
+        <input value={input} onChange={handleInputChange} placeholder="Ask me anything..." />
         <button type="submit">Send</button>
       </form>
-
-      {/* Approval modal */}
-      {approvalRequest && (
-        <ApprovalDialog
-          toolName={approvalRequest.toolName}
-          arguments={approvalRequest.input}
-          onApprove={() => handleApproval(true)}
-          onDeny={() => handleApproval(false)}
-        />
-      )}
     </div>
   );
 }
