@@ -108,7 +108,7 @@ program
   .description('Pull project configuration with clean, efficient code generation')
   .option(
     '--project <project-id>',
-    'Override project ID (defaults to local project ID from index.ts)'
+    'Project ID to pull (or path to project directory). If in project directory, validates against local project ID.'
   )
   .option('--config <path>', 'Path to configuration file')
   .option(
