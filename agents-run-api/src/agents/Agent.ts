@@ -893,12 +893,12 @@ export class Agent {
         if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
           const errorMessage = 'Connection refused. Please check if the MCP server is running.';
           throw new Error(errorMessage);
-        } else if (error.message.includes('404')) {
+        }
+        if (error.message.includes('404')) {
           const errorMessage = 'Error accessing endpoint (HTTP 404)';
           throw new Error(errorMessage);
-        } else {
-          throw new Error(`MCP server connection failed: ${error.message}`);
         }
+        throw new Error(`MCP server connection failed: ${error.message}`);
       }
 
       throw error;
@@ -1230,7 +1230,6 @@ export class Agent {
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
-
     let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
@@ -2051,13 +2050,13 @@ ${output}`;
                     parser.markToolResult();
                   }
                   break;
-                case 'error':
+                case 'error': {
                   if (event.error instanceof Error) {
                     throw event.error;
-                  } else {
-                    const errorMessage = (event.error as any)?.error?.message;
-                    throw new Error(errorMessage);
                   }
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
               }
             }
 
