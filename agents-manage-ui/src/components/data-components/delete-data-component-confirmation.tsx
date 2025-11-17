@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteDataComponentAction } from '@/lib/actions/data-components';
 
 interface DeleteDataComponentConfirmationProps {
@@ -23,13 +24,14 @@ export function DeleteDataComponentConfirmation({
     tenantId: string;
     projectId: string;
   }>();
+  const ref = useCurrentRef();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteDataComponentAction(tenantId, projectId, dataComponentId);
+      const result = await deleteDataComponentAction(tenantId, projectId, dataComponentId, ref);
       if (result.success) {
         setIsOpen(false);
         toast.success('Component deleted.');

@@ -81,7 +81,8 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
 
       const body = await res.json();
-      expect(body.data).toEqual([]);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].baseName).toBe('main');
     });
 
     it('should list branches after creating some', async () => {
@@ -97,13 +98,14 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
 
       const body = await res.json();
-      expect(body.data).toHaveLength(3);
+      expect(body.data).toHaveLength(4); // tenant main + 3 feature branches
 
       const branchNames = body.data.map((b: any) => b.baseName).sort();
-      expect(branchNames).toEqual(['feature-a', 'feature-b', 'feature-c']);
+      expect(branchNames).toEqual(['feature-a', 'feature-b', 'feature-c', 'main']);
 
+      const projectBranches = body.data.filter((b: any) => b.baseName !== 'main');
       // Verify each branch has required fields
-      body.data.forEach((branch: any) => {
+      projectBranches.forEach((branch: any) => {
         expect(branch).toHaveProperty('baseName');
         expect(branch).toHaveProperty('fullName');
         expect(branch).toHaveProperty('hash');
@@ -127,15 +129,15 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       const res1 = await makeRequest(`/tenants/${tenantId}/projects/${projectId1}/branches`);
       expect(res1.status).toBe(200);
       const body1 = await res1.json();
-      expect(body1.data).toHaveLength(1);
-      expect(body1.data[0].baseName).toBe('project1-branch');
+      expect(body1.data).toHaveLength(2); // tenant main + project1-branch
+      expect(body1.data[1].baseName).toBe('project1-branch');
 
       // List branches for project 2
       const res2 = await makeRequest(`/tenants/${tenantId}/projects/${projectId2}/branches`);
       expect(res2.status).toBe(200);
       const body2 = await res2.json();
-      expect(body2.data).toHaveLength(1);
-      expect(body2.data[0].baseName).toBe('project2-branch');
+      expect(body2.data).toHaveLength(2); // tenant main + project2-branch
+      expect(body2.data[1].baseName).toBe('project2-branch');
     });
   });
 

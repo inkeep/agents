@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog } from '@/components/ui/dialog';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteApiKeyAction } from '@/lib/actions/api-keys';
 
 interface DeleteApiKeyConfirmationProps {
@@ -23,11 +24,12 @@ export function DeleteApiKeyConfirmation({
     tenantId: string;
     projectId: string;
   }>();
+  const ref = useCurrentRef();
 
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId);
+      const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId, ref);
       if (result.success) {
         setIsOpen(false);
         toast.success('API key deleted.');

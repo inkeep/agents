@@ -21,9 +21,10 @@ interface NewApiKeyDialogProps {
   tenantId: string;
   projectId: string;
   agentsOptions: SelectOption[];
+  ref?: string;
 }
 
-export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKeyDialogProps) {
+export function NewApiKeyDialog({ tenantId, projectId, agentsOptions, ref }: NewApiKeyDialogProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<ApiKeyCreateResponse | null>(null);
 
@@ -69,6 +70,7 @@ export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKe
               projectId={projectId}
               agentsOptions={agentsOptions}
               onApiKeyCreated={handleApiKeyCreated}
+              ref={ref}
             />
           </div>
         </DialogContent>

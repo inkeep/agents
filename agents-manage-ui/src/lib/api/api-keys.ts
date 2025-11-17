@@ -12,7 +12,7 @@ import type {
   ApiKeyApiSelect,
 } from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
@@ -31,7 +31,8 @@ export type ApiKeyCreateResponse = {
 
 export async function fetchApiKeys(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: ApiRequestOptions
 ): Promise<ListResponse<ApiKey>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -57,13 +58,15 @@ export async function fetchApiKeys(
 export async function createApiKey(
   tenantId: string,
   projectId: string,
-  apiKeyData: Partial<ApiKey>
+  apiKeyData: Partial<ApiKey>,
+  options?: ApiRequestOptions
 ): Promise<ApiKeyCreateResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiCreationResponse>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys`,
     {
+      ...options,
       method: 'POST',
       body: JSON.stringify(apiKeyData),
     }
@@ -105,12 +108,14 @@ export async function createApiKey(
 export async function deleteApiKey(
   tenantId: string,
   projectId: string,
-  apiKeyId: string
+  apiKeyId: string,
+  options?: ApiRequestOptions
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   await makeManagementApiRequest(`tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyId}`, {
+    ...options,
     method: 'DELETE',
   });
 }
@@ -121,7 +126,8 @@ export async function deleteApiKey(
 export async function updateApiKey(
   tenantId: string,
   projectId: string,
-  apiKeyData: Partial<ApiKey>
+  apiKeyData: Partial<ApiKey>,
+  options?: ApiRequestOptions
 ): Promise<ApiKey> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -129,6 +135,7 @@ export async function updateApiKey(
   const response = await makeManagementApiRequest<SingleResponse<ApiKeyApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/api-keys/${apiKeyData.id}`,
     {
+      ...options,
       method: 'PUT',
       body: JSON.stringify(apiKeyData),
     }

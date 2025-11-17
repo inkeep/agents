@@ -14,7 +14,7 @@ import type {
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
-import { makeManagementApiRequest } from './api-config';
+import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
@@ -26,7 +26,8 @@ export type ArtifactComponent = ArtifactComponentApiSelect;
  */
 export async function fetchArtifactComponents(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: ApiRequestOptions
 ): Promise<ListResponse<ArtifactComponent>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -44,13 +45,15 @@ export async function fetchArtifactComponents(
 export async function fetchArtifactComponent(
   tenantId: string,
   projectId: string,
-  artifactComponentId: string
+  artifactComponentId: string,
+  options?: ApiRequestOptions
 ): Promise<ArtifactComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+    options
   );
 
   return response.data;
@@ -62,7 +65,8 @@ export async function fetchArtifactComponent(
 export async function createArtifactComponent(
   tenantId: string,
   projectId: string,
-  artifactComponent: ArtifactComponentApiInsert
+  artifactComponent: ArtifactComponentApiInsert,
+  options?: ApiRequestOptions
 ): Promise<ArtifactComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -70,6 +74,7 @@ export async function createArtifactComponent(
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`,
     {
+      ...options,
       method: 'POST',
       body: JSON.stringify(artifactComponent),
     }
@@ -84,7 +89,8 @@ export async function createArtifactComponent(
 export async function updateArtifactComponent(
   tenantId: string,
   projectId: string,
-  artifactComponent: ArtifactComponentApiUpdate & { id: string }
+  artifactComponent: ArtifactComponentApiUpdate & { id: string },
+  options?: ApiRequestOptions
 ): Promise<ArtifactComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -92,6 +98,7 @@ export async function updateArtifactComponent(
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponent.id}`,
     {
+      ...options,
       method: 'PUT',
       body: JSON.stringify(artifactComponent),
     }
@@ -106,7 +113,8 @@ export async function updateArtifactComponent(
 export async function deleteArtifactComponent(
   tenantId: string,
   projectId: string,
-  artifactComponentId: string
+  artifactComponentId: string,
+  options?: ApiRequestOptions
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -114,6 +122,7 @@ export async function deleteArtifactComponent(
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
     {
+      ...options,
       method: 'DELETE',
     }
   );

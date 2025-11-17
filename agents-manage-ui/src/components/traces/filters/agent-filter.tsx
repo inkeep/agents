@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { OptionType } from '@/components/ui/combobox';
 import { Combobox } from '@/components/ui/combobox';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import { FilterTriggerComponent } from './filter-trigger';
 
@@ -17,6 +18,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
     tenantId: string;
     projectId: string;
   }>();
+  const ref = useCurrentRef();
   const [agentOptions, setAgentOptions] = useState<OptionType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -24,7 +26,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
     const fetchAgents = async () => {
       try {
         setLoading(true);
-        const response = await getAllAgentsAction(tenantId, projectId);
+        const response = await getAllAgentsAction(tenantId, projectId, ref);
         if (!cancelled && response.success) {
           setAgentOptions(
             response.data?.map((agent) => ({
@@ -48,7 +50,7 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
     return () => {
       cancelled = true;
     };
-  }, [tenantId, projectId]);
+  }, [tenantId, projectId, ref]);
   return (
     <Combobox
       defaultValue={selectedValue}

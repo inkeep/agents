@@ -14,10 +14,13 @@ import type { ActionResult } from './types';
 export async function createApiKeyAction(
   tenantId: string,
   projectId: string,
-  apiKeyData: Partial<ApiKey>
+  apiKeyData: Partial<ApiKey>,
+  ref?: string
 ): Promise<ActionResult<ApiKeyCreateResponse>> {
   try {
-    const result = await createApiKey(tenantId, projectId, apiKeyData);
+    const result = await createApiKey(tenantId, projectId, apiKeyData, {
+      queryParams: { ref },
+    });
     revalidatePath(`/${tenantId}/projects/${projectId}/api-keys`);
     return {
       success: true,
@@ -43,10 +46,13 @@ export async function createApiKeyAction(
 export async function deleteApiKeyAction(
   tenantId: string,
   projectId: string,
-  apiKeyId: string
+  apiKeyId: string,
+  ref?: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteApiKey(tenantId, projectId, apiKeyId);
+    await deleteApiKey(tenantId, projectId, apiKeyId, {
+      queryParams: { ref },
+    });
     revalidatePath(`/${tenantId}/projects/${projectId}/api-keys`);
     return {
       success: true,
@@ -71,10 +77,13 @@ export async function deleteApiKeyAction(
 export async function updateApiKeyAction(
   tenantId: string,
   projectId: string,
-  apiKeyData: Partial<ApiKey>
+  apiKeyData: Partial<ApiKey>,
+  ref?: string
 ): Promise<ActionResult<ApiKey>> {
   try {
-    const result = await updateApiKey(tenantId, projectId, apiKeyData);
+    const result = await updateApiKey(tenantId, projectId, apiKeyData, {
+      queryParams: { ref },
+    });
     revalidatePath(`/${tenantId}/projects/${projectId}/api-keys`);
     return {
       success: true,

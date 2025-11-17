@@ -13,6 +13,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Form } from '@/components/ui/form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import {
   createDataComponentAction,
   updateDataComponentAction,
@@ -48,6 +49,7 @@ export function DataComponentForm({
   initialData,
 }: DataComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const ref = useCurrentRef();
   const form = useForm<DataComponentFormData>({
     resolver: zodResolver(dataComponentSchema),
     defaultValues: formatFormData(initialData),
@@ -68,14 +70,14 @@ export function DataComponentForm({
     try {
       const payload = { ...data } as DataComponent;
       if (id) {
-        const res = await updateDataComponentAction(tenantId, projectId, payload);
+        const res = await updateDataComponentAction(tenantId, projectId, payload, ref);
         if (!res.success) {
           toast.error(res.error || 'Failed to update component');
           return;
         }
         toast.success('Component updated');
       } else {
-        const res = await createDataComponentAction(tenantId, projectId, payload);
+        const res = await createDataComponentAction(tenantId, projectId, payload, ref);
         if (!res.success) {
           toast.error(res.error || 'Failed to create component');
           return;

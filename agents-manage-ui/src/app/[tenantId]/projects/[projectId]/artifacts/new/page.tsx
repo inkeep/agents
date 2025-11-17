@@ -3,6 +3,7 @@ import { BodyTemplate } from '@/components/layout/body-template';
 
 async function NewArtifactComponentPage({
   params,
+  searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts/new'>) {
   const { tenantId, projectId } = await params;
   return (

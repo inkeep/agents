@@ -10,6 +10,7 @@ import { fetchApiKeys } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,10 @@ const createAgentOptions = (agent: Agent[]): SelectOption[] => {
   }));
 };
 
-async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/api-keys'>) {
+async function ApiKeysPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/api-keys'>) {
   const { tenantId, projectId } = await params;
 
   try {

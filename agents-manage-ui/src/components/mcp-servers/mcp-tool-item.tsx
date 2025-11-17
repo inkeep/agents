@@ -22,6 +22,7 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteToolAction } from '@/lib/actions/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
@@ -56,6 +57,7 @@ function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
     tenantId: string;
     projectId: string;
   }>();
+  const ref = useCurrentRef();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,7 +69,7 @@ function MCPToolDialogMenu({ toolId, toolName }: MCPToolDialogMenuProps) {
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteToolAction(tenantId, projectId, toolId);
+      const result = await deleteToolAction(tenantId, projectId, toolId, true, ref);
       if (result.success) {
         setIsOpen(false);
         toast.success('MCP server deleted.');

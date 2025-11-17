@@ -54,6 +54,7 @@ import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
@@ -140,6 +141,8 @@ export const Agent: FC<AgentProps> = ({
     tenantId: string;
     projectId: string;
   }>();
+
+  const ref = useCurrentRef();
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
@@ -861,7 +864,8 @@ export const Agent: FC<AgentProps> = ({
       tenantId,
       projectId,
       serializedData,
-      agent.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
+      agent.id, // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
+      ref
     );
 
     if (res.success) {
@@ -968,6 +972,7 @@ export const Agent: FC<AgentProps> = ({
     toolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
+    ref
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount

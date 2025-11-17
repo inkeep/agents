@@ -27,7 +27,16 @@ export const refMiddleware = async (c: Context, next: Next) => {
   // Extract tenantId from /tenants/:tenantId/... path structure
   // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
   // tenantId is at index 2
-  const tenantId = path.split('/')[2];
+  const pathSplit = path.split('/');
+  const tenantId = pathSplit[2];
+
+  if (pathSplit.length < 4 && ref !== 'main' && ref !== undefined) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'Ref is not supported for this path',
+    });
+  }
+  const projectId = pathSplit[4];
 
   if (!tenantId) {
     throw createApiError({
@@ -37,12 +46,13 @@ export const refMiddleware = async (c: Context, next: Next) => {
   }
 
   const tenant_main = `${tenantId}_main`;
+  const project_scoped_ref = `${tenantId}_${projectId}_${ref}`;
 
   let resolvedRef: ResolvedRef;
 
-  if (ref) {
+  if (ref && ref !== 'main') {
     // User provided a specific ref
-    const refResult = await resolveRef(dbClient)(ref);
+    const refResult = await resolveRef(dbClient)(project_scoped_ref);
     if (!refResult) {
       throw createApiError({
         code: 'not_found',

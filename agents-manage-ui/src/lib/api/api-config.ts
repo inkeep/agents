@@ -26,12 +26,55 @@ export function getManageApiUrl(): string {
   return INKEEP_AGENTS_MANAGE_API_URL;
 }
 
+<<<<<<< HEAD
+=======
+function getEvalApiUrl(): string {
+  if (INKEEP_AGENTS_EVAL_API_URL === null) {
+    INKEEP_AGENTS_EVAL_API_URL =
+      process.env.INKEEP_AGENTS_EVAL_API_URL ||
+      process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL ||
+      'http://localhost:3005';
+
+    if (
+      !process.env.INKEEP_AGENTS_EVAL_API_URL &&
+      !process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL &&
+      !hasWarnedEvalApi
+    ) {
+      console.warn(`INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`);
+      hasWarnedEvalApi = true;
+    }
+  }
+  return INKEEP_AGENTS_EVAL_API_URL;
+}
+
+export interface ApiRequestOptions extends RequestInit {
+  queryParams?: Record<string, string | string[] | number | boolean | undefined>;
+}
+
+>>>>>>> 73fce9179 (use branch ref in ui)
 async function makeApiRequestInternal<T>(
   baseUrl: string,
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
-  const url = `${baseUrl}/${endpoint}`;
+
+   // Build URL with query parameters
+   let url = `${baseUrl}/${endpoint}`;
+   if (options.queryParams) {
+     const params = new URLSearchParams();
+     Object.entries(options.queryParams).forEach(([key, value]) => {
+       if (value !== undefined && value !== null) {
+         params.append(key, String(value));
+       }
+     });
+     const queryString = params.toString();
+     
+     if (queryString) {
+       // Check if URL already has query parameters
+       const separator = url.includes('?') ? '&' : '?';
+       url += `${separator}${queryString}`;
+     }
+   }
 
   let cookieHeader: string | undefined;
   if (typeof window === 'undefined') {
@@ -166,7 +209,7 @@ async function makeApiRequestInternal<T>(
 // Management API requests (CRUD operations, configuration)
 export async function makeManagementApiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
 }

@@ -16,10 +16,13 @@ import type { ActionResult } from './types';
  */
 export async function fetchToolsAction(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  ref?: string
 ): Promise<ActionResult<MCPTool[]>> {
   try {
-    const tools = await fetchMCPTools(tenantId, projectId);
+    const tools = await fetchMCPTools(tenantId, projectId, 1, 50, undefined, {
+      queryParams: { ref },
+    });
     return {
       success: true,
       data: tools,
@@ -48,10 +51,13 @@ export async function deleteToolAction(
   tenantId: string,
   projectId: string,
   toolId: string,
-  shouldRevalidate = true
+  shouldRevalidate = true,
+  ref?: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteMCPTool(tenantId, projectId, toolId);
+    await deleteMCPTool(tenantId, projectId, toolId, {
+      queryParams: { ref },
+    });
     if (shouldRevalidate) {
       revalidatePath(`/${tenantId}/projects/${projectId}/mcp-servers`, 'page');
     }

@@ -12,6 +12,7 @@ import { createLookup } from '@/lib/utils';
 import { AgentSkeleton } from './loading';
 import { Agent } from './page.client';
 
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 export const dynamic = 'force-dynamic';
 
 const AgentData: FC<{

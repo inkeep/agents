@@ -5,10 +5,11 @@ export async function saveAgent(
   tenantId: string,
   projectId: string,
   agent: FullAgentDefinition,
-  agentId?: string
+  agentId?: string,
+  ref?: string
 ) {
   if (agentId) {
-    return updateFullAgentAction(tenantId, projectId, agentId, agent);
+    return updateFullAgentAction(tenantId, projectId, agentId, agent, ref);
   }
-  return createFullAgentAction(tenantId, projectId, agent);
+  return createFullAgentAction(tenantId, projectId, agent, ref);
 }
