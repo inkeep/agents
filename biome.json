@@ -78,6 +78,7 @@
     }
   },
   "formatter": {
+    "includes": ["**", "!**/drizzle/**"],
     "enabled": true,
     "lineWidth": 100,
     "indentStyle": "space",
