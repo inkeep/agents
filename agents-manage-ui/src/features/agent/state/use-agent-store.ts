@@ -330,24 +330,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
-        /** Wrapper function to always keep error state */
-        function changeNodeStatus(cb: (node: Node) => AnimatedNode['status']) {
-          return prevNodes.map((node) => {
-            if (node.data.status === 'error') {
-              return node;
-            }
-
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: cb(node),
-              },
-            };
-          });
-        }
-
-        function updateNodeStatus(cb: (node: Node) => AnimatedNode['status']) {
+        function updateNodeStatus(
+          cb: (node: Node<AnimatedNode & Record<string, unknown>>) => AnimatedNode['status']
+        ) {
           return prevNodes.map((node) => {
             return {
               ...node,
@@ -358,7 +343,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           });
         }
-        function updateEdgeStatus(cb: (edge: Edge) => AnimatedEdge['status']) {
+        function updateEdgeStatus(
+          cb: (edge: Edge<AnimatedEdge & Record<string, unknown>>) => AnimatedEdge['status']
+        ) {
           return prevEdges.map((node) => {
             return {
               ...node,
@@ -373,17 +360,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         switch (data.type) {
           case 'agent_initializing': {
             return {
-              nodes: prevNodes.map((node) => {
+              nodes: updateNodeStatus((node) => {
                 if (!node.data.isDefault) {
-                  return node;
+                  return node.data.status;
                 }
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    status: 'delegating',
-                  },
-                };
+                return 'delegating';
               }),
             };
           }
@@ -408,13 +389,12 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   ? 'inverted-delegating'
                   : null
               ),
-              nodes: updateNodeStatus((node) =>
-                node.id === targetSubAgent
-                  ? 'delegating'
-                  : node.id === fromSubAgent
-                    ? 'inverted-delegating'
-                    : null
-              ),
+              nodes: updateNodeStatus((node) => {
+                if (node.id === targetSubAgent) {
+                  return 'delegating';
+                }
+                return node.id === fromSubAgent ? 'inverted-delegating' : null;
+              }),
             };
           }
           case 'tool_call': {
@@ -456,21 +436,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               console.warn('[type: tool_result] relationshipId is missing');
             }
             return {
-              edges: prevEdges.map((edge) => {
+              edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
 
-                return {
-                  ...edge,
-                  data: {
-                    ...edge.data,
-                    status:
-                      subAgentId === edge.source &&
-                      relationshipId &&
-                      relationshipId === node?.data.relationshipId
-                        ? 'inverted-delegating'
-                        : null,
-                  },
-                };
+                return subAgentId === edge.source &&
+                  relationshipId &&
+                  relationshipId === node?.data.relationshipId
+                  ? 'inverted-delegating'
+                  : null;
               }),
               nodes: updateNodeStatus((node) => {
                 let status: AnimatedNode['status'] = null;
@@ -486,23 +459,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           }
           case 'completion': {
             return {
-              edges: prevEdges.map((edge) => ({
-                ...edge,
-                data: { ...edge.data, status: null },
-              })),
-              nodes: prevNodes.map((node) => ({
-                ...node,
-                data: { ...node.data, status: null },
-              })),
+              edges: updateEdgeStatus(() => null),
+              nodes: updateNodeStatus(() => null),
             };
           }
           case 'agent_generate': {
             const { subAgentId } = data.details;
             return {
-              edges: prevEdges.map((node) => ({
-                ...node,
-                data: { ...node.data, status: null },
-              })),
+              edges: updateEdgeStatus(() => null),
               nodes: updateNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
             };
           }
