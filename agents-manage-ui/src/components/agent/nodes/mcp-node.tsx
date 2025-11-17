@@ -110,15 +110,9 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
-      <BaseNodeContent>
-        {toolBadges.map((label, index) => (
-          <Badge
-            key={index}
-            variant="code"
-            className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
-          >
-            {label}
-          </Badge>
+      <BaseNodeContent className="flex-row gap-2 flex-wrap">
+        {toolBadges.map((label) => (
+          <TruncateBadge key={label}>{label}</TruncateBadge>
         ))}
       </BaseNodeContent>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
