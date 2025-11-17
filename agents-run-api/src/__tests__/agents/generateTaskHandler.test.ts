@@ -293,6 +293,14 @@ vi.mock('../../agents/Agent.js', () => ({
       lastAgentConstructorArgs = config;
     }
 
+    setDelegationStatus(_isDelegated: boolean) {
+      // Mock implementation
+    }
+
+    setDelegationId(_delegationId: string | undefined) {
+      // Mock implementation
+    }
+
     async generate(message: string, _options: any) {
       // Mock different response types based on message content
       if (message.includes('transfer')) {
@@ -356,10 +364,6 @@ vi.mock('../../agents/Agent.js', () => ({
         },
       };
     }
-
-    setDelegationStatus(_isDelegated: boolean) {
-      // Mock implementation
-    }
   },
 }));
 
@@ -388,7 +392,13 @@ describe('generateTaskHandler', () => {
       description: 'Test agent description',
       prompt: 'You are a helpful test agent',
       models: null,
-      conversationHistoryConfig: null,
+      conversationHistoryConfig: {
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      },
       stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',

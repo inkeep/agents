@@ -1,21 +1,33 @@
 ---
 title: Conversation Memory
 sidebarTitle: Memory
-description: Understand how conversation history is managed and included in the context window
+description: Understand how conversation history is managed and included in the context window for both main and delegated agents
 icon: "LuBrain"
-keywords: memory, context window, conversation history, message limits, token limits
+keywords: memory, context window, conversation history, message limits, token limits, delegation, tool results
 ---
 
 ## Overview
 
-Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency.
+Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency, with specialized handling for delegated agents and tool results.
+
+## What's Included in Memory
+
+The conversation history now includes:
+
+- **Chat messages**: User messages and agent responses
+- **Tool results**: Results from tool executions, providing context about what actions were performed
+- **Agent communications**: Messages exchanged between agents during transfers and delegations
 
 ## Default Limits
 
 By default, the system includes conversation history using these limits:
 
 - **50 messages**: Up to the 50 most recent messages from the conversation
-- **4,000 tokens**: Maximum of 4,000 tokens from previous conversation messages
+- **8,000 tokens**: Maximum of 8,000 tokens from previous conversation messages (increased from 4,000 to accommodate tool results)
+
+<Note>
+  The 50-message and 8,000-token limits are the default values. The token limit can be adjusted via the `AGENTS_CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT` environment variable if needed.
+</Note>
 
 ## How It Works
 
@@ -24,13 +36,52 @@ By default, the system includes conversation history using these limits:
     **Message Retrieval**: The system retrieves up to 50 most recent messages from the conversation history
   </Step>
   <Step>
-    **Token Calculation**: Messages are processed, calculating token count for each message
+    **Delegation Filtering**: Messages are filtered based on delegation context - delegated agents see their own tool results plus top-level conversation context
+  </Step>
+  <Step>
+    **Token Calculation**: Remaining messages are processed, calculating token count for each message
   </Step>
   <Step>
     **Exclusion**: If the total token count exceeds 4,000 tokens, older messages are excluded from the context window
   </Step>
 </Steps>
 
-<Note>
-  The 50-message and 4,000-token limits are fixed and cannot be configured at this time.
-</Note>
+## Memory for Delegated Agents
+
+When agents delegate tasks to other agents, memory is intelligently filtered:
+
+### Main Agents
+- See complete conversation history including all tool results
+- Maintain full context of delegated actions and their results
+
+### Delegated Agents  
+- See conversation history filtered to their delegation scope
+- Receive tool results from:
+  - Their own tool executions
+  - Top-level (non-delegated) tool executions
+- Cannot see tool results from unrelated delegations
+
+This ensures delegated agents have sufficient context while preventing memory pollution from unrelated parallel delegations.
+
+## Tool Results in Memory
+
+Tool execution results are automatically included in conversation history, helping agents:
+- Understand what actions have already been performed
+- Avoid duplicate tool calls
+- Build on previous results when transferring between agents
+
+The tool results include both the input parameters and output results, formatted as:
+
+```
+## Tool: search_knowledge_base
+
+**Input:**
+{
+  "query": "API authentication methods"
+}
+
+**Output:**
+{
+  "results": [...]
+}
+```
