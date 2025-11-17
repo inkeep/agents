@@ -37,7 +37,6 @@ import { useSidePane } from '@/hooks/use-side-pane';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
@@ -108,7 +107,6 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
-  externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
@@ -119,7 +117,6 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
-  externalAgentLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const router = useRouter();
@@ -811,7 +808,6 @@ export const Agent: FC<AgentProps> = ({
     toolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
-    externalAgentLookup,
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
