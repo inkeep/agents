@@ -361,10 +361,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'agent_initializing': {
             return {
               nodes: updateNodeStatus((node) => {
-                if (!node.data.isDefault) {
-                  return node.data.status;
+                if (node.data.isDefault) {
+                  return 'delegating';
                 }
-                return 'delegating';
+                return node.data.status;
               }),
             };
           }
@@ -452,14 +452,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
                   : edge.data?.status;
               }),
               nodes: updateNodeStatus((node) => {
-                let status: AnimatedNode['status'] = node.data.status;
                 if (relationshipId && relationshipId === node.data.relationshipId) {
-                  status = error ? 'error' : 'inverted-delegating';
-                } else if (node.id === subAgentId) {
-                  status = 'delegating';
+                  return error ? 'error' : 'inverted-delegating';
+                }
+                if (node.id === subAgentId) {
+                  return 'delegating';
                 }
 
-                return status;
+                return node.data.status;
               }),
             };
           }
@@ -472,8 +472,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
           case 'agent_generate': {
             const { subAgentId } = data.details;
             return {
-              edges: updateEdgeStatus(() => null),
-              nodes: updateNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
+              nodes: updateNodeStatus((node) =>
+                node.id === subAgentId ? 'executing' : node.data.status
+              ),
             };
           }
         }
