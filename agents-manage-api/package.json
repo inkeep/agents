@@ -31,7 +31,6 @@
     "@nangohq/types": "^0.69.5",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
-    "fetch-to-node": "^2.1.0",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
     "nanoid": "^5.1.5",
