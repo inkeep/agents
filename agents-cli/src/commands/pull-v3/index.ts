@@ -227,18 +227,20 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     if (hasIndexInCurrent) {
       // We're in a project directory
       projectDir = currentDir;
-      
+
       s.start('Loading local project...');
       try {
         localProjectForId = await loadProject(projectDir);
         const localProjectId = localProjectForId.getId();
-        
+
         if (options.project) {
           // Validate that --project matches local project ID
           if (localProjectId !== options.project) {
             s.stop('Project ID mismatch');
             console.error(
-              chalk.red(`Local project ID "${localProjectId}" doesn't match --project "${options.project}"`)
+              chalk.red(
+                `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`
+              )
             );
             console.error(
               chalk.yellow('Either remove --project flag or ensure it matches the local project ID')
@@ -246,7 +248,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             process.exit(1);
           }
         }
-        
+
         projectId = localProjectId;
         s.stop(`Using local project: ${projectId}`);
       } catch (error) {
