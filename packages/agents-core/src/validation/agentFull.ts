@@ -44,6 +44,7 @@ export function validateToolReferences(
 /**
  * Validates that all dataComponent IDs referenced in agents exist in the dataComponents record
  * Note: With scoped architecture, dataComponent validation should be done at the project level
+ * Also validates that components are only referenced by ID, not duplicated
  */
 export function validateDataComponentReferences(
   agentData: FullAgentDefinition,
@@ -54,18 +55,40 @@ export function validateDataComponentReferences(
   }
 
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have dataComponents
     if (subAgent.dataComponents) {
-      for (const dataComponentId of subAgent.dataComponents) {
-        if (!availableDataComponentIds.has(dataComponentId)) {
+      // Ensure dataComponents is an array of strings (IDs), not objects
+      if (!Array.isArray(subAgent.dataComponents)) {
+        errors.push(
+          `Agent '${subAgentId}' has invalid dataComponents format - must be an array of component IDs`
+        );
+        continue;
+      }
+
+      for (const dataComponentRef of subAgent.dataComponents) {
+        // Check if it's an object instead of a string ID
+        if (typeof dataComponentRef !== 'string') {
           errors.push(
-            `Agent '${subAgentId}' references non-existent dataComponent '${dataComponentId}'`
+            `Agent '${subAgentId}' has dataComponent reference that is not a string ID: ${JSON.stringify(dataComponentRef)}`
+          );
+          continue;
+        }
+
+        // Validate that the referenced component exists
+        if (!availableDataComponentIds.has(dataComponentRef)) {
+          errors.push(
+            `Agent '${subAgentId}' references non-existent dataComponent '${dataComponentRef}'`
           );
         }
       }
     }
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`DataComponent reference warnings:\n${warnings.join('\n')}`);
   }
 
   if (errors.length > 0) {
@@ -76,6 +99,7 @@ export function validateDataComponentReferences(
 /**
  * Validates that all artifactComponent IDs referenced in agents exist in the artifactComponents record.
  * Note: With scoped architecture, artifactComponent validation should be done at the project level
+ * Also validates that components are only referenced by ID, not duplicated
  */
 export function validateArtifactComponentReferences(
   agentData: FullAgentDefinition,
@@ -86,18 +110,40 @@ export function validateArtifactComponentReferences(
   }
 
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   for (const [subAgentId, subAgent] of Object.entries(agentData.subAgents)) {
     // Only internal agents have artifactComponents
     if (subAgent.artifactComponents) {
-      for (const artifactComponentId of subAgent.artifactComponents) {
-        if (!availableArtifactComponentIds.has(artifactComponentId)) {
+      // Ensure artifactComponents is an array of strings (IDs), not objects
+      if (!Array.isArray(subAgent.artifactComponents)) {
+        errors.push(
+          `Agent '${subAgentId}' has invalid artifactComponents format - must be an array of component IDs`
+        );
+        continue;
+      }
+
+      for (const artifactComponentRef of subAgent.artifactComponents) {
+        // Check if it's an object instead of a string ID
+        if (typeof artifactComponentRef !== 'string') {
           errors.push(
-            `Agent '${subAgentId}' references non-existent artifactComponent '${artifactComponentId}'`
+            `Agent '${subAgentId}' has artifactComponent reference that is not a string ID: ${JSON.stringify(artifactComponentRef)}`
+          );
+          continue;
+        }
+
+        // Validate that the referenced component exists
+        if (!availableArtifactComponentIds.has(artifactComponentRef)) {
+          errors.push(
+            `Agent '${subAgentId}' references non-existent artifactComponent '${artifactComponentRef}'`
           );
         }
       }
     }
+  }
+
+  if (warnings.length > 0) {
+    console.warn(`ArtifactComponent reference warnings:\n${warnings.join('\n')}`);
   }
 
   if (errors.length > 0) {
