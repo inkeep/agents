@@ -112,8 +112,11 @@ export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) 
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
+              // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
+              ...(agentId ? { 'x-target-agent-id': agentId } : {}),
+              // conversationId and messageId from the 'try now' improve with AI button.
               ...(dynamicHeaders?.conversationId
                 ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
                 : {}),
