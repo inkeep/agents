@@ -136,9 +136,9 @@ export function createRegisterTool(
       server.tool(
         tool.name,
         tool.description,
-        tool.args,
+        tool.args as any,
         tool.annotations,
-        async (args, ctx) => {
+        async (args: any, ctx: any) => {
           return tool.tool(getSDK(), args, ctx);
         },
       );

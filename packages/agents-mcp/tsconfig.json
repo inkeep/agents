@@ -1,5 +1,3 @@
-
-
 {
   "compilerOptions": {
     "allowJs": true,
@@ -30,6 +28,11 @@
     "target": "es2022",
     "tsBuildInfoFile": ".tsbuildinfo",
     "useUnknownInCatchVariables": true,
+    "baseUrl": ".",
+    "paths": {
+      "zod": ["./node_modules/zod"],
+      "zod/*": ["./node_modules/zod/*"]
+    }
   },
   "exclude": ["node_modules"],
   "include": ["src/**/*.ts"]

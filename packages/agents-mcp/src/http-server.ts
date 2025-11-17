@@ -7,7 +7,6 @@ const app = express();
 app.use(express.json());
 
 app.post('/mcp', async (req, res) => {
-  console.log('MCP request received');
   // Key Component #1: Create the MCP server instance
   const mcpServer = createMCPServer({
     logger: createConsoleLogger('warning'), // or info/debug/error
@@ -25,7 +24,7 @@ app.post('/mcp', async (req, res) => {
   await mcpTransport.handleRequest(req, res, req.body);
 });
 
-app.get('/mcp', async (req, res) => {
+app.get('/mcp', async (_req, res) => {
   res.status(405).send('Method not allowed: SSE not implemented.');
 });
 
