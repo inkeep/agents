@@ -1,0 +1,353 @@
+---
+title: Tool Approvals
+description: Configure tools to require user approval before execution for enhanced control and safety
+icon: Shield
+keywords: tool approvals, user confirmation, tool safety, execution control, MCP tools
+---
+
+# Tool Approvals
+
+Tool approvals allow you to configure specific tools to require explicit user confirmation before execution. This provides enhanced control over potentially sensitive or destructive operations.
+
+## Overview
+
+When a tool is configured to require approval:
+
+1. **Agent pauses execution** when the tool is called
+2. **Approval request emitted** in the data stream with tool details
+3. **User sees approval UI** with tool name, arguments, and approve/deny options
+4. **Execution continues** only after user approval
+5. **Tool executes normally** with the original arguments
+
+## Configuration
+
+### SDK Configuration
+
+Configure tool approvals using the `McpToolSelection` format when defining agent tools:
+
+```typescript
+import { agent, tool } from "@inkeep/agents-sdk";
+
+// Configure tools with approval requirements
+const weatherAgent = agent("weather-forecast")
+  .prompt("You help users get weather information.")
+  .canUse(
+    tool("weather-mcp").with({
+      selectedTools: [
+        "get_current_weather", // No approval required
+        {
+          name: "get_weather_forecast",
+          needsApproval: true, // Requires user approval
+        },
+        {
+          name: "delete_weather_data",
+          needsApproval: true, // Requires user approval
+        },
+      ],
+    })
+  );
+```
+
+### Visual Builder Configuration
+
+In the visual builder, configure tool approvals using the unified tool grid:
+
+1. **Navigate to your agent** in the visual builder
+2. **Select an MCP tool node** connected to your agent
+3. **Use the tool configuration grid** with two columns:
+   - **Tool column**: Check to select/deselect tools
+   - **Approval column**: Check to require approval (only enabled for selected tools)
+
+<Image
+  src="/images/tools-approval.png"
+  alt="Copy Trace button in the timeline view for exporting conversation traces"
+/>
+
+## Runtime Behavior
+
+### Agent Execution Flow
+
+When an agent encounters a tool requiring approval:
+
+```
+1. Agent calls tool → 2. Execution pauses → 3. Approval request emitted
+                                                           ↓
+6. Tool executes ← 5. Execution resumes ← 4. User approves/denies
+```
+
+### Event Stream Integration
+
+Tool approval requests appear in the data stream as enhanced `tool_call` events:
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_call",
+    "label": "Tool call: delete_weather_data",
+    "details": {
+      "timestamp": 1726247200000,
+      "subAgentId": "weather-agent",
+      "data": {
+        "toolName": "delete_weather_data",
+        "input": {
+          "location": "San Francisco",
+          "date_range": "2024-01-01_to_2024-12-31"
+        },
+        "toolCallId": "call_abc123def456",
+        "needsApproval": true,
+        "conversationId": "conv_xyz789"
+      }
+    }
+  }
+}
+```
+
+**Key fields for approval handling:**
+
+- `needsApproval: true` - Indicates approval is required
+- `toolCallId` - Unique identifier for this tool execution
+- `conversationId` - Conversation context for the approval request
+- `input` - Tool arguments for user review
+
+## Approval API
+
+### Endpoint
+
+```
+POST /api/tool-approvals
+```
+
+### Authentication
+
+Requires the same API key authentication as chat endpoints:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Request Format
+
+```json
+{
+  "conversationId": "conv_xyz789",
+  "toolCallId": "call_abc123def456",
+  "approved": true,
+  "reason": "User confirmed the operation" // Optional
+}
+```
+
+**Parameters:**
+
+- `conversationId` - The conversation context (from tool_call event)
+- `toolCallId` - The specific tool execution to approve/deny (from tool_call event)
+- `approved` - `true` to approve, `false` to deny
+- `reason` - Optional explanation for the decision
+
+### Response Format
+
+**Success (200):**
+
+```json
+{
+  "success": true,
+  "message": "Tool execution approved"
+}
+```
+
+**Error (404):**
+
+```json
+{
+  "error": "Tool call not found or already processed"
+}
+```
+
+### Example Usage
+
+```bash
+curl -X POST http://localhost:3003/api/tool-approvals \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conversationId": "conv_xyz789",
+    "toolCallId": "call_abc123def456",
+    "approved": true,
+    "reason": "User confirmed deletion is safe"
+  }'
+```
+
+## Client Integration
+
+### Detecting Approval Requests
+
+Monitor the event stream for `tool_call` events with `needsApproval: true`:
+
+```javascript
+// Example using EventSource for SSE
+const eventSource = new EventSource("<RUN_API_URL>/api/chat");
+
+eventSource.onmessage = (event) => {
+  const { type, data } = JSON.parse(event.data);
+
+  if (
+    type === "data-operation" &&
+    data.type === "tool_call" &&
+    data.details.data.needsApproval
+  ) {
+    const { toolName, input, toolCallId, conversationId } = data.details.data;
+
+    // Show approval UI to user
+    showApprovalUI({
+      toolName,
+      arguments: input,
+      onApprove: () => sendApproval(conversationId, toolCallId, true),
+      onDeny: () => sendApproval(conversationId, toolCallId, false),
+    });
+  }
+};
+```
+
+### Sending Approval Responses
+
+```javascript
+async function sendApproval(
+  conversationId,
+  toolCallId,
+  approved,
+  reason = null
+) {
+  try {
+    const response = await fetch("<RUN_API_URL>/api/tool-approvals", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        conversationId,
+        toolCallId,
+        approved,
+        ...(reason && { reason }),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Approval failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("Approval processed:", result.message);
+  } catch (error) {
+    console.error("Failed to process approval:", error);
+  }
+}
+```
+
+### React Integration Example
+
+```tsx
+import { useState, useEffect } from "react";
+import { useChat } from "ai/react";
+
+interface ApprovalRequest {
+  toolName: string;
+  input: any;
+  toolCallId: string;
+  conversationId: string;
+}
+
+export function ChatWithApprovals() {
+  const [approvalRequest, setApprovalRequest] =
+    useState<ApprovalRequest | null>(null);
+
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: "/api/chat",
+    headers: {
+      "x-emit-operations": "true", // Enable data operations
+    },
+  });
+
+  // Monitor messages for tool approval requests
+  useEffect(() => {
+    // Find the latest data operation message
+    const latestDataOp = messages
+      .filter((msg) => msg.data)
+      .reverse()
+      .find((msg) => {
+        const data = msg.data;
+        return (
+          data.type === "data-operation" &&
+          data.data?.type === "tool_call" &&
+          data.data?.details?.data?.needsApproval
+        );
+      });
+
+    if (latestDataOp?.data) {
+      const { toolName, input, toolCallId, conversationId } =
+        latestDataOp.data.data.details.data;
+
+      // Only show approval if we haven't already handled this tool call
+      if (!approvalRequest || approvalRequest.toolCallId !== toolCallId) {
+        setApprovalRequest({
+          toolName,
+          input,
+          toolCallId,
+          conversationId,
+        });
+      }
+    }
+  }, [messages, approvalRequest]);
+
+  const handleApproval = async (approved: boolean) => {
+    if (!approvalRequest) return;
+
+    try {
+      await sendApproval(
+        approvalRequest.conversationId,
+        approvalRequest.toolCallId,
+        approved
+      );
+
+      setApprovalRequest(null);
+    } catch (error) {
+      console.error("Approval failed:", error);
+    }
+  };
+
+  return (
+    <div>
+      {/* Chat messages */}
+      <div>
+        {messages
+          .filter((msg) => msg.role !== "data") // Hide data operations from chat
+          .map((message) => (
+            <div key={message.id}>
+              <strong>{message.role}:</strong> {message.content}
+            </div>
+          ))}
+      </div>
+
+      {/* Chat input */}
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={handleInputChange}
+          placeholder="Ask me anything..."
+        />
+        <button type="submit">Send</button>
+      </form>
+
+      {/* Approval modal */}
+      {approvalRequest && (
+        <ApprovalDialog
+          toolName={approvalRequest.toolName}
+          arguments={approvalRequest.input}
+          onApprove={() => handleApproval(true)}
+          onDeny={() => handleApproval(false)}
+        />
+      )}
+    </div>
+  );
+}
+```
