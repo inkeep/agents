@@ -2,6 +2,7 @@ import type { FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
   createEvaluationResult,
   createEvaluationRun,
+  deleteEvaluationResult,
   type Filter,
   generateId,
   getConversation,
@@ -13,6 +14,7 @@ import {
   getEvaluationSuiteConfigEvaluatorRelations,
   getEvaluatorById,
   getFullAgent,
+  listEvaluationResultsByConversation,
   listEvaluationRunConfigs,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
@@ -155,9 +157,15 @@ export class ConversationEvaluationTrigger {
     const { tenantId, projectId, conversationId, specificRunConfigIds } = params;
 
     try {
-      logger.info(
-        { tenantId, projectId, conversationId, specificRunConfigIds },
-        'Triggering evaluations for conversation'
+      logger.warn(
+        {
+          tenantId,
+          projectId,
+          conversationId,
+          specificRunConfigIds,
+          isExplicitTrigger: !!specificRunConfigIds && specificRunConfigIds.length > 0,
+        },
+        '=== TRIGGERING EVALUATIONS FOR CONVERSATION ==='
       );
 
       // Get the conversation
@@ -171,12 +179,32 @@ export class ConversationEvaluationTrigger {
         return;
       }
 
+      // Check if conversation is from a dataset run (needed for filtering)
+      const datasetRunRelation = await getDatasetRunConversationRelationByConversation(dbClient)({
+        scopes: { tenantId, projectId, conversationId },
+      });
+      const isDatasetRunConversation = datasetRunRelation !== null;
+
       // Get evaluation run configs - either specific ones or all active ones
       let runConfigs: typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect[];
       if (specificRunConfigIds && specificRunConfigIds.length > 0) {
+        // Deduplicate specificRunConfigIds to prevent processing the same config twice
+        const uniqueRunConfigIds = [...new Set(specificRunConfigIds)];
+        
+        if (uniqueRunConfigIds.length !== specificRunConfigIds.length) {
+          logger.warn(
+            {
+              originalCount: specificRunConfigIds.length,
+              uniqueCount: uniqueRunConfigIds.length,
+              conversationId,
+            },
+            'Duplicate evaluation run config IDs detected in specificRunConfigIds, deduplicating'
+          );
+        }
+
         // Get specific run configs (for dataset runs - allow inactive ones to be triggered explicitly)
         const configs = await Promise.all(
-          specificRunConfigIds.map(async (runConfigId) => {
+          uniqueRunConfigIds.map(async (runConfigId) => {
             const config = await getEvaluationRunConfigById(dbClient)({
               scopes: { tenantId, projectId, evaluationRunConfigId: runConfigId },
             });
@@ -184,16 +212,43 @@ export class ConversationEvaluationTrigger {
           })
         );
         // Filter out nulls but allow inactive configs when explicitly specified (for dataset runs)
-        runConfigs = configs.filter(
-          (config): config is NonNullable<typeof config> => config !== null
-        );
+        // Also filter out configs that exclude dataset runs if this is a dataset run conversation
+        // (safety check in case old relations exist)
+        // Deduplicate by ID to prevent processing the same config twice
+        const configMap = new Map<string, typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect>();
+        for (const config of configs) {
+          if (config === null) continue;
+          // If this is a dataset run conversation, skip configs that exclude dataset runs
+          if (isDatasetRunConversation && config.excludeDatasetRunConversations) {
+            logger.debug(
+              {
+                runConfigId: config.id,
+                conversationId,
+              },
+              'Filtering out evaluation run config - excludes dataset run conversations (safety check)'
+            );
+            continue;
+          }
+          // Use Map to deduplicate by ID (in case same config was fetched multiple times)
+          if (!configMap.has(config.id)) {
+            configMap.set(config.id, config);
+          }
+        }
+        runConfigs = Array.from(configMap.values());
       } else {
         // Get all active evaluation run configs for the project (normal conversation completion)
         const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
           scopes: { tenantId, projectId },
         });
-        // Filter to only active configs
-        runConfigs = allRunConfigs.filter((config) => config.isActive !== false);
+        // Filter to only active configs and exclude dataset run conversations if this is a dataset run
+        runConfigs = allRunConfigs.filter((config) => {
+          if (config.isActive === false) return false;
+          // Skip configs that exclude dataset runs if this is a dataset run conversation
+          if (isDatasetRunConversation && config.excludeDatasetRunConversations) {
+            return false;
+          }
+          return true;
+        });
       }
 
       if (runConfigs.length === 0) {
@@ -202,30 +257,36 @@ export class ConversationEvaluationTrigger {
       }
 
       logger.info(
-        { tenantId, projectId, activeRunConfigCount: runConfigs.length },
-        'Found active evaluation run configs'
+        {
+          tenantId,
+          projectId,
+          activeRunConfigCount: runConfigs.length,
+          isDatasetRunConversation,
+          isExplicitTrigger: !!(specificRunConfigIds && specificRunConfigIds.length > 0),
+          runConfigIds: runConfigs.map((c) => c.id),
+          runConfigNames: runConfigs.map((c) => c.name),
+        },
+        'Found evaluation run configs'
       );
 
-      // Check if conversation is from a dataset run
-      const datasetRunRelation = await getDatasetRunConversationRelationByConversation(dbClient)({
-        scopes: { tenantId, projectId, conversationId },
-      });
-
-      const isDatasetRunConversation = datasetRunRelation !== null;
       const isExplicitTrigger = specificRunConfigIds && specificRunConfigIds.length > 0;
 
       // Check each run config for matching suite configs
       for (const runConfig of runConfigs) {
         try {
           // Skip if this config excludes dataset run conversations and this is a dataset run conversation
-          // BUT only skip for automatic triggers - explicit triggers from dataset runs should always run
-          if (runConfig.excludeDatasetRunConversations && isDatasetRunConversation && !isExplicitTrigger) {
-            logger.debug(
+          // This applies to both automatic and explicit triggers - if a config excludes dataset runs,
+          // it should never run for dataset conversations
+          if (runConfig.excludeDatasetRunConversations && isDatasetRunConversation) {
+            logger.warn(
               {
                 runConfigId: runConfig.id,
+                runConfigName: runConfig.name,
                 conversationId,
+                isExplicitTrigger,
+                specificRunConfigIds,
               },
-              'Skipping evaluation run config - excludes dataset run conversations (automatic trigger)'
+              'Skipping evaluation run config - excludes dataset run conversations'
             );
             continue;
           }
@@ -347,12 +408,35 @@ export class ConversationEvaluationTrigger {
     );
 
     // Create evaluation run
+    const evaluationRunId = generateId();
+    logger.warn(
+      {
+        evaluationRunId,
+        tenantId,
+        projectId,
+        evaluationRunConfigId: runConfigId,
+        conversationId,
+        matchingSuiteConfigCount: matchingSuiteConfigs.length,
+      },
+      'Creating evaluation run'
+    );
+    
     const evaluationRun = await createEvaluationRun(dbClient)({
-      id: generateId(),
+      id: evaluationRunId,
       tenantId,
       projectId,
       evaluationRunConfigId: runConfigId,
     });
+    
+    logger.warn(
+      {
+        id: evaluationRun.id,
+        evaluationRunConfigId: evaluationRun.evaluationRunConfigId,
+        tenantId: evaluationRun.tenantId,
+        projectId: evaluationRun.projectId,
+      },
+      'Evaluation run created'
+    );
 
     // Execute evaluations for each matching suite config
     for (const matchingSuiteConfig of matchingSuiteConfigs) {
@@ -545,10 +629,46 @@ export class ConversationEvaluationTrigger {
     const { tenantId, projectId, conversationId, conversation, evaluator, evaluationRunId } =
       params;
 
-    logger.info(
-      { conversationId, evaluatorId: evaluator.id, evaluationRunId },
-      'Executing evaluation'
+    logger.warn(
+      {
+        conversationId,
+        evaluatorId: evaluator.id,
+        evaluationRunId,
+        conversationActiveSubAgentId: conversation.activeSubAgentId,
+        conversationCreatedAt: conversation.createdAt,
+      },
+      '=== EXECUTING EVALUATION ==='
     );
+
+    // Check for existing evaluation results with the same conversationId and evaluatorId
+    const existingResults = await listEvaluationResultsByConversation(dbClient)({
+      scopes: { tenantId, projectId, conversationId },
+    });
+
+    // Filter to only results with the same evaluatorId
+    const matchingResults = existingResults.filter(
+      (result) => result.evaluatorId === evaluator.id
+    );
+
+    // Delete existing evaluation results for this conversation and evaluator
+    if (matchingResults.length > 0) {
+      logger.info(
+        {
+          conversationId,
+          evaluatorId: evaluator.id,
+          existingResultCount: matchingResults.length,
+        },
+        'Deleting existing evaluation results before creating new one'
+      );
+
+      await Promise.all(
+        matchingResults.map((result) =>
+          deleteEvaluationResult(dbClient)({
+            scopes: { tenantId, projectId, evaluationResultId: result.id },
+          })
+        )
+      );
+    }
 
     // Create evaluation result record
     const evalResult = await createEvaluationResult(dbClient)({
@@ -608,10 +728,25 @@ export class ConversationEvaluationTrigger {
       }
 
       // Wait 30 seconds before fetching trace to allow it to be available
-      logger.info({ conversationId }, 'Waiting 30 seconds before fetching trace');
+      logger.warn(
+        {
+          conversationId,
+          evaluatorId: evaluator.id,
+          evaluationRunId,
+        },
+        '=== WAITING 30 SECONDS BEFORE FETCHING TRACE ==='
+      );
       await new Promise((resolve) => setTimeout(resolve, 30000));
 
       // Fetch trace from SigNoz
+      logger.warn(
+        {
+          conversationId,
+          evaluatorId: evaluator.id,
+          evaluationRunId,
+        },
+        '=== FETCHING TRACE FROM SIGNOZ FOR CONVERSATION ==='
+      );
       const prettifiedTrace = await this.fetchTraceFromSigNoz(conversationId);
 
       logger.info(

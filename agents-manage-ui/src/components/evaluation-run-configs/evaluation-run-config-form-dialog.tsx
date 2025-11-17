@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -93,6 +94,7 @@ export function EvaluationRunConfigFormDialog({
   onOpenChange,
   trigger,
 }: EvaluationRunConfigFormDialogProps) {
+  const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [suiteConfigs, setSuiteConfigs] = useState<EvaluationSuiteConfig[]>([]);
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
@@ -219,6 +221,7 @@ export function EvaluationRunConfigFormDialog({
         name: data.name,
         description: data.description,
         isActive: data.isActive,
+        excludeDatasetRunConversations: data.excludeDatasetRunConversations,
         suiteConfigIds: data.suiteConfigIds,
       };
 
@@ -233,6 +236,8 @@ export function EvaluationRunConfigFormDialog({
         toast.success(`Evaluation run config ${runConfigId ? 'updated' : 'created'}`);
         setIsOpen(false);
         form.reset();
+        // Refresh the page to get updated data from server
+        router.refresh();
       } else {
         toast.error(
           result.error || `Failed to ${runConfigId ? 'update' : 'create'} evaluation run config`

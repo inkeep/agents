@@ -1,5 +1,5 @@
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRunConfig {
@@ -49,7 +49,7 @@ export async function fetchDatasetRunConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<DatasetRunConfig>>(
+  return makeEvalApiRequest<ListResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/run-configs`
   );
 }
@@ -62,7 +62,7 @@ export async function fetchDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<SingleResponse<DatasetRunConfigWithRelations>>(
+  return makeEvalApiRequest<SingleResponse<DatasetRunConfigWithRelations>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`
   );
 }
@@ -75,7 +75,7 @@ export async function createDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
+  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs`,
     {
       method: 'POST',
@@ -93,7 +93,7 @@ export async function updateDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
+  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`,
     {
       method: 'PATCH',
@@ -110,7 +110,7 @@ export async function deleteDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
+  await makeEvalApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`,
     {
       method: 'DELETE',

@@ -5,7 +5,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationSuiteConfig {
@@ -39,7 +39,7 @@ export async function fetchEvaluationSuiteConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<EvaluationSuiteConfig>>(
+  return makeEvalApiRequest<ListResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs`
   );
 }
@@ -55,7 +55,7 @@ export async function fetchEvaluationSuiteConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
+  return makeEvalApiRequest<SingleResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs/${configId}`
   );
 }
@@ -71,7 +71,7 @@ export async function fetchEvaluationSuiteConfigEvaluators(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<{ evaluatorId: string }>>(
+  return makeEvalApiRequest<ListResponse<{ evaluatorId: string }>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs/${configId}/evaluators`
   );
 }
@@ -87,7 +87,7 @@ export async function createEvaluationSuiteConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
+  const response = await makeEvalApiRequest<SingleResponse<EvaluationSuiteConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs`,
     {
       method: 'POST',

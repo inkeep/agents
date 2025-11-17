@@ -12,11 +12,11 @@ export async function createEvaluationRunConfigAction(
   tenantId: string,
   projectId: string,
   data: Parameters<typeof createEvaluationRunConfig>[2]
-): Promise<ActionResult> {
+): Promise<ActionResult<Awaited<ReturnType<typeof createEvaluationRunConfig>>>> {
   try {
-    await createEvaluationRunConfig(tenantId, projectId, data);
+    const created = await createEvaluationRunConfig(tenantId, projectId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/evaluations`);
-    return { success: true };
+    return { success: true, data: created };
   } catch (error) {
     return {
       success: false,

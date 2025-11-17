@@ -236,6 +236,7 @@ export const listDatasetItems =
         eq(datasetItem.projectId, params.scopes.projectId),
         eq(datasetItem.datasetId, params.scopes.datasetId)
       ),
+      orderBy: desc(datasetItem.updatedAt),
     });
   };
 

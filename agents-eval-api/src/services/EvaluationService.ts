@@ -279,6 +279,9 @@ export class EvaluationService {
       'x-inkeep-tenant-id': tenantId,
       'x-inkeep-project-id': projectId,
       'x-inkeep-agent-id': agentId,
+      // Pass datasetRunConfigId as a header to indicate this is a dataset run conversation
+      // This allows the chat API to skip automatic evaluation triggers
+      ...(datasetRunConfigId && { 'x-inkeep-dataset-run-config-id': datasetRunConfigId }),
     };
 
     logger.info(
@@ -307,10 +310,12 @@ export class EvaluationService {
           statusText: response.statusText,
           errorText,
           datasetItemId: datasetItem.id,
+          conversationId,
         },
         'Chat API request failed'
       );
       return {
+        conversationId,
         error: `Chat API error: ${response.status} ${response.statusText}`,
       };
     }
@@ -563,10 +568,50 @@ Generate the next user message:`;
       return null;
     }
 
+    // Valid roles for OpenAI-compatible chat API
+    const validRoles = ['system', 'user', 'assistant', 'function', 'tool'] as const;
+    type ValidRole = (typeof validRoles)[number];
+
+    // Map UI roles to API roles (UI uses "agent" but API expects "assistant")
+    const roleMap: Record<string, ValidRole> = {
+      agent: 'assistant',
+      user: 'user',
+      system: 'system',
+      assistant: 'assistant',
+      function: 'function',
+      tool: 'tool',
+    };
+
     // Handle different input formats
     if (typeof datasetItem.input === 'object' && 'messages' in datasetItem.input) {
       const input = datasetItem.input as { messages: Array<{ role: string; content: unknown }> };
-      return input.messages;
+      // Filter and validate message roles - map "agent" to "assistant" and filter invalid roles
+      const validMessages = input.messages
+        .map((msg) => {
+          const mappedRole = roleMap[msg.role.toLowerCase()];
+          if (!mappedRole) {
+            logger.warn(
+              { datasetItemId: datasetItem.id, invalidRole: msg.role },
+              'Invalid message role found, skipping message'
+            );
+            return null;
+          }
+          return {
+            role: mappedRole,
+            content: msg.content,
+          };
+        })
+        .filter((msg): msg is { role: ValidRole; content: unknown } => msg !== null);
+      
+      if (validMessages.length === 0) {
+        logger.warn(
+          { datasetItemId: datasetItem.id, totalMessages: input.messages.length },
+          'No valid messages found after filtering roles'
+        );
+        return null;
+      }
+      
+      return validMessages;
     }
 
     // Fallback: if input is a string, try to parse it
@@ -574,7 +619,25 @@ Generate the next user message:`;
       try {
         const parsed = JSON.parse(datasetItem.input);
         if (parsed.messages && Array.isArray(parsed.messages)) {
-          return parsed.messages;
+          // Apply the same role mapping for parsed messages
+          const validMessages = parsed.messages
+            .map((msg: { role: string; content: unknown }) => {
+              const mappedRole = roleMap[msg.role?.toLowerCase()];
+              if (!mappedRole) {
+                logger.warn(
+                  { datasetItemId: datasetItem.id, invalidRole: msg.role },
+                  'Invalid message role found in parsed input, skipping message'
+                );
+                return null;
+              }
+              return {
+                role: mappedRole,
+                content: msg.content,
+              };
+            })
+            .filter((msg): msg is { role: ValidRole; content: unknown } => msg !== null);
+          
+          return validMessages.length > 0 ? validMessages : null;
         }
       } catch {
         // If parsing fails, create a single user message from the string

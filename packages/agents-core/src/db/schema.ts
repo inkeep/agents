@@ -942,6 +942,7 @@ export const datasetRun = pgTable(
  * conversations were generated from which dataset run.
  * 
  * Includes: datasetRunId (composite FK to datasetRun), conversationId (composite FK to conversations),
+ * datasetItemId (composite FK to datasetItem) to directly link conversations to their source dataset items,
  * unique constraint on (datasetRunId, conversationId) ensures one conversation per datasetRun,
  * and timestamps
  */
@@ -951,6 +952,7 @@ export const datasetRunConversationRelations = pgTable(
     ...projectScoped,
     datasetRunId: text('dataset_run_id').notNull(),
     conversationId: text('conversation_id').notNull(),
+    datasetItemId: text('dataset_item_id').notNull(),
     ...timestamps,
   },
   (table) => [
@@ -964,6 +966,11 @@ export const datasetRunConversationRelations = pgTable(
       columns: [table.tenantId, table.projectId, table.conversationId],
       foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
       name: 'dataset_run_conversation_relations_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetItemId],
+      foreignColumns: [datasetItem.tenantId, datasetItem.projectId, datasetItem.id],
+      name: 'dataset_run_conversation_relations_item_fk',
     }).onDelete('cascade'),
     unique('dataset_run_conversation_relations_unique').on(
       table.datasetRunId,
@@ -1261,7 +1268,7 @@ export const evaluationResult = pgTable(
       columns: [table.tenantId, table.projectId, table.evaluationRunId],
       foreignColumns: [evaluationRun.tenantId, evaluationRun.projectId, evaluationRun.id],
       name: 'evaluation_result_evaluation_run_fk',
-    }).onDelete('set null'),
+    }).onDelete('cascade'),
   ]
 );
 

@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetItem {
@@ -68,7 +68,7 @@ export async function fetchDatasetItems(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<DatasetItem>>(
+  return makeEvalApiRequest<ListResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/items`
   );
 }
@@ -85,7 +85,7 @@ export async function fetchDatasetItem(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
+  const response = await makeEvalApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/items/${itemId}`
   );
 
@@ -104,7 +104,7 @@ export async function createDatasetItem(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
+  const response = await makeEvalApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/items`,
     {
       method: 'POST',
@@ -128,7 +128,7 @@ export async function updateDatasetItem(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
+  const response = await makeEvalApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/items/${itemId}`,
     {
       method: 'PATCH',
@@ -151,7 +151,7 @@ export async function deleteDatasetItem(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
+  await makeEvalApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/items/${itemId}`,
     {
       method: 'DELETE',

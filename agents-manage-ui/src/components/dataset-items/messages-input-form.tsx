@@ -179,7 +179,7 @@ export function MessagesInputForm<T extends FieldValues>({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
+                        <SelectItem value="assistant">Assistant</SelectItem>
                         <SelectItem value="system">System</SelectItem>
                       </SelectContent>
                     </Select>

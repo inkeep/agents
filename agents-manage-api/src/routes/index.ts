@@ -7,7 +7,6 @@ import contextConfigsRoutes from './contextConfigs';
 import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
 import dataComponentsRoutes from './dataComponents';
-import evaluationsRoutes from './evaluations';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
@@ -61,7 +60,6 @@ app.route('/projects/:projectId/agents/:agentId/function-tools', functionToolsRo
 app.route('/projects/:projectId/functions', functionsRoutes);
 app.route('/projects/:projectId/tools', toolsRoutes);
 app.route('/projects/:projectId/api-keys', apiKeysRoutes);
-app.route('/projects/:projectId/evaluations', evaluationsRoutes);
 
 // Mount new full agent routes
 app.route('/projects/:projectId/agent', agentFullRoutes);

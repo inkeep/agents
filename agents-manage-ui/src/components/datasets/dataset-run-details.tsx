@@ -124,7 +124,9 @@ export function DatasetRunDetails({
                 {run.items.map((item) => {
                   // Get the first conversation for this item (or show all if multiple)
                   const primaryConversation = item.conversations?.[0];
-                  const runAt = primaryConversation?.createdAt || item.createdAt;
+                  // Use the dataset run's createdAt as the "Run At" time, not the conversation's createdAt
+                  // This ensures all items show the same run time, not random times based on async processing
+                  const runAt = primaryConversation?.createdAt || run.createdAt;
 
                   // Extract input text from the item
                   const getInputPreview = (): string => {

@@ -9,7 +9,9 @@ import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
+let INKEEP_AGENTS_EVAL_API_URL: string | null = null;
 let hasWarnedManageApi = false;
+let hasWarnedEvalApi = false;
 
 function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
@@ -24,6 +26,27 @@ function getManageApiUrl(): string {
     }
   }
   return INKEEP_AGENTS_MANAGE_API_URL;
+}
+
+function getEvalApiUrl(): string {
+  if (INKEEP_AGENTS_EVAL_API_URL === null) {
+    INKEEP_AGENTS_EVAL_API_URL =
+      process.env.INKEEP_AGENTS_EVAL_API_URL ||
+      process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL ||
+      'http://localhost:3005';
+
+    if (
+      !process.env.INKEEP_AGENTS_EVAL_API_URL &&
+      !process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL &&
+      !hasWarnedEvalApi
+    ) {
+      console.warn(
+        `INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`
+      );
+      hasWarnedEvalApi = true;
+    }
+  }
+  return INKEEP_AGENTS_EVAL_API_URL;
 }
 
 async function makeApiRequestInternal<T>(
@@ -136,4 +159,12 @@ export async function makeManagementApiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
+}
+
+// Evaluation API requests (evaluations, datasets, evaluation runs)
+export async function makeEvalApiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  return makeApiRequestInternal<T>(getEvalApiUrl(), endpoint, options);
 }

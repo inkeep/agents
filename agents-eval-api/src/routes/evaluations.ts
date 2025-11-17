@@ -60,7 +60,6 @@ import {
   listEvaluationSuiteConfigs,
   listEvaluators,
   SingleResponseSchema,
-  TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateDataset,
   updateDatasetItem,
@@ -774,7 +773,7 @@ app.openapi(
     operationId: 'get-evaluator',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ evaluatorId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ evaluatorId: z.string() }),
     },
     responses: {
       200: {
@@ -876,7 +875,7 @@ app.openapi(
     operationId: 'update-evaluator',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ evaluatorId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ evaluatorId: z.string() }),
       body: {
         content: {
           'application/json': {
@@ -934,7 +933,7 @@ app.openapi(
     operationId: 'delete-evaluator',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ evaluatorId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ evaluatorId: z.string() }),
     },
     responses: {
       204: {
@@ -1869,6 +1868,9 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
 
+    console.log('=== GET EVALUATION RESULTS FOR RUN CONFIG ===');
+    console.log('Request params:', { tenantId, projectId, configId });
+
     try {
       // Find evaluation run(s) for this run config
       const evaluationRuns = await listEvaluationRuns(dbClient)({
@@ -1877,25 +1879,61 @@ app.openapi(
 
       const runConfigRuns = evaluationRuns.filter((run) => run.evaluationRunConfigId === configId);
 
+      console.log('Found evaluation runs for run config:', {
+        tenantId,
+        projectId,
+        configId,
+        totalEvaluationRuns: evaluationRuns.length,
+        matchingRunConfigRuns: runConfigRuns.length,
+        runConfigRunIds: runConfigRuns.map((r) => r.id),
+        allEvaluationRunConfigIds: evaluationRuns.map((r) => ({
+          id: r.id,
+          evaluationRunConfigId: r.evaluationRunConfigId,
+        })),
+      });
+
       if (runConfigRuns.length === 0) {
+        console.warn('No evaluation runs found for run config:', {
+          tenantId,
+          projectId,
+          configId,
+          totalEvaluationRuns: evaluationRuns.length,
+        });
         return c.json({ data: [], pagination: { page: 1, limit: 100, total: 0, pages: 0 } }) as any;
       }
 
       // Get all results for all runs
       const allResults = await Promise.all(
-        runConfigRuns.map((run) =>
-          listEvaluationResultsByRun(dbClient)({
+        runConfigRuns.map(async (run) => {
+          const runResults = await listEvaluationResultsByRun(dbClient)({
             scopes: { tenantId, projectId, evaluationRunId: run.id },
-          })
-        )
+          });
+          console.log('Results for evaluation run:', {
+            evaluationRunId: run.id,
+            resultCount: runResults.length,
+            conversationIds: runResults.map((r) => r.conversationId),
+            evaluatorIds: runResults.map((r) => r.evaluatorId),
+          });
+          return runResults;
+        })
       );
 
       const results = allResults.flat();
 
-      logger.info(
-        { tenantId, projectId, configId, resultCount: results.length },
-        'Retrieved evaluation results for run config'
-      );
+      console.log('Retrieved evaluation results for run config:', {
+        tenantId,
+        projectId,
+        configId,
+        resultCount: results.length,
+        evaluationRunCount: runConfigRuns.length,
+        uniqueConversationIds: [...new Set(results.map((r) => r.conversationId))],
+        allResults: results.map((r) => ({
+          id: r.id,
+          conversationId: r.conversationId,
+          evaluatorId: r.evaluatorId,
+          evaluationRunId: r.evaluationRunId,
+        })),
+      });
 
       return c.json({
         data: results as any[],
@@ -1934,7 +1972,7 @@ app.openapi(
     operationId: 'get-evaluation-result',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ resultId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
     },
     responses: {
       200: {
@@ -2045,7 +2083,7 @@ app.openapi(
     operationId: 'update-evaluation-result',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ resultId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
       body: {
         content: {
           'application/json': {
@@ -2106,7 +2144,7 @@ app.openapi(
     operationId: 'delete-evaluation-result',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ resultId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ resultId: z.string() }),
     },
     responses: {
       204: {
@@ -2201,7 +2239,7 @@ app.openapi(
     operationId: 'get-dataset-run-config',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ runConfigId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
     },
     responses: {
       200: {
@@ -2335,48 +2373,160 @@ app.openapi(
         );
       }
 
-      // Create evaluation run config relations if provided
-      // Support both old format (array of strings) and new format (array of objects with enabled)
-      if (
-        evaluationRunConfigs &&
-        Array.isArray(evaluationRunConfigs) &&
-        evaluationRunConfigs.length > 0
-      ) {
-        await Promise.all(
-          evaluationRunConfigs.map((evalRunConfig: { id: string; enabled?: boolean }) =>
-            createDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
-              tenantId,
-              projectId,
-              id: generateId(),
-              datasetRunConfigId: id,
-              evaluationRunConfigId: evalRunConfig.id,
+      // Create evaluation run config relations
+      // Only link when triggerEvaluations is true
+      // Link all active evaluation run configs that:
+      // - Match the agent filter criteria (from suite configs)
+      // - Have excludeDatasetRunConversations=false (enabled for dataset runs)
+      if (triggerEvaluations) {
+        let configsToLink: Array<{ id: string; enabled: boolean }> = [];
+
+        if (
+          evaluationRunConfigs &&
+          Array.isArray(evaluationRunConfigs) &&
+          evaluationRunConfigs.length > 0
+        ) {
+          // Use provided configs (new format with enabled flag)
+          configsToLink = evaluationRunConfigs.map(
+            (evalRunConfig: { id: string; enabled?: boolean }) => ({
+              id: evalRunConfig.id,
               enabled: evalRunConfig.enabled !== undefined ? evalRunConfig.enabled : true,
-            } as any)
-          )
-        );
-      } else if (
-        evaluationRunConfigIds &&
-        Array.isArray(evaluationRunConfigIds) &&
-        evaluationRunConfigIds.length > 0
-      ) {
-        // Backward compatibility: array of strings defaults to enabled=true
-        await Promise.all(
-          evaluationRunConfigIds.map((evalRunConfigId: string) =>
-            createDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+            })
+          );
+        } else if (
+          evaluationRunConfigIds &&
+          Array.isArray(evaluationRunConfigIds) &&
+          evaluationRunConfigIds.length > 0
+        ) {
+          // Backward compatibility: array of strings defaults to enabled=true
+          configsToLink = evaluationRunConfigIds.map((evalRunConfigId: string) => ({
+            id: evalRunConfigId,
+            enabled: true,
+          }));
+        } else {
+          // No specific configs provided - automatically fetch active evaluation run configs
+          // that match the selected agents based on their suite config filters
+          // and are enabled for dataset runs (excludeDatasetRunConversations=false)
+          const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
+            scopes: { tenantId, projectId },
+          });
+          // Filter to active configs that are enabled for dataset runs
+          const activeRunConfigs = allRunConfigs.filter(
+            (config) => config.isActive !== false && config.excludeDatasetRunConversations === false
+          );
+
+          // Filter evaluation run configs based on suite config agent filters
+          const matchingRunConfigs: typeof activeRunConfigs = [];
+          for (const runConfig of activeRunConfigs) {
+            // Get suite configs for this evaluation run config
+            const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
+              dbClient
+            )({
+              scopes: { tenantId, projectId, evaluationRunConfigId: runConfig.id },
+            });
+
+            if (suiteConfigRelations.length === 0) {
+              // No suite configs means it matches all agents (no filter)
+              matchingRunConfigs.push(runConfig);
+              continue;
+            }
+
+            // Check if any suite config matches the selected agents
+            let hasMatchingSuiteConfig = false;
+            for (const relation of suiteConfigRelations) {
+              const suiteConfig = await getEvaluationSuiteConfigById(dbClient)({
+                scopes: {
+                  tenantId,
+                  projectId,
+                  evaluationSuiteConfigId: relation.evaluationSuiteConfigId,
+                },
+              });
+
+              if (!suiteConfig) continue;
+
+              // Check if suite config filters match the selected agents
+              const filters = suiteConfig.filters;
+              if (!filters || (typeof filters === 'object' && !('agentIds' in filters))) {
+                // No agent filter means it matches all agents
+                hasMatchingSuiteConfig = true;
+                break;
+              }
+
+              // Check if agentIds in filter match any of the selected agents
+              const checkAgentMatch = (filter: any): boolean => {
+                if (filter && typeof filter === 'object') {
+                  // Handle 'and' conditions
+                  if ('and' in filter && Array.isArray(filter.and)) {
+                    return filter.and.every((subFilter: any) => checkAgentMatch(subFilter));
+                  }
+                  // Handle 'or' conditions
+                  if ('or' in filter && Array.isArray(filter.or)) {
+                    return filter.or.some((subFilter: any) => checkAgentMatch(subFilter));
+                  }
+                  // Check agentIds directly
+                  if ('agentIds' in filter && Array.isArray(filter.agentIds)) {
+                    // If no agents selected, skip this config (can't match)
+                    if (!agentIds || agentIds.length === 0) {
+                      return false;
+                    }
+                    // Check if any selected agent matches the filter
+                    return filter.agentIds.some((filterAgentId: string) =>
+                      agentIds.includes(filterAgentId)
+                    );
+                  }
+                }
+                // No agentIds filter means it matches all agents
+                return true;
+              };
+
+              if (checkAgentMatch(filters)) {
+                hasMatchingSuiteConfig = true;
+                break;
+              }
+            }
+
+            if (hasMatchingSuiteConfig) {
+              matchingRunConfigs.push(runConfig);
+            }
+          }
+
+          configsToLink = matchingRunConfigs.map((config) => ({
+            id: config.id,
+            enabled: true,
+          }));
+
+          logger.info(
+            {
               tenantId,
               projectId,
-              id: generateId(),
-              datasetRunConfigId: id,
-              evaluationRunConfigId: evalRunConfigId,
-              enabled: true,
-            } as any)
-          )
-        );
+              activeConfigCount: activeRunConfigs.length,
+              matchingConfigCount: matchingRunConfigs.length,
+              selectedAgentIds: agentIds,
+            },
+            'Automatically linking active evaluation run configs enabled for dataset runs matching selected agents'
+          );
+        }
+
+        // Create relations for all configs to link
+        if (configsToLink.length > 0) {
+          await Promise.all(
+            configsToLink.map((evalRunConfig) =>
+              createDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+                tenantId,
+                projectId,
+                id: generateId(),
+                datasetRunConfigId: id,
+                evaluationRunConfigId: evalRunConfig.id,
+                enabled: evalRunConfig.enabled,
+              } as any)
+            )
+          );
+        }
       }
 
       logger.info({ tenantId, projectId, runConfigId: id }, 'Dataset run config created');
 
-      // Create and execute dataset run
+      // Create dataset run immediately and process items asynchronously
       try {
         const datasetRunId = generateId();
         await createDatasetRun(dbClient)({
@@ -2387,149 +2537,236 @@ app.openapi(
           datasetRunConfigId: id,
         });
 
-        // Get all dataset items
-        const datasetItems = await listDatasetItems(dbClient)({
-          scopes: { tenantId, projectId, datasetId: runConfigData.datasetId },
-        });
-
-        // Get all agents for this run config
-        const agentRelations = await getDatasetRunConfigAgentRelations(dbClient)({
-          scopes: { tenantId, projectId, datasetRunConfigId: id },
-        });
-
-        const evaluationService = new EvaluationService();
-        const conversationRelations: Array<{
-          tenantId: string;
-          projectId: string;
-          id: string;
-          datasetRunId: string;
-          conversationId: string;
-        }> = [];
-
-        for (const agentRelation of agentRelations) {
-          for (const datasetItem of datasetItems) {
-            const result = await evaluationService.runDatasetItem({
-              tenantId,
-              projectId,
-              agentId: agentRelation.agentId,
-              datasetItem,
-              datasetRunConfigId: id,
-            });
-
-            // If we got a successful response, create a conversation relation
-            if (result.response && !result.error && result.conversationId) {
-              conversationRelations.push({
-                tenantId,
-                projectId,
-                id: generateId(),
-                datasetRunId: datasetRunId,
-                conversationId: result.conversationId,
-              });
-            }
-          }
-        }
-
-        // Create conversation relations in batch
-        if (conversationRelations.length > 0) {
-          await Promise.all(
-            conversationRelations.map((relation) =>
-              createDatasetRunConversationRelation(dbClient)(relation as any)
-            )
-          );
-        }
-
         logger.info(
           {
             tenantId,
             projectId,
             runConfigId: id,
             datasetRunId,
-            itemsProcessed: datasetItems.length,
-            agentsUsed: agentRelations.length,
-            conversationsCreated: conversationRelations.length,
           },
-          'Dataset run created and executed'
+          'Dataset run created, processing items asynchronously'
         );
 
-        // Trigger evaluations for all conversations if explicitly requested and evaluation run configs are linked
-        if (triggerEvaluations === true && conversationRelations.length > 0) {
+        // Process dataset items asynchronously (fire-and-forget)
+        const evaluationService = new EvaluationService();
+        (async () => {
           try {
-            // Get linked evaluation run configs for this dataset run config
-            const evalRunConfigRelations = await getDatasetRunConfigEvaluationRunConfigRelations(
-              dbClient
-            )({
+            // Get all dataset items
+            const datasetItems = await listDatasetItems(dbClient)({
+              scopes: { tenantId, projectId, datasetId: runConfigData.datasetId },
+            });
+
+            // Get all agents for this run config
+            const agentRelations = await getDatasetRunConfigAgentRelations(dbClient)({
               scopes: { tenantId, projectId, datasetRunConfigId: id },
             });
 
-            if (evalRunConfigRelations.length > 0) {
-              const specificRunConfigIds = evalRunConfigRelations
-                .filter((rel) => rel.enabled === true)
-                .map((rel) => rel.evaluationRunConfigId);
+            const conversationRelations: Array<{
+              tenantId: string;
+              projectId: string;
+              id: string;
+              datasetRunId: string;
+              conversationId: string;
+              datasetItemId: string;
+            }> = [];
 
-              logger.info(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunConfigId: id,
-                  evaluationRunConfigCount: specificRunConfigIds.length,
-                  conversationCount: conversationRelations.length,
-                },
-                'Triggering evaluations for dataset run conversations'
-              );
-
-              // Trigger evaluations for each conversation asynchronously
-              const runApiUrl = env.AGENTS_RUN_API_URL;
-              for (const relation of conversationRelations) {
-                // Fire-and-forget: trigger evaluations asynchronously
-                fetch(`${runApiUrl}/v1/chat/internal/trigger-evaluations`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    // Use the same API key from the request context if available
-                    // For internal calls, we might need a bypass secret
-                    ...(env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
-                      'x-bypass-secret': env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-                    }),
-                  },
-                  body: JSON.stringify({
+            for (const agentRelation of agentRelations) {
+              for (const datasetItem of datasetItems) {
+                try {
+                  // Pass datasetRunConfigId to the chat API via header so it can skip automatic triggers
+                  // The relation will be created after the conversation completes
+                  const result = await evaluationService.runDatasetItem({
                     tenantId,
                     projectId,
-                    conversationId: relation.conversationId,
-                    specificRunConfigIds,
-                  }),
-                }).catch((error) => {
+                    agentId: agentRelation.agentId,
+                    datasetItem,
+                    datasetRunConfigId: id,
+                  });
+
+                  // Only create conversation relation if the API call succeeded
+                  // If there's an error (especially 400 Bad Request), the conversation may not exist
+                  // Check if we have both a conversationId AND no error (or only a non-blocking error)
+                  const shouldCreateRelation =
+                    result.conversationId &&
+                    (!result.error || !result.error.includes('Chat API error: 400'));
+
+                  if (shouldCreateRelation && result.conversationId) {
+                    const relationId = generateId();
+                    conversationRelations.push({
+                      tenantId,
+                      projectId,
+                      id: relationId,
+                      datasetRunId: datasetRunId,
+                      conversationId: result.conversationId,
+                      datasetItemId: datasetItem.id,
+                    });
+
+                    // Create conversation relation immediately as each item completes
+                    try {
+                      await createDatasetRunConversationRelation(dbClient)({
+                        tenantId,
+                        projectId,
+                        id: relationId,
+                        datasetRunId: datasetRunId,
+                        conversationId: result.conversationId,
+                        datasetItemId: datasetItem.id,
+                      } as any);
+                    } catch (relationError: any) {
+                      // If foreign key constraint fails, the conversation doesn't exist
+                      // Log and continue - this is expected for failed API calls
+                      if (
+                        relationError?.cause?.code === '23503' ||
+                        relationError?.code === '23503'
+                      ) {
+                        logger.warn(
+                          {
+                            tenantId,
+                            projectId,
+                            datasetRunId,
+                            datasetItemId: datasetItem.id,
+                            conversationId: result.conversationId,
+                            error: result.error,
+                          },
+                          'Conversation does not exist, skipping relation creation (API call likely failed)'
+                        );
+                      } else {
+                        throw relationError;
+                      }
+                    }
+                  } else {
+                    logger.warn(
+                      {
+                        tenantId,
+                        projectId,
+                        datasetRunId,
+                        datasetItemId: datasetItem.id,
+                        conversationId: result.conversationId,
+                        error: result.error,
+                      },
+                      'Skipping conversation relation creation due to API error'
+                    );
+                  }
+                } catch (itemError) {
                   logger.error(
                     {
-                      error: error instanceof Error ? error.message : String(error),
-                      conversationId: relation.conversationId,
+                      error: itemError,
+                      tenantId,
+                      projectId,
+                      datasetRunId,
+                      datasetItemId: datasetItem.id,
+                      agentId: agentRelation.agentId,
                     },
-                    'Failed to trigger evaluations for conversation from dataset run'
+                    'Failed to process dataset item (non-blocking)'
                   );
-                });
+                  // Continue processing other items
+                }
               }
-            } else {
-              logger.warn(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunConfigId: id,
-                },
-                'triggerEvaluations is true but no evaluation run configs are linked to this dataset run config'
-              );
             }
-          } catch (evalError) {
-            logger.error(
+
+            logger.info(
               {
-                error: evalError,
                 tenantId,
                 projectId,
-                datasetRunConfigId: id,
+                runConfigId: id,
+                datasetRunId,
+                itemsProcessed: datasetItems.length,
+                agentsUsed: agentRelations.length,
+                conversationsCreated: conversationRelations.length,
               },
-              'Failed to trigger evaluations for dataset run conversations (non-blocking)'
+              'Dataset run processing completed'
             );
-            // Don't fail the dataset run creation if evaluation triggering fails
+
+            // Trigger evaluations for all conversations if explicitly requested and evaluation run configs are linked
+            if (triggerEvaluations === true && conversationRelations.length > 0) {
+              try {
+                // Get linked evaluation run configs for this dataset run config
+                const evalRunConfigRelations =
+                  await getDatasetRunConfigEvaluationRunConfigRelations(dbClient)({
+                    scopes: { tenantId, projectId, datasetRunConfigId: id },
+                  });
+
+                if (evalRunConfigRelations.length > 0) {
+                  const specificRunConfigIds = evalRunConfigRelations
+                    .filter((rel) => rel.enabled === true)
+                    .map((rel) => rel.evaluationRunConfigId);
+
+                  logger.info(
+                    {
+                      tenantId,
+                      projectId,
+                      datasetRunConfigId: id,
+                      evaluationRunConfigCount: specificRunConfigIds.length,
+                      conversationCount: conversationRelations.length,
+                    },
+                    'Triggering evaluations for dataset run conversations'
+                  );
+
+                  // Trigger evaluations for each conversation asynchronously
+                  const runApiUrl = env.AGENTS_RUN_API_URL;
+                  for (const relation of conversationRelations) {
+                    // Fire-and-forget: trigger evaluations asynchronously
+                    fetch(`${runApiUrl}/v1/chat/internal/trigger-evaluations`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        // Use the same API key from the request context if available
+                        // For internal calls, we might need a bypass secret
+                        ...(env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET && {
+                          'x-bypass-secret': env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET,
+                        }),
+                      },
+                      body: JSON.stringify({
+                        tenantId,
+                        projectId,
+                        conversationId: relation.conversationId,
+                        specificRunConfigIds,
+                      }),
+                    }).catch((error) => {
+                      logger.error(
+                        {
+                          error: error instanceof Error ? error.message : String(error),
+                          conversationId: relation.conversationId,
+                        },
+                        'Failed to trigger evaluations for conversation from dataset run'
+                      );
+                    });
+                  }
+                } else {
+                  logger.warn(
+                    {
+                      tenantId,
+                      projectId,
+                      datasetRunConfigId: id,
+                    },
+                    'triggerEvaluations is true but no evaluation run configs are linked to this dataset run config'
+                  );
+                }
+              } catch (evalError) {
+                logger.error(
+                  {
+                    error: evalError,
+                    tenantId,
+                    projectId,
+                    datasetRunConfigId: id,
+                  },
+                  'Failed to trigger evaluations for dataset run conversations (non-blocking)'
+                );
+                // Don't fail the dataset run creation if evaluation triggering fails
+              }
+            }
+          } catch (processError) {
+            logger.error(
+              {
+                error: processError,
+                tenantId,
+                projectId,
+                datasetRunId,
+                runConfigId: id,
+              },
+              'Failed to process dataset run items (non-blocking)'
+            );
           }
-        }
+        })();
       } catch (runError) {
         // Log error but don't fail the config creation
         logger.error(
@@ -2574,7 +2811,7 @@ app.openapi(
     operationId: 'update-dataset-run-config',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ runConfigId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
       body: {
         content: {
           'application/json': {
@@ -2609,8 +2846,13 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, runConfigId } = c.req.valid('param');
     const configData = c.req.valid('json');
-    const { agentIds, evaluationRunConfigIds, evaluationRunConfigs, ...runConfigUpdateData } =
-      configData as any;
+    const {
+      agentIds,
+      evaluationRunConfigIds,
+      evaluationRunConfigs,
+      triggerEvaluations,
+      ...runConfigUpdateData
+    } = configData as any;
 
     try {
       const updated = await updateDatasetRunConfig(dbClient)({
@@ -2660,9 +2902,219 @@ app.openapi(
         );
       }
 
-      // Update evaluation run config relations if provided
-      // Support both old format (array of strings) and new format (array of objects with enabled)
-      if (evaluationRunConfigs !== undefined) {
+      // Update evaluation run config relations
+      // Only link when triggerEvaluations is true
+      // Link all active evaluation run configs that:
+      // - Match the agent filter criteria (from suite configs)
+      // - Have excludeDatasetRunConversations=false (enabled for dataset runs)
+      if (triggerEvaluations !== undefined) {
+        // Get existing relations
+        const existingEvalRunConfigRelations =
+          await getDatasetRunConfigEvaluationRunConfigRelations(dbClient)({
+            scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+          });
+
+        if (triggerEvaluations) {
+          let configsToLink: Array<{ id: string; enabled: boolean }> = [];
+
+          if (
+            evaluationRunConfigs !== undefined &&
+            Array.isArray(evaluationRunConfigs) &&
+            evaluationRunConfigs.length > 0
+          ) {
+            // Use provided configs (new format with enabled flag)
+            configsToLink = evaluationRunConfigs.map(
+              (evalRunConfig: { id: string; enabled?: boolean }) => ({
+                id: evalRunConfig.id,
+                enabled: evalRunConfig.enabled !== undefined ? evalRunConfig.enabled : true,
+              })
+            );
+          } else if (
+            evaluationRunConfigIds !== undefined &&
+            Array.isArray(evaluationRunConfigIds) &&
+            evaluationRunConfigIds.length > 0
+          ) {
+            // Backward compatibility: array of strings defaults to enabled=true
+            configsToLink = evaluationRunConfigIds.map((evalRunConfigId: string) => ({
+              id: evalRunConfigId,
+              enabled: true,
+            }));
+          } else {
+            // No specific configs provided - automatically fetch active evaluation run configs
+            // that match the selected agents based on their suite config filters
+            // and are enabled for dataset runs (excludeDatasetRunConversations=false)
+            const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
+              scopes: { tenantId, projectId },
+            });
+            // Filter to active configs that are enabled for dataset runs
+            const activeRunConfigs = allRunConfigs.filter(
+              (config) =>
+                config.isActive !== false && config.excludeDatasetRunConversations === false
+            );
+
+            // Filter evaluation run configs based on suite config agent filters
+            const matchingRunConfigs: typeof activeRunConfigs = [];
+            for (const runConfig of activeRunConfigs) {
+              // Get suite configs for this evaluation run config
+              const suiteConfigRelations =
+                await getEvaluationRunConfigEvaluationSuiteConfigRelations(dbClient)({
+                  scopes: { tenantId, projectId, evaluationRunConfigId: runConfig.id },
+                });
+
+              if (suiteConfigRelations.length === 0) {
+                // No suite configs means it matches all agents (no filter)
+                matchingRunConfigs.push(runConfig);
+                continue;
+              }
+
+              // Check if any suite config matches the selected agents
+              let hasMatchingSuiteConfig = false;
+              for (const relation of suiteConfigRelations) {
+                const suiteConfig = await getEvaluationSuiteConfigById(dbClient)({
+                  scopes: {
+                    tenantId,
+                    projectId,
+                    evaluationSuiteConfigId: relation.evaluationSuiteConfigId,
+                  },
+                });
+
+                if (!suiteConfig) continue;
+
+                // Check if suite config filters match the selected agents
+                const filters = suiteConfig.filters;
+                if (!filters || (typeof filters === 'object' && !('agentIds' in filters))) {
+                  // No agent filter means it matches all agents
+                  hasMatchingSuiteConfig = true;
+                  break;
+                }
+
+                // Check if agentIds in filter match any of the selected agents
+                const checkAgentMatch = (filter: any): boolean => {
+                  if (filter && typeof filter === 'object') {
+                    // Handle 'and' conditions
+                    if ('and' in filter && Array.isArray(filter.and)) {
+                      return filter.and.every((subFilter: any) => checkAgentMatch(subFilter));
+                    }
+                    // Handle 'or' conditions
+                    if ('or' in filter && Array.isArray(filter.or)) {
+                      return filter.or.some((subFilter: any) => checkAgentMatch(subFilter));
+                    }
+                    // Check agentIds directly
+                    if ('agentIds' in filter && Array.isArray(filter.agentIds)) {
+                      // If no agents selected, skip this config (can't match)
+                      if (!agentIds || agentIds.length === 0) {
+                        return false;
+                      }
+                      // Check if any selected agent matches the filter
+                      return filter.agentIds.some((filterAgentId: string) =>
+                        agentIds.includes(filterAgentId)
+                      );
+                    }
+                  }
+                  // No agentIds filter means it matches all agents
+                  return true;
+                };
+
+                if (checkAgentMatch(filters)) {
+                  hasMatchingSuiteConfig = true;
+                  break;
+                }
+              }
+
+              if (hasMatchingSuiteConfig) {
+                matchingRunConfigs.push(runConfig);
+              }
+            }
+
+            configsToLink = matchingRunConfigs.map((config) => ({
+              id: config.id,
+              enabled: true,
+            }));
+
+            logger.info(
+              {
+                tenantId,
+                projectId,
+                activeConfigCount: activeRunConfigs.length,
+                matchingConfigCount: matchingRunConfigs.length,
+                selectedAgentIds: agentIds,
+              },
+              'Automatically linking active evaluation run configs enabled for dataset runs matching selected agents on update'
+            );
+          }
+
+          const existingEvalRunConfigIds = existingEvalRunConfigRelations.map(
+            (rel) => rel.evaluationRunConfigId
+          );
+          const newEvalRunConfigIds = configsToLink.map((config) => config.id);
+
+          // Delete relations that are no longer in the list
+          const toDelete = existingEvalRunConfigIds.filter(
+            (id) => !newEvalRunConfigIds.includes(id)
+          );
+          await Promise.all(
+            toDelete.map((evalRunConfigId) =>
+              deleteDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+                scopes: {
+                  tenantId,
+                  projectId,
+                  datasetRunConfigId: runConfigId,
+                  evaluationRunConfigId: evalRunConfigId,
+                },
+              })
+            )
+          );
+
+          // Update or create relations
+          for (const evalRunConfig of configsToLink) {
+            const existingRelation = existingEvalRunConfigRelations.find(
+              (rel) => rel.evaluationRunConfigId === evalRunConfig.id
+            );
+
+            if (existingRelation) {
+              // Update enabled status if it changed
+              if (existingRelation.enabled !== evalRunConfig.enabled) {
+                await updateDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+                  scopes: {
+                    tenantId,
+                    projectId,
+                    datasetRunConfigId: runConfigId,
+                    evaluationRunConfigId: evalRunConfig.id,
+                  },
+                  data: {
+                    enabled: evalRunConfig.enabled,
+                  },
+                });
+              }
+            } else {
+              // Create new relation
+              await createDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+                tenantId,
+                projectId,
+                id: generateId(),
+                datasetRunConfigId: runConfigId,
+                evaluationRunConfigId: evalRunConfig.id,
+                enabled: evalRunConfig.enabled,
+              } as any);
+            }
+          }
+        } else {
+          // triggerEvaluations is false - remove all evaluation run config relations
+          await Promise.all(
+            existingEvalRunConfigRelations.map((rel) =>
+              deleteDatasetRunConfigEvaluationRunConfigRelation(dbClient)({
+                scopes: {
+                  tenantId,
+                  projectId,
+                  datasetRunConfigId: runConfigId,
+                  evaluationRunConfigId: rel.evaluationRunConfigId,
+                },
+              })
+            )
+          );
+        }
+      } else if (evaluationRunConfigs !== undefined) {
+        // Legacy: Update evaluation run config relations if provided (without triggerEvaluations flag)
         // Get existing relations
         const existingEvalRunConfigRelations =
           await getDatasetRunConfigEvaluationRunConfigRelations(dbClient)({
@@ -2795,7 +3247,7 @@ app.openapi(
     operationId: 'delete-dataset-run-config',
     tags: ['Evaluations'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({ runConfigId: z.string() }),
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
     },
     responses: {
       204: {
@@ -2821,15 +3273,24 @@ app.openapi(
 
       logger.info({ tenantId, projectId, runConfigId }, 'Dataset run config deleted');
       return c.body(null, 204) as any;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
-        { error, tenantId, projectId, runConfigId },
+        {
+          error: error?.message || error,
+          errorStack: error?.stack,
+          errorCode: error?.cause?.code,
+          errorDetail: error?.cause?.detail,
+          errorConstraint: error?.cause?.constraint,
+          tenantId,
+          projectId,
+          runConfigId,
+        },
         'Failed to delete dataset run config'
       );
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: 'Failed to delete dataset run config',
+          message: error?.cause?.detail || error?.message || 'Failed to delete dataset run config',
         }),
         500
       );
@@ -3002,17 +3463,14 @@ app.openapi(
         scopes: { tenantId, projectId, datasetId: run.datasetId },
       });
 
-      // Match conversations with dataset items based on execution order
-      // Execution order: for each agent, for each item
-      // So conversationIndex = agentIndex * numItems + itemIndex
-      // Therefore: itemIndex = conversationIndex % numItems
-      const numItems = datasetItems.length;
+      // Match conversations with dataset items using datasetItemId
+      // This works correctly even with async processing since we store datasetItemId in the relation
       const itemsWithConversations = await Promise.all(
-        datasetItems.map(async (item, itemIndex) => {
-          // Find conversations for this item (every numItems-th conversation starting from itemIndex)
-          const itemConversations = conversationRelations.filter((_, convIndex) => {
-            return convIndex % numItems === itemIndex;
-          });
+        datasetItems.map(async (item) => {
+          // Find conversations for this item using datasetItemId
+          const itemConversations = conversationRelations.filter(
+            (conv) => conv.datasetItemId === item.id
+          );
 
           // Fetch output (assistant response) for each conversation
           const conversationsWithOutput = await Promise.all(
@@ -3510,15 +3968,25 @@ app.openapi(
 
       logger.info({ tenantId, projectId, configId }, 'Evaluation run config deleted');
       return c.body(null, 204) as any;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
-        { error, tenantId, projectId, configId },
+        {
+          error: error?.message || error,
+          errorStack: error?.stack,
+          errorCode: error?.cause?.code,
+          errorDetail: error?.cause?.detail,
+          errorConstraint: error?.cause?.constraint,
+          tenantId,
+          projectId,
+          configId,
+        },
         'Failed to delete evaluation run config'
       );
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: 'Failed to delete evaluation run config',
+          message:
+            error?.cause?.detail || error?.message || 'Failed to delete evaluation run config',
         }),
         500
       );

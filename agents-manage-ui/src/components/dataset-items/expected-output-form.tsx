@@ -74,7 +74,7 @@ export function ExpectedOutputForm<T extends FieldValues>({
   };
 
   const addMessage = () => {
-    const newMessages = [...localMessages, { role: 'agent', content: '' }];
+    const newMessages = [...localMessages, { role: 'assistant', content: '' }];
     setLocalMessages(newMessages);
     updateField(newMessages);
   };
@@ -147,7 +147,7 @@ export function ExpectedOutputForm<T extends FieldValues>({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="agent">Agent</SelectItem>
+                        <SelectItem value="assistant">Assistant</SelectItem>
                         <SelectItem value="system">System</SelectItem>
                       </SelectContent>
                     </Select>

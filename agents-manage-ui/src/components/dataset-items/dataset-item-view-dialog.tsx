@@ -136,7 +136,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Message {index + 1}</Label>
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {message.role || 'agent'}
+                        {message.role || 'assistant'}
                       </span>
                     </div>
                     <div className="bg-muted rounded-md p-3">

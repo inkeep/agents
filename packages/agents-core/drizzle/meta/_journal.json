@@ -57,6 +57,20 @@
       "when": 1763153303802,
       "tag": "0007_silent_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1763396313631,
+      "tag": "0008_tranquil_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1763408375595,
+      "tag": "0009_slippery_wallop",
+      "breakpoints": true
     }
   ]
 }

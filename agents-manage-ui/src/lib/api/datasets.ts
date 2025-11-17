@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface Dataset {
@@ -42,7 +42,7 @@ export async function fetchDatasets(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<Dataset>>(
+  return makeEvalApiRequest<ListResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets`
   );
 }
@@ -58,7 +58,7 @@ export async function fetchDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`
   );
 
@@ -76,7 +76,7 @@ export async function createDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets`,
     {
       method: 'POST',
@@ -99,7 +99,7 @@ export async function updateDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`,
     {
       method: 'PATCH',
@@ -121,7 +121,7 @@ export async function deleteDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
+  await makeEvalApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`,
     {
       method: 'DELETE',

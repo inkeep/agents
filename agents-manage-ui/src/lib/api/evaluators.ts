@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeManagementApiRequest } from './api-config';
+import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface ModelSettings {
@@ -56,7 +56,7 @@ export async function fetchEvaluators(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<ListResponse<Evaluator>>(
+  return makeEvalApiRequest<ListResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators`
   );
 }
@@ -72,7 +72,7 @@ export async function fetchEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`
   );
 
@@ -90,7 +90,7 @@ export async function createEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators`,
     {
       method: 'POST',
@@ -113,7 +113,7 @@ export async function updateEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`,
     {
       method: 'PATCH',
@@ -135,7 +135,7 @@ export async function deleteEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeManagementApiRequest(
+  await makeEvalApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`,
     {
       method: 'DELETE',
