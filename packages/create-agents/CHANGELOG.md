@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+- Updated dependencies [98f139a]
+  - @inkeep/agents-core@0.33.1
+
 ## 0.33.0
 
 ### Minor Changes

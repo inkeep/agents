@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+- Updated dependencies [e1eb8b6]
+- Updated dependencies [98f139a]
+  - @inkeep/agents-manage-ui@0.33.1
+  - @inkeep/agents-core@0.33.1
+  - @inkeep/agents-sdk@0.33.1
+
 ## 0.33.0
 
 ### Minor Changes
