@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- bbbed5e: improve error message when saving a component with on click handler
+
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+
 ## 0.33.0
 
 ### Minor Changes

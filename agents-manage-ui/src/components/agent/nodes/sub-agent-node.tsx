@@ -72,6 +72,7 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
     [data?.artifactComponents, artifactComponentLookup]
   );
   const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
   return (
     <div className="relative">
@@ -81,7 +82,8 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
         className={cn(
           isDefault && 'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing'
+          isExecuting && 'node-executing',
+          isInvertedDelegating && 'node-delegating-inverted'
         )}
         style={{ width: NODE_WIDTH }}
       >

@@ -126,8 +126,6 @@ export const createTaskHandler = (
         }),
       ]);
 
-      logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
-
       const enhancedInternalRelations = await Promise.all(
         internalRelations.data.map(async (relation) => {
           try {
@@ -263,7 +261,12 @@ export const createTaskHandler = (
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(async (item) => {
-            const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+            const mcpTool = await dbResultToMcpTool(
+              item.tool,
+              dbClient,
+              credentialStoreRegistry,
+              item.id
+            );
 
             // Filter available tools based on selectedTools for this agent-tool relationship
             if (item.selectedTools && item.selectedTools.length > 0) {
@@ -360,7 +363,8 @@ export const createTaskHandler = (
                       const mcpTool = await dbResultToMcpTool(
                         item.tool,
                         dbClient,
-                        credentialStoreRegistry
+                        credentialStoreRegistry,
+                        item.id
                       );
 
                       // Filter available tools based on selectedTools for this agent-tool relationship
@@ -514,10 +518,14 @@ export const createTaskHandler = (
         task.context?.metadata?.stream_request_id || task.context?.metadata?.streamRequestId;
 
       const isDelegation = task.context?.metadata?.isDelegation === true;
+      const delegationId = task.context?.metadata?.delegationId;
+
       agent.setDelegationStatus(isDelegation);
+      agent.setDelegationId(delegationId);
+
       if (isDelegation) {
         logger.info(
-          { subAgentId: config.subAgentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id, delegationId },
           'Delegated agent - streaming disabled'
         );
 
@@ -739,7 +747,7 @@ export const createTaskHandlerConfig = async (params: {
   }
 
   const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
-  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig;
 
   return {
     tenantId: params.tenantId,

@@ -9,6 +9,7 @@ export default {
           pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
+        'pricing',
       ],
     },
     {
@@ -17,7 +18,6 @@ export default {
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/models',
-        'typescript-sdk/memory',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',
@@ -35,6 +35,7 @@ export default {
             'typescript-sdk/credentials/env-aware-credentials',
           ],
         },
+        'typescript-sdk/memory',
         'typescript-sdk/headers',
         'typescript-sdk/context-fetchers',
         'authentication',
@@ -159,6 +160,7 @@ export default {
             'tutorials/mcp-servers/overview',
             'tutorials/mcp-servers/native-mcp-servers',
             'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/gram',
             'tutorials/mcp-servers/custom-mcp-servers',
           ],
         },

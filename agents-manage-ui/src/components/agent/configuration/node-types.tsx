@@ -1,3 +1,4 @@
+import type { SubAgentStopWhen } from '@inkeep/agents-core';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -15,10 +16,8 @@ interface NodeData {
   type?: 'mcp-placeholder' | 'external-agent-placeholder' | 'team-agent-placeholder'; // Optional for placeholder nodes
 }
 
-import type { SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
-
 export interface AnimatedNode {
-  status?: 'delegating' | 'executing' | 'error' | null;
+  status?: 'delegating' | 'inverted-delegating' | 'executing' | 'error' | null;
 }
 
 export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
