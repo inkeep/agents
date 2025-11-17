@@ -253,6 +253,141 @@ describe('TemplateEngine', () => {
     });
   });
 
+  describe('Property Names with Dashes', () => {
+    test('should auto-normalize single property with dashes', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should auto-normalize multiple properties with dashes', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+          'x-api-key': 'key-456',
+          'content-type': 'application/json',
+        },
+      };
+
+      const template =
+        'Tenant: {{headers.x-tenant-id}}, API Key: {{headers.x-api-key}}, Content: {{headers.content-type}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123, API Key: key-456, Content: application/json');
+    });
+
+    test('should auto-normalize nested properties with dashes', () => {
+      const context = {
+        config: {
+          'api-settings': {
+            'rate-limit': 100,
+            'timeout-ms': 5000,
+          },
+        },
+      };
+
+      const template =
+        'Rate limit: {{config.api-settings.rate-limit}}, Timeout: {{config.api-settings.timeout-ms}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Rate limit: 100, Timeout: 5000');
+    });
+
+    test('should handle mix of dashed and non-dashed properties', () => {
+      const context = {
+        user: {
+          name: 'John',
+          'user-id': 'user-123',
+          profile: {
+            'account-type': 'premium',
+            email: 'john@example.com',
+          },
+        },
+      };
+
+      const template =
+        '{{user.name}}, {{user.user-id}}, {{user.profile.account-type}}, {{user.profile.email}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('John, user-123, premium, john@example.com');
+    });
+
+    test('should not double-quote already quoted properties', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers."x-tenant-id"}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should handle properties with multiple dashes', () => {
+      const context = {
+        headers: {
+          'x-custom-header-with-many-dashes': 'value',
+        },
+      };
+
+      const template = 'Custom: {{headers.x-custom-header-with-many-dashes}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Custom: value');
+    });
+
+    test('should work with JMESPath array access on dashed properties', () => {
+      const context = {
+        'api-responses': [
+          { 'response-code': 200, 'response-body': 'OK' },
+          { 'response-code': 404, 'response-body': 'Not Found' },
+        ],
+      };
+
+      const template = 'First: {{api-responses[0].response-code}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('First: 200');
+    });
+
+    test('should work with strict mode on dashed properties', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context, { strict: true });
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should throw error in strict mode for missing dashed property', () => {
+      const context = {
+        headers: {},
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      expect(() => {
+        TemplateEngine.render(template, context, { strict: true });
+      }).toThrow("Template variable 'headers.x-tenant-id' not found in context");
+    });
+
+    test('should handle preserveUnresolved with dashed properties', () => {
+      const context = {
+        headers: {},
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context, {
+        preserveUnresolved: true,
+      });
+      expect(result).toBe('Tenant: {{headers.x-tenant-id}}');
+    });
+  });
+
   describe('Edge Cases', () => {
     test('should handle empty context', () => {
       const template = 'Hello {{user.name}}!';
