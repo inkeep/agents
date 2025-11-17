@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- b9b423a: increase ReactFlow's `minZoom` to `0.3` (default was 0.5)
+- Updated dependencies [4b2fd62]
+- Updated dependencies [bbbed5e]
+  - @inkeep/agents-core@0.33.2
+  - @inkeep/agents-run-api@0.33.2
+  - @inkeep/agents-manage-api@0.33.2
+
 ## 0.33.1
 
 ### Patch Changes
