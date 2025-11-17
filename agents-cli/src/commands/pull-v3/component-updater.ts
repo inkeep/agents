@@ -201,7 +201,8 @@ function generateUpdatedComponentContent(
   componentData: any,
   remoteProject: FullProjectDefinition,
   localRegistry: ComponentRegistry,
-  environment: string
+  environment: string,
+  actualFilePath?: string
 ): string {
   const defaultStyle = {
     quotes: 'single' as const,
@@ -210,13 +211,28 @@ function generateUpdatedComponentContent(
   };
 
   switch (componentType) {
-    case 'agents':
-      return generateAgentFile(componentId, componentData, defaultStyle, localRegistry);
+    case 'agents': {
+      // Get contextConfig data if agent has one
+      const contextConfigData = componentData.contextConfig;
+      const projectModels = remoteProject.models;
+      return generateAgentFile(
+        componentId,
+        componentData,
+        defaultStyle,
+        localRegistry,
+        contextConfigData,
+        projectModels,
+        actualFilePath
+      );
+    }
     case 'subAgents': {
       // Find parent agent info for contextConfig handling
       const parentInfo = findSubAgentWithParent(remoteProject, componentId);
       const parentAgentId = parentInfo?.parentAgentId;
       const contextConfigData = parentInfo?.contextConfigData;
+      const parentModels = parentInfo
+        ? remoteProject.agents?.[parentInfo.parentAgentId]?.models
+        : undefined;
 
       return generateSubAgentFile(
         componentId,
@@ -224,7 +240,9 @@ function generateUpdatedComponentContent(
         defaultStyle,
         localRegistry,
         parentAgentId,
-        contextConfigData
+        contextConfigData,
+        parentModels,
+        actualFilePath
       );
     }
     case 'tools':
@@ -278,7 +296,12 @@ export async function updateModifiedComponents(
   projectRoot: string,
   environment: string,
   debug: boolean = false,
-  providedTempDirName?: string
+  providedTempDirName?: string,
+  newComponents?: Array<{
+    componentId: string;
+    componentType: string;
+    filePath: string;
+  }>
 ): Promise<ComponentUpdateResult[]> {
   const results: ComponentUpdateResult[] = [];
 
@@ -344,6 +367,9 @@ export async function updateModifiedComponents(
 
   for (const [filePath, fileComponents] of componentsByFile) {
     try {
+      // Convert absolute path back to relative path for generators
+      const relativeFilePath = filePath.replace(projectRoot + '/', '');
+
       // Read current file content
       const oldContent = readFileSync(filePath, 'utf8');
 
@@ -411,10 +437,68 @@ export async function updateModifiedComponents(
         } else if (componentType === 'credentials') {
           // Credentials are in credentialReferences
           componentData = remoteProject.credentialReferences?.[componentId];
+        } else if (componentType === 'environments') {
+          // Environments are generated programmatically based on environment name
+          componentData = {
+            name: `${componentId} Environment`,
+            description: `Environment configuration for ${componentId}`,
+            credentials: remoteProject.credentialReferences || {},
+          };
         } else {
           // Standard top-level component lookup
           const remoteComponents = (remoteProject as any)[componentType] || {};
           componentData = remoteComponents[componentId];
+
+          // FIX: Reconstruct missing credentials field for agents
+          if (
+            componentType === 'agents' &&
+            componentData &&
+            !componentData.credentials &&
+            remoteProject.credentialReferences
+          ) {
+            const agentCredentials: any[] = [];
+            const credentialSet = new Set<string>();
+
+            // Scan contextConfig.contextVariables for fetchDefinitions that reference credentials
+            if (componentData.contextConfig?.contextVariables) {
+              for (const [varName, varData] of Object.entries(
+                componentData.contextConfig.contextVariables
+              )) {
+                if (
+                  varData &&
+                  typeof varData === 'object' &&
+                  (varData as any).credentialReferenceId
+                ) {
+                  const credId = (varData as any).credentialReferenceId;
+                  if (remoteProject.credentialReferences[credId] && !credentialSet.has(credId)) {
+                    credentialSet.add(credId);
+                    agentCredentials.push({ id: credId });
+                  }
+                }
+              }
+            }
+
+            // Also check for usedBy field (in case it exists in some responses)
+            for (const [credId, credData] of Object.entries(remoteProject.credentialReferences)) {
+              if ((credData as any).usedBy) {
+                for (const usage of (credData as any).usedBy) {
+                  if (
+                    usage.type === 'agent' &&
+                    usage.id === componentId &&
+                    !credentialSet.has(credId)
+                  ) {
+                    credentialSet.add(credId);
+                    agentCredentials.push({ id: credId });
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (agentCredentials.length > 0) {
+              componentData.credentials = agentCredentials;
+            }
+          }
         }
 
         if (!componentData) {
@@ -435,7 +519,8 @@ export async function updateModifiedComponents(
             componentData,
             remoteProject,
             localRegistry,
-            environment
+            environment,
+            relativeFilePath
           );
 
           componentContentParts.push(`// ${componentType}:${componentId}\n${componentContent}`);
@@ -480,6 +565,23 @@ export async function updateModifiedComponents(
 
       // Use LLM to intelligently merge old content with new component definitions
 
+      // Analyze which existing components need to be exported for new components
+      let componentsToExport: Array<{
+        componentId: string;
+        variableName: string;
+        reason: string;
+      }> = [];
+
+      try {
+        componentsToExport = analyzeComponentsToExport(
+          newComponents || [],
+          relativeFilePath,
+          localRegistry
+        );
+      } catch (error) {
+        // Continue without componentsToExport rather than failing completely
+      }
+
       const mergeResult = await mergeComponentsWithLLM({
         oldContent,
         newContent: newComponentContent,
@@ -488,6 +590,8 @@ export async function updateModifiedComponents(
           componentType: c.type,
         })),
         filePath,
+        newComponents,
+        componentsToExport,
       });
 
       let finalContent: string;
@@ -647,4 +751,98 @@ export async function updateModifiedComponents(
   await validateTempDirectory(projectRoot, tempDirName, remoteProject);
 
   return results;
+}
+
+/**
+ * Analyze which existing components need to be exported because they're referenced by new components
+ */
+function analyzeComponentsToExport(
+  newComponents: Array<{
+    componentId: string;
+    componentType: string;
+    filePath: string;
+  }>,
+  currentFilePath: string,
+  localRegistry: ComponentRegistry
+): Array<{
+  componentId: string;
+  variableName: string;
+  reason: string;
+}> {
+  const componentsToExport: Array<{
+    componentId: string;
+    variableName: string;
+    reason: string;
+  }> = [];
+
+  // For each new component, check if it imports from the current file
+  for (const newComp of newComponents) {
+    // Skip if the new component is in the same file as current file
+    if (newComp.filePath === currentFilePath) {
+      continue;
+    }
+
+    // Check all components in the current file that might be referenced by new components
+    const allLocalComponents = localRegistry.getAllComponents();
+    for (const localComp of allLocalComponents) {
+      // Convert the absolute path from registry back to relative for comparison
+      const localCompRelativePath = localComp.filePath.startsWith('/')
+        ? localComp.filePath
+            .split('/')
+            .slice(-2)
+            .join('/') // Take last 2 parts (dir/file)
+        : localComp.filePath;
+
+      if (localCompRelativePath === currentFilePath) {
+        // This component is in the current file
+        // Check if any new component might reference it (simplified heuristic)
+        // For now, we'll be conservative and export commonly referenced components
+        if (shouldComponentBeExported(localComp, newComponents)) {
+          const existingExport = componentsToExport.find((c) => c.componentId === localComp.id);
+          if (!existingExport) {
+            componentsToExport.push({
+              componentId: localComp.id,
+              variableName: localComp.name,
+              reason: `referenced by new component ${newComp.componentType}:${newComp.componentId}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return componentsToExport;
+}
+
+/**
+ * Determine if a component should be exported based on heuristics
+ */
+function shouldComponentBeExported(
+  localComponent: ComponentInfo,
+  newComponents: Array<{ componentId: string; componentType: string; filePath: string }>
+): boolean {
+  // Export components that are likely to be referenced by new components
+  // This is a heuristic - in reality, we'd need to parse the new component files to see exact references
+
+  // Export all agents and subAgents as they're commonly referenced
+  if (localComponent.type === 'agents' || localComponent.type === 'subAgents') {
+    return true;
+  }
+
+  // Export tools that are commonly used
+  if (localComponent.type === 'tools' || localComponent.type === 'functionTools') {
+    return true;
+  }
+
+  // Export context configs as they're often referenced
+  if (localComponent.type === 'contextConfigs') {
+    return true;
+  }
+
+  // Export artifact components
+  if (localComponent.type === 'artifactComponents') {
+    return true;
+  }
+
+  return false;
 }

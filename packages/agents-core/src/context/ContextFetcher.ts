@@ -95,7 +95,6 @@ export class ContextFetcher {
       // Perform the HTTP request with retry logic
       const response = await this.performRequest(resolvedConfig);
 
-      logger.info({ response }, 'ContextFetcher Response');
       // Transform the response if needed
       let transformedData = response.data;
 
@@ -386,15 +385,6 @@ export class ContextFetcher {
       if (!isValid) {
         throw new Error('Data does not match JSON Schema');
       }
-
-      logger.debug(
-        {
-          definitionId,
-          dataType: typeof data,
-          validationResult: 'success',
-        },
-        'JSON Schema response validation passed'
-      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
       logger.error(

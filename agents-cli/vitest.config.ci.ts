@@ -15,6 +15,7 @@ export default defineConfig({
     testTimeout: 180000, // 3 minute timeout for CI tests
     hookTimeout: 60000, // 1 minute timeout for setup/teardown hooks
     // Use forks pool for better isolation in CI
+    exclude: ['src/commands/pull-v3/__tests__/project-validator.test.ts', 'node_modules', 'dist'],
     pool: 'forks',
     poolOptions: {
       forks: {

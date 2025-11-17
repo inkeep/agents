@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.32.2",
+  "version": "0.33.2",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -37,7 +37,7 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "test": "vitest",
+    "test": "vitest --run",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "cypress open",
     "test:e2e:run": "cypress run --headless",

@@ -124,8 +124,12 @@ export class ContextConfigBuilder<
         processedContextVariables[key] = {
           ...rest,
           responseSchema: convertZodToJsonSchema(definition.responseSchema),
-          credentialReferenceId,
         };
+
+        // Only include credentialReferenceId if it's defined
+        if (credentialReferenceId !== undefined) {
+          processedContextVariables[key].credentialReferenceId = credentialReferenceId;
+        }
         logger.debug(
           {
             contextVariableKey: key,
@@ -396,20 +400,51 @@ export function fetchDefinition<R extends z.ZodTypeAny>(
   // Handle both the correct FetchDefinition format and the legacy direct format
   const fetchConfig = options.fetchConfig;
 
-  return {
+  const result: any = {
     id: options.id,
-    name: options.name,
     trigger: options.trigger,
     fetchConfig: {
       url: fetchConfig.url,
-      method: fetchConfig.method,
-      headers: fetchConfig.headers,
-      body: fetchConfig.body,
-      transform: fetchConfig.transform,
-      timeout: fetchConfig.timeout,
     },
     responseSchema: options.responseSchema,
-    defaultValue: options.defaultValue,
-    credentialReferenceId: options.credentialReference?.id,
   };
+
+  // Only include optional fields if they're defined
+  if (options.name !== undefined) {
+    result.name = options.name;
+  }
+
+  if (options.defaultValue !== undefined) {
+    result.defaultValue = options.defaultValue;
+  }
+
+  // fetchConfig optional fields
+  if (fetchConfig.method !== undefined) {
+    result.fetchConfig.method = fetchConfig.method;
+  }
+
+  if (fetchConfig.headers !== undefined) {
+    result.fetchConfig.headers = fetchConfig.headers;
+  }
+
+  if (fetchConfig.transform !== undefined) {
+    result.fetchConfig.transform = fetchConfig.transform;
+  }
+
+  // Only include body if it's defined
+  if (fetchConfig.body !== undefined) {
+    result.fetchConfig.body = fetchConfig.body;
+  }
+
+  // Only include timeout if it's defined
+  if (fetchConfig.timeout !== undefined) {
+    result.fetchConfig.timeout = fetchConfig.timeout;
+  }
+
+  // Only include credentialReferenceId if it's defined
+  if (options.credentialReference?.id !== undefined) {
+    result.credentialReferenceId = options.credentialReference.id;
+  }
+
+  return result;
 }

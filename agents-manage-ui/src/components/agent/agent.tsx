@@ -898,6 +898,7 @@ export const Agent: FC<AgentProps> = ({
           fitViewOptions={{
             maxZoom: 1,
           }}
+          minZoom={0.3}
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
           onNodeClick={onNodeClick}
