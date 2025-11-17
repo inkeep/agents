@@ -20,18 +20,12 @@
     "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "2.0.2",
-    "@ai-sdk/gateway": "^1.0.23",
-    "@ai-sdk/google": "^2.0.14",
-    "@ai-sdk/openai": "2.0.11",
     "@hono/node-server": "^1.14.3",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
-    "@openrouter/ai-sdk-provider": "^1.2.0",
-    "ai": "^5.0.11",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",

@@ -443,18 +443,6 @@ importers:
 
   agents-manage-api:
     dependencies:
-      '@ai-sdk/anthropic':
-        specifier: 2.0.2
-        version: 2.0.2(zod@4.1.12)
-      '@ai-sdk/gateway':
-        specifier: ^1.0.23
-        version: 1.0.41(zod@4.1.12)
-      '@ai-sdk/google':
-        specifier: ^2.0.14
-        version: 2.0.28(zod@4.1.12)
-      '@ai-sdk/openai':
-        specifier: 2.0.11
-        version: 2.0.11(zod@4.1.12)
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.4)
@@ -473,12 +461,6 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.5
         version: 0.69.9
-      '@openrouter/ai-sdk-provider':
-        specifier: ^1.2.0
-        version: 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
-      ai:
-        specifier: ^5.0.11
-        version: 5.0.11(zod@4.1.12)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
