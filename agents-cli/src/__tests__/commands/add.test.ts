@@ -500,7 +500,7 @@ describe('Add Command', () => {
       ]);
     });
 
-    it('should use Google models when GOOGLE_API_KEY is set', async () => {
+    it('should use Google models when GOOGLE_GENERATIVE_AI_API_KEY is set', async () => {
       process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-google-key';
 
       const options: AddOptions = {

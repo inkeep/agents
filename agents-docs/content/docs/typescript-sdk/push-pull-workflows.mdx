@@ -116,13 +116,22 @@ graph TD
 The pull workflow synchronizes local files with remote configurations:
 
 <Note>
-**Prerequisites:** The `inkeep pull` command uses AI (via Anthropic's Claude) to generate TypeScript files from your project configuration. You must have an `ANTHROPIC_API_KEY` environment variable set before running the pull command.
+**Prerequisites:** The `inkeep pull` command uses AI to generate TypeScript files from your project configuration. You need **at least one** of these API keys set:
+
+- `ANTHROPIC_API_KEY` - Uses Claude Sonnet 4.5 (recommended)
+- `OPENAI_API_KEY` - Uses GPT-5.1  
+- `GOOGLE_GENERATIVE_AI_API_KEY` - Uses Gemini 2.5 Flash
 
 ```bash
-export ANTHROPIC_API_KEY=your_api_key_here
+# Choose one:
+export ANTHROPIC_API_KEY=your_anthropic_key_here
+# OR
+export OPENAI_API_KEY=your_openai_key_here
+# OR  
+export GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
 ```
 
-Or add it to your `.env` file. Get your API key from the [Anthropic Console](https://console.anthropic.com/).
+The CLI automatically selects the first available model based on your configured API keys.
 </Note>
 
 ```mermaid
