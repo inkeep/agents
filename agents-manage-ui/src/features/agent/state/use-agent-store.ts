@@ -469,6 +469,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
               nodes: updateNodeStatus(() => null),
             };
           }
+          case 'agent_reasoning':
           case 'agent_generate': {
             const { subAgentId } = data.details;
             return {
