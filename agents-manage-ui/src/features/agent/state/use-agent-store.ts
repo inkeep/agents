@@ -10,6 +10,7 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {
   type AnimatedNode,
   mcpNodeHandleId,
@@ -20,7 +21,6 @@ import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
-import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
