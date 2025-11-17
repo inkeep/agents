@@ -9,7 +9,7 @@ export default {
           pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
-        'pricing'
+        'pricing',
       ],
     },
     {
