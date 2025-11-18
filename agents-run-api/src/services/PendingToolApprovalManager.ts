@@ -15,7 +15,7 @@ export interface PendingToolApproval {
   conversationId: string;
   subAgentId: string;
   createdAt: number;
-  resolve: (result: any) => void;
+  resolve: (result: { approved: boolean; reason?: string }) => void;
   reject: (error: Error) => void;
   timeoutId: ReturnType<typeof setTimeout>;
 }
@@ -42,7 +42,7 @@ export class PendingToolApprovalManager {
   }
 
   /**
-   * Create a new pending approval and return a promise that resolves when approved
+   * Create a new pending approval and return a promise that resolves with approval status
    */
   async waitForApproval(
     toolCallId: string,
@@ -50,12 +50,15 @@ export class PendingToolApprovalManager {
     args: any,
     conversationId: string,
     subAgentId: string
-  ): Promise<void> {
+  ): Promise<{ approved: boolean; reason?: string }> {
     return new Promise((resolve, reject) => {
       // Set up automatic timeout/cleanup
       const timeoutId = setTimeout(() => {
         this.pendingApprovals.delete(toolCallId);
-        reject(new Error(`Tool approval timeout for ${toolName} (${toolCallId})`));
+        resolve({
+          approved: false,
+          reason: `Tool approval timeout for ${toolName} (${toolCallId})`,
+        });
       }, APPROVAL_TIMEOUT_MS);
 
       const approval: PendingToolApproval = {
@@ -89,7 +92,7 @@ export class PendingToolApprovalManager {
    */
   approveToolCall(toolCallId: string): boolean {
     const approval = this.pendingApprovals.get(toolCallId);
-    
+
     if (!approval) {
       logger.warn({ toolCallId }, 'Tool approval not found or already processed');
       return false;
@@ -104,10 +107,10 @@ export class PendingToolApprovalManager {
       'Tool approved by user, resuming execution'
     );
 
-    // Clean up and resolve the promise (this allows tool execution to continue)
+    // Clean up and resolve the promise with approval result
     clearTimeout(approval.timeoutId);
     this.pendingApprovals.delete(toolCallId);
-    approval.resolve(undefined);
+    approval.resolve({ approved: true });
 
     return true;
   }
@@ -117,7 +120,7 @@ export class PendingToolApprovalManager {
    */
   denyToolCall(toolCallId: string, reason?: string): boolean {
     const approval = this.pendingApprovals.get(toolCallId);
-    
+
     if (!approval) {
       logger.warn({ toolCallId }, 'Tool approval not found or already processed');
       return false;
@@ -133,10 +136,13 @@ export class PendingToolApprovalManager {
       'Tool execution denied by user'
     );
 
-    // Clean up and reject the promise
+    // Clean up and resolve the promise with denial result
     clearTimeout(approval.timeoutId);
     this.pendingApprovals.delete(toolCallId);
-    approval.reject(new Error(`Tool execution denied: ${reason || 'User denied approval'}`));
+    approval.resolve({
+      approved: false,
+      reason: reason || 'User denied approval',
+    });
 
     return true;
   }
@@ -152,7 +158,7 @@ export class PendingToolApprovalManager {
       if (now - approval.createdAt > APPROVAL_TIMEOUT_MS) {
         clearTimeout(approval.timeoutId);
         this.pendingApprovals.delete(toolCallId);
-        approval.reject(new Error('Tool approval expired'));
+        approval.resolve({ approved: false, reason: 'Tool approval expired' });
         cleanedUp++;
       }
     }
@@ -168,7 +174,7 @@ export class PendingToolApprovalManager {
   getStatus() {
     return {
       pendingApprovals: this.pendingApprovals.size,
-      approvals: Array.from(this.pendingApprovals.values()).map(approval => ({
+      approvals: Array.from(this.pendingApprovals.values()).map((approval) => ({
         toolCallId: approval.toolCallId,
         toolName: approval.toolName,
         conversationId: approval.conversationId,

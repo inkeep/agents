@@ -593,14 +593,24 @@ export class Agent {
                 'Tool requires approval - waiting for user response'
               );
 
-              // Wait for approval (this promise resolves when user approves via API)
-              await pendingToolApprovalManager.waitForApproval(
+              // Wait for approval (this promise resolves when user responds via API)
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
                 toolCallId,
                 toolName,
                 args,
                 this.conversationId || 'unknown',
                 this.config.id
               );
+
+              if (!approvalResult.approved) {
+                // User denied approval - return a message instead of executing the tool
+                logger.info(
+                  { toolName, toolCallId, reason: approvalResult.reason },
+                  'Tool execution denied by user'
+                );
+
+                return `User denied approval to run this tool: ${approvalResult.reason}`;
+              }
 
               logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
             }

@@ -69,11 +69,23 @@ In the visual builder, configure tool approvals using the unified tool grid:
 
 When an agent encounters a tool requiring approval:
 
+**Approval Flow:**
+
 ```
 1. Agent calls tool → 2. Execution pauses → 3. Approval request emitted
                                                            ↓
-6. Tool executes ← 5. Execution resumes ← 4. User approves/denies
+6. Tool executes ← 5. Execution resumes ← 4. User approves
 ```
+
+**Denial Flow:**
+
+```
+1. Agent calls tool → 2. Execution pauses → 3. Approval request emitted
+                                                           ↓
+6. Returns denial message ← 5. Execution resumes ← 4. User denies
+```
+
+The agent receives proper feedback in both cases, ensuring natural conversation flow.
 
 ### Event Stream Integration
 
@@ -109,6 +121,25 @@ Tool approval requests appear in the data stream as enhanced `tool_call` events:
 - `toolCallId` - Unique identifier for this tool execution
 - `conversationId` - Conversation context for the approval request
 - `input` - Tool arguments for user review
+
+### Tool Results
+
+**Approved tools** execute normally and return their actual results.
+
+**Denied tools** return a clear message to the agent:
+
+```json
+{
+  "type": "tool_result",
+  "data": {
+    "toolName": "delete_weather_data",
+    "output": "User denied approval to run this tool: Operation too risky",
+    "toolCallId": "call_abc123def456"
+  }
+}
+```
+
+This allows the agent to understand the denial and respond appropriately to the user.
 
 ## Approval API
 
