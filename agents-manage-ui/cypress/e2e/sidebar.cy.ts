@@ -4,7 +4,7 @@ describe('Sidebar', () => {
   describe('Collapsing/Expanding', () => {
     const projectUrl = '/default/projects/my-weather-project';
 
-    it('should collapses when opening an agent and re-expands when returning to projects', () => {
+    it('should collapses when opening an agent page and re-expands when returning to projects page', () => {
       cy.visit(projectUrl);
       // Default expanded
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
