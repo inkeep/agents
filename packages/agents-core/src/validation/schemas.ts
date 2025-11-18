@@ -1385,12 +1385,17 @@ export const PrebuiltMCPServerSchema = z.object({
     .optional()
     .describe('Category of the MCP server (e.g., communication, project_management)'),
   description: z.string().optional().describe('Brief description of what the MCP server does'),
-  thirdPartyConnectAccountUrl: z.url().optional().describe('URL to connect to the third party account'),
+  thirdPartyConnectAccountUrl: z
+    .url()
+    .optional()
+    .describe('URL to connect to the third party account'),
 });
 
-export const MCPCatalogListResponse = z.object({
-  data: z.array(PrebuiltMCPServerSchema),
-}).openapi('MCPCatalogListResponse');
+export const MCPCatalogListResponse = z
+  .object({
+    data: z.array(PrebuiltMCPServerSchema),
+  })
+  .openapi('MCPCatalogListResponse');
 
 export const ThirdPartyMCPServerResponse = z
   .object({

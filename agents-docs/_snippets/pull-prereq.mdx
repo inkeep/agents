@@ -1,0 +1,22 @@
+### Prerequisite
+
+The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
+
+```txt .env
+# Choose one:
+ANTHROPIC_API_KEY=your_api_key_here
+# or
+OPENAI_API_KEY=your_api_key_here
+# or
+GOOGLE_API_KEY=your_api_key_here
+```
+
+The CLI prioritizes Anthropic → OpenAI → Google.
+
+Here are the models used:
+
+| Provider  | Model(s)                              | Where to Get API Key                                |
+| --------- | ------------------------------------- | --------------------------------------------------- |
+| Anthropic | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/) |
+| OpenAI    | GPT-5.1                               | [OpenAI Platform](https://platform.openai.com/)     |
+| Google    | Gemini 2.5 Flash                      | [Google AI Studio](https://ai.google.dev/)          |

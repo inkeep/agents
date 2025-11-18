@@ -12,10 +12,7 @@
     "entry_point": "./bin/mcp-server.js",
     "mcp_config": {
       "command": "node",
-      "args": [
-        "${__dirname}/bin/mcp-server.js",
-        "start"
-      ]
+      "args": ["${__dirname}/bin/mcp-server.js", "start"]
     }
   },
   "display_name": "@inkeep/agents Mcp",
@@ -454,13 +451,5 @@
     }
   ],
   "prompts": [],
-  "keywords": [
-      "@inkeep/agents",
-      "mcp",
-      "inkeep",
-      "agents",
-      "manage",
-      "api",
-      "rest"
-    ]
+  "keywords": ["@inkeep/agents", "mcp", "inkeep", "agents", "manage", "api", "rest"]
 }

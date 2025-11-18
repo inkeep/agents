@@ -62,7 +62,12 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       } else if (server.thirdPartyConnectAccountUrl) {
-        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name, thirdPartyConnectAccountUrl: server.thirdPartyConnectAccountUrl });
+        handleOAuthLogin({
+          toolId: newTool.id,
+          mcpServerUrl: server.url,
+          toolName: server.name,
+          thirdPartyConnectAccountUrl: server.thirdPartyConnectAccountUrl,
+        });
       } else {
         handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name });
       }

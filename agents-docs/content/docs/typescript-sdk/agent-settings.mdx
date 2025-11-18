@@ -18,8 +18,7 @@ An Agent is made up of sub-agents, like so:
 // Agent-level prompt that gets added to all Sub Agents
 const customerSupportAgent = agent({
   id: "support-agent",
-  prompt: `You work for Acme Corp. Always be professional and helpful.
-Follow company policies and escalate complex issues appropriately.`,
+  prompt: `You work for Acme Corp. Always be professional and helpful.`,
   subAgents: () => [supportAgent, escalationAgent],
 });
 ```
@@ -36,7 +35,7 @@ import { subAgent } from "@inkeep/agents-sdk";
 const supportAgent = subAgent({
   id: "customer-support",
   name: "Customer Support Agent",
-  prompt: `You are a customer support specialist. Always be helpful, professional, and empathetic.`,
+  prompt: `You are a customer support specialist.`,
 });
 ```
 

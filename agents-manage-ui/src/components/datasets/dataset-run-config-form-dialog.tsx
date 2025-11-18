@@ -73,9 +73,7 @@ export function DatasetRunConfigFormDialog({
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {runConfigId
-              ? 'Edit Test Suite Run Configuration'
-              : 'Create Test Suite Run'}
+            {runConfigId ? 'Edit Test Suite Run Configuration' : 'Create Test Suite Run'}
           </DialogTitle>
           <DialogDescription>
             Configure when and how to run this test suite against your agents

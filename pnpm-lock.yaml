@@ -212,6 +212,9 @@ importers:
 
   agents-docs:
     dependencies:
+      '@inkeep/agents-cli':
+        specifier: workspace:^
+        version: link:../agents-cli
       '@inkeep/agents-ui':
         specifier: ^0.15.3
         version: 0.15.3(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

@@ -53,12 +53,14 @@ export function useOAuthLogin({
         }
 
         try {
-          const oauthUrl = thirdPartyConnectAccountUrl ?? getOAuthLoginUrl({
-            PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
-            tenantId,
-            projectId,
-            id: toolId,
-          });
+          const oauthUrl =
+            thirdPartyConnectAccountUrl ??
+            getOAuthLoginUrl({
+              PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
+              tenantId,
+              projectId,
+              id: toolId,
+            });
 
           const popup = window.open(
             oauthUrl,
@@ -198,7 +200,6 @@ export function useOAuthLogin({
       toolName: string;
       thirdPartyConnectAccountUrl?: string;
     }): Promise<void> => {
-
       if (thirdPartyConnectAccountUrl) {
         await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
         return;

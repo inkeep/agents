@@ -635,7 +635,7 @@ Generate the next user message:`;
                 content: msg.content,
               };
             })
-            .filter((msg): msg is { role: ValidRole; content: unknown } => msg !== null);
+            .filter((msg: unknown): msg is { role: ValidRole; content: unknown } => msg !== null);
 
           return validMessages.length > 0 ? validMessages : null;
         }
