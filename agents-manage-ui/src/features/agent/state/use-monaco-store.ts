@@ -7,10 +7,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
+type ShikiHighlighter = HighlighterGeneric<any, any>;
+
 interface MonacoStateData {
   monaco: typeof Monaco | null;
   variableSuggestions: string[];
-  highlighter: HighlighterGeneric<any, any> | null;
+  highlighter: ShikiHighlighter | null;
 }
 
 interface MonacoActions {
@@ -33,6 +35,19 @@ const initialMonacoState: MonacoStateData = {
   highlighter: null,
 };
 
+let highlighterPromise: Promise<ShikiHighlighter> | null = null;
+
+// Fixes console warning:
+// [Shiki] 10 instances have been created. Shiki is supposed to be used as a singleton, consider refactoring your code
+// to cache your highlighter instance; Or call `highlighter.dispose()` to release unused instances.
+const getHighlighter = async (): Promise<ShikiHighlighter> => {
+  highlighterPromise ??= createHighlighter({
+    themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+    langs: ['javascript', 'typescript', 'json'],
+  });
+  return await highlighterPromise;
+};
+
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   ...initialMonacoState,
   // Separate "namespace" for actions
@@ -47,17 +62,14 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
     },
     async setupHighlighter(isDark) {
       const { highlighter: prevHighlighter, monaco, actions } = get();
-      const highlighter =
-        prevHighlighter ??
-        (await createHighlighter({
-          themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
-          langs: ['javascript', 'typescript', 'json'],
-        }));
+      const highlighter = prevHighlighter ?? (await getHighlighter());
       // Create the highlighter
       // Register the themes from Shiki, and provide syntax highlighting for Monaco.
       shikiToMonaco(highlighter, monaco);
       actions.setMonacoTheme(isDark);
-      set({ highlighter });
+      if (!prevHighlighter) {
+        set({ highlighter });
+      }
     },
     async setMonaco() {
       const monaco = await import('monaco-editor');

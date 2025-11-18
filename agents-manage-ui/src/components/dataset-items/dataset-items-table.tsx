@@ -1,7 +1,7 @@
 'use client';
 
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { type FC, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +29,25 @@ interface DatasetItemsTableProps {
   datasetId: string;
   items: DatasetItem[];
 }
+
+const ReadOnlyEditor: FC<{
+  name: string;
+  value: unknown;
+}> = ({ name, value }) => {
+  return (
+    <ExpandableJsonEditor
+      name={name}
+      value={JSON.stringify(value, null, 2)}
+      readOnly
+      editorOptions={{
+        wordWrap: 'off',
+        scrollbar: {
+          alwaysConsumeMouseWheel: true,
+        },
+      }}
+    />
+  );
+};
 
 export function DatasetItemsTable({
   tenantId,
@@ -89,31 +108,11 @@ export function DatasetItemsTable({
                       {formatDateTimeTable(item.updatedAt)}
                     </TableCell>
                     <TableCell>
-                      <ExpandableJsonEditor
-                        name={`input_${index}`}
-                        value={JSON.stringify(item.input, null, 2)}
-                        readOnly
-                        editorOptions={{
-                          wordWrap: 'off',
-                          scrollbar: {
-                            alwaysConsumeMouseWheel: true,
-                          },
-                        }}
-                      />
+                      <ReadOnlyEditor name={`input_${index}`} value={item.input} />
                     </TableCell>
                     <TableCell>
                       {item.expectedOutput ? (
-                        <ExpandableJsonEditor
-                          name={`output_${index}`}
-                          value={JSON.stringify(item.expectedOutput, null, 2)}
-                          readOnly
-                          editorOptions={{
-                            wordWrap: 'off',
-                            scrollbar: {
-                              alwaysConsumeMouseWheel: true,
-                            },
-                          }}
-                        />
+                        <ReadOnlyEditor name={`output_${index}`} value={item.expectedOutput} />
                       ) : (
                         <span className="text-sm text-muted-foreground italic">None</span>
                       )}

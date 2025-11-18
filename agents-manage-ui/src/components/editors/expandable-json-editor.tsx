@@ -25,7 +25,7 @@ interface ExpandableJsonEditorEditableProps extends ExpandableJsonEditorCommonPr
 
 interface ExpandableJsonEditorReadOnlyProps extends ExpandableJsonEditorCommonProps {
   readOnly: true;
-  onChange: never;
+  onChange?: never;
 }
 
 type ExpandableJsonEditorProps =
