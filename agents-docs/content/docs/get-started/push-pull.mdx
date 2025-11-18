@@ -37,9 +37,9 @@ inkeep add --project docs-assistant
 
 Find the downloaded code in `src/projects/docs-assistant`.
 
-<Note> 
-`inkeep add` imports a template project from our [cookbook library](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-projects) into your src/projects directory.
-</Note>
+<Tip> 
+`inkeep add` imports a template project from our [cookbook library](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-projects).
+</Tip>
 
 ### Step 3: Push code to visual
 
@@ -55,6 +55,10 @@ Use `inkeep push` to push the code to the Visual Builder.
 inkeep push
 ```
 
+<Tip>
+To validate your project without pushing, use the `--json` flag: `inkeep push --json`
+</Tip>
+
 ### Step 4: Chat with your agent
 
 Refresh http://localhost:3000, switch to the **Docs Assistant** project (in the bottom left).
@@ -67,28 +71,7 @@ Under **Agents**, click on the Docs Assistant agent and press **Try it**. Ask a 
 
 Make some changes, like changing a prompt, and let's walk through `inkeep pull`.
 
-### Requirements
-
-The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
-
-```txt .env
-# Choose one:
-ANTHROPIC_API_KEY=your_api_key_here
-# or
-OPENAI_API_KEY=your_api_key_here
-# or
-GOOGLE_GENERATIVE_AI_API_KEY=your_api_key_here
-```
-
-The CLI prioritizes Anthropic → OpenAI → Google.
-
-Here are the models used:
-
-| Provider  | Model(s)                              | Where to Get API Key                                |
-| --------- | ------------------------------------- | --------------------------------------------------- |
-| Anthropic | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/) |
-| OpenAI    | GPT-5.1                               | [OpenAI Platform](https://platform.openai.com/)     |
-| Google    | Gemini 2.5 Flash                      | [Google AI Studio](https://ai.google.dev/)          |
+<Snippet file="pull-prereq.mdx" />
 
 ### Step 1: Make an edit visually
 
