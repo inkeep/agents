@@ -61,6 +61,8 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       if (server.isOpen) {
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+      } else if (server.thirdPartyConnectAccountUrl) {
+        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name, thirdPartyConnectAccountUrl: server.thirdPartyConnectAccountUrl });
       } else {
         handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name });
       }
@@ -112,6 +114,8 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
             />
           </div>
           <PrebuiltServersGrid
+            tenantId={tenantId}
+            projectId={projectId}
             onSelectServer={handleSelectPrebuiltServer}
             loadingServerId={loadingServerId}
             searchQuery={searchQuery}

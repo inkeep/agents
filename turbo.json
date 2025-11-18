@@ -95,6 +95,11 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/agents-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
+    },
     "chat-widget#test": {
       "dependsOn": ["build"],
       "outputs": []

@@ -1,3 +1,4 @@
+import type { ToolPolicy } from '@inkeep/agents-core';
 import type { AgentMcpConfig } from '../builders';
 import type { Tool } from '../tool';
 import type { SubAgentCanUseType } from '../types';
@@ -46,6 +47,8 @@ export interface NormalizedToolInfo {
   selectedTools?: string[];
   /** Agent-specific headers (only present for AgentMcpConfig) */
   headers?: Record<string, string>;
+  /** Per-tool policies like needsApproval (only present for AgentMcpConfig) */
+  toolPolicies?: Record<string, ToolPolicy>;
   /** Whether this came from an AgentMcpConfig wrapper */
   isWrapped: boolean;
 }
@@ -63,6 +66,7 @@ export function normalizeAgentCanUseType(
       toolId: value.server.getId(),
       selectedTools: value.selectedTools,
       headers: value.headers,
+      toolPolicies: value.toolPolicies,
       isWrapped: true,
     };
   }

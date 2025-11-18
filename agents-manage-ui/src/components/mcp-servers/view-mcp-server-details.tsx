@@ -2,10 +2,12 @@
 
 import { AlertCircle, Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -57,6 +59,34 @@ export function ViewMCPServerDetails({
       window.location.reload();
     },
   });
+
+  const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
+  const [thirdPartyConnectUrl, setThirdPartyConnectUrl] = useState<string>();
+  const [isLoadingThirdParty, setIsLoadingThirdParty] = useState(false);
+
+  useEffect(() => {
+    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
+      const fetchServerDetails = async () => {
+        setIsLoadingThirdParty(true);
+        try {
+          const response = await fetchThirdPartyMCPServer(
+            tenantId,
+            projectId,
+            tool.config.mcp.server.url
+          );
+          if (response.data?.thirdPartyConnectAccountUrl) {
+            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
+          }
+        } catch (error) {
+          console.error('Failed to fetch third-party MCP server details:', error);
+        } finally {
+          setIsLoadingThirdParty(false);
+        }
+      };
+
+      fetchServerDetails();
+    }
+  }, [isThirdPartyMCPServer, tool.status, tool.config.mcp.server.url, tenantId, projectId]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -170,10 +200,11 @@ export function ViewMCPServerDetails({
                       toolId: tool.id,
                       mcpServerUrl: tool.config.mcp.server.url,
                       toolName: tool.name,
+                      thirdPartyConnectAccountUrl: thirdPartyConnectUrl,
                     });
                   }}
                 >
-                  Click to Login
+                  {isLoadingThirdParty ? 'Loading...' : 'Click to Login'}
                 </Badge>
               ) : (
                 <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>

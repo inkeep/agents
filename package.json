@@ -49,6 +49,8 @@
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
     "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
+    "mcp:generate": "pnpm --filter @inkeep/agents-mcp generate",
+    "mcp:watch": "pnpm --filter @inkeep/agents-mcp watch",
     "workflow:profile": "node scripts/workflows/profile.mjs",
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "setup-dev": "sh scripts/setup.sh"
@@ -88,7 +90,10 @@
     "// esbuild": "we pin it for Cypress",
     "overrides": {
       "esbuild": "0.25.9",
-      "zod": "^4.1.11"
+      "zod": "^4.1.11",
+      "@inkeep/agents-mcp>zod": "^3.25.7",
+      "@modelcontextprotocol/sdk>zod": "^3.25.7",
+      "@anthropic-ai/mcpb>zod": "^3.25.7"
     },
     "patchedDependencies": {
       "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch"

@@ -22,6 +22,7 @@ import {
 import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
+  isThirdPartyMCPServerAuthenticated,
   normalizeDateString,
 } from '../utils';
 import { generateId } from '../utils/conversations';
@@ -228,6 +229,8 @@ export const dbResultToMcpTool = async (
     }
   }
 
+  const mcpServerUrl = dbResult.config.mcp.server.url;
+
   try {
     availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry);
     status = 'healthy';
@@ -236,7 +239,7 @@ export const dbResultToMcpTool = async (
     const toolNeedsAuth =
       error instanceof Error &&
       (await detectAuthenticationRequired({
-        serverUrl: dbResult.config.mcp.server.url,
+        serverUrl: mcpServerUrl,
         error,
         logger,
       }));
@@ -248,6 +251,21 @@ export const dbResultToMcpTool = async (
     lastErrorComputed = toolNeedsAuth
       ? `Authentication required - OAuth login needed. ${errorMessage}`
       : errorMessage;
+  }
+
+  // Check third-party service status
+  const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
+  if (isThirdPartyMCPServer) {
+    const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
+      dbResult.tenantId,
+      dbResult.projectId,
+      mcpServerUrl
+    );
+
+    if (!isAuthenticated) {
+      status = 'needs_auth';
+      lastErrorComputed = 'Third-party authentication required. Try authenticating again.';
+    }
   }
 
   const now = new Date().toISOString();
@@ -383,6 +401,7 @@ export const addToolToAgent =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
     const id = generateId();
     const now = new Date().toISOString();
@@ -398,6 +417,7 @@ export const addToolToAgent =
         toolId: params.toolId,
         selectedTools: params.selectedTools,
         headers: params.headers,
+        toolPolicies: params.toolPolicies,
         createdAt: now,
         updatedAt: now,
       })
@@ -436,6 +456,7 @@ export const upsertSubAgentToolRelation =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
     if (params.relationId) {
@@ -447,6 +468,7 @@ export const upsertSubAgentToolRelation =
           toolId: params.toolId,
           selectedTools: params.selectedTools,
           headers: params.headers,
+          toolPolicies: params.toolPolicies,
         },
       });
     }

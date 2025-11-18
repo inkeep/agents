@@ -22,7 +22,11 @@ export default {
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
+          pages: [
+            'typescript-sdk/tools/mcp-tools',
+            'typescript-sdk/tools/function-tools',
+            'tools/tool-approvals',
+          ],
         },
         {
           group: 'Credentials',
