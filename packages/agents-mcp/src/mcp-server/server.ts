@@ -77,6 +77,7 @@ import { tool$functionToolsGetFunctionTool } from './tools/functionToolsGetFunct
 import { tool$functionToolsListFunctionTools } from './tools/functionToolsListFunctionTools.js';
 import { tool$functionToolsUpdateFunctionTool } from './tools/functionToolsUpdateFunctionTool.js';
 import { tool$health } from './tools/health.js';
+import { tool$mcpCatalogListMCPCatalog } from './tools/mcpCatalogListMCPCatalog.js';
 import { tool$oAuthInitiateOauthLoginPublic } from './tools/oAuthInitiateOauthLoginPublic.js';
 import { tool$oAuthOauthCallback } from './tools/oAuthOauthCallback.js';
 import { tool$projectsCreateProject } from './tools/projectsCreateProject.js';
@@ -110,6 +111,7 @@ import { tool$subAgentToolRelationsGetSubagentToolRelation } from './tools/subAg
 import { tool$subAgentToolRelationsListSubagentToolRelations } from './tools/subAgentToolRelationsListSubagentToolRelations.js';
 import { tool$subAgentToolRelationsUpdateSubagentToolRelation } from './tools/subAgentToolRelationsUpdateSubagentToolRelation.js';
 import { tool$subAgentUpdateSubagent } from './tools/subAgentUpdateSubagent.js';
+import { tool$thirdPartyMCPServersGetThirdPartyMCPServer } from './tools/thirdPartyMCPServersGetThirdPartyMCPServer.js';
 import { tool$toolsCreateTool } from './tools/toolsCreateTool.js';
 import { tool$toolsDeleteTool } from './tools/toolsDeleteTool.js';
 import { tool$toolsGetTool } from './tools/toolsGetTool.js';
@@ -127,7 +129,7 @@ export function createMCPServer(deps: {
 }) {
   const server = new McpServer({
     name: 'InkeepAgents',
-    version: '0.0.6',
+    version: '0.0.7',
   });
 
   const getClient =
@@ -256,6 +258,8 @@ export function createMCPServer(deps: {
   tool(tool$fullAgentGetFullAgent);
   tool(tool$fullAgentUpdateFullAgent);
   tool(tool$fullAgentDeleteFullAgent);
+  tool(tool$mcpCatalogListMCPCatalog);
+  tool(tool$thirdPartyMCPServersGetThirdPartyMCPServer);
   tool(tool$fullProjectCreateFullProject);
   tool(tool$fullProjectGetFullProject);
   tool(tool$fullProjectUpdateFullProject);

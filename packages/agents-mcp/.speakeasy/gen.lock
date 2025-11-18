@@ -1,12 +1,12 @@
 lockVersion: 2.0.0
 id: bad7ded4-db98-423d-8066-7d288d35ef8f
 management:
-  docChecksum: a28736665ebcd972bb77dbd9bb614fc4
+  docChecksum: d070ed986e3329ab05fe58146a81440b
   docVersion: 1.0.0
   speakeasyVersion: 1.658.2
   generationVersion: 2.755.9
-  releaseVersion: 0.0.6
-  configChecksum: 0c8fc66bca7b71313e5d2163513da20a
+  releaseVersion: 0.0.7
+  configChecksum: d74eeca77027180cc6bb137aecefdb30
 features:
   mcp-typescript:
     acceptHeaders: 0.1.0
@@ -98,6 +98,7 @@ generatedFiles:
   - src/funcs/functionsListFunctions.ts
   - src/funcs/functionsUpdateFunction.ts
   - src/funcs/health.ts
+  - src/funcs/mcpCatalogListMCPCatalog.ts
   - src/funcs/oAuthInitiateOauthLoginPublic.ts
   - src/funcs/oAuthOauthCallback.ts
   - src/funcs/projectsCreateProject.ts
@@ -131,6 +132,7 @@ generatedFiles:
   - src/funcs/subAgentToolRelationsListSubagentToolRelations.ts
   - src/funcs/subAgentToolRelationsUpdateSubagentToolRelation.ts
   - src/funcs/subAgentUpdateSubagent.ts
+  - src/funcs/thirdPartyMCPServersGetThirdPartyMCPServer.ts
   - src/funcs/toolsCreateTool.ts
   - src/funcs/toolsDeleteTool.ts
   - src/funcs/toolsGetTool.ts
@@ -236,6 +238,7 @@ generatedFiles:
   - src/mcp-server/tools/functionsListFunctions.ts
   - src/mcp-server/tools/functionsUpdateFunction.ts
   - src/mcp-server/tools/health.ts
+  - src/mcp-server/tools/mcpCatalogListMCPCatalog.ts
   - src/mcp-server/tools/oAuthInitiateOauthLoginPublic.ts
   - src/mcp-server/tools/oAuthOauthCallback.ts
   - src/mcp-server/tools/projectsCreateProject.ts
@@ -269,6 +272,7 @@ generatedFiles:
   - src/mcp-server/tools/subAgentToolRelationsListSubagentToolRelations.ts
   - src/mcp-server/tools/subAgentToolRelationsUpdateSubagentToolRelation.ts
   - src/mcp-server/tools/subAgentUpdateSubagent.ts
+  - src/mcp-server/tools/thirdPartyMCPServersGetThirdPartyMCPServer.ts
   - src/mcp-server/tools/toolsCreateTool.ts
   - src/mcp-server/tools/toolsDeleteTool.ts
   - src/mcp-server/tools/toolsGetTool.ts
@@ -408,6 +412,7 @@ generatedFiles:
   - src/models/getsubagentsfortoolop.ts
   - src/models/getsubagentteamagentrelationbyidop.ts
   - src/models/getsubagenttoolrelationop.ts
+  - src/models/getthirdpartymcpserverop.ts
   - src/models/gettoolop.ts
   - src/models/healthop.ts
   - src/models/initiateoauthloginpublicop.ts
@@ -422,6 +427,7 @@ generatedFiles:
   - src/models/listexternalagentsop.ts
   - src/models/listfunctionsop.ts
   - src/models/listfunctiontoolsop.ts
+  - src/models/listmcpcatalogop.ts
   - src/models/listprojectsop.ts
   - src/models/listsubagentexternalagentrelationsop.ts
   - src/models/listsubagentrelationsop.ts
@@ -429,6 +435,7 @@ generatedFiles:
   - src/models/listsubagentteamagentrelationsop.ts
   - src/models/listsubagenttoolrelationsop.ts
   - src/models/listtoolsop.ts
+  - src/models/mcpcataloglistresponse.ts
   - src/models/mcptool.ts
   - src/models/mcptoollistresponse.ts
   - src/models/mcptoolresponse.ts
@@ -479,6 +486,7 @@ generatedFiles:
   - src/models/subagenttoolrelationupdate.ts
   - src/models/subagentupdate.ts
   - src/models/teamagent.ts
+  - src/models/thirdpartymcpserverresponse.ts
   - src/models/toolcreate.ts
   - src/models/toolupdate.ts
   - src/models/unauthorized.ts
