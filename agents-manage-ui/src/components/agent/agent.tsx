@@ -55,6 +55,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
+import { useCopilotContext } from './copilot/copilot-context';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
@@ -66,6 +67,10 @@ import { Toolbar } from './toolbar/toolbar';
 const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
   ssr: false,
   loading: () => <EditorLoadingSkeleton className="p-6" />,
+});
+
+const CopilotChat = dynamic(() => import('./copilot/copilot-chat').then((mod) => mod.CopilotChat), {
+  ssr: false,
 });
 
 // Type for agent tool configuration lookup including both selection and headers
@@ -123,6 +128,7 @@ export const Agent: FC<AgentProps> = ({
   externalAgentLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
+  const { isOpen: isCopilotChatOpen } = useCopilotContext();
   const router = useRouter();
 
   const { tenantId, projectId } = useParams<{
@@ -394,7 +400,7 @@ export const Agent: FC<AgentProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [showPlayground, fitView]);
+  }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
@@ -864,6 +870,7 @@ export const Agent: FC<AgentProps> = ({
       autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
+      <CopilotChat agentId={agent?.id} projectId={projectId} tenantId={tenantId} />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -909,7 +916,7 @@ export const Agent: FC<AgentProps> = ({
           <Panel
             position="top-right"
             // width of NodeLibrary
-            className="left-52"
+            className="left-40"
           >
             <Toolbar
               onSubmit={onSubmit}

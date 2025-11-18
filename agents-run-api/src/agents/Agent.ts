@@ -179,6 +179,7 @@ export class Agent {
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
   private conversationId?: string;
+  private delegationId?: string;
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
@@ -350,6 +351,13 @@ export class Agent {
   }
 
   /**
+   * Set delegation ID for this agent instance
+   */
+  setDelegationId(delegationId: string | undefined) {
+    this.delegationId = delegationId;
+  }
+
+  /**
    * Get streaming helper if this agent should stream to user
    * Returns undefined for delegated agents to prevent streaming data operations to user
    */
@@ -393,8 +401,8 @@ export class Agent {
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
-          toolName.startsWith('transfer_to_') ||
-          toolName.startsWith('delegate_to_');
+          toolName.startsWith('transfer_to_');
+        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
@@ -423,6 +431,43 @@ export class Agent {
         try {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
+
+          // Store tool result in conversation history
+          const toolResultConversationId = this.getToolResultConversationId();
+          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+            try {
+              const messageId = generateId();
+              const messagePayload = {
+                id: messageId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: {
+                  text: this.formatToolResult(toolName, args, result, toolCallId),
+                },
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: this.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId,
+                    timestamp: Date.now(),
+                    delegationId: this.delegationId,
+                    isDelegated: this.isDelegatedAgent,
+                  },
+                },
+              };
+
+              await createMessage(dbClient)(messagePayload);
+            } catch (error) {
+              logger.warn(
+                { error, toolName, toolCallId, conversationId: toolResultConversationId },
+                'Failed to store tool result in conversation history'
+              );
+            }
+          }
 
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -1260,7 +1305,6 @@ export class Agent {
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
-
     let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
@@ -1459,7 +1503,36 @@ export class Agent {
    */
   private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
-    const output = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+
+    // Handle string results that might be JSON - try to parse them
+    let parsedResult = result;
+    if (typeof result === 'string') {
+      try {
+        parsedResult = JSON.parse(result);
+      } catch (e) {
+        // Keep as string if not valid JSON
+      }
+    }
+
+    // Clean result by removing _structureHints before storing
+    // Check if _structureHints is nested inside the 'result' property
+    const cleanResult =
+      parsedResult && typeof parsedResult === 'object' && !Array.isArray(parsedResult)
+        ? {
+            ...parsedResult,
+            result:
+              parsedResult.result &&
+              typeof parsedResult.result === 'object' &&
+              !Array.isArray(parsedResult.result)
+                ? Object.fromEntries(
+                    Object.entries(parsedResult.result).filter(([key]) => key !== '_structureHints')
+                  )
+                : parsedResult.result,
+          }
+        : parsedResult;
+
+    const output =
+      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
 
     return `## Tool: ${toolName}
 
@@ -1470,6 +1543,14 @@ ${input}
 
 ### Output
 ${output}`;
+  }
+
+  /**
+   * Get the conversation ID for storing tool results
+   * Always uses the real conversation ID - delegation filtering happens at query time
+   */
+  private getToolResultConversationId(): string | undefined {
+    return this.conversationId;
   }
 
   /**
@@ -1865,13 +1946,18 @@ ${output}`;
 
           if (historyConfig && historyConfig.mode !== 'none') {
             if (historyConfig.mode === 'full') {
+              const filters = {
+                delegationId: this.delegationId,
+                isDelegated: this.isDelegatedAgent,
+              };
+
               conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: contextId,
                 currentMessage: userMessage,
                 options: historyConfig,
-                filters: {},
+                filters,
               });
             } else if (historyConfig.mode === 'scoped') {
               conversationHistory = await getFormattedConversationHistory({
@@ -1883,6 +1969,8 @@ ${output}`;
                 filters: {
                   subAgentId: this.config.id,
                   taskId: taskId,
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
                 },
               });
             }

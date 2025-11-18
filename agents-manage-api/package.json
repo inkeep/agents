@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.33.1",
+  "version": "0.33.2",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,10 +20,13 @@
     "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
+    "@hono/mcp": "^0.1.5",
     "@hono/node-server": "^1.14.3",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-mcp": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
     "dotenv": "^17.2.1",

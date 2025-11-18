@@ -157,9 +157,16 @@ export const subAgents = pgTable(
     ...agentScoped,
     ...uiProperties,
     prompt: text('prompt').notNull(),
-    conversationHistoryConfig: jsonb(
-      'conversation_history_config'
-    ).$type<ConversationHistoryConfig>(),
+    conversationHistoryConfig: jsonb('conversation_history_config')
+      .$type<ConversationHistoryConfig>()
+      .notNull()
+      .default({
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      }),
     models: jsonb('models').$type<Models>(),
     stopWhen: jsonb('stop_when').$type<SubAgentStopWhen>(),
     ...timestamps,
