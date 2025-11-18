@@ -3,28 +3,27 @@
  */
 
 import {
-  output,
-  ZodEffects,
+  type output,
+  type ZodEffects,
   ZodError,
-  ZodObject,
-  ZodRawShape,
-  ZodTypeAny,
-} from "zod";
-import { SDKValidationError } from "../models/errors/sdkvalidationerror.js";
-import { ERR, OK, Result } from "../types/fp.js";
+  type ZodObject,
+  type ZodRawShape,
+  type ZodTypeAny,
+} from 'zod';
+import { SDKValidationError } from '../models/errors/sdkvalidationerror.js';
+import { ERR, OK, type Result } from '../types/fp.js';
 
 export function collectExtraKeys<
   Shape extends ZodRawShape,
   Catchall extends ZodTypeAny,
   K extends string,
 >(
-  obj: ZodObject<Shape, "strip", Catchall>,
+  obj: ZodObject<Shape, 'strip', Catchall>,
   extrasKey: K,
-  optional: boolean,
+  optional: boolean
 ): ZodEffects<
   typeof obj,
-  & output<ZodObject<Shape, "strict">>
-  & {
+  output<ZodObject<Shape, 'strict'>> & {
     [k in K]: Record<string, output<Catchall>>;
   }
 > {
@@ -37,7 +36,7 @@ export function collectExtraKeys<
       }
 
       const v = val[key];
-      if (typeof v === "undefined") {
+      if (typeof v === 'undefined') {
         continue;
       }
 
@@ -58,11 +57,7 @@ export function collectExtraKeys<
  * intercepts this error and converts it to an SDKValidationError so as to not
  * leak Zod implementation details to user code.
  */
-export function parse<Inp, Out>(
-  rawValue: Inp,
-  fn: (value: Inp) => Out,
-  errorMessage: string,
-): Out {
+export function parse<Inp, Out>(rawValue: Inp, fn: (value: Inp) => Out, errorMessage: string): Out {
   try {
     return fn(rawValue);
   } catch (err) {
@@ -81,7 +76,7 @@ export function parse<Inp, Out>(
 export function safeParse<Inp, Out>(
   rawValue: Inp,
   fn: (value: Inp) => Out,
-  errorMessage: string,
+  errorMessage: string
 ): Result<Out, SDKValidationError> {
   try {
     return OK(fn(rawValue));

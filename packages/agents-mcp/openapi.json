@@ -1940,6 +1940,18 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "toolPolicies": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "needsApproval": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         },
         "required": [
@@ -2866,6 +2878,37 @@
               }
             ]
           },
+          "toolPolicies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "nullable": true
+                }
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "createdAt": {
             "type": "string"
           },
@@ -2879,6 +2922,7 @@
           "toolId",
           "selectedTools",
           "headers",
+          "toolPolicies",
           "createdAt",
           "updatedAt"
         ]
@@ -2953,6 +2997,18 @@
               "type": "string"
             }
           },
+          "toolPolicies": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "needsApproval": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
           "createdAt": {
             "type": "string"
           },
@@ -3005,6 +3061,18 @@
             "nullable": true,
             "additionalProperties": {
               "type": "string"
+            }
+          },
+          "toolPolicies": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "needsApproval": {
+                  "type": "boolean"
+                }
+              }
             }
           },
           "createdAt": {

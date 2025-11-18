@@ -3,7 +3,7 @@
  */
 
 declare const __brand: unique symbol;
-export type Unrecognized<T> = T & { [__brand]: "unrecognized" };
+export type Unrecognized<T> = T & { [__brand]: 'unrecognized' };
 
 export function catchUnrecognizedEnum<T>(value: T): Unrecognized<T> {
   return value as Unrecognized<T>;

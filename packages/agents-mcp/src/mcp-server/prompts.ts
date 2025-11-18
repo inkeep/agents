@@ -78,14 +78,11 @@ export function createRegisterPrompt(
 
     if (prompt.args) {
       if (prompt.description) {
-        server.prompt(
-          prompt.name,
-          prompt.description,
-          prompt.args as any,
-          async (args: any, ctx: any) => prompt.prompt(getSDK(), args, ctx)
+        server.prompt(prompt.name, prompt.description, prompt.args, async (args, ctx) =>
+          prompt.prompt(getSDK(), args, ctx)
         );
       } else {
-        server.prompt(prompt.name, prompt.args as any, async (args: any, ctx: any) =>
+        server.prompt(prompt.name, prompt.args, async (args, ctx) =>
           prompt.prompt(getSDK(), args, ctx)
         );
       }

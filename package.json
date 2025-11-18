@@ -49,6 +49,8 @@
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
     "db:reset": "pnpm --filter @inkeep/agents-core db:reset",
     "db:check": "pnpm --filter @inkeep/agents-core db:check",
+    "mcp:generate": "pnpm --filter @inkeep/agents-mcp generate",
+    "mcp:watch": "pnpm --filter @inkeep/agents-mcp watch",
     "workflow:profile": "node scripts/workflows/profile.mjs",
     "workflow:profile:verbose": "node scripts/workflows/profile.mjs --verbose",
     "setup-dev": "sh scripts/setup.sh"
