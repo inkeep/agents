@@ -26,7 +26,7 @@
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
-    "@inkeep/agents-mcp": "workspace:^",
+    "@inkeep/agents-manage-mcp": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.17.0",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
