@@ -1,1 +1,1 @@
-export type { NestedInkeepConfig, ApiConfig } from '@inkeep/agents-cli/config';
+export type { ApiConfig, NestedInkeepConfig } from '@inkeep/agents-cli/config';
