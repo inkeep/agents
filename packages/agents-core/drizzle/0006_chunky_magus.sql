@@ -1,1 +1,0 @@
-ALTER TABLE "dataset_run_config_evaluation_run_config_relations" ADD COLUMN "enabled" boolean DEFAULT true NOT NULL;

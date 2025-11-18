@@ -5,87 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762892536683,
-      "tag": "0000_exotic_mysterio",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1762981011691,
-      "tag": "0001_damp_annihilus",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1762983545811,
-      "tag": "0002_eager_zodiak",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1762986442248,
-      "tag": "0003_polite_leo",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1763067529791,
-      "tag": "0004_curly_mesmero",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1763130051977,
-      "tag": "0005_hard_praxagora",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1763153104510,
-      "tag": "0006_chunky_magus",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1763153303802,
-      "tag": "0007_silent_overlord",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1763396313631,
-      "tag": "0008_tranquil_boom_boom",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1763408375595,
-      "tag": "0009_slippery_wallop",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1763418625355,
-      "tag": "0012_graceful_maginty",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1763420599152,
-      "tag": "0013_condemned_may_parker",
-      "when": 1763430895009,
-      "tag": "0001_greedy_the_phantom",
+      "when": 1763481926985,
+      "tag": "0000_white_shatterstar",
       "breakpoints": true
     }
   ]

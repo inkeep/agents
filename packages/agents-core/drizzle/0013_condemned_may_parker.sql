@@ -1,2 +1,0 @@
-ALTER TABLE "dataset_run" ADD COLUMN "evaluation_job_config_id" text;--> statement-breakpoint
-ALTER TABLE "dataset_run" ADD CONSTRAINT "dataset_run_evaluation_job_config_fk" FOREIGN KEY ("tenant_id","project_id","evaluation_job_config_id") REFERENCES "public"."evaluation_job_config"("tenant_id","project_id","id") ON DELETE set null ON UPDATE no action;

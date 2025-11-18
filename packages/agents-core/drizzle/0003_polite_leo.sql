@@ -1,1 +1,0 @@
-ALTER TABLE "dataset_run_config" ALTER COLUMN "run_frequency" DROP NOT NULL;

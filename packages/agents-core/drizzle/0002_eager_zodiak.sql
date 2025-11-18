@@ -1,1 +1,0 @@
-ALTER TABLE "dataset_item" ALTER COLUMN "input" SET NOT NULL;
