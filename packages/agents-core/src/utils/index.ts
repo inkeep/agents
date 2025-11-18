@@ -9,4 +9,5 @@ export * from './logger';
 export * from './mcp-client';
 export * from './schema-conversion';
 export * from './service-token-auth';
+export * from './third-party-check';
 export * from './tracer-factory';

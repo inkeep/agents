@@ -3265,6 +3265,101 @@ components:
           nullable: true
         "updatedAt":
           type: "string"
+    "MCPCatalogListResponse":
+      type: "object"
+      properties:
+        "data":
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              "id":
+                type: "string"
+                description: "Unique identifier for the MCP server"
+              "name":
+                type: "string"
+                description: "Display name of the MCP server"
+              "url":
+                type: "string"
+                format: "uri"
+                description: "URL endpoint for the MCP server"
+              "transport":
+                type: "string"
+                enum:
+                  - "streamable_http"
+                  - "sse"
+                description: "Transport protocol type"
+              "imageUrl":
+                type: "string"
+                format: "uri"
+                description: "Logo/icon URL for the MCP server"
+              "isOpen":
+                type: "boolean"
+                description: "Whether the MCP server is open (doesn't require authentication)"
+              "category":
+                type: "string"
+                description: "Category of the MCP server (e.g., communication, project_management)"
+              "description":
+                type: "string"
+                description: "Brief description of what the MCP server does"
+              "thirdPartyConnectAccountUrl":
+                type: "string"
+                format: "uri"
+                description: "URL to connect to the third party account"
+            required:
+              - "id"
+              - "name"
+              - "url"
+              - "transport"
+      required:
+        - "data"
+    "ThirdPartyMCPServerResponse":
+      type: "object"
+      properties:
+        "data":
+          type: "object"
+          nullable: true
+          properties:
+            "id":
+              type: "string"
+              description: "Unique identifier for the MCP server"
+            "name":
+              type: "string"
+              description: "Display name of the MCP server"
+            "url":
+              type: "string"
+              format: "uri"
+              description: "URL endpoint for the MCP server"
+            "transport":
+              type: "string"
+              enum:
+                - "streamable_http"
+                - "sse"
+              description: "Transport protocol type"
+            "imageUrl":
+              type: "string"
+              format: "uri"
+              description: "Logo/icon URL for the MCP server"
+            "isOpen":
+              type: "boolean"
+              description: "Whether the MCP server is open (doesn't require authentication)"
+            "category":
+              type: "string"
+              description: "Category of the MCP server (e.g., communication, project_management)"
+            "description":
+              type: "string"
+              description: "Brief description of what the MCP server does"
+            "thirdPartyConnectAccountUrl":
+              type: "string"
+              format: "uri"
+              description: "URL to connect to the third party account"
+          required:
+            - "id"
+            - "name"
+            - "url"
+            - "transport"
+      required:
+        - "data"
     "FullProjectDefinition":
       allOf:
         - {"$ref": "#/components/schemas/ProjectCreate"}
@@ -9449,6 +9544,126 @@ paths:
       responses:
         "204":
           description: "Agent deleted successfully"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/mcp-catalog":
+    get:
+      summary: "List MCP Server Catalog"
+      operationId: "list-mcp-catalog"
+      tags:
+        - "MCP Catalog"
+      description: "Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured, also includes Composio servers for the tenant/project."
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of available MCP servers"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/MCPCatalogListResponse"}
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers":
+    post:
+      summary: "Get Third-Party MCP Server Details"
+      operationId: "get-third-party-mcp-server"
+      tags:
+        - "Third-Party MCP Servers"
+      description: "Fetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "url":
+                  type: "string"
+                  format: "uri"
+                  description: "The MCP server URL to fetch details for"
+              required:
+                - "url"
+      responses:
+        "200":
+          description: "Third-party MCP server details"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/ThirdPartyMCPServerResponse"}
         "400":
           description: "Bad Request"
           content:

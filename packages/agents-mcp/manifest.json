@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-mcp",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "",
   "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
   "author": {
@@ -419,6 +419,14 @@
     {
       "name": "full-agent-delete-full-agent",
       "description": "Delete Full Agent\n\nDelete a complete agent and cascade to all related entities (relationships, not other agents/tools)"
+    },
+    {
+      "name": "MCP-catalog-list-mcp-catalog",
+      "description": "List MCP Server Catalog\n\nGet a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured, also includes Composio servers for the tenant/project."
+    },
+    {
+      "name": "third-party-MCP-servers-get-third-party-mcp-server",
+      "description": "Get Third-Party MCP Server Details\n\nFetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL"
     },
     {
       "name": "full-project-create-full-project",

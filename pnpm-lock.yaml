@@ -354,6 +354,9 @@ importers:
 
   agents-manage-api:
     dependencies:
+      '@composio/core':
+        specifier: ^0.2.4
+        version: 0.2.4(ws@8.18.3)(zod@4.1.12)
       '@hono/mcp':
         specifier: ^0.1.5
         version: 0.1.5(@modelcontextprotocol/sdk@1.21.0)(hono@4.10.4)
@@ -921,6 +924,9 @@ importers:
 
   packages/agents-core:
     dependencies:
+      '@composio/core':
+        specifier: ^0.2.4
+        version: 0.2.4(ws@8.18.3)(zod@4.1.12)
       '@electric-sql/pglite':
         specifier: ^0.3.13
         version: 0.3.13
@@ -2085,6 +2091,19 @@ packages:
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
     engines: {node: '>=0.1.90'}
+
+  '@composio/client@0.1.0-alpha.40':
+    resolution: {integrity: sha512-xkd+LseCiuFLxiXXtjFgON0bO4M/1AsBQD4omhf2nl5tXJI0sXj72wCf1EXhT2jIu5pgJqJ4H64ZzwoM0fHDvg==}
+
+  '@composio/core@0.2.4':
+    resolution: {integrity: sha512-fwTco88X7nsoG7cs5iea0dxTBaygdqdajfIsJYVxJWugdhbGM9IQcR6m9sU1G5toiRogwX1bIdxeH4kWxl4RBg==}
+    peerDependencies:
+      zod: ^4.1.11
+
+  '@composio/json-schema-to-zod@0.1.18':
+    resolution: {integrity: sha512-y/1AXznIZE92KTKmDCFa2S4/+WulfdrO1RH65fy8CG7sXJVxOExktUiQUrvatnZZ5LzXUJqke9W+fMxLBvm5jw==}
+    peerDependencies:
+      zod: ^4.1.11
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -9356,6 +9375,18 @@ packages:
       zod:
         optional: true
 
+  openai@5.23.2:
+    resolution: {integrity: sha512-MQBzmTulj+MM5O8SKEk/gL8a7s5mktS9zUtAkU257WjvobGc9nKcBuVwjyEEcb9SI8a8Y2G/mzn3vm9n1Jlleg==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^4.1.11
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   openapi-sampler@1.6.2:
     resolution: {integrity: sha512-NyKGiFKfSWAZr4srD/5WDhInOWDhfml32h/FKUqLpEwKJt0kG0LGUU0MdyNkKrVGuJnw6DuPWq/sHCwAMpiRxg==}
 
@@ -9769,6 +9800,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  pusher-js@8.4.0:
+    resolution: {integrity: sha512-wp3HqIIUc1GRyu1XrP6m2dgyE9MoCsXVsWNlohj0rjSkLf+a0jLvEyVubdg58oMk7bhjBWnFClgp8jfAa6Ak4Q==}
 
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
@@ -10882,6 +10916,9 @@ packages:
   tweetnacl@0.14.5:
     resolution: {integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==}
 
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
+
   twitch-video-element@0.1.4:
     resolution: {integrity: sha512-SDpZ4f7sZmwHF6XG5PF0KWuP18pH/kNG04MhTcpqJby7Lk/D3TS/lCYd+RSg0rIAAVi1LDgSIo1yJs9kmHlhgw==}
 
@@ -11130,6 +11167,10 @@ packages:
 
   uuid@11.1.0:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
+
+  uuid@13.0.0:
+    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
     hasBin: true
 
   uuid@8.3.2:
@@ -12710,6 +12751,27 @@ snapshots:
 
   '@colors/colors@1.5.0':
     optional: true
+
+  '@composio/client@0.1.0-alpha.40': {}
+
+  '@composio/core@0.2.4(ws@8.18.3)(zod@4.1.12)':
+    dependencies:
+      '@composio/client': 0.1.0-alpha.40
+      '@composio/json-schema-to-zod': 0.1.18(zod@4.1.12)
+      '@types/json-schema': 7.0.15
+      chalk: 4.1.2
+      openai: 5.23.2(ws@8.18.3)(zod@4.1.12)
+      pusher-js: 8.4.0
+      semver: 7.7.3
+      uuid: 13.0.0
+      zod: 4.1.12
+      zod-to-json-schema: 3.24.6(zod@4.1.12)
+    transitivePeerDependencies:
+      - ws
+
+  '@composio/json-schema-to-zod@0.1.18(zod@4.1.12)':
+    dependencies:
+      zod: 4.1.12
 
   '@csstools/color-helpers@5.1.0': {}
 
@@ -22476,6 +22538,11 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  openai@5.23.2(ws@8.18.3)(zod@4.1.12):
+    optionalDependencies:
+      ws: 8.18.3
+      zod: 4.1.12
+
   openapi-sampler@1.6.2:
     dependencies:
       '@types/json-schema': 7.0.15
@@ -22894,6 +22961,10 @@ snapshots:
       once: 1.4.0
 
   punycode@2.3.1: {}
+
+  pusher-js@8.4.0:
+    dependencies:
+      tweetnacl: 1.0.3
 
   qs@6.14.0:
     dependencies:
@@ -24431,6 +24502,8 @@ snapshots:
 
   tweetnacl@0.14.5: {}
 
+  tweetnacl@1.0.3: {}
+
   twitch-video-element@0.1.4: {}
 
   type-check@0.4.0:
@@ -24721,6 +24794,8 @@ snapshots:
       inherits: 2.0.3
 
   uuid@11.1.0: {}
+
+  uuid@13.0.0: {}
 
   uuid@8.3.2: {}
 

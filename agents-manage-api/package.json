@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@hono/mcp": "^0.1.5",
+    "@composio/core": "^0.2.4",
     "@hono/node-server": "^1.14.3",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.0.2",
