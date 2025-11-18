@@ -1,31 +1,38 @@
 import { CodeDiff } from './code-diff';
-import { RelationalDiff } from './relational-diff';
+// import { RelationalDiff } from './relational-diff';
 import { TextDiff } from './text-diff';
 
 export const FieldLabel = ({ children }: { children: React.ReactNode }) => {
   return <div className="text-sm font-medium mb-2">{children}</div>;
 };
 
-interface DiffViewerProps {
-  originalValue: string;
+interface DiffFieldProps {
+  originalValue: any;
   field: string;
   subAgentId?: string;
-  newValue: string;
+  newValue: any;
 }
 
-export const DiffViewer = (props: DiffViewerProps) => {
-  console.log(props);
-  return (
-    <div className="relative rounded-lg border px-4 py-3">
-      <FieldLabel>{props.field}</FieldLabel>
-      <CodeDiff originalValue={props.originalValue} newValue={props.newValue} />
-      <TextDiff oldValue={props.originalValue} newValue={props.newValue} />
+const formatFieldName = (field: string) => {
+  const formatted = field
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // Insert space before capital letters (camelCase)
+    .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
+    .toLowerCase(); // Convert to lowercase
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1); // Capitalize only first letter
+};
 
-      <RelationalDiff
-        sourceSubAgentId={'activities-planner'}
-        targetSubAgentId={'weather-forecast'}
-        relationType={'transfer'}
-      />
+export const DiffField = ({ originalValue, field, newValue }: DiffFieldProps) => {
+  return (
+    <div className="flex flex-col relative">
+      <FieldLabel>{formatFieldName(field)}</FieldLabel>
+      {typeof originalValue === 'string' && typeof newValue === 'string' ? (
+        <TextDiff originalValue={originalValue} newValue={newValue} />
+      ) : (
+        <CodeDiff
+          originalValue={JSON.stringify(originalValue)}
+          newValue={JSON.stringify(newValue)}
+        />
+      )}
     </div>
   );
 };

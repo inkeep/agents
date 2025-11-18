@@ -3,13 +3,16 @@ import type React from 'react';
 import { useMemo } from 'react';
 
 type TextDiffProps = {
-  oldValue: string;
+  originalValue: string;
   newValue: string;
   className?: string;
 };
 
-export const TextDiff: React.FC<TextDiffProps> = ({ oldValue, newValue, className = '' }) => {
-  const parts = useMemo(() => diffWords(oldValue ?? '', newValue ?? ''), [oldValue, newValue]);
+export const TextDiff: React.FC<TextDiffProps> = ({ originalValue, newValue, className = '' }) => {
+  const parts = useMemo(
+    () => diffWords(originalValue ?? '', newValue ?? ''),
+    [originalValue, newValue]
+  );
 
   return (
     <div className={`text-sm leading-relaxed whitespace-pre-wrap space-x-0.5 ${className}`}>
