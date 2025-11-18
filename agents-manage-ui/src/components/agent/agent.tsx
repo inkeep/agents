@@ -34,6 +34,7 @@ import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { getFullAgentAction } from '@/lib/actions/agent-full';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -195,63 +196,82 @@ export const Agent: FC<AgentProps> = ({
     };
   }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
 
-  const agentToolConfigLookup = useMemo((): AgentToolConfigLookup => {
-    if (!agent?.subAgents) return {} as AgentToolConfigLookup;
+  // Helper functions to compute lookups from agent data
+  const computeAgentToolConfigLookup = useCallback(
+    (agentData: ExtendedFullAgentDefinition | null | undefined): AgentToolConfigLookup => {
+      if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
 
-    const lookup: AgentToolConfigLookup = {};
-    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canUse' in agentData && agentData.canUse) {
-        const toolsMap: Record<string, AgentToolConfig> = {};
-        agentData.canUse.forEach((tool) => {
-          if (tool.agentToolRelationId) {
-            const config: AgentToolConfig = {
-              toolId: tool.toolId,
-            };
+      const lookup: AgentToolConfigLookup = {};
+      Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
+        if ('canUse' in subAgentData && subAgentData.canUse) {
+          const toolsMap: Record<string, AgentToolConfig> = {};
+          subAgentData.canUse.forEach((tool) => {
+            if (tool.agentToolRelationId) {
+              const config: AgentToolConfig = {
+                toolId: tool.toolId,
+              };
 
-            if (tool.toolSelection) {
-              config.toolSelection = tool.toolSelection;
+              if (tool.toolSelection) {
+                config.toolSelection = tool.toolSelection;
+              }
+
+              if (tool.headers) {
+                config.headers = tool.headers;
+              }
+
+              if (tool.toolPolicies) {
+                config.toolPolicies = tool.toolPolicies;
+              }
+
+              toolsMap[tool.agentToolRelationId] = config;
             }
-
-            if (tool.headers) {
-              config.headers = tool.headers;
-            }
-
-            if (tool.toolPolicies) {
-              config.toolPolicies = tool.toolPolicies;
-            }
-
-            toolsMap[tool.agentToolRelationId] = config;
-          }
-        });
-        if (Object.keys(toolsMap).length > 0) {
-          lookup[subAgentId] = toolsMap;
-        }
-      }
-    });
-    return lookup;
-  }, [agent?.subAgents]);
-
-  const subAgentExternalAgentConfigLookup = useMemo((): SubAgentExternalAgentConfigLookup => {
-    if (!agent?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
-    const lookup: SubAgentExternalAgentConfigLookup = {};
-    Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
-      if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
-        const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
-        agentData.canDelegateTo
-          .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
-          .forEach((delegate) => {
-            externalAgentConfigs[delegate.externalAgentId] = {
-              externalAgentId: delegate.externalAgentId,
-              headers: delegate.headers ?? undefined,
-            };
           });
-        if (Object.keys(externalAgentConfigs).length > 0) {
-          lookup[subAgentId] = externalAgentConfigs;
+          if (Object.keys(toolsMap).length > 0) {
+            lookup[subAgentId] = toolsMap;
+          }
         }
-      }
-    });
-    return lookup;
-  }, [agent?.subAgents]);
+      });
+      return lookup;
+    },
+    []
+  );
+
+  const computeSubAgentExternalAgentConfigLookup = useCallback(
+    (
+      agentData: ExtendedFullAgentDefinition | null | undefined
+    ): SubAgentExternalAgentConfigLookup => {
+      if (!agentData?.subAgents) return {} as SubAgentExternalAgentConfigLookup;
+      const lookup: SubAgentExternalAgentConfigLookup = {};
+      Object.entries(agentData.subAgents).forEach(([subAgentId, subAgentData]) => {
+        if ('canDelegateTo' in subAgentData && subAgentData.canDelegateTo) {
+          const externalAgentConfigs: Record<string, SubAgentExternalAgentConfig> = {};
+          subAgentData.canDelegateTo
+            .filter((delegate) => typeof delegate === 'object' && 'externalAgentId' in delegate)
+            .forEach((delegate) => {
+              externalAgentConfigs[delegate.externalAgentId] = {
+                externalAgentId: delegate.externalAgentId,
+                headers: delegate.headers ?? undefined,
+              };
+            });
+          if (Object.keys(externalAgentConfigs).length > 0) {
+            lookup[subAgentId] = externalAgentConfigs;
+          }
+        }
+      });
+      return lookup;
+    },
+    []
+  );
+
+  const agentToolConfigLookup = useMemo(
+    () => computeAgentToolConfigLookup(agent),
+    [agent, computeAgentToolConfigLookup]
+  );
+
+  const subAgentExternalAgentConfigLookup = useMemo(
+    () => computeSubAgentExternalAgentConfigLookup(agent),
+    [agent, computeSubAgentExternalAgentConfigLookup]
+  );
 
   const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
     if (!agent?.subAgents) return {} as SubAgentTeamAgentConfigLookup;
@@ -401,6 +421,78 @@ export const Agent: FC<AgentProps> = ({
 
     return () => clearTimeout(timer);
   }, [showPlayground, isCopilotChatOpen, fitView]);
+
+  // Callback function to fetch and update agent graph from copilot
+  const refreshAgentGraph = useCallback(async () => {
+    if (!agent?.id) {
+      console.log('No agentId available, skipping graph refresh');
+      return;
+    }
+
+    try {
+      const result = await getFullAgentAction(tenantId, projectId, agent.id);
+      if (!result.success) {
+        console.error('Failed to refresh agent graph:', result.error);
+        return;
+      }
+      const updatedAgent = result.data;
+
+      // Deserialize agent data to nodes and edges
+      const { nodes, edges } = deserializeAgentData(updatedAgent);
+
+      // Preserve selection state based on current URL state
+      const nodesWithSelection = nodeId
+        ? nodes.map((node) => ({
+            ...node,
+            selected: node.id === nodeId,
+          }))
+        : nodes;
+
+      const edgesWithSelection = edgeId
+        ? edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === edgeId,
+          }))
+        : edges;
+
+      // Extract metadata
+      const metadata = extractAgentMetadata(updatedAgent);
+
+      // Recompute lookups from the updated agent data using shared helper functions
+      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
+      const updatedSubAgentExternalAgentConfigLookup =
+        computeSubAgentExternalAgentConfigLookup(updatedAgent);
+
+      // Update the store with the new graph using existing project-level lookups and recomputed agent-level lookups
+      setInitial(
+        enrichNodes(nodesWithSelection),
+        edgesWithSelection,
+        metadata,
+        dataComponentLookup,
+        artifactComponentLookup,
+        toolLookup,
+        updatedAgentToolConfigLookup,
+        externalAgentLookup,
+        updatedSubAgentExternalAgentConfigLookup
+      );
+    } catch (error) {
+      console.error('Failed to refresh agent graph:', error);
+    }
+  }, [
+    agent?.id,
+    tenantId,
+    projectId,
+    nodeId,
+    edgeId,
+    setInitial,
+    dataComponentLookup,
+    artifactComponentLookup,
+    toolLookup,
+    externalAgentLookup,
+    computeAgentToolConfigLookup,
+    computeSubAgentExternalAgentConfigLookup,
+    enrichNodes,
+  ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
@@ -870,7 +962,12 @@ export const Agent: FC<AgentProps> = ({
       autoSaveId="agent-resizable-layout-state"
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
-      <CopilotChat agentId={agent?.id} projectId={projectId} tenantId={tenantId} />
+      <CopilotChat
+        agentId={agent?.id}
+        projectId={projectId}
+        tenantId={tenantId}
+        refreshAgentGraph={refreshAgentGraph}
+      />
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
