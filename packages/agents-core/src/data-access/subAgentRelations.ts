@@ -645,6 +645,7 @@ export const getAgentsForTool =
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
+          toolPolicies: subAgentToolRelations.toolPolicies,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
           subAgent: {
