@@ -1,6 +1,7 @@
 packages:
   - agents-manage-api
   - agents-run-api
+  - agents-eval-api
   - agents-manage-ui
   - agents-cli
   - agents-ui

@@ -308,3 +308,38 @@ li[data-sonner-toast][data-type="error"] {
   animation: node-pulse 1.5s ease-in-out infinite;
   @apply border-primary border-2;
 }
+
+@keyframes node-animation {
+  to {
+    box-shadow: none;
+  }
+}
+
+.node-delegating-inverted {
+  @apply ring-2 ring-primary;
+  animation: node-animation var(--edge-delegating-duration) steps(1, end) forwards;
+}
+
+:root {
+  --xy-edge-stroke: var(--border);
+  --xy-edge-stroke-selected: var(--primary);
+  --edge-delegating-duration: 2s;
+}
+
+.dark {
+  --xy-edge-stroke: var(--muted-foreground);
+}
+
+.edge-delegating {
+  --xy-edge-stroke: var(--primary);
+}
+
+.edge-delegating-inverted {
+  animation: edge-animation var(--edge-delegating-duration) steps(1, end) forwards;
+}
+
+@keyframes edge-animation {
+  to {
+    --xy-edge-stroke: unset;
+  }
+}

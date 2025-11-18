@@ -665,12 +665,7 @@ export class Agent {
             try {
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              if (
-                rawResult &&
-                typeof rawResult === 'object' &&
-                'isError' in rawResult &&
-                rawResult.isError
-              ) {
+              if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
@@ -694,6 +689,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
+                      relationshipId,
                     },
                   });
                 }

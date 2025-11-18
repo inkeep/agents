@@ -171,7 +171,8 @@ const discoverToolsFromServer = async (
 export const dbResultToMcpTool = async (
   dbResult: ToolSelect,
   dbClient: DatabaseClient,
-  credentialStoreRegistry?: CredentialStoreRegistry
+  credentialStoreRegistry?: CredentialStoreRegistry,
+  relationshipId?: string
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -187,6 +188,7 @@ export const dbResultToMcpTool = async (
       lastError: null,
       headers: headers || undefined,
       imageUrl: imageUrl || undefined,
+      relationshipId,
     };
   }
 
@@ -289,6 +291,7 @@ export const dbResultToMcpTool = async (
     lastError: lastErrorComputed,
     headers: headers || undefined,
     imageUrl: imageUrl || undefined,
+    relationshipId,
   };
 };
 

@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762892536683,
-      "tag": "0000_exotic_mysterio",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1763430895009,
-      "tag": "0001_greedy_the_phantom",
+      "when": 1763481926985,
+      "tag": "0000_white_shatterstar",
       "breakpoints": true
     }
   ]

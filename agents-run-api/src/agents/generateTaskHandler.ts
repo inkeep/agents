@@ -261,7 +261,12 @@ export const createTaskHandler = (
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(async (item) => {
-            const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+            const mcpTool = await dbResultToMcpTool(
+              item.tool,
+              dbClient,
+              credentialStoreRegistry,
+              item.id
+            );
 
             // Filter available tools based on selectedTools for this agent-tool relationship
             if (item.selectedTools && item.selectedTools.length > 0) {
@@ -358,7 +363,8 @@ export const createTaskHandler = (
                       const mcpTool = await dbResultToMcpTool(
                         item.tool,
                         dbClient,
-                        credentialStoreRegistry
+                        credentialStoreRegistry,
+                        item.id
                       );
 
                       // Filter available tools based on selectedTools for this agent-tool relationship
