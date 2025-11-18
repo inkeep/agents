@@ -1142,7 +1142,7 @@ export const evaluationRunConfigEvaluationSuiteConfigRelations = pgTable(
         evaluationRunConfig.projectId,
         evaluationRunConfig.id,
       ],
-      name: 'evaluation_run_config_evaluation_suite_config_relations_evaluation_run_config_fk',
+      name: 'eval_run_config_eval_suite_rel_run_config_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
@@ -1151,7 +1151,7 @@ export const evaluationRunConfigEvaluationSuiteConfigRelations = pgTable(
         evaluationSuiteConfig.projectId,
         evaluationSuiteConfig.id,
       ],
-      name: 'evaluation_run_config_evaluation_suite_config_relations_evaluation_suite_config_fk',
+      name: 'eval_run_config_eval_suite_rel_suite_config_fk',
     }).onDelete('cascade'),
   ]
 );
