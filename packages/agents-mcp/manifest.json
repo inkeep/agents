@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-mcp",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "",
   "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
   "author": {

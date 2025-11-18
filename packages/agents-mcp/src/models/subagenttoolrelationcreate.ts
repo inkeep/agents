@@ -4,12 +4,28 @@
 
 import * as z from "zod";
 
+export type SubAgentToolRelationCreateToolPolicies = {
+  needsApproval?: boolean | undefined;
+};
+
+export const SubAgentToolRelationCreateToolPolicies$zodSchema: z.ZodType<
+  SubAgentToolRelationCreateToolPolicies,
+  z.ZodTypeDef,
+  unknown
+> = z.object({
+  needsApproval: z.boolean().optional(),
+});
+
 export type SubAgentToolRelationCreate = {
   id: string;
   subAgentId: string;
   toolId: string;
   selectedTools?: Array<string> | null | undefined;
   headers?: { [k: string]: string } | null | undefined;
+  toolPolicies?:
+    | { [k: string]: SubAgentToolRelationCreateToolPolicies }
+    | null
+    | undefined;
   createdAt?: string | undefined;
   updatedAt?: string | undefined;
 };
@@ -25,5 +41,8 @@ export const SubAgentToolRelationCreate$zodSchema: z.ZodType<
   selectedTools: z.array(z.string()).nullable().optional(),
   subAgentId: z.string(),
   toolId: z.string(),
+  toolPolicies: z.record(
+    z.lazy(() => SubAgentToolRelationCreateToolPolicies$zodSchema),
+  ).nullable().optional(),
   updatedAt: z.string().optional(),
 });

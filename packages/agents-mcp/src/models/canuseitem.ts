@@ -4,11 +4,22 @@
 
 import * as z from "zod";
 
+export type CanUseItemToolPolicies = { needsApproval?: boolean | undefined };
+
+export const CanUseItemToolPolicies$zodSchema: z.ZodType<
+  CanUseItemToolPolicies,
+  z.ZodTypeDef,
+  unknown
+> = z.object({
+  needsApproval: z.boolean().optional(),
+});
+
 export type CanUseItem = {
   agentToolRelationId?: string | undefined;
   toolId: string;
   toolSelection?: Array<string> | null | undefined;
   headers?: { [k: string]: string } | null | undefined;
+  toolPolicies?: { [k: string]: CanUseItemToolPolicies } | null | undefined;
 };
 
 export const CanUseItem$zodSchema: z.ZodType<
@@ -19,5 +30,7 @@ export const CanUseItem$zodSchema: z.ZodType<
   agentToolRelationId: z.string().optional(),
   headers: z.record(z.string()).nullable().optional(),
   toolId: z.string(),
+  toolPolicies: z.record(z.lazy(() => CanUseItemToolPolicies$zodSchema))
+    .nullable().optional(),
   toolSelection: z.array(z.string()).nullable().optional(),
 });

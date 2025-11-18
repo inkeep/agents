@@ -1,9 +1,9 @@
-speakeasyVersion: 1.657.0
+speakeasyVersion: 1.658.2
 sources:
     Inkeep Agents Manage API:
         sourceNamespace: inkeep-agents-manage-api
-        sourceRevisionDigest: sha256:147d54f4067b16f521cc1a1d53541467e06fed30783a7bb220b8576c7844b043
-        sourceBlobDigest: sha256:d01b1c1998bcb23d9d50087f3fb9f942981392a29fe01cb64e7182d956ea4fc5
+        sourceRevisionDigest: sha256:61b5cab878bb1a90ba785f86737d3f87f3c190a02c4f1e3c2a8b4daa132d655f
+        sourceBlobDigest: sha256:61592e1979b34ff35396f9ce9ab686322f9486093640f7b97cc403f8920cb610
         tags:
             - latest
             - 1.0.0
@@ -11,8 +11,8 @@ targets:
     inkeep-agents:
         source: Inkeep Agents Manage API
         sourceNamespace: inkeep-agents-manage-api
-        sourceRevisionDigest: sha256:147d54f4067b16f521cc1a1d53541467e06fed30783a7bb220b8576c7844b043
-        sourceBlobDigest: sha256:d01b1c1998bcb23d9d50087f3fb9f942981392a29fe01cb64e7182d956ea4fc5
+        sourceRevisionDigest: sha256:61b5cab878bb1a90ba785f86737d3f87f3c190a02c4f1e3c2a8b4daa132d655f
+        sourceBlobDigest: sha256:61592e1979b34ff35396f9ce9ab686322f9486093640f7b97cc403f8920cb610
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest

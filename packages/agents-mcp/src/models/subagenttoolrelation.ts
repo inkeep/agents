@@ -10,6 +10,7 @@ export type SubAgentToolRelation = {
   toolId: string;
   selectedTools?: any | null | undefined;
   headers?: any | null | undefined;
+  toolPolicies?: any | null | undefined;
   createdAt: string;
   updatedAt: string;
 };
@@ -25,5 +26,6 @@ export const SubAgentToolRelation$zodSchema: z.ZodType<
   selectedTools: z.any().nullable().optional(),
   subAgentId: z.string(),
   toolId: z.string(),
+  toolPolicies: z.any().nullable().optional(),
   updatedAt: z.string(),
 });

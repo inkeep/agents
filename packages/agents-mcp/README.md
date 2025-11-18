@@ -128,9 +128,14 @@ Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framew
 ## Table of Contents
 <!-- $toc-max-depth=2 -->
 * [@inkeep/agents-mcp](#inkeepagents-mcp)
-  * [Installation](#installation)
-  * [Development](#development)
-  * [Publishing to Anthropic MCP Registry](#publishing-to-anthropic-mcp-registry)
+  * [🔧 How This Package Is Generated and Maintained](#how-this-package-is-generated-and-maintained)
+* [1. Ensure agents-manage-api is running](#1-ensure-agents-manage-api-is-running)
+* [2. Fetch the latest OpenAPI spec](#2-fetch-the-latest-openapi-spec)
+* [3. Regenerate the MCP server](#3-regenerate-the-mcp-server)
+* [Move mcp-publisher.exe to a directory in your PATH](#move-mcp-publisherexe-to-a-directory-in-your-path)
+* [Generate keypair](#generate-keypair)
+* [Get public key for DNS record](#get-public-key-for-dns-record)
+* [Add the TXT record to your DNS, then login](#add-the-txt-record-to-your-dns-then-login)
   * [Contributions](#contributions)
 
 <!-- End Table of Contents [toc] -->

@@ -1226,6 +1226,14 @@ components:
           nullable: true
           additionalProperties:
             type: "string"
+        "toolPolicies":
+          type: "object"
+          nullable: true
+          additionalProperties:
+            type: "object"
+            properties:
+              "needsApproval":
+                type: "boolean"
       required:
         - "toolId"
     "CanDelegateToExternalAgent":
@@ -1752,6 +1760,19 @@ components:
               items:
                 nullable: true
             - nullable: true
+        "toolPolicies":
+          anyOf:
+            - type: "string"
+            - type: "number"
+            - type: "boolean"
+            - nullable: true
+            - type: "object"
+              additionalProperties:
+                nullable: true
+            - type: "array"
+              items:
+                nullable: true
+            - nullable: true
         "createdAt":
           type: "string"
         "updatedAt":
@@ -1762,6 +1783,7 @@ components:
         - "toolId"
         - "selectedTools"
         - "headers"
+        - "toolPolicies"
         - "createdAt"
         - "updatedAt"
     "SubAgentToolRelationListResponse":
@@ -1814,6 +1836,14 @@ components:
           nullable: true
           additionalProperties:
             type: "string"
+        "toolPolicies":
+          type: "object"
+          nullable: true
+          additionalProperties:
+            type: "object"
+            properties:
+              "needsApproval":
+                type: "boolean"
         "createdAt":
           type: "string"
         "updatedAt":
@@ -1856,6 +1886,14 @@ components:
           nullable: true
           additionalProperties:
             type: "string"
+        "toolPolicies":
+          type: "object"
+          nullable: true
+          additionalProperties:
+            type: "object"
+            properties:
+              "needsApproval":
+                type: "boolean"
         "createdAt":
           type: "string"
         "updatedAt":
