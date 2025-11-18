@@ -41,10 +41,7 @@ interface EvaluationJobFormDialogProps {
   trigger?: React.ReactNode;
 }
 
-const formatFormData = (
-  data?: EvaluationJobConfig,
-  evaluators: Evaluator[] = []
-): EvaluationJobConfigFormData => {
+const formatFormData = (data?: EvaluationJobConfig): EvaluationJobConfigFormData => {
   if (!data) {
     return {
       jobFilters: null,
@@ -178,189 +175,177 @@ export function EvaluationJobFormDialog({
     }
   };
 
-  const dialogContent = (
-    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{jobConfigId ? 'Edit Evaluation Job' : 'Create Evaluation Job'}</DialogTitle>
-        <DialogDescription>
-          Configure a one-off evaluation job to evaluate conversations based on filters.
-        </DialogDescription>
-      </DialogHeader>
-
-      {loading ? (
-        <div className="py-8 text-center text-muted-foreground">Loading...</div>
-      ) : (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="evaluatorIds"
-              render={() => (
-                <FormItem>
-                  <FormLabel isRequired>Evaluators</FormLabel>
-                  <div className="space-y-2">
-                    {evaluators.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        No evaluators available. Create an evaluator first.
-                      </p>
-                    ) : (
-                      <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
-                        {evaluators.map((evaluator) => (
-                          <div key={evaluator.id} className="flex items-center space-x-2 py-2">
-                            <Checkbox
-                              checked={selectedEvaluatorIds.includes(evaluator.id)}
-                              onCheckedChange={() => toggleEvaluator(evaluator.id)}
-                            />
-                            <Label className="font-normal cursor-pointer flex-1">
-                              <div>
-                                <div className="font-medium">{evaluator.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {evaluator.description}
-                                </div>
-                              </div>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4">
-              <Label>Job Filters</Label>
-              <div className="space-y-4 border rounded-lg p-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Dataset Runs</Label>
-                  <div className="space-y-2">
-                    <select
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={selectedDatasetId}
-                      onChange={(e) => setSelectedDatasetId(e.target.value)}
-                    >
-                      <option value="">Select a dataset...</option>
-                      {datasets.map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name || dataset.id}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedDatasetId && datasetRuns.length > 0 && (
-                      <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
-                        {datasetRuns.map((run) => {
-                          const isSelected = jobFilters?.datasetRunIds?.includes(run.id);
-                          return (
-                            <div key={run.id} className="flex items-center space-x-2 py-1">
-                              <Checkbox
-                                checked={!!isSelected}
-                                onCheckedChange={(checked) => {
-                                  const currentIds = jobFilters?.datasetRunIds || [];
-                                  const newIds = checked
-                                    ? [...currentIds, run.id]
-                                    : currentIds.filter((id) => id !== run.id);
-                                  form.setValue('jobFilters', {
-                                    ...jobFilters,
-                                    datasetRunIds: newIds,
-                                  });
-                                }}
-                              />
-                              <Label className="font-normal cursor-pointer text-sm">
-                                {run.runConfigName || run.id}
-                              </Label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Date Range</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Start Date</Label>
-                      <Input
-                        type="date"
-                        value={jobFilters?.dateRange?.startDate || ''}
-                        onChange={(e) => {
-                          form.setValue('jobFilters', {
-                            ...jobFilters,
-                            dateRange: {
-                              startDate: e.target.value,
-                              endDate: jobFilters?.dateRange?.endDate || '',
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">End Date</Label>
-                      <Input
-                        type="date"
-                        value={jobFilters?.dateRange?.endDate || ''}
-                        onChange={(e) => {
-                          form.setValue('jobFilters', {
-                            ...jobFilters,
-                            dateRange: {
-                              startDate: jobFilters?.dateRange?.startDate || '',
-                              endDate: e.target.value,
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Conversation IDs (comma-separated)</Label>
-                  <Input
-                    placeholder="conv-123, conv-456"
-                    value={jobFilters?.conversationIds?.join(', ') || ''}
-                    onChange={(e) => {
-                      const ids = e.target.value
-                        .split(',')
-                        .map((id) => id.trim())
-                        .filter((id) => id.length > 0);
-                      form.setValue('jobFilters', {
-                        ...jobFilters,
-                        conversationIds: ids.length > 0 ? ids : undefined,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {jobConfigId ? 'Update' : 'Create'} Job
-              </Button>
-            </div>
-          </form>
-        </Form>
-      )}
-    </DialogContent>
-  );
-
-  if (trigger) {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-        {dialogContent}
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {dialogContent}
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{jobConfigId ? 'Edit Evaluation Job' : 'Create Evaluation Job'}</DialogTitle>
+          <DialogDescription>
+            Configure a one-off evaluation job to evaluate conversations based on filters.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="py-8 text-center text-muted-foreground">Loading...</div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="evaluatorIds"
+                render={() => (
+                  <FormItem>
+                    <FormLabel isRequired>Evaluators</FormLabel>
+                    <div className="space-y-2">
+                      {evaluators.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No evaluators available. Create an evaluator first.
+                        </p>
+                      ) : (
+                        <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                          {evaluators.map((evaluator) => (
+                            <div key={evaluator.id} className="flex items-center space-x-2 py-2">
+                              <Checkbox
+                                checked={selectedEvaluatorIds.includes(evaluator.id)}
+                                onCheckedChange={() => toggleEvaluator(evaluator.id)}
+                              />
+                              <Label className="font-normal cursor-pointer flex-1">
+                                <div>
+                                  <div className="font-medium">{evaluator.name}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {evaluator.description}
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4">
+                <Label>Job Filters</Label>
+                <div className="space-y-4 border rounded-lg p-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Dataset Runs</Label>
+                    <div className="space-y-2">
+                      <select
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={selectedDatasetId}
+                        onChange={(e) => setSelectedDatasetId(e.target.value)}
+                      >
+                        <option value="">Select a dataset...</option>
+                        {datasets.map((dataset) => (
+                          <option key={dataset.id} value={dataset.id}>
+                            {dataset.name || dataset.id}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedDatasetId && datasetRuns.length > 0 && (
+                        <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                          {datasetRuns.map((run) => {
+                            const isSelected = jobFilters?.datasetRunIds?.includes(run.id);
+                            return (
+                              <div key={run.id} className="flex items-center space-x-2 py-1">
+                                <Checkbox
+                                  checked={!!isSelected}
+                                  onCheckedChange={(checked) => {
+                                    const currentIds = jobFilters?.datasetRunIds || [];
+                                    const newIds = checked
+                                      ? [...currentIds, run.id]
+                                      : currentIds.filter((id) => id !== run.id);
+                                    form.setValue('jobFilters', {
+                                      ...jobFilters,
+                                      datasetRunIds: newIds,
+                                    });
+                                  }}
+                                />
+                                <Label className="font-normal cursor-pointer text-sm">
+                                  {run.runConfigName || run.id}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Date Range</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Start Date</Label>
+                        <Input
+                          type="date"
+                          value={jobFilters?.dateRange?.startDate || ''}
+                          onChange={(e) => {
+                            form.setValue('jobFilters', {
+                              ...jobFilters,
+                              dateRange: {
+                                startDate: e.target.value,
+                                endDate: jobFilters?.dateRange?.endDate || '',
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">End Date</Label>
+                        <Input
+                          type="date"
+                          value={jobFilters?.dateRange?.endDate || ''}
+                          onChange={(e) => {
+                            form.setValue('jobFilters', {
+                              ...jobFilters,
+                              dateRange: {
+                                startDate: jobFilters?.dateRange?.startDate || '',
+                                endDate: e.target.value,
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Conversation IDs (comma-separated)</Label>
+                    <Input
+                      placeholder="conv-123, conv-456"
+                      value={jobFilters?.conversationIds?.join(', ') || ''}
+                      onChange={(e) => {
+                        const ids = e.target.value
+                          .split(',')
+                          .map((id) => id.trim())
+                          .filter((id) => id.length > 0);
+                        form.setValue('jobFilters', {
+                          ...jobFilters,
+                          conversationIds: ids.length > 0 ? ids : undefined,
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {jobConfigId ? 'Update' : 'Create'} Job
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

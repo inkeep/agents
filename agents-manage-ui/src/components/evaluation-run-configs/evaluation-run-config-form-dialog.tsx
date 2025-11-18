@@ -252,7 +252,7 @@ export function EvaluationRunConfigFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {runConfigId ? 'Edit Evaluation Run Config' : 'Create Evaluation Run Config'}
@@ -392,7 +392,7 @@ export function EvaluationRunConfigFormDialog({
 
         {/* Nested dialog for creating suite configs */}
         <Dialog open={isCreateSuiteConfigOpen} onOpenChange={setIsCreateSuiteConfigOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Create Evaluation Suite Config</DialogTitle>
               <DialogDescription>

@@ -42,8 +42,8 @@ export function DatasetRunConfigFormDialog({
   onSuccess,
 }: DatasetRunConfigFormDialogProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const isOpen = trigger ? internalIsOpen : controlledIsOpen ?? false;
-  const setIsOpen = trigger ? setInternalIsOpen : onOpenChange ?? (() => {});
+  const isOpen = trigger ? internalIsOpen : (controlledIsOpen ?? false);
+  const setIsOpen = trigger ? setInternalIsOpen : (onOpenChange ?? (() => {}));
 
   const handleSuccess = () => {
     setIsOpen(false);
@@ -63,9 +63,11 @@ export function DatasetRunConfigFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{runConfigId ? 'Edit Dataset Run Config' : 'Create Dataset Run Config'}</DialogTitle>
+          <DialogTitle>
+            {runConfigId ? 'Edit Dataset Run Config' : 'Create Dataset Run Config'}
+          </DialogTitle>
           <DialogDescription>
             Configure when and how to run this dataset against your agents
           </DialogDescription>
@@ -83,4 +85,3 @@ export function DatasetRunConfigFormDialog({
     </Dialog>
   );
 }
-
