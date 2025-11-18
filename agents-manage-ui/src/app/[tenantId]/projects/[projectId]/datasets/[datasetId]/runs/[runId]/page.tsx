@@ -13,11 +13,11 @@ export default async function DatasetRunPage({
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Datasets',
+          label: 'Test Suites',
           href: `/${tenantId}/projects/${projectId}/datasets`,
         },
         {
-          label: 'Dataset',
+          label: 'Test Suite',
           href: `/${tenantId}/projects/${projectId}/datasets/${datasetId}`,
         },
         { label: 'Run' },
@@ -34,4 +34,3 @@ export default async function DatasetRunPage({
     </BodyTemplate>
   );
 }
-

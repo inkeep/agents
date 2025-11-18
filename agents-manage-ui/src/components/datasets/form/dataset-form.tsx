@@ -56,17 +56,17 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
       if (id) {
         const res = await updateDatasetAction(tenantId, projectId, id, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to update dataset');
+          toast.error(res.error || 'Failed to update test suite');
           return;
         }
-        toast.success('Dataset updated');
+        toast.success('Test suite updated');
       } else {
         const res = await createDatasetAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to create dataset');
+          toast.error(res.error || 'Failed to create test suite');
           return;
         }
-        toast.success('Dataset created');
+        toast.success('Test suite created');
         router.push(`/${tenantId}/projects/${projectId}/datasets`);
       }
     } catch (error) {
@@ -84,8 +84,8 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
             control={form.control}
             name="name"
             label="Name"
-            placeholder="Test Dataset"
-            description="A descriptive name for this dataset"
+            placeholder="Test Suite"
+            description="A descriptive name for this test suite"
           />
           <GenericTextarea
             control={form.control}
@@ -97,12 +97,12 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
 
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>
-              {id ? 'Update' : 'Create'} Dataset
+              {id ? 'Update' : 'Create'} Test Suite
             </Button>
             {id && (
               <DialogTrigger asChild>
                 <Button type="button" variant="destructive-outline">
-                  Delete Dataset
+                  Delete Test Suite
                 </Button>
               </DialogTrigger>
             )}

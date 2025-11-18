@@ -6,4 +6,3 @@ export default defineConfig({
   external: ['keytar'],
   async onSuccess() {},
 });
-

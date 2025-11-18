@@ -37,13 +37,13 @@ export function DeleteEvaluationJobConfirmation({
     try {
       const result = await deleteEvaluationJobConfigAction(tenantId, projectId, jobConfig.id);
       if (result.success) {
-        toast.success('Evaluation job deleted');
+        toast.success('Batch evaluation deleted');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to delete evaluation job');
+        toast.error(result.error || 'Failed to delete batch evaluation');
       }
     } catch (error) {
-      console.error('Error deleting evaluation job:', error);
+      console.error('Error deleting batch evaluation:', error);
       toast.error('An unexpected error occurred');
     } finally {
       setIsDeleting(false);
@@ -54,9 +54,9 @@ export function DeleteEvaluationJobConfirmation({
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Evaluation Job</AlertDialogTitle>
+          <AlertDialogTitle>Delete Batch Evaluation</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this evaluation job? This action cannot be undone.
+            Are you sure you want to delete this batch evaluation? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

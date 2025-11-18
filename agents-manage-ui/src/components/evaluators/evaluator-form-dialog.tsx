@@ -161,7 +161,7 @@ export function EvaluatorFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{evaluatorId ? 'Edit Evaluator' : 'Create Evaluator'}</DialogTitle>
           <DialogDescription>

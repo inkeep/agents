@@ -32,7 +32,7 @@ export function DeleteDatasetConfirmation({
     try {
       const result = await deleteDatasetAction(tenantId, projectId, datasetId);
       if (result.success) {
-        toast.success('Dataset deleted.');
+        toast.success('Test suite deleted.');
         setIsOpen(false);
         if (redirectOnDelete) {
           router.push(`/${tenantId}/projects/${projectId}/datasets`);
@@ -47,10 +47,9 @@ export function DeleteDatasetConfirmation({
 
   return (
     <DeleteConfirmation
-      itemName={datasetName || 'this dataset'}
+      itemName={datasetName || 'this test suite'}
       isSubmitting={isSubmitting}
       onDelete={handleDelete}
     />
   );
 }
-

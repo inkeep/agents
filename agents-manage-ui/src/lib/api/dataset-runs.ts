@@ -8,6 +8,7 @@ export interface DatasetRun {
   projectId: string;
   datasetId: string;
   datasetRunConfigId: string;
+  evaluationJobConfigId?: string | null;
   runConfigName?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -73,4 +74,3 @@ export async function fetchDatasetRun(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-runs/${runId}`
   );
 }
-

@@ -40,7 +40,6 @@ const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
   isActive: z.boolean().default(true),
-  excludeDatasetRunConversations: z.boolean().default(false),
   suiteConfigIds: z.array(z.string()).default([]),
 });
 
@@ -54,6 +53,7 @@ interface EvaluationRunConfigFormDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   trigger?: React.ReactNode;
+  onSuccess?: () => void;
 }
 
 const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData => {
@@ -62,7 +62,6 @@ const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData
       name: '',
       description: '',
       isActive: true,
-      excludeDatasetRunConversations: false,
       suiteConfigIds: [],
     };
   }
@@ -71,7 +70,6 @@ const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData
     name: data.name,
     description: data.description,
     isActive: data.isActive !== false,
-    excludeDatasetRunConversations: data.excludeDatasetRunConversations ?? false,
     suiteConfigIds: data.suiteConfigIds || [],
   };
 };
@@ -93,6 +91,7 @@ export function EvaluationRunConfigFormDialog({
   isOpen: controlledIsOpen,
   onOpenChange,
   trigger,
+  onSuccess,
 }: EvaluationRunConfigFormDialogProps) {
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -164,7 +163,7 @@ export function EvaluationRunConfigFormDialog({
       });
 
       if (result.success && result.data) {
-        toast.success('Suite config created');
+        toast.success('Evaluation plan created');
         setIsCreateSuiteConfigOpen(false);
         suiteConfigForm.reset();
 
@@ -175,7 +174,7 @@ export function EvaluationRunConfigFormDialog({
         const currentIds = form.getValues('suiteConfigIds') || [];
         form.setValue('suiteConfigIds', [...currentIds, result.data.id]);
       } else {
-        toast.error(result.error || 'Failed to create suite config');
+        toast.error(result.error || 'Failed to create evaluation plan');
       }
     } catch (error) {
       console.error('Error creating suite config:', error);
@@ -221,11 +220,10 @@ export function EvaluationRunConfigFormDialog({
         name: data.name,
         description: data.description,
         isActive: data.isActive,
-        excludeDatasetRunConversations: data.excludeDatasetRunConversations,
         suiteConfigIds: data.suiteConfigIds,
       };
 
-      let result: ActionResult;
+      let result: ActionResult<EvaluationRunConfig>;
       if (runConfigId) {
         result = await updateEvaluationRunConfigAction(tenantId, projectId, runConfigId, payload);
       } else {
@@ -233,14 +231,28 @@ export function EvaluationRunConfigFormDialog({
       }
 
       if (result.success) {
-        toast.success(`Evaluation run config ${runConfigId ? 'updated' : 'created'}`);
-        setIsOpen(false);
+        console.log('Run config created/updated successfully');
+        toast.success(`Continuous test ${runConfigId ? 'updated' : 'created'}`);
         form.reset();
-        // Refresh the page to get updated data from server
+        // Close dialog
+        if (trigger) {
+          setInternalIsOpen(false);
+        } else {
+          onOpenChange?.(false);
+        }
+        // Call success callback to refresh data (this is the key one)
+        if (onSuccess) {
+          console.log('Calling onSuccess callback');
+          // Call onSuccess which will trigger the refresh in the list
+          onSuccess();
+        } else {
+          console.log('No onSuccess callback provided');
+        }
+        // Also refresh router for server components
         router.refresh();
       } else {
         toast.error(
-          result.error || `Failed to ${runConfigId ? 'update' : 'create'} evaluation run config`
+          result.error || `Failed to ${runConfigId ? 'update' : 'create'} continuous test`
         );
       }
     } catch (error) {
@@ -252,14 +264,14 @@ export function EvaluationRunConfigFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {runConfigId ? 'Edit Evaluation Run Config' : 'Create Evaluation Run Config'}
+            {runConfigId ? 'Edit Continuous Test' : 'Create Continuous Test'}
           </DialogTitle>
           <DialogDescription>
-            Configure automatic evaluation runs that trigger when conversations complete. Link suite
-            configs to define which evaluations to run.
+            Automatically run evaluations when conversations complete. Link evaluation plans to
+            define which evaluations to run.
           </DialogDescription>
         </DialogHeader>
 
@@ -269,7 +281,7 @@ export function EvaluationRunConfigFormDialog({
               control={form.control}
               name="name"
               label="Name"
-              description="A descriptive name for this evaluation run config"
+              description="A descriptive name for this continuous test"
               placeholder="e.g., Production Quality Checks"
               isRequired
             />
@@ -278,7 +290,7 @@ export function EvaluationRunConfigFormDialog({
               control={form.control}
               name="description"
               label="Description"
-              description="Describe what this evaluation run config does"
+              description="Describe what this continuous test does"
               placeholder="Automatically evaluates all production conversations..."
               isRequired
             />
@@ -301,31 +313,14 @@ export function EvaluationRunConfigFormDialog({
 
             <FormField
               control={form.control}
-              name="excludeDatasetRunConversations"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Exclude Dataset Run Conversations</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      When enabled, evaluations will only run on regular conversations, not
-                      conversations created from dataset runs
-                    </div>
-                  </div>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="suiteConfigIds"
               render={() => (
                 <FormItem>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <FormLabel className="text-base">Evaluation Suite Configs</FormLabel>
+                      <FormLabel className="text-base">Evaluation Plans</FormLabel>
                       <div className="text-sm text-muted-foreground mt-1">
-                        Select which suite configs to use for automatic evaluations
+                        Select which evaluation plans to use for automatic evaluations
                       </div>
                     </div>
                     <Button
@@ -336,16 +331,18 @@ export function EvaluationRunConfigFormDialog({
                       className="h-8"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      New Suite Config
+                      New Evaluation Plan
                     </Button>
                   </div>
                   <div className="rounded-lg border p-4 space-y-3 max-h-64 overflow-y-auto">
                     {loading ? (
-                      <div className="text-sm text-muted-foreground">Loading suite configs...</div>
+                      <div className="text-sm text-muted-foreground">
+                        Loading evaluation plans...
+                      </div>
                     ) : suiteConfigs.length === 0 ? (
                       <div className="text-sm text-muted-foreground text-center py-4">
-                        No suite configs available. Click &quot;New Suite Config&quot; to create
-                        one.
+                        No evaluation plans available. Click &quot;New Evaluation Plan&quot; to
+                        create one.
                       </div>
                     ) : (
                       suiteConfigs.map((suiteConfig) => (
@@ -394,9 +391,10 @@ export function EvaluationRunConfigFormDialog({
         <Dialog open={isCreateSuiteConfigOpen} onOpenChange={setIsCreateSuiteConfigOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create Evaluation Suite Config</DialogTitle>
+              <DialogTitle>Create Evaluation Plan</DialogTitle>
               <DialogDescription>
-                Create a new suite config that defines what to evaluate and which evaluators to use.
+                Create a new evaluation plan that defines what to evaluate and which evaluators to
+                use.
               </DialogDescription>
             </DialogHeader>
 
@@ -409,7 +407,7 @@ export function EvaluationRunConfigFormDialog({
                   control={suiteConfigForm.control}
                   name="name"
                   label="Name"
-                  description="A descriptive name for this suite config"
+                  description="A descriptive name for this evaluation plan"
                   placeholder="e.g., Quality Checks"
                   isRequired
                 />
@@ -418,7 +416,7 @@ export function EvaluationRunConfigFormDialog({
                   control={suiteConfigForm.control}
                   name="description"
                   label="Description"
-                  description="Describe what this suite config evaluates"
+                  description="Describe what this evaluation plan evaluates"
                   placeholder="Evaluates conversation quality and accuracy..."
                   isRequired
                 />

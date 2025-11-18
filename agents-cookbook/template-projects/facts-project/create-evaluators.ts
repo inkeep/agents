@@ -1,14 +1,14 @@
 #!/usr/bin/env tsx
 /**
  * Script to create evaluators for the Inkeep Facts Agent
- * 
+ *
  * This script creates evaluators that assess:
  * - Citation Quality: Proper use of artifact citations
  * - Accuracy: Correctness of information provided
  * - Completeness: Whether questions are fully answered
  * - Clarity: How clear and understandable responses are
  * - Factual Correctness: Absence of hallucinations
- * 
+ *
  * Usage:
  *   tsx create-evaluators.ts <tenantId> <projectId> <evalApiUrl> [apiKey]
  */
@@ -73,8 +73,7 @@ Evaluate the conversation and provide your assessment.`,
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for completeness of citations (0-10). Are all factual claims cited?',
+          description: 'Score for completeness of citations (0-10). Are all factual claims cited?',
         },
         citationFormat: {
           type: 'number',
@@ -181,8 +180,7 @@ Evaluate the conversation and provide your assessment.`,
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for technical accuracy (0-10). Are technical details correct?',
+          description: 'Score for technical accuracy (0-10). Are technical details correct?',
         },
         inaccuracies: {
           type: 'array',
@@ -274,15 +272,13 @@ Evaluate the conversation and provide your assessment.`,
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for comprehensiveness (0-10). Is the response thorough?',
+          description: 'Score for comprehensiveness (0-10). Is the response thorough?',
         },
         depth: {
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for depth (0-10). Does the response go deep enough?',
+          description: 'Score for depth (0-10). Does the response go deep enough?',
         },
         missingAspects: {
           type: 'array',
@@ -361,36 +357,31 @@ Evaluate the conversation and provide your assessment.`,
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Overall clarity score (0-10). Higher scores indicate clearer responses.',
+          description: 'Overall clarity score (0-10). Higher scores indicate clearer responses.',
         },
         languageClarity: {
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for language clarity (0-10). Is the language clear?',
+          description: 'Score for language clarity (0-10). Is the language clear?',
         },
         structure: {
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for structure (0-10). Is the response well-organized?',
+          description: 'Score for structure (0-10). Is the response well-organized?',
         },
         conciseness: {
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for conciseness (0-10). Is the response concise?',
+          description: 'Score for conciseness (0-10). Is the response concise?',
         },
         technicalCommunication: {
           type: 'number',
           minimum: 0,
           maximum: 10,
-          description:
-            'Score for technical communication (0-10). Are technical concepts clear?',
+          description: 'Score for technical communication (0-10). Are technical concepts clear?',
         },
         unclearSections: {
           type: 'array',
@@ -677,13 +668,11 @@ Evaluate the conversation and provide your assessment.`,
           items: {
             type: 'string',
           },
-          description:
-            'Areas where the match could be improved (or empty if no expected output)',
+          description: 'Areas where the match could be improved (or empty if no expected output)',
         },
         overallAssessment: {
           type: 'string',
-          description:
-            'Overall assessment of similarity, or explanation of why evaluation is N/A',
+          description: 'Overall assessment of similarity, or explanation of why evaluation is N/A',
         },
       },
       required: [
@@ -729,7 +718,9 @@ async function createEvaluatorsForProject(
         `❌ Error: Project "${projectId}" not found or evaluation API not accessible.\n`
       );
       console.error('Possible issues:');
-      console.error('  1. The project does not exist. Create it first using the agents-manage-api.');
+      console.error(
+        '  1. The project does not exist. Create it first using the agents-manage-api.'
+      );
       console.error('  2. The evaluation API is not running on the specified URL.');
       console.error('  3. The tenant ID or project ID is incorrect.\n');
       console.error(`   Test URL: ${testUrl}`);
@@ -807,4 +798,3 @@ createEvaluatorsForProject(tenantId, projectId, evalApiUrl, apiKey).catch((error
   console.error('Fatal error:', error);
   process.exit(1);
 });
-

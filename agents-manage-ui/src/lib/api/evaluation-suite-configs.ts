@@ -97,4 +97,3 @@ export async function createEvaluationSuiteConfig(
 
   return response.data;
 }
-

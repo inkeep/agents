@@ -19,39 +19,40 @@ export default async function DatasetPage({
         pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
       })),
     ]);
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Datasets',
-            href: `/${tenantId}/projects/${projectId}/datasets`,
-          },
-          { label: dataset.name || 'Dataset' },
-        ]}
-      >
-        <MainContent>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold">{dataset.name || 'Dataset'}</h1>
-              </div>
+
+  return (
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'Test Suites',
+          href: `/${tenantId}/projects/${projectId}/datasets`,
+        },
+        { label: dataset.name || 'Test Suite' },
+      ]}
+    >
+      <MainContent>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
             </div>
-            <DatasetPageClient
-              tenantId={tenantId}
-              projectId={projectId}
-              datasetId={datasetId}
-              items={items.data}
-            />
           </div>
-        </MainContent>
-      </BodyTemplate>
-    );
+          <DatasetPageClient
+            tenantId={tenantId}
+            projectId={projectId}
+            datasetId={datasetId}
+            items={items.data}
+          />
+        </div>
+      </MainContent>
+    </BodyTemplate>
+  );
   } catch (error) {
     return (
       <FullPageError
         error={error as Error}
         link={`/${tenantId}/projects/${projectId}/datasets`}
-        linkText="Back to datasets"
+        linkText="Back to test suites"
         context="dataset"
       />
     );

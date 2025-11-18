@@ -64,9 +64,13 @@ export async function listDatasets(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to list datasets: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to list datasets: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to list datasets via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to list datasets via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -105,7 +109,10 @@ export async function getDataset(
       const errorMessage =
         parseError(errorText) ?? `Failed to get dataset: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to get dataset via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to get dataset via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -138,9 +145,13 @@ export async function createDataset(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to create dataset: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to create dataset: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to create dataset via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to create dataset via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -175,9 +186,13 @@ export async function updateDataset(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to update dataset: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to update dataset: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to update dataset via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to update dataset via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -210,9 +225,13 @@ export async function deleteDataset(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to delete dataset: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to delete dataset: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to delete dataset via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to delete dataset via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -247,9 +266,13 @@ export async function listDatasetItems(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to list dataset items: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to list dataset items: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to list dataset items via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to list dataset items via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -287,9 +310,13 @@ export async function getDatasetItem(
 
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to get dataset item: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to get dataset item: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to get dataset item via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to get dataset item via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -323,9 +350,13 @@ export async function createDatasetItem(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to create dataset item: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to create dataset item: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to create dataset item via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to create dataset item via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -346,7 +377,10 @@ export async function createDatasetItems(
   itemsData: Record<string, unknown>[],
   apiKey?: string
 ): Promise<unknown[]> {
-  logger.info({ tenantId, projectId, datasetId, count: itemsData.length }, 'Creating dataset items via API');
+  logger.info(
+    { tenantId, projectId, datasetId, count: itemsData.length },
+    'Creating dataset items via API'
+  );
 
   const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items', 'bulk');
 
@@ -360,14 +394,21 @@ export async function createDatasetItems(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to create dataset items: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to create dataset items: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to create dataset items via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to create dataset items via API'
+      );
       throw new Error(errorMessage);
     }
 
     const result = (await response.json()) as { data: unknown[] };
-    logger.info({ tenantId, projectId, datasetId, count: result.data.length }, 'Successfully created dataset items via API');
+    logger.info(
+      { tenantId, projectId, datasetId, count: result.data.length },
+      'Successfully created dataset items via API'
+    );
     return result.data;
   } catch (error) {
     logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset items');
@@ -398,17 +439,27 @@ export async function updateDatasetItem(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to update dataset item: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to update dataset item: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to update dataset item via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to update dataset item via API'
+      );
       throw new Error(errorMessage);
     }
 
     const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, datasetId, itemId }, 'Successfully updated dataset item via API');
+    logger.info(
+      { tenantId, projectId, datasetId, itemId },
+      'Successfully updated dataset item via API'
+    );
     return result.data;
   } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId, itemId }, 'Failed to update dataset item');
+    logger.error(
+      { error, tenantId, projectId, datasetId, itemId },
+      'Failed to update dataset item'
+    );
     throw error;
   }
 }
@@ -434,15 +485,25 @@ export async function deleteDatasetItem(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to delete dataset item: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to delete dataset item: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to delete dataset item via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to delete dataset item via API'
+      );
       throw new Error(errorMessage);
     }
 
-    logger.info({ tenantId, projectId, datasetId, itemId }, 'Successfully deleted dataset item via API');
+    logger.info(
+      { tenantId, projectId, datasetId, itemId },
+      'Successfully deleted dataset item via API'
+    );
   } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId, itemId }, 'Failed to delete dataset item');
+    logger.error(
+      { error, tenantId, projectId, datasetId, itemId },
+      'Failed to delete dataset item'
+    );
     throw error;
   }
 }
@@ -470,9 +531,13 @@ export async function listEvaluators(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to list evaluators: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to list evaluators: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to list evaluators via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to list evaluators via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -509,9 +574,13 @@ export async function getEvaluator(
 
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to get evaluator: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to get evaluator: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to get evaluator via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to get evaluator via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -544,9 +613,13 @@ export async function createEvaluator(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to create evaluator: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to create evaluator: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to create evaluator via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to create evaluator via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -581,9 +654,13 @@ export async function updateEvaluator(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to update evaluator: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to update evaluator: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to update evaluator via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to update evaluator via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -616,9 +693,13 @@ export async function deleteEvaluator(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to delete evaluator: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to delete evaluator: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to delete evaluator via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to delete evaluator via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -786,10 +867,16 @@ export async function updateEvaluationSuiteConfig(
     }
 
     const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, configId }, 'Successfully updated evaluation suite config via API');
+    logger.info(
+      { tenantId, projectId, configId },
+      'Successfully updated evaluation suite config via API'
+    );
     return result.data;
   } catch (error) {
-    logger.error({ error, tenantId, projectId, configId }, 'Failed to update evaluation suite config');
+    logger.error(
+      { error, tenantId, projectId, configId },
+      'Failed to update evaluation suite config'
+    );
     throw error;
   }
 }
@@ -824,9 +911,15 @@ export async function deleteEvaluationSuiteConfig(
       throw new Error(errorMessage);
     }
 
-    logger.info({ tenantId, projectId, configId }, 'Successfully deleted evaluation suite config via API');
+    logger.info(
+      { tenantId, projectId, configId },
+      'Successfully deleted evaluation suite config via API'
+    );
   } catch (error) {
-    logger.error({ error, tenantId, projectId, configId }, 'Failed to delete evaluation suite config');
+    logger.error(
+      { error, tenantId, projectId, configId },
+      'Failed to delete evaluation suite config'
+    );
     throw error;
   }
 }
@@ -842,9 +935,19 @@ export async function listEvaluationSuiteConfigEvaluators(
   apiUrl: string,
   apiKey?: string
 ): Promise<unknown[]> {
-  logger.info({ tenantId, projectId, configId }, 'Listing evaluators for evaluation suite config via API');
+  logger.info(
+    { tenantId, projectId, configId },
+    'Listing evaluators for evaluation suite config via API'
+  );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId, 'evaluators');
+  const url = buildUrl(
+    apiUrl,
+    tenantId,
+    projectId,
+    'evaluation-suite-configs',
+    configId,
+    'evaluators'
+  );
 
   try {
     const response = await apiFetch(url, {
@@ -868,7 +971,10 @@ export async function listEvaluationSuiteConfigEvaluators(
     const result = (await response.json()) as { data: unknown[] };
     return result.data;
   } catch (error) {
-    logger.error({ error, tenantId, projectId, configId }, 'Failed to list evaluators for evaluation suite config');
+    logger.error(
+      { error, tenantId, projectId, configId },
+      'Failed to list evaluators for evaluation suite config'
+    );
     throw error;
   }
 }
@@ -881,9 +987,20 @@ export async function addEvaluatorToSuiteConfig(
   apiUrl: string,
   apiKey?: string
 ): Promise<unknown> {
-  logger.info({ tenantId, projectId, configId, evaluatorId }, 'Adding evaluator to evaluation suite config via API');
+  logger.info(
+    { tenantId, projectId, configId, evaluatorId },
+    'Adding evaluator to evaluation suite config via API'
+  );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId, 'evaluators', evaluatorId);
+  const url = buildUrl(
+    apiUrl,
+    tenantId,
+    projectId,
+    'evaluation-suite-configs',
+    configId,
+    'evaluators',
+    evaluatorId
+  );
 
   try {
     const response = await apiFetch(url, {
@@ -905,10 +1022,16 @@ export async function addEvaluatorToSuiteConfig(
     }
 
     const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, configId, evaluatorId }, 'Successfully added evaluator to evaluation suite config via API');
+    logger.info(
+      { tenantId, projectId, configId, evaluatorId },
+      'Successfully added evaluator to evaluation suite config via API'
+    );
     return result.data;
   } catch (error) {
-    logger.error({ error, tenantId, projectId, configId, evaluatorId }, 'Failed to add evaluator to evaluation suite config');
+    logger.error(
+      { error, tenantId, projectId, configId, evaluatorId },
+      'Failed to add evaluator to evaluation suite config'
+    );
     throw error;
   }
 }
@@ -921,9 +1044,20 @@ export async function removeEvaluatorFromSuiteConfig(
   apiUrl: string,
   apiKey?: string
 ): Promise<void> {
-  logger.info({ tenantId, projectId, configId, evaluatorId }, 'Removing evaluator from evaluation suite config via API');
+  logger.info(
+    { tenantId, projectId, configId, evaluatorId },
+    'Removing evaluator from evaluation suite config via API'
+  );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId, 'evaluators', evaluatorId);
+  const url = buildUrl(
+    apiUrl,
+    tenantId,
+    projectId,
+    'evaluation-suite-configs',
+    configId,
+    'evaluators',
+    evaluatorId
+  );
 
   try {
     const response = await apiFetch(url, {
@@ -944,9 +1078,15 @@ export async function removeEvaluatorFromSuiteConfig(
       throw new Error(errorMessage);
     }
 
-    logger.info({ tenantId, projectId, configId, evaluatorId }, 'Successfully removed evaluator from evaluation suite config via API');
+    logger.info(
+      { tenantId, projectId, configId, evaluatorId },
+      'Successfully removed evaluator from evaluation suite config via API'
+    );
   } catch (error) {
-    logger.error({ error, tenantId, projectId, configId, evaluatorId }, 'Failed to remove evaluator from evaluation suite config');
+    logger.error(
+      { error, tenantId, projectId, configId, evaluatorId },
+      'Failed to remove evaluator from evaluation suite config'
+    );
     throw error;
   }
 }
@@ -980,9 +1120,13 @@ export async function getEvaluationResult(
 
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to get evaluation result: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to get evaluation result: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to get evaluation result via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to get evaluation result via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -1015,9 +1159,13 @@ export async function createEvaluationResult(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to create evaluation result: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to create evaluation result: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to create evaluation result via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to create evaluation result via API'
+      );
       throw new Error(errorMessage);
     }
 
@@ -1052,14 +1200,21 @@ export async function updateEvaluationResult(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to update evaluation result: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to update evaluation result: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to update evaluation result via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to update evaluation result via API'
+      );
       throw new Error(errorMessage);
     }
 
     const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, resultId }, 'Successfully updated evaluation result via API');
+    logger.info(
+      { tenantId, projectId, resultId },
+      'Successfully updated evaluation result via API'
+    );
     return result.data;
   } catch (error) {
     logger.error({ error, tenantId, projectId, resultId }, 'Failed to update evaluation result');
@@ -1087,16 +1242,22 @@ export async function deleteEvaluationResult(
     if (!response.ok) {
       const errorText = await response.text();
       const errorMessage =
-        parseError(errorText) ?? `Failed to delete evaluation result: ${response.status} ${response.statusText}`;
+        parseError(errorText) ??
+        `Failed to delete evaluation result: ${response.status} ${response.statusText}`;
 
-      logger.error({ status: response.status, error: errorMessage }, 'Failed to delete evaluation result via API');
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to delete evaluation result via API'
+      );
       throw new Error(errorMessage);
     }
 
-    logger.info({ tenantId, projectId, resultId }, 'Successfully deleted evaluation result via API');
+    logger.info(
+      { tenantId, projectId, resultId },
+      'Successfully deleted evaluation result via API'
+    );
   } catch (error) {
     logger.error({ error, tenantId, projectId, resultId }, 'Failed to delete evaluation result');
     throw error;
   }
 }
-

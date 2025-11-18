@@ -11,20 +11,24 @@ const stopWhenSchema = z
 const simulationAgentSchema = z
   .object({
     prompt: z.string().optional().nullable(),
-    model: z.object({
-      model: z.string().optional().nullable(),
-      providerOptions: z.record(z.string(), z.unknown()).optional().nullable(),
-    }).optional().nullable(),
+    model: z
+      .object({
+        model: z.string().optional().nullable(),
+        providerOptions: z.record(z.string(), z.unknown()).optional().nullable(),
+      })
+      .optional()
+      .nullable(),
     stopWhen: stopWhenSchema,
   })
   .superRefine((data, ctx) => {
-    const hasModel = data.model?.model && typeof data.model.model === 'string' ? data.model.model.trim() : '';
+    const hasModel =
+      data.model?.model && typeof data.model.model === 'string' ? data.model.model.trim() : '';
     const hasPrompt = data.prompt && typeof data.prompt === 'string' ? data.prompt.trim() : '';
-    const hasStopWhen = data.stopWhen && (
-      (data.stopWhen.transferCountIs !== null && data.stopWhen.transferCountIs !== undefined) ||
-      (data.stopWhen.stepCountIs !== null && data.stopWhen.stepCountIs !== undefined)
-    );
-    
+    const hasStopWhen =
+      data.stopWhen &&
+      ((data.stopWhen.transferCountIs !== null && data.stopWhen.transferCountIs !== undefined) ||
+        (data.stopWhen.stepCountIs !== null && data.stopWhen.stepCountIs !== undefined));
+
     // If any field is configured, both prompt and model are required
     if (hasModel || hasPrompt || hasStopWhen) {
       // If prompt is set but model is not, require model
@@ -72,4 +76,3 @@ export const datasetItemSchema = z.object({
 });
 
 export type DatasetItemFormData = z.infer<typeof datasetItemSchema>;
-

@@ -53,7 +53,7 @@ export function EvaluationJobResults({
   return (
     <div className="space-y-6">
       <div className="rounded-lg border p-4">
-        <h3 className="text-sm font-semibold mb-2">Job Configuration</h3>
+        <h3 className="text-sm font-semibold mb-2">Batch Configuration</h3>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-muted-foreground">ID: </span>
@@ -78,7 +78,7 @@ export function EvaluationJobResults({
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            No evaluation results yet. The job may still be running.
+            No evaluation results yet. The batch evaluation may still be running.
           </div>
         ) : (
           <Table>
@@ -94,44 +94,44 @@ export function EvaluationJobResults({
               {[...results]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((result) => (
-                <TableRow key={result.id} noHover>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      <code className="font-mono">{result.conversationId}</code>
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEvaluatorId(result.evaluatorId)}
-                      className="inline-flex items-center bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted/80 cursor-pointer transition-colors"
-                    >
-                      {getEvaluatorName(result.evaluatorId)}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    {result.output ? (
-                      <ExpandableJsonEditor
-                        name={`result-${result.id}`}
-                        value={JSON.stringify(result.output, null, 2)}
-                        onChange={() => {}}
-                        label="Output"
-                      />
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No output</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(result.createdAt)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  <TableRow key={result.id} noHover>
+                    <TableCell>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <code className="font-mono">{result.conversationId}</code>
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvaluatorId(result.evaluatorId)}
+                        className="inline-flex items-center bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted/80 cursor-pointer transition-colors"
+                      >
+                        {getEvaluatorName(result.evaluatorId)}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      {result.output ? (
+                        <ExpandableJsonEditor
+                          name={`result-${result.id}`}
+                          value={JSON.stringify(result.output, null, 2)}
+                          onChange={() => {}}
+                          label="Output"
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No output</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDateTimeTable(result.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   Dialog,
@@ -41,15 +42,21 @@ export function DatasetRunConfigFormDialog({
   onOpenChange,
   onSuccess,
 }: DatasetRunConfigFormDialogProps) {
+  const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = trigger ? internalIsOpen : (controlledIsOpen ?? false);
   const setIsOpen = trigger ? setInternalIsOpen : (onOpenChange ?? (() => {}));
 
   const handleSuccess = () => {
-    setIsOpen(false);
+    // Close dialog
     if (trigger) {
       setInternalIsOpen(false);
+    } else {
+      onOpenChange?.(false);
     }
+    // Refresh the page to get updated data from server
+    router.refresh();
+    // Call custom success callback if provided
     onSuccess?.();
   };
 
@@ -66,10 +73,12 @@ export function DatasetRunConfigFormDialog({
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {runConfigId ? 'Edit Dataset Run Config' : 'Create Dataset Run Config'}
+            {runConfigId
+              ? 'Edit Test Suite Run Configuration'
+              : 'Create Test Suite Run Configuration'}
           </DialogTitle>
           <DialogDescription>
-            Configure when and how to run this dataset against your agents
+            Configure when and how to run this test suite against your agents
           </DialogDescription>
         </DialogHeader>
         <DatasetRunConfigForm

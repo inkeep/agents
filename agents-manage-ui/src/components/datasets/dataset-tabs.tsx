@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { DatasetItemFormDialog } from '@/components/dataset-items/dataset-item-form-dialog';
 import { DatasetItemsTable } from '@/components/dataset-items/dataset-items-table';
@@ -27,9 +28,11 @@ export function DatasetTabs({
   defaultTab = 'items',
   onTabChange,
 }: DatasetTabsProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [isCreateItemOpen, setIsCreateItemOpen] = useState(false);
   const [isCreateRunOpen, setIsCreateRunOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -72,6 +75,11 @@ export function DatasetTabs({
               datasetId={datasetId}
               isOpen={isCreateRunOpen}
               onOpenChange={setIsCreateRunOpen}
+              onSuccess={() => {
+                console.log('Dataset run config created, triggering refresh');
+                setRefreshKey((prev) => prev + 1);
+                router.refresh();
+              }}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
                   <Plus />
@@ -84,7 +92,12 @@ export function DatasetTabs({
       </div>
 
       <TabsContent value="runs" className="mt-6">
-        <DatasetRunsList tenantId={tenantId} projectId={projectId} datasetId={datasetId} />
+        <DatasetRunsList
+          tenantId={tenantId}
+          projectId={projectId}
+          datasetId={datasetId}
+          refreshKey={refreshKey}
+        />
       </TabsContent>
 
       <TabsContent value="items" className="mt-6">

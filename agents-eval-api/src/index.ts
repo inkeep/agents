@@ -7,4 +7,3 @@ export default app;
 
 // Also export the factory function for advanced usage
 export { createEvaluationHono };
-

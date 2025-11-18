@@ -12,4 +12,3 @@ const getDbConfig = () => {
 // Create the database client
 const dbClient = createDatabaseClient(getDbConfig());
 export default dbClient;
-

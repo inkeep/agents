@@ -32,9 +32,9 @@ export function DatasetItem({
     <ItemCardRoot>
       <ItemCardHeader>
         <ItemCardLink href={linkPath}>
-          <ItemCardTitle className="text-sm">{name || 'Unnamed Dataset'}</ItemCardTitle>
+          <ItemCardTitle className="text-sm">{name || 'Unnamed Test Suite'}</ItemCardTitle>
         </ItemCardLink>
-        <DatasetItemMenu datasetId={id} datasetName={name || 'Unnamed Dataset'} />
+        <DatasetItemMenu datasetId={id} datasetName={name || 'Unnamed Test Suite'} />
       </ItemCardHeader>
       <ItemCardContent>
         <ItemCardDescription hasContent={!!description}>
@@ -45,4 +45,3 @@ export function DatasetItem({
     </ItemCardRoot>
   );
 }
-

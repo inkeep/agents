@@ -36,21 +36,21 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
       if (jsonSchema.properties) {
         const shape: Record<string, z.ZodType<any>> = {};
         const required = jsonSchema.required || [];
-        
+
         for (const [key, prop] of Object.entries(jsonSchema.properties)) {
           const propSchema = prop as Record<string, unknown>;
           let zodType = jsonSchemaToZod(propSchema);
-          
+
           // Add description if present
           if (propSchema.description) {
             zodType = zodType.describe(String(propSchema.description));
           }
-          
+
           // Mark as optional if not in required array
           if (!required.includes(key)) {
             zodType = zodType.optional();
           }
-          
+
           shape[key] = zodType;
         }
         return z.object(shape);
@@ -60,7 +60,7 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
     case 'array': {
       const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
       let arraySchema = z.array(itemSchema);
-      
+
       // Apply array constraints
       if (jsonSchema.minItems !== undefined) {
         arraySchema = arraySchema.min(jsonSchema.minItems);
@@ -68,7 +68,7 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
       if (jsonSchema.maxItems !== undefined) {
         arraySchema = arraySchema.max(jsonSchema.maxItems);
       }
-      
+
       return arraySchema;
     }
 
@@ -78,9 +78,9 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
         const [first, ...rest] = jsonSchema.enum;
         return z.enum([String(first), ...rest.map(String)] as [string, ...string[]]);
       }
-      
+
       let stringSchema = z.string();
-      
+
       // Handle minLength/maxLength
       if (jsonSchema.minLength !== undefined) {
         stringSchema = stringSchema.min(jsonSchema.minLength);
@@ -88,26 +88,26 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
       if (jsonSchema.maxLength !== undefined) {
         stringSchema = stringSchema.max(jsonSchema.maxLength);
       }
-      
+
       return stringSchema;
     }
 
     case 'number':
     case 'integer': {
       let numberSchema = jsonSchema.type === 'integer' ? z.number().int() : z.number();
-      
+
       // Handle enum for numbers (use union of literals)
       if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
         const enumValues = jsonSchema.enum as number[];
         if (enumValues.length > 0) {
           const [first, ...rest] = enumValues;
-          return z.union([
-            z.literal(first),
-            ...rest.map((val) => z.literal(val)),
-          ] as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]);
+          return z.union([z.literal(first), ...rest.map((val) => z.literal(val))] as [
+            z.ZodLiteral<number>,
+            ...z.ZodLiteral<number>[],
+          ]);
         }
       }
-      
+
       // Apply number constraints
       if (jsonSchema.minimum !== undefined) {
         numberSchema = numberSchema.min(jsonSchema.minimum);
@@ -115,7 +115,7 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
       if (jsonSchema.maximum !== undefined) {
         numberSchema = numberSchema.max(jsonSchema.maximum);
       }
-      
+
       return numberSchema;
     }
 
@@ -602,7 +602,7 @@ Generate the next user message:`;
           };
         })
         .filter((msg): msg is { role: ValidRole; content: unknown } => msg !== null);
-      
+
       if (validMessages.length === 0) {
         logger.warn(
           { datasetItemId: datasetItem.id, totalMessages: input.messages.length },
@@ -610,7 +610,7 @@ Generate the next user message:`;
         );
         return null;
       }
-      
+
       return validMessages;
     }
 
@@ -636,7 +636,7 @@ Generate the next user message:`;
               };
             })
             .filter((msg): msg is { role: ValidRole; content: unknown } => msg !== null);
-          
+
           return validMessages.length > 0 ? validMessages : null;
         }
       } catch {
@@ -1038,7 +1038,10 @@ Generate the next user message:`;
         }
 
         if (agentId) {
-          agentDefinition = await getFullAgent(dbClient, logger)({
+          agentDefinition = await getFullAgent(
+            dbClient,
+            logger
+          )({
             scopes: { tenantId, projectId, agentId },
           });
         }
@@ -1184,10 +1187,7 @@ Return your evaluation as a JSON object matching the schema above.`;
         'Converted JSON schema to Zod'
       );
     } catch (error) {
-      logger.error(
-        { error, schema },
-        'Failed to convert JSON schema to Zod, using fallback'
-      );
+      logger.error({ error, schema }, 'Failed to convert JSON schema to Zod, using fallback');
       resultSchema = z.record(z.string(), z.unknown());
     }
 
@@ -1220,7 +1220,7 @@ Return your evaluation as a JSON object matching the schema above.`;
       // Fallback to generateText with JSON parsing if generateObject fails
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      
+
       logger.warn(
         {
           error: errorMessage,
@@ -1264,7 +1264,7 @@ Return ONLY valid JSON, no markdown formatting, no code blocks.`;
         }
 
         const parsed = JSON.parse(jsonText);
-        
+
         // Validate that result has required fields
         if (!parsed || typeof parsed !== 'object') {
           throw new Error('Evaluation result is missing or invalid');

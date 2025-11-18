@@ -30,7 +30,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
 
   const { errors } = useFormState({ control });
   const simulationAgentError = errors.simulationAgent;
-  const modelError = 
+  const modelError =
     simulationAgentError &&
     typeof simulationAgentError === 'object' &&
     'model' in simulationAgentError &&
@@ -38,13 +38,13 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
     typeof simulationAgentError.model === 'object' &&
     'model' in simulationAgentError.model &&
     simulationAgentError.model.model;
-  
-  const promptError = 
+
+  const promptError =
     simulationAgentError &&
     typeof simulationAgentError === 'object' &&
     'prompt' in simulationAgentError &&
     simulationAgentError.prompt;
-  
+
   const hasErrors = !!modelError || !!promptError;
 
   useEffect(() => {
@@ -65,11 +65,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
   if (isStringMode) {
     // Fallback to JSON editor if it's a string
     return (
-      <FormFieldWrapper
-        control={control}
-        name="simulationAgent"
-        label="Simulation Agent"
-      >
+      <FormFieldWrapper control={control} name="simulationAgent" label="Simulation Agent">
         {(field) => (
           <div className="space-y-2">
             <ExpandableJsonEditor
@@ -155,7 +151,9 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
               name="simulationAgent.model.providerOptions"
               label="Provider options"
               value={
-                providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+                providerOptionsField.value
+                  ? JSON.stringify(providerOptionsField.value, null, 2)
+                  : ''
               }
               onChange={(value) => {
                 if (!value?.trim()) {
@@ -206,4 +204,3 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
     </div>
   );
 }
-

@@ -23,4 +23,3 @@ export const evaluationJobConfigSchema = z.object({
 });
 
 export type EvaluationJobConfigFormData = z.infer<typeof evaluationJobConfigSchema>;
-

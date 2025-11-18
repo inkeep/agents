@@ -190,7 +190,7 @@ export class ConversationEvaluationTrigger {
       if (specificRunConfigIds && specificRunConfigIds.length > 0) {
         // Deduplicate specificRunConfigIds to prevent processing the same config twice
         const uniqueRunConfigIds = [...new Set(specificRunConfigIds)];
-        
+
         if (uniqueRunConfigIds.length !== specificRunConfigIds.length) {
           logger.warn(
             {
@@ -215,7 +215,10 @@ export class ConversationEvaluationTrigger {
         // Also filter out configs that exclude dataset runs if this is a dataset run conversation
         // (safety check in case old relations exist)
         // Deduplicate by ID to prevent processing the same config twice
-        const configMap = new Map<string, typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect>();
+        const configMap = new Map<
+          string,
+          typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect
+        >();
         for (const config of configs) {
           if (config === null) continue;
           // If this is a dataset run conversation, skip configs that exclude dataset runs
@@ -420,14 +423,14 @@ export class ConversationEvaluationTrigger {
       },
       'Creating evaluation run'
     );
-    
+
     const evaluationRun = await createEvaluationRun(dbClient)({
       id: evaluationRunId,
       tenantId,
       projectId,
       evaluationRunConfigId: runConfigId,
     });
-    
+
     logger.warn(
       {
         id: evaluationRun.id,
@@ -646,9 +649,7 @@ export class ConversationEvaluationTrigger {
     });
 
     // Filter to only results with the same evaluatorId
-    const matchingResults = existingResults.filter(
-      (result) => result.evaluatorId === evaluator.id
-    );
+    const matchingResults = existingResults.filter((result) => result.evaluatorId === evaluator.id);
 
     // Delete existing evaluation results for this conversation and evaluator
     if (matchingResults.length > 0) {

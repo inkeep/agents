@@ -489,13 +489,14 @@ export class ExecutionHandler {
                 scopes: { tenantId, projectId, conversationId },
               });
 
-              const isDatasetRunConversation = datasetRunRelation !== null || !!params.datasetRunConfigId;
+              const isDatasetRunConversation =
+                datasetRunRelation !== null || !!params.datasetRunConfigId;
 
               if (isDatasetRunConversation) {
                 logger.debug(
-                  { 
-                    conversationId, 
-                    tenantId, 
+                  {
+                    conversationId,
+                    tenantId,
                     projectId,
                     hasRelation: !!datasetRunRelation,
                     hasHeaderFlag: !!params.datasetRunConfigId,

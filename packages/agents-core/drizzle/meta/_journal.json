@@ -71,6 +71,20 @@
       "when": 1763408375595,
       "tag": "0009_slippery_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1763418625355,
+      "tag": "0012_graceful_maginty",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1763420599152,
+      "tag": "0013_condemned_may_parker",
+      "breakpoints": true
     }
   ]
 }

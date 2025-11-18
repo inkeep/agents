@@ -14,11 +14,10 @@ export function NewDatasetItem({ tenantId, projectId }: NewDatasetItemProps) {
         <CardContent className="flex flex-row items-center justify-center text-center gap-2 flex-1">
           <Plus className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           <h3 className="font-medium text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-            Create dataset
+            Create test suite
           </h3>
         </CardContent>
       </Card>
     </Link>
   );
 }
-

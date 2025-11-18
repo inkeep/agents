@@ -157,7 +157,7 @@ export function SuiteConfigDetailsPopover({
             <div className="text-sm text-muted-foreground">Loading details...</div>
           ) : suiteConfig === null && !loading ? (
             <div className="text-sm text-muted-foreground">
-              Failed to load suite config details. Please try again.
+              Failed to load evaluation plan details. Please try again.
             </div>
           ) : (
             <>

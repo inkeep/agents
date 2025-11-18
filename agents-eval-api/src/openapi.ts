@@ -11,7 +11,8 @@ export function setupOpenAPIRoutes(app: any) {
         info: {
           title: 'Inkeep Agents Evaluation API',
           version: '1.0.0',
-          description: 'REST API for evaluations, datasets, and evaluation runs in the Inkeep Agent Framework.',
+          description:
+            'REST API for evaluations, datasets, and evaluation runs in the Inkeep Agent Framework.',
         },
         servers: [
           {
@@ -40,4 +41,3 @@ export function setupOpenAPIRoutes(app: any) {
     })
   );
 }
-
