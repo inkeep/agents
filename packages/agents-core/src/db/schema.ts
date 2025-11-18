@@ -22,6 +22,7 @@ import type {
   MessageContent,
   MessageMetadata,
   Models,
+  PassCriteria,
   ProjectModels,
   StatusUpdateSettings,
   TaskMetadataConfig,
@@ -787,6 +788,7 @@ export const evaluator = pgTable(
     prompt: text('prompt').notNull(),
     schema: jsonb('schema').$type<Record<string, unknown>>().notNull(),
     model: jsonb('model').$type<ModelSettings>().notNull(),
+    passCriteria: jsonb('pass_criteria').$type<PassCriteria>(),
     ...timestamps,
   },
   (table) => [

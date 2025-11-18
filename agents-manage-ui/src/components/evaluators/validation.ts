@@ -10,6 +10,17 @@ const modelSettingsSchema = z
     path: ['model'],
   });
 
+const passCriteriaConditionSchema = z.object({
+  field: z.string().min(1, 'Field name is required'),
+  operator: z.enum(['>', '<', '>=', '<=', '=', '!=']),
+  value: z.number(),
+});
+
+const passCriteriaSchema = z.object({
+  operator: z.enum(['and', 'or']),
+  conditions: z.array(passCriteriaConditionSchema).min(1, 'At least one condition is required'),
+});
+
 export const evaluatorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
@@ -31,6 +42,7 @@ export const evaluatorSchema = z.object({
       }
     ),
   model: modelSettingsSchema,
+  passCriteria: passCriteriaSchema.optional(),
 });
 
 export type EvaluatorFormData = z.infer<typeof evaluatorSchema>;
