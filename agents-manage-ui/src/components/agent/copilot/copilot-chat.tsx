@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
+import { IkpMessage } from './message-parts/message';
 
 interface CopilotChatProps {
   agentId?: string;
@@ -120,6 +121,20 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             },
           }}
           aiChatSettings={{
+            components: {
+              ...(IkpMessage
+                ? {
+                    IkpMessage: (props: any) =>
+                      IkpMessage({
+                        ...props,
+                        copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
+                        copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+                        copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
+                        runApiUrl: PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+                      }),
+                  }
+                : {}),
+            },
             conversationId,
             chatFunctionsRef,
             aiAssistantAvatar: {

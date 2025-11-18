@@ -1,12 +1,16 @@
 import type { Message } from '@inkeep/agents-ui/types';
-import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
-import { type FC, useEffect, useRef, useState } from 'react';
+import { Check, LoaderCircle } from 'lucide-react';
+import { type FC, useEffect, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DataComponent } from '@/lib/api/data-components';
-import { cn } from '@/lib/utils';
+import { CitationBadge } from './citation-badge';
+import { Citations } from './citations';
+import { InlineEvent } from './inline-event';
+// import { LoadingIndicator } from './loading';
+import { ToolApproval } from './tool-approval';
+import { useProcessedOperations } from './use-processed-operations';
 
 interface IkpMessageProps {
   message: Message;
@@ -14,127 +18,11 @@ interface IkpMessageProps {
   renderMarkdown: (text: string) => React.ReactNode;
   renderComponent: (name: string, props: any) => React.ReactNode;
   dataComponentLookup?: Record<string, DataComponent>;
+  copilotAgentId?: string;
+  copilotProjectId?: string;
+  copilotTenantId?: string;
+  runApiUrl?: string;
 }
-
-// Citation Badge Component
-const CitationBadge: FC<{
-  citation: { key: string; href?: string; artifact: any };
-}> = ({ citation }) => {
-  const { key, href, artifact } = citation;
-
-  const badge = (
-    <span
-      className={`citation-badge inline-flex items-center justify-center h-5 min-w-5 px-2 mr-1 text-xs font-medium bg-gray-50 dark:bg-muted text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-muted/80 rounded-full border border-gray-200 dark:border-border transition-colors ${
-        href ? 'cursor-pointer' : 'cursor-help'
-      }`}
-    >
-      {key}
-    </span>
-  );
-
-  const tooltipContent = (
-    <div className="p-2">
-      <div className="font-medium text-sm mb-1 text-popover-foreground">{artifact.name}</div>
-      <div className="text-xs text-muted-foreground leading-relaxed">{artifact.description}</div>
-    </div>
-  );
-
-  if (href) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a href={href} target="_blank" rel="noopener noreferrer" className="no-underline">
-            {badge}
-          </a>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">{tooltipContent}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{badge}</TooltipTrigger>
-      <TooltipContent className="max-w-xs">{tooltipContent}</TooltipContent>
-    </Tooltip>
-  );
-};
-
-// Shared inline event component
-const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const getLabel = () => {
-    return getOperationLabel(operation);
-  };
-
-  const getExpandedContent = () => {
-    return operation.details || {};
-  };
-
-  return (
-    <div className="flex flex-col items-start my-2 relative">
-      {/* Connection line */}
-      {!isLast && (
-        <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
-      )}
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer ml-[5px] justify-start"
-      >
-        <span className="w-1 h-1 bg-gray-400 rounded-full" />
-        <span className="font-medium ml-3 text-left">{getLabel()}</span>
-        <ChevronRight
-          className={cn(
-            'w-3 h-3 transition-transform duration-200',
-            isExpanded ? 'rotate-90' : 'rotate-0'
-          )}
-        />
-      </button>
-
-      {isExpanded && (
-        <div className=" ml-6 pb-2 mt-2 rounded text-xs">
-          {operation.type === 'data-summary' ? (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              <div className="font-medium mb-1 text-gray-700 dark:text-gray-300">
-                {operation.label}
-              </div>
-              {operation.details && Object.keys(operation.details).length > 0 && (
-                <pre className="whitespace-pre-wrap font-mono">
-                  {JSON.stringify(operation.details, null, 2)}
-                </pre>
-              )}
-            </div>
-          ) : (
-            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
-              {JSON.stringify(getExpandedContent(), null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const getOperationLabel = (operation: any) => {
-  // Use LLM-generated label if available for data-operations
-  if (operation.label) {
-    return operation.label;
-  }
-
-  const { type } = operation;
-  switch (type) {
-    case 'agent_initializing':
-      return 'Agent initializing';
-    case 'agent_ready':
-      return 'Agent ready';
-    case 'completion':
-      return 'Completion';
-    default:
-      return type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-  }
-};
 
 // StreamMarkdown component that renders with inline citations and data operations
 function StreamMarkdown({ parts }: { parts: any[] }) {
@@ -260,73 +148,17 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
   );
 }
 
-// Extract and group operations by type for better UX
-function useProcessedOperations(parts: Message['parts']) {
-  const [operations, setOperations] = useState<any[]>([]);
-  const [textContent, setTextContent] = useState('');
-  const [artifacts, setArtifacts] = useState<any[]>([]);
-
-  // Use refs to track seen items - refs don't cause closure issues
-  const seenOperationKeys = useRef(new Set<string>());
-  const seenArtifactKeys = useRef(new Set<string>());
-
-  // Reset tracking on initial mount to avoid stale data
-  useEffect(() => {
-    seenOperationKeys.current.clear();
-    seenArtifactKeys.current.clear();
-    setOperations([]);
-    setArtifacts([]);
-  }, []); // Only run once on mount
-
-  useEffect(() => {
-    // Process only NEW operations and artifacts
-    const newOps: any[] = [];
-    const newArts: any[] = [];
-    let textBuilder = '';
-
-    for (const part of parts) {
-      if (part.type === 'data-artifact') {
-        const key = part.data.artifactId || part.data.name;
-        if (!seenArtifactKeys.current.has(key)) {
-          seenArtifactKeys.current.add(key);
-          newArts.push(part.data);
-        }
-      } else if (part.type === 'text') {
-        textBuilder += part.text || '';
-      } else if (part.type === 'data-operation' || part.type === 'data-summary') {
-        const key = part.data.type;
-        if (!seenOperationKeys.current.has(key)) {
-          seenOperationKeys.current.add(key);
-          newOps.push(part.data);
-        }
-      }
-    }
-
-    // Only update if we have new operations
-    if (newOps.length > 0) {
-      setOperations((prev) => [...prev, ...newOps]);
-    }
-
-    // Only update if we have new artifacts
-    if (newArts.length > 0) {
-      setArtifacts((prev) => [...prev, ...newArts]);
-    }
-
-    // Always update text content
-    setTextContent(textBuilder);
-  }, [parts]); // Refs don't need to be dependencies
-
-  return { operations, textContent, artifacts };
-}
-
-export const IkpMessage: FC<IkpMessageProps> = ({
+export const IkpMessageComponent: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
   renderMarkdown: _renderMarkdown,
   dataComponentLookup = {},
+  copilotAgentId,
+  copilotProjectId,
+  copilotTenantId,
+  runApiUrl,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
-
   // Just use operations in chronological order
   const displayOperations = operations;
 
@@ -353,14 +185,16 @@ export const IkpMessage: FC<IkpMessageProps> = ({
             <div className="flex items-center gap-2">
               {isLoading ? (
                 <>
-                  <LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
-                  <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
-                    Processing...
-                  </span>
+                  <div className="flex items-center gap-3 h-auto w-full">
+                    <LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
+                    <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
+                      Processing...
+                    </span>
+                  </div>
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 text-gray-500 dark:text-muted-foreground" />
+                  <Check className="w-3 h-3 text-gray-500 dark:text-muted-foreground" />
                   <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
                     Completed
                   </span>
@@ -458,30 +292,13 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                           <StreamMarkdown parts={[group]} />
 
                           {group.data.details.data.needsApproval && (
-                            <button
-                              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors duration-200 font-medium text-sm"
-                              type="button"
-                              onClick={() => {
-                                // RUN API URL
-                                fetch(`http://localhost:3003/api/tool-approvals`, {
-                                  method: 'POST',
-                                  headers: {
-                                    // Same as chat headers
-                                    'x-inkeep-tenant-id': "default",
-                                    'x-inkeep-project-id': "activities-planner",
-                                    'x-inkeep-agent-id': "activities-planner",
-                                    'Content-Type': 'application/json',
-                                  },
-                                  body: JSON.stringify({
-                                    conversationId: group.data.details.data.conversationId,
-                                    toolCallId: group.data.details.data.toolCallId,
-                                    approved: true,
-                                  }),
-                                });
-                              }}
-                            >
-                              Approve {group.data.label}?
-                            </button>
+                            <ToolApproval
+                              data={group.data}
+                              copilotAgentId={copilotAgentId}
+                              copilotProjectId={copilotProjectId}
+                              copilotTenantId={copilotTenantId}
+                              runApiUrl={runApiUrl}
+                            />
                           )}
                         </div>
                       );
@@ -508,55 +325,7 @@ export const IkpMessage: FC<IkpMessageProps> = ({
             </div>
 
             {/* Source badges */}
-            {artifacts.length > 0 && (
-              <div className="mt-3 pt-3">
-                <div className="text-xs text-gray-500 dark:text-muted-foreground font-medium mb-2">
-                  Sources
-                </div>
-                <div className="space-y-2">
-                  {artifacts.map((artifact, index) => {
-                    const artifactSummary = artifact.artifactSummary || {
-                      record_type: 'site',
-                      title: artifact.name,
-                      url: undefined,
-                    };
-
-                    return (
-                      <div
-                        key={artifact.artifactId || `artifact-${index}`}
-                        className="inline-block mr-2 mb-2"
-                      >
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <a
-                              href={artifactSummary?.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-1 border border-border rounded-sm text-xs text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-muted transition-colors"
-                            >
-                              <BookOpen className="w-3 h-3 text-gray-500 dark:text-muted-foreground" />
-                              <span className="max-w-32 truncate">
-                                {artifactSummary?.title || artifact.name}
-                              </span>
-                            </a>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="p-2">
-                              <div className="font-medium text-sm mb-1 text-popover-foreground">
-                                {artifact.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground leading-relaxed">
-                                {artifact.description}
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {artifacts.length > 0 && <Citations artifacts={artifacts} />}
           </div>
         )}
       </div>
@@ -564,4 +333,26 @@ export const IkpMessage: FC<IkpMessageProps> = ({
   );
 };
 
-export default IkpMessage;
+export const IkpMessage = (props: any) => {
+  const { message, renderMarkdown, renderComponent, ...otherProps } = props;
+
+  const lastPart = message.parts[message.parts.length - 1];
+  const isStreaming = !(
+    lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'
+  );
+
+  return (
+    <div>
+      <IkpMessageComponent
+        message={message as any}
+        isStreaming={isStreaming}
+        renderMarkdown={renderMarkdown}
+        renderComponent={renderComponent}
+        copilotAgentId={otherProps.copilotAgentId}
+        copilotProjectId={otherProps.copilotProjectId}
+        copilotTenantId={otherProps.copilotTenantId}
+        runApiUrl={otherProps.runApiUrl}
+      />
+    </div>
+  );
+};
