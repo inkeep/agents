@@ -129,7 +129,7 @@ export function DatasetItemsTable({
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm">
                             <MoreVertical />
                           </Button>
                         </DropdownMenuTrigger>
@@ -140,9 +140,9 @@ export function DatasetItemsTable({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeletingItemId(item.id)}
-                            className="text-destructive"
+                            className="!text-destructive"
                           >
-                            <Trash2 />
+                            <Trash2 className="text-inherit" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
