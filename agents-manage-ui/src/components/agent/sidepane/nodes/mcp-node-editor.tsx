@@ -1,5 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { Check, CircleAlert, Trash2 } from 'lucide-react';
+import { CircleAlert, Shield, Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
@@ -7,6 +7,7 @@ import { ExpandableJsonEditor } from '@/components/editors/expandable-json-edito
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
+  getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
 import type { AgentToolConfigLookup } from '../../agent';
 import type { MCPNodeData } from '../../configuration/node-types';
@@ -84,6 +86,11 @@ export function MCPServerNodeEditor({
     );
   }
   const selectedTools = getCurrentSelectedToolsForNode(selectedNode, agentToolConfigLookup, edges);
+  const currentToolPolicies = getCurrentToolPoliciesForNode(
+    selectedNode,
+    agentToolConfigLookup,
+    edges
+  );
 
   // Find orphaned tools - tools that are selected but no longer available in activeTools
   const orphanedTools =
@@ -105,20 +112,41 @@ export function MCPServerNodeEditor({
     }
 
     const allToolNames = activeTools?.map((tool) => tool.name) || [];
-    let finalSelection: string[] | null = newSelections;
-
-    if (
+    const finalSelection: string[] | null =
       newSelections.length === allToolNames.length &&
       allToolNames.every((toolName) => newSelections.includes(toolName))
-    ) {
-      // All tools are selected, use null to represent this
-      finalSelection = null;
+        ? null // All tools are selected, use null to represent this
+        : newSelections;
+
+    // When deselecting a tool, remove its approval policy
+    const updatedPolicies = { ...currentToolPolicies };
+    if (isSelected && !newSelections.includes(toolName)) {
+      delete updatedPolicies[toolName];
     }
 
     // For now, store in node data - we'll need to properly save to agent relations later
     updateNodeData(selectedNode.id, {
       ...selectedNode.data,
       tempSelectedTools: finalSelection,
+      tempToolPolicies: updatedPolicies,
+    });
+    markUnsaved();
+  };
+
+  const toggleToolApproval = (toolName: string) => {
+    const updatedPolicies = { ...currentToolPolicies };
+
+    if (updatedPolicies[toolName]?.needsApproval) {
+      // Remove approval requirement
+      delete updatedPolicies[toolName];
+    } else {
+      // Add approval requirement
+      updatedPolicies[toolName] = { needsApproval: true };
+    }
+
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      tempToolPolicies: updatedPolicies,
     });
     markUnsaved();
   };
@@ -215,80 +243,165 @@ export function MCPServerNodeEditor({
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <Label>Selected tools</Label>
-          <Badge
-            variant="code"
-            className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
-          >
-            {
-              selectedTools === null
-                ? (activeTools?.length ?? 0) // All tools selected
-                : selectedTools.length // Count all selected tools (including orphaned ones)
-            }
-          </Badge>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Label>Tool Configuration</Label>
+            <Badge
+              variant="code"
+              className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
+            >
+              {
+                selectedTools === null
+                  ? (activeTools?.length ?? 0) // All tools selected
+                  : selectedTools.length // Count all selected tools (including orphaned ones)
+              }{' '}
+              selected
+            </Badge>
+          </div>
+          {activeTools && activeTools.length > 1 && (
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateNodeData(selectedNode.id, {
+                    ...selectedNode.data,
+                    tempSelectedTools: null, // null means all tools selected
+                  });
+                  markUnsaved();
+                }}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateNodeData(selectedNode.id, {
+                    ...selectedNode.data,
+                    tempSelectedTools: [],
+                    tempToolPolicies: {}, // Clear all approval policies
+                  });
+                  markUnsaved();
+                }}
+              >
+                Deselect All
+              </Button>
+            </div>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground mb-1.5">Click to select/deselect</p>
+
         {(activeTools && activeTools.length > 0) || orphanedTools.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-1 border rounded-md">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/20 rounded-t-md border-b">
+              <div>Tool</div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-help">
+                    <Shield className="w-3 h-3" />
+                    Needs Approval?
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="text-sm">
+                    Tools requiring approval will pause execution and wait for user confirmation
+                    before running.
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+
             {/* Active tools */}
             {activeTools?.map((tool) => {
               const isSelected =
                 selectedTools === null
                   ? true // If null, all tools are selected
                   : selectedTools.includes(tool.name);
+              const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
+
               return (
-                <Tooltip key={tool.name}>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant={isSelected ? 'primary' : 'code'}
-                      className={`flex items-center gap-1 cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'hover:bg-primary/10'
-                          : 'bg-transparent dark:bg-transparent dark:hover:bg-muted/50 hover:bg-muted/100'
-                      }`}
-                      onClick={() => toggleToolSelection(tool.name)}
-                    >
-                      {tool.name}
-                      {isSelected && (
-                        <span className="text-xs">
-                          <Check className="w-2.5 h-2.5" />
-                        </span>
-                      )}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-sm">
-                    <div className="line-clamp-4">{tool.description}</div>
-                  </TooltipContent>
-                </Tooltip>
+                <div
+                  key={tool.name}
+                  className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 hover:bg-muted/30 transition-colors border-b last:border-b-0"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleToolSelection(tool.name)}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{tool.name}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">
+                            {tool.description}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-sm">
+                        <div>{tool.description}</div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center">
+                    <Checkbox
+                      checked={needsApproval}
+                      disabled={!isSelected}
+                      onCheckedChange={() => toggleToolApproval(tool.name)}
+                    />
+                  </div>
+                </div>
               );
             })}
 
             {/* Orphaned tools (selected but no longer available) */}
-            {orphanedTools.map((toolName) => (
-              <Tooltip key={`orphaned-${toolName}`}>
-                <TooltipTrigger asChild>
-                  <Badge
-                    variant="warning"
-                    className="flex items-center gap-1 cursor-pointer transition-colors hover:bg-primary/10 normal-case"
-                    onClick={() => toggleToolSelection(toolName)}
-                  >
-                    {toolName}
-                    <span className="text-xs">
-                      <CircleAlert className="w-2.5 h-2.5" />
-                    </span>
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-sm">
-                  <div className="line-clamp-4">
-                    This tool was selected but is not available in the MCP server. Click to remove
-                    it from the selection.
+            {orphanedTools.map((toolName) => {
+              const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
+
+              return (
+                <div
+                  key={`orphaned-${toolName}`}
+                  className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border-b last:border-b-0 border-amber-200 dark:border-amber-800"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Checkbox
+                      checked={true}
+                      onCheckedChange={() => toggleToolSelection(toolName)}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          <div className="flex-1">
+                            <div className="text-sm font-medium truncate">{toolName}</div>
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              Tool no longer available
+                            </div>
+                          </div>
+                          <CircleAlert className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-sm">
+                        This tool was selected but is not available in the MCP server. Uncheck to
+                        remove it.
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            ))}
+                  <div className="flex items-center">
+                    <Checkbox
+                      checked={needsApproval}
+                      onCheckedChange={() => toggleToolApproval(toolName)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : null}
+        ) : (
+          <div className="text-sm text-muted-foreground py-8 text-center border rounded-md bg-muted/10">
+            No tools available for this MCP server
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

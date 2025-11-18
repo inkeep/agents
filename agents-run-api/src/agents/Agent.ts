@@ -57,6 +57,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
@@ -371,7 +372,8 @@ export class Agent {
     toolName: string,
     toolDefinition: any,
     streamRequestId?: string,
-    toolType?: ToolType
+    toolType?: ToolType,
+    options?: { needsApproval?: boolean }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -402,12 +404,28 @@ export class Agent {
           toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
+        // Check if this tool needs approval first
+        const needsApproval = options?.needsApproval || false;
+
         if (streamRequestId && !isInternalTool) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+          const toolCallData: any = {
             toolName,
             input: args,
             toolCallId,
-          });
+          };
+
+          // Add approval-specific data when needed
+          if (needsApproval) {
+            toolCallData.needsApproval = true;
+            toolCallData.conversationId = this.conversationId;
+          }
+
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            'tool_call',
+            this.config.id,
+            toolCallData
+          );
         }
 
         try {
@@ -457,6 +475,7 @@ export class Agent {
               output: result,
               toolCallId,
               duration,
+              needsApproval,
             });
           }
 
@@ -472,6 +491,7 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
+              needsApproval,
             });
           }
 
@@ -554,37 +574,92 @@ export class Agent {
         return tool.config?.type === 'mcp';
       }) || [];
 
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const toolResults =
+      (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
 
     if (!sessionId) {
-      const combinedTools = tools.reduce((acc, tool) => {
-        return Object.assign(acc, tool) as ToolSet;
+      const combinedTools = toolResults.reduce((acc, toolResult) => {
+        return Object.assign(acc, toolResult.tools) as ToolSet;
       }, {} as ToolSet);
 
       const wrappedTools: ToolSet = {};
       for (const [toolName, toolDef] of Object.entries(combinedTools)) {
+        // Find toolPolicies for this tool
+        const needsApproval =
+          toolResults.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
+            toolName
+          ]?.needsApproval || false;
+
+        const enhancedTool = {
+          ...toolDef,
+          needsApproval,
+        };
+
         wrappedTools[toolName] = this.wrapToolWithStreaming(
           toolName,
-          toolDef,
+          enhancedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          { needsApproval }
         );
       }
       return wrappedTools;
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolSet of tools) {
-      for (const [toolName, originalTool] of Object.entries(toolSet)) {
+    for (const toolResult of toolResults) {
+      for (const [toolName, originalTool] of Object.entries(toolResult.tools || {})) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
 
+        // Check if this tool needs approval from toolPolicies
+        const needsApproval = toolResult.toolPolicies?.[toolName]?.needsApproval || false;
+
+        logger.debug(
+          {
+            toolName,
+            toolPolicies: toolResult.toolPolicies,
+            needsApproval,
+            policyForThisTool: toolResult.toolPolicies?.[toolName],
+          },
+          'Tool approval check'
+        );
+
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Check for approval requirement before execution
+            if (needsApproval) {
+              logger.info(
+                { toolName, toolCallId, args },
+                'Tool requires approval - waiting for user response'
+              );
+
+              // Wait for approval (this promise resolves when user responds via API)
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
+                toolCallId,
+                toolName,
+                args,
+                this.conversationId || 'unknown',
+                this.config.id
+              );
+
+              if (!approvalResult.approved) {
+                // User denied approval - return a message instead of executing the tool
+                logger.info(
+                  { toolName, toolCallId, reason: approvalResult.reason },
+                  'Tool execution denied by user'
+                );
+
+                return `User denied approval to run this tool: ${approvalResult.reason}`;
+              }
+
+              logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+            }
+
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
@@ -664,7 +739,8 @@ export class Agent {
           toolName,
           sessionWrappedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          { needsApproval }
         );
       }
     }
@@ -714,11 +790,10 @@ export class Agent {
       },
     });
 
-    const agentToolRelationHeaders =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
-
-    const selectedTools =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
+    const toolRelation = toolsForAgent.data.find((t) => t.toolId === tool.id);
+    const agentToolRelationHeaders = toolRelation?.headers || undefined;
+    const selectedTools = toolRelation?.selectedTools || undefined;
+    const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
 
@@ -865,7 +940,7 @@ export class Agent {
       }
     }
 
-    return tools;
+    return { tools, toolPolicies };
   }
 
   private async createMcpConnection(
