@@ -13,7 +13,8 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
 import type { SubAgentTeamAgentConfigLookup } from '../../agent';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { InputField, TextareaField } from './form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;
