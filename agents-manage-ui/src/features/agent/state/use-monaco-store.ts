@@ -7,7 +7,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 
-type ShikiHighlighter = HighlighterGeneric<any, any>;
+const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'json'] as const;
+const SUPPORTED_THEMES = [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark] as const;
+
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+type SupportedTheme = (typeof SUPPORTED_THEMES)[number];
+
+type ShikiHighlighter = HighlighterGeneric<SupportedLanguage, SupportedTheme>;
 
 interface MonacoStateData {
   monaco: typeof Monaco | null;
@@ -42,8 +48,8 @@ let highlighterPromise: Promise<ShikiHighlighter> | null = null;
 // to cache your highlighter instance; Or call `highlighter.dispose()` to release unused instances.
 const getHighlighter = async (): Promise<ShikiHighlighter> => {
   highlighterPromise ??= createHighlighter({
-    themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
-    langs: ['javascript', 'typescript', 'json'],
+    themes: [...SUPPORTED_THEMES],
+    langs: [...SUPPORTED_LANGUAGES],
   });
   return await highlighterPromise;
 };
