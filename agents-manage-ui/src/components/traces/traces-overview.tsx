@@ -31,7 +31,7 @@ interface TracesOverviewProps {
 
 export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const router = useRouter();
-  const { projectId } = useParams();
+  const { tenantId, projectId } = useParams();
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -396,7 +396,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               Icon={SparklesIcon}
               onClick={() => {
                 const current = new URLSearchParams(searchParams.toString());
-                const href = `/${params.tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
+                const href = `/${tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
                 router.push(href);
               }}
             />
