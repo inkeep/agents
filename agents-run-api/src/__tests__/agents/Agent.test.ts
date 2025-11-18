@@ -742,7 +742,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       conversationId: 'test-conversation-id',
       currentMessage: 'Test prompt',
       options: configWithFullMode.conversationHistoryConfig,
-      filters: {},
+      filters: {
+        delegationId: undefined,
+        isDelegated: false,
+      },
     });
   });
 
@@ -768,6 +771,8 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       currentMessage: 'Test prompt',
       options: configWithScopedMode.conversationHistoryConfig,
       filters: {
+        delegationId: undefined,
+        isDelegated: false,
         subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },

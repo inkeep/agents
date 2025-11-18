@@ -67,31 +67,7 @@ export interface TransferTask extends Task {
  * Type guard to check if a Task contains transfer data
  */
 export function isTransferTask(result: Task | Message): result is TransferTask {
-  console.log(
-    '[isTransferTask] Checking result:',
-    JSON.stringify(
-      {
-        hasArtifacts: 'artifacts' in result,
-        artifactsLength: result.kind === 'task' ? result.artifacts?.length : 0,
-        firstArtifactParts: result.kind === 'task' ? result.artifacts?.[0]?.parts?.length : 0,
-        allParts:
-          result.kind === 'task'
-            ? result.artifacts?.[0]?.parts?.map((p, i) => ({
-                index: i,
-                kind: p.kind,
-                hasData: !!(p.kind === 'data' && p.data),
-                dataType: p.kind === 'data' ? p.data?.type : undefined,
-                dataKeys: p.kind === 'data' ? Object.keys(p.data) : [],
-              }))
-            : [],
-      },
-      null,
-      2
-    )
-  );
-
   if (!('artifacts' in result) || !result.artifacts) {
-    console.log('[isTransferTask] No artifacts found');
     return false;
   }
 
@@ -101,14 +77,10 @@ export function isTransferTask(result: Task | Message): result is TransferTask {
       // Type-safe check without as any
       const isTransfer =
         typeof part.data === 'object' && 'type' in part.data && part.data.type === 'transfer';
-      if (isTransfer) {
-        console.log('[isTransferTask] Found transfer data:', JSON.stringify(part.data, null, 2));
-      }
       return isTransfer;
     })
   );
 
-  console.log('[isTransferTask] Result:', hasTransfer);
   return hasTransfer;
 }
 

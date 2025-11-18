@@ -5,7 +5,6 @@ import {
   createFunctionTool,
   deleteFunctionTool,
   FunctionToolApiInsertSchema,
-  FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionToolListResponse,
   FunctionToolResponse,
@@ -71,7 +70,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
@@ -178,7 +177,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
@@ -242,7 +241,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],

@@ -92,7 +92,7 @@ describe('create-agents quickstart e2e', () => {
     console.log('inkeep.config.ts verified');
 
     console.log('Setting up project in database');
-    await runCommand('pnpm', ['setup-dev'], projectDir);
+    await runCommand('pnpm', ['db:migrate'], projectDir);
     console.log('Project setup in database');
 
     console.log('Starting dev servers');

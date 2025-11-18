@@ -10,7 +10,13 @@ import type {
 
 // Utility types
 export type MessageVisibility = 'user-facing' | 'internal' | 'system' | 'external';
-export type MessageType = 'chat' | 'a2a-request' | 'a2a-response' | 'task-update' | 'tool-call';
+export type MessageType =
+  | 'chat'
+  | 'a2a-request'
+  | 'a2a-response'
+  | 'task-update'
+  | 'tool-call'
+  | 'tool-result';
 export type MessageRole = 'user' | 'agent' | 'system';
 export type MessageMode = 'full' | 'scoped' | 'none';
 
@@ -47,6 +53,8 @@ export type SubAgentScopeConfig = AgentScopeConfig & {
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
+  delegationId?: string;
+  isDelegated?: boolean;
 }
 
 export type ConversationHistoryConfig = {
