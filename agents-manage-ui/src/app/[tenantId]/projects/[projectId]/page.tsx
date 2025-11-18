@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import AgentsLoading from './agents/loading';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -14,9 +14,5 @@ export default function ProjectPage() {
   }, [tenantId, projectId, router]);
 
   // Show loading state while redirecting
-  return (
-    <div className="flex items-center justify-center h-full">
-      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-    </div>
-  );
+  return <AgentsLoading />;
 }
