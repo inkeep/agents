@@ -1,0 +1,3 @@
+ALTER TABLE "sub_agents" ALTER COLUMN "conversation_history_config" SET DEFAULT '{"mode":"full","limit":50,"maxOutputTokens":4000,"includeInternal":false,"messageTypes":["chat","tool-result"]}'::jsonb;--> statement-breakpoint
+ALTER TABLE "sub_agents" ALTER COLUMN "conversation_history_config" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "sub_agent_tool_relations" ADD COLUMN "tool_policies" jsonb;
