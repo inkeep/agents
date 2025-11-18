@@ -37,10 +37,10 @@ interface ToolApprovalProps {
 
 export const ToolApproval = ({
   data,
-  copilotAgentId = 'agent-builder',
-  copilotProjectId = 'chat-to-edit',
-  copilotTenantId = 'default',
-  runApiUrl = 'http://localhost:3003',
+  copilotAgentId,
+  copilotProjectId,
+  copilotTenantId,
+  runApiUrl,
 }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [loading, setLoading] = useState(true);

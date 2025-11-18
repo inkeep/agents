@@ -471,7 +471,6 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                                     'x-inkeep-project-id': "activities-planner",
                                     'x-inkeep-agent-id': "activities-planner",
                                     'Content-Type': 'application/json',
-                                    // Authorization: `Bearer ${process.env.API KEY}`,
                                   },
                                   body: JSON.stringify({
                                     conversationId: group.data.details.data.conversationId,
