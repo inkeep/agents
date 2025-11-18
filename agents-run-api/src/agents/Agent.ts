@@ -614,7 +614,7 @@ export class Agent {
     const wrappedTools: ToolSet = {};
     for (const [index, toolResult] of tools.entries()) {
       const relationshipId = mcpTools[index]?.relationshipId;
-      for (const [toolName, originalTool] of Object.entries(toolResult)) {
+      for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
