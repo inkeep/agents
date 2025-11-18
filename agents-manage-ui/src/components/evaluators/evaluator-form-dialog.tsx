@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
 
 interface EvaluatorFormDialogProps {
@@ -47,6 +48,7 @@ const formatFormData = (data?: Evaluator): EvaluatorFormData => {
         model: '',
         providerOptions: undefined,
       },
+      passCriteria: undefined,
     };
   }
 
@@ -59,6 +61,7 @@ const formatFormData = (data?: Evaluator): EvaluatorFormData => {
       model: data.model?.model || '',
       providerOptions: data.model?.providerOptions,
     },
+    passCriteria: data.passCriteria,
   };
 };
 
@@ -91,6 +94,17 @@ export function EvaluatorFormDialog({
     control: form.control,
     name: 'model.providerOptions',
     defaultValue: undefined,
+  });
+
+  const { field: passCriteriaField } = useController({
+    control: form.control,
+    name: 'passCriteria',
+    defaultValue: undefined,
+  });
+
+  const { field: schemaField } = useController({
+    control: form.control,
+    name: 'schema',
   });
 
   const onSubmit = async (data: EvaluatorFormData) => {
@@ -128,6 +142,7 @@ export function EvaluatorFormDialog({
             providerOptions: data.model.providerOptions,
           }),
         },
+        ...(data.passCriteria && { passCriteria: data.passCriteria }),
       };
 
       let result: ActionResult<Evaluator>;
@@ -295,6 +310,19 @@ export function EvaluatorFormDialog({
 }`}
               />
             </div>
+
+            <PassCriteriaBuilder
+              value={passCriteriaField.value}
+              onChange={passCriteriaField.onChange}
+              schema={(() => {
+                try {
+                  return JSON.parse(schemaField.value || '{}');
+                } catch {
+                  return {};
+                }
+              })()}
+              disabled={isSubmitting}
+            />
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

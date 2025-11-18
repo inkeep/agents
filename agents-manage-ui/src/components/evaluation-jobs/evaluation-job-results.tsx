@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import {
   Table,
@@ -17,6 +18,7 @@ import {
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 
 interface EvaluationJobResultsProps {
   tenantId: string;
@@ -86,6 +88,7 @@ export function EvaluationJobResults({
               <TableRow noHover>
                 <TableHead>Input</TableHead>
                 <TableHead>Evaluator</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
@@ -116,6 +119,19 @@ export function EvaluationJobResults({
                       >
                         {getEvaluatorName(result.evaluatorId)}
                       </button>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const evaluator = getEvaluatorById(result.evaluatorId);
+                        const outputData = result.output && typeof result.output === 'object' 
+                          ? result.output as Record<string, unknown>
+                          : {};
+                        const evaluation = evaluatePassCriteria(
+                          evaluator?.passCriteria,
+                          outputData
+                        );
+                        return <EvaluationStatusBadge status={evaluation.status} />;
+                      })()}
                     </TableCell>
                     <TableCell>
                       {result.output ? (

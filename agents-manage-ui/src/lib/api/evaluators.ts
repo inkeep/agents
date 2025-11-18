@@ -16,6 +16,17 @@ export interface ModelSettings {
   providerOptions?: Record<string, unknown>;
 }
 
+export interface PassCriteriaCondition {
+  field: string;
+  operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
+  value: number;
+}
+
+export interface PassCriteria {
+  operator: 'and' | 'or';
+  conditions: PassCriteriaCondition[];
+}
+
 export interface Evaluator {
   id: string;
   name: string;
@@ -23,6 +34,7 @@ export interface Evaluator {
   prompt: string;
   schema: Record<string, unknown>;
   model: ModelSettings;
+  passCriteria?: PassCriteria;
   createdAt: string;
   updatedAt: string;
   tenantId: string;
@@ -36,6 +48,7 @@ export interface EvaluatorInsert {
   prompt: string;
   schema: Record<string, unknown>;
   model: ModelSettings;
+  passCriteria?: PassCriteria;
 }
 
 export interface EvaluatorUpdate {
@@ -44,6 +57,7 @@ export interface EvaluatorUpdate {
   prompt?: string;
   schema?: Record<string, unknown>;
   model?: ModelSettings;
+  passCriteria?: PassCriteria;
 }
 
 /**
