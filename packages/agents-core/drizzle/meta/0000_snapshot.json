@@ -95,14 +95,8 @@
           "name": "agent_project_fk",
           "tableFrom": "agent",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -110,11 +104,7 @@
       "compositePrimaryKeys": {
         "agent_tenant_id_project_id_id_pk": {
           "name": "agent_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -259,14 +249,8 @@
           "name": "api_keys_project_fk",
           "tableFrom": "api_keys",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -274,16 +258,8 @@
           "name": "api_keys_agent_fk",
           "tableFrom": "api_keys",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -293,9 +269,7 @@
         "api_keys_public_id_unique": {
           "name": "api_keys_public_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "public_id"
-          ]
+          "columns": ["public_id"]
         }
       },
       "policies": {},
@@ -363,14 +337,8 @@
           "name": "artifact_components_project_fk",
           "tableFrom": "artifact_components",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -378,11 +346,7 @@
       "compositePrimaryKeys": {
         "artifact_components_tenant_id_project_id_id_pk": {
           "name": "artifact_components_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -510,14 +474,8 @@
           "name": "context_cache_project_fk",
           "tableFrom": "context_cache",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -525,11 +483,7 @@
       "compositePrimaryKeys": {
         "context_cache_tenant_id_project_id_id_pk": {
           "name": "context_cache_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -598,16 +552,8 @@
           "name": "context_configs_agent_fk",
           "tableFrom": "context_configs",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -615,12 +561,7 @@
       "compositePrimaryKeys": {
         "context_configs_tenant_id_project_id_agent_id_id_pk": {
           "name": "context_configs_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -701,14 +642,8 @@
           "name": "conversations_project_fk",
           "tableFrom": "conversations",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -716,11 +651,7 @@
       "compositePrimaryKeys": {
         "conversations_tenant_id_project_id_id_pk": {
           "name": "conversations_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -795,14 +726,8 @@
           "name": "credential_references_project_fk",
           "tableFrom": "credential_references",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -810,11 +735,7 @@
       "compositePrimaryKeys": {
         "credential_references_tenant_id_project_id_id_pk": {
           "name": "credential_references_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -889,14 +810,8 @@
           "name": "data_components_project_fk",
           "tableFrom": "data_components",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -904,11 +819,7 @@
       "compositePrimaryKeys": {
         "data_components_tenant_id_project_id_id_pk": {
           "name": "data_components_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -983,14 +894,8 @@
           "name": "external_agents_project_fk",
           "tableFrom": "external_agents",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -998,16 +903,8 @@
           "name": "external_agents_credential_reference_fk",
           "tableFrom": "external_agents",
           "tableTo": "credential_references",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "credential_reference_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "credential_reference_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1015,11 +912,7 @@
       "compositePrimaryKeys": {
         "external_agents_tenant_id_project_id_id_pk": {
           "name": "external_agents_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1094,16 +987,8 @@
           "name": "function_tools_agent_fk",
           "tableFrom": "function_tools",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1111,16 +996,8 @@
           "name": "function_tools_function_fk",
           "tableFrom": "function_tools",
           "tableTo": "functions",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "function_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "function_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1128,12 +1005,7 @@
       "compositePrimaryKeys": {
         "function_tools_tenant_id_project_id_agent_id_id_pk": {
           "name": "function_tools_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1202,14 +1074,8 @@
           "name": "functions_project_fk",
           "tableFrom": "functions",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1217,11 +1083,7 @@
       "compositePrimaryKeys": {
         "functions_tenant_id_project_id_id_pk": {
           "name": "functions_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1398,14 +1260,8 @@
           "name": "ledger_artifacts_project_fk",
           "tableFrom": "ledger_artifacts",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1413,23 +1269,14 @@
       "compositePrimaryKeys": {
         "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
           "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id",
-            "task_id"
-          ]
+          "columns": ["tenant_id", "project_id", "id", "task_id"]
         }
       },
       "uniqueConstraints": {
         "ledger_artifacts_task_context_name_unique": {
           "name": "ledger_artifacts_task_context_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "task_id",
-            "context_id",
-            "name"
-          ]
+          "columns": ["task_id", "context_id", "name"]
         }
       },
       "policies": {},
@@ -1577,14 +1424,8 @@
           "name": "messages_project_fk",
           "tableFrom": "messages",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1592,11 +1433,7 @@
       "compositePrimaryKeys": {
         "messages_tenant_id_project_id_id_pk": {
           "name": "messages_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1664,10 +1501,7 @@
       "compositePrimaryKeys": {
         "projects_tenant_id_id_pk": {
           "name": "projects_tenant_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1729,18 +1563,8 @@
           "name": "sub_agent_artifact_components_sub_agent_fk",
           "tableFrom": "sub_agent_artifact_components",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1748,16 +1572,8 @@
           "name": "sub_agent_artifact_components_artifact_component_fk",
           "tableFrom": "sub_agent_artifact_components",
           "tableTo": "artifact_components",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "artifact_component_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "artifact_component_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1765,13 +1581,7 @@
       "compositePrimaryKeys": {
         "sub_agent_artifact_components_tenant_id_project_id_agent_id_sub_agent_id_id_pk": {
           "name": "sub_agent_artifact_components_tenant_id_project_id_agent_id_sub_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "sub_agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1833,18 +1643,8 @@
           "name": "sub_agent_data_components_sub_agent_fk",
           "tableFrom": "sub_agent_data_components",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1852,16 +1652,8 @@
           "name": "sub_agent_data_components_data_component_fk",
           "tableFrom": "sub_agent_data_components",
           "tableTo": "data_components",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "data_component_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "data_component_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1869,11 +1661,7 @@
       "compositePrimaryKeys": {
         "sub_agent_data_components_tenant_id_project_id_id_pk": {
           "name": "sub_agent_data_components_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -1948,18 +1736,8 @@
           "name": "sub_agent_external_agent_relations_sub_agent_fk",
           "tableFrom": "sub_agent_external_agent_relations",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1967,16 +1745,8 @@
           "name": "sub_agent_external_agent_relations_external_agent_fk",
           "tableFrom": "sub_agent_external_agent_relations",
           "tableTo": "external_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "external_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "external_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1984,12 +1754,7 @@
       "compositePrimaryKeys": {
         "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agent_external_agent_relations_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2058,18 +1823,8 @@
           "name": "sub_agent_function_tool_relations_sub_agent_fk",
           "tableFrom": "sub_agent_function_tool_relations",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2077,18 +1832,8 @@
           "name": "sub_agent_function_tool_relations_function_tool_fk",
           "tableFrom": "sub_agent_function_tool_relations",
           "tableTo": "function_tools",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "function_tool_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "function_tool_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2096,12 +1841,7 @@
       "compositePrimaryKeys": {
         "sub_agent_function_tool_relations_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agent_function_tool_relations_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2176,16 +1916,8 @@
           "name": "sub_agent_relations_agent_fk",
           "tableFrom": "sub_agent_relations",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2193,12 +1925,7 @@
       "compositePrimaryKeys": {
         "sub_agent_relations_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agent_relations_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2273,18 +2000,8 @@
           "name": "sub_agent_team_agent_relations_sub_agent_fk",
           "tableFrom": "sub_agent_team_agent_relations",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2292,16 +2009,8 @@
           "name": "sub_agent_team_agent_relations_target_agent_fk",
           "tableFrom": "sub_agent_team_agent_relations",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "target_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "target_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2309,12 +2018,7 @@
       "compositePrimaryKeys": {
         "sub_agent_team_agent_relations_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agent_team_agent_relations_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2395,18 +2099,8 @@
           "name": "sub_agent_tool_relations_agent_fk",
           "tableFrom": "sub_agent_tool_relations",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2414,16 +2108,8 @@
           "name": "sub_agent_tool_relations_tool_fk",
           "tableFrom": "sub_agent_tool_relations",
           "tableTo": "tools",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "tool_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "tool_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2431,12 +2117,7 @@
       "compositePrimaryKeys": {
         "sub_agent_tool_relations_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agent_tool_relations_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2529,16 +2210,8 @@
           "name": "sub_agents_agents_fk",
           "tableFrom": "sub_agents",
           "tableTo": "agent",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2546,12 +2219,7 @@
       "compositePrimaryKeys": {
         "sub_agents_tenant_id_project_id_agent_id_id_pk": {
           "name": "sub_agents_tenant_id_project_id_agent_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "agent_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2621,14 +2289,8 @@
           "name": "task_relations_project_fk",
           "tableFrom": "task_relations",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2636,11 +2298,7 @@
       "compositePrimaryKeys": {
         "task_relations_tenant_id_project_id_id_pk": {
           "name": "task_relations_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2721,18 +2379,8 @@
           "name": "tasks_sub_agent_fk",
           "tableFrom": "tasks",
           "tableTo": "sub_agents",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "project_id",
-            "agent_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id", "agent_id", "sub_agent_id"],
+          "columnsTo": ["tenant_id", "project_id", "agent_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2740,11 +2388,7 @@
       "compositePrimaryKeys": {
         "tasks_tenant_id_project_id_id_pk": {
           "name": "tasks_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -2843,14 +2487,8 @@
           "name": "tools_project_fk",
           "tableFrom": "tools",
           "tableTo": "projects",
-          "columnsFrom": [
-            "tenant_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
+          "columnsFrom": ["tenant_id", "project_id"],
+          "columnsTo": ["tenant_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2858,11 +2496,7 @@
       "compositePrimaryKeys": {
         "tools_tenant_id_project_id_id_pk": {
           "name": "tools_tenant_id_project_id_id_pk",
-          "columns": [
-            "tenant_id",
-            "project_id",
-            "id"
-          ]
+          "columns": ["tenant_id", "project_id", "id"]
         }
       },
       "uniqueConstraints": {},
