@@ -21,14 +21,5 @@ export const citation = artifactComponent({
       z.string().describe("The title of the source document or webpage")
     ),
     url: preview(z.string().describe("The URL of the source")),
-    snippet: z
-      .string()
-      .optional()
-      .describe("A relevant snippet or excerpt from the source"),
-    publishedDate: z
-      .string()
-      .optional()
-      .describe("Publication date if available"),
-    author: z.string().optional().describe("Author or publisher if available"),
   }),
 });
