@@ -467,9 +467,9 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                                   method: 'POST',
                                   headers: {
                                     // Same as chat headers
-                                    'x-inkeep-tenant-id': "default",
-                                    'x-inkeep-project-id': "activities-planner",
-                                    'x-inkeep-agent-id': "activities-planner",
+                                    'x-inkeep-tenant-id': 'default',
+                                    'x-inkeep-project-id': 'activities-planner',
+                                    'x-inkeep-agent-id': 'activities-planner',
                                     'Content-Type': 'application/json',
                                   },
                                   body: JSON.stringify({

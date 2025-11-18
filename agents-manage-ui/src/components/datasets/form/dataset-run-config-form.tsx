@@ -140,7 +140,11 @@ export function DatasetRunConfigForm({
 
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
-        : await createDatasetRunConfigAction(tenantId, projectId, payload as DatasetRunConfigInsert);
+        : await createDatasetRunConfigAction(
+            tenantId,
+            projectId,
+            payload as DatasetRunConfigInsert
+          );
 
       if (result.success) {
         toast.success(

@@ -1,7 +1,7 @@
 import devServer from '@hono/vite-dev-server';
+import path from 'path';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -12,7 +12,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@inkeep/agents-mcp': path.resolve(__dirname, '../../packages/agents-mcp/inkeep-sdk-mcp-typescript'),
+      '@inkeep/agents-mcp': path.resolve(
+        __dirname,
+        '../../packages/agents-mcp/inkeep-sdk-mcp-typescript'
+      ),
     },
   },
   server: {

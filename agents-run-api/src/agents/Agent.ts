@@ -579,23 +579,23 @@ export class Agent {
       }) || [];
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
-        // TODO check if we need reduce
-        // const combinedTools = tools.reduce((acc, toolResult) => {
-        //     return Object.assign(acc, toolResult.tools) as ToolSet;
-        // }, {} as ToolSet);
+      // TODO check if we need reduce
+      // const combinedTools = tools.reduce((acc, toolResult) => {
+      //     return Object.assign(acc, toolResult.tools) as ToolSet;
+      // }, {} as ToolSet);
       const wrappedTools: ToolSet = {};
       for (const [index, toolSet] of tools.entries()) {
         const relationshipId = mcpTools[index]?.relationshipId;
         for (const [toolName, toolDef] of Object.entries(toolSet)) {
           // Find toolPolicies for this tool
           const needsApproval =
-              tools.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
-                  toolName
-                  ]?.needsApproval || false;
+            tools.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
+              toolName
+            ]?.needsApproval || false;
 
           const enhancedTool = {
-              ...toolDef,
-              needsApproval,
+            ...toolDef,
+            needsApproval,
           };
 
           wrappedTools[toolName] = this.wrapToolWithStreaming(

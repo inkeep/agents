@@ -1,7 +1,7 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +18,7 @@ const DEBOUNCE_MS = 1000;
 
 function runFetchScript() {
   console.log('\n🔄 Running fetch-openapi script...');
-  
+
   const child = spawn('node', [fetchScript], {
     stdio: 'inherit',
     shell: true,
@@ -61,10 +61,8 @@ watchPaths.forEach((watchPath) => {
     return;
   }
 
-  fs.watch(
-    watchPath,
-    { recursive: true },
-    (eventType, filename) => handleChange(eventType, filename, watchPath)
+  fs.watch(watchPath, { recursive: true }, (eventType, filename) =>
+    handleChange(eventType, filename, watchPath)
   );
 });
 
@@ -72,4 +70,3 @@ process.on('SIGINT', () => {
   console.log('\n👋 Stopping watch script...');
   process.exit(0);
 });
-
