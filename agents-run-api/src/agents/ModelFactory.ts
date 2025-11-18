@@ -72,6 +72,7 @@ export class ModelFactory {
         }
         const customConfig = {
           name: 'custom',
+          baseURL: (config.baseURL || config.baseUrl) as string,
           headers: {
             ...(process.env.CUSTOM_LLM_API_KEY && {
               Authorization: `Bearer ${process.env.CUSTOM_LLM_API_KEY}`,

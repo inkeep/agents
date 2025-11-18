@@ -65,6 +65,7 @@ export class ModelFactory {
         }
         const customConfig = {
           name: 'custom',
+          baseURL: (config.baseURL || config.baseUrl) as string,
           headers: {
             ...(process.env.CUSTOM_LLM_API_KEY && {
               Authorization: `Bearer ${process.env.CUSTOM_LLM_API_KEY}`,
@@ -73,14 +74,6 @@ export class ModelFactory {
           },
           ...config,
         };
-        console.log('Creating custom OpenAI-compatible provider', {
-          config: {
-            baseURL: customConfig.baseURL,
-            hasApiKey: !!process.env.CUSTOM_LLM_API_KEY,
-            apiKeyPrefix: process.env.CUSTOM_LLM_API_KEY?.substring(0, 10) + '...',
-            headers: Object.keys(customConfig.headers || {}),
-          },
-        });
         return createOpenAICompatible(customConfig);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
