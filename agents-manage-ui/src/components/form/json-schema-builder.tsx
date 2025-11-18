@@ -1,6 +1,6 @@
 import { PlusIcon, TrashIcon, X } from 'lucide-react';
 import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -231,21 +231,54 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
 }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const { addChild, setFields } = useJsonSchemaActions();
+  const lastSyncedValueRef = useRef<string>('');
+  const isInternalUpdateRef = useRef(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
+  // Parse value when it changes externally (for editing existing evaluators or initial load)
   useEffect(() => {
-    setFields(parseFieldsFromJson(value));
-    return () => {
-      const root: FieldObject = {
-        id: '__root__',
-        type: 'object',
-        properties: jsonSchemaStore.getState().fields,
-      };
-      const schema = fieldsToJsonSchema(root);
-      const serialized = JSON.stringify(schema, null, 2);
-      onChange(serialized);
+    // Skip if this is an internal update (we just synced)
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+      return;
+    }
+    
+    // Only parse if value actually changed
+    if (value !== lastSyncedValueRef.current) {
+      setFields(parseFieldsFromJson(value));
+      lastSyncedValueRef.current = value;
+    }
+  }, [value, setFields]);
+
+  // Sync changes from visual builder back to form whenever fields change
+  useEffect(() => {
+    const root: FieldObject = {
+      id: '__root__',
+      type: 'object',
+      properties: fields,
     };
-  }, []);
+    const schema = fieldsToJsonSchema(root);
+    const serialized = JSON.stringify(schema, null, 2);
+    
+    // Compare normalized JSON to see if anything actually changed
+    try {
+      const currentNormalized = JSON.stringify(JSON.parse(value || '{}'));
+      const newNormalized = JSON.stringify(JSON.parse(serialized));
+      
+      // Only update if content actually changed and it's different from what we last synced
+      if (currentNormalized !== newNormalized && serialized !== lastSyncedValueRef.current) {
+        isInternalUpdateRef.current = true;
+        lastSyncedValueRef.current = serialized;
+        onChange(serialized);
+      }
+    } catch {
+      // If parsing fails, update anyway
+      if (serialized !== lastSyncedValueRef.current) {
+        isInternalUpdateRef.current = true;
+        lastSyncedValueRef.current = serialized;
+        onChange(serialized);
+      }
+    }
+  }, [fields, onChange, value]);
 
   return (
     <>

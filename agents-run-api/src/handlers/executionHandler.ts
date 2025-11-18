@@ -5,7 +5,6 @@ import {
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
-  getDatasetRunConversationRelationByConversation,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -481,15 +480,8 @@ export class ExecutionHandler {
 
               // Check if this conversation is from a dataset run
               // If it is, skip automatic evaluation trigger - dataset runs trigger evaluations explicitly
-              // Check if this is a dataset run conversation via database relation OR header flag
-              const datasetRunRelation = await getDatasetRunConversationRelationByConversation(
-                dbClient
-              )({
-                scopes: { tenantId, projectId, conversationId },
-              });
-
-              const isDatasetRunConversation =
-                datasetRunRelation !== null || !!params.datasetRunConfigId;
+              // Check if this is a dataset run conversation via header flag only
+              const isDatasetRunConversation = !!params.datasetRunConfigId;
 
               if (isDatasetRunConversation) {
                 logger.debug(
@@ -497,7 +489,6 @@ export class ExecutionHandler {
                     conversationId,
                     tenantId,
                     projectId,
-                    hasRelation: !!datasetRunRelation,
                     hasHeaderFlag: !!params.datasetRunConfigId,
                   },
                   'Skipping automatic evaluation trigger - conversation is from dataset run (will be triggered explicitly)'

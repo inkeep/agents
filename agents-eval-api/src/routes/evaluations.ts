@@ -2656,40 +2656,52 @@ app.openapi(
                     evaluatorIds,
                     evaluatorCount: evaluatorIds.length,
                   },
-                  'Evaluation job config evaluators linked, starting job execution'
+                  'Evaluation job config evaluators linked, scheduling job execution in 30 seconds'
                 );
 
-                // Run the evaluation job asynchronously
-                evaluationService
-                  .runEvaluationJob({
-                    tenantId,
-                    projectId,
-                    evaluationJobConfigId: evalJobConfigId,
-                  })
-                  .then((results) => {
-                    logger.info(
-                      {
-                        tenantId,
-                        projectId,
-                        datasetRunId,
-                        evalJobConfigId,
-                        resultCount: results.length,
-                      },
-                      'Evaluation job for dataset run completed'
-                    );
-                  })
-                  .catch((error) => {
-                    logger.error(
-                      {
-                        error,
-                        tenantId,
-                        projectId,
-                        datasetRunId,
-                        evalJobConfigId,
-                      },
-                      'Evaluation job for dataset run failed'
-                    );
-                  });
+                // Wait 30 seconds before running the evaluation job
+                setTimeout(() => {
+                  logger.info(
+                    {
+                      tenantId,
+                      projectId,
+                      datasetRunId,
+                      evalJobConfigId,
+                    },
+                    'Starting evaluation job execution after 30 second delay'
+                  );
+
+                  evaluationService
+                    .runEvaluationJob({
+                      tenantId,
+                      projectId,
+                      evaluationJobConfigId: evalJobConfigId,
+                    })
+                    .then((results) => {
+                      logger.info(
+                        {
+                          tenantId,
+                          projectId,
+                          datasetRunId,
+                          evalJobConfigId,
+                          resultCount: results.length,
+                        },
+                        'Evaluation job for dataset run completed'
+                      );
+                    })
+                    .catch((error) => {
+                      logger.error(
+                        {
+                          error,
+                          tenantId,
+                          projectId,
+                          datasetRunId,
+                          evalJobConfigId,
+                        },
+                        'Evaluation job for dataset run failed'
+                      );
+                    });
+                }, 30000);
               } catch (evalError) {
                 logger.error(
                   {
