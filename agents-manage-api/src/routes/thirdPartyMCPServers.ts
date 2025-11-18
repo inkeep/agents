@@ -2,11 +2,11 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
+  fetchSingleComposioServer,
   TenantProjectParamsSchema,
   ThirdPartyMCPServerResponse,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { fetchSingleComposioServer } from '../utils/composio-service';
 
 type AppVariables = {
   serverConfig: ServerConfig;

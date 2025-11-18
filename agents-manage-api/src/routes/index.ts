@@ -10,7 +10,6 @@ import dataComponentsRoutes from './dataComponents';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
-import mcpRoutes from './mcp';
 import mcpCatalogRoutes from './mcpCatalog';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';

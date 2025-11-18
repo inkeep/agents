@@ -6,12 +6,12 @@ import type {
 } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
+  fetchComposioServers,
   MCPCatalogListResponse,
   MCPTransportType,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import type z from 'zod';
-import { fetchComposioServers } from '../utils/composio-service';
 
 type AppVariables = {
   serverConfig: ServerConfig;
