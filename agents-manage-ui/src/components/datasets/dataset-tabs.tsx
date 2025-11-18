@@ -60,7 +60,7 @@ export function DatasetTabs({
               onOpenChange={setIsCreateItemOpen}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus />
                   New item
                 </Button>
               }
@@ -82,7 +82,7 @@ export function DatasetTabs({
               }}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus />
                   New run
                 </Button>
               }

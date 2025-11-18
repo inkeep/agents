@@ -9,6 +9,7 @@ import { ExpandableJsonEditor } from '@/components/editors/expandable-json-edito
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -157,64 +158,60 @@ export function EvaluatorFormDialog({
     }
   };
 
-  const dialogContent = (
-    <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{evaluatorId ? 'Edit Evaluator' : 'Create Evaluator'}</DialogTitle>
-        <DialogDescription>
-          Configure an evaluator with a prompt, output schema, and model settings for evaluating
-          agent conversations.
-        </DialogDescription>
-      </DialogHeader>
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{evaluatorId ? 'Edit Evaluator' : 'Create Evaluator'}</DialogTitle>
+          <DialogDescription>
+            Configure an evaluator with a prompt, output schema, and model settings for evaluating
+            agent conversations.
+          </DialogDescription>
+        </DialogHeader>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <GenericInput
-            control={form.control}
-            name="name"
-            label="Name"
-            placeholder="e.g., Quality Check Evaluator"
-            isRequired
-          />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <GenericInput
+              control={form.control}
+              name="name"
+              label="Name"
+              placeholder="e.g., Quality Check Evaluator"
+              isRequired
+            />
 
-          <GenericTextarea
-            control={form.control}
-            name="description"
-            label="Description"
-            placeholder="Describe what this evaluator measures..."
-            isRequired
-          />
+            <GenericTextarea
+              control={form.control}
+              name="description"
+              label="Description"
+              placeholder="Describe what this evaluator measures..."
+              isRequired
+            />
 
-          <FormFieldWrapper
-            control={form.control}
-            name="prompt"
-            label="Prompt"
-            description="Instructions for the evaluator LLM on how to evaluate conversations"
-            isRequired
-          >
-            {(field) => (
-              <Textarea
-                placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
-                className="min-h-[150px] font-mono text-sm"
-                {...field}
-                value={field.value ?? ''}
-              />
-            )}
-          </FormFieldWrapper>
+            <FormFieldWrapper
+              control={form.control}
+              name="prompt"
+              label="Prompt"
+              description="Instructions for the evaluator LLM on how to evaluate conversations"
+              isRequired
+            >
+              {(field) => (
+                <Textarea
+                  placeholder="You are an evaluator. Analyze the conversation and provide feedback..."
+                  className="min-h-[150px] font-mono text-sm"
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              )}
+            </FormFieldWrapper>
 
-          <FormFieldWrapper
-            control={form.control}
-            name="schema"
-            label="Output Schema"
-            description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
-            isRequired
-          >
-            {(field) => (
-              <ExpandableJsonEditor
-                name="schema"
-                value={field.value || '{}'}
-                onChange={field.onChange}
-                placeholder={`{
+            <JsonSchemaInput
+              control={form.control}
+              name="schema"
+              label="Output Schema"
+              description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
+              isRequired
+              placeholder={`{
   "type": "object",
   "properties": {
     "clarity": {
@@ -251,81 +248,65 @@ export function EvaluatorFormDialog({
   },
   "required": ["clarity", "helpfulness", "professionalism", "efficiency"]
 }`}
-              />
-            )}
-          </FormFieldWrapper>
+            />
 
-          <div className="space-y-4">
-            <FormFieldWrapper
-              control={form.control}
-              name="model.model"
-              label="Model"
-              description="AI model to use for the evaluator"
-              isRequired
-            >
-              {(field) => (
-                <ModelSelector
-                  label=""
-                  placeholder="Select model"
-                  value={field.value || ''}
-                  onValueChange={field.onChange}
-                  canClear={false}
-                />
-              )}
-            </FormFieldWrapper>
+            <div className="space-y-4">
+              <FormFieldWrapper
+                control={form.control}
+                name="model.model"
+                label="Model"
+                description="AI model to use for the evaluator"
+                isRequired
+              >
+                {(field) => (
+                  <ModelSelector
+                    label=""
+                    placeholder="Select model"
+                    value={field.value || ''}
+                    onValueChange={field.onChange}
+                    canClear={false}
+                  />
+                )}
+              </FormFieldWrapper>
 
-            <ExpandableJsonEditor
-              name="model.providerOptions"
-              label="Provider options"
-              value={
-                providerOptionsField.value
-                  ? JSON.stringify(providerOptionsField.value, null, 2)
-                  : ''
-              }
-              onChange={(value) => {
-                if (!value?.trim()) {
-                  providerOptionsField.onChange(undefined);
-                  return;
+              <ExpandableJsonEditor
+                name="model.providerOptions"
+                label="Provider options"
+                value={
+                  providerOptionsField.value
+                    ? JSON.stringify(providerOptionsField.value, null, 2)
+                    : ''
                 }
-                try {
-                  const parsed = JSON.parse(value);
-                  providerOptionsField.onChange(parsed);
-                } catch {
-                  // Invalid JSON - don't update the field value
-                }
-              }}
-              placeholder={`{
+                onChange={(value) => {
+                  if (!value?.trim()) {
+                    providerOptionsField.onChange(undefined);
+                    return;
+                  }
+                  try {
+                    const parsed = JSON.parse(value);
+                    providerOptionsField.onChange(parsed);
+                  } catch {
+                    // Invalid JSON - don't update the field value
+                  }
+                }}
+                placeholder={`{
   "temperature": 0.7,
   "maxOutputTokens": 2048
 }`}
-            />
-          </div>
+              />
+            </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {evaluatorId ? 'Update' : 'Create'} Evaluator
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </DialogContent>
-  );
-
-  if (trigger) {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-        {dialogContent}
-      </Dialog>
-    );
-  }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {dialogContent}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {evaluatorId ? 'Update' : 'Create'} Evaluator
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
     </Dialog>
   );
 }

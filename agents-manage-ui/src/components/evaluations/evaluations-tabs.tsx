@@ -57,8 +57,8 @@ export function EvaluationsTabs({
               isOpen={isCreateEvaluatorOpen}
               onOpenChange={setIsCreateEvaluatorOpen}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New evaluator
                 </Button>
               }
@@ -73,8 +73,8 @@ export function EvaluationsTabs({
               isOpen={isCreateJobOpen}
               onOpenChange={setIsCreateJobOpen}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New batch evaluation
                 </Button>
               }
@@ -98,8 +98,8 @@ export function EvaluationsTabs({
                 });
               }}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New continuous test
                 </Button>
               }

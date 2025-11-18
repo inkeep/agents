@@ -44,7 +44,6 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
   const hasSimulationAgent = !!(
     item.simulationAgent &&
     typeof item.simulationAgent === 'object' &&
-    item.simulationAgent !== null &&
     !Array.isArray(item.simulationAgent) &&
     (item.simulationAgent.prompt || item.simulationAgent.model)
   );
@@ -60,7 +59,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>View Dataset Item</DialogTitle>
           <DialogDescription>

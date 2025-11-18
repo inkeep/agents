@@ -245,85 +245,73 @@ export function DatasetItemFormDialog({
     }
   };
 
-  const dialogContent = (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{itemId ? 'Edit Dataset Item' : 'Create Dataset Item'}</DialogTitle>
-        <DialogDescription>
-          Define the input messages, expected output, and optional simulation configuration for this
-          test case.
-        </DialogDescription>
-      </DialogHeader>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="input"
-            render={() => (
-              <FormItem>
-                <MessagesInputForm
-                  control={form.control}
-                  name="input"
-                  label="Input"
-                  description="Messages to send to the agent, with optional headers"
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="expectedOutput"
-            render={() => (
-              <FormItem>
-                <ExpectedOutputForm
-                  control={form.control}
-                  name="expectedOutput"
-                  label="Expected Output"
-                  description="Expected response messages from the agent (optional)"
-                />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="simulationAgent"
-            render={() => (
-              <FormItem>
-                <SimulationAgentForm control={form.control} />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {itemId ? 'Update' : 'Create'} Item
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </DialogContent>
-  );
-
-  if (trigger) {
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-        {dialogContent}
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {dialogContent}
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{itemId ? 'Edit Dataset Item' : 'Create Dataset Item'}</DialogTitle>
+          <DialogDescription>
+            Define the input messages, expected output, and optional simulation configuration for
+            this test case.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="input"
+              render={() => (
+                <FormItem>
+                  <MessagesInputForm
+                    control={form.control}
+                    name="input"
+                    label="Input"
+                    description="Messages to send to the agent, with optional headers"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="expectedOutput"
+              render={() => (
+                <FormItem>
+                  <ExpectedOutputForm
+                    control={form.control}
+                    name="expectedOutput"
+                    label="Expected Output"
+                    description="Expected response messages from the agent (optional)"
+                  />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="simulationAgent"
+              render={() => (
+                <FormItem>
+                  <SimulationAgentForm control={form.control} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {itemId ? 'Update' : 'Create'} Item
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
     </Dialog>
   );
 }

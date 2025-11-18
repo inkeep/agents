@@ -264,7 +264,7 @@ export function EvaluationRunConfigFormDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {runConfigId ? 'Edit Continuous Test' : 'Create Continuous Test'}
@@ -389,7 +389,7 @@ export function EvaluationRunConfigFormDialog({
 
         {/* Nested dialog for creating suite configs */}
         <Dialog open={isCreateSuiteConfigOpen} onOpenChange={setIsCreateSuiteConfigOpen}>
-          <DialogContent className="!max-w-[80vw] w-[80vw]">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Create Evaluation Plan</DialogTitle>
               <DialogDescription>

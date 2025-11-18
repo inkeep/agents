@@ -1,8 +1,9 @@
 'use client';
 
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { type FC, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,6 +30,25 @@ interface DatasetItemsTableProps {
   items: DatasetItem[];
 }
 
+const ReadOnlyEditor: FC<{
+  name: string;
+  value: unknown;
+}> = ({ name, value }) => {
+  return (
+    <ExpandableJsonEditor
+      name={name}
+      value={JSON.stringify(value, null, 2)}
+      readOnly
+      editorOptions={{
+        wordWrap: 'off',
+        scrollbar: {
+          alwaysConsumeMouseWheel: true,
+        },
+      }}
+    />
+  );
+};
+
 export function DatasetItemsTable({
   tenantId,
   projectId,
@@ -42,33 +62,6 @@ export function DatasetItemsTable({
   const deletingItem = deletingItemId
     ? items.find((item) => item.id === deletingItemId)
     : undefined;
-
-  const formatInput = (input: DatasetItem['input']): string => {
-    if (!input) return '';
-    if (typeof input === 'string') {
-      try {
-        return JSON.stringify(JSON.parse(input), null, 2);
-      } catch {
-        return input;
-      }
-    }
-    return JSON.stringify(input, null, 2);
-  };
-
-  const formatExpectedOutput = (expectedOutput: DatasetItem['expectedOutput']): string => {
-    if (!expectedOutput) return '';
-    if (typeof expectedOutput === 'string') {
-      try {
-        return JSON.stringify(JSON.parse(expectedOutput), null, 2);
-      } catch {
-        return expectedOutput;
-      }
-    }
-    if (Array.isArray(expectedOutput)) {
-      return JSON.stringify(expectedOutput, null, 2);
-    }
-    return JSON.stringify(expectedOutput, null, 2);
-  };
 
   return (
     <>
@@ -93,11 +86,10 @@ export function DatasetItemsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => {
+              items.map((item, index) => {
                 const hasSimulationAgent = !!(
                   item.simulationAgent &&
                   typeof item.simulationAgent === 'object' &&
-                  item.simulationAgent !== null &&
                   !Array.isArray(item.simulationAgent) &&
                   (item.simulationAgent.prompt || item.simulationAgent.model)
                 );
@@ -116,22 +108,14 @@ export function DatasetItemsTable({
                       {formatDateTimeTable(item.updatedAt)}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-xs">
-                        <code className="block text-xs bg-muted rounded border p-2 overflow-x-auto whitespace-pre-wrap break-words">
-                          {formatInput(item.input)}
-                        </code>
-                      </div>
+                      <ReadOnlyEditor name={`input_${index}`} value={item.input} />
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-xs">
-                        {item.expectedOutput ? (
-                          <code className="block text-xs bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800 p-2 overflow-x-auto whitespace-pre-wrap break-words">
-                            {formatExpectedOutput(item.expectedOutput)}
-                          </code>
-                        ) : (
-                          <span className="text-sm text-muted-foreground italic">None</span>
-                        )}
-                      </div>
+                      {item.expectedOutput ? (
+                        <ReadOnlyEditor name={`output_${index}`} value={item.expectedOutput} />
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">None</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {hasSimulationAgent ? (
@@ -145,20 +129,20 @@ export function DatasetItemsTable({
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditingItemId(item.id)}>
-                            <Pencil className="mr-2 h-4 w-4" />
+                            <Pencil />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeletingItemId(item.id)}
-                            className="text-destructive"
+                            className="!text-destructive"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 className="text-inherit" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

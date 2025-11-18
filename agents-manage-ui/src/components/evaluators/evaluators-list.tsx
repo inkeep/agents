@@ -77,10 +77,8 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                       {evaluator.name}
                     </button>
                   </TableCell>
-                  <TableCell className="max-w-md">
-                    <span className="text-sm text-muted-foreground line-clamp-1">
-                      {evaluator.description}
-                    </span>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal">
+                    {evaluator.description}
                   </TableCell>
                   <TableCell>
                     <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
@@ -96,20 +94,20 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(evaluator)}>
-                          <Pencil className="mr-2 h-4 w-4" />
+                          <Pencil />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(evaluator)}
-                          className="text-destructive"
+                          className="!text-destructive"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className="text-inherit" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
