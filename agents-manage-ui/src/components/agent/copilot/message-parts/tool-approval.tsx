@@ -55,9 +55,9 @@ export const ToolApproval = ({
     fetch(`${runApiUrl}/api/tool-approvals`, {
       method: 'POST',
       headers: {
-        'x-inkeep-tenant-id': copilotTenantId,
-        'x-inkeep-project-id': copilotProjectId,
-        'x-inkeep-agent-id': copilotAgentId,
+        ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
+        ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
+        ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
