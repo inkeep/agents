@@ -52,7 +52,7 @@ export class ModelFactory {
         };
       case 'gateway':
         return createGateway(config);
-      case 'nim':
+      case 'nim': {
         // Merge custom config with default NIM configuration
         const nimConfig = {
           name: 'nim',
@@ -63,7 +63,8 @@ export class ModelFactory {
           ...config,
         };
         return createOpenAICompatible(nimConfig);
-      case 'custom':
+      }
+      case 'custom': {
         // Custom OpenAI-compatible provider - requires baseURL in config
         if (!config.baseURL && !config.baseUrl) {
           throw new Error(
@@ -93,6 +94,7 @@ export class ModelFactory {
           'Creating custom OpenAI-compatible provider'
         );
         return createOpenAICompatible(customConfig);
+      }
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
