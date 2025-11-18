@@ -2,4 +2,5 @@
 "@inkeep/agents-manage-ui": minor
 ---
 
-remove hide sidebar button in breadcrumbs from desktop, collapse sidebar by default, expand when user hover on sidebar
+- should collapses when opening an agent page and re-expands when returning to other page
+- should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
