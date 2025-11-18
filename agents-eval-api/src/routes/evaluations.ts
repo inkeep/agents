@@ -2331,7 +2331,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const configData = c.req.valid('json') as any;
-    
+
     logger.info(
       {
         tenantId,
@@ -2344,11 +2344,7 @@ app.openapi(
       'Received dataset run config request - BEFORE destructuring'
     );
 
-    const {
-      agentIds,
-      evaluatorIds,
-      ...runConfigData
-    } = configData;
+    const { agentIds, evaluatorIds, ...runConfigData } = configData;
 
     logger.info(
       {
@@ -2575,14 +2571,20 @@ app.openapi(
                 tenantId,
                 projectId,
                 datasetRunId,
-                hasEvaluators: evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
+                hasEvaluators:
+                  evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
                 evaluatorIds,
                 conversationCount: conversationRelations.length,
               },
               'Checking if evaluation job should be created for dataset run'
             );
 
-            if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0 && conversationRelations.length > 0) {
+            if (
+              evaluatorIds &&
+              Array.isArray(evaluatorIds) &&
+              evaluatorIds.length > 0 &&
+              conversationRelations.length > 0
+            ) {
               try {
                 logger.info(
                   {
@@ -2706,7 +2708,8 @@ app.openapi(
                   tenantId,
                   projectId,
                   datasetRunId,
-                  hasEvaluators: evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
+                  hasEvaluators:
+                    evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
                   evaluatorIds,
                   conversationCount: conversationRelations.length,
                 },
@@ -2797,10 +2800,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, runConfigId } = c.req.valid('param');
     const configData = c.req.valid('json');
-    const {
-      agentIds,
-      ...runConfigUpdateData
-    } = configData as any;
+    const { agentIds, ...runConfigUpdateData } = configData as any;
 
     try {
       const updated = await updateDatasetRunConfig(dbClient)({

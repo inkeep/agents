@@ -122,7 +122,7 @@ export function DatasetRunConfigForm({
     console.log('evaluatorIds in form data:', data.evaluatorIds);
     console.log('Form values:', form.getValues());
     console.log('Form watch evaluatorIds:', form.watch('evaluatorIds'));
-    
+
     try {
       // Ensure evaluatorIds is always included, even if empty
       const payload = {
@@ -132,11 +132,11 @@ export function DatasetRunConfigForm({
         evaluatorIds: data.evaluatorIds || [],
         ...(runConfigId ? {} : { datasetId }),
       };
-      
+
       console.log('Payload being sent:', payload);
       console.log('evaluatorIds in payload:', payload.evaluatorIds);
       console.log('Payload JSON:', JSON.stringify(payload));
-      
+
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
         : await createDatasetRunConfigAction(tenantId, projectId, payload);
@@ -163,7 +163,6 @@ export function DatasetRunConfigForm({
       setAgentIds(currentIds.filter((id) => id !== agentId));
     }
   };
-
 
   return (
     <Form {...form}>

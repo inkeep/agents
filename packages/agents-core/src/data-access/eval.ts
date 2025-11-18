@@ -189,9 +189,7 @@ export const updateDataset =
 
 export const deleteDataset =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetId: string };
-  }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig & { datasetId: string } }): Promise<boolean> => {
     const result = await db
       .delete(dataset)
       .where(
@@ -308,9 +306,7 @@ export const updateDatasetItem =
 
 export const deleteDatasetItem =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetItemId: string };
-  }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig & { datasetItemId: string } }): Promise<boolean> => {
     const result = await db
       .delete(datasetItem)
       .where(
@@ -327,9 +323,7 @@ export const deleteDatasetItem =
 
 export const deleteDatasetItemsByDataset =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetId: string };
-  }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig & { datasetId: string } }): Promise<number> => {
     const result = await db
       .delete(datasetItem)
       .where(
@@ -463,7 +457,9 @@ export const getDatasetRunConfigAgentRelations =
 
 export const createDatasetRunConfigAgentRelation =
   (db: DatabaseClient) =>
-  async (data: DatasetRunConfigAgentRelationInsert): Promise<DatasetRunConfigAgentRelationSelect> => {
+  async (
+    data: DatasetRunConfigAgentRelationInsert
+  ): Promise<DatasetRunConfigAgentRelationSelect> => {
     const now = new Date().toISOString();
 
     const [created] = await db
@@ -695,9 +691,7 @@ export const updateDatasetRun =
 
 export const deleteDatasetRun =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunId: string };
-  }): Promise<boolean> => {
+  async (params: { scopes: ProjectScopeConfig & { datasetRunId: string } }): Promise<boolean> => {
     const result = await db
       .delete(datasetRun)
       .where(
@@ -732,7 +726,9 @@ export const getDatasetRunConversationRelations =
 
 export const createDatasetRunConversationRelation =
   (db: DatabaseClient) =>
-  async (data: DatasetRunConversationRelationInsert): Promise<DatasetRunConversationRelationSelect> => {
+  async (
+    data: DatasetRunConversationRelationInsert
+  ): Promise<DatasetRunConversationRelationSelect> => {
     const now = new Date().toISOString();
 
     const [created] = await db
@@ -749,7 +745,9 @@ export const createDatasetRunConversationRelation =
 
 export const createDatasetRunConversationRelations =
   (db: DatabaseClient) =>
-  async (data: DatasetRunConversationRelationInsert[]): Promise<DatasetRunConversationRelationSelect[]> => {
+  async (
+    data: DatasetRunConversationRelationInsert[]
+  ): Promise<DatasetRunConversationRelationSelect[]> => {
     const now = new Date().toISOString();
 
     const values = data.map((item) => ({
@@ -785,9 +783,7 @@ export const deleteDatasetRunConversationRelation =
 
 export const deleteDatasetRunConversationRelationsByRun =
   (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunId: string };
-  }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig & { datasetRunId: string } }): Promise<number> => {
     const result = await db
       .delete(datasetRunConversationRelations)
       .where(

@@ -62,7 +62,7 @@ export function DatasetRunConfigsList({
         setError(result.error || 'Failed to load run configurations');
       }
     } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load run configurations');
+      setError(err instanceof Error ? err.message : 'Failed to load run configurations');
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export function DatasetRunConfigsList({
       }
     } catch (error) {
       console.error('Error fetching run configuration:', error);
-        toast.error('Failed to load run configuration');
+      toast.error('Failed to load run configuration');
       setEditingConfigId(null);
     }
   };

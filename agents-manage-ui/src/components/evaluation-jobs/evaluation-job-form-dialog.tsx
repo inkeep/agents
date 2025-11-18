@@ -85,7 +85,6 @@ export function EvaluationJobFormDialog({
     }
   }, [isOpen, initialData]);
 
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -154,7 +153,9 @@ export function EvaluationJobFormDialog({
   const dialogContent = (
     <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{jobConfigId ? 'Edit Batch Evaluation' : 'Create Batch Evaluation'}</DialogTitle>
+        <DialogTitle>
+          {jobConfigId ? 'Edit Batch Evaluation' : 'Create Batch Evaluation'}
+        </DialogTitle>
         <DialogDescription>
           Configure a one-off batch evaluation to evaluate conversations based on filters.
         </DialogDescription>

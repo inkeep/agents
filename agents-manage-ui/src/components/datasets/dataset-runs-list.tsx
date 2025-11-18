@@ -17,7 +17,12 @@ interface DatasetRunsListProps {
   refreshKey?: number;
 }
 
-export function DatasetRunsList({ tenantId, projectId, datasetId, refreshKey = 0 }: DatasetRunsListProps) {
+export function DatasetRunsList({
+  tenantId,
+  projectId,
+  datasetId,
+  refreshKey = 0,
+}: DatasetRunsListProps) {
   const [runs, setRuns] = useState<DatasetRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

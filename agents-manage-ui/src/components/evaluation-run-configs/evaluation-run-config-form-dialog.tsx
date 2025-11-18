@@ -270,7 +270,8 @@ export function EvaluationRunConfigFormDialog({
             {runConfigId ? 'Edit Continuous Test' : 'Create Continuous Test'}
           </DialogTitle>
           <DialogDescription>
-            Automatically run evaluations when conversations complete. Link evaluation plans to define which evaluations to run.
+            Automatically run evaluations when conversations complete. Link evaluation plans to
+            define which evaluations to run.
           </DialogDescription>
         </DialogHeader>
 
@@ -335,11 +336,13 @@ export function EvaluationRunConfigFormDialog({
                   </div>
                   <div className="rounded-lg border p-4 space-y-3 max-h-64 overflow-y-auto">
                     {loading ? (
-                      <div className="text-sm text-muted-foreground">Loading evaluation plans...</div>
+                      <div className="text-sm text-muted-foreground">
+                        Loading evaluation plans...
+                      </div>
                     ) : suiteConfigs.length === 0 ? (
                       <div className="text-sm text-muted-foreground text-center py-4">
-                        No evaluation plans available. Click &quot;New Evaluation Plan&quot; to create
-                        one.
+                        No evaluation plans available. Click &quot;New Evaluation Plan&quot; to
+                        create one.
                       </div>
                     ) : (
                       suiteConfigs.map((suiteConfig) => (
@@ -390,7 +393,8 @@ export function EvaluationRunConfigFormDialog({
             <DialogHeader>
               <DialogTitle>Create Evaluation Plan</DialogTitle>
               <DialogDescription>
-                Create a new evaluation plan that defines what to evaluate and which evaluators to use.
+                Create a new evaluation plan that defines what to evaluate and which evaluators to
+                use.
               </DialogDescription>
             </DialogHeader>
 

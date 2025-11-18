@@ -19,7 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { EvaluationJobConfig, EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
+import type {
+  EvaluationJobConfig,
+  EvaluationJobFilterCriteria,
+} from '@/lib/api/evaluation-job-configs';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
 import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
 
@@ -47,17 +50,21 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     if (!filters) return 'No filters';
     const filterCriteria = filters as EvaluationJobFilterCriteria;
     const parts: string[] = [];
-    
-    if (filterCriteria.datasetRunIds && Array.isArray(filterCriteria.datasetRunIds) && filterCriteria.datasetRunIds.length > 0) {
+
+    if (
+      filterCriteria.datasetRunIds &&
+      Array.isArray(filterCriteria.datasetRunIds) &&
+      filterCriteria.datasetRunIds.length > 0
+    ) {
       parts.push(`${filterCriteria.datasetRunIds.length} test suite run(s)`);
     }
-    
+
     if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
       const startFormatted = formatDate(filterCriteria.dateRange.startDate);
       const endFormatted = formatDate(filterCriteria.dateRange.endDate);
       parts.push(`${startFormatted} - ${endFormatted}`);
     }
-    
+
     return parts.length > 0 ? parts.join(', ') : 'No filters';
   };
 
