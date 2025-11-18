@@ -20,13 +20,13 @@ export function DatasetPageClient({
   const [activeTab, setActiveTab] = useState('items');
 
   return (
-      <DatasetTabs
-        tenantId={tenantId}
-        projectId={projectId}
-        datasetId={datasetId}
-        items={items}
-        defaultTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+    <DatasetTabs
+      tenantId={tenantId}
+      projectId={projectId}
+      datasetId={datasetId}
+      items={items}
+      defaultTab={activeTab}
+      onTabChange={setActiveTab}
+    />
   );
 }

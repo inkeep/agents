@@ -21,6 +21,7 @@ import {
 import type { DatasetItem } from '@/lib/api/dataset-items';
 import { DatasetItemFormDialog } from './dataset-item-form-dialog';
 import { DeleteDatasetItemConfirmation } from './delete-dataset-item-confirmation';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 
 interface DatasetItemsTableProps {
   tenantId: string;
@@ -93,11 +94,10 @@ export function DatasetItemsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => {
+              items.map((item, index) => {
                 const hasSimulationAgent = !!(
                   item.simulationAgent &&
                   typeof item.simulationAgent === 'object' &&
-                  item.simulationAgent !== null &&
                   !Array.isArray(item.simulationAgent) &&
                   (item.simulationAgent.prompt || item.simulationAgent.model)
                 );
@@ -116,22 +116,34 @@ export function DatasetItemsTable({
                       {formatDateTimeTable(item.updatedAt)}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-xs">
-                        <code className="block text-xs bg-muted rounded border p-2 overflow-x-auto whitespace-pre-wrap break-words">
-                          {formatInput(item.input)}
-                        </code>
-                      </div>
+                      <ExpandableJsonEditor
+                        name={`input_${index}`}
+                        value={JSON.stringify(item.input, null, 2)}
+                        readOnly
+                        editorOptions={{
+                          wordWrap: 'off',
+                          scrollbar: {
+                            alwaysConsumeMouseWheel: true,
+                          },
+                        }}
+                      />
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-xs">
-                        {item.expectedOutput ? (
-                          <code className="block text-xs bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800 p-2 overflow-x-auto whitespace-pre-wrap break-words">
-                            {formatExpectedOutput(item.expectedOutput)}
-                          </code>
-                        ) : (
-                          <span className="text-sm text-muted-foreground italic">None</span>
-                        )}
-                      </div>
+                      {item.expectedOutput ? (
+                        <ExpandableJsonEditor
+                          name={`output_${index}`}
+                          value={JSON.stringify(item.expectedOutput, null, 2)}
+                          readOnly
+                          editorOptions={{
+                            wordWrap: 'off',
+                            scrollbar: {
+                              alwaysConsumeMouseWheel: true,
+                            },
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">None</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {hasSimulationAgent ? (

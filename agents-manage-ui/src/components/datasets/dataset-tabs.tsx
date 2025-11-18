@@ -57,7 +57,7 @@ export function DatasetTabs({
               onOpenChange={setIsCreateItemOpen}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus />
                   New item
                 </Button>
               }
@@ -74,7 +74,7 @@ export function DatasetTabs({
               onOpenChange={setIsCreateRunOpen}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus />
                   New run
                 </Button>
               }
@@ -83,14 +83,8 @@ export function DatasetTabs({
         )}
       </div>
 
-
-
       <TabsContent value="runs" className="mt-6">
-        <DatasetRunsList
-          tenantId={tenantId}
-          projectId={projectId}
-          datasetId={datasetId}
-        />
+        <DatasetRunsList tenantId={tenantId} projectId={projectId} datasetId={datasetId} />
       </TabsContent>
 
       <TabsContent value="items" className="mt-6">
