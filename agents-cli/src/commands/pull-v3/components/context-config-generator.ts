@@ -5,20 +5,16 @@
  * builder functions from @inkeep/agents-core
  */
 
-import chalk from 'chalk';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
-import type { ComponentRegistry } from '../utils/component-registry';
+import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
   DEFAULT_STYLE,
-  formatObject,
-  formatPromptWithContext,
   formatString,
   generateFileContent,
   generateImport,
   hasTemplateVariables,
   removeTrailingComma,
-  shouldInclude,
   toCamelCase,
 } from '../utils/generator-utils';
 
@@ -36,7 +32,13 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
         );
         return `\`${convertedStr.replace(/`/g, '\\`')}\``;
       } else {
-        return `'${value.replace(/'/g, "\\'")}'`;
+        // Check if string is multi-line or long, use template literals if so
+        const isMultiline = value.includes('\n') || value.length > 80;
+        if (isMultiline) {
+          return `\`${value.replace(/`/g, '\\`')}\``;
+        } else {
+          return `'${value.replace(/'/g, "\\'")}'`;
+        }
       }
     } else if (typeof value === 'object' && value !== null) {
       return processObject(value);
@@ -51,10 +53,13 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
       return `[${items}]`;
     }
 
-    const entries = Object.entries(obj).map(([key, val]) => {
-      const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
-      return `${processedKey}: ${processValue(val)}`;
-    });
+    // Only include properties that have defined values
+    const entries = Object.entries(obj)
+      .filter(([key, val]) => val !== undefined && val !== null)
+      .map(([key, val]) => {
+        const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
+        return `${processedKey}: ${processValue(val)}`;
+      });
 
     return `{\n    ${entries.join(',\n    ')}\n  }`;
   };
@@ -100,7 +105,8 @@ export function generateFetchDefinitionDefinition(
   fetchId: string,
   fetchData: any,
   style: CodeStyle = DEFAULT_STYLE,
-  headersVarName?: string
+  headersVarName?: string,
+  registry?: ComponentRegistry
 ): string {
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
@@ -130,6 +136,7 @@ export function generateFetchDefinitionDefinition(
       fetchData.fetchConfig,
       headersVarName || 'headers'
     );
+
     lines.push(`${indentation}fetchConfig: ${processedFetchConfig},`);
   }
 
@@ -142,10 +149,20 @@ export function generateFetchDefinitionDefinition(
   // defaultValue
   if (fetchData.defaultValue) {
     if (typeof fetchData.defaultValue === 'string') {
-      lines.push(`${indentation}defaultValue: ${formatString(fetchData.defaultValue, q)},`);
+      const isMultiline =
+        fetchData.defaultValue.includes('\n') || fetchData.defaultValue.length > 80;
+      lines.push(
+        `${indentation}defaultValue: ${formatString(fetchData.defaultValue, q, isMultiline)},`
+      );
     } else {
       lines.push(`${indentation}defaultValue: ${JSON.stringify(fetchData.defaultValue)},`);
     }
+  }
+
+  // credentialReferenceId - handle credential references
+  if (fetchData.credentialReferenceId && registry) {
+    const validKey = registry.getVariableName(fetchData.credentialReferenceId, 'credentials');
+    lines.push(`${indentation}credentialReference: ${validKey},`);
   }
 
   // Remove trailing comma from last line
@@ -255,7 +272,8 @@ export function generateContextConfigDefinition(
 export function generateContextConfigImports(
   contextId: string,
   contextData: any,
-  style: CodeStyle = DEFAULT_STYLE
+  style: CodeStyle = DEFAULT_STYLE,
+  registry?: ComponentRegistry
 ): string[] {
   const imports: string[] = [];
 
@@ -281,6 +299,36 @@ export function generateContextConfigImports(
   // Import zod for schema validation
   if (hasSchemas(contextData)) {
     imports.push(generateImport(['z'], 'zod', style));
+  }
+
+  // Import credentials if any fetchDefinitions reference them
+  if (registry && contextData.contextVariables) {
+    const credentialRefs: Array<{ id: string; type: ComponentType }> = [];
+
+    // Collect all credential references from fetchDefinitions
+    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
+      string,
+      any,
+    ][]) {
+      if (varData && typeof varData === 'object' && varData.credentialReferenceId) {
+        credentialRefs.push({
+          id: varData.credentialReferenceId,
+          type: 'credentials',
+        });
+      }
+    }
+
+    if (credentialRefs.length > 0) {
+      // Get the current file path from registry (no hardcoded paths)
+      const contextComponent = registry.get(contextId, 'contextConfigs');
+      if (contextComponent) {
+        const credentialImports = registry.getImportsForFile(
+          contextComponent.filePath,
+          credentialRefs
+        );
+        imports.push(...credentialImports);
+      }
+    }
   }
 
   return imports;
@@ -318,7 +366,7 @@ export function generateContextConfigFile(
   registry?: ComponentRegistry,
   agentId?: string
 ): string {
-  const imports = generateContextConfigImports(contextId, contextData, style);
+  const imports = generateContextConfigImports(contextId, contextData, style, registry);
   const definitions: string[] = [];
 
   // Generate headers if present
@@ -355,7 +403,8 @@ export function generateContextConfigFile(
           varName,
           varData,
           style,
-          headersVarName
+          headersVarName,
+          registry
         );
         definitions.push(fetchDefinition);
       }

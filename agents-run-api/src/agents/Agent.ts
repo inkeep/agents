@@ -6,7 +6,9 @@ import {
   ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  createMessage,
   type DataComponentApiInsert,
+  generateId,
   getContextConfigById,
   getCredentialReference,
   getFullAgentDefinition,
@@ -55,6 +57,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
@@ -176,6 +179,7 @@ export class Agent {
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
   private conversationId?: string;
+  private delegationId?: string;
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
@@ -347,6 +351,13 @@ export class Agent {
   }
 
   /**
+   * Set delegation ID for this agent instance
+   */
+  setDelegationId(delegationId: string | undefined) {
+    this.delegationId = delegationId;
+  }
+
+  /**
    * Get streaming helper if this agent should stream to user
    * Returns undefined for delegated agents to prevent streaming data operations to user
    */
@@ -361,7 +372,8 @@ export class Agent {
     toolName: string,
     toolDefinition: any,
     streamRequestId?: string,
-    toolType?: ToolType
+    toolType?: ToolType,
+    options?: { needsApproval?: boolean }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -389,20 +401,73 @@ export class Agent {
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
-          toolName.startsWith('transfer_to_') ||
-          toolName.startsWith('delegate_to_');
+          toolName.startsWith('transfer_to_');
+        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
+
+        // Check if this tool needs approval first
+        const needsApproval = options?.needsApproval || false;
 
         if (streamRequestId && !isInternalTool) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+          const toolCallData: any = {
             toolName,
             input: args,
             toolCallId,
-          });
+          };
+
+          // Add approval-specific data when needed
+          if (needsApproval) {
+            toolCallData.needsApproval = true;
+            toolCallData.conversationId = this.conversationId;
+          }
+
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            'tool_call',
+            this.config.id,
+            toolCallData
+          );
         }
 
         try {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
+
+          // Store tool result in conversation history
+          const toolResultConversationId = this.getToolResultConversationId();
+          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+            try {
+              const messageId = generateId();
+              const messagePayload = {
+                id: messageId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: {
+                  text: this.formatToolResult(toolName, args, result, toolCallId),
+                },
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: this.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId,
+                    timestamp: Date.now(),
+                    delegationId: this.delegationId,
+                    isDelegated: this.isDelegatedAgent,
+                  },
+                },
+              };
+
+              await createMessage(dbClient)(messagePayload);
+            } catch (error) {
+              logger.warn(
+                { error, toolName, toolCallId, conversationId: toolResultConversationId },
+                'Failed to store tool result in conversation history'
+              );
+            }
+          }
 
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -410,6 +475,7 @@ export class Agent {
               output: result,
               toolCallId,
               duration,
+              needsApproval,
             });
           }
 
@@ -425,6 +491,7 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
+              needsApproval,
             });
           }
 
@@ -507,37 +574,92 @@ export class Agent {
         return tool.config?.type === 'mcp';
       }) || [];
 
-    const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
+    const toolResults =
+      (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
 
     if (!sessionId) {
-      const combinedTools = tools.reduce((acc, tool) => {
-        return Object.assign(acc, tool) as ToolSet;
+      const combinedTools = toolResults.reduce((acc, toolResult) => {
+        return Object.assign(acc, toolResult.tools) as ToolSet;
       }, {} as ToolSet);
 
       const wrappedTools: ToolSet = {};
       for (const [toolName, toolDef] of Object.entries(combinedTools)) {
+        // Find toolPolicies for this tool
+        const needsApproval =
+          toolResults.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
+            toolName
+          ]?.needsApproval || false;
+
+        const enhancedTool = {
+          ...toolDef,
+          needsApproval,
+        };
+
         wrappedTools[toolName] = this.wrapToolWithStreaming(
           toolName,
-          toolDef,
+          enhancedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          { needsApproval }
         );
       }
       return wrappedTools;
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolSet of tools) {
-      for (const [toolName, originalTool] of Object.entries(toolSet)) {
+    for (const toolResult of toolResults) {
+      for (const [toolName, originalTool] of Object.entries(toolResult.tools || {})) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
 
+        // Check if this tool needs approval from toolPolicies
+        const needsApproval = toolResult.toolPolicies?.[toolName]?.needsApproval || false;
+
+        logger.debug(
+          {
+            toolName,
+            toolPolicies: toolResult.toolPolicies,
+            needsApproval,
+            policyForThisTool: toolResult.toolPolicies?.[toolName],
+          },
+          'Tool approval check'
+        );
+
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Check for approval requirement before execution
+            if (needsApproval) {
+              logger.info(
+                { toolName, toolCallId, args },
+                'Tool requires approval - waiting for user response'
+              );
+
+              // Wait for approval (this promise resolves when user responds via API)
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
+                toolCallId,
+                toolName,
+                args,
+                this.conversationId || 'unknown',
+                this.config.id
+              );
+
+              if (!approvalResult.approved) {
+                // User denied approval - return a message instead of executing the tool
+                logger.info(
+                  { toolName, toolCallId, reason: approvalResult.reason },
+                  'Tool execution denied by user'
+                );
+
+                return `User denied approval to run this tool: ${approvalResult.reason}`;
+              }
+
+              logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+            }
+
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
@@ -617,7 +739,8 @@ export class Agent {
           toolName,
           sessionWrappedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          { needsApproval }
         );
       }
     }
@@ -667,11 +790,10 @@ export class Agent {
       },
     });
 
-    const agentToolRelationHeaders =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
-
-    const selectedTools =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
+    const toolRelation = toolsForAgent.data.find((t) => t.toolId === tool.id);
+    const agentToolRelationHeaders = toolRelation?.headers || undefined;
+    const selectedTools = toolRelation?.selectedTools || undefined;
+    const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
 
@@ -818,7 +940,7 @@ export class Agent {
       }
     }
 
-    return tools;
+    return { tools, toolPolicies };
   }
 
   private async createMcpConnection(
@@ -846,12 +968,12 @@ export class Agent {
         if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
           const errorMessage = 'Connection refused. Please check if the MCP server is running.';
           throw new Error(errorMessage);
-        } else if (error.message.includes('404')) {
+        }
+        if (error.message.includes('404')) {
           const errorMessage = 'Error accessing endpoint (HTTP 404)';
           throw new Error(errorMessage);
-        } else {
-          throw new Error(`MCP server connection failed: ${error.message}`);
         }
+        throw new Error(`MCP server connection failed: ${error.message}`);
       }
 
       throw error;
@@ -1183,7 +1305,6 @@ export class Agent {
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
-
     let processedPrompt = this.config.prompt;
     if (resolvedContext) {
       try {
@@ -1375,6 +1496,61 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  /**
+   * Format tool result for storage in conversation history
+   */
+  private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
+    const input = args ? JSON.stringify(args, null, 2) : 'No input';
+
+    // Handle string results that might be JSON - try to parse them
+    let parsedResult = result;
+    if (typeof result === 'string') {
+      try {
+        parsedResult = JSON.parse(result);
+      } catch (e) {
+        // Keep as string if not valid JSON
+      }
+    }
+
+    // Clean result by removing _structureHints before storing
+    // Check if _structureHints is nested inside the 'result' property
+    const cleanResult =
+      parsedResult && typeof parsedResult === 'object' && !Array.isArray(parsedResult)
+        ? {
+            ...parsedResult,
+            result:
+              parsedResult.result &&
+              typeof parsedResult.result === 'object' &&
+              !Array.isArray(parsedResult.result)
+                ? Object.fromEntries(
+                    Object.entries(parsedResult.result).filter(([key]) => key !== '_structureHints')
+                  )
+                : parsedResult.result,
+          }
+        : parsedResult;
+
+    const output =
+      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
+
+    return `## Tool: ${toolName}
+
+### 🔧 TOOL_CALL_ID: ${toolCallId}
+
+### Input
+${input}
+
+### Output
+${output}`;
+  }
+
+  /**
+   * Get the conversation ID for storing tool results
+   * Always uses the real conversation ID - delegation filtering happens at query time
+   */
+  private getToolResultConversationId(): string | undefined {
+    return this.conversationId;
   }
 
   /**
@@ -1770,13 +1946,18 @@ export class Agent {
 
           if (historyConfig && historyConfig.mode !== 'none') {
             if (historyConfig.mode === 'full') {
+              const filters = {
+                delegationId: this.delegationId,
+                isDelegated: this.isDelegatedAgent,
+              };
+
               conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: contextId,
                 currentMessage: userMessage,
                 options: historyConfig,
-                filters: {},
+                filters,
               });
             } else if (historyConfig.mode === 'scoped') {
               conversationHistory = await getFormattedConversationHistory({
@@ -1788,6 +1969,8 @@ export class Agent {
                 filters: {
                   subAgentId: this.config.id,
                   taskId: taskId,
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
                 },
               });
             }
@@ -1942,13 +2125,13 @@ export class Agent {
                     parser.markToolResult();
                   }
                   break;
-                case 'error':
+                case 'error': {
                   if (event.error instanceof Error) {
                     throw event.error;
-                  } else {
-                    const errorMessage = (event.error as any)?.error?.message;
-                    throw new Error(errorMessage);
                   }
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
               }
             }
 

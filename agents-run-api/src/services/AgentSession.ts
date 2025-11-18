@@ -154,6 +154,8 @@ export interface ToolCallData {
   toolName: string;
   input: any;
   toolCallId: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -162,6 +164,7 @@ export interface ToolResultData {
   output: any;
   duration?: number;
   error?: string;
+  needsApproval?: boolean;
 }
 
 export interface ErrorEventData {
@@ -902,10 +905,12 @@ export class AgentSession {
               const conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.tenantId,
                 projectId: this.projectId,
-                conversationId: this.sessionId,
+                conversationId: this.contextId || 'default',
                 options: {
                   limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
                   maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+                  includeInternal: true,
+                  messageTypes: ['chat', 'tool-result'],
                 },
                 filters: {},
               });

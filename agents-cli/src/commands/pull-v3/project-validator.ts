@@ -22,6 +22,208 @@ import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
 
 /**
+ * Get a preview of an object for logging (truncated and formatted)
+ */
+function getObjectPreview(obj: any, maxLength: number = 200): string {
+  if (obj === null) return 'null';
+  if (obj === undefined) return 'undefined';
+
+  try {
+    // For objects, try to show meaningful content
+    if (typeof obj === 'object') {
+      const jsonStr = JSON.stringify(obj, null, 0);
+      if (jsonStr.length <= maxLength) {
+        return jsonStr;
+      } else {
+        // If it's a render object with component, show component preview
+        if (obj.component && typeof obj.component === 'string') {
+          const componentPreview =
+            obj.component.length > 100 ? obj.component.substring(0, 100) + '...' : obj.component;
+          return `{component: "${componentPreview}", mockData: ${obj.mockData ? 'present' : 'null'}}`;
+        }
+        // Otherwise truncate JSON
+        return jsonStr.substring(0, maxLength) + '...';
+      }
+    } else {
+      // For primitives
+      const str = String(obj);
+      return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+    }
+  } catch (error) {
+    return `[Error stringifying: ${typeof obj}]`;
+  }
+}
+
+/**
+ * Find key differences between two objects without full JSON dump
+ */
+/**
+ * Extract credential IDs from an agent object, handling different storage structures
+ */
+function extractCredentialIds(agentObj: any): string[] {
+  const credentialIds: string[] = [];
+
+  // Method 1: Direct credentials array (remote API format)
+  if (agentObj.credentials && Array.isArray(agentObj.credentials)) {
+    agentObj.credentials.forEach((cred: any) => {
+      if (cred.id) {
+        credentialIds.push(cred.id);
+      }
+    });
+  }
+
+  // Method 2: Via contextConfig fetchDefinitions (generated format)
+  if (agentObj.contextConfig?.contextVariables) {
+    Object.values(agentObj.contextConfig.contextVariables).forEach((variable: any) => {
+      if (variable && typeof variable === 'object' && variable.credentialReferenceId) {
+        credentialIds.push(variable.credentialReferenceId);
+      }
+    });
+  }
+
+  return [...new Set(credentialIds)]; // Remove duplicates
+}
+
+function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[] {
+  const differences: string[] = [];
+
+  // Get all unique keys from both objects
+  const allKeys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+
+  for (const key of allKeys) {
+    const val1 = obj1?.[key];
+    const val2 = obj2?.[key];
+
+    // Skip certain metadata fields that are expected to be different
+    if (key.startsWith('_') || key === 'createdAt' || key === 'updatedAt') {
+      continue;
+    }
+
+    // Special handling for credentials - compare actual credential usage regardless of structure
+    if (key === 'credentials') {
+      const creds1 = extractCredentialIds(obj1);
+      const creds2 = extractCredentialIds(obj2);
+
+      // Sort both arrays for comparison
+      creds1.sort();
+      creds2.sort();
+
+      if (JSON.stringify(creds1) !== JSON.stringify(creds2)) {
+        differences.push(
+          `~ credentials: usage differs (${creds1.join(', ')} vs ${creds2.join(', ')})`
+        );
+      }
+      continue; // Skip normal comparison for credentials
+    }
+
+    // Check if values are effectively empty (null, undefined, {}, [])
+    const val1IsEmpty =
+      val1 === null ||
+      val1 === undefined ||
+      (Array.isArray(val1) && val1.length === 0) ||
+      (typeof val1 === 'object' && val1 !== null && Object.keys(val1).length === 0);
+    const val2IsEmpty =
+      val2 === null ||
+      val2 === undefined ||
+      (Array.isArray(val2) && val2.length === 0) ||
+      (typeof val2 === 'object' && val2 !== null && Object.keys(val2).length === 0);
+
+    // Skip if both are empty
+    if (val1IsEmpty && val2IsEmpty) {
+      continue;
+    }
+
+    if (val1IsEmpty && !val2IsEmpty) {
+      differences.push(`+ ${key}: ${typeof val2} (only in remote)`);
+    } else if (!val1IsEmpty && val2IsEmpty) {
+      differences.push(`- ${key}: ${typeof val1} (only in generated)`);
+    } else if (val1 !== val2) {
+      // For arrays and objects, just show type and length/size differences
+      if (Array.isArray(val1) && Array.isArray(val2)) {
+        if (val1.length !== val2.length) {
+          differences.push(`~ ${key}: array length differs (${val1.length} vs ${val2.length})`);
+        }
+      } else if (
+        typeof val1 === 'object' &&
+        typeof val2 === 'object' &&
+        val1 !== null &&
+        val2 !== null
+      ) {
+        // Filter out keys with empty/undefined values AND metadata fields for comparison
+        const keys1 = Object.keys(val1).filter((k) => {
+          // Skip metadata fields
+          if (
+            k.startsWith('_') ||
+            k === 'createdAt' ||
+            k === 'updatedAt' ||
+            k === 'tenantId' ||
+            k === 'projectId' ||
+            k === 'agentId'
+          ) {
+            return false;
+          }
+          const v = val1[k];
+          return !(
+            v === null ||
+            v === undefined ||
+            (Array.isArray(v) && v.length === 0) ||
+            (typeof v === 'object' && v !== null && Object.keys(v).length === 0)
+          );
+        });
+        const keys2 = Object.keys(val2).filter((k) => {
+          // Skip metadata fields
+          if (
+            k.startsWith('_') ||
+            k === 'createdAt' ||
+            k === 'updatedAt' ||
+            k === 'tenantId' ||
+            k === 'projectId' ||
+            k === 'agentId'
+          ) {
+            return false;
+          }
+          const v = val2[k];
+          return !(
+            v === null ||
+            v === undefined ||
+            (Array.isArray(v) && v.length === 0) ||
+            (typeof v === 'object' && v !== null && Object.keys(v).length === 0)
+          );
+        });
+        const subKeys1 = keys1.length;
+        const subKeys2 = keys2.length;
+        if (subKeys1 !== subKeys2) {
+          differences.push(`~ ${key}: object size differs (${subKeys1} vs ${subKeys2} keys)`);
+        }
+      } else if (typeof val1 !== typeof val2) {
+        differences.push(`~ ${key}: type differs (${typeof val1} vs ${typeof val2})`);
+      } else {
+        // Special handling for important fields that should show content
+        if (key === 'render' || key === 'component') {
+          // Show detailed render/component differences
+          const val1Preview = getObjectPreview(val1, 200);
+          const val2Preview = getObjectPreview(val2, 200);
+          differences.push(`~ ${key}:`);
+          differences.push(`    Generated: ${val1Preview}`);
+          differences.push(`    Remote:    ${val2Preview}`);
+        } else {
+          // For other values, show them if they're reasonably short
+          const val1Str = String(val1);
+          const val2Str = String(val2);
+          if (val1Str.length < 100 && val2Str.length < 100) {
+            differences.push(`~ ${key}: "${val1Str}" vs "${val2Str}"`);
+          } else {
+            differences.push(`~ ${key}: values differ (both ${typeof val1})`);
+          }
+        }
+      }
+    }
+  }
+
+  return differences.slice(0, 10); // Limit to 10 differences to avoid spam
+}
+
+/**
  * Get a specific component from a project by type and ID
  */
 function getComponentFromProject(
@@ -36,6 +238,46 @@ function getComponentFromProject(
       return project.tools?.[componentId];
     case 'agents':
       return project.agents?.[componentId];
+    case 'subAgents':
+      // SubAgents are nested within agents - find the subAgent by ID
+      if (project.agents) {
+        for (const [agentId, agentData] of Object.entries(project.agents)) {
+          if (agentData.subAgents && agentData.subAgents[componentId]) {
+            return agentData.subAgents[componentId];
+          }
+        }
+      }
+      return null;
+    case 'contextConfigs':
+      // ContextConfigs are nested within agents - find by contextConfig.id
+      if (project.agents) {
+        for (const [agentId, agentData] of Object.entries(project.agents)) {
+          if (agentData.contextConfig && agentData.contextConfig.id === componentId) {
+            return agentData.contextConfig;
+          }
+        }
+      }
+      return null;
+    case 'fetchDefinitions':
+      // FetchDefinitions are nested within contextConfig.contextVariables
+      if (project.agents) {
+        for (const [agentId, agentData] of Object.entries(project.agents)) {
+          if (agentData.contextConfig?.contextVariables) {
+            for (const [varId, variable] of Object.entries(
+              agentData.contextConfig.contextVariables
+            )) {
+              if (
+                variable &&
+                typeof variable === 'object' &&
+                (variable as any).id === componentId
+              ) {
+                return variable;
+              }
+            }
+          }
+        }
+      }
+      return null;
     case 'dataComponents':
       return project.dataComponents?.[componentId];
     case 'artifactComponents':
@@ -267,12 +509,26 @@ async function validateProjectEquivalence(
                 componentType,
                 modifiedId
               );
-              console.log(
-                chalk.gray(`Generated Component: ${JSON.stringify(generatedComponent, null, 2)}`)
-              );
-              console.log(
-                chalk.gray(`Remote Component: ${JSON.stringify(remoteComponent, null, 2)}`)
-              );
+
+              // Show the actual differences
+              if (generatedComponent && remoteComponent) {
+                const differences = findKeyDifferences(
+                  generatedComponent,
+                  remoteComponent,
+                  modifiedId
+                );
+                if (differences.length > 0) {
+                  differences.forEach((diff) => {
+                    console.log(chalk.gray(`                ${diff}`));
+                  });
+                } else {
+                  console.log(chalk.gray(`                No key-level differences detected`));
+                }
+              } else if (!generatedComponent) {
+                console.log(chalk.red(`                Component missing in generated project`));
+              } else if (!remoteComponent) {
+                console.log(chalk.red(`                Component missing in remote project`));
+              }
             }
           }
           if (changes.deleted.length > 0) {
@@ -290,6 +546,10 @@ async function validateProjectEquivalence(
     return false;
   }
 }
+
+// Module-level flag to prevent multiple simultaneous listener setups
+let isWaitingForInput = false;
+let currentKeypressHandler: ((key: string) => void) | null = null;
 
 /**
  * Validate the temp directory by compiling and comparing with remote project
@@ -319,18 +579,36 @@ export async function validateTempDirectory(
     console.log(chalk.red(`   [N] No - Keep temp directory for manual review`));
 
     return new Promise<void>((resolve) => {
-      // Clean up any existing listeners first and increase max listeners
-      process.stdin.removeAllListeners('data');
-      process.stdin.setMaxListeners(15);
+      // Prevent multiple simultaneous listener setups
+      if (isWaitingForInput && currentKeypressHandler) {
+        // Remove the previous handler if it exists
+        process.stdin.removeListener('data', currentKeypressHandler);
+      }
 
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
+      // Clean up any existing listeners
+      process.stdin.removeAllListeners('data');
+
+      // Ensure stdin is properly configured
+      if (!process.stdin.isRaw) {
+        process.stdin.setRawMode(true);
+      }
+      if (process.stdin.isPaused()) {
+        process.stdin.resume();
+      }
       process.stdin.setEncoding('utf8');
 
       const onKeypress = (key: string) => {
+        // Prevent multiple handlers from executing
+        if (!isWaitingForInput) {
+          return;
+        }
+
+        // Clean up immediately to prevent leaks
+        isWaitingForInput = false;
+        currentKeypressHandler = null;
+        process.stdin.removeAllListeners('data');
         process.stdin.setRawMode(false);
         process.stdin.pause();
-        process.stdin.removeAllListeners('data');
 
         const normalizedKey = key.toLowerCase();
         if (normalizedKey === 'y') {
@@ -357,7 +635,12 @@ export async function validateTempDirectory(
         }
       };
 
-      process.stdin.on('data', onKeypress);
+      // Store handler reference and set flag before adding listener
+      currentKeypressHandler = onKeypress;
+      isWaitingForInput = true;
+
+      // Use 'once' instead of 'on' to ensure handler is only called once
+      process.stdin.once('data', onKeypress);
       process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));
     });
   } else {

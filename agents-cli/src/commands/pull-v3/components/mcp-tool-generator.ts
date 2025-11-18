@@ -96,6 +96,9 @@ export function generateMcpToolDefinition(
     if (mcpConfig.transport) {
       lines.push(`${indentation}transport: ${JSON.stringify(mcpConfig.transport, null, 2)},`);
     }
+    if (mcpConfig.activeTools && Array.isArray(mcpConfig.activeTools)) {
+      lines.push(`${indentation}activeTools: ${JSON.stringify(mcpConfig.activeTools)},`);
+    }
   }
   if (toolData.description) {
     lines.push(`${indentation}description: ${formatString(toolData.description, q, true)},`);

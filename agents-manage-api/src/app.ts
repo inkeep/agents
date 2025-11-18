@@ -11,6 +11,7 @@ import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
+import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import projectFullRoutes from './routes/projectFull';
 
@@ -160,7 +161,7 @@ function createManagementHono(
     createRoute({
       method: 'get',
       path: '/health',
-      tags: ['health'],
+      operationId: 'health',
       summary: 'Health check',
       description: 'Check if the management service is healthy',
       responses: {
@@ -186,6 +187,7 @@ function createManagementHono(
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
+  app.route('/mcp', mcpRoutes);
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

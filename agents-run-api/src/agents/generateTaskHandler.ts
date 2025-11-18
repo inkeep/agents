@@ -126,8 +126,6 @@ export const createTaskHandler = (
         }),
       ]);
 
-      logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
-
       const enhancedInternalRelations = await Promise.all(
         internalRelations.data.map(async (relation) => {
           try {
@@ -514,10 +512,14 @@ export const createTaskHandler = (
         task.context?.metadata?.stream_request_id || task.context?.metadata?.streamRequestId;
 
       const isDelegation = task.context?.metadata?.isDelegation === true;
+      const delegationId = task.context?.metadata?.delegationId;
+
       agent.setDelegationStatus(isDelegation);
+      agent.setDelegationId(delegationId);
+
       if (isDelegation) {
         logger.info(
-          { subAgentId: config.subAgentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id, delegationId },
           'Delegated agent - streaming disabled'
         );
 
@@ -739,7 +741,7 @@ export const createTaskHandlerConfig = async (params: {
   }
 
   const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
-  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig;
 
   return {
     tenantId: params.tenantId,

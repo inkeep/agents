@@ -82,28 +82,12 @@ export function enrichCanDelegateToWithTypes(
   project: FullProjectDefinition,
   debug: boolean = false
 ): void {
-  if (debug) {
-    console.log(chalk.gray('🔧 Enriching canDelegateTo with type information...'));
-  }
-
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
   const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
   const externalAgentIds = new Set(
     project.externalAgents ? Object.keys(project.externalAgents) : []
   );
-
-  if (debug) {
-    console.log(chalk.gray(`   Available agents: ${Array.from(agentIds).join(', ') || 'none'}`));
-    console.log(
-      chalk.gray(`   Available subAgents: ${Array.from(subAgentIds).join(', ') || 'none'}`)
-    );
-    console.log(
-      chalk.gray(
-        `   Available externalAgents: ${Array.from(externalAgentIds).join(', ') || 'none'}`
-      )
-    );
-  }
 
   // Function to enrich a canDelegateTo array
   const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
@@ -126,20 +110,7 @@ export function enrichCanDelegateToWithTypes(
       } else if (externalAgentIds.has(id)) {
         enrichedItem = { externalAgentId: id };
       } else {
-        if (debug) {
-          console.log(
-            chalk.yellow(
-              `   Warning: canDelegateTo reference "${id}" in ${context} not found in any component collection`
-            )
-          );
-        }
         continue; // Leave as string if we can't determine the type
-      }
-
-      if (debug && enrichedItem) {
-        console.log(
-          chalk.gray(`   Enriched "${id}" in ${context} -> ${JSON.stringify(enrichedItem)}`)
-        );
       }
 
       // Replace the string with the enriched object
@@ -203,22 +174,6 @@ async function readExistingProject(
     const isCredentialError =
       errorMessage.includes('Credential') && errorMessage.includes('not found');
 
-    if (debug) {
-      if (isCredentialError) {
-        console.log(
-          chalk.yellow('   ⚠ Cannot load existing project - credentials not configured:')
-        );
-        console.log(chalk.gray(`   ${errorMessage}`));
-        console.log(
-          chalk.gray(
-            "   💡 This is expected if you haven't added credentials to environment files yet"
-          )
-        );
-      } else {
-        console.log(chalk.red('   ✗ Error parsing existing project:'));
-        console.log(chalk.red(`   ${errorMessage}`));
-      }
-    }
     return null;
   }
 }
@@ -242,7 +197,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
   // Background version check
   performBackgroundVersionCheck();
 
-  console.log(chalk.blue('\n🚀 Pull v3 - Clean & Efficient'));
+  console.log(chalk.blue('\nInkeep Pull:'));
   if (options.introspect) {
     console.log(chalk.gray('  Introspect mode • Complete regeneration • No comparison needed'));
   } else {
@@ -260,54 +215,84 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       logConfig: true,
     });
 
-    // Step 2: Determine project directory - match push command behavior
+    // Step 2: Determine project directory and ID
     s.start('Detecting project...');
     let projectDir: string;
+    let projectId: string;
+    let localProjectForId: any = null;
 
-    if (options.project) {
-      // If project path is explicitly specified, use it and require index.ts
-      projectDir = resolve(process.cwd(), options.project);
-      if (!existsSync(join(projectDir, 'index.ts'))) {
-        s.stop(`No index.ts found in specified project directory: ${projectDir}`);
-        console.error(
-          chalk.yellow('The specified project directory must contain an index.ts file')
+    const currentDir = process.cwd();
+    const hasIndexInCurrent = existsSync(join(currentDir, 'index.ts'));
+
+    if (hasIndexInCurrent) {
+      // We're in a project directory
+      projectDir = currentDir;
+
+      s.start('Loading local project...');
+      try {
+        localProjectForId = await loadProject(projectDir);
+        const localProjectId = localProjectForId.getId();
+
+        if (options.project) {
+          // Validate that --project matches local project ID
+          if (localProjectId !== options.project) {
+            s.stop('Project ID mismatch');
+            console.error(
+              chalk.red(
+                `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`
+              )
+            );
+            console.error(
+              chalk.yellow('Either remove --project flag or ensure it matches the local project ID')
+            );
+            process.exit(1);
+          }
+        }
+
+        projectId = localProjectId;
+        s.stop(`Using local project: ${projectId}`);
+      } catch (error) {
+        s.stop('Failed to load local project');
+        throw new Error(
+          `Could not load local project: ${error instanceof Error ? error.message : String(error)}`
         );
-        process.exit(1);
       }
     } else {
-      // Look for index.ts in current directory (same as push)
-      const currentDir = process.cwd();
-      if (existsSync(join(currentDir, 'index.ts'))) {
-        projectDir = currentDir;
-      } else {
+      // No index.ts in current directory
+      if (!options.project) {
         s.stop('No index.ts found in current directory');
         console.error(
           chalk.yellow(
-            'Please run this command from a directory containing index.ts or use --project <path>'
+            'Please run this command from a directory containing index.ts or use --project <project-id>'
           )
         );
         process.exit(1);
       }
-    }
 
-    s.stop(`Project found: ${projectDir}`);
+      // Try --project as directory path first
+      const projectPath = resolve(currentDir, options.project);
+      const hasIndexInPath = existsSync(join(projectPath, 'index.ts'));
 
-    // Step 3: Load existing project to get project ID (like push does)
-    s.start('Loading local project to get project ID...');
-
-    let localProjectForId: any;
-    let projectId: string;
-
-    try {
-      localProjectForId = await loadProject(projectDir);
-      projectId = localProjectForId.getId();
-
-      s.stop(`Project ID: ${projectId}`);
-    } catch (error) {
-      s.stop('Failed to load local project');
-      throw new Error(
-        `Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`
-      );
+      if (hasIndexInPath) {
+        // --project is a valid directory path
+        projectDir = projectPath;
+        s.start('Loading project from specified path...');
+        try {
+          localProjectForId = await loadProject(projectDir);
+          projectId = localProjectForId.getId();
+          s.stop(`Using project from path: ${projectId}`);
+        } catch (error) {
+          s.stop('Failed to load project from path');
+          throw new Error(
+            `Could not load project from ${projectPath}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      } else {
+        // Treat --project as project ID, create subdirectory
+        projectId = options.project;
+        projectDir = join(currentDir, projectId);
+        s.stop(`Creating new project directory: ${projectDir}`);
+      }
     }
 
     // Step 4: Fetch project data from API
@@ -362,16 +347,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
               };
             }
           });
-          if (options.debug) {
-            const hoistedKeys = Object.keys(agentData.functions).filter(
-              (key) => !remoteProject.functions[key]
-            );
-            if (hoistedKeys.length > 0) {
-              console.log(
-                chalk.gray(`   Hoisted functions from agent ${agentId}: ${hoistedKeys.join(', ')}`)
-              );
-            }
-          }
         }
       }
     }
@@ -397,15 +372,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
           } else {
             // Remove the tools field entirely if all tools were project-level
             delete agentData.tools;
-          }
-
-          if (options.debug) {
-            const removedCount = originalToolCount - Object.keys(agentSpecificTools).length;
-            if (removedCount > 0) {
-              console.log(
-                chalk.gray(`   Filtered ${removedCount} project-level tools from agent ${agentId}`)
-              );
-            }
           }
         }
       }
@@ -461,6 +427,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.start('Building component registry from local files...');
     const { buildComponentRegistryFromParsing } = await import('./component-parser');
     const localRegistry = buildComponentRegistryFromParsing(paths.projectRoot, options.debug);
+
     s.message('Component registry built');
 
     // Step 9: Debug registry to see variable name conflicts
@@ -534,10 +501,11 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       0
     );
 
+    let newComponentResults: any[] = [];
     if (newComponentCount > 0) {
       s.start('Creating new component files in temp directory...');
       const { createNewComponents } = await import('./new-component-generator');
-      const newComponentResults = await createNewComponents(
+      newComponentResults = await createNewComponents(
         comparison,
         remoteProject,
         localRegistry,
@@ -588,6 +556,19 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     if (modifiedCount > 0) {
       s.start('Applying modified components to temp directory...');
       const { updateModifiedComponents } = await import('./component-updater');
+
+      // Transform new component results for LLM context
+      const newComponentsForContext =
+        newComponentResults && newComponentResults.length > 0
+          ? newComponentResults
+              .filter((result) => result.success)
+              .map((result) => ({
+                componentId: result.componentId,
+                componentType: result.componentType,
+                filePath: result.filePath.replace(paths.projectRoot + '/', ''), // Convert to relative path
+              }))
+          : undefined;
+
       const updateResults = await updateModifiedComponents(
         comparison,
         remoteProject,
@@ -595,7 +576,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         paths.projectRoot,
         options.env || 'development',
         options.debug,
-        tempDirName // Use the temp directory we created
+        tempDirName, // Use the temp directory we created
+        newComponentsForContext
       );
       s.message('Modified components applied');
     }

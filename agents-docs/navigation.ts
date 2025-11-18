@@ -17,12 +17,15 @@ export default {
       pages: [
         'typescript-sdk/agent-settings',
         'typescript-sdk/models',
-        'typescript-sdk/memory',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
+          pages: [
+            'typescript-sdk/tools/mcp-tools',
+            'typescript-sdk/tools/function-tools',
+            'tools/tool-approvals',
+          ],
         },
         {
           group: 'Credentials',
@@ -35,6 +38,7 @@ export default {
             'typescript-sdk/credentials/env-aware-credentials',
           ],
         },
+        'typescript-sdk/memory',
         'typescript-sdk/headers',
         'typescript-sdk/context-fetchers',
         'authentication',
@@ -159,6 +163,7 @@ export default {
             'tutorials/mcp-servers/overview',
             'tutorials/mcp-servers/native-mcp-servers',
             'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/gram',
             'tutorials/mcp-servers/custom-mcp-servers',
           ],
         },

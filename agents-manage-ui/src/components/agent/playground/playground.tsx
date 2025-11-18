@@ -91,15 +91,16 @@ export const Playground = ({
             <Bug className="h-4 w-4" />
             {showTraces ? 'Hide debug' : 'Debug'}
           </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6"
-            onClick={() => setShowPlayground(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {!showTraces && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-6"
+              onClick={() => setShowPlayground(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex-1 min-h-0 w-full">

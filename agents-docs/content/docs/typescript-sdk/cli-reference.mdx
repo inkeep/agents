@@ -185,29 +185,38 @@ inkeep pull
 
 **Options:**
 
-- `--project <project-id>` - Project ID or path to project directory
-- `--config <path>` - Override config file path (bypasses automatic config discovery)
-- `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--project <project-id>` - Project ID to pull (or path to project directory). If in project directory, validates against local project ID.
+- `--config <path>` - Path to configuration file
 - `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
-- `--json` - Save project data as JSON file instead of updating TypeScript files
-- `--debug` - Enable debug logging for LLM generation
+- `--json` - Output project data as JSON instead of generating files
+- `--debug` - Enable debug logging
+- `--verbose` - Enable verbose logging
+- `--force` - Force regeneration even if no changes detected
+- `--introspect` - Completely regenerate all files from scratch (no comparison needed)
 
-**Directory-Aware Pull (Mirrors `inkeep push` behavior):**
+**Smart Project Detection:**
 
-The pull command automatically detects if you're in a project directory and pulls to that location:
+The pull command intelligently handles different scenarios:
 
-1. **Automatic Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
-2. **Current Directory Pull**: Files are pulled directly to your current directory (no subdirectory is created)
-3. **Conflict Prevention**: If you specify `--project` while in a project directory, an error is shown to prevent confusion
+1. **Project Directory Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Project ID Validation**: If you specify `--project` while in a project directory, it validates that the ID matches your local project
+3. **Subdirectory Creation**: When not in a project directory, creates a new subdirectory named after the project ID
+
+**`--project` Flag Behavior:**
+
+The `--project` flag has dual functionality:
+- **Directory Path**: If the value points to a directory containing `index.ts`, it uses that directory
+- **Project ID**: If the value doesn't match a valid directory path, it treats it as a project ID
 
 **Pull Modes:**
 
 | Scenario | Command | Behavior |
 |----------|---------|----------|
 | In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
-| In project directory | `inkeep pull --project <id>` | ❌ Error: Cannot specify --project when in project directory |
-| Not in project directory | `inkeep pull` | Prompts for project ID, creates subdirectory |
-| Not in project directory | `inkeep pull --project <id>` | Pulls specified project to subdirectory |
+| In project directory | `inkeep pull --project <matching-id>` | ✅ Validates ID matches local project, pulls to current directory |
+| In project directory | `inkeep pull --project <different-id>` | ❌ Error: Project ID doesn't match local project |
+| Not in project directory | `inkeep pull` | ❌ Error: Requires --project flag |
+| Not in project directory | `inkeep pull --project <id>` | ✅ Creates `<id>/` subdirectory with project files |
 
 **How it Works:**
 
@@ -237,26 +246,36 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 cd my-project  # Directory contains index.ts with project export
 inkeep pull    # Pulls to current directory, no subdirectory created
 
-# Pull when NOT in a project directory (prompts for project ID)
-cd ~/projects
-inkeep pull    # Prompts for project ID, creates subdirectory
-
-# Pull specific project (only works when NOT in a project directory)
-cd ~/projects
-inkeep pull --project my-project  # Creates my-project/ subdirectory
-
-# Error case: --project flag in project directory
+# Validate project ID while in project directory
 cd my-project  # Directory contains index.ts
-inkeep pull --project my-project  # ERROR: Cannot specify --project in project directory
+inkeep pull --project my-project  # Validates ID matches, pulls to current directory
+
+# Error case: Wrong project ID in project directory
+cd my-project  # Directory contains index.ts with different project ID
+inkeep pull --project different-project  # ERROR: Project ID mismatch
+
+# Pull when NOT in a project directory (requires --project)
+cd ~/projects
+inkeep pull  # ERROR: Requires --project flag
+
+# Pull specific project to new subdirectory
+cd ~/projects
+inkeep pull --project my-project  # Creates ./my-project/ subdirectory
 
 # Save project data as JSON file instead of updating files
 inkeep pull --json
 
-# Pull with custom API endpoint
-inkeep pull --agents-manage-api-url https://api.example.com
-
 # Enable debug logging
 inkeep pull --debug
+
+# Enable verbose logging  
+inkeep pull --verbose
+
+# Force regeneration even if no changes detected
+inkeep pull --force
+
+# Completely regenerate all files from scratch
+inkeep pull --introspect
 
 # Generate environment-specific credentials
 inkeep pull --env production
@@ -267,7 +286,13 @@ inkeep pull --config ./custom-config/inkeep.config.ts
 
 #### Model Configuration
 
-The `inkeep pull` command currently uses a fixed model for LLM generation: `anthropic/claude-sonnet-4-20250514`.
+The `inkeep pull` command automatically selects the best available model for LLM generation based on your API keys:
+
+1. **Anthropic Claude** (if `ANTHROPIC_API_KEY` is set): `claude-sonnet-4-5`
+2. **OpenAI GPT** (if `OPENAI_API_KEY` is set): `gpt-5.1`
+3. **Google Gemini** (if `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` is set): `gemini-2.5-flash`
+
+The models are used for intelligent content merging when updating modified components, ensuring your local customizations are preserved while incorporating upstream changes.
 
 #### Validation Process
 

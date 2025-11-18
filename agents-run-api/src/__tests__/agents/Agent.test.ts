@@ -742,7 +742,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       conversationId: 'test-conversation-id',
       currentMessage: 'Test prompt',
       options: configWithFullMode.conversationHistoryConfig,
-      filters: {},
+      filters: {
+        delegationId: undefined,
+        isDelegated: false,
+      },
     });
   });
 
@@ -768,6 +771,8 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       currentMessage: 'Test prompt',
       options: configWithScopedMode.conversationHistoryConfig,
       filters: {
+        delegationId: undefined,
+        isDelegated: false,
         subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },
@@ -993,7 +998,7 @@ describe('Agent Credential Integration', () => {
       undefined
     );
 
-    expect(mcpTool).toEqual(mockMcpTools);
+    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
   });
 
   test('should handle tools without credential reference', async () => {
@@ -1039,7 +1044,7 @@ describe('Agent Credential Integration', () => {
 
     const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
 
-    expect(mcpTool).toEqual(mockMcpTools);
+    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
   });
 
   test('should pass correct context to credential stuffer', async () => {

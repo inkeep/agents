@@ -5,6 +5,7 @@
  * Top-level agents are the main entry points that handle statusUpdates with statusComponents
  */
 
+import { compareJsonObjects } from '../../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -159,8 +160,12 @@ function hasDistinctModels(agentModels: any, projectModels: any): boolean {
           // One is falsy, other isn't - they're different
           return true;
         }
-        // Both exist, compare as JSON
-        if (JSON.stringify(agentOptions) !== JSON.stringify(projectOptions)) {
+        // Both exist, compare semantically to ignore property ordering
+        const comparison = compareJsonObjects(agentOptions, projectOptions, {
+          ignoreArrayOrder: true,
+          showDetails: false,
+        });
+        if (!comparison.isEqual) {
           return true;
         }
       }
@@ -345,6 +350,28 @@ export function generateAgentDefinition(
     }
   }
 
+  // credentials - function returning array of credential references
+  if (
+    agentData.credentials &&
+    Array.isArray(agentData.credentials) &&
+    agentData.credentials.length > 0
+  ) {
+    if (!registry) {
+      throw new Error('Registry is required for credentials generation');
+    }
+
+    const credentialVars = agentData.credentials.map((cred: any) => {
+      const credVarName = registry.getVariableName(cred.id, 'credentials');
+      if (!credVarName) {
+        throw new Error(`Failed to resolve variable name for credential: ${cred.id}`);
+      }
+      return credVarName;
+    });
+
+    const credentialsArray = `[${credentialVars.join(', ')}]`;
+    lines.push(`${indentation}credentials: () => ${credentialsArray},`);
+  }
+
   // stopWhen - stopping conditions for the agent (only supports transferCountIs)
   if (agentData.stopWhen) {
     const stopWhenFormatted = formatStopWhen(agentData.stopWhen, style, 1);
@@ -384,7 +411,8 @@ export function generateAgentImports(
   agentData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
-  contextConfigData?: any
+  contextConfigData?: any,
+  actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
 
@@ -393,7 +421,7 @@ export function generateAgentImports(
 
   // Generate imports for referenced components if registry is available
   if (registry) {
-    const currentFilePath = `agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/${agentId}.ts`;
 
     // Collect all component references with their types
     const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
@@ -451,9 +479,17 @@ export function generateAgentFile(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
   contextConfigData?: any,
-  projectModels?: any
+  projectModels?: any,
+  actualFilePath?: string
 ): string {
-  const imports = generateAgentImports(agentId, agentData, style, registry, contextConfigData);
+  const imports = generateAgentImports(
+    agentId,
+    agentData,
+    style,
+    registry,
+    contextConfigData,
+    actualFilePath
+  );
   const definition = generateAgentDefinition(
     agentId,
     agentData,

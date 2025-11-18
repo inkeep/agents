@@ -1,5 +1,35 @@
 # @inkeep/agents-run-api
 
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- Updated dependencies [4b2fd62]
+- Updated dependencies [bbbed5e]
+  - @inkeep/agents-core@0.33.2
+
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+- Updated dependencies [98f139a]
+  - @inkeep/agents-core@0.33.1
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- Updated dependencies [b89cbd1]
+- Updated dependencies [d2fa856]
+- Updated dependencies [d95a9de]
+  - @inkeep/agents-core@0.33.0
+
 ## 0.32.2
 
 ### Patch Changes

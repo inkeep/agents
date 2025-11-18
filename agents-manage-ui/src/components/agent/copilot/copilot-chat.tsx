@@ -2,13 +2,16 @@
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
+import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 
 interface CopilotChatProps {
   agentId?: string;
   projectId: string;
   tenantId: string;
+  refreshAgentGraph: () => Promise<void>;
 }
 
 const styleOverrides = `
@@ -23,9 +26,25 @@ const styleOverrides = `
 }
 `;
 
-export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) {
+export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
   const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
+  const [conversationId, setConversationId] = useState(generateId);
+
+  useEffect(() => {
+    const updateAgentGraph = (event: any) => {
+      // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
+      if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
+        refreshAgentGraph();
+      }
+    };
+
+    document.addEventListener('ikp-data-operation', updateAgentGraph);
+    return () => {
+      document.removeEventListener('ikp-data-operation', updateAgentGraph);
+    };
+  }, [conversationId, refreshAgentGraph]);
+
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
     PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
@@ -59,6 +78,7 @@ export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) 
             onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'chat_clear_button_clicked') {
                 setDynamicHeaders({});
+                setConversationId(generateId());
               }
             },
             primaryBrandColor: '#3784ff',
@@ -100,6 +120,7 @@ export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) 
             },
           }}
           aiChatSettings={{
+            conversationId,
             chatFunctionsRef,
             aiAssistantAvatar: {
               light: '/assets/inkeep-icons/icon-blue.svg',
@@ -112,8 +133,11 @@ export function CopilotChat({ agentId, tenantId, projectId }: CopilotChatProps) 
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
+              // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
+              ...(agentId ? { 'x-target-agent-id': agentId } : {}),
+              // conversationId and messageId from the 'try now' improve with AI button.
               ...(dynamicHeaders?.conversationId
                 ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
                 : {}),

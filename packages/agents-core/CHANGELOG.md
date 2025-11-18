@@ -1,5 +1,29 @@
 # @inkeep/agents-core
 
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- bbbed5e: improve error message when saving a component with on click handler
+
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- d2fa856: fix mcp headers
+- d95a9de: enable Biome noUselessElse rule
+
 ## 0.32.2
 
 ### Patch Changes
