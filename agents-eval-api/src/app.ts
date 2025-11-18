@@ -10,6 +10,7 @@ import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
 import evaluationsRoutes from './routes/evaluations';
+import mcpRoutes from './routes/mcp';
 
 const logger = getLogger('agents-eval-api');
 
@@ -161,6 +162,9 @@ function createEvaluationHono() {
 
   // Mount evaluation routes under tenant scope
   app.route('/tenants/:tenantId/projects/:projectId/evaluations', evaluationsRoutes);
+
+  // Mount MCP endpoint
+  app.route('/mcp', mcpRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

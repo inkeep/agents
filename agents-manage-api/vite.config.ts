@@ -12,9 +12,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@inkeep/agents-mcp': path.resolve(
+      '@inkeep/agents-manage-mcp': path.resolve(
         __dirname,
-        '../../packages/agents-mcp/inkeep-sdk-mcp-typescript'
+        '../packages/agents-manage-mcp'
       ),
     },
   },
