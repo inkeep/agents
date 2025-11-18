@@ -44,33 +44,6 @@ export function DatasetItemsTable({
     ? items.find((item) => item.id === deletingItemId)
     : undefined;
 
-  const formatInput = (input: DatasetItem['input']): string => {
-    if (!input) return '';
-    if (typeof input === 'string') {
-      try {
-        return JSON.stringify(JSON.parse(input), null, 2);
-      } catch {
-        return input;
-      }
-    }
-    return JSON.stringify(input, null, 2);
-  };
-
-  const formatExpectedOutput = (expectedOutput: DatasetItem['expectedOutput']): string => {
-    if (!expectedOutput) return '';
-    if (typeof expectedOutput === 'string') {
-      try {
-        return JSON.stringify(JSON.parse(expectedOutput), null, 2);
-      } catch {
-        return expectedOutput;
-      }
-    }
-    if (Array.isArray(expectedOutput)) {
-      return JSON.stringify(expectedOutput, null, 2);
-    }
-    return JSON.stringify(expectedOutput, null, 2);
-  };
-
   return (
     <>
       <div className="rounded-lg border">
@@ -158,19 +131,19 @@ export function DatasetItemsTable({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditingItemId(item.id)}>
-                            <Pencil className="mr-2 h-4 w-4" />
+                            <Pencil />
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeletingItemId(item.id)}
                             className="text-destructive"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
