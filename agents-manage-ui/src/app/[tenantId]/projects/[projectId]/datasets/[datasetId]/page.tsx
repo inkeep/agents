@@ -11,17 +11,41 @@ export default async function DatasetPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/datasets/[datasetId]'>) {
   const { tenantId, projectId, datasetId } = await params;
-
-  let dataset: Awaited<ReturnType<typeof fetchDataset>>;
-  let items: Awaited<ReturnType<typeof fetchDatasetItems>>;
   try {
-    [dataset, items] = await Promise.all([
+    const [dataset, items] = await Promise.all([
       fetchDataset(tenantId, projectId, datasetId),
       fetchDatasetItems(tenantId, projectId, datasetId).catch(() => ({
         data: [],
         pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
       })),
     ]);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Datasets',
+            href: `/${tenantId}/projects/${projectId}/datasets`,
+          },
+          { label: dataset.name || 'Dataset' },
+        ]}
+      >
+        <MainContent>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{dataset.name || 'Dataset'}</h1>
+              </div>
+            </div>
+            <DatasetPageClient
+              tenantId={tenantId}
+              projectId={projectId}
+              datasetId={datasetId}
+              items={items.data}
+            />
+          </div>
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return (
       <FullPageError
@@ -32,33 +56,4 @@ export default async function DatasetPage({
       />
     );
   }
-
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Datasets',
-          href: `/${tenantId}/projects/${projectId}/datasets`,
-        },
-        { label: dataset.name || 'Dataset' },
-      ]}
-    >
-      <MainContent>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold">{dataset.name || 'Dataset'}</h1>
-            </div>
-          </div>
-          <DatasetPageClient
-            tenantId={tenantId}
-            projectId={projectId}
-            datasetId={datasetId}
-            items={items.data}
-          />
-        </div>
-      </MainContent>
-    </BodyTemplate>
-  );
 }
-

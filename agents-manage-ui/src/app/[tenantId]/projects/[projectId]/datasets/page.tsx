@@ -14,36 +14,33 @@ const datasetDescription =
 
 async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/datasets'>) {
   const { tenantId, projectId } = await params;
-
-  let datasets: Awaited<ReturnType<typeof fetchDatasets>>;
   try {
-    datasets = await fetchDatasets(tenantId, projectId);
+    const datasets = await fetchDatasets(tenantId, projectId);
+    return (
+      <BodyTemplate
+        breadcrumbs={[{ label: 'Datasets', href: `/${tenantId}/projects/${projectId}/datasets` }]}
+      >
+        <MainContent className="min-h-full">
+          {datasets.data.length > 0 ? (
+            <>
+              <PageHeader title="Datasets" description={datasetDescription} />
+              <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
+            </>
+          ) : (
+            <EmptyState
+              title="No datasets yet."
+              description={datasetDescription}
+              link={`/${tenantId}/projects/${projectId}/datasets/new`}
+              linkText="Create dataset"
+              icon={<Database />}
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError error={error as Error} context="datasets" />;
   }
-  return (
-    <BodyTemplate
-      breadcrumbs={[{ label: 'Datasets', href: `/${tenantId}/projects/${projectId}/datasets` }]}
-    >
-      <MainContent className="min-h-full">
-        {datasets.data.length > 0 ? (
-          <>
-            <PageHeader title="Datasets" description={datasetDescription} />
-            <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
-          </>
-        ) : (
-          <EmptyState
-            title="No datasets yet."
-            description={datasetDescription}
-            link={`/${tenantId}/projects/${projectId}/datasets/new`}
-            linkText="Create dataset"
-            icon={<Database />}
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default DatasetsPage;
-
