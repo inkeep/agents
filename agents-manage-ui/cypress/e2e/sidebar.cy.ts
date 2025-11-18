@@ -4,7 +4,7 @@ describe('Sidebar', () => {
   describe('Collapsing/Expanding', () => {
     const projectUrl = '/default/projects/my-weather-project';
 
-    it('should collapse sidebar in agent page', () => {
+    it('should collapses when opening an agent and re-expands when returning to projects', () => {
       cy.visit(projectUrl);
       // Default expanded
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
@@ -16,7 +16,7 @@ describe('Sidebar', () => {
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
     });
 
-    it('should not back to expanded if user manually collapsed when leaving agent page', () => {
+    it('should keeps the sidebar collapsed after a manual toggle even when leaving the agent page', () => {
       cy.visit(projectUrl);
       cy.contains('Toggle Sidebar').click();
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
@@ -29,7 +29,7 @@ describe('Sidebar', () => {
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
     });
 
-    it('should expand on hover, and collapse on blur', () => {
+    it('should temporarily expands on hover and collapses again on blur', () => {
       cy.visit(`${projectUrl}/agents/weather-agent`);
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
       cy.get('[data-slot=sidebar]').trigger('mouseover');
