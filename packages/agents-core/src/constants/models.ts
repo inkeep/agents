@@ -16,6 +16,7 @@ export const ANTHROPIC_MODELS = {
 } as const;
 
 export const OPENAI_MODELS = {
+  GPT_5_1: 'openai/gpt-5.1',
   GPT_5: 'openai/gpt-5',
   GPT_5_20250807: 'openai/gpt-5-2025-08-07',
   GPT_5_MINI: 'openai/gpt-5-mini',
@@ -31,6 +32,7 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const GOOGLE_MODELS = {
+  GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
   GEMINI_2_5_PRO: 'google/gemini-2.5-pro',
   GEMINI_2_5_FLASH: 'google/gemini-2.5-flash',
   GEMINI_2_5_FLASH_LITE: 'google/gemini-2.5-flash-lite',
