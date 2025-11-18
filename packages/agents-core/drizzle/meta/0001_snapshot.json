@@ -1,6 +1,6 @@
 {
-  "id": "ecc2e5f8-2b4e-4798-8b86-f70cc1cd4483",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "5e95afd4-67d4-4e6a-9727-9f97f0479d49",
+  "prevId": "ecc2e5f8-2b4e-4798-8b86-f70cc1cd4483",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2374,6 +2374,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "tool_policies": {
+          "name": "tool_policies",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2494,7 +2500,8 @@
           "name": "conversation_history_config",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'{\"mode\":\"full\",\"limit\":50,\"maxOutputTokens\":4000,\"includeInternal\":false,\"messageTypes\":[\"chat\",\"tool-result\"]}'::jsonb"
         },
         "models": {
           "name": "models",

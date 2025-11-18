@@ -121,7 +121,9 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
                 </TableCell>
               </TableRow>
             ) : (
-              jobConfigs.map((jobConfig) => (
+              [...jobConfigs]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((jobConfig) => (
                 <TableRow key={jobConfig.id} noHover>
                   <TableCell>
                     <Link

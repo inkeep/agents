@@ -155,7 +155,7 @@ export function EvaluationRunConfigResults({
           <Table>
             <TableHeader>
               <TableRow noHover>
-                <TableHead>Conversation ID</TableHead>
+                <TableHead>Input</TableHead>
                 <TableHead>Evaluator</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Created</TableHead>
@@ -171,10 +171,12 @@ export function EvaluationRunConfigResults({
                         href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline max-w-md"
                       >
-                        <code className="font-mono">{result.conversationId}</code>
-                        <ExternalLink className="h-4 w-4" />
+                        <span className="truncate">
+                          {result.input || result.conversationId}
+                        </span>
+                        <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
                     </TableCell>
                     <TableCell>
