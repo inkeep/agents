@@ -423,76 +423,81 @@ export const Agent: FC<AgentProps> = ({
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = useCallback(async () => {
-    if (!agent?.id) {
-      console.log('No agentId available, skipping graph refresh');
-      return;
-    }
+  const refreshAgentGraph = useCallback(
+    async (targetAgentId?: string) => {
+      const agentIdToUse = targetAgentId || agent?.id;
 
-    try {
-      const result = await getFullAgentAction(tenantId, projectId, agent.id);
-      if (!result.success) {
-        console.error('Failed to refresh agent graph:', result.error);
+      if (!agentIdToUse) {
+        console.log('No agentId available, skipping graph refresh');
         return;
       }
-      const updatedAgent = result.data;
 
-      // Deserialize agent data to nodes and edges
-      const { nodes, edges } = deserializeAgentData(updatedAgent);
+      try {
+        const result = await getFullAgentAction(tenantId, projectId, agentIdToUse);
+        if (!result.success) {
+          console.error('Failed to refresh agent graph:', result.error);
+          return;
+        }
+        const updatedAgent = result.data;
 
-      // Preserve selection state based on current URL state
-      const nodesWithSelection = nodeId
-        ? nodes.map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : nodes;
+        // Deserialize agent data to nodes and edges
+        const { nodes, edges } = deserializeAgentData(updatedAgent);
 
-      const edgesWithSelection = edgeId
-        ? edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : edges;
+        // Preserve selection state based on current URL state
+        const nodesWithSelection = nodeId
+          ? nodes.map((node) => ({
+              ...node,
+              selected: node.id === nodeId,
+            }))
+          : nodes;
 
-      // Extract metadata
-      const metadata = extractAgentMetadata(updatedAgent);
+        const edgesWithSelection = edgeId
+          ? edges.map((edge) => ({
+              ...edge,
+              selected: edge.id === edgeId,
+            }))
+          : edges;
 
-      // Recompute lookups from the updated agent data using shared helper functions
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
+        // Extract metadata
+        const metadata = extractAgentMetadata(updatedAgent);
 
-      // Update the store with the new graph using existing project-level lookups and recomputed agent-level lookups
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        toolLookup,
-        updatedAgentToolConfigLookup,
-        externalAgentLookup,
-        updatedSubAgentExternalAgentConfigLookup
-      );
-    } catch (error) {
-      console.error('Failed to refresh agent graph:', error);
-    }
-  }, [
-    agent?.id,
-    tenantId,
-    projectId,
-    nodeId,
-    edgeId,
-    setInitial,
-    dataComponentLookup,
-    artifactComponentLookup,
-    toolLookup,
-    externalAgentLookup,
-    computeAgentToolConfigLookup,
-    computeSubAgentExternalAgentConfigLookup,
-    enrichNodes,
-  ]);
+        // Recompute lookups from the updated agent data using shared helper functions
+        const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
+        const updatedSubAgentExternalAgentConfigLookup =
+          computeSubAgentExternalAgentConfigLookup(updatedAgent);
+
+        // Update the store with the new graph using existing project-level lookups and recomputed agent-level lookups
+        setInitial(
+          enrichNodes(nodesWithSelection),
+          edgesWithSelection,
+          metadata,
+          dataComponentLookup,
+          artifactComponentLookup,
+          toolLookup,
+          updatedAgentToolConfigLookup,
+          externalAgentLookup,
+          updatedSubAgentExternalAgentConfigLookup
+        );
+      } catch (error) {
+        console.error('Failed to refresh agent graph:', error);
+      }
+    },
+    [
+      agent?.id,
+      tenantId,
+      projectId,
+      nodeId,
+      edgeId,
+      setInitial,
+      dataComponentLookup,
+      artifactComponentLookup,
+      toolLookup,
+      externalAgentLookup,
+      computeAgentToolConfigLookup,
+      computeSubAgentExternalAgentConfigLookup,
+      enrichNodes,
+    ]
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {

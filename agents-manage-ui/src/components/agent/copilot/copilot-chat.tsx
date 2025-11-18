@@ -12,7 +12,7 @@ interface CopilotChatProps {
   agentId?: string;
   projectId: string;
   tenantId: string;
-  refreshAgentGraph: () => Promise<void>;
+  refreshAgentGraph: (targetAgentId?: string) => Promise<void>;
 }
 
 const styleOverrides = `
@@ -31,12 +31,22 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
+  // const router = useRouter();
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
       // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
       if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
-        refreshAgentGraph();
+        console.log('tool_result event triggered', event);
+        if (!agentId) {
+          const targetAgentId =
+            event.detail?.details?.data?.output?.result?.content?.[0]?.text?.AgentResponse?.data
+              ?.id;
+          refreshAgentGraph(targetAgentId);
+          // router.push(`/${tenantId}/projects/${projectId}/agents/${targetAgentId}`);
+        } else {
+          refreshAgentGraph();
+        }
       }
     };
 
@@ -44,7 +54,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     return () => {
       document.removeEventListener('ikp-data-operation', updateAgentGraph);
     };
-  }, [conversationId, refreshAgentGraph]);
+  }, [conversationId, refreshAgentGraph, agentId]);
 
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
