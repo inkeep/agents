@@ -82,8 +82,7 @@ const shipModalTabItems: TabItem[] = [
 ];
 
 export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) => {
-  const params = useParams();
-  const { tenantId, projectId } = params;
+  const { tenantId, projectId } = useParams();
   return (
     <Dialog>
       <DialogTrigger asChild>
