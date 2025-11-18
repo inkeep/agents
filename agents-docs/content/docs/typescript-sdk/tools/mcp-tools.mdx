@@ -5,9 +5,7 @@ description: Learn how to add and configure MCP tools for your agents
 icon: "LuHammer"
 ---
 
-MCP tools connect to external servers that implement the MCP standard. This allows you to integrate with a wide ecosystem of existing tools and services.
-
-Using MCP tools is a two step process:
+MCP tools connect to external MCP servers, enabling integration with a wide ecosystem of tools and services. Registering them as tools is a two step process:
 
 ### Step 1: Get an MCP server URL
 
@@ -189,4 +187,19 @@ const customerSupportAgent = subAgent({
   prompt: "You are a helpful assistant",
   canUse: () => [envSettings.getEnvironmentMcp('customer_support_tool')],
 });
+```
+
+This pattern is useful if you want to keep track of different credentials for different environments. When you push your project using the [Inkeep CLI](/typescript-sdk/cli-reference#inkeep-push) `inkeep push` command with the `--env` flag, the credentials will be loaded from the appropriate environment file. For example, if you run `inkeep push --env development`, the credentials will be loaded from the `environments/development.env.ts` file.
+
+### CLI Environment Variables
+
+The CLI respects these environment variables when using the `--env` flag:
+
+```bash
+# Set environment name via environment variable
+export INKEEP_ENV=production
+inkeep push  # Uses production environment automatically
+
+# Override via CLI (takes precedence)
+inkeep push --env development  # Uses development instead
 ```

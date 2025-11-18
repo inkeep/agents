@@ -1,0 +1,161 @@
+---
+title: Workspace Configuration
+description: Learn how to configure your workspace
+icon: "LuSettings"
+---
+
+## Overview
+
+The `inkeep.config.ts` file at the workspace root defines settings for all projects in this workspace. See [Project Management](/typescript-sdk/project-management#workspace-layout) for where this file should be placed.
+
+```typescript
+import { defineConfig } from '@inkeep/agents-cli/config';
+import 'dotenv/config';
+
+export default defineConfig({
+  tenantId: 'my-company',
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+    apiKey: process.env.MANAGE_API_KEY, // Optional
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+    apiKey: process.env.RUN_API_KEY, // Optional
+  },
+  outputDirectory: './output',
+});
+```
+
+<AutoTypeTable
+  path="./content/docs/typescript-sdk/types.ts"
+  name="NestedInkeepConfig"
+/>
+
+<AutoTypeTable
+  path="./content/docs/typescript-sdk/types.ts"
+  name="ApiConfig"
+/>
+
+## Configuration hierarchy
+
+One can override the settings in `inkeep.config.ts` by setting the following settings in this order (highest to lowest priority):
+
+```mermaid
+graph LR
+    A[CLI flags] --> B[Environment variables]
+    B --> C[Config file values]
+    C --> D[Built-in defaults]
+
+    style A fill:
+    style B fill:
+    style C fill:
+    style D fill:
+```
+
+### 1. CLI Flags
+
+Command-line flags override all other settings:
+
+```bash
+# Override API URL
+inkeep push --agents-manage-api-url https://api.production.com
+
+# Override config file location
+inkeep pull --config /path/to/custom.config.ts
+```
+
+### 2. Environment Variables
+
+Environment variables override config file values:
+
+```bash
+# Set via environment
+export INKEEP_TENANT_ID=staging-tenant
+export INKEEP_AGENTS_MANAGE_API_URL=https://api.staging.com
+export INKEEP_AGENTS_RUN_API_URL=https://run.staging.com
+
+# Now CLI commands use these values
+inkeep push
+```
+
+**Supported Environment Variables:**
+
+| Variable | Config Equivalent | Description |
+|----------|-------------------|-------------|
+| `INKEEP_TENANT_ID` | `tenantId` | Tenant identifier |
+| `INKEEP_AGENTS_MANAGE_API_URL` | `agentsManageApiUrl` | Management API URL |
+| `INKEEP_AGENTS_RUN_API_URL` | `agentsRunApiUrl` | Runtime API URL |
+
+### 3. Config File Values
+
+Values explicitly set in your `inkeep.config.ts`:
+
+```typescript
+export default defineConfig({
+  tenantId: 'my-tenant',
+  agentsManageApi: {
+    url: 'http://localhost:3002',
+  },
+  agentsRunApi: {
+    url: 'http://localhost:3003',
+  },
+});
+```
+
+### 4. Built-in Defaults
+
+Default values used when not specified elsewhere:
+
+```typescript
+const defaults = {
+  agentsManageApiUrl: 'http://localhost:3002',
+  agentsRunApiUrl: 'http://localhost:3003',
+};
+```
+
+## Working with multiple configurations
+
+### Dynamic configuration
+
+You can use environment-based logic in your workspace config:
+
+```typescript
+// inkeep.config.ts
+import { defineConfig } from '@inkeep/agents-cli/config';
+
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+export default defineConfig({
+  tenantId: process.env.TENANT_ID || 'default-tenant',
+  agentsManageApiUrl: isDevelopment
+    ? 'http://localhost:3002'
+    : 'https://api.production.com',
+});
+```
+
+### Multiple configuration files
+
+For workspaces requiring different configurations:
+
+```typescript
+// inkeep.config.ts
+export default defineConfig({
+  tenantId: 'production-tenant',
+  agentsManageApiUrl: 'https://api.production.com',
+});
+```
+
+```typescript
+// inkeep.dev.config.ts
+export default defineConfig({
+  tenantId: 'dev-tenant',
+  agentsManageApiUrl: 'http://localhost:3002',
+});
+```
+
+```bash
+# Use development config (specify from any project directory)
+inkeep push --config ../inkeep.dev.config.ts
+# or with absolute path
+inkeep push --config /path/to/workspace/inkeep.dev.config.ts
+```
