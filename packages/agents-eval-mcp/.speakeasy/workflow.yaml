@@ -1,0 +1,13 @@
+workflowVersion: 1.0.0
+speakeasyVersion: latest
+sources:
+    Inkeep Agents Evaluation API:
+        inputs:
+            - location: openapi.json
+        output: .speakeasy/out.openapi.yaml
+        registry:
+            location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-eval-api
+targets:
+    inkeep-agents:
+        target: mcp-typescript
+        source: Inkeep Agents Evaluation API

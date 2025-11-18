@@ -1,0 +1,3593 @@
+openapi: "3.0.0"
+info:
+  title: "Inkeep Agents Evaluation API"
+  version: "1.0.0"
+  description: "REST API for evaluations, datasets, and evaluation runs in the Inkeep Agent Framework."
+servers:
+  - url: "http://localhost:3005"
+    description: "Development server"
+components:
+  schemas:
+    "PaginationPageQueryParam":
+      type: "number"
+      minimum: 1
+      default: 1
+    "PaginationLimitQueryParam":
+      type: "number"
+      minimum: 1
+      maximum: 100
+      default: 10
+    "Pagination":
+      type: "object"
+      properties:
+        "page": {"$ref": "#/components/schemas/PaginationPageQueryParam"}
+        "limit": {"$ref": "#/components/schemas/PaginationLimitQueryParam"}
+        "total":
+          type: "number"
+        "pages":
+          type: "number"
+      required:
+        - "total"
+        - "pages"
+    "ProblemDetails":
+      type: "object"
+      properties:
+        "title":
+          type: "string"
+          description: "A short, human-readable summary of the problem type."
+          example: "Resource Not Found"
+        "status":
+          type: "integer"
+          description: "The HTTP status code."
+          example: 404
+        "detail":
+          type: "string"
+          description: "A human-readable explanation specific to this occurrence of the problem."
+          example: "The requested resource was not found."
+        "instance":
+          type: "string"
+          description: "A URI reference that identifies the specific occurrence of the problem."
+          example: "/conversations/123"
+        "requestId":
+          type: "string"
+          description: "A unique identifier for the request, useful for troubleshooting."
+          example: "req_1234567890"
+        "code":
+          type: "string"
+          enum:
+            - "bad_request"
+            - "unauthorized"
+            - "forbidden"
+            - "not_found"
+            - "conflict"
+            - "internal_server_error"
+            - "unprocessable_entity"
+          description: "A short code indicating the error code returned."
+          example: "not_found"
+      required:
+        - "title"
+        - "status"
+        - "detail"
+        - "code"
+    "BadRequest":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Bad Request"
+            "status":
+              type: "integer"
+              description: "The HTTP status code."
+              example: 400
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Bad Request"
+            "code":
+              type: "string"
+              enum:
+                - "bad_request"
+              description: "A short code indicating the error code returned."
+              example: "bad_request"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "bad_request"
+                  description: "A short code indicating the error code returned."
+                  example: "bad_request"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Bad Request"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "Unauthorized":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Unauthorized"
+            "status":
+              type: "integer"
+              description: "The HTTP status code."
+              example: 401
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Unauthorized"
+            "code":
+              type: "string"
+              enum:
+                - "unauthorized"
+              description: "A short code indicating the error code returned."
+              example: "unauthorized"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "unauthorized"
+                  description: "A short code indicating the error code returned."
+                  example: "unauthorized"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Unauthorized"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "Forbidden":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Forbidden"
+            "status":
+              type: "integer"
+              description: "The HTTP status code."
+              example: 403
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Forbidden"
+            "code":
+              type: "string"
+              enum:
+                - "forbidden"
+              description: "A short code indicating the error code returned."
+              example: "forbidden"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "forbidden"
+                  description: "A short code indicating the error code returned."
+                  example: "forbidden"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Forbidden"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "NotFound":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Not Found"
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Not Found"
+            "code":
+              type: "string"
+              enum:
+                - "not_found"
+              description: "A short code indicating the error code returned."
+              example: "not_found"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "not_found"
+                  description: "A short code indicating the error code returned."
+                  example: "not_found"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Not Found"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "UnprocessableEntity":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Unprocessable Entity"
+            "status":
+              type: "integer"
+              description: "The HTTP status code."
+              example: 422
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Unprocessable Entity"
+            "code":
+              type: "string"
+              enum:
+                - "unprocessable_entity"
+              description: "A short code indicating the error code returned."
+              example: "unprocessable_entity"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "unprocessable_entity"
+                  description: "A short code indicating the error code returned."
+                  example: "unprocessable_entity"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Unprocessable Entity"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "InternalServerError":
+      allOf:
+        - {"$ref": "#/components/schemas/ProblemDetails"}
+        - type: "object"
+          properties:
+            "title":
+              type: "string"
+              description: "A short, human-readable summary of the problem type."
+              example: "Internal Server Error"
+            "status":
+              type: "integer"
+              description: "The HTTP status code."
+              example: 500
+            "detail":
+              type: "string"
+              description: "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong."
+              example: "Internal Server Error"
+            "code":
+              type: "string"
+              enum:
+                - "internal_server_error"
+              description: "A short code indicating the error code returned."
+              example: "internal_server_error"
+            "error":
+              type: "object"
+              properties:
+                "code":
+                  type: "string"
+                  enum:
+                    - "internal_server_error"
+                  description: "A short code indicating the error code returned."
+                  example: "internal_server_error"
+                "message":
+                  type: "string"
+                  description: "A concise error message suitable for display to end users. May be truncated if the full detail is long."
+                  example: "Internal Server Error"
+              required:
+                - "code"
+                - "message"
+              description: "Legacy error format for backward compatibility."
+          required:
+            - "error"
+    "TenantIdPathParam":
+      type: "string"
+      description: "Tenant identifier"
+      example: "tenant_123"
+    "ProjectIdPathParam":
+      type: "string"
+      description: "Project identifier"
+      example: "project_456"
+paths:
+  "/health":
+    get:
+      tags:
+        - "health"
+      summary: "Health check"
+      description: "Check if the evaluation service is healthy"
+      responses:
+        "204":
+          description: "Service is healthy"
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets":
+    get:
+      summary: "List Datasets"
+      operationId: "list-datasets"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of datasets"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Dataset"
+      operationId: "create-dataset"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "201":
+          description: "Dataset created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}":
+    get:
+      summary: "Get Dataset by ID"
+      operationId: "get-dataset"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      responses:
+        "200":
+          description: "Dataset details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Dataset"
+      operationId: "update-dataset"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "200":
+          description: "Dataset updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Dataset"
+      operationId: "delete-dataset"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      responses:
+        "204":
+          description: "Dataset deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}/items":
+    get:
+      summary: "List Dataset Items"
+      operationId: "list-dataset-items"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of dataset items"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Dataset Item"
+      operationId: "create-dataset-item"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "201":
+          description: "Dataset item created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}/items/{itemId}":
+    get:
+      summary: "Get Dataset Item by ID"
+      operationId: "get-dataset-item"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "itemId"
+          in: "path"
+      responses:
+        "200":
+          description: "Dataset item details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Dataset Item"
+      operationId: "update-dataset-item"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "itemId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "200":
+          description: "Dataset item updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Dataset Item"
+      operationId: "delete-dataset-item"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "itemId"
+          in: "path"
+      responses:
+        "204":
+          description: "Dataset item deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}/items/bulk":
+    post:
+      summary: "Create Multiple Dataset Items"
+      operationId: "create-dataset-items-bulk"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "array"
+              items:
+                nullable: true
+      responses:
+        "201":
+          description: "Dataset items created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluators":
+    get:
+      summary: "List Evaluators"
+      operationId: "list-evaluators"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of evaluators"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Evaluator"
+      operationId: "create-evaluator"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "201":
+          description: "Evaluator created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluators/{evaluatorId}":
+    get:
+      summary: "Get Evaluator by ID"
+      operationId: "get-evaluator"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "evaluatorId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluator details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Evaluator"
+      operationId: "update-evaluator"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "evaluatorId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "200":
+          description: "Evaluator updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Evaluator"
+      operationId: "delete-evaluator"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "evaluatorId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluator deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-suite-configs":
+    get:
+      summary: "List Evaluation Suite Configs"
+      operationId: "list-evaluation-suite-configs"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of evaluation suite configs"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Evaluation Suite Config"
+      operationId: "create-evaluation-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "201":
+          description: "Evaluation suite config created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-suite-configs/{configId}":
+    get:
+      summary: "Get Evaluation Suite Config by ID"
+      operationId: "get-evaluation-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation suite config details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Evaluation Suite Config"
+      operationId: "update-evaluation-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "200":
+          description: "Evaluation suite config updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Evaluation Suite Config"
+      operationId: "delete-evaluation-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluation suite config deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-suite-configs/{configId}/evaluators":
+    get:
+      summary: "List Evaluators for Evaluation Suite Config"
+      operationId: "list-evaluation-suite-config-evaluators"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of evaluator relations"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}":
+    post:
+      summary: "Add Evaluator to Evaluation Suite Config"
+      operationId: "add-evaluator-to-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "evaluatorId"
+          in: "path"
+      responses:
+        "201":
+          description: "Evaluator relation created"
+          content:
+            "application/json":
+              schema:
+                nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Remove Evaluator from Evaluation Suite Config"
+      operationId: "remove-evaluator-from-suite-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "evaluatorId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluator relation deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-job-configs":
+    get:
+      summary: "List Evaluation Job Configs"
+      operationId: "list-evaluation-job-configs"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of evaluation job configs"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Evaluation Job Config"
+      operationId: "create-evaluation-job-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "jobFilters":
+                  nullable: true
+                "evaluatorIds":
+                  type: "array"
+                  items:
+                    type: "string"
+      responses:
+        "201":
+          description: "Evaluation job config created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-job-configs/{configId}":
+    get:
+      summary: "Get Evaluation Job Config by ID"
+      operationId: "get-evaluation-job-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation job config details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Evaluation Job Config"
+      operationId: "update-evaluation-job-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "jobFilters":
+                  nullable: true
+      responses:
+        "200":
+          description: "Evaluation job config updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Evaluation Job Config"
+      operationId: "delete-evaluation-job-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluation job config deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-job-configs/{configId}/results":
+    get:
+      summary: "Get Evaluation Results by Job Config ID"
+      operationId: "get-evaluation-job-config-results"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation results retrieved"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-run-configs/{configId}/results":
+    get:
+      summary: "Get Evaluation Results by Run Config ID"
+      operationId: "get-evaluation-run-config-results"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation results retrieved"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-results/{resultId}":
+    get:
+      summary: "Get Evaluation Result by ID"
+      operationId: "get-evaluation-result"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "resultId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation result details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Evaluation Result"
+      operationId: "update-evaluation-result"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "resultId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "200":
+          description: "Evaluation result updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Evaluation Result"
+      operationId: "delete-evaluation-result"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "resultId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluation result deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-results":
+    post:
+      summary: "Create Evaluation Result"
+      operationId: "create-evaluation-result"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              nullable: true
+      responses:
+        "201":
+          description: "Evaluation result created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}/run-configs":
+    get:
+      summary: "List Dataset Run Configs"
+      operationId: "list-dataset-run-configs"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of dataset run configs"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        "name":
+                          type: "string"
+                        "description":
+                          type: "string"
+                        "datasetId":
+                          type: "string"
+                        "id":
+                          type: "string"
+                        "tenantId":
+                          type: "string"
+                        "projectId":
+                          type: "string"
+                        "createdAt":
+                          type: "string"
+                        "updatedAt":
+                          type: "string"
+                      required:
+                        - "name"
+                        - "description"
+                        - "datasetId"
+                        - "id"
+                        - "tenantId"
+                        - "projectId"
+                        - "createdAt"
+                        - "updatedAt"
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/dataset-run-configs/{runConfigId}":
+    get:
+      summary: "Get Dataset Run Config by ID"
+      operationId: "get-dataset-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "runConfigId"
+          in: "path"
+      responses:
+        "200":
+          description: "Dataset run config details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "object"
+                    properties:
+                      "name":
+                        type: "string"
+                      "description":
+                        type: "string"
+                      "datasetId":
+                        type: "string"
+                      "id":
+                        type: "string"
+                      "tenantId":
+                        type: "string"
+                      "projectId":
+                        type: "string"
+                      "createdAt":
+                        type: "string"
+                      "updatedAt":
+                        type: "string"
+                    required:
+                      - "name"
+                      - "description"
+                      - "datasetId"
+                      - "id"
+                      - "tenantId"
+                      - "projectId"
+                      - "createdAt"
+                      - "updatedAt"
+                required:
+                  - "data"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Dataset Run Config"
+      operationId: "update-dataset-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "runConfigId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "name":
+                  type: "string"
+                "description":
+                  type: "string"
+                "datasetId":
+                  type: "string"
+                "agentIds":
+                  type: "array"
+                  items:
+                    type: "string"
+                "evaluatorIds":
+                  type: "array"
+                  items:
+                    type: "string"
+      responses:
+        "200":
+          description: "Dataset run config updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "object"
+                    properties:
+                      "name":
+                        type: "string"
+                      "description":
+                        type: "string"
+                      "datasetId":
+                        type: "string"
+                      "id":
+                        type: "string"
+                      "tenantId":
+                        type: "string"
+                      "projectId":
+                        type: "string"
+                      "createdAt":
+                        type: "string"
+                      "updatedAt":
+                        type: "string"
+                    required:
+                      - "name"
+                      - "description"
+                      - "datasetId"
+                      - "id"
+                      - "tenantId"
+                      - "projectId"
+                      - "createdAt"
+                      - "updatedAt"
+                required:
+                  - "data"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Dataset Run Config"
+      operationId: "delete-dataset-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "runConfigId"
+          in: "path"
+      responses:
+        "204":
+          description: "Dataset run config deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/dataset-run-configs":
+    post:
+      summary: "Create Dataset Run Config"
+      operationId: "create-dataset-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "name":
+                  type: "string"
+                "description":
+                  type: "string"
+                "datasetId":
+                  type: "string"
+                "agentIds":
+                  type: "array"
+                  items:
+                    type: "string"
+                "evaluatorIds":
+                  type: "array"
+                  items:
+                    type: "string"
+              required:
+                - "name"
+                - "description"
+                - "datasetId"
+      responses:
+        "201":
+          description: "Dataset run config created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "object"
+                    properties:
+                      "name":
+                        type: "string"
+                      "description":
+                        type: "string"
+                      "datasetId":
+                        type: "string"
+                      "id":
+                        type: "string"
+                      "tenantId":
+                        type: "string"
+                      "projectId":
+                        type: "string"
+                      "createdAt":
+                        type: "string"
+                      "updatedAt":
+                        type: "string"
+                    required:
+                      - "name"
+                      - "description"
+                      - "datasetId"
+                      - "id"
+                      - "tenantId"
+                      - "projectId"
+                      - "createdAt"
+                      - "updatedAt"
+                required:
+                  - "data"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/datasets/{datasetId}/runs":
+    get:
+      summary: "List Dataset Runs"
+      operationId: "list-dataset-runs"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "datasetId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of dataset runs"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        "id":
+                          type: "string"
+                        "tenantId":
+                          type: "string"
+                        "projectId":
+                          type: "string"
+                        "datasetId":
+                          type: "string"
+                        "datasetRunConfigId":
+                          type: "string"
+                        "createdAt":
+                          type: "string"
+                        "updatedAt":
+                          type: "string"
+                      required:
+                        - "id"
+                        - "tenantId"
+                        - "projectId"
+                        - "datasetId"
+                        - "datasetRunConfigId"
+                        - "createdAt"
+                        - "updatedAt"
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/dataset-runs/{runId}":
+    get:
+      summary: "Get Dataset Run"
+      operationId: "get-dataset-run"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "runId"
+          in: "path"
+      responses:
+        "200":
+          description: "Dataset run with conversations"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "object"
+                    properties:
+                      "id":
+                        type: "string"
+                      "tenantId":
+                        type: "string"
+                      "projectId":
+                        type: "string"
+                      "datasetId":
+                        type: "string"
+                      "datasetRunConfigId":
+                        type: "string"
+                      "createdAt":
+                        type: "string"
+                      "updatedAt":
+                        type: "string"
+                      "conversations":
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            "id":
+                              type: "string"
+                            "conversationId":
+                              type: "string"
+                            "datasetRunId":
+                              type: "string"
+                            "output":
+                              type: "string"
+                              nullable: true
+                            "createdAt":
+                              type: "string"
+                            "updatedAt":
+                              type: "string"
+                          required:
+                            - "id"
+                            - "conversationId"
+                            - "datasetRunId"
+                            - "createdAt"
+                            - "updatedAt"
+                      "items":
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            "id":
+                              type: "string"
+                            "tenantId":
+                              type: "string"
+                            "projectId":
+                              type: "string"
+                            "datasetId":
+                              type: "string"
+                            "input":
+                              nullable: true
+                            "expectedOutput":
+                              nullable: true
+                            "simulationAgent":
+                              nullable: true
+                            "createdAt":
+                              type: "string"
+                            "updatedAt":
+                              type: "string"
+                            "conversations":
+                              type: "array"
+                              items:
+                                type: "object"
+                                properties:
+                                  "id":
+                                    type: "string"
+                                  "conversationId":
+                                    type: "string"
+                                  "datasetRunId":
+                                    type: "string"
+                                  "output":
+                                    type: "string"
+                                    nullable: true
+                                  "createdAt":
+                                    type: "string"
+                                  "updatedAt":
+                                    type: "string"
+                                required:
+                                  - "id"
+                                  - "conversationId"
+                                  - "datasetRunId"
+                                  - "createdAt"
+                                  - "updatedAt"
+                          required:
+                            - "id"
+                            - "tenantId"
+                            - "projectId"
+                            - "datasetId"
+                            - "createdAt"
+                            - "updatedAt"
+                            - "conversations"
+                    required:
+                      - "id"
+                      - "tenantId"
+                      - "projectId"
+                      - "datasetId"
+                      - "datasetRunConfigId"
+                      - "createdAt"
+                      - "updatedAt"
+                      - "conversations"
+                      - "items"
+                required:
+                  - "data"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-run-configs":
+    get:
+      summary: "List Evaluation Run Configs"
+      operationId: "list-evaluation-run-configs"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of evaluation run configs"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "array"
+                    items:
+                      nullable: true
+                  "pagination": {"$ref": "#/components/schemas/Pagination"}
+                required:
+                  - "data"
+                  - "pagination"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    post:
+      summary: "Create Evaluation Run Config"
+      operationId: "create-evaluation-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "id":
+                  type: "string"
+                "name":
+                  type: "string"
+                "description":
+                  type: "string"
+                "isActive":
+                  type: "boolean"
+                "suiteConfigIds":
+                  type: "array"
+                  items:
+                    type: "string"
+              required:
+                - "name"
+                - "description"
+      responses:
+        "201":
+          description: "Evaluation run config created"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/evaluations/evaluation-run-configs/{configId}":
+    get:
+      summary: "Get Evaluation Run Config by ID"
+      operationId: "get-evaluation-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "200":
+          description: "Evaluation run config details"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    patch:
+      summary: "Update Evaluation Run Config"
+      operationId: "update-evaluation-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "name":
+                  type: "string"
+                "description":
+                  type: "string"
+                "isActive":
+                  type: "boolean"
+                "suiteConfigIds":
+                  type: "array"
+                  items:
+                    type: "string"
+                "evaluatorIds":
+                  type: "array"
+                  items:
+                    type: "string"
+      responses:
+        "200":
+          description: "Evaluation run config updated"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    nullable: true
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+    delete:
+      summary: "Delete Evaluation Run Config"
+      operationId: "delete-evaluation-run-config"
+      tags:
+        - "Evaluations"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+          required: true
+          name: "configId"
+          in: "path"
+      responses:
+        "204":
+          description: "Evaluation run config deleted"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
