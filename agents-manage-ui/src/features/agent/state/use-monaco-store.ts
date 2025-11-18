@@ -69,6 +69,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       actions.setMonacoTheme(isDark);
       if (!prevHighlighter) {
         set({ highlighter });
+        highlighterPromise = null;
       }
     },
     async setMonaco() {
