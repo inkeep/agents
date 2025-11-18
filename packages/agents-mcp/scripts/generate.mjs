@@ -123,6 +123,17 @@ async function main() {
   console.log('🔄 Step 4: Restoring custom fields to package.json...\n');
   restorePackageJsonFields();
 
+  console.log('🔄 Step 5: Running Biome to fix formatting and linting...\n');
+
+  try {
+    const packageDir = path.resolve(__dirname, '..');
+    await runCommand('pnpm', ['biome', 'check', '--write', 'src'], { cwd: packageDir });
+    console.log('✓ Biome fixes applied successfully\n');
+  } catch {
+    console.log('✓ Biome applied fixes (some manual fixes may be needed)');
+    console.log('  To review remaining issues: cd packages/agents-mcp && pnpm biome check src\n');
+  }
+
   console.log('✅ Generation complete!');
 }
 
