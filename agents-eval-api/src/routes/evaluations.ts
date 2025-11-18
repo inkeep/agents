@@ -1812,17 +1812,69 @@ app.openapi(
 
       const results = allResults.flat();
 
+      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))];
+      const conversationInputs = new Map<string, string>();
+
+      logger.info({ uniqueConversationIds }, '=== FETCHING INPUTS FOR JOB CONFIG CONVERSATIONS ===');
+
+      await Promise.all(
+        uniqueConversationIds.map(async (conversationId) => {
+          try {
+            logger.info({ conversationId }, 'Fetching messages for conversation');
+            const messages = await getMessagesByConversation(dbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+              pagination: { page: 1, limit: 10 },
+            });
+
+            logger.info(
+              { conversationId, messageCount: messages.length, messages: messages.map(m => ({ role: m.role, content: m.content })) },
+              'Found messages for conversation'
+            );
+
+            const messagesChronological = [...messages].reverse();
+            const firstUserMessage = messagesChronological.find((msg) => msg.role === 'user');
+            logger.info({ conversationId, firstUserMessage }, 'First user message found');
+            
+            if (firstUserMessage?.content) {
+              const text =
+                typeof firstUserMessage.content === 'string'
+                  ? firstUserMessage.content
+                  : firstUserMessage.content.text || '';
+              logger.info({ conversationId, text }, 'Extracted text from message');
+              conversationInputs.set(conversationId, text);
+            } else {
+              logger.info({ conversationId }, 'No user message found for conversation');
+            }
+          } catch (error) {
+            logger.error({ error, conversationId }, 'Error fetching conversation');
+          }
+        })
+      );
+
+      logger.info({ conversationInputs: Array.from(conversationInputs.entries()) }, '=== CONVERSATION INPUTS MAP ===');
+
+      const enrichedResults = results.map((result) => ({
+        ...result,
+        input: conversationInputs.get(result.conversationId) || null,
+      }));
+
       logger.info(
-        { tenantId, projectId, configId, resultCount: results.length },
+        { enrichedResults: enrichedResults.map(r => ({ id: r.id, conversationId: r.conversationId, input: r.input })) },
+        '=== ENRICHED RESULTS ==='
+      );
+
+      logger.info(
+        { tenantId, projectId, configId, resultCount: enrichedResults.length },
         'Retrieved evaluation results for job config'
       );
 
       return c.json({
-        data: results as any[],
+        data: enrichedResults as any[],
         pagination: {
           page: 1,
-          limit: results.length,
-          total: results.length,
+          limit: enrichedResults.length,
+          total: enrichedResults.length,
           pages: 1,
         },
       }) as any;
@@ -1934,12 +1986,44 @@ app.openapi(
         })),
       });
 
+      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))];
+      const conversationInputs = new Map<string, string>();
+
+      await Promise.all(
+        uniqueConversationIds.map(async (conversationId) => {
+          try {
+            const messages = await getMessagesByConversation(dbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+              pagination: { page: 1, limit: 10 },
+            });
+
+            const messagesChronological = [...messages].reverse();
+            const firstUserMessage = messagesChronological.find((msg) => msg.role === 'user');
+            if (firstUserMessage?.content) {
+              const text =
+                typeof firstUserMessage.content === 'string'
+                  ? firstUserMessage.content
+                  : firstUserMessage.content.text || '';
+              conversationInputs.set(conversationId, text);
+            }
+          } catch (error) {
+            logger.warn({ error, conversationId }, 'Failed to fetch conversation input');
+          }
+        })
+      );
+
+      const enrichedResults = results.map((result) => ({
+        ...result,
+        input: conversationInputs.get(result.conversationId) || null,
+      }));
+
       return c.json({
-        data: results as any[],
+        data: enrichedResults as any[],
         pagination: {
           page: 1,
-          limit: results.length,
-          total: results.length,
+          limit: enrichedResults.length,
+          total: enrichedResults.length,
           pages: 1,
         },
       }) as any;
