@@ -290,7 +290,7 @@ export function DatasetRunConfigForm({
                 : 'Creating...'
               : runConfigId
                 ? 'Update Run Configuration'
-                : 'Create Run Configuration'}
+                : 'Create Run'}
           </Button>
         </div>
       </form>

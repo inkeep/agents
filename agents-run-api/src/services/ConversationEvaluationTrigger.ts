@@ -7,7 +7,6 @@ import {
   generateId,
   getConversation,
   getConversationHistory,
-  getDatasetRunConversationRelationByConversation,
   getEvaluationRunConfigById,
   getEvaluationRunConfigEvaluationSuiteConfigRelations,
   getEvaluationSuiteConfigById,
@@ -24,6 +23,7 @@ import { ModelFactory } from '../agents/ModelFactory.js';
 import dbClient from '../data/db/dbClient.js';
 import { env } from '../env.js';
 import { getLogger } from '../logger.js';
+import { jsonSchemaToZod } from '../utils/data-component-schema.js';
 
 const logger = getLogger('ConversationEvaluationTrigger');
 
@@ -31,114 +31,6 @@ type EvaluationSuiteFilterCriteria = {
   agentIds?: string[];
   [key: string]: unknown;
 };
-
-/**
- * Converts JSON Schema objects to Zod schema types
- */
-function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
-  if (!jsonSchema || typeof jsonSchema !== 'object') {
-    logger.warn({ jsonSchema }, 'Invalid JSON schema provided, using string fallback');
-    return z.string();
-  }
-
-  switch (jsonSchema.type) {
-    case 'object':
-      if (jsonSchema.properties) {
-        const shape: Record<string, z.ZodType<any>> = {};
-        const required = jsonSchema.required || [];
-
-        for (const [key, prop] of Object.entries(jsonSchema.properties)) {
-          const propSchema = prop as Record<string, unknown>;
-          let zodType = jsonSchemaToZod(propSchema);
-
-          if (propSchema.description) {
-            zodType = zodType.describe(String(propSchema.description));
-          }
-
-          if (!required.includes(key)) {
-            zodType = zodType.optional();
-          }
-
-          shape[key] = zodType;
-        }
-        return z.object(shape);
-      }
-      return z.record(z.string(), z.unknown());
-
-    case 'array': {
-      const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
-      let arraySchema = z.array(itemSchema);
-
-      if (jsonSchema.minItems !== undefined) {
-        arraySchema = arraySchema.min(jsonSchema.minItems);
-      }
-      if (jsonSchema.maxItems !== undefined) {
-        arraySchema = arraySchema.max(jsonSchema.maxItems);
-      }
-
-      return arraySchema;
-    }
-
-    case 'string': {
-      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
-        const [first, ...rest] = jsonSchema.enum;
-        return z.enum([String(first), ...rest.map(String)] as [string, ...string[]]);
-      }
-
-      let stringSchema = z.string();
-
-      if (jsonSchema.minLength !== undefined) {
-        stringSchema = stringSchema.min(jsonSchema.minLength);
-      }
-      if (jsonSchema.maxLength !== undefined) {
-        stringSchema = stringSchema.max(jsonSchema.maxLength);
-      }
-
-      return stringSchema;
-    }
-
-    case 'number':
-    case 'integer': {
-      let numberSchema = jsonSchema.type === 'integer' ? z.number().int() : z.number();
-
-      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
-        const enumValues = jsonSchema.enum as number[];
-        if (enumValues.length > 0) {
-          const [first, ...rest] = enumValues;
-          return z.union([z.literal(first), ...rest.map((val) => z.literal(val))] as [
-            z.ZodLiteral<number>,
-            ...z.ZodLiteral<number>[],
-          ]);
-        }
-      }
-
-      if (jsonSchema.minimum !== undefined) {
-        numberSchema = numberSchema.min(jsonSchema.minimum);
-      }
-      if (jsonSchema.maximum !== undefined) {
-        numberSchema = numberSchema.max(jsonSchema.maximum);
-      }
-
-      return numberSchema;
-    }
-
-    case 'boolean':
-      return z.boolean();
-
-    case 'null':
-      return z.null();
-
-    default:
-      logger.warn(
-        {
-          unsupportedType: jsonSchema.type,
-          schema: jsonSchema,
-        },
-        'Unsupported JSON schema type, using unknown validation'
-      );
-      return z.unknown();
-  }
-}
 
 /**
  * Service for triggering evaluations when conversations complete
@@ -179,12 +71,6 @@ export class ConversationEvaluationTrigger {
         return;
       }
 
-      // Check if conversation is from a dataset run (needed for filtering)
-      const datasetRunRelation = await getDatasetRunConversationRelationByConversation(dbClient)({
-        scopes: { tenantId, projectId, conversationId },
-      });
-      const isDatasetRunConversation = datasetRunRelation !== null;
-
       // Get evaluation run configs - either specific ones or all active ones
       let runConfigs: typeof import('@inkeep/agents-core').evaluationRunConfig.$inferSelect[];
       if (specificRunConfigIds && specificRunConfigIds.length > 0) {
@@ -212,8 +98,6 @@ export class ConversationEvaluationTrigger {
           })
         );
         // Filter out nulls but allow inactive configs when explicitly specified (for dataset runs)
-        // Also filter out configs that exclude dataset runs if this is a dataset run conversation
-        // (safety check in case old relations exist)
         // Deduplicate by ID to prevent processing the same config twice
         const configMap = new Map<
           string,
@@ -221,17 +105,6 @@ export class ConversationEvaluationTrigger {
         >();
         for (const config of configs) {
           if (config === null) continue;
-          // If this is a dataset run conversation, skip configs that exclude dataset runs
-          if (isDatasetRunConversation && config.excludeDatasetRunConversations) {
-            logger.debug(
-              {
-                runConfigId: config.id,
-                conversationId,
-              },
-              'Filtering out evaluation run config - excludes dataset run conversations (safety check)'
-            );
-            continue;
-          }
           // Use Map to deduplicate by ID (in case same config was fetched multiple times)
           if (!configMap.has(config.id)) {
             configMap.set(config.id, config);
@@ -243,15 +116,8 @@ export class ConversationEvaluationTrigger {
         const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
           scopes: { tenantId, projectId },
         });
-        // Filter to only active configs and exclude dataset run conversations if this is a dataset run
-        runConfigs = allRunConfigs.filter((config) => {
-          if (config.isActive === false) return false;
-          // Skip configs that exclude dataset runs if this is a dataset run conversation
-          if (isDatasetRunConversation && config.excludeDatasetRunConversations) {
-            return false;
-          }
-          return true;
-        });
+        // Filter to only active configs
+        runConfigs = allRunConfigs.filter((config) => config.isActive !== false);
       }
 
       if (runConfigs.length === 0) {
@@ -264,7 +130,6 @@ export class ConversationEvaluationTrigger {
           tenantId,
           projectId,
           activeRunConfigCount: runConfigs.length,
-          isDatasetRunConversation,
           isExplicitTrigger: !!(specificRunConfigIds && specificRunConfigIds.length > 0),
           runConfigIds: runConfigs.map((c) => c.id),
           runConfigNames: runConfigs.map((c) => c.name),
@@ -272,28 +137,9 @@ export class ConversationEvaluationTrigger {
         'Found evaluation run configs'
       );
 
-      const isExplicitTrigger = specificRunConfigIds && specificRunConfigIds.length > 0;
-
       // Check each run config for matching suite configs
       for (const runConfig of runConfigs) {
         try {
-          // Skip if this config excludes dataset run conversations and this is a dataset run conversation
-          // This applies to both automatic and explicit triggers - if a config excludes dataset runs,
-          // it should never run for dataset conversations
-          if (runConfig.excludeDatasetRunConversations && isDatasetRunConversation) {
-            logger.warn(
-              {
-                runConfigId: runConfig.id,
-                runConfigName: runConfig.name,
-                conversationId,
-                isExplicitTrigger,
-                specificRunConfigIds,
-              },
-              'Skipping evaluation run config - excludes dataset run conversations'
-            );
-            continue;
-          }
-
           await this.processRunConfig({
             tenantId,
             projectId,

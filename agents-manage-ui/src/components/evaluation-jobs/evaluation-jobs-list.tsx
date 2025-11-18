@@ -2,7 +2,7 @@
 
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDate, formatDateTimeTable } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type {
   EvaluationJobConfig,
   EvaluationJobFilterCriteria,
@@ -36,6 +37,36 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
   const [editingJobConfig, setEditingJobConfig] = useState<EvaluationJobConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletingJobConfig, setDeletingJobConfig] = useState<EvaluationJobConfig | undefined>();
+  const [datasetRunNames, setDatasetRunNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchRunNames = async () => {
+      const runIds = new Set<string>();
+      jobConfigs.forEach((config) => {
+        const criteria = config.jobFilters as EvaluationJobFilterCriteria;
+        if (criteria?.datasetRunIds) {
+          criteria.datasetRunIds.forEach((id) => {
+            runIds.add(id);
+          });
+        }
+      });
+
+      const names: Record<string, string> = {};
+      for (const runId of runIds) {
+        try {
+          const response = await fetchDatasetRun(tenantId, projectId, runId);
+          names[runId] = response.data?.runConfigName || `Run ${runId.slice(0, 8)}`;
+        } catch {
+          names[runId] = `Run ${runId.slice(0, 8)}`;
+        }
+      }
+      setDatasetRunNames(names);
+    };
+
+    if (jobConfigs.length > 0) {
+      fetchRunNames();
+    }
+  }, [jobConfigs, tenantId, projectId]);
 
   const handleEdit = (jobConfig: EvaluationJobConfig) => {
     setEditingJobConfig(jobConfig);
@@ -56,7 +87,10 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
       Array.isArray(filterCriteria.datasetRunIds) &&
       filterCriteria.datasetRunIds.length > 0
     ) {
-      parts.push(`${filterCriteria.datasetRunIds.length} test suite run(s)`);
+      const runNames = filterCriteria.datasetRunIds
+        .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
+        .join(', ');
+      parts.push(runNames);
     }
 
     if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
@@ -65,7 +99,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
       parts.push(`${startFormatted} - ${endFormatted}`);
     }
 
-    return parts.length > 0 ? parts.join(', ') : 'No filters';
+    return parts.length > 0 ? parts.join(' • ') : 'No filters';
   };
 
   return (

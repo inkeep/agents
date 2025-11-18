@@ -9,6 +9,7 @@ const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   AGENTS_EVAL_API_URL: z.string().optional().default('http://localhost:3005'),
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
+  AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   DATABASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),

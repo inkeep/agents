@@ -5,7 +5,6 @@ import {
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
-  getArtifactComponentsForAgent,
   getDatasetRunConversationRelationByConversation,
   getFullAgent,
   getTask,

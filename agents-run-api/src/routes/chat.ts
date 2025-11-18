@@ -21,7 +21,6 @@ import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
-import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger';
 import type { ContentItem, Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
@@ -434,68 +433,5 @@ const getMessageText = (content: string | ContentItem[]): string => {
     .map((item) => item.text)
     .join(' ');
 };
-
-// Internal endpoint for triggering evaluations (called from manage-api)
-app.openapi(
-  createRoute({
-    method: 'post',
-    path: '/internal/trigger-evaluations',
-    tags: ['internal'],
-    summary: 'Trigger evaluations for a conversation',
-    description: 'Internal endpoint to trigger evaluations for a completed conversation',
-    security: [{ bearerAuth: [] }],
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              tenantId: z.string(),
-              projectId: z.string(),
-              conversationId: z.string(),
-              specificRunConfigIds: z.array(z.string()).optional(),
-            }),
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Evaluations triggered successfully',
-        content: {
-          'application/json': {
-            schema: z.object({
-              success: z.boolean(),
-            }),
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, conversationId, specificRunConfigIds } = c.req.valid('json');
-
-    // Trigger evaluations asynchronously (fire-and-forget)
-    conversationEvaluationTrigger
-      .triggerEvaluationsForConversation({
-        tenantId,
-        projectId,
-        conversationId,
-        specificRunConfigIds,
-      })
-      .catch((error) => {
-        logger.error(
-          {
-            error: error instanceof Error ? error.message : String(error),
-            conversationId,
-            tenantId,
-            projectId,
-          },
-          'Failed to trigger evaluations for conversation (non-blocking)'
-        );
-      });
-
-    return c.json({ success: true });
-  }
-);
 
 export default app;
