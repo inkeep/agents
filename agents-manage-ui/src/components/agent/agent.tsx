@@ -78,6 +78,7 @@ export type AgentToolConfig = {
   toolId: string;
   toolSelection?: string[];
   headers?: Record<string, string>;
+  toolPolicies?: Record<string, { needsApproval?: boolean }>;
 };
 
 export type SubAgentExternalAgentConfig = {
@@ -213,6 +214,10 @@ export const Agent: FC<AgentProps> = ({
 
             if (tool.headers) {
               config.headers = tool.headers;
+            }
+
+            if (tool.toolPolicies) {
+              config.toolPolicies = tool.toolPolicies;
             }
 
             toolsMap[tool.agentToolRelationId] = config;

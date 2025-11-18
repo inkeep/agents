@@ -441,6 +441,10 @@ export const subAgentToolRelations = pgTable(
     toolId: varchar('tool_id', { length: 256 }).notNull(),
     selectedTools: jsonb('selected_tools').$type<string[] | null>(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
+    toolPolicies: jsonb('tool_policies').$type<Record<
+      string,
+      { needsApproval?: boolean }
+    > | null>(),
     ...timestamps,
   },
   (table) => [
