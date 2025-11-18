@@ -56,8 +56,8 @@ export function EvaluationsTabs({
               isOpen={isCreateEvaluatorOpen}
               onOpenChange={setIsCreateEvaluatorOpen}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New evaluator
                 </Button>
               }
@@ -72,8 +72,8 @@ export function EvaluationsTabs({
               isOpen={isCreateJobOpen}
               onOpenChange={setIsCreateJobOpen}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New job
                 </Button>
               }
@@ -88,8 +88,8 @@ export function EvaluationsTabs({
               isOpen={isCreateRunConfigOpen}
               onOpenChange={setIsCreateRunConfigOpen}
               trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm">
+                  <Plus />
                   New run config
                 </Button>
               }
@@ -107,7 +107,11 @@ export function EvaluationsTabs({
       </TabsContent>
 
       <TabsContent value="run-configs" className="mt-6">
-        <EvaluationRunConfigsList tenantId={tenantId} projectId={projectId} runConfigs={runConfigs} />
+        <EvaluationRunConfigsList
+          tenantId={tenantId}
+          projectId={projectId}
+          runConfigs={runConfigs}
+        />
       </TabsContent>
     </Tabs>
   );
