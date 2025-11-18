@@ -21,7 +21,7 @@ export const LoadingDots = () => {
 export function LoadingIndicator({
   messages = ['Thinking', 'Looking for content', 'Analyzing'],
 }: {
-  messages: string[];
+  messages?: string[];
 }) {
   const [messageIndex, setMessageIndex] = useState(0);
 

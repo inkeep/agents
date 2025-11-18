@@ -6,11 +6,6 @@ import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';
 
-const PUBLIC_INKEEP_COPILOT_AGENT_ID = 'agent-builder';
-const PUBLIC_INKEEP_COPILOT_PROJECT_ID = 'chat-to-edit';
-const PUBLIC_INKEEP_COPILOT_TENANT_ID = 'default';
-const PUBLIC_INKEEP_AGENTS_RUN_API_URL = 'http://localhost:3003';
-
 interface ToolCallData {
   toolName: string;
   input: Record<string, any>;
@@ -32,7 +27,21 @@ interface FieldDiff {
   newValue: any;
 }
 
-export const ToolApproval = ({ data }: { data: ToolCallApprovalData }) => {
+interface ToolApprovalProps {
+  data: ToolCallApprovalData;
+  copilotAgentId?: string;
+  copilotProjectId?: string;
+  copilotTenantId?: string;
+  runApiUrl?: string;
+}
+
+export const ToolApproval = ({
+  data,
+  copilotAgentId = 'agent-builder',
+  copilotProjectId = 'chat-to-edit',
+  copilotTenantId = 'default',
+  runApiUrl = 'http://localhost:3003',
+}: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +52,12 @@ export const ToolApproval = ({ data }: { data: ToolCallApprovalData }) => {
 
   const handleApproval = (approved: boolean) => {
     setSubmitted(true);
-    fetch(`${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/tool-approvals`, {
+    fetch(`${runApiUrl}/api/tool-approvals`, {
       method: 'POST',
       headers: {
-        'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
-        'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-        'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
+        'x-inkeep-tenant-id': copilotTenantId,
+        'x-inkeep-project-id': copilotProjectId,
+        'x-inkeep-agent-id': copilotAgentId,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

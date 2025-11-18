@@ -1,4 +1,4 @@
-import type { ComponentsConfig, Message } from '@inkeep/agents-ui/types';
+import type { Message } from '@inkeep/agents-ui/types';
 import { Check, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
 import supersub from 'remark-supersub';
@@ -8,6 +8,7 @@ import type { DataComponent } from '@/lib/api/data-components';
 import { CitationBadge } from './citation-badge';
 import { Citations } from './citations';
 import { InlineEvent } from './inline-event';
+// import { LoadingIndicator } from './loading';
 import { ToolApproval } from './tool-approval';
 import { useProcessedOperations } from './use-processed-operations';
 
@@ -17,6 +18,10 @@ interface IkpMessageProps {
   renderMarkdown: (text: string) => React.ReactNode;
   renderComponent: (name: string, props: any) => React.ReactNode;
   dataComponentLookup?: Record<string, DataComponent>;
+  copilotAgentId?: string;
+  copilotProjectId?: string;
+  copilotTenantId?: string;
+  runApiUrl?: string;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -148,9 +153,12 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   isStreaming = false,
   renderMarkdown: _renderMarkdown,
   dataComponentLookup = {},
+  copilotAgentId,
+  copilotProjectId,
+  copilotTenantId,
+  runApiUrl,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
-
   // Just use operations in chronological order
   const displayOperations = operations;
 
@@ -180,11 +188,8 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                   <div className="flex items-center gap-3 h-auto w-full">
                     <LoaderCircle className="w-4 h-4 text-gray-400 dark:text-muted-foreground animate-spin" />
                     <span className="text-xs font-medium text-gray-600 dark:text-muted-foreground">
-                      {' '}
                       Processing...
                     </span>
-
-                    {/* <LoadingIndicator /> */}
                   </div>
                 </>
               ) : (
@@ -287,7 +292,13 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                           <StreamMarkdown parts={[group]} />
 
                           {group.data.details.data.needsApproval && (
-                            <ToolApproval data={group.data} />
+                            <ToolApproval
+                              data={group.data}
+                              copilotAgentId={copilotAgentId}
+                              copilotProjectId={copilotProjectId}
+                              copilotTenantId={copilotTenantId}
+                              runApiUrl={runApiUrl}
+                            />
                           )}
                         </div>
                       );
@@ -322,8 +333,8 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   );
 };
 
-export const IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
-  const { message, renderMarkdown, renderComponent } = props;
+export const IkpMessage = (props: any) => {
+  const { message, renderMarkdown, renderComponent, ...otherProps } = props;
 
   const lastPart = message.parts[message.parts.length - 1];
   const isStreaming = !(
@@ -337,6 +348,10 @@ export const IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage']
         isStreaming={isStreaming}
         renderMarkdown={renderMarkdown}
         renderComponent={renderComponent}
+        copilotAgentId={otherProps.copilotAgentId}
+        copilotProjectId={otherProps.copilotProjectId}
+        copilotTenantId={otherProps.copilotTenantId}
+        runApiUrl={otherProps.runApiUrl}
       />
     </div>
   );
