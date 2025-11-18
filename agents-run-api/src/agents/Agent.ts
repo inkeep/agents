@@ -178,6 +178,7 @@ export class Agent {
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
   private conversationId?: string;
+  private delegationId?: string;
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
@@ -349,6 +350,13 @@ export class Agent {
   }
 
   /**
+   * Set delegation ID for this agent instance
+   */
+  setDelegationId(delegationId: string | undefined) {
+    this.delegationId = delegationId;
+  }
+
+  /**
    * Get streaming helper if this agent should stream to user
    * Returns undefined for delegated agents to prevent streaming data operations to user
    */
@@ -363,7 +371,8 @@ export class Agent {
     toolName: string,
     toolDefinition: any,
     streamRequestId?: string,
-    toolType?: ToolType
+    toolType?: ToolType,
+    relationshipId?: string
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -391,14 +400,15 @@ export class Agent {
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
-          toolName.startsWith('transfer_to_') ||
-          toolName.startsWith('delegate_to_');
+          toolName.startsWith('transfer_to_');
+        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
         if (streamRequestId && !isInternalTool) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
             toolName,
             input: args,
             toolCallId,
+            relationshipId,
           });
         }
 
@@ -406,12 +416,50 @@ export class Agent {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
+          // Store tool result in conversation history
+          const toolResultConversationId = this.getToolResultConversationId();
+          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+            try {
+              const messageId = generateId();
+              const messagePayload = {
+                id: messageId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: {
+                  text: this.formatToolResult(toolName, args, result, toolCallId),
+                },
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: this.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId,
+                    timestamp: Date.now(),
+                    delegationId: this.delegationId,
+                    isDelegated: this.isDelegatedAgent,
+                  },
+                },
+              };
+
+              await createMessage(dbClient)(messagePayload);
+            } catch (error) {
+              logger.warn(
+                { error, toolName, toolCallId, conversationId: toolResultConversationId },
+                'Failed to store tool result in conversation history'
+              );
+            }
+          }
+
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: result,
               toolCallId,
               duration,
+              relationshipId,
             });
           }
 
@@ -427,6 +475,7 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
+              relationshipId,
             });
           }
 
@@ -508,34 +557,32 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
-
     if (!sessionId) {
-      const combinedTools = tools.reduce((acc, tool) => {
-        return Object.assign(acc, tool) as ToolSet;
-      }, {} as ToolSet);
-
       const wrappedTools: ToolSet = {};
-      for (const [toolName, toolDef] of Object.entries(combinedTools)) {
-        wrappedTools[toolName] = this.wrapToolWithStreaming(
-          toolName,
-          toolDef,
-          streamRequestId,
-          'mcp'
-        );
+      for (const [index, toolSet] of tools.entries()) {
+        const relationshipId = mcpTools[index]?.relationshipId;
+        for (const [toolName, toolDef] of Object.entries(toolSet)) {
+          wrappedTools[toolName] = this.wrapToolWithStreaming(
+            toolName,
+            toolDef,
+            streamRequestId,
+            'mcp',
+            relationshipId
+          );
+        }
       }
       return wrappedTools;
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolSet of tools) {
+    for (const [index, toolSet] of tools.entries()) {
+      const relationshipId = mcpTools[index]?.relationshipId;
       for (const [toolName, originalTool] of Object.entries(toolSet)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
-
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
@@ -545,12 +592,7 @@ export class Agent {
             try {
               const rawResult = await originalTool.execute(args, { toolCallId });
 
-              if (
-                rawResult &&
-                typeof rawResult === 'object' &&
-                'isError' in rawResult &&
-                rawResult.isError
-              ) {
+              if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
@@ -574,6 +616,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
+                      relationshipId,
                     },
                   });
                 }
@@ -619,7 +662,8 @@ export class Agent {
           toolName,
           sessionWrappedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          relationshipId
         );
       }
     }
@@ -1384,7 +1428,36 @@ export class Agent {
    */
   private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
     const input = args ? JSON.stringify(args, null, 2) : 'No input';
-    const output = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+
+    // Handle string results that might be JSON - try to parse them
+    let parsedResult = result;
+    if (typeof result === 'string') {
+      try {
+        parsedResult = JSON.parse(result);
+      } catch (e) {
+        // Keep as string if not valid JSON
+      }
+    }
+
+    // Clean result by removing _structureHints before storing
+    // Check if _structureHints is nested inside the 'result' property
+    const cleanResult =
+      parsedResult && typeof parsedResult === 'object' && !Array.isArray(parsedResult)
+        ? {
+            ...parsedResult,
+            result:
+              parsedResult.result &&
+              typeof parsedResult.result === 'object' &&
+              !Array.isArray(parsedResult.result)
+                ? Object.fromEntries(
+                    Object.entries(parsedResult.result).filter(([key]) => key !== '_structureHints')
+                  )
+                : parsedResult.result,
+          }
+        : parsedResult;
+
+    const output =
+      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
 
     return `## Tool: ${toolName}
 
@@ -1395,6 +1468,14 @@ ${input}
 
 ### Output
 ${output}`;
+  }
+
+  /**
+   * Get the conversation ID for storing tool results
+   * Always uses the real conversation ID - delegation filtering happens at query time
+   */
+  private getToolResultConversationId(): string | undefined {
+    return this.conversationId;
   }
 
   /**
@@ -1790,13 +1871,18 @@ ${output}`;
 
           if (historyConfig && historyConfig.mode !== 'none') {
             if (historyConfig.mode === 'full') {
+              const filters = {
+                delegationId: this.delegationId,
+                isDelegated: this.isDelegatedAgent,
+              };
+
               conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.config.tenantId,
                 projectId: this.config.projectId,
                 conversationId: contextId,
                 currentMessage: userMessage,
                 options: historyConfig,
-                filters: {},
+                filters,
               });
             } else if (historyConfig.mode === 'scoped') {
               conversationHistory = await getFormattedConversationHistory({
@@ -1808,6 +1894,8 @@ ${output}`;
                 filters: {
                   subAgentId: this.config.id,
                   taskId: taskId,
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
                 },
               });
             }

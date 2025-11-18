@@ -64,5 +64,4 @@ dist/
 .next/
 out/
 .source/
-drizzle/
 vite.config.d.ts

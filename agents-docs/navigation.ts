@@ -9,12 +9,14 @@ export default {
           pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
+        'pricing',
       ],
     },
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
       pages: [
+        'typescript-sdk/project-management',
         'typescript-sdk/agent-settings',
         'typescript-sdk/models',
         'typescript-sdk/agent-relationships',
@@ -47,16 +49,6 @@ export default {
             'typescript-sdk/structured-outputs/status-updates',
           ],
         },
-        {
-          group: 'Project Management',
-          icon: 'LuFolderOpen',
-          pages: [
-            'typescript-sdk/project-structure',
-            'typescript-sdk/configuration',
-            'typescript-sdk/environments',
-            'typescript-sdk/push-pull-workflows',
-          ],
-        },
         'typescript-sdk/data-operations',
         {
           group: 'Observability',
@@ -68,6 +60,7 @@ export default {
           ],
         },
         'typescript-sdk/external-agents',
+        'typescript-sdk/workspace-configuration',
         'typescript-sdk/cli-reference',
       ],
     },
