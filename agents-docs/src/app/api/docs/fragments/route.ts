@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { NextResponse } from 'next/server';
-import { getMarkdown } from '@/lib/get-markdown';
+import { getLLMText } from '@/lib/get-llm-text';
 import { source } from '@/lib/source';
 
 export const revalidate = false;
@@ -13,11 +13,50 @@ export async function GET() {
       notFound();
     }
 
-    const markdown = await getMarkdown(page);
+    let llmText = await getLLMText(page);
 
-    return new NextResponse(markdown, {
+    const sectionsToKeep = [
+      'Agents',
+      'Tools',
+      'Sub Agent relationships',
+      "Sub Agent 'turn'",
+      'Projects',
+    ];
+
+    const lines = llmText.split('\n');
+    const result: string[] = [];
+    let keepCurrentSection = false;
+
+    for (const line of lines) {
+      if (
+        line.startsWith('# ') ||
+        line.startsWith('URL:') ||
+        (line.startsWith('Learn about') && result.length === 2)
+      ) {
+        result.push(line);
+        continue;
+      }
+
+      if (line.startsWith('## ')) {
+        const sectionName = line.substring(3).trim();
+        keepCurrentSection = sectionsToKeep.includes(sectionName);
+
+        if (keepCurrentSection) {
+          result.push(line);
+        }
+      } else if (keepCurrentSection) {
+        result.push(line);
+      }
+    }
+
+    llmText = result
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    return new NextResponse(llmText, {
       headers: {
-        'Content-Type': 'text/markdown; charset=utf-8',
+        'Content-Type': 'text/plain; charset=utf-8',
       },
     });
   } catch (error) {
