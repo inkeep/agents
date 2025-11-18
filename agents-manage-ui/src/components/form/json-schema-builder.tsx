@@ -19,7 +19,6 @@ import {
   fieldsToJsonSchema,
   findFieldById,
   type JsonSchemaStateData,
-  jsonSchemaStore,
   parseFieldsFromJson,
   Types,
   type TypeValues,
@@ -235,17 +234,18 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
     setFields(parseFieldsFromJson(value));
-    return () => {
-      const root: FieldObject = {
-        id: '__root__',
-        type: 'object',
-        properties: jsonSchemaStore.getState().fields,
-      };
-      const schema = fieldsToJsonSchema(root);
-      const serialized = JSON.stringify(schema, null, 2);
-      onChange(serialized);
-    };
   }, []);
+
+  useEffect(() => {
+    const root: FieldObject = {
+      id: '__root__',
+      type: 'object',
+      properties: fields,
+    };
+    const schema = fieldsToJsonSchema(root);
+    const serialized = JSON.stringify(schema, null, 2);
+    onChange(serialized);
+  }, [fields, onChange]);
 
   return (
     <>
