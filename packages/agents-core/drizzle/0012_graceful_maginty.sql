@@ -1,0 +1,1 @@
+ALTER TABLE "evaluation_run_config" DROP COLUMN "exclude_dataset_run_conversations";

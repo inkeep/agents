@@ -1,0 +1,1 @@
+ALTER TABLE "evaluation_run_config" ADD COLUMN "exclude_dataset_run_conversations" boolean DEFAULT true NOT NULL;
