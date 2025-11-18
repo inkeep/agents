@@ -1,5 +1,34 @@
 # @inkeep/agents-cli
 
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 7b2db47: added new models
+- Updated dependencies [d957766]
+- Updated dependencies [b83ce52]
+- Updated dependencies [9ab5e8b]
+- Updated dependencies [3294024]
+- Updated dependencies [cd916ee]
+- Updated dependencies [8bfac58]
+- Updated dependencies [7eafb29]
+- Updated dependencies [1a3cc67]
+- Updated dependencies [f3f999c]
+- Updated dependencies [cd916ee]
+- Updated dependencies [62beff0]
+- Updated dependencies [404477b]
+- Updated dependencies [24db564]
+- Updated dependencies [cd916ee]
+- Updated dependencies [7b2db47]
+  - @inkeep/agents-core@0.33.3
+  - @inkeep/agents-manage-ui@0.33.3
+  - @inkeep/agents-sdk@0.33.3
+
 ## 0.33.2
 
 ### Patch Changes
