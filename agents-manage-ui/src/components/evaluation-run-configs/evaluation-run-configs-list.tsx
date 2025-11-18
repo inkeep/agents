@@ -62,7 +62,7 @@ export function EvaluationRunConfigsList({
   // Refresh when refreshKey changes (e.g., after creating a new config)
   useEffect(() => {
     console.log('refreshKey changed to:', refreshKey);
-    if (refreshKey !== undefined && refreshKey > 0) {
+    if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {
       console.log('Calling refreshRunConfigs');
       refreshRunConfigs();
     }

@@ -39,8 +39,8 @@ import { SuiteConfigDetailsPopover } from './suite-config-details-popover';
 const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
-  isActive: z.boolean().default(true),
-  suiteConfigIds: z.array(z.string()).default([]),
+  isActive: z.boolean(),
+  suiteConfigIds: z.array(z.string()),
 });
 
 type EvaluationRunConfigFormData = z.infer<typeof evaluationRunConfigSchema>;
@@ -77,8 +77,8 @@ const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData
 const suiteConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
-  evaluatorIds: z.array(z.string()).default([]),
-  agentIds: z.array(z.string()).default([]),
+  evaluatorIds: z.array(z.string()),
+  agentIds: z.array(z.string()),
 });
 
 type SuiteConfigFormData = z.infer<typeof suiteConfigSchema>;
@@ -290,7 +290,6 @@ export function EvaluationRunConfigFormDialog({
               control={form.control}
               name="description"
               label="Description"
-              description="Describe what this continuous test does"
               placeholder="Automatically evaluates all production conversations..."
               isRequired
             />
@@ -416,7 +415,6 @@ export function EvaluationRunConfigFormDialog({
                   control={suiteConfigForm.control}
                   name="description"
                   label="Description"
-                  description="Describe what this evaluation plan evaluates"
                   placeholder="Evaluates conversation quality and accuracy..."
                   isRequired
                 />

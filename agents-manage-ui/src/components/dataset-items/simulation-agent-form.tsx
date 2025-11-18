@@ -120,7 +120,6 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
             control={control}
             name="simulationAgent.prompt"
             label="Prompt"
-            description="Instructions for the simulation agent"
             placeholder="You are a helpful assistant"
             className="min-h-[100px]"
             isRequired

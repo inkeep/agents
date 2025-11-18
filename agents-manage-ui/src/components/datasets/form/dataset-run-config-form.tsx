@@ -23,6 +23,7 @@ import {
   createDatasetRunConfigAction,
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
+import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
@@ -130,7 +131,7 @@ export function DatasetRunConfigForm({
         description: data.description,
         agentIds: data.agentIds || [],
         evaluatorIds: data.evaluatorIds || [],
-        ...(runConfigId ? {} : { datasetId }),
+        ...(runConfigId ? {} : { datasetId: datasetId! }),
       };
 
       console.log('Payload being sent:', payload);
@@ -139,7 +140,7 @@ export function DatasetRunConfigForm({
 
       const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
-        : await createDatasetRunConfigAction(tenantId, projectId, payload);
+        : await createDatasetRunConfigAction(tenantId, projectId, payload as DatasetRunConfigInsert);
 
       if (result.success) {
         toast.success(

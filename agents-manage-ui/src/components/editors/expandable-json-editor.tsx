@@ -54,7 +54,7 @@ const useJsonValidation = (value = '') => {
 };
 
 // Shared format handler
-const useJsonFormat = (value: string, onChange?: (value: string) => void, hasError: boolean) => {
+const useJsonFormat = (value: string, hasError: boolean, onChange?: (value: string) => void) => {
   const handleFormat = () => {
     if (!hasError && value?.trim()) {
       const formatted = formatJson(value);
@@ -79,8 +79,8 @@ export function ExpandableJsonEditor({
   const { error: internalError } = useJsonValidation(value);
   const { handleFormat, canFormat } = useJsonFormat(
     value,
-    onChange,
-    !!(externalError || internalError)
+    !!(externalError || internalError),
+    onChange
   );
   const [open, setOpen] = useState(false);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;

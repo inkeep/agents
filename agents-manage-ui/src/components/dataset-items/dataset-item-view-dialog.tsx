@@ -54,8 +54,19 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
       : [];
   const inputHeaders =
     hasInput && item.input && typeof item.input === 'object' && 'headers' in item.input
-      ? item.input.headers
+      ? (item.input.headers as Record<string, unknown>)
       : undefined;
+  const hasInputHeaders = !!(inputHeaders && Object.keys(inputHeaders).length > 0);
+
+  const hasModel =
+    !!item.simulationAgent &&
+    typeof item.simulationAgent === 'object' &&
+    'model' in item.simulationAgent;
+  const hasStopWhen =
+    !!item.simulationAgent &&
+    typeof item.simulationAgent === 'object' &&
+    'stopWhen' in item.simulationAgent &&
+    !!item.simulationAgent.stopWhen;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -103,7 +114,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
             )}
 
             {/* Headers */}
-            {inputHeaders && Object.keys(inputHeaders).length > 0 && (
+            {hasInputHeaders && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Headers</Label>
                 <div className="bg-muted rounded-md p-3">
@@ -124,7 +135,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
               </p>
             </div>
 
-            {!hasExpectedOutput ? (
+            {!hasExpectedOutput || !item.expectedOutput ? (
               <div className="text-center py-8 border border-dashed rounded-md">
                 <p className="text-sm text-muted-foreground">No expected output</p>
               </div>
@@ -177,7 +188,7 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
                   {/* Prompt */}
-                  {item.simulationAgent &&
+                  {!!item.simulationAgent &&
                     typeof item.simulationAgent === 'object' &&
                     'prompt' in item.simulationAgent && (
                       <div className="space-y-2">
@@ -191,35 +202,45 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                         </div>
                       </div>
                     )}
-
                   {/* Model */}
-                  {item.simulationAgent &&
-                    typeof item.simulationAgent === 'object' &&
-                    'model' in item.simulationAgent && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Model</Label>
-                        <div className="bg-muted rounded-md p-3">
-                          <pre className="text-sm whitespace-pre-wrap break-words">
-                            {JSON.stringify(item.simulationAgent.model, null, 2)}
-                          </pre>
-                        </div>
+                  {hasModel && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Model</Label>
+                      <div className="bg-muted rounded-md p-3">
+                        <pre className="text-sm whitespace-pre-wrap break-words">
+                          {JSON.stringify(
+                            item.simulationAgent &&
+                              typeof item.simulationAgent === 'object' &&
+                              'model' in item.simulationAgent
+                              ? item.simulationAgent.model
+                              : null,
+                            null,
+                            2
+                          )}
+                        </pre>
                       </div>
-                    )}
+                    </div>
+                  )}
 
                   {/* Stop When */}
-                  {item.simulationAgent &&
-                    typeof item.simulationAgent === 'object' &&
-                    'stopWhen' in item.simulationAgent &&
-                    item.simulationAgent.stopWhen && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Execution Limits</Label>
-                        <div className="bg-muted rounded-md p-3">
-                          <pre className="text-sm whitespace-pre-wrap break-words">
-                            {JSON.stringify(item.simulationAgent.stopWhen, null, 2)}
-                          </pre>
-                        </div>
+                  {hasStopWhen && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Execution Limits</Label>
+                      <div className="bg-muted rounded-md p-3">
+                        <pre className="text-sm whitespace-pre-wrap break-words">
+                          {JSON.stringify(
+                            item.simulationAgent &&
+                              typeof item.simulationAgent === 'object' &&
+                              'stopWhen' in item.simulationAgent
+                              ? item.simulationAgent.stopWhen
+                              : null,
+                            null,
+                            2
+                          )}
+                        </pre>
                       </div>
-                    )}
+                    </div>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}

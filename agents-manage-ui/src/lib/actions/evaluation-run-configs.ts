@@ -30,11 +30,11 @@ export async function updateEvaluationRunConfigAction(
   projectId: string,
   configId: string,
   data: Parameters<typeof updateEvaluationRunConfig>[3]
-): Promise<ActionResult> {
+): Promise<ActionResult<Awaited<ReturnType<typeof updateEvaluationRunConfig>>>> {
   try {
-    await updateEvaluationRunConfig(tenantId, projectId, configId, data);
+    const updated = await updateEvaluationRunConfig(tenantId, projectId, configId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/evaluations`);
-    return { success: true };
+    return { success: true, data: updated };
   } catch (error) {
     return {
       success: false,
@@ -47,7 +47,7 @@ export async function deleteEvaluationRunConfigAction(
   tenantId: string,
   projectId: string,
   configId: string
-): Promise<ActionResult> {
+): Promise<ActionResult<void>> {
   try {
     await deleteEvaluationRunConfig(tenantId, projectId, configId);
     revalidatePath(`/${tenantId}/projects/${projectId}/evaluations`);

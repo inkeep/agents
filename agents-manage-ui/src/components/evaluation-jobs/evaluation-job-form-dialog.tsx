@@ -77,7 +77,7 @@ export function EvaluationJobFormDialog({
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(formatFormData(initialData, evaluators));
+      form.reset(formatFormData(initialData));
       loadData();
     }
   }, [isOpen, initialData]);

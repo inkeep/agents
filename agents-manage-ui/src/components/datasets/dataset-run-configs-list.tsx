@@ -58,7 +58,7 @@ export function DatasetRunConfigsList({
       const result = await fetchDatasetRunConfigsAction(tenantId, projectId, datasetId);
       if (result.success && result.data) {
         setRunConfigs(result.data);
-      } else {
+      } else if (!result.success) {
         setError(result.error || 'Failed to load run configurations');
       }
     } catch (err) {
@@ -103,7 +103,7 @@ export function DatasetRunConfigsList({
       const result = await fetchDatasetRunConfigAction(tenantId, projectId, configId);
       if (result.success && result.data) {
         setEditingConfig(result.data);
-      } else {
+      } else if (!result.success) {
         toast.error(result.error || 'Failed to load run configuration');
         setEditingConfigId(null);
       }
@@ -234,8 +234,9 @@ export function DatasetRunConfigsList({
             description: editingConfig.description,
             agentIds: [], // TODO: Fetch agentIds from relations
             evaluationRunConfigs:
-              'evaluationRunConfigs' in editingConfig
-                ? editingConfig.evaluationRunConfigs
+              'evaluationRunConfigs' in editingConfig &&
+              Array.isArray(editingConfig.evaluationRunConfigs)
+                ? (editingConfig.evaluationRunConfigs as { id: string; enabled: boolean }[])
                 : undefined,
           }}
           isOpen={true}
