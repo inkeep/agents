@@ -20,33 +20,33 @@ export default async function DatasetPage({
       })),
     ]);
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Test Suites',
-          href: `/${tenantId}/projects/${projectId}/datasets`,
-        },
-        { label: dataset.name || 'Test Suite' },
-      ]}
-    >
-      <MainContent>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Test Suites',
+            href: `/${tenantId}/projects/${projectId}/datasets`,
+          },
+          { label: dataset.name || 'Test Suite' },
+        ]}
+      >
+        <MainContent>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
+              </div>
             </div>
+            <DatasetPageClient
+              tenantId={tenantId}
+              projectId={projectId}
+              datasetId={datasetId}
+              items={items.data}
+            />
           </div>
-          <DatasetPageClient
-            tenantId={tenantId}
-            projectId={projectId}
-            datasetId={datasetId}
-            items={items.data}
-          />
-        </div>
-      </MainContent>
-    </BodyTemplate>
-  );
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return (
       <FullPageError

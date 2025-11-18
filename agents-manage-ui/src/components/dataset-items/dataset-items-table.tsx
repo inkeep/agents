@@ -3,6 +3,7 @@
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,7 +22,6 @@ import {
 import type { DatasetItem } from '@/lib/api/dataset-items';
 import { DatasetItemFormDialog } from './dataset-item-form-dialog';
 import { DeleteDatasetItemConfirmation } from './delete-dataset-item-confirmation';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 
 interface DatasetItemsTableProps {
   tenantId: string;

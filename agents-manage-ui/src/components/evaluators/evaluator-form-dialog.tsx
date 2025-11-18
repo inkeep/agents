@@ -9,6 +9,7 @@ import { ExpandableJsonEditor } from '@/components/editors/expandable-json-edito
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
+import { JsonSchemaInput } from '@/components/form/json-schema-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,7 +25,6 @@ import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/eval
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
-import { JsonSchemaInput } from '@/components/form/json-schema-input';
 
 interface EvaluatorFormDialogProps {
   tenantId: string;

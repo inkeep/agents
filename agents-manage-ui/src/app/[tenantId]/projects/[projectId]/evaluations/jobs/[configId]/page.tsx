@@ -21,32 +21,32 @@ async function EvaluationJobPage({
       fetchEvaluators(tenantId, projectId),
     ]);
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        { label: 'Batch Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        {
-          label: jobConfig.id,
-          href: `/${tenantId}/projects/${projectId}/evaluations/jobs/${configId}`,
-        },
-      ]}
-    >
-      <MainContent className="min-h-full">
-        <PageHeader
-          title={`Batch Evaluation: ${jobConfig.id}`}
-          description="View evaluation results"
-        />
-        <EvaluationJobResults
-          tenantId={tenantId}
-          projectId={projectId}
-          jobConfig={jobConfig}
-          results={results.data}
-          evaluators={evaluators.data}
-        />
-      </MainContent>
-    </BodyTemplate>
-  );
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
+          { label: 'Batch Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
+          {
+            label: jobConfig.id,
+            href: `/${tenantId}/projects/${projectId}/evaluations/jobs/${configId}`,
+          },
+        ]}
+      >
+        <MainContent className="min-h-full">
+          <PageHeader
+            title={`Batch Evaluation: ${jobConfig.id}`}
+            description="View evaluation results"
+          />
+          <EvaluationJobResults
+            tenantId={tenantId}
+            projectId={projectId}
+            jobConfig={jobConfig}
+            results={results.data}
+            evaluators={evaluators.data}
+          />
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError error={error as Error} context="batch evaluation" />;
   }

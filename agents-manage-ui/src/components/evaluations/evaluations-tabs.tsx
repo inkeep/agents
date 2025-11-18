@@ -75,7 +75,7 @@ export function EvaluationsTabs({
               trigger={
                 <Button variant="ghost" size="sm">
                   <Plus />
-                    New batch evaluation
+                  New batch evaluation
                 </Button>
               }
             />
@@ -100,7 +100,7 @@ export function EvaluationsTabs({
               trigger={
                 <Button variant="ghost" size="sm">
                   <Plus />
-                    New continuous test
+                  New continuous test
                 </Button>
               }
             />

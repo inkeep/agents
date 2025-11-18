@@ -15,29 +15,31 @@ const datasetDescription =
 async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/datasets'>) {
   const { tenantId, projectId } = await params;
   try {
-   const datasets = await fetchDatasets(tenantId, projectId);
-  return (
-    <BodyTemplate
-      breadcrumbs={[{ label: 'Test Suites', href: `/${tenantId}/projects/${projectId}/datasets` }]}
-    >
-      <MainContent className="min-h-full">
-        {datasets.data.length > 0 ? (
-          <>
-            <PageHeader title="Test Suites" description={datasetDescription} />
-            <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
-          </>
-        ) : (
-          <EmptyState
-            title="No test suites yet."
-            description={datasetDescription}
-            link={`/${tenantId}/projects/${projectId}/datasets/new`}
-            linkText="Create test suite"
-            icon={<Database />}
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
+    const datasets = await fetchDatasets(tenantId, projectId);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          { label: 'Test Suites', href: `/${tenantId}/projects/${projectId}/datasets` },
+        ]}
+      >
+        <MainContent className="min-h-full">
+          {datasets.data.length > 0 ? (
+            <>
+              <PageHeader title="Test Suites" description={datasetDescription} />
+              <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
+            </>
+          ) : (
+            <EmptyState
+              title="No test suites yet."
+              description={datasetDescription}
+              link={`/${tenantId}/projects/${projectId}/datasets/new`}
+              linkText="Create test suite"
+              icon={<Database />}
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError error={error as Error} context="datasets" />;
   }

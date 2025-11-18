@@ -23,33 +23,33 @@ async function EvaluationRunConfigPage({
       fetchEvaluationSuiteConfigs(tenantId, projectId),
     ]);
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        { label: 'Continuous Tests', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        {
-          label: runConfig.name,
-          href: `/${tenantId}/projects/${projectId}/evaluations/run-configs/${configId}`,
-        },
-      ]}
-    >
-      <MainContent className="min-h-full">
-        <PageHeader
-          title={`Continuous Test: ${runConfig.name}`}
-          description="View automatic evaluation results triggered by conversations"
-        />
-        <EvaluationRunConfigResults
-          tenantId={tenantId}
-          projectId={projectId}
-          runConfig={runConfig}
-          results={results.data}
-          evaluators={evaluators.data}
-          suiteConfigs={suiteConfigs.data}
-        />
-      </MainContent>
-    </BodyTemplate>
-  );
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
+          { label: 'Continuous Tests', href: `/${tenantId}/projects/${projectId}/evaluations` },
+          {
+            label: runConfig.name,
+            href: `/${tenantId}/projects/${projectId}/evaluations/run-configs/${configId}`,
+          },
+        ]}
+      >
+        <MainContent className="min-h-full">
+          <PageHeader
+            title={`Continuous Test: ${runConfig.name}`}
+            description="View automatic evaluation results triggered by conversations"
+          />
+          <EvaluationRunConfigResults
+            tenantId={tenantId}
+            projectId={projectId}
+            runConfig={runConfig}
+            results={results.data}
+            evaluators={evaluators.data}
+            suiteConfigs={suiteConfigs.data}
+          />
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError error={error as Error} context="evaluation run config" />;
   }

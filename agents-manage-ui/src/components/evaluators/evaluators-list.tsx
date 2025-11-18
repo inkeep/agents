@@ -77,9 +77,9 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                       {evaluator.name}
                     </button>
                   </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-normal">
-                        {evaluator.description}
-                    </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-normal">
+                    {evaluator.description}
+                  </TableCell>
                   <TableCell>
                     <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
                       {evaluator.model?.model || 'N/A'}
