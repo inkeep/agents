@@ -43,7 +43,7 @@ function extractNumericFields(schema: Record<string, unknown> | undefined): stri
     for (const [key, value] of Object.entries(properties)) {
       if (value && typeof value === 'object' && 'type' in value) {
         const fieldType = (value as { type: unknown }).type;
-        if (fieldType === 'number' || fieldType === 'integer') {
+        if (fieldType === 'number') {
           fields.push(key);
         }
       }

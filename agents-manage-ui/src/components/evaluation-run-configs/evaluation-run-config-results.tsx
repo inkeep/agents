@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
+import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import {
   Table,
@@ -19,6 +20,7 @@ import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 
 interface EvaluationRunConfigResultsProps {
   tenantId: string;
@@ -157,6 +159,7 @@ export function EvaluationRunConfigResults({
               <TableRow noHover>
                 <TableHead>Input</TableHead>
                 <TableHead>Evaluator</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
@@ -187,6 +190,19 @@ export function EvaluationRunConfigResults({
                       >
                         {getEvaluatorName(result.evaluatorId)}
                       </button>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const evaluator = getEvaluatorById(result.evaluatorId);
+                        const outputData = result.output && typeof result.output === 'object' 
+                          ? result.output as Record<string, unknown>
+                          : {};
+                        const evaluation = evaluatePassCriteria(
+                          evaluator?.passCriteria,
+                          outputData
+                        );
+                        return <EvaluationStatusBadge status={evaluation.status} />;
+                      })()}
                     </TableCell>
                     <TableCell>
                       {result.output ? (
