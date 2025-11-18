@@ -34,7 +34,7 @@ async function EvaluationRunConfigPage({
     <BodyTemplate
       breadcrumbs={[
         { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        { label: 'Run Configs', href: `/${tenantId}/projects/${projectId}/evaluations` },
+        { label: 'Continuous Tests', href: `/${tenantId}/projects/${projectId}/evaluations` },
         {
           label: runConfig.name,
           href: `/${tenantId}/projects/${projectId}/evaluations/run-configs/${configId}`,
@@ -43,7 +43,7 @@ async function EvaluationRunConfigPage({
     >
       <MainContent className="min-h-full">
         <PageHeader
-          title={`Evaluation Run Config: ${runConfig.name}`}
+          title={`Continuous Test: ${runConfig.name}`}
           description="View automatic evaluation results triggered by conversations"
         />
         <EvaluationRunConfigResults

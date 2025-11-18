@@ -10,7 +10,7 @@ import { fetchDatasets } from '@/lib/api/datasets';
 export const dynamic = 'force-dynamic';
 
 const datasetDescription =
-  'Datasets are collections of test cases used for evaluating agent performance.';
+  'Test suites are collections of test cases used for evaluating agent performance.';
 
 async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/datasets'>) {
   const { tenantId, projectId } = await params;
@@ -23,20 +23,20 @@ async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[project
   }
   return (
     <BodyTemplate
-      breadcrumbs={[{ label: 'Datasets', href: `/${tenantId}/projects/${projectId}/datasets` }]}
+      breadcrumbs={[{ label: 'Test Suites', href: `/${tenantId}/projects/${projectId}/datasets` }]}
     >
       <MainContent className="min-h-full">
         {datasets.data.length > 0 ? (
           <>
-            <PageHeader title="Datasets" description={datasetDescription} />
+            <PageHeader title="Test Suites" description={datasetDescription} />
             <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
           </>
         ) : (
           <EmptyState
-            title="No datasets yet."
+            title="No test suites yet."
             description={datasetDescription}
             link={`/${tenantId}/projects/${projectId}/datasets/new`}
-            linkText="Create dataset"
+            linkText="Create test suite"
             icon={<Database />}
           />
         )}
@@ -46,4 +46,3 @@ async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[project
 }
 
 export default DatasetsPage;
-

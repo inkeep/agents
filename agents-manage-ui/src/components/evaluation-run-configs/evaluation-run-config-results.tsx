@@ -87,7 +87,7 @@ export function EvaluationRunConfigResults({
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Suite Configs: </span>
+            <span className="text-muted-foreground">Evaluation Plans: </span>
             <span>{runConfig.suiteConfigIds?.length || 0}</span>
           </div>
           <div>
@@ -101,12 +101,12 @@ export function EvaluationRunConfigResults({
         </div>
       </div>
 
-      {/* Suite Configs Section */}
+      {/* Evaluation Plans Section */}
       {runConfigSuiteConfigs.length > 0 && (
         <div className="rounded-lg border">
           <div className="p-4 border-b">
             <h3 className="text-sm font-semibold">
-              Suite Configs ({runConfigSuiteConfigs.length})
+              Evaluation Plans ({runConfigSuiteConfigs.length})
             </h3>
           </div>
           <div className="p-4">
@@ -148,7 +148,7 @@ export function EvaluationRunConfigResults({
             <p>No evaluation results yet.</p>
             <p className="text-xs mt-2">
               Results will appear here automatically when conversations complete and match the
-              configured suite configs.
+              configured evaluation plans.
             </p>
           </div>
         ) : (
@@ -165,43 +165,43 @@ export function EvaluationRunConfigResults({
               {[...results]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((result) => (
-                <TableRow key={result.id} noHover>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      <code className="font-mono">{result.conversationId}</code>
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEvaluatorId(result.evaluatorId)}
-                      className="inline-flex items-center bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted/80 cursor-pointer transition-colors"
-                    >
-                      {getEvaluatorName(result.evaluatorId)}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    {result.output ? (
-                      <ExpandableJsonEditor
-                        name={`result-${result.id}`}
-                        value={JSON.stringify(result.output, null, 2)}
-                        onChange={() => {}}
-                      />
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No output</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(result.createdAt)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                  <TableRow key={result.id} noHover>
+                    <TableCell>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <code className="font-mono">{result.conversationId}</code>
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvaluatorId(result.evaluatorId)}
+                        className="inline-flex items-center bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted/80 cursor-pointer transition-colors"
+                      >
+                        {getEvaluatorName(result.evaluatorId)}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      {result.output ? (
+                        <ExpandableJsonEditor
+                          name={`result-${result.id}`}
+                          value={JSON.stringify(result.output, null, 2)}
+                          onChange={() => {}}
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No output</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDateTimeTable(result.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         )}

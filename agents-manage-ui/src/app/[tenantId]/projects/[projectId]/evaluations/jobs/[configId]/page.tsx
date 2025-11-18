@@ -24,14 +24,14 @@ async function EvaluationJobPage({
       fetchEvaluators(tenantId, projectId),
     ]);
   } catch (error) {
-    return <FullPageError error={error as Error} context="evaluation job" />;
+    return <FullPageError error={error as Error} context="batch evaluation" />;
   }
 
   return (
     <BodyTemplate
       breadcrumbs={[
         { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
-        { label: 'Jobs', href: `/${tenantId}/projects/${projectId}/evaluations` },
+        { label: 'Batch Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
         {
           label: jobConfig.id,
           href: `/${tenantId}/projects/${projectId}/evaluations/jobs/${configId}`,
@@ -40,7 +40,7 @@ async function EvaluationJobPage({
     >
       <MainContent className="min-h-full">
         <PageHeader
-          title={`Evaluation Job: ${jobConfig.id}`}
+          title={`Batch Evaluation: ${jobConfig.id}`}
           description="View evaluation results"
         />
         <EvaluationJobResults

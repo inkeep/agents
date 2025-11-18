@@ -27,4 +27,3 @@ export function NewItemButton({ tenantId, projectId, datasetId }: NewItemButtonP
     />
   );
 }
-

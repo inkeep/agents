@@ -142,4 +142,3 @@ export async function deleteEvaluator(
     }
   );
 }
-

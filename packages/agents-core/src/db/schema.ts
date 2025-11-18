@@ -903,19 +903,21 @@ export const datasetRunConfigEvaluationRunConfigRelations = pgTable(
  * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
  * status and links to conversations created during the run via
  * datasetRunConversationRelations join table.
- * NO EVAL STUFF IS DONE HERE
  * 
-
+ * When evaluators are specified, an evaluation job is automatically created after the run completes,
+ * and the evaluationJobConfigId links to that job.
  * 
  * Includes: datasetId (which dataset to run),
- * datasetRunConfigId (required: always created from a config), and timestamps
+ * datasetRunConfigId (required: always created from a config),
+ * evaluationJobConfigId (optional: links to evaluation job created for this run), and timestamps
  */
 export const datasetRun = pgTable(
   'dataset_run',
   {
     ...projectScoped,
     datasetId: text('dataset_id').notNull(),
-    datasetRunConfigId: text('dataset_run_config_id').notNull(), 
+    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    evaluationJobConfigId: text('evaluation_job_config_id'),
     ...timestamps,
   },
   (table) => [
@@ -930,6 +932,11 @@ export const datasetRun = pgTable(
       foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
       name: 'dataset_run_dataset_run_config_fk',
     }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationJobConfigId],
+      foreignColumns: [evaluationJobConfig.tenantId, evaluationJobConfig.projectId, evaluationJobConfig.id],
+      name: 'dataset_run_evaluation_job_config_fk',
+    }).onDelete('set null'),
   ]
 );
 
@@ -1059,12 +1066,11 @@ export const evaluationSuiteConfigEvaluatorRelations = pgTable(
  * Can be linked to multiple evaluation suite configs via join table.
  * many to many relationship with evaluationSuiteConfig
  * 
- * Evaluations are automatically triggered when conversations complete.
+ * Evaluations are automatically triggered when regular conversations complete.
  * When a conversation ends, creates an evaluationRun that evaluates that conversation.
  * 
- * The `excludeDatasetRunConversations` field controls whether this config should skip
- * conversations that are associated with dataset runs. When true, evaluations will only
- * run on regular conversations, not dataset run conversations.
+ * NOTE: Evaluation run configs ONLY run on regular conversations, NOT dataset run conversations.
+ * Dataset runs create their own evaluationJobConfig with specific evaluators at run-time.
  * 
  * one to many relationship with evaluationRun
  */
@@ -1074,9 +1080,6 @@ export const evaluationRunConfig = pgTable(
     ...projectScoped,
     ...uiProperties,
     isActive: boolean('is_active').notNull().default(true),
-    excludeDatasetRunConversations: boolean('exclude_dataset_run_conversations')
-      .notNull()
-      .default(true),
     ...timestamps,
   },
   (table) => [

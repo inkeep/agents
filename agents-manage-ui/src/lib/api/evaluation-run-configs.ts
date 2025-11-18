@@ -16,7 +16,6 @@ export interface EvaluationRunConfig {
   name: string;
   description: string;
   isActive: boolean;
-  excludeDatasetRunConversations?: boolean;
   suiteConfigIds?: string[];
   createdAt: string;
   updatedAt: string;
@@ -29,7 +28,6 @@ export interface EvaluationRunConfigInsert {
   name: string;
   description: string;
   isActive?: boolean;
-  excludeDatasetRunConversations?: boolean;
   suiteConfigIds?: string[];
 }
 
@@ -37,7 +35,6 @@ export interface EvaluationRunConfigUpdate {
   name?: string;
   description?: string;
   isActive?: boolean;
-  excludeDatasetRunConversations?: boolean;
   suiteConfigIds?: string[];
 }
 
@@ -137,4 +134,3 @@ export async function deleteEvaluationRunConfig(
     }
   );
 }
-

@@ -15,8 +15,7 @@
  * Set DATABASE_URL env var or it will use default from docker-compose
  */
 
-import { createDatabaseClient } from '../packages/agents-core/src/index.js';
-import { sql } from '../packages/agents-core/node_modules/drizzle-orm/index.js';
+import { createDatabaseClient, generateId } from '../packages/agents-core/src/index.js';
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://appuser:password@localhost:5432/inkeep_agents';
 
@@ -87,14 +86,23 @@ async function seedGoldenTestSet() {
 ];
     
     for (const dataset of datasets) {
-      await db.execute(sql`
-        INSERT INTO dataset (tenant_id, project_id, id, name, description, created_at, updated_at)
-        VALUES (${dataset.tenantId}, ${dataset.projectId}, ${dataset.id}, ${dataset.name}, ${dataset.description}, ${dataset.createdAt}, ${dataset.updatedAt})
-        ON CONFLICT (tenant_id, project_id, id) DO UPDATE
-        SET name = EXCLUDED.name, 
-            description = EXCLUDED.description,
-            updated_at = EXCLUDED.updated_at
-      `);
+      await db.execute(
+        `INSERT INTO dataset (tenant_id, project_id, id, name, description, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (tenant_id, project_id, id) DO UPDATE
+         SET name = EXCLUDED.name, 
+             description = EXCLUDED.description,
+             updated_at = EXCLUDED.updated_at`,
+        [
+          dataset.tenantId,
+          dataset.projectId,
+          dataset.id,
+          dataset.name,
+          dataset.description,
+          dataset.createdAt,
+          dataset.updatedAt
+        ]
+      );
       console.log(`   ✓ Dataset: ${dataset.name} (${dataset.id})`);
     }
 
@@ -549,15 +557,26 @@ async function seedGoldenTestSet() {
 ];
     
     for (const item of datasetItems) {
-      await db.execute(sql`
-        INSERT INTO dataset_item (tenant_id, project_id, id, dataset_id, input, expected_output, simulation_agent, created_at, updated_at)
-        VALUES (${item.tenantId}, ${item.projectId}, ${item.id}, ${item.datasetId}, ${item.input}, ${item.expectedOutput}, ${item.simulationAgent}, ${item.createdAt}, ${item.updatedAt})
-        ON CONFLICT (tenant_id, project_id, id) DO UPDATE
-        SET input = EXCLUDED.input,
-            expected_output = EXCLUDED.expected_output,
-            simulation_agent = EXCLUDED.simulation_agent,
-            updated_at = EXCLUDED.updated_at
-      `);
+      await db.execute(
+        `INSERT INTO dataset_item (tenant_id, project_id, id, dataset_id, input, expected_output, simulation_agent, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (tenant_id, project_id, id) DO UPDATE
+         SET input = EXCLUDED.input,
+             expected_output = EXCLUDED.expected_output,
+             simulation_agent = EXCLUDED.simulation_agent,
+             updated_at = EXCLUDED.updated_at`,
+        [
+          item.tenantId,
+          item.projectId,
+          item.id,
+          item.datasetId,
+          JSON.stringify(item.input),
+          item.expectedOutput ? JSON.stringify(item.expectedOutput) : null,
+          item.simulationAgent ? JSON.stringify(item.simulationAgent) : null,
+          item.createdAt,
+          item.updatedAt
+        ]
+      );
       console.log(`   ✓ Dataset Item: ${item.id}`);
     }
 
@@ -1224,17 +1243,29 @@ async function seedGoldenTestSet() {
 ];
     
     for (const evaluator of evaluators) {
-      await db.execute(sql`
-        INSERT INTO evaluator (tenant_id, project_id, id, name, description, prompt, schema, model, created_at, updated_at)
-        VALUES (${evaluator.tenantId}, ${evaluator.projectId}, ${evaluator.id}, ${evaluator.name}, ${evaluator.description}, ${evaluator.prompt}, ${evaluator.schema}, ${evaluator.model}, ${evaluator.createdAt}, ${evaluator.updatedAt})
-        ON CONFLICT (tenant_id, project_id, id) DO UPDATE
-        SET name = EXCLUDED.name,
-            description = EXCLUDED.description,
-            prompt = EXCLUDED.prompt,
-            schema = EXCLUDED.schema,
-            model = EXCLUDED.model,
-            updated_at = EXCLUDED.updated_at
-      `);
+      await db.execute(
+        `INSERT INTO evaluator (tenant_id, project_id, id, name, description, prompt, schema, model, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (tenant_id, project_id, id) DO UPDATE
+         SET name = EXCLUDED.name,
+             description = EXCLUDED.description,
+             prompt = EXCLUDED.prompt,
+             schema = EXCLUDED.schema,
+             model = EXCLUDED.model,
+             updated_at = EXCLUDED.updated_at`,
+        [
+          evaluator.tenantId,
+          evaluator.projectId,
+          evaluator.id,
+          evaluator.name,
+          evaluator.description,
+          evaluator.prompt,
+          JSON.stringify(evaluator.schema),
+          JSON.stringify(evaluator.model),
+          evaluator.createdAt,
+          evaluator.updatedAt
+        ]
+      );
       console.log(`   ✓ Evaluator: ${evaluator.name} (${evaluator.id})`);
     }
 

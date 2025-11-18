@@ -21,7 +21,7 @@ interface EvaluatorViewDialogProps {
 export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: EvaluatorViewDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>View Evaluator</DialogTitle>
           <DialogDescription>View the evaluator configuration details.</DialogDescription>

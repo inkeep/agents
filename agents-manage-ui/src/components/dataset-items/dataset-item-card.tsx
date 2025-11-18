@@ -20,8 +20,14 @@ export function DatasetItemCard({ tenantId, projectId, datasetId, item }: Datase
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const hasInput = item.input && typeof item.input === 'object' && 'messages' in item.input && Array.isArray(item.input.messages) && item.input.messages.length > 0;
-  const hasExpectedOutput = item.expectedOutput && Array.isArray(item.expectedOutput) && item.expectedOutput.length > 0;
+  const hasInput =
+    item.input &&
+    typeof item.input === 'object' &&
+    'messages' in item.input &&
+    Array.isArray(item.input.messages) &&
+    item.input.messages.length > 0;
+  const hasExpectedOutput =
+    item.expectedOutput && Array.isArray(item.expectedOutput) && item.expectedOutput.length > 0;
   const hasSimulation = !!item.simulationAgent;
 
   return (
@@ -59,7 +65,10 @@ export function DatasetItemCard({ tenantId, projectId, datasetId, item }: Datase
           <div className="space-y-2 text-sm">
             <div>
               <span className="font-medium">Input:</span>{' '}
-              {hasInput && item.input && typeof item.input === 'object' && 'messages' in item.input ? (
+              {hasInput &&
+              item.input &&
+              typeof item.input === 'object' &&
+              'messages' in item.input ? (
                 <span className="text-muted-foreground">
                   {item.input.messages.length} message{item.input.messages.length !== 1 ? 's' : ''}
                 </span>

@@ -126,7 +126,9 @@ export function MessagesInputForm<T extends FieldValues>({
   return (
     <div className="space-y-4">
       <div>
-        <Label>{label} <span className="text-destructive">*</span></Label>
+        <Label>
+          {label} <span className="text-destructive">*</span>
+        </Label>
         {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
       </div>
 
@@ -220,4 +222,3 @@ export function MessagesInputForm<T extends FieldValues>({
     </div>
   );
 }
-

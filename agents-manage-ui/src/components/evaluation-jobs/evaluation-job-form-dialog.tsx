@@ -22,10 +22,6 @@ import {
   updateEvaluationJobConfigAction,
 } from '@/lib/actions/evaluation-job-configs';
 import type { ActionResult } from '@/lib/actions/types';
-import type { DatasetRun } from '@/lib/api/dataset-runs';
-import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
-import type { Dataset } from '@/lib/api/datasets';
-import { fetchDatasets } from '@/lib/api/datasets';
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
@@ -72,10 +68,7 @@ export function EvaluationJobFormDialog({
 }: EvaluationJobFormDialogProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
-  const [datasets, setDatasets] = useState<Dataset[]>([]);
-  const [datasetRuns, setDatasetRuns] = useState<DatasetRun[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
@@ -92,37 +85,17 @@ export function EvaluationJobFormDialog({
     }
   }, [isOpen, initialData]);
 
-  useEffect(() => {
-    if (selectedDatasetId) {
-      loadDatasetRuns(selectedDatasetId);
-    } else {
-      setDatasetRuns([]);
-    }
-  }, [selectedDatasetId, tenantId, projectId]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [evaluatorsRes, datasetsRes] = await Promise.all([
-        fetchEvaluators(tenantId, projectId),
-        fetchDatasets(tenantId, projectId),
-      ]);
+      const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
       setEvaluators(evaluatorsRes.data || []);
-      setDatasets(datasetsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadDatasetRuns = async (datasetId: string) => {
-    try {
-      const runsRes = await fetchDatasetRuns(tenantId, projectId, datasetId);
-      setDatasetRuns(runsRes.data || []);
-    } catch (error) {
-      console.error('Error loading dataset runs:', error);
     }
   };
 
@@ -154,17 +127,17 @@ export function EvaluationJobFormDialog({
       if (jobConfigId) {
         result = await updateEvaluationJobConfigAction(tenantId, projectId, jobConfigId, payload);
         if (result.success) {
-          toast.success('Evaluation job updated');
+          toast.success('Batch evaluation updated');
         } else {
-          toast.error(result.error || 'Failed to update evaluation job');
+          toast.error(result.error || 'Failed to update batch evaluation');
           return;
         }
       } else {
         result = await createEvaluationJobConfigAction(tenantId, projectId, payload);
         if (result.success) {
-          toast.success('Evaluation job created');
+          toast.success('Batch evaluation created');
         } else {
-          toast.error(result.error || 'Failed to create evaluation job');
+          toast.error(result.error || 'Failed to create batch evaluation');
           return;
         }
       }
@@ -172,18 +145,18 @@ export function EvaluationJobFormDialog({
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      console.error('Error submitting evaluation job:', error);
+      console.error('Error submitting batch evaluation:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
   };
 
   const dialogContent = (
-    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{jobConfigId ? 'Edit Evaluation Job' : 'Create Evaluation Job'}</DialogTitle>
+        <DialogTitle>{jobConfigId ? 'Edit Batch Evaluation' : 'Create Batch Evaluation'}</DialogTitle>
         <DialogDescription>
-          Configure a one-off evaluation job to evaluate conversations based on filters.
+          Configure a one-off batch evaluation to evaluate conversations based on filters.
         </DialogDescription>
       </DialogHeader>
 
@@ -230,53 +203,8 @@ export function EvaluationJobFormDialog({
             />
 
             <div className="space-y-4">
-              <Label>Job Filters</Label>
+              <Label>Filters</Label>
               <div className="space-y-4 border rounded-lg p-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Dataset Runs</Label>
-                  <div className="space-y-2">
-                    <select
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={selectedDatasetId}
-                      onChange={(e) => setSelectedDatasetId(e.target.value)}
-                    >
-                      <option value="">Select a dataset...</option>
-                      {datasets.map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name || dataset.id}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedDatasetId && datasetRuns.length > 0 && (
-                      <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
-                        {datasetRuns.map((run) => {
-                          const isSelected = jobFilters?.datasetRunIds?.includes(run.id);
-                          return (
-                            <div key={run.id} className="flex items-center space-x-2 py-1">
-                              <Checkbox
-                                checked={!!isSelected}
-                                onCheckedChange={(checked) => {
-                                  const currentIds = jobFilters?.datasetRunIds || [];
-                                  const newIds = checked
-                                    ? [...currentIds, run.id]
-                                    : currentIds.filter((id) => id !== run.id);
-                                  form.setValue('jobFilters', {
-                                    ...jobFilters,
-                                    datasetRunIds: newIds,
-                                  });
-                                }}
-                              />
-                              <Label className="font-normal cursor-pointer text-sm">
-                                {run.runConfigName || run.id}
-                              </Label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 <div className="space-y-2">
                   <Label className="text-sm">Date Range</Label>
                   <div className="grid grid-cols-2 gap-2">
@@ -314,24 +242,6 @@ export function EvaluationJobFormDialog({
                     </div>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Conversation IDs (comma-separated)</Label>
-                  <Input
-                    placeholder="conv-123, conv-456"
-                    value={jobFilters?.conversationIds?.join(', ') || ''}
-                    onChange={(e) => {
-                      const ids = e.target.value
-                        .split(',')
-                        .map((id) => id.trim())
-                        .filter((id) => id.length > 0);
-                      form.setValue('jobFilters', {
-                        ...jobFilters,
-                        conversationIds: ids.length > 0 ? ids : undefined,
-                      });
-                    }}
-                  />
-                </div>
               </div>
             </div>
 
@@ -340,7 +250,7 @@ export function EvaluationJobFormDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {jobConfigId ? 'Update' : 'Create'} Job
+                {jobConfigId ? 'Update' : 'Create'} Batch Evaluation
               </Button>
             </div>
           </form>

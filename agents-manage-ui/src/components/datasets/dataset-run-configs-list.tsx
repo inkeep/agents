@@ -62,7 +62,7 @@ export function DatasetRunConfigsList({
         setError(result.error || 'Failed to load run configurations');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load run configurations');
+        setError(err instanceof Error ? err.message : 'Failed to load run configurations');
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export function DatasetRunConfigsList({
       }
     } catch (error) {
       console.error('Error fetching run configuration:', error);
-      toast.error('Failed to load run configuration');
+        toast.error('Failed to load run configuration');
       setEditingConfigId(null);
     }
   };
@@ -148,7 +148,7 @@ export function DatasetRunConfigsList({
       <div className="text-center py-12 border border-dashed rounded-lg">
         <p className="text-sm text-muted-foreground mb-4">No run configurations yet</p>
         <p className="text-xs text-muted-foreground">
-          Create a run configuration to schedule automatic dataset runs
+          Create a run configuration to schedule automatic test suite runs
         </p>
       </div>
     );

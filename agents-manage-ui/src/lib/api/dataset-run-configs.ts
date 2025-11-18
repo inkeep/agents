@@ -13,32 +13,19 @@ export interface DatasetRunConfig {
   updatedAt: string;
 }
 
-export interface EvaluationRunConfigRelation {
-  id: string;
-  enabled: boolean;
-}
-
 export interface DatasetRunConfigInsert {
   name: string;
-  description: string;
+  description?: string;
   datasetId: string;
   agentIds?: string[];
-  evaluationRunConfigIds?: string[];
-  evaluationRunConfigs?: EvaluationRunConfigRelation[];
-  triggerEvaluations?: boolean;
+  evaluatorIds?: string[];
 }
 
 export interface DatasetRunConfigUpdate {
   name?: string;
   description?: string;
   agentIds?: string[];
-  evaluationRunConfigIds?: string[];
-  evaluationRunConfigs?: EvaluationRunConfigRelation[];
-  triggerEvaluations?: boolean;
-}
-
-export interface DatasetRunConfigWithRelations extends DatasetRunConfig {
-  evaluationRunConfigs?: EvaluationRunConfigRelation[];
+  evaluatorIds?: string[];
 }
 
 export async function fetchDatasetRunConfigs(
@@ -58,11 +45,11 @@ export async function fetchDatasetRunConfig(
   tenantId: string,
   projectId: string,
   runConfigId: string
-): Promise<SingleResponse<DatasetRunConfigWithRelations>> {
+): Promise<SingleResponse<DatasetRunConfig>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<DatasetRunConfigWithRelations>>(
+  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`
   );
 }
@@ -117,4 +104,3 @@ export async function deleteDatasetRunConfig(
     }
   );
 }
-

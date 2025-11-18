@@ -21,6 +21,7 @@ interface DeleteEvaluationRunConfigConfirmationProps {
   runConfig: EvaluationRunConfig;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function DeleteEvaluationRunConfigConfirmation({
@@ -29,6 +30,7 @@ export function DeleteEvaluationRunConfigConfirmation({
   runConfig,
   isOpen,
   onOpenChange,
+  onSuccess,
 }: DeleteEvaluationRunConfigConfirmationProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -37,10 +39,11 @@ export function DeleteEvaluationRunConfigConfirmation({
     try {
       const result = await deleteEvaluationRunConfigAction(tenantId, projectId, runConfig.id);
       if (result.success) {
-        toast.success('Evaluation run config deleted');
+        toast.success('Continuous test deleted');
         onOpenChange(false);
+        onSuccess?.();
       } else {
-        toast.error(result.error || 'Failed to delete evaluation run config');
+        toast.error(result.error || 'Failed to delete continuous test');
       }
     } catch (error) {
       console.error('Error deleting evaluation run config:', error);
@@ -54,10 +57,11 @@ export function DeleteEvaluationRunConfigConfirmation({
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Evaluation Run Config</AlertDialogTitle>
+          <AlertDialogTitle>Delete Continuous Test</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete &quot;{runConfig.name}&quot;? This action cannot be undone.
-            Evaluations will no longer be automatically triggered for matching conversations.
+            Are you sure you want to delete &quot;{runConfig.name}&quot;? This action cannot be
+            undone. Evaluations will no longer be automatically triggered for matching
+            conversations.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -74,4 +78,3 @@ export function DeleteEvaluationRunConfigConfirmation({
     </AlertDialog>
   );
 }
-

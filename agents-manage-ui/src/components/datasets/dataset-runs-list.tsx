@@ -14,9 +14,10 @@ interface DatasetRunsListProps {
   tenantId: string;
   projectId: string;
   datasetId: string;
+  refreshKey?: number;
 }
 
-export function DatasetRunsList({ tenantId, projectId, datasetId }: DatasetRunsListProps) {
+export function DatasetRunsList({ tenantId, projectId, datasetId, refreshKey = 0 }: DatasetRunsListProps) {
   const [runs, setRuns] = useState<DatasetRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +25,11 @@ export function DatasetRunsList({ tenantId, projectId, datasetId }: DatasetRunsL
   useEffect(() => {
     async function loadRuns() {
       try {
+        console.log('Loading dataset runs...');
         setLoading(true);
         setError(null);
         const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
+        console.log('Dataset runs loaded:', response.data?.length, 'items');
         setRuns(response.data || []);
       } catch (err) {
         console.error('Error loading dataset runs:', err);
@@ -37,7 +40,8 @@ export function DatasetRunsList({ tenantId, projectId, datasetId }: DatasetRunsL
     }
 
     loadRuns();
-  }, [tenantId, projectId, datasetId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId, projectId, datasetId, refreshKey]);
 
   if (loading) {
     return (
@@ -71,7 +75,7 @@ export function DatasetRunsList({ tenantId, projectId, datasetId }: DatasetRunsL
         <CardHeader>
           <CardTitle>No runs yet</CardTitle>
           <CardDescription>
-            Create a new run to start evaluating your dataset items.
+            Create a new run to start running and evaluating your test cases.
           </CardDescription>
         </CardHeader>
       </Card>

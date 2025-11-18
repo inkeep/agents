@@ -40,9 +40,7 @@ function getEvalApiUrl(): string {
       !process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL &&
       !hasWarnedEvalApi
     ) {
-      console.warn(
-        `INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`
-      );
+      console.warn(`INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`);
       hasWarnedEvalApi = true;
     }
   }
@@ -81,10 +79,13 @@ async function makeApiRequestInternal<T>(
       // Handle Zod validation errors (400 status with errors array)
       if (response.status === 400 && errorData?.errors && Array.isArray(errorData.errors)) {
         const validationErrors = errorData.errors
-          .map((err: any) => `${err.name || err.pointer || 'field'}: ${err.detail || err.reason || err.message}`)
+          .map(
+            (err: any) =>
+              `${err.name || err.pointer || 'field'}: ${err.detail || err.reason || err.message}`
+          )
           .join(', ');
         const errorMessage = `Validation failed: ${validationErrors}`;
-        
+
         console.error('API Validation Error Response:', {
           status: response.status,
           errorData,

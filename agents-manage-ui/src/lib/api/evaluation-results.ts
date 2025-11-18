@@ -57,4 +57,3 @@ export async function fetchEvaluationResultsByRunConfig(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs/${configId}/results`
   );
 }
-

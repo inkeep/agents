@@ -2,7 +2,7 @@
 
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDate } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
 import type { Evaluator } from '@/lib/api/evaluators';
 import { DeleteEvaluatorConfirmation } from './delete-evaluator-confirmation';
 import { EvaluatorFormDialog } from './evaluator-form-dialog';
+import { EvaluatorViewDialog } from './evaluator-view-dialog';
 
 interface EvaluatorsListProps {
   tenantId: string;
@@ -32,6 +33,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
   const [editingEvaluator, setEditingEvaluator] = useState<Evaluator | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletingEvaluator, setDeletingEvaluator] = useState<Evaluator | undefined>();
+  const [viewingEvaluator, setViewingEvaluator] = useState<Evaluator | undefined>();
 
   const handleEdit = (evaluator: Evaluator) => {
     setEditingEvaluator(evaluator);
@@ -49,7 +51,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           <TableHeader>
             <TableRow noHover>
               <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="max-w-md">Description</TableHead>
               <TableHead>Model</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
@@ -67,12 +69,16 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
               evaluators.map((evaluator) => (
                 <TableRow key={evaluator.id} noHover>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">{evaluator.name}</span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingEvaluator(evaluator)}
+                      className="font-medium text-foreground hover:underline text-left"
+                    >
+                      {evaluator.name}
+                    </button>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground line-clamp-2">
+                  <TableCell className="max-w-md">
+                    <span className="text-sm text-muted-foreground line-clamp-1">
                       {evaluator.description}
                     </span>
                   </TableCell>
@@ -82,10 +88,10 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                     </code>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(evaluator.createdAt)}
+                    {formatDate(evaluator.createdAt)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(evaluator.updatedAt)}
+                    {formatDate(evaluator.updatedAt)}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -145,7 +151,18 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           }}
         />
       )}
+
+      {viewingEvaluator && (
+        <EvaluatorViewDialog
+          evaluator={viewingEvaluator}
+          isOpen={!!viewingEvaluator}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingEvaluator(undefined);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
-

@@ -47,9 +47,12 @@ export function DatasetItemMenu({ datasetId, datasetName }: DatasetItemMenuProps
         </DropdownMenuContent>
       </DropdownMenu>
       {isOpen && (
-        <DeleteDatasetConfirmation datasetId={datasetId} datasetName={datasetName} setIsOpen={setIsOpen} />
+        <DeleteDatasetConfirmation
+          datasetId={datasetId}
+          datasetName={datasetName}
+          setIsOpen={setIsOpen}
+        />
       )}
     </Dialog>
   );
 }
-

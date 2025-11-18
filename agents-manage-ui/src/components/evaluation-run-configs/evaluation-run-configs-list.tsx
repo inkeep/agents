@@ -2,7 +2,7 @@
 
 import { ExternalLink, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
+import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
 import { DeleteEvaluationRunConfigConfirmation } from './delete-evaluation-run-config-confirmation';
 import { EvaluationRunConfigFormDialog } from './evaluation-run-config-form-dialog';
 
@@ -28,16 +29,45 @@ interface EvaluationRunConfigsListProps {
   tenantId: string;
   projectId: string;
   runConfigs: EvaluationRunConfig[];
+  refreshKey?: string | number;
 }
 
 export function EvaluationRunConfigsList({
   tenantId,
   projectId,
-  runConfigs,
+  runConfigs: initialRunConfigs,
+  refreshKey,
 }: EvaluationRunConfigsListProps) {
+  const [runConfigs, setRunConfigs] = useState<EvaluationRunConfig[]>(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
+
+  // Update local state when initial props change (from router.refresh)
+  useEffect(() => {
+    setRunConfigs(initialRunConfigs);
+  }, [initialRunConfigs]);
+
+  const refreshRunConfigs = async () => {
+    try {
+      console.log('Fetching fresh run configs...');
+      const response = await fetchEvaluationRunConfigs(tenantId, projectId);
+      console.log('Received run configs:', response.data.length, 'items');
+      setRunConfigs(response.data);
+    } catch (error) {
+      console.error('Error refreshing run configs:', error);
+    }
+  };
+
+  // Refresh when refreshKey changes (e.g., after creating a new config)
+  useEffect(() => {
+    console.log('refreshKey changed to:', refreshKey);
+    if (refreshKey !== undefined && refreshKey > 0) {
+      console.log('Calling refreshRunConfigs');
+      refreshRunConfigs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const handleEdit = (runConfig: EvaluationRunConfig) => {
     setEditingRunConfig(runConfig);
@@ -57,7 +87,7 @@ export function EvaluationRunConfigsList({
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Suite Configs</TableHead>
+              <TableHead>Evaluation Plans</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -67,7 +97,7 @@ export function EvaluationRunConfigsList({
             {runConfigs.length === 0 ? (
               <TableRow noHover>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No evaluation run configs yet. Click &quot;+ New run config&quot; to create one.
+                  No continuous tests yet. Click &quot;+ New continuous test&quot; to create one.
                 </TableCell>
               </TableRow>
             ) : (
@@ -96,7 +126,7 @@ export function EvaluationRunConfigsList({
                       href={`/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`}
                       className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
                     >
-                      {runConfig.suiteConfigIds?.length || 0} suite config(s)
+                      {runConfig.suiteConfigIds?.length || 0} evaluation plan(s)
                       <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
@@ -146,8 +176,12 @@ export function EvaluationRunConfigsList({
             setIsEditDialogOpen(open);
             if (!open) {
               setEditingRunConfig(undefined);
+            } else {
+              // Refresh when dialog opens to get latest data
+              refreshRunConfigs();
             }
           }}
+          onSuccess={refreshRunConfigs}
         />
       )}
 
@@ -160,8 +194,12 @@ export function EvaluationRunConfigsList({
           onOpenChange={(open) => {
             if (!open) {
               setDeletingRunConfig(undefined);
+            } else {
+              // Refresh after deletion
+              refreshRunConfigs();
             }
           }}
+          onSuccess={refreshRunConfigs}
         />
       )}
     </>

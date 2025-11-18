@@ -18,4 +18,3 @@ export async function DatasetsList({ tenantId, projectId, datasets }: DatasetsLi
     </div>
   );
 }
-

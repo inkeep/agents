@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Clock, ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
@@ -86,7 +86,7 @@ export function DatasetRunDetails({
         <Link href={`/${tenantId}/projects/${projectId}/datasets/${datasetId}`}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to dataset
+            Back to test suite
           </Button>
         </Link>
       </div>
@@ -98,13 +98,26 @@ export function DatasetRunDetails({
             <Clock className="h-3 w-3" />
             Created {formatDateAgo(run.createdAt)}
           </CardDescription>
+          {run.evaluationJobConfigId && (
+            <div className="mt-4">
+              <Link
+                href={`/${tenantId}/projects/${projectId}/evaluations/jobs/${run.evaluationJobConfigId}`}
+              >
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  View Evaluation Job
+                  <ExternalLink className="ml-2 h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
+          )}
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Dataset Items ({run.items?.length || 0})</CardTitle>
-          <CardDescription>Items executed in this dataset run</CardDescription>
+          <CardTitle>Test Cases ({run.items?.length || 0})</CardTitle>
+          <CardDescription>Test cases executed in this test suite run</CardDescription>
         </CardHeader>
         <CardContent>
           {!run.items || run.items.length === 0 ? (
@@ -113,7 +126,6 @@ export function DatasetRunDetails({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Dataset Item</TableHead>
                   <TableHead>Input</TableHead>
                   <TableHead>Output</TableHead>
                   <TableHead>Run At</TableHead>
@@ -132,7 +144,7 @@ export function DatasetRunDetails({
                   const getInputPreview = (): string => {
                     const input = item.input;
                     if (!input) return 'No input';
-                    
+
                     // Handle object input with messages
                     if (typeof input === 'object' && 'messages' in input) {
                       const messages = input.messages;
@@ -141,44 +153,39 @@ export function DatasetRunDetails({
                         if (firstMessage?.content) {
                           const content = firstMessage.content;
                           if (typeof content === 'string') {
-                            return content.length > 100
-                              ? `${content.slice(0, 100)}...`
-                              : content;
+                            return content.length > 100 ? `${content.slice(0, 100)}...` : content;
                           }
-                          if (typeof content === 'object' && content !== null && 'text' in content) {
+                          if (
+                            typeof content === 'object' &&
+                            content !== null &&
+                            'text' in content
+                          ) {
                             const text = (content as { text?: unknown }).text;
                             if (typeof text === 'string') {
-                              return text.length > 100
-                                ? `${text.slice(0, 100)}...`
-                                : text;
+                              return text.length > 100 ? `${text.slice(0, 100)}...` : text;
                             }
                             return String(text || 'No input');
                           }
                         }
                       }
                     }
-                    
+
                     return 'No input';
                   };
 
+                  const inputPreview = getInputPreview();
+
                   return (
-                    <TableRow
-                      key={item.id}
-                      className="cursor-pointer hover:bg-accent/50"
-                      onClick={() => setSelectedItemId(item.id)}
-                    >
+                    <TableRow key={item.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm font-mono text-blue-600 dark:text-blue-400">
-                            {String(item.id)}
-                          </code>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground max-w-md truncate block">
-                          {getInputPreview()}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItemId(item.id)}
+                          className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline text-left max-w-md truncate"
+                        >
+                          <span className="truncate">{inputPreview}</span>
+                          <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                        </button>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground max-w-md truncate block">
@@ -199,9 +206,7 @@ export function DatasetRunDetails({
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                           >
-                            <code className="font-mono">
-                              {primaryConversation.conversationId}
-                            </code>
+                            <code className="font-mono">{primaryConversation.conversationId}</code>
                             <ExternalLink className="h-4 w-4" />
                           </Link>
                         ) : (

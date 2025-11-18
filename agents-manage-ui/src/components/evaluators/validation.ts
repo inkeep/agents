@@ -14,21 +14,23 @@ export const evaluatorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
   prompt: z.string().min(1, 'Prompt is required'),
-  schema: z.string().min(1, 'Schema is required').refine(
-    (value) => {
-      try {
-        const parsed = JSON.parse(value);
-        return typeof parsed === 'object' && parsed !== null;
-      } catch {
-        return false;
+  schema: z
+    .string()
+    .min(1, 'Schema is required')
+    .refine(
+      (value) => {
+        try {
+          const parsed = JSON.parse(value);
+          return typeof parsed === 'object' && parsed !== null;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'Schema must be valid JSON',
       }
-    },
-    {
-      message: 'Schema must be valid JSON',
-    }
-  ),
+    ),
   model: modelSettingsSchema,
 });
 
 export type EvaluatorFormData = z.infer<typeof evaluatorSchema>;
-

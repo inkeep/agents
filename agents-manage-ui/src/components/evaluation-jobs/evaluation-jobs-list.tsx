@@ -3,7 +3,7 @@
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDate, formatDateTimeTable } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
+import type { EvaluationJobConfig, EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
 import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
 
@@ -29,11 +29,7 @@ interface EvaluationJobsListProps {
   jobConfigs: EvaluationJobConfig[];
 }
 
-export function EvaluationJobsList({
-  tenantId,
-  projectId,
-  jobConfigs,
-}: EvaluationJobsListProps) {
+export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: EvaluationJobsListProps) {
   const [editingJobConfig, setEditingJobConfig] = useState<EvaluationJobConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletingJobConfig, setDeletingJobConfig] = useState<EvaluationJobConfig | undefined>();
@@ -49,16 +45,19 @@ export function EvaluationJobsList({
 
   const formatFilters = (filters: EvaluationJobConfig['jobFilters']): string => {
     if (!filters) return 'No filters';
+    const filterCriteria = filters as EvaluationJobFilterCriteria;
     const parts: string[] = [];
-    if (filters.datasetRunIds && filters.datasetRunIds.length > 0) {
-      parts.push(`${filters.datasetRunIds.length} dataset run(s)`);
+    
+    if (filterCriteria.datasetRunIds && Array.isArray(filterCriteria.datasetRunIds) && filterCriteria.datasetRunIds.length > 0) {
+      parts.push(`${filterCriteria.datasetRunIds.length} test suite run(s)`);
     }
-    if (filters.conversationIds && filters.conversationIds.length > 0) {
-      parts.push(`${filters.conversationIds.length} conversation(s)`);
+    
+    if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
+      const startFormatted = formatDate(filterCriteria.dateRange.startDate);
+      const endFormatted = formatDate(filterCriteria.dateRange.endDate);
+      parts.push(`${startFormatted} - ${endFormatted}`);
     }
-    if (filters.dateRange) {
-      parts.push('Date range');
-    }
+    
     return parts.length > 0 ? parts.join(', ') : 'No filters';
   };
 
@@ -68,8 +67,7 @@ export function EvaluationJobsList({
         <Table>
           <TableHeader>
             <TableRow noHover>
-              <TableHead>ID</TableHead>
-              <TableHead>Filters</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -77,8 +75,8 @@ export function EvaluationJobsList({
           <TableBody>
             {jobConfigs.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  No evaluation jobs yet. Click &quot;+ New job&quot; to create one.
+                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  No batch evaluations yet. Click &quot;+ New batch evaluation&quot; to create one.
                 </TableCell>
               </TableRow>
             ) : (
@@ -87,17 +85,17 @@ export function EvaluationJobsList({
                   <TableCell>
                     <Link
                       href={`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`}
-                      className="inline-block"
+                      className="hover:underline"
                     >
-                      <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono hover:bg-muted/80 transition-colors cursor-pointer">
-                        {jobConfig.id}
-                      </code>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">
+                          {formatFilters(jobConfig.jobFilters)}
+                        </span>
+                        <code className="text-xs text-muted-foreground font-mono mt-1">
+                          {jobConfig.id}
+                        </code>
+                      </div>
                     </Link>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {formatFilters(jobConfig.jobFilters)}
-                    </span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDateTimeTable(jobConfig.createdAt)}
@@ -163,4 +161,3 @@ export function EvaluationJobsList({
     </>
   );
 }
-

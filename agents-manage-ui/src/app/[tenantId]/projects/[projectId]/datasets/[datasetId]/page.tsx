@@ -27,7 +27,7 @@ export default async function DatasetPage({
       <FullPageError
         error={error as Error}
         link={`/${tenantId}/projects/${projectId}/datasets`}
-        linkText="Back to datasets"
+        linkText="Back to test suites"
         context="dataset"
       />
     );
@@ -37,17 +37,17 @@ export default async function DatasetPage({
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Datasets',
+          label: 'Test Suites',
           href: `/${tenantId}/projects/${projectId}/datasets`,
         },
-        { label: dataset.name || 'Dataset' },
+        { label: dataset.name || 'Test Suite' },
       ]}
     >
       <MainContent>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold">{dataset.name || 'Dataset'}</h1>
+              <h1 className="text-2xl font-semibold">{dataset.name || 'Test Suite'}</h1>
             </div>
           </div>
           <DatasetPageClient
@@ -61,4 +61,3 @@ export default async function DatasetPage({
     </BodyTemplate>
   );
 }
-

@@ -96,7 +96,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           icon: Library,
         },
         {
-          title: 'Datasets',
+          title: 'Test Suites',
           url: `/${tenantId}/projects/${projectId}/datasets`,
           icon: Database,
         },

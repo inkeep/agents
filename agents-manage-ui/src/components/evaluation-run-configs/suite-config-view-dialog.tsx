@@ -127,10 +127,10 @@ export function SuiteConfigViewDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>View Suite Config: {suiteConfigName}</DialogTitle>
-          <DialogDescription>View the evaluation suite configuration details.</DialogDescription>
+          <DialogTitle>View Evaluation Plan: {suiteConfigName}</DialogTitle>
+          <DialogDescription>View the evaluation plan details.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -142,7 +142,7 @@ export function SuiteConfigViewDialog({
             </div>
           ) : suiteConfig === null ? (
             <div className="text-sm text-muted-foreground">
-              Failed to load suite config details. Please try again.
+              Failed to load evaluation plan details. Please try again.
             </div>
           ) : (
             <>
@@ -228,4 +228,3 @@ export function SuiteConfigViewDialog({
     </Dialog>
   );
 }
-

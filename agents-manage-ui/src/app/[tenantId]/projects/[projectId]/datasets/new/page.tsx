@@ -10,10 +10,10 @@ async function NewDatasetPage({
     <BodyTemplate
       breadcrumbs={[
         {
-          label: 'Datasets',
+          label: 'Test Suites',
           href: `/${tenantId}/projects/${projectId}/datasets`,
         },
-        { label: 'New Dataset' },
+        { label: 'New Test Suite' },
       ]}
     >
       <MainContent>
@@ -26,4 +26,3 @@ async function NewDatasetPage({
 }
 
 export default NewDatasetPage;
-

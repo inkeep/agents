@@ -49,16 +49,12 @@ const formatFormData = (data?: DatasetItem): DatasetItemFormData => {
   let simulationAgent: DatasetItemFormData['simulationAgent'] = null;
   if (data.simulationAgent) {
     // If it's already an object, use it directly
-    if (
-      typeof data.simulationAgent === 'object' &&
-      data.simulationAgent !== null
-    ) {
+    if (typeof data.simulationAgent === 'object' && data.simulationAgent !== null) {
       simulationAgent = {
         prompt: (data.simulationAgent as any).prompt || '',
         model: {
           model: (data.simulationAgent as any).model?.model || '',
-          providerOptions:
-            (data.simulationAgent as any).model?.providerOptions || undefined,
+          providerOptions: (data.simulationAgent as any).model?.providerOptions || undefined,
         },
         stopWhen: (data.simulationAgent as any).stopWhen || {},
       };
@@ -132,7 +128,9 @@ export function DatasetItemFormDialog({
       // Form validation failed - errors should be displayed
       const firstError = Object.keys(form.formState.errors)[0];
       if (firstError) {
-        const errorElement = document.querySelector(`[name="${firstError}"]`)?.closest('.space-y-4, .space-y-6');
+        const errorElement = document
+          .querySelector(`[name="${firstError}"]`)
+          ?.closest('.space-y-4, .space-y-6');
         if (errorElement) {
           errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -157,20 +155,17 @@ export function DatasetItemFormDialog({
       let simulationAgent: DatasetItem['simulationAgent'] = null;
       if (data.simulationAgent) {
         if (typeof data.simulationAgent === 'string') {
-          simulationAgent = parseJsonField(
-            data.simulationAgent
-          ) as DatasetItem['simulationAgent'];
-        } else if (
-          typeof data.simulationAgent === 'object' &&
-          data.simulationAgent !== null
-        ) {
+          simulationAgent = parseJsonField(data.simulationAgent) as DatasetItem['simulationAgent'];
+        } else if (typeof data.simulationAgent === 'object' && data.simulationAgent !== null) {
           // Check if the object has any meaningful values - if not, set to null (optional)
           const hasPrompt = data.simulationAgent.prompt?.trim() || '';
           const hasModel = data.simulationAgent.model?.model?.trim() || '';
-          const hasStopWhen = data.simulationAgent.stopWhen && (
-            (data.simulationAgent.stopWhen.transferCountIs !== null && data.simulationAgent.stopWhen.transferCountIs !== undefined) ||
-            (data.simulationAgent.stopWhen.stepCountIs !== null && data.simulationAgent.stopWhen.stepCountIs !== undefined)
-          );
+          const hasStopWhen =
+            data.simulationAgent.stopWhen &&
+            ((data.simulationAgent.stopWhen.transferCountIs !== null &&
+              data.simulationAgent.stopWhen.transferCountIs !== undefined) ||
+              (data.simulationAgent.stopWhen.stepCountIs !== null &&
+                data.simulationAgent.stopWhen.stepCountIs !== undefined));
 
           // If any field is configured, validate that both prompt and model are present
           if (hasPrompt || hasModel || hasStopWhen) {
@@ -255,66 +250,66 @@ export function DatasetItemFormDialog({
       <DialogHeader>
         <DialogTitle>{itemId ? 'Edit Dataset Item' : 'Create Dataset Item'}</DialogTitle>
         <DialogDescription>
-          Define the input messages, expected output, and optional simulation configuration for
-          this test case.
+          Define the input messages, expected output, and optional simulation configuration for this
+          test case.
         </DialogDescription>
       </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="input"
-              render={() => (
-                <FormItem>
-                  <MessagesInputForm
-                    control={form.control}
-                    name="input"
-                    label="Input"
-                    description="Messages to send to the agent, with optional headers"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="input"
+            render={() => (
+              <FormItem>
+                <MessagesInputForm
+                  control={form.control}
+                  name="input"
+                  label="Input"
+                  description="Messages to send to the agent, with optional headers"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="expectedOutput"
-              render={() => (
-                <FormItem>
-                  <ExpectedOutputForm
-                    control={form.control}
-                    name="expectedOutput"
-                    label="Expected Output"
-                    description="Expected response messages from the agent (optional)"
-                  />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="expectedOutput"
+            render={() => (
+              <FormItem>
+                <ExpectedOutputForm
+                  control={form.control}
+                  name="expectedOutput"
+                  label="Expected Output"
+                  description="Expected response messages from the agent (optional)"
+                />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="simulationAgent"
-              render={() => (
-                <FormItem>
-                  <SimulationAgentForm control={form.control} />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="simulationAgent"
+            render={() => (
+              <FormItem>
+                <SimulationAgentForm control={form.control} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {itemId ? 'Update' : 'Create'} Item
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {itemId ? 'Update' : 'Create'} Item
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </DialogContent>
   );
 
   if (trigger) {

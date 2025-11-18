@@ -33,6 +33,7 @@ export function EvaluationsTabs({
   const [isCreateEvaluatorOpen, setIsCreateEvaluatorOpen] = useState(false);
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
   const [isCreateRunConfigOpen, setIsCreateRunConfigOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -42,10 +43,10 @@ export function EvaluationsTabs({
             Evaluators
           </TabsTrigger>
           <TabsTrigger value="jobs" variant="underline" className="h-10">
-            Jobs
+            Batch Evaluations
           </TabsTrigger>
           <TabsTrigger value="run-configs" variant="underline" className="h-10">
-            Run Configs
+            Continuous Tests
           </TabsTrigger>
         </TabsList>
         {activeTab === 'evaluators' && (
@@ -74,7 +75,7 @@ export function EvaluationsTabs({
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
                   <Plus className="mr-2 h-4 w-4" />
-                  New job
+                  New batch evaluation
                 </Button>
               }
             />
@@ -87,10 +88,19 @@ export function EvaluationsTabs({
               projectId={projectId}
               isOpen={isCreateRunConfigOpen}
               onOpenChange={setIsCreateRunConfigOpen}
+              onSuccess={() => {
+                // Trigger refresh by incrementing refreshKey
+                console.log('EvaluationRunConfigFormDialog onSuccess called');
+                setRefreshKey((prev) => {
+                  const newKey = prev + 1;
+                  console.log('Setting refreshKey to:', newKey);
+                  return newKey;
+                });
+              }}
               trigger={
                 <Button variant="ghost" size="sm" className="h-8">
                   <Plus className="mr-2 h-4 w-4" />
-                  New run config
+                  New continuous test
                 </Button>
               }
             />
@@ -107,7 +117,12 @@ export function EvaluationsTabs({
       </TabsContent>
 
       <TabsContent value="run-configs" className="mt-6">
-        <EvaluationRunConfigsList tenantId={tenantId} projectId={projectId} runConfigs={runConfigs} />
+        <EvaluationRunConfigsList
+          tenantId={tenantId}
+          projectId={projectId}
+          runConfigs={runConfigs}
+          refreshKey={refreshKey}
+        />
       </TabsContent>
     </Tabs>
   );

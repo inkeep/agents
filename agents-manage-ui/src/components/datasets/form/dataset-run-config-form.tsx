@@ -10,20 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Form,
-  FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
 import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createDatasetRunConfigAction,
   updateDatasetRunConfigAction,
 } from '@/lib/actions/dataset-run-configs';
+import type { Evaluator } from '@/lib/api/evaluators';
+import { fetchEvaluators } from '@/lib/api/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
 import {
   type DatasetRunConfigFormData,
@@ -39,7 +40,7 @@ interface DatasetRunConfigFormProps {
     name?: string;
     description?: string;
     agentIds?: string[];
-    triggerEvaluations?: boolean;
+    evaluatorIds?: string[];
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -55,7 +56,9 @@ export function DatasetRunConfigForm({
   onCancel,
 }: DatasetRunConfigFormProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(true);
+  const [loadingEvaluators, setLoadingEvaluators] = useState(true);
 
   const form = useForm<DatasetRunConfigFormData>({
     resolver: zodResolver(datasetRunConfigSchema) as any,
@@ -63,7 +66,7 @@ export function DatasetRunConfigForm({
       name: initialData?.name || '',
       description: initialData?.description || '',
       agentIds: initialData?.agentIds || [],
-      triggerEvaluations: initialData?.triggerEvaluations || false,
+      evaluatorIds: initialData?.evaluatorIds || [],
     },
   });
 
@@ -76,26 +79,32 @@ export function DatasetRunConfigForm({
     defaultValue: [],
   });
 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoadingAgents(true);
-        const agentsResult = await getAllAgentsAction(tenantId, projectId);
+        setLoadingEvaluators(true);
+        const [agentsResult, evaluatorsResult] = await Promise.all([
+          getAllAgentsAction(tenantId, projectId),
+          fetchEvaluators(tenantId, projectId),
+        ]);
         if (agentsResult.success && agentsResult.data) {
           setAgents(agentsResult.data);
+        }
+        if (evaluatorsResult.data) {
+          setEvaluators(evaluatorsResult.data);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
         toast.error('Failed to load data');
       } finally {
         setLoadingAgents(false);
+        setLoadingEvaluators(false);
       }
     };
 
     fetchData();
   }, [tenantId, projectId]);
-
 
   useEffect(() => {
     if (initialData) {
@@ -103,49 +112,52 @@ export function DatasetRunConfigForm({
         name: initialData.name || '',
         description: initialData.description || '',
         agentIds: initialData.agentIds || [],
-        triggerEvaluations: initialData.triggerEvaluations || false,
+        evaluatorIds: initialData?.evaluatorIds || [],
       });
     }
   }, [initialData, form]);
 
   const onSubmit = async (data: DatasetRunConfigFormData) => {
+    console.log('Form submission data:', data);
+    console.log('evaluatorIds in form data:', data.evaluatorIds);
+    console.log('Form values:', form.getValues());
+    console.log('Form watch evaluatorIds:', form.watch('evaluatorIds'));
+    
     try {
+      // Ensure evaluatorIds is always included, even if empty
       const payload = {
         name: data.name,
-        description: data.description || '',
+        description: data.description,
         agentIds: data.agentIds || [],
-        triggerEvaluations: data.triggerEvaluations || false,
+        evaluatorIds: data.evaluatorIds || [],
+        ...(runConfigId ? {} : { datasetId }),
       };
-
-      const res = runConfigId
+      
+      console.log('Payload being sent:', payload);
+      console.log('evaluatorIds in payload:', payload.evaluatorIds);
+      console.log('Payload JSON:', JSON.stringify(payload));
+      
+      const result = runConfigId
         ? await updateDatasetRunConfigAction(tenantId, projectId, runConfigId, payload)
-        : await createDatasetRunConfigAction(tenantId, projectId, { ...payload, datasetId });
+        : await createDatasetRunConfigAction(tenantId, projectId, payload);
 
-      if (!res.success) {
-        const errorMessage =
-          res.error ||
-          (res.code === 'validation_error'
-            ? 'Please check the form fields and try again'
-            : res.code === 'bad_request'
-              ? 'Invalid request data. Please check your input.'
-              : runConfigId
-                ? 'Failed to update dataset run config'
-                : 'Failed to create dataset run config');
-        toast.error(errorMessage);
-        return;
+      if (result.success) {
+        toast.success(
+          runConfigId ? 'Run config updated successfully' : 'Run config created successfully'
+        );
+        onSuccess?.();
+      } else {
+        toast.error(result.error || 'An error occurred');
       }
-
-      toast.success(runConfigId ? 'Dataset run config updated' : 'Dataset run config created');
-      onSuccess?.();
     } catch (error) {
-      console.error(`Error ${runConfigId ? 'updating' : 'creating'} dataset run config:`, error);
+      console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
   };
 
-  const handleAgentToggle = (agentId: string, checked: boolean) => {
-    const currentIds = agentIds || [];
-    if (checked) {
+  const handleAgentToggle = (agentId: string) => {
+    const currentIds = agentIds as string[];
+    if (!currentIds.includes(agentId)) {
       setAgentIds([...currentIds, agentId]);
     } else {
       setAgentIds(currentIds.filter((id) => id !== agentId));
@@ -168,7 +180,7 @@ export function DatasetRunConfigForm({
           control={form.control}
           name="description"
           label="Description"
-          placeholder="Run this dataset against production agents"
+          placeholder="Run this test suite against production agents"
           className="min-h-[80px]"
         />
 
@@ -183,16 +195,14 @@ export function DatasetRunConfigForm({
               ) : agents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No agents available</p>
               ) : (
-                <ScrollArea className="h-48 w-full rounded-md border p-4">
-                  <div className="space-y-3">
+                <ScrollArea className="h-48 rounded-md border p-4">
+                  <div className="space-y-2">
                     {agents.map((agent) => (
                       <div key={agent.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={`agent-${agent.id}`}
-                          checked={agentIds?.includes(agent.id) || false}
-                          onCheckedChange={(checked) =>
-                            handleAgentToggle(agent.id, checked === true)
-                          }
+                          checked={agentIds.includes(agent.id)}
+                          onCheckedChange={() => handleAgentToggle(agent.id)}
                         />
                         <label
                           htmlFor={`agent-${agent.id}`}
@@ -205,9 +215,7 @@ export function DatasetRunConfigForm({
                   </div>
                 </ScrollArea>
               )}
-              <p className="text-sm text-muted-foreground">
-                Select which agents to run this dataset against
-              </p>
+              <FormDescription>Select which agents to run this test suite against</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -215,19 +223,57 @@ export function DatasetRunConfigForm({
 
         <FormField
           control={form.control}
-          name="triggerEvaluations"
+          name="evaluatorIds"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Trigger Evaluations</FormLabel>
-                <FormDescription>
-                  When enabled, all active evaluation run configs will automatically trigger evaluations
-                  for conversations created during this dataset run.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              </FormControl>
+            <FormItem>
+              <FormLabel>Evaluators (Optional)</FormLabel>
+              {loadingEvaluators ? (
+                <p className="text-sm text-muted-foreground">Loading evaluators...</p>
+              ) : evaluators.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No evaluators available. Create evaluators first to enable automatic evaluation
+                  after the dataset run.
+                </p>
+              ) : (
+                <ScrollArea className="h-48 rounded-md border p-4">
+                  <div className="space-y-2">
+                    {evaluators.map((evaluator) => (
+                      <div key={evaluator.id} className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`evaluator-${evaluator.id}`}
+                          checked={(field.value || []).includes(evaluator.id)}
+                          onCheckedChange={(checked) => {
+                            const currentIds = field.value || [];
+                            const newIds = checked
+                              ? [...currentIds, evaluator.id]
+                              : currentIds.filter((id) => id !== evaluator.id);
+                            field.onChange(newIds);
+                          }}
+                          className="mt-1"
+                        />
+                        <Label
+                          htmlFor={`evaluator-${evaluator.id}`}
+                          className="font-normal cursor-pointer flex-1"
+                        >
+                          <div>
+                            <div className="font-medium">{evaluator.name}</div>
+                            {evaluator.description && (
+                              <div className="text-sm text-muted-foreground">
+                                {evaluator.description}
+                              </div>
+                            )}
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+              <FormDescription>
+                When evaluators are selected, an evaluation job will automatically run after the
+                test suite completes
+              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -244,8 +290,8 @@ export function DatasetRunConfigForm({
                 ? 'Updating...'
                 : 'Creating...'
               : runConfigId
-                ? 'Update Run Config'
-                : 'Create Run'}
+                ? 'Update Run Configuration'
+                : 'Create Run Configuration'}
           </Button>
         </div>
       </form>
