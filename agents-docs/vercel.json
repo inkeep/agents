@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
+  "buildCommand": "cd .. && pnpm install --frozen-lockfile && pnpm --filter @inkeep/agents-docs build",
+  "installCommand": "cd .. && pnpm install --frozen-lockfile",
   "framework": "nextjs"
 }
