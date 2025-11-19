@@ -655,6 +655,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   availableTools: z.array(McpToolDefinitionSchema).optional(),
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
+  expiresAt: z.string().optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
