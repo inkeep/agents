@@ -1,5 +1,12 @@
-import type { AgentCard, ExecutionContext } from '@inkeep/agents-core';
-import { type AgentSelect, getAgentById, getSubAgentById } from '@inkeep/agents-core';
+import {
+  type AgentCard,
+  type AgentSelect,
+  type ExecutionContext,
+  executeInBranch,
+  getAgentById,
+  getSubAgentById,
+  type ResolvedRef,
+} from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import dbClient from './db/dbClient';
@@ -9,10 +16,12 @@ async function hydrateAgent({
   dbAgent,
   baseUrl,
   apiKey,
+  ref,
 }: {
   dbAgent: AgentSelect;
   baseUrl: string;
   apiKey?: string;
+  ref: ResolvedRef;
 }): Promise<RegisteredAgent> {
   try {
     // Check if defaultSubAgentId exists
@@ -21,13 +30,16 @@ async function hydrateAgent({
     }
 
     // Get the default agent for this agent to create the task handler
-    const defaultSubAgent = await getSubAgentById(dbClient)({
-      scopes: {
-        tenantId: dbAgent.tenantId,
-        projectId: dbAgent.projectId,
-        agentId: dbAgent.id,
-      },
-      subAgentId: dbAgent.defaultSubAgentId,
+    const subAgentId = dbAgent.defaultSubAgentId;
+    const defaultSubAgent = await executeInBranch({ dbClient, ref }, async (db) => {
+      return await getSubAgentById(db)({
+        scopes: {
+          tenantId: dbAgent.tenantId,
+          projectId: dbAgent.projectId,
+          agentId: dbAgent.id,
+        },
+        subAgentId,
+      });
     });
 
     if (!defaultSubAgent) {
@@ -40,6 +52,7 @@ async function hydrateAgent({
     const taskHandlerConfig = await createTaskHandlerConfig({
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
+      ref,
       agentId: dbAgent.id,
       subAgentId: dbAgent.defaultSubAgentId,
       baseUrl: baseUrl,
@@ -88,9 +101,11 @@ async function hydrateAgent({
 export async function getRegisteredAgent(
   executionContext: ExecutionContext
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, agentId, baseUrl, apiKey } = executionContext;
-  const dbAgent = await getAgentById(dbClient)({
-    scopes: { tenantId, projectId, agentId },
+  const { tenantId, projectId, agentId, baseUrl, apiKey, ref } = executionContext;
+  const dbAgent = await executeInBranch({ dbClient, ref }, async (db) => {
+    return await getAgentById(db)({
+      scopes: { tenantId, projectId, agentId },
+    });
   });
   if (!dbAgent) {
     return null;
@@ -98,5 +113,5 @@ export async function getRegisteredAgent(
 
   const agentFrameworkBaseUrl = `${baseUrl}/agents`;
 
-  return hydrateAgent({ dbAgent, baseUrl: agentFrameworkBaseUrl, apiKey });
+  return hydrateAgent({ dbAgent, baseUrl: agentFrameworkBaseUrl, apiKey, ref });
 }

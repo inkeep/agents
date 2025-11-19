@@ -71,7 +71,7 @@ describe('AgentSession', () => {
       writeSummary: vi.fn().mockResolvedValue(undefined),
     };
 
-    session = new AgentSession('test-session', 'test-message', 'test-agent');
+    session = new AgentSession('test-session', 'test-message', {} as any, 'test-agent');
   });
 
   afterEach(() => {
@@ -510,7 +510,7 @@ describe('AgentSession', () => {
 
   describe('AgentSessionManager', () => {
     it('should create and retrieve sessions', () => {
-      const sessionId = agentSessionManager.createSession('manager-test', 'test-agent');
+      const sessionId = agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
       expect(sessionId).toBe('manager-test');
 
       const retrieved = agentSessionManager.getSession('manager-test');
@@ -519,7 +519,7 @@ describe('AgentSession', () => {
     });
 
     it('should record events via manager', () => {
-      agentSessionManager.createSession('manager-test', 'test-agent');
+      agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
 
       agentSessionManager.recordEvent('manager-test', 'tool_call', 'agent-1', {
         toolName: 'test-tool',
@@ -547,7 +547,7 @@ describe('AgentSession', () => {
     });
 
     it('should set text streaming state via manager', () => {
-      agentSessionManager.createSession('manager-test', 'test-agent');
+      agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
       const retrieved = agentSessionManager.getSession('manager-test');
 
       expect(retrieved?.isCurrentlyStreaming()).toBe(false);
@@ -581,7 +581,7 @@ describe('AgentSession', () => {
     });
 
     it('should end sessions via manager', () => {
-      agentSessionManager.createSession('manager-test', 'test-agent');
+      agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
       const retrieved = agentSessionManager.getSession('manager-test');
 
       // Test that session can record events before ending
@@ -901,7 +901,13 @@ describe('AgentSession', () => {
 
       // Create session through manager
       const sessionId = 'test-manager-session';
-      agentSessionManager.createSession(sessionId, 'test-agent', 'tenant-1', 'project-1');
+      agentSessionManager.createSession(
+        sessionId,
+        {} as any,
+        'test-agent',
+        'tenant-1',
+        'project-1'
+      );
 
       // Initialize status updates through manager
       agentSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });

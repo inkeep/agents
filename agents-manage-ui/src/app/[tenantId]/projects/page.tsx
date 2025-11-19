@@ -9,9 +9,11 @@ import { ProjectList } from '@/components/projects/project-list';
 import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
-async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
+async function ProjectsPage({ params, searchParams }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
+  const { ref } = await getValidSearchParamsAsync(searchParams);
 
   let projects: Awaited<ReturnType<typeof fetchProjects>>;
   try {
@@ -37,7 +39,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
                 </NewProjectDialog>
               }
             />
-            <ProjectList tenantId={tenantId} projects={projects.data} />
+            <ProjectList tenantId={tenantId} projects={projects.data} ref={ref} />
           </>
         ) : (
           <EmptyState

@@ -293,6 +293,14 @@ vi.mock('../../agents/Agent.js', () => ({
       lastAgentConstructorArgs = config;
     }
 
+    setDelegationStatus(_isDelegated: boolean) {
+      // Mock implementation
+    }
+
+    setDelegationId(_delegationId: string | undefined) {
+      // Mock implementation
+    }
+
     async generate(message: string, _options: any) {
       // Mock different response types based on message content
       if (message.includes('transfer')) {
@@ -356,10 +364,6 @@ vi.mock('../../agents/Agent.js', () => ({
         },
       };
     }
-
-    setDelegationStatus(_isDelegated: boolean) {
-      // Mock implementation
-    }
   },
 }));
 
@@ -377,6 +381,7 @@ vi.mock('../../logger.js', () => ({
 
 describe('generateTaskHandler', () => {
   const mockConfig: TaskHandlerConfig = {
+    dbClient: {} as any,
     tenantId: 'test-tenant',
     projectId: 'test-project',
     agentId: 'test-agent',
@@ -388,7 +393,13 @@ describe('generateTaskHandler', () => {
       description: 'Test agent description',
       prompt: 'You are a helpful test agent',
       models: null,
-      conversationHistoryConfig: null,
+      conversationHistoryConfig: {
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      },
       stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
@@ -866,6 +877,7 @@ describe('generateTaskHandler', () => {
   describe('createTaskHandlerConfig', () => {
     it('should create config from agent data', async () => {
       const config = await createTaskHandlerConfig({
+        dbClient: {} as any,
         tenantId: 'test-tenant',
         projectId: 'test-project',
         agentId: 'test-agent',
@@ -878,6 +890,7 @@ describe('generateTaskHandler', () => {
         projectId: 'test-project',
         agentId: 'test-agent',
         subAgentId: 'test-agent',
+        dbClient: {} as any,
         agentSchema: {
           id: 'test-agent',
           name: 'Test Agent',
@@ -920,6 +933,7 @@ describe('generateTaskHandler', () => {
 
       await expect(
         createTaskHandlerConfig({
+          dbClient: {} as any,
           tenantId: 'test-tenant',
           projectId: 'test-project',
           agentId: 'test-agent',
@@ -958,6 +972,7 @@ describe('generateTaskHandler', () => {
       );
 
       const config = await createTaskHandlerConfig({
+        dbClient: {} as any,
         tenantId: 'test-tenant',
         projectId: 'test-project',
         agentId: 'test-agent',
@@ -1015,6 +1030,7 @@ describe('generateTaskHandler', () => {
       );
 
       const config = await createTaskHandlerConfig({
+        dbClient: {} as any,
         tenantId: 'test-tenant',
         projectId: 'test-project',
         agentId: 'test-agent',
@@ -1065,6 +1081,7 @@ describe('generateTaskHandler', () => {
       );
 
       const config = await createTaskHandlerConfig({
+        dbClient: {} as any,
         tenantId: 'test-tenant',
         projectId: 'test-project',
         agentId: 'test-agent',

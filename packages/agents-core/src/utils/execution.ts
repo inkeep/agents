@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import type { ResolvedRef } from '../dolt/ref';
 import type { ExecutionContext } from '../types/utility';
 
 /**
@@ -10,6 +11,7 @@ export function createExecutionContext(params: {
   projectId: string;
   agentId: string;
   apiKeyId: string;
+  ref: ResolvedRef;
   baseUrl?: string;
 }): ExecutionContext {
   return {
@@ -19,6 +21,7 @@ export function createExecutionContext(params: {
     agentId: params.agentId,
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
+    ref: params.ref,
   };
 }
 

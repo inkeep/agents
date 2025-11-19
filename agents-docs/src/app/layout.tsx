@@ -1,5 +1,5 @@
 import '@/app/global.css';
-import { RootProvider } from 'fumadocs-ui/provider';
+import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import type { Organization, WebSite, WithContext } from 'schema-dts';

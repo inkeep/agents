@@ -3,7 +3,6 @@ import {
   Accordion,
   Accordions,
   a,
-  Card,
   CodeGroup,
   Frame,
   h1,
@@ -28,6 +27,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps } from 'react';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
+import { Card } from '@/components/mdx/card'; // Add this line
 import { Mermaid } from '@/components/mdx/mermaid';
 import { openapi } from '@/lib/openapi';
 

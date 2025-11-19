@@ -6,16 +6,21 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
-async function NewAgentPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents/new'>) {
+async function NewAgentPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents/new'>) {
   const { tenantId, projectId } = await params;
+  const { ref } = await getValidSearchParamsAsync(searchParams);
   const [dataComponents, artifactComponents, tools, credentials, externalAgents] =
     await Promise.all([
-      fetchDataComponentsAction(tenantId, projectId),
-      fetchArtifactComponentsAction(tenantId, projectId),
-      fetchToolsAction(tenantId, projectId),
-      fetchCredentialsAction(tenantId, projectId),
-      fetchExternalAgentsAction(tenantId, projectId),
+      fetchDataComponentsAction(tenantId, projectId, ref),
+      fetchArtifactComponentsAction(tenantId, projectId, ref),
+      fetchToolsAction(tenantId, projectId, ref),
+      fetchCredentialsAction(tenantId, projectId, ref),
+      fetchExternalAgentsAction(tenantId, projectId, ref),
     ]);
 
   if (!dataComponents.success || !artifactComponents.success || !tools.success) {

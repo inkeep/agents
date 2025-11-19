@@ -26,12 +26,33 @@ function getManageApiUrl(): string {
   return INKEEP_AGENTS_MANAGE_API_URL;
 }
 
+export interface ApiRequestOptions extends RequestInit {
+  queryParams?: Record<string, string | string[] | number | boolean | undefined>;
+}
+
 async function makeApiRequestInternal<T>(
   baseUrl: string,
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
-  const url = `${baseUrl}/${endpoint}`;
+  // Build URL with query parameters
+  let url = `${baseUrl}/${endpoint}`;
+  if (options.queryParams) {
+    const params = new URLSearchParams();
+    Object.entries(options.queryParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    if (queryString) {
+      // Check if URL already has query parameters
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}${queryString}`;
+    }
+    console.log('url', url);
+  }
+
   const defaultHeaders = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -50,7 +71,7 @@ async function makeApiRequestInternal<T>(
       const errorData = await response.json().catch(() => ({
         error: { code: 'unknown', message: 'Unknown error occurred' },
       }));
-
+      console.log(url, errorData);
       throw new ApiError(
         errorData.error || {
           code: 'unknown',
@@ -90,7 +111,7 @@ async function makeApiRequestInternal<T>(
 // Management API requests (CRUD operations, configuration)
 export async function makeManagementApiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
 }

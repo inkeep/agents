@@ -27,6 +27,7 @@ interface ArtifactComponentFormProps {
   projectId: string;
   id?: string;
   initialData?: ArtifactComponentFormData;
+  ref?: string;
 }
 
 const formatFormData = (data?: ArtifactComponentFormData): ArtifactComponentFormData => {
@@ -45,6 +46,7 @@ export function ArtifactComponentForm({
   tenantId,
   projectId,
   initialData,
+  ref,
 }: ArtifactComponentFormProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<ArtifactComponentFormData>({
@@ -73,14 +75,14 @@ export function ArtifactComponentForm({
       }
 
       if (id) {
-        const res = await updateArtifactComponentAction(tenantId, projectId, payload);
+        const res = await updateArtifactComponentAction(tenantId, projectId, payload, ref);
         if (!res.success) {
           toast.error(res.error || 'Failed to update artifact.');
           return;
         }
         toast.success('Artifact updated.');
       } else {
-        const res = await createArtifactComponentAction(tenantId, projectId, payload);
+        const res = await createArtifactComponentAction(tenantId, projectId, payload, ref);
         if (!res.success) {
           toast.error(res.error || 'Failed to create artifact');
           return;

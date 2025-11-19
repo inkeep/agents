@@ -1,6 +1,7 @@
 import {
   createMessage,
   createTask,
+  executeInBranch,
   generateId,
   getRequestExecutionContext,
   type Message,
@@ -89,6 +90,7 @@ async function handleMessageSend(
     const params = request.params as MessageSendParams;
     const executionContext = getRequestExecutionContext(c);
     const { agentId } = executionContext;
+    const ref = executionContext.ref;
 
     const task: A2ATask = {
       id: generateId(),
@@ -169,27 +171,36 @@ async function handleMessageSend(
       },
       'A2A contextId resolution for delegation'
     );
-
-    await createTask(dbClient)({
-      id: task.id,
-      tenantId: agent.tenantId,
-      projectId: agent.projectId,
-      agentId: agentId || '',
-      contextId: effectiveContextId,
-      status: 'working',
-      metadata: {
-        conversation_id: effectiveContextId,
-        message_id: params.message.messageId || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        sub_agent_id: agent.subAgentId,
-        agent_id: agentId || '',
-        stream_request_id: params.message.metadata?.stream_request_id,
+    await executeInBranch(
+      {
+        dbClient,
+        ref,
+        autoCommit: true,
+        commitMessage: 'Create task for A2A',
       },
-      subAgentId: agent.subAgentId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+      async (db) => {
+        await createTask(db)({
+          id: task.id,
+          tenantId: agent.tenantId,
+          projectId: agent.projectId,
+          agentId: agentId || '',
+          contextId: effectiveContextId,
+          status: 'working',
+          metadata: {
+            conversation_id: effectiveContextId,
+            message_id: params.message.messageId || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            sub_agent_id: agent.subAgentId,
+            agent_id: agentId || '',
+            stream_request_id: params.message.metadata?.stream_request_id,
+          },
+          subAgentId: agent.subAgentId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    );
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
@@ -229,7 +240,17 @@ async function handleMessageSend(
           messageData.toTeamAgentId = agent.subAgentId;
         }
 
-        await createMessage(dbClient)(messageData);
+        await executeInBranch(
+          {
+            dbClient,
+            ref,
+            autoCommit: true,
+            commitMessage: 'Create A2A message',
+          },
+          async (db) => {
+            await createMessage(db)(messageData);
+          }
+        );
 
         logger.info(
           {
@@ -261,20 +282,30 @@ async function handleMessageSend(
 
     const result = await agent.taskHandler(task);
 
-    await updateTask(dbClient)({
-      taskId: task.id,
-      data: {
-        status: result.status.state.toLowerCase(),
-        metadata: {
-          conversation_id: params.message.contextId || '',
-          message_id: params.message.messageId || '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          sub_agent_id: agent.subAgentId,
-          agent_id: agentId || '',
-        },
+    await executeInBranch(
+      {
+        dbClient,
+        ref,
+        autoCommit: true,
+        commitMessage: 'Update task for A2A',
       },
-    });
+      async (db) => {
+        await updateTask(db)({
+          taskId: task.id,
+          data: {
+            status: result.status.state.toLowerCase(),
+            metadata: {
+              conversation_id: params.message.contextId || '',
+              message_id: params.message.messageId || '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              sub_agent_id: agent.subAgentId,
+              agent_id: agentId || '',
+            },
+          },
+        });
+      }
+    );
 
     const transferArtifact = result.artifacts?.find((artifact) =>
       artifact.parts?.some(

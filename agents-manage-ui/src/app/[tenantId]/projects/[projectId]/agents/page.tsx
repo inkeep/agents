@@ -7,15 +7,20 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { agentDescription } from '@/constants/page-descriptions';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 export const dynamic = 'force-dynamic';
 
-async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
+async function AgentsPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
+  const ref = await getValidSearchParamsAsync(searchParams);
 
   let agents: Awaited<ReturnType<typeof fetchAgents>>;
   try {
-    agents = await fetchAgents(tenantId, projectId);
+    agents = await fetchAgents(tenantId, projectId, { queryParams: ref });
   } catch (error) {
     return <FullPageError error={error as Error} context="agents" />;
   }

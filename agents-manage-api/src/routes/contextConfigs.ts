@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   ContextConfigApiInsertSchema,
   ContextConfigApiUpdateSchema,
@@ -17,9 +17,9 @@ import {
   TenantProjectAgentParamsSchema,
   updateContextConfig,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -45,11 +45,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listContextConfigsPaginated(dbClient)({
+    const result = await listContextConfigsPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -80,8 +81,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const contextConfig = await getContextConfigById(dbClient)({
+    const contextConfig = await getContextConfigById(db)({
       scopes: { tenantId, projectId, agentId },
       id,
     });
@@ -127,6 +129,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -136,7 +139,7 @@ app.openapi(
       agentId,
       ...body,
     };
-    const contextConfig = await createContextConfig(dbClient)(configData);
+    const contextConfig = await createContextConfig(db)(configData);
 
     return c.json({ data: contextConfig }, 201);
   }
@@ -172,10 +175,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedContextConfig = await updateContextConfig(dbClient)({
+    const updatedContextConfig = await updateContextConfig(db)({
       scopes: { tenantId, projectId, agentId },
       id,
       data: body,
@@ -210,9 +214,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const deleted = await deleteContextConfig(dbClient)({
+    const deleted = await deleteContextConfig(db)({
       scopes: { tenantId, projectId, agentId },
       id,
     });

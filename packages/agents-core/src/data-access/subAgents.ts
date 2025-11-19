@@ -1,8 +1,10 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { subAgents } from '../db/schema';
+import { doltActiveBranch } from '../dolt/branch';
 import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
+import { getLogger } from '../utils/logger';
 
 export const getSubAgentById =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
@@ -11,9 +13,14 @@ export const getSubAgentById =
         eq(subAgents.tenantId, params.scopes.tenantId),
         eq(subAgents.projectId, params.scopes.projectId),
         eq(subAgents.agentId, params.scopes.agentId),
-        eq(subAgents.id, params.subAgentId)
+        // Workaround for Dolt bug: use inArray instead of eq for the last column of composite PK
+        inArray(subAgents.id, [params.subAgentId])
       ),
     });
+    const branch = await doltActiveBranch(db)();
+    getLogger('subAgents').info({ branch }, 'getSubAgentById branch');
+    getLogger('subAgents').info({ params }, 'getSubAgentById params');
+    getLogger('subAgents').info({ result }, 'getSubAgentById result');
     return result;
   };
 
@@ -100,7 +107,7 @@ export const updateSubAgent =
           eq(subAgents.tenantId, params.scopes.tenantId),
           eq(subAgents.projectId, params.scopes.projectId),
           eq(subAgents.agentId, params.scopes.agentId),
-          eq(subAgents.id, params.subAgentId)
+          inArray(subAgents.id, [params.subAgentId])
         )
       )
       .returning();
@@ -119,12 +126,13 @@ export const upsertSubAgent =
       projectId: params.data.projectId,
       agentId: params.data.agentId,
     };
-
     const existing = await getSubAgentById(db)({
       scopes,
       subAgentId: params.data.id,
     });
-
+    getLogger('subAgents').info({ existing }, 'upsertSubAgent existing');
+    const branch = await doltActiveBranch(db)();
+    getLogger('subAgents').info({ branch }, 'upsertSubAgent branch');
     if (existing) {
       const updated = await updateSubAgent(db)({
         scopes,
@@ -155,7 +163,7 @@ export const deleteSubAgent =
           eq(subAgents.tenantId, params.scopes.tenantId),
           eq(subAgents.projectId, params.scopes.projectId),
           eq(subAgents.agentId, params.scopes.agentId),
-          eq(subAgents.id, params.subAgentId)
+          inArray(subAgents.id, [params.subAgentId])
         )
       );
 

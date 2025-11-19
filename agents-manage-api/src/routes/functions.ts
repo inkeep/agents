@@ -1,10 +1,9 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   deleteFunction,
   FunctionApiInsertSchema,
-  FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   FunctionListResponse,
   FunctionResponse,
@@ -16,12 +15,12 @@ import {
   TenantProjectParamsSchema,
   upsertFunction,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { createAppWithDb } from '../utils/apps';
 
 const logger = getLogger('functions');
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -47,10 +46,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const functions = await listFunctions(dbClient)({ scopes: { tenantId, projectId } });
+      const functions = await listFunctions(db)({ scopes: { tenantId, projectId } });
 
       return c.json({
         data: functions as any,
@@ -94,11 +94,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
       // Functions are project-scoped
-      const functionData = await getFunction(dbClient)({
+      const functionData = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -151,6 +152,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const functionData = c.req.valid('json');
 
@@ -158,7 +160,7 @@ app.openapi(
       // Generate ID if not provided
       const id = functionData.id || generateId();
 
-      await upsertFunction(dbClient)({
+      await upsertFunction(db)({
         data: {
           ...functionData,
           id,
@@ -166,7 +168,7 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      const created = await getFunction(dbClient)({
+      const created = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -214,11 +216,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -229,7 +232,7 @@ app.openapi(
         ) as any;
       }
 
-      await upsertFunction(dbClient)({
+      await upsertFunction(db)({
         data: {
           ...existing,
           ...updateData,
@@ -238,7 +241,7 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      const updated = await getFunction(dbClient)({
+      const updated = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -274,10 +277,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
     try {
-      const existing = await getFunction(dbClient)({
+      const existing = await getFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });
@@ -288,7 +292,7 @@ app.openapi(
         ) as any;
       }
 
-      await deleteFunction(dbClient)({
+      await deleteFunction(db)({
         functionId: id,
         scopes: { tenantId, projectId },
       });

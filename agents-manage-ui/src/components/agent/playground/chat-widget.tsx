@@ -20,6 +20,7 @@ interface ChatWidgetProps {
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
+  ref?: string;
 }
 
 const styleOverrides = `
@@ -56,6 +57,7 @@ export function ChatWidget({
   customHeaders = {},
   chatActivities,
   dataComponentLookup = {},
+  ref,
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
     useRuntimeConfig();
@@ -174,7 +176,12 @@ export function ChatWidget({
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             conversationId,
-            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
+            agentUrl:
+              agentId && ref
+                ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat?ref=${encodeURIComponent(ref)}`
+                : agentId
+                  ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`
+                  : undefined,
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,

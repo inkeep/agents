@@ -2,6 +2,7 @@ import type {
   DelegationReturnedData,
   DelegationSentData,
   ModelSettings,
+  ResolvedRef,
   StatusComponent,
   StatusUpdateSettings,
   SummaryEvent,
@@ -10,6 +11,7 @@ import type {
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  executeInBranch,
   getSubAgentById,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -154,6 +156,7 @@ export interface ToolCallData {
   toolName: string;
   input: any;
   toolCallId: string;
+  relationshipId?: string;
 }
 
 export interface ToolResultData {
@@ -162,6 +165,7 @@ export interface ToolResultData {
   output: any;
   duration?: number;
   error?: string;
+  relationshipId?: string;
 }
 
 export interface ErrorEventData {
@@ -206,6 +210,7 @@ export class AgentSession {
   constructor(
     public readonly sessionId: string,
     public readonly messageId: string,
+    public readonly ref: ResolvedRef,
     public readonly agentId?: string,
     public readonly tenantId?: string,
     public readonly projectId?: string,
@@ -222,16 +227,19 @@ export class AgentSession {
         `task_${contextId}-${messageId}` // Create a taskId based on context and message
       );
 
-      this.artifactService = new ArtifactService({
-        tenantId,
-        projectId,
-        sessionId,
-        contextId,
-        taskId: `task_${contextId}-${messageId}`,
-        streamRequestId: sessionId,
-      });
+      this.artifactService = new ArtifactService(
+        {
+          tenantId,
+          projectId,
+          sessionId,
+          contextId,
+          taskId: `task_${contextId}-${messageId}`,
+          streamRequestId: sessionId,
+        },
+        ref
+      );
 
-      this.artifactParser = new ArtifactParser(tenantId, {
+      this.artifactParser = new ArtifactParser(tenantId, ref, {
         projectId,
         sessionId: sessionId,
         contextId,
@@ -240,6 +248,7 @@ export class AgentSession {
         artifactService: this.artifactService, // Pass the shared ArtifactService
       });
     }
+    this.ref = ref;
   }
 
   /**
@@ -902,12 +911,15 @@ export class AgentSession {
               const conversationHistory = await getFormattedConversationHistory({
                 tenantId: this.tenantId,
                 projectId: this.projectId,
-                conversationId: this.sessionId,
+                conversationId: this.contextId || 'default',
                 options: {
                   limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
                   maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+                  includeInternal: true,
+                  messageTypes: ['chat', 'tool-result'],
                 },
                 filters: {},
+                ref: this.ref,
               });
               conversationContext = conversationHistory.trim()
                 ? `\nUser's Question/Context:\n${conversationHistory}\n`
@@ -1341,6 +1353,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               includeInternal: false, // Focus on user messages
               messageTypes: ['chat'],
             },
+            ref: this.ref,
           });
 
           const toolCallEvent = this.events.find(
@@ -1372,14 +1385,25 @@ Make it specific and relevant.`;
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
               if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
-                  const agentData = await getSubAgentById(dbClient)({
-                    scopes: {
-                      tenantId: artifactData.tenantId,
-                      projectId: artifactData.projectId,
-                      agentId: this.agentId || '',
+                  const tenantId = artifactData.tenantId;
+                  const projectId = artifactData.projectId;
+                  const subAgentId = artifactData.subAgentId;
+                  const agentData = await executeInBranch(
+                    {
+                      dbClient: dbClient,
+                      ref: this.ref,
                     },
-                    subAgentId: artifactData.subAgentId,
-                  });
+                    async (db) => {
+                      return await getSubAgentById(db)({
+                        scopes: {
+                          tenantId,
+                          projectId,
+                          agentId: this.agentId || '',
+                        },
+                        subAgentId,
+                      });
+                    }
+                  );
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
                     modelToUse = agentData.models.base;
@@ -1564,13 +1588,16 @@ Make it specific and relevant.`;
           if (!mainSaveSucceeded) {
             try {
               if (artifactData.tenantId && artifactData.projectId) {
-                const artifactService = new ArtifactService({
-                  tenantId: artifactData.tenantId,
-                  projectId: artifactData.projectId,
-                  contextId: artifactData.contextId || 'unknown',
-                  taskId: artifactData.taskId,
-                  sessionId: this.sessionId,
-                });
+                const artifactService = new ArtifactService(
+                  {
+                    tenantId: artifactData.tenantId,
+                    projectId: artifactData.projectId,
+                    contextId: artifactData.contextId || 'unknown',
+                    taskId: artifactData.taskId,
+                    sessionId: this.sessionId,
+                  },
+                  this.ref
+                );
 
                 await artifactService.saveArtifact({
                   artifactId: artifactData.artifactId,
@@ -1678,13 +1705,22 @@ export class AgentSessionManager {
    */
   createSession(
     messageId: string,
+    ref: ResolvedRef,
     agentId?: string,
     tenantId?: string,
     projectId?: string,
     contextId?: string
   ): string {
     const sessionId = messageId; // Use messageId directly as sessionId
-    const session = new AgentSession(sessionId, messageId, agentId, tenantId, projectId, contextId);
+    const session = new AgentSession(
+      sessionId,
+      messageId,
+      ref,
+      agentId,
+      tenantId,
+      projectId,
+      contextId
+    );
     this.sessions.set(sessionId, session);
 
     logger.info(

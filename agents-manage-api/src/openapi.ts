@@ -31,6 +31,100 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
             description: 'API Server',
           },
         ],
+        tags: [
+          {
+            name: 'Agent',
+            description: 'Operations for managing individual agents',
+          },
+          {
+            name: 'Agent Artifact Component Relations',
+            description: 'Operations for managing agent artifact component relationships',
+          },
+          {
+            name: 'Agent Data Component Relations',
+            description: 'Operations for managing agent data component relationships',
+          },
+          {
+            name: 'Agents',
+            description: 'Operations for managing agents',
+          },
+          {
+            name: 'API Keys',
+            description: 'Operations for managing API keys',
+          },
+          {
+            name: 'Artifact Component',
+            description: 'Operations for managing artifact components',
+          },
+          {
+            name: 'Context Config',
+            description: 'Operations for managing context configurations',
+          },
+          {
+            name: 'Credential',
+            description: 'Operations for managing credentials',
+          },
+          {
+            name: 'Credential Store',
+            description: 'Operations for managing credential stores',
+          },
+          {
+            name: 'Data Component',
+            description: 'Operations for managing data components',
+          },
+          {
+            name: 'External Agents',
+            description: 'Operations for managing external agents',
+          },
+          {
+            name: 'Full Agent',
+            description: 'Operations for managing complete agent definitions',
+          },
+          {
+            name: 'Full Project',
+            description: 'Operations for managing complete project definitions',
+          },
+          {
+            name: 'Function Tools',
+            description: 'Operations for managing function tools',
+          },
+          {
+            name: 'Functions',
+            description: 'Operations for managing functions',
+          },
+          {
+            name: 'OAuth',
+            description: 'OAuth authentication endpoints for MCP tools',
+          },
+          {
+            name: 'Projects',
+            description: 'Operations for managing projects',
+          },
+          {
+            name: 'Sub Agent External Agent Relations',
+            description: 'Operations for managing sub agent external agent relationships',
+          },
+          {
+            name: 'Sub Agent Relations',
+            description: 'Operations for managing sub agent relationships',
+          },
+          {
+            name: 'Sub Agent Team Agent Relations',
+            description: 'Operations for managing sub agent team agent relationships',
+          },
+          {
+            name: 'SubAgent',
+            description: 'Operations for managing sub agents',
+          },
+          {
+            name: 'SubAgent Tool Relations',
+            description: 'Operations for managing sub agent tool relationships',
+          },
+          {
+            name: 'Tools',
+            description: 'Operations for managing MCP tools',
+          },
+        ],
       });
       return c.json(document);
     } catch (error) {

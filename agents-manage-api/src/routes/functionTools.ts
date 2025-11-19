@@ -1,11 +1,10 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createFunctionTool,
   deleteFunctionTool,
   FunctionToolApiInsertSchema,
-  FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionToolListResponse,
   FunctionToolResponse,
@@ -17,12 +16,12 @@ import {
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { createAppWithDb } from '../utils/apps';
 
 const logger = getLogger('functionTools');
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -48,11 +47,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     try {
-      const result = await listFunctionTools(dbClient)({
+      const result = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -71,7 +71,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
@@ -91,10 +91,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
-      const functionTool = await getFunctionToolById(dbClient)({
+      const functionTool = await getFunctionToolById(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });
@@ -147,13 +148,14 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
       const id = body.id || generateId();
 
-      const functionTool = await createFunctionTool(dbClient)({
+      const functionTool = await createFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         data: {
           ...body,
@@ -178,7 +180,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
@@ -205,11 +207,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
-      const functionTool = await updateFunctionTool(dbClient)({
+      const functionTool = await updateFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
         data: body,
@@ -242,7 +245,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],
@@ -257,10 +260,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFunctionTool(dbClient)({
+      const deleted = await deleteFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });

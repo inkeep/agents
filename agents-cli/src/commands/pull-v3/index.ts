@@ -215,54 +215,84 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       logConfig: true,
     });
 
-    // Step 2: Determine project directory - match push command behavior
+    // Step 2: Determine project directory and ID
     s.start('Detecting project...');
     let projectDir: string;
+    let projectId: string;
+    let localProjectForId: any = null;
 
-    if (options.project) {
-      // If project path is explicitly specified, use it and require index.ts
-      projectDir = resolve(process.cwd(), options.project);
-      if (!existsSync(join(projectDir, 'index.ts'))) {
-        s.stop(`No index.ts found in specified project directory: ${projectDir}`);
-        console.error(
-          chalk.yellow('The specified project directory must contain an index.ts file')
+    const currentDir = process.cwd();
+    const hasIndexInCurrent = existsSync(join(currentDir, 'index.ts'));
+
+    if (hasIndexInCurrent) {
+      // We're in a project directory
+      projectDir = currentDir;
+
+      s.start('Loading local project...');
+      try {
+        localProjectForId = await loadProject(projectDir);
+        const localProjectId = localProjectForId.getId();
+
+        if (options.project) {
+          // Validate that --project matches local project ID
+          if (localProjectId !== options.project) {
+            s.stop('Project ID mismatch');
+            console.error(
+              chalk.red(
+                `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`
+              )
+            );
+            console.error(
+              chalk.yellow('Either remove --project flag or ensure it matches the local project ID')
+            );
+            process.exit(1);
+          }
+        }
+
+        projectId = localProjectId;
+        s.stop(`Using local project: ${projectId}`);
+      } catch (error) {
+        s.stop('Failed to load local project');
+        throw new Error(
+          `Could not load local project: ${error instanceof Error ? error.message : String(error)}`
         );
-        process.exit(1);
       }
     } else {
-      // Look for index.ts in current directory (same as push)
-      const currentDir = process.cwd();
-      if (existsSync(join(currentDir, 'index.ts'))) {
-        projectDir = currentDir;
-      } else {
+      // No index.ts in current directory
+      if (!options.project) {
         s.stop('No index.ts found in current directory');
         console.error(
           chalk.yellow(
-            'Please run this command from a directory containing index.ts or use --project <path>'
+            'Please run this command from a directory containing index.ts or use --project <project-id>'
           )
         );
         process.exit(1);
       }
-    }
 
-    s.stop(`Project found: ${projectDir}`);
+      // Try --project as directory path first
+      const projectPath = resolve(currentDir, options.project);
+      const hasIndexInPath = existsSync(join(projectPath, 'index.ts'));
 
-    // Step 3: Load existing project to get project ID (like push does)
-    s.start('Loading local project to get project ID...');
-
-    let localProjectForId: any;
-    let projectId: string;
-
-    try {
-      localProjectForId = await loadProject(projectDir);
-      projectId = localProjectForId.getId();
-
-      s.stop(`Project ID: ${projectId}`);
-    } catch (error) {
-      s.stop('Failed to load local project');
-      throw new Error(
-        `Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`
-      );
+      if (hasIndexInPath) {
+        // --project is a valid directory path
+        projectDir = projectPath;
+        s.start('Loading project from specified path...');
+        try {
+          localProjectForId = await loadProject(projectDir);
+          projectId = localProjectForId.getId();
+          s.stop(`Using project from path: ${projectId}`);
+        } catch (error) {
+          s.stop('Failed to load project from path');
+          throw new Error(
+            `Could not load project from ${projectPath}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      } else {
+        // Treat --project as project ID, create subdirectory
+        projectId = options.project;
+        projectDir = join(currentDir, projectId);
+        s.stop(`Creating new project directory: ${projectDir}`);
+      }
     }
 
     // Step 4: Fetch project data from API

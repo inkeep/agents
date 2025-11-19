@@ -3,9 +3,9 @@ import {
   createMessage,
   createTask,
   type ExecutionContext,
+  executeInBranch,
   generateId,
   getActiveAgentForConversation,
-  getArtifactComponentsForAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -17,7 +17,7 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import dbClient from '../data/db/dbClient.js';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -72,11 +72,11 @@ export class ExecutionHandler {
       emitOperations,
     } = params;
 
-    const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
+    const { tenantId, projectId, agentId, apiKey, baseUrl, ref } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
-    agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
+    agentSessionManager.createSession(requestId, ref, agentId, tenantId, projectId, conversationId);
 
     if (emitOperations) {
       agentSessionManager.enableEmitOperations(requestId);
@@ -89,9 +89,17 @@ export class ExecutionHandler {
 
     let agentConfig: any = null;
     try {
-      agentConfig = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      await executeInBranch(
+        {
+          dbClient,
+          ref,
+        },
+        async (db) => {
+          agentConfig = await getFullAgent(db)({
+            scopes: { tenantId, projectId, agentId },
+          });
+        }
+      );
 
       if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
         agentSessionManager.initializeStatusUpdates(
@@ -127,24 +135,29 @@ export class ExecutionHandler {
       );
 
       try {
-        task = await createTask(dbClient)({
-          id: taskId,
-          tenantId,
-          projectId,
-          agentId,
-          subAgentId: currentAgentId,
-          contextId: conversationId,
-          status: 'pending',
-          metadata: {
-            conversation_id: conversationId,
-            message_id: requestId,
-            stream_request_id: requestId, // This also serves as the AgentSession ID
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            root_sub_agent_id: initialAgentId,
-            sub_agent_id: currentAgentId,
-          },
-        });
+        task = await executeInBranch(
+          { dbClient, ref, autoCommit: true, commitMessage: 'Create task' },
+          async (db) => {
+            return await createTask(db)({
+              id: taskId,
+              tenantId,
+              projectId,
+              agentId,
+              subAgentId: currentAgentId,
+              contextId: conversationId,
+              status: 'pending',
+              metadata: {
+                conversation_id: conversationId,
+                message_id: requestId,
+                stream_request_id: requestId, // This also serves as the AgentSession ID
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                root_sub_agent_id: initialAgentId,
+                sub_agent_id: currentAgentId,
+              },
+            });
+          }
+        );
 
         logger.info(
           {
@@ -161,7 +174,9 @@ export class ExecutionHandler {
             'Task already exists, fetching existing task'
           );
 
-          const existingTask = await getTask(dbClient)({ id: taskId });
+          const existingTask = await executeInBranch({ dbClient, ref }, async (db) => {
+            return await getTask(db)({ id: taskId });
+          });
           if (existingTask) {
             task = existingTask;
             logger.info(
@@ -206,10 +221,13 @@ export class ExecutionHandler {
           `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
         );
 
-        const activeAgent = await getActiveAgentForConversation(dbClient)({
-          scopes: { tenantId, projectId },
-          conversationId,
+        const activeAgent = await executeInBranch({ dbClient, ref }, async (db) => {
+          return await getActiveAgentForConversation(db)({
+            scopes: { tenantId, projectId },
+            conversationId,
+          });
         });
+
         logger.info({ activeAgent }, 'activeAgent');
         if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
           currentAgentId = activeAgent.activeSubAgentId;
@@ -218,6 +236,7 @@ export class ExecutionHandler {
 
         const agentBaseUrl = `${baseUrl}/agents`;
         const a2aClient = new A2AClient(agentBaseUrl, {
+          ref,
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'x-inkeep-tenant-id': tenantId,
@@ -270,17 +289,22 @@ export class ExecutionHandler {
             await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
             if (task) {
-              await updateTask(dbClient)({
-                taskId: task.id,
-                data: {
-                  status: 'failed',
-                  metadata: {
-                    ...task.metadata,
-                    failed_at: new Date().toISOString(),
-                    error: errorMessage,
-                  },
-                },
-              });
+              await executeInBranch(
+                { dbClient, ref, autoCommit: true, commitMessage: 'Update task' },
+                async (db) => {
+                  return await updateTask(db)({
+                    taskId: task.id,
+                    data: {
+                      status: 'failed',
+                      metadata: {
+                        ...task.metadata,
+                        failed_at: new Date().toISOString(),
+                        error: errorMessage,
+                      },
+                    },
+                  });
+                }
+              );
             }
 
             agentSessionManager.endSession(requestId);
@@ -313,27 +337,31 @@ export class ExecutionHandler {
           logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
           // Store the transfer response as an assistant message in conversation history
-          await createMessage(dbClient)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'agent',
-            content: {
-              text: transferReason,
-              parts: [
-                {
-                  kind: 'text',
+          await executeInBranch(
+            { dbClient, ref, autoCommit: true, commitMessage: 'Create transfer message' },
+            async (db) => {
+              return await createMessage(db)({
+                id: generateId(),
+                tenantId,
+                projectId,
+                conversationId,
+                role: 'agent',
+                content: {
                   text: transferReason,
+                  parts: [
+                    {
+                      kind: 'text',
+                      text: transferReason,
+                    },
+                  ],
                 },
-              ],
-            },
-            visibility: 'user-facing',
-            messageType: 'chat',
-            fromSubAgentId: currentAgentId,
-            taskId: task.id,
-          });
-
+                visibility: 'user-facing',
+                messageType: 'chat',
+                fromSubAgentId: currentAgentId,
+                taskId: task.id,
+              });
+            }
+          );
           // Keep the original user message and add a continuation prompt
           currentMessage =
             currentMessage +
@@ -344,6 +372,7 @@ export class ExecutionHandler {
             tenantId,
             threadId: conversationId,
             targetSubAgentId,
+            ref: executionContext.ref,
           });
 
           if (success) {
@@ -410,44 +439,60 @@ export class ExecutionHandler {
               });
 
               // Store the agent response in the database with both text and parts
-              await createMessage(dbClient)({
-                id: generateId(),
-                tenantId,
-                projectId,
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: textContent || undefined,
-                  parts: responseParts.map((part: any) => ({
-                    type: part.kind === 'text' ? 'text' : 'data',
-                    text: part.kind === 'text' ? part.text : undefined,
-                    data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-                  })),
+              await executeInBranch(
+                {
+                  dbClient,
+                  ref: executionContext.ref,
+                  autoCommit: true,
+                  commitMessage: 'Create message',
                 },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentAgentId,
-                taskId: task.id,
-              });
+                async (db) => {
+                  await createMessage(db)({
+                    id: generateId(),
+                    tenantId,
+                    projectId,
+                    conversationId,
+                    role: 'agent',
+                    content: {
+                      text: textContent || undefined,
+                      parts: responseParts.map((part: any) => ({
+                        type: part.kind === 'text' ? 'text' : 'data',
+                        text: part.kind === 'text' ? part.text : undefined,
+                        data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
+                      })),
+                    },
+                    visibility: 'user-facing',
+                    messageType: 'chat',
+                    fromSubAgentId: currentAgentId,
+                    taskId: task.id,
+                  });
+                }
+              );
 
               // Mark task as completed
               const updateTaskStart = Date.now();
-              await updateTask(dbClient)({
-                taskId: task.id,
-                data: {
-                  status: 'completed',
-                  metadata: {
-                    ...task.metadata,
-                    completed_at: new Date(),
-                    response: {
-                      text: textContent,
-                      parts: responseParts,
-                      hasText: !!textContent,
-                      hasData: responseParts.some((p: any) => p.kind === 'data'),
+              await executeInBranch(
+                { dbClient, ref, autoCommit: true, commitMessage: 'Update task' },
+                async (db) => {
+                  return await updateTask(db)({
+                    taskId: task.id,
+                    data: {
+                      status: 'completed',
+                      metadata: {
+                        ...task.metadata,
+                        completed_at: new Date(),
+                        response: {
+                          text: textContent,
+                          parts: responseParts,
+                          hasText: !!textContent,
+                          hasData: responseParts.some((p: any) => p.kind === 'data'),
+                        },
+                      },
                     },
-                  },
-                },
-              });
+                  });
+                }
+              );
+
               const updateTaskEnd = Date.now();
               logger.info(
                 { duration: updateTaskEnd - updateTaskStart },
@@ -500,17 +545,22 @@ export class ExecutionHandler {
           await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
 
           if (task) {
-            await updateTask(dbClient)({
-              taskId: task.id,
-              data: {
-                status: 'failed',
-                metadata: {
-                  ...task.metadata,
-                  failed_at: new Date(),
-                  error: errorMessage,
-                },
-              },
-            });
+            await executeInBranch(
+              { dbClient, ref, autoCommit: true, commitMessage: 'Update task' },
+              async (db) => {
+                return await updateTask(db)({
+                  taskId: task.id,
+                  data: {
+                    status: 'failed',
+                    metadata: {
+                      ...task.metadata,
+                      failed_at: new Date(),
+                      error: errorMessage,
+                    },
+                  },
+                });
+              }
+            );
           }
 
           agentSessionManager.endSession(requestId);
@@ -528,17 +578,22 @@ export class ExecutionHandler {
 
       // Mark task as failed
       if (task) {
-        await updateTask(dbClient)({
-          taskId: task.id,
-          data: {
-            status: 'failed',
-            metadata: {
-              ...task.metadata,
-              failed_at: new Date(),
-              error: errorMessage,
-            },
-          },
-        });
+        await executeInBranch(
+          { dbClient, ref, autoCommit: true, commitMessage: 'Update task' },
+          async (db) => {
+            return await updateTask(db)({
+              taskId: task.id,
+              data: {
+                status: 'failed',
+                metadata: {
+                  ...task.metadata,
+                  failed_at: new Date(),
+                  error: errorMessage,
+                },
+              },
+            });
+          }
+        );
       }
       // Clean up AgentSession and streamHelper on error
       agentSessionManager.endSession(requestId);
@@ -556,17 +611,22 @@ export class ExecutionHandler {
 
       // Mark task as failed
       if (task) {
-        await updateTask(dbClient)({
-          taskId: task.id,
-          data: {
-            status: 'failed',
-            metadata: {
-              ...task.metadata,
-              failed_at: new Date(),
-              error: errorMessage,
-            },
-          },
-        });
+        await executeInBranch(
+          { dbClient, ref, autoCommit: true, commitMessage: 'Update task' },
+          async (db) => {
+            return await updateTask(db)({
+              taskId: task.id,
+              data: {
+                status: 'failed',
+                metadata: {
+                  ...task.metadata,
+                  failed_at: new Date(),
+                  error: errorMessage,
+                },
+              },
+            });
+          }
+        );
       }
       // Clean up AgentSession and streamHelper on exception
       agentSessionManager.endSession(requestId);

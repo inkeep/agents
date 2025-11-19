@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { ResolvedRef } from '../dolt/ref';
 import type { ApiKeySelect } from '../index';
 import type {
   McpTransportConfigSchema,
@@ -10,7 +11,13 @@ import type {
 
 // Utility types
 export type MessageVisibility = 'user-facing' | 'internal' | 'system' | 'external';
-export type MessageType = 'chat' | 'a2a-request' | 'a2a-response' | 'task-update' | 'tool-call';
+export type MessageType =
+  | 'chat'
+  | 'a2a-request'
+  | 'a2a-response'
+  | 'task-update'
+  | 'tool-call'
+  | 'tool-result';
 export type MessageRole = 'user' | 'agent' | 'system';
 export type MessageMode = 'full' | 'scoped' | 'none';
 
@@ -47,6 +54,8 @@ export type SubAgentScopeConfig = AgentScopeConfig & {
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
+  delegationId?: string;
+  isDelegated?: boolean;
 }
 
 export type ConversationHistoryConfig = {
@@ -260,6 +269,8 @@ export interface ExecutionContext {
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
+  /** Ref extracted from request headers */
+  ref: ResolvedRef;
   /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
   subAgentId?: string;
   /** Metadata for the execution context */

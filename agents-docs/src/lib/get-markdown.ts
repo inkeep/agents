@@ -1,5 +1,5 @@
-import type { InferPageType } from 'fumadocs-core/source';
 import path from 'node:path';
+import type { InferPageType } from 'fumadocs-core/source';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
@@ -20,4 +20,3 @@ export async function getMarkdown(page: InferPageType<typeof source>): Promise<s
 
   return String(processed.value);
 }
-

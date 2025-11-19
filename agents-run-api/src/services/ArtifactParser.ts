@@ -1,4 +1,4 @@
-import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
+import type { ArtifactComponentApiInsert, ResolvedRef } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import {
   type ArtifactCreateRequest,
@@ -72,6 +72,7 @@ export class ArtifactParser {
 
   constructor(
     tenantId: string,
+    ref: ResolvedRef,
     options?: {
       sessionId?: string;
       taskId?: string;
@@ -90,7 +91,7 @@ export class ArtifactParser {
         tenantId,
         ...options,
       };
-      this.artifactService = new ArtifactService(context);
+      this.artifactService = new ArtifactService(context, ref);
     }
   }
 

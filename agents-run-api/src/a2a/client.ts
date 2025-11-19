@@ -10,6 +10,7 @@ import type {
   JSONRPCResult,
   Message,
   MessageSendParams,
+  ResolvedRef,
   SendMessageResponse,
   SendStreamingMessageResponse,
   SendStreamingMessageSuccessResponse,
@@ -20,7 +21,7 @@ import type {
   TaskPushNotificationConfig,
   TaskQueryParams,
   TaskStatusUpdateEvent,
-} from '@inkeep/agents-core'; // Updated to use the consolidated schema
+} from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 
 const logger = getLogger('a2aClient');
@@ -45,6 +46,7 @@ export type RetryConfig =
 
 export interface A2AClientOptions {
   retryConfig?: RetryConfig;
+  ref?: ResolvedRef;
   headers?: Record<string, string>;
 }
 
@@ -161,9 +163,19 @@ export class A2AClient {
    */
   private async _fetchAndCacheAgentCard(): Promise<AgentCard> {
     const agentCardUrl = `${this.agentBaseUrl}/.well-known/agent.json`;
-    getLogger('a2a').info({ agentCardUrl, agentBaseUrl: this.agentBaseUrl }, 'agentCardUrl');
+
+    // Add ref as query parameter if it exists
+    const url = new URL(agentCardUrl);
+    if (this.options.ref) {
+      url.searchParams.set('ref', this.options.ref.name);
+    }
+
+    getLogger('a2a').info(
+      { agentCardUrl: url.toString(), agentBaseUrl: this.agentBaseUrl },
+      'agentCardUrl'
+    );
     try {
-      const response = await fetch(agentCardUrl, {
+      const response = await fetch(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -172,7 +184,7 @@ export class A2AClient {
 
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch Agent Card from ${agentCardUrl}: ${response.status} ${response.statusText}`
+          `Failed to fetch Agent Card from ${url.toString()}: ${response.status} ${response.statusText}`
         );
       }
       const agentCard: AgentCard = await response.json();
@@ -201,7 +213,14 @@ export class A2AClient {
     if (agentBaseUrl) {
       const specificAgentBaseUrl = agentBaseUrl.replace(/\/$/, '');
       const agentCardUrl = `${specificAgentBaseUrl}/.well-known/agent.json`;
-      const response = await fetch(agentCardUrl, {
+
+      // Add ref as query parameter if it exists
+      const url = new URL(agentCardUrl);
+      if (this.options.ref) {
+        url.searchParams.set('ref', this.options.ref.name);
+      }
+
+      const response = await fetch(url.toString(), {
         headers: {
           Accept: 'application/json',
           ...(this.options.headers || {}),
@@ -209,7 +228,7 @@ export class A2AClient {
       });
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch Agent Card from ${agentCardUrl}: ${response.status} ${response.statusText}`
+          `Failed to fetch Agent Card from ${url.toString()}: ${response.status} ${response.statusText}`
         );
       }
       return (await response.json()) as AgentCard;
@@ -219,19 +238,31 @@ export class A2AClient {
 
   /**
    * Gets the RPC service endpoint URL. Ensures the agent card has been fetched first.
+   * Adds ref as query parameter if it exists.
    * @returns A Promise that resolves to the service endpoint URL string.
    */
   private async _getServiceEndpoint(): Promise<string> {
+    let endpoint: string;
     if (this.serviceEndpointUrl) {
-      return this.serviceEndpointUrl;
+      endpoint = this.serviceEndpointUrl;
+    } else {
+      await this.agentCardPromise;
+      if (!this.serviceEndpointUrl) {
+        throw new Error(
+          'Agent Card URL for RPC endpoint is not available. Fetching might have failed.'
+        );
+      }
+      endpoint = this.serviceEndpointUrl;
     }
-    await this.agentCardPromise;
-    if (!this.serviceEndpointUrl) {
-      throw new Error(
-        'Agent Card URL for RPC endpoint is not available. Fetching might have failed.'
-      );
+
+    // Add ref as query parameter if it exists
+    if (this.options.ref) {
+      const url = new URL(endpoint);
+      url.searchParams.set('ref', this.options.ref.name);
+      return url.toString();
     }
-    return this.serviceEndpointUrl;
+
+    return endpoint;
   }
 
   /**

@@ -209,9 +209,12 @@ importers:
 
   agents-docs:
     dependencies:
+      '@inkeep/agents-cli':
+        specifier: ^0.33.2
+        version: 0.33.2(@electric-sql/pglite@0.3.13)(@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0)))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(zod@4.1.12)
       '@inkeep/agents-ui':
-        specifier: ^0.15.2
-        version: 0.15.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.3
+        version: 0.15.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@inkeep/cxkit-react':
         specifier: ^0.5.98
         version: 0.5.104(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@4.1.12)
@@ -387,6 +390,9 @@ importers:
       openid-client:
         specifier: ^6.6.4
         version: 6.8.1
+      pg:
+        specifier: ^8.16.3
+        version: 8.16.3
       pino:
         specifier: ^9.7.0
         version: 9.14.0
@@ -403,6 +409,9 @@ importers:
       '@types/node':
         specifier: ^20.11.24
         version: 20.19.24
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.15.6
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
@@ -446,6 +455,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 2.0.11
         version: 2.0.11(zod@4.1.12)
+      '@ai-sdk/openai-compatible':
+        specifier: ^1.0.27
+        version: 1.0.27(zod@4.1.12)
       '@ai-sdk/react':
         specifier: 2.0.11
         version: 2.0.11(react@19.2.0)(zod@4.1.12)
@@ -714,6 +726,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 2.0.11
         version: 2.0.11(zod@4.1.12)
+      '@ai-sdk/openai-compatible':
+        specifier: ^1.0.27
+        version: 1.0.27(zod@4.1.12)
       '@ai-sdk/react':
         specifier: 2.0.11
         version: 2.0.11(react@19.2.0)(zod@4.1.12)
@@ -1205,6 +1220,12 @@ packages:
     peerDependencies:
       zod: ^4.1.11
 
+  '@ai-sdk/openai-compatible@1.0.27':
+    resolution: {integrity: sha512-bpYruxVLhrTbVH6CCq48zMJNeHu6FmHtEedl9FXckEgcIEAi036idFhJlcRwC1jNCwlacbzb8dPD7OAH1EKJaQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^4.1.11
+
   '@ai-sdk/openai@2.0.11':
     resolution: {integrity: sha512-t4i+vS825EC0Gc2DdTsC5UkXIu1ScOi363noTD8DuFZp6WFPHRnW6HCyEQKxEm6cNjv3BW89rdXWqq932IFJhA==}
     engines: {node: '>=18'}
@@ -1237,6 +1258,12 @@ packages:
 
   '@ai-sdk/provider-utils@3.0.16':
     resolution: {integrity: sha512-lsWQY9aDXHitw7C1QRYIbVGmgwyT98TF3MfM8alNIXKpdJdi+W782Rzd9f1RyOfgRmZ08gJ2EYNDhWNK7RqpEA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^4.1.11
+
+  '@ai-sdk/provider-utils@3.0.17':
+    resolution: {integrity: sha512-TR3Gs4I3Tym4Ll+EPdzRdvo/rc8Js6c4nVhFLuvGLX/Y4V9ZcQMa/HTiYsHEgmYrf1zVi6Q145UEZUfleOwOjw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^4.1.11
@@ -2459,8 +2486,20 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@inkeep/agents-cli@0.33.2':
+    resolution: {integrity: sha512-utbZwH3fQ/CphXo7eRrbEUI4TbdIwodKjR7gCLWX4UWnjVWa7Vb2P+jr2ThRqBkcRMV8sYOjLTPKRed8B/htlw==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
+    peerDependencies:
+      '@inkeep/agents-manage-ui': '*'
+      zod: ^4.1.11
+
   '@inkeep/agents-core@0.30.4':
     resolution: {integrity: sha512-ngb3lb9Bvagmh7uALQo2dh7i0GeVbkFujKMK4TVxW3gQgNBs9bTz84t+4BhDImjbLcqlJq8UdRY1neTGnkaDSg==}
+    engines: {node: '>=22.0.0'}
+
+  '@inkeep/agents-core@0.33.2':
+    resolution: {integrity: sha512-DJU1uNdaWTOw2dOT+EdD9hvbEtA7Sry0GVMp80uu8tjUfeWYeNspVxF9V7Azw+YlP0QiVGdJZEP5YHrORqTIaw==}
     engines: {node: '>=22.0.0'}
 
   '@inkeep/agents-manage-api@0.30.4':
@@ -2475,11 +2514,18 @@ packages:
     resolution: {integrity: sha512-t4yOP9Wh3nwLgpxNqKg72v95GM7ai+RnZSC12QhE6gg5Q/2wzI+KZ3ZEWfcOOjL4rHYJDl1j5YJ2OEKoLK5grA==}
     engines: {node: '>=22.0.0'}
 
+  '@inkeep/agents-sdk@0.33.2':
+    resolution: {integrity: sha512-mY4EvvLEKL2wjVNXyVXIg1+Er8agHn3HJFT5fsXo8gREK27JPBCESFq7L9fGjrs/xQHhyfBvOdOcvDrccc5+SQ==}
+    engines: {node: '>=22.0.0'}
+
   '@inkeep/agents-ui@0.15.1':
     resolution: {integrity: sha512-SDULVVkXwDwwgpj9yE9sLgVEq9bXzwYiuUtnxPD5i1NYsdOgYi10Xy4INak6o5BZiBKld18aOvH3rnu2DJRA1Q==}
 
   '@inkeep/agents-ui@0.15.2':
     resolution: {integrity: sha512-7oZjlkUTfEqyOu3BF29LbqOvGARpezZPj/Y77FwPg3K5vbAvCkKQV2d+rC4WutP8IfDuGUC88J8PureaX0xHRQ==}
+
+  '@inkeep/agents-ui@0.15.3':
+    resolution: {integrity: sha512-VysrxvjzkOTpDxxt1pkZg2omUL05YQpsPUHadGwIUWoU1ApmPApmpzEMOVr8PHck5FhYa8QYEgY3STeFYDM8ZA==}
 
   '@inkeep/cxkit-color-mode@0.5.104':
     resolution: {integrity: sha512-IFHSCRPRLZzp2FogR0NQx6ukQ8Vg7Azx1BRn+FPHnC+BPjs/tE2bpPleU99JYQUl3FYGfEVr8EMsmTCImXpxXQ==}
@@ -11025,6 +11071,12 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.16(zod@4.1.12)
       zod: 4.1.12
 
+  '@ai-sdk/openai-compatible@1.0.27(zod@4.1.12)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.17(zod@4.1.12)
+      zod: 4.1.12
+
   '@ai-sdk/openai@2.0.11(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
@@ -11060,6 +11112,13 @@ snapshots:
       zod: 4.1.12
 
   '@ai-sdk/provider-utils@3.0.16(zod@4.1.12)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 4.1.12
+
+  '@ai-sdk/provider-utils@3.0.17(zod@4.1.12)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
@@ -11199,7 +11258,7 @@ snapshots:
       '@babel/types': 7.28.5
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11251,7 +11310,7 @@ snapshots:
       '@babel/core': 7.28.5
       '@babel/helper-compilation-targets': 7.27.2
       '@babel/helper-plugin-utils': 7.27.1
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       lodash.debounce: 4.0.8
       resolve: 1.22.11
     transitivePeerDependencies:
@@ -11911,7 +11970,7 @@ snapshots:
       '@babel/parser': 7.28.5
       '@babel/template': 7.27.2
       '@babel/types': 7.28.5
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -12392,7 +12451,7 @@ snapshots:
       '@antfu/install-pkg': 1.1.0
       '@antfu/utils': 9.3.0
       '@iconify/types': 2.0.0
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       globals: 15.15.0
       kolorist: 1.8.0
       local-pkg: 1.1.2
@@ -12489,6 +12548,80 @@ snapshots:
   '@img/sharp-win32-x64@0.34.4':
     optional: true
 
+  '@inkeep/agents-cli@0.33.2(@electric-sql/pglite@0.3.13)(@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0)))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(zod@4.1.12)':
+    dependencies:
+      '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
+      '@ai-sdk/google': 2.0.28(zod@4.1.12)
+      '@ai-sdk/openai': 2.0.11(zod@4.1.12)
+      '@babel/parser': 7.28.5
+      '@babel/types': 7.28.5
+      '@clack/prompts': 0.11.0
+      '@inkeep/agents-core': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
+      '@inkeep/agents-manage-ui': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0))
+      '@inkeep/agents-sdk': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
+      '@opentelemetry/api-logs': 0.206.0
+      '@opentelemetry/instrumentation': 0.206.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-logs': 0.206.0(@opentelemetry/api@1.9.0)
+      '@vercel/otel': 2.1.0(@opentelemetry/api-logs@0.206.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.206.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.206.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))
+      ai: 5.0.11(zod@4.1.12)
+      ast-types: 0.14.2
+      chalk: 5.6.2
+      cli-table3: 0.6.5
+      commander: 14.0.2
+      degit: 2.8.4
+      dotenv: 17.2.3
+      drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
+      find-up: 7.0.0
+      fs-extra: 11.3.2
+      json-schema-to-zod: 2.6.1
+      langfuse-vercel: 3.38.6(ai@5.0.11(zod@4.1.12))
+      open: 10.2.0
+      pg: 8.16.3
+      picocolors: 1.1.1
+      pino: 9.14.0
+      recast: 0.23.11
+      ts-morph: 26.0.0
+      tsx: 4.20.6
+      zod: 4.1.12
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cfworker/json-schema'
+      - '@cloudflare/workers-types'
+      - '@electric-sql/pglite'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/api'
+      - '@opentelemetry/core'
+      - '@opentelemetry/resources'
+      - '@opentelemetry/sdk-metrics'
+      - '@opentelemetry/sdk-trace-base'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - better-sqlite3
+      - bun-types
+      - debug
+      - encoding
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg-native
+      - postgres
+      - prisma
+      - sql.js
+      - sqlite3
+      - supports-color
+
   '@inkeep/agents-core@0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)':
     dependencies:
       '@hono/node-server': 1.19.6(hono@4.10.4)
@@ -12560,6 +12693,77 @@ snapshots:
       - sqlite3
       - supports-color
       - utf-8-validate
+
+  '@inkeep/agents-core@0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)':
+    dependencies:
+      '@electric-sql/pglite': 0.3.13
+      '@hono/node-server': 1.19.6(hono@4.10.4)
+      '@hono/zod-openapi': 1.1.4(hono@4.10.4)(zod@4.1.12)
+      '@modelcontextprotocol/sdk': 1.21.0
+      '@nangohq/node': 0.69.9
+      '@nangohq/types': 0.69.9
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/auto-instrumentations-node': 0.62.2(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
+      '@opentelemetry/baggage-span-processor': 0.4.2(@opentelemetry/api@1.9.0)
+      '@opentelemetry/exporter-jaeger': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/exporter-trace-otlp-proto': 0.203.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-metrics': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-node': 0.203.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-node': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/semantic-conventions': 1.37.0
+      ai: 5.0.11(zod@4.1.12)
+      ajv: 8.17.1
+      ajv-formats: 3.0.1(ajv@8.17.1)
+      dotenv: 17.2.3
+      dotenv-expand: 12.0.3
+      drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
+      drizzle-zod: 0.8.3(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3))(zod@4.1.12)
+      exit-hook: 4.0.0
+      find-up: 7.0.0
+      hono: 4.10.4
+      jmespath: 0.16.0
+      jose: 6.1.0
+      nanoid: 5.1.6
+      pg: 8.16.3
+      pino: 9.14.0
+      pino-pretty: 13.1.2
+      ts-pattern: 5.9.0
+      zod: 4.1.12
+    optionalDependencies:
+      keytar: 7.9.0
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cfworker/json-schema'
+      - '@cloudflare/workers-types'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/core'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - better-sqlite3
+      - bun-types
+      - debug
+      - encoding
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg-native
+      - postgres
+      - prisma
+      - sql.js
+      - sqlite3
+      - supports-color
 
   '@inkeep/agents-manage-api@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)':
     dependencies:
@@ -12738,6 +12942,127 @@ snapshots:
       - use-sync-external-store
       - utf-8-validate
 
+  '@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0))':
+    dependencies:
+      '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
+      '@ai-sdk/gateway': 1.0.41(zod@4.1.12)
+      '@ai-sdk/google': 2.0.28(zod@4.1.12)
+      '@ai-sdk/openai': 2.0.11(zod@4.1.12)
+      '@ai-sdk/react': 2.0.11(react@19.1.1)(zod@4.1.12)
+      '@hookform/resolvers': 5.2.2(react-hook-form@7.65.0(react@19.1.1))
+      '@inkeep/agents-core': 0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
+      '@inkeep/agents-manage-api': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
+      '@inkeep/agents-run-api': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)(react@19.1.1)
+      '@inkeep/agents-ui': 0.15.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@lezer/highlight': 1.2.3
+      '@nangohq/frontend': 0.69.5
+      '@nangohq/node': 0.69.9
+      '@nangohq/types': 0.69.9
+      '@openrouter/ai-sdk-provider': 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
+      '@radix-ui/react-alert-dialog': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-collapsible': 1.1.12(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-label': 2.1.7(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-popover': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-radio-group': 1.3.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-scroll-area': 1.2.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-select': 2.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-separator': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.2)(react@19.1.1)
+      '@radix-ui/react-switch': 1.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@shikijs/monaco': 3.14.0
+      '@sinclair/typebox': 0.34.41
+      '@types/dagre': 0.7.53
+      '@xyflow/react': 12.9.1(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      ai: 5.0.11(zod@4.1.12)
+      axios: 1.13.1
+      axios-retry: 4.5.0(axios@1.13.1)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      cmdk: 1.1.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      dagre: 0.8.5
+      date-fns: 4.1.0
+      lucide-react: 0.539.0(react@19.1.1)
+      monaco-editor: 0.54.0
+      nanoid: 5.1.6
+      next: 15.5.4(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      next-themes: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      nuqs: 2.7.2(next@15.5.4(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
+      pino: 9.14.0
+      pino-pretty: 13.1.2
+      react: 19.1.1
+      react-day-picker: 9.11.1(react@19.1.1)
+      react-dom: 19.1.1(react@19.1.1)
+      react-error-boundary: 6.0.0(react@19.1.1)
+      react-hook-form: 7.65.0(react@19.1.1)
+      react-resizable-panels: 3.0.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react-runner: 1.0.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      recharts: 2.15.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      remark-supersub: 1.0.0
+      shiki: 3.14.0
+      sonner: 2.0.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      streamdown: 1.4.0(@types/react@19.2.2)(react@19.1.1)
+      tailwind-merge: 3.3.1
+      use-stick-to-bottom: 1.1.1(react@19.1.1)
+      zod: 4.1.12
+      zustand: 5.0.8(@types/react@19.2.2)(react@19.1.1)(use-sync-external-store@1.6.0(react@19.2.0))
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@babel/core'
+      - '@cfworker/json-schema'
+      - '@cloudflare/workers-types'
+      - '@electric-sql/pglite'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/api'
+      - '@opentelemetry/core'
+      - '@planetscale/database'
+      - '@playwright/test'
+      - '@prisma/client'
+      - '@remix-run/react'
+      - '@tanstack/react-router'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/react'
+      - '@types/react-dom'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - babel-plugin-macros
+      - babel-plugin-react-compiler
+      - bare-abort-controller
+      - better-sqlite3
+      - bufferutil
+      - bun-types
+      - debug
+      - encoding
+      - expo-sqlite
+      - gel
+      - immer
+      - knex
+      - kysely
+      - mysql2
+      - pg
+      - postgres
+      - prisma
+      - react-native-b4a
+      - react-router
+      - react-router-dom
+      - sass
+      - sql.js
+      - sqlite3
+      - supports-color
+      - use-sync-external-store
+      - utf-8-validate
+
   '@inkeep/agents-run-api@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)(react@19.1.1)':
     dependencies:
       '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
@@ -12820,6 +13145,49 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  '@inkeep/agents-sdk@0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)':
+    dependencies:
+      '@inkeep/agents-core': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
+      '@yarnpkg/lockfile': 1.1.0
+      esbuild: 0.25.9
+      js-yaml: 4.1.0
+      nanoid: 5.1.6
+      typescript: 5.9.3
+      zod: 4.1.12
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cfworker/json-schema'
+      - '@cloudflare/workers-types'
+      - '@libsql/client'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/core'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - better-sqlite3
+      - bun-types
+      - debug
+      - encoding
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg-native
+      - postgres
+      - prisma
+      - sql.js
+      - sqlite3
+      - supports-color
+
   '@inkeep/agents-ui@0.15.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
@@ -12889,6 +13257,74 @@ snapshots:
       - supports-color
 
   '@inkeep/agents-ui@0.15.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@ai-sdk/openai': 2.0.4(zod@4.1.12)
+      '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.12)
+      '@ai-sdk/ui-utils': 1.2.11(zod@4.1.12)
+      '@radix-ui/number': 1.1.1
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-avatar': 1.1.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-checkbox': 1.1.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-collection': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-context': 1.1.3(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-direction': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-dismissable-layer': 1.1.11(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-focus-guards': 1.1.3(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-focus-scope': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-id': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-popover': 1.1.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-popper': 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-portal': 1.1.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-presence': 1.1.5(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-scroll-area': 1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-tooltip': 1.1.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@zag-js/focus-trap': 1.27.1
+      '@zag-js/presence': 1.27.1
+      '@zag-js/react': 1.27.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@zag-js/remove-scroll': 1.26.4
+      ai: 5.0.5(zod@4.1.12)
+      altcha-lib: 1.3.0
+      aria-hidden: 1.2.6
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      colorjs.io: 0.5.2
+      dequal: 2.0.3
+      humps: 2.0.1
+      lucide-react: 0.503.0(react@19.2.0)
+      marked: 15.0.12
+      merge-anything: 5.1.7
+      openai: 4.78.1(zod@4.1.12)
+      prism-react-renderer: 2.4.1(react@19.2.0)
+      react-error-boundary: 6.0.0(react@19.2.0)
+      react-hook-form: 7.54.2(react@19.2.0)
+      react-markdown: 9.0.3(@types/react@19.2.2)(react@19.2.0)
+      react-remove-scroll: 2.7.1(@types/react@19.2.2)(react@19.2.0)
+      react-svg: 16.3.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-textarea-autosize: 8.5.7(@types/react@19.2.2)(react@19.2.0)
+      rehype-raw: 7.0.0
+      remark-gfm: 4.0.1
+      remark-supersub: 1.0.0
+      tailwind-merge: 2.6.0
+      unist-util-visit: 5.0.0
+      use-sync-external-store: 1.6.0(react@19.2.0)
+      zod: 4.1.12
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
+
+  '@inkeep/agents-ui@0.15.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
       '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.12)
@@ -17233,7 +17669,7 @@ snapshots:
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 24.0.7
+      '@types/node': 20.19.24
       form-data: 4.0.4
 
   '@types/node@12.20.55': {}
@@ -17274,7 +17710,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 24.10.0
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
@@ -17311,7 +17747,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 24.10.0
 
   '@types/yarnpkg__lockfile@1.1.9': {}
 
@@ -17374,7 +17810,7 @@ snapshots:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 1.0.2
       ast-v8-to-istanbul: 0.3.8
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-lib-source-maps: 5.0.6
@@ -17432,7 +17868,7 @@ snapshots:
 
   '@vitest/web-worker@3.1.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))':
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
@@ -17851,7 +18287,7 @@ snapshots:
     dependencies:
       bytes: 3.1.2
       content-type: 1.0.5
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       http-errors: 2.0.0
       iconv-lite: 0.6.3
       on-finished: 2.4.1
@@ -18866,7 +19302,7 @@ snapshots:
 
   esbuild-register@3.6.0(esbuild@0.25.9):
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       esbuild: 0.25.9
     transitivePeerDependencies:
       - supports-color
@@ -19047,7 +19483,7 @@ snapshots:
       content-type: 1.0.5
       cookie: 0.7.2
       cookie-signature: 1.2.2
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
@@ -19152,7 +19588,7 @@ snapshots:
 
   finalhandler@2.1.0:
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       encodeurl: 2.0.0
       escape-html: 1.0.3
       on-finished: 2.4.1
@@ -19180,7 +19616,7 @@ snapshots:
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
 
   for-each@0.3.5:
     dependencies:
@@ -19441,7 +19877,7 @@ snapshots:
   gel@2.1.1:
     dependencies:
       '@petamoriken/float16': 3.9.3
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       env-paths: 3.0.0
       semver: 7.7.3
       shell-quote: 1.8.3
@@ -19786,7 +20222,7 @@ snapshots:
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -19799,7 +20235,7 @@ snapshots:
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -20076,7 +20512,7 @@ snapshots:
   istanbul-lib-source-maps@5.0.6:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       istanbul-lib-coverage: 3.2.2
     transitivePeerDependencies:
       - supports-color
@@ -20997,7 +21433,7 @@ snapshots:
   micromark@4.0.2:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       decode-named-character-reference: 1.2.0
       devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
@@ -22389,7 +22825,7 @@ snapshots:
 
   require-in-the-middle@7.5.2:
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       module-details-from-path: 1.0.4
       resolve: 1.22.11
     transitivePeerDependencies:
@@ -22397,7 +22833,7 @@ snapshots:
 
   require-in-the-middle@8.0.1:
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       module-details-from-path: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -22469,7 +22905,7 @@ snapshots:
 
   router@2.2.0:
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       depd: 2.0.0
       is-promise: 4.0.0
       parseurl: 1.3.3
@@ -22551,7 +22987,7 @@ snapshots:
 
   send@1.2.0:
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
@@ -22810,7 +23246,7 @@ snapshots:
       arg: 5.0.2
       bluebird: 3.7.2
       check-more-types: 2.24.0
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       execa: 5.1.1
       lazy-ass: 1.6.0
       ps-tree: 1.2.0
@@ -23236,7 +23672,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       esbuild: 0.25.9
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -23630,7 +24066,7 @@ snapshots:
   vite-node@3.2.4(@types/node@20.19.24)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 7.1.12(@types/node@20.19.24)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
@@ -23651,7 +24087,7 @@ snapshots:
   vite-node@3.2.4(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1):
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 7.1.12(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
@@ -23671,7 +24107,7 @@ snapshots:
 
   vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@7.2.0(@types/node@20.19.24)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)):
     dependencies:
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       globrex: 0.1.2
       tsconfck: 3.1.6(typescript@5.9.3)
     optionalDependencies:
@@ -23776,7 +24212,7 @@ snapshots:
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
       chai: 5.3.3
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       expect-type: 1.2.2
       magic-string: 0.30.19
       pathe: 2.0.3
@@ -23819,7 +24255,7 @@ snapshots:
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
       chai: 5.3.3
-      debug: 4.4.3(supports-color@8.1.1)
+      debug: 4.4.3(supports-color@5.5.0)
       expect-type: 1.2.2
       magic-string: 0.30.19
       pathe: 2.0.3
@@ -24081,6 +24517,12 @@ snapshots:
       '@types/react': 19.2.2
       react: 19.1.1
       use-sync-external-store: 1.6.0(react@19.1.1)
+
+  zustand@5.0.8(@types/react@19.2.2)(react@19.1.1)(use-sync-external-store@1.6.0(react@19.2.0)):
+    optionalDependencies:
+      '@types/react': 19.2.2
+      react: 19.1.1
+      use-sync-external-store: 1.6.0(react@19.2.0)
 
   zustand@5.0.8(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0)):
     optionalDependencies:

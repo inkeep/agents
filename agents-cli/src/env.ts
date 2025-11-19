@@ -17,7 +17,7 @@ const envSchema = z.object({
   // Secrets loaded from .env files (relative to where CLI is executed)
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
-  GOOGLE_API_KEY: z.string().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   // Langfuse configuration for LLM observability
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_PUBLIC_KEY: z.string().optional(),

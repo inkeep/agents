@@ -7,22 +7,28 @@ import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
+import { fetchBranchesWithAgent } from '@/lib/api/branches';
 import { createLookup } from '@/lib/utils';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 export const dynamic = 'force-dynamic';
 
 async function AgentPage({
   params,
+  searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>) {
   const { agentId, tenantId, projectId } = await params;
+  const { ref } = await getValidSearchParamsAsync(searchParams);
+  const currentBranch = ref || 'main';
 
-  const [agent, dataComponents, artifactComponents, credentials, tools, externalAgents] =
+  const [agent, dataComponents, artifactComponents, credentials, tools, externalAgents, branches] =
     await Promise.all([
-      getFullAgentAction(tenantId, projectId, agentId),
-      fetchDataComponentsAction(tenantId, projectId),
-      fetchArtifactComponentsAction(tenantId, projectId),
-      fetchCredentialsAction(tenantId, projectId),
-      fetchToolsAction(tenantId, projectId),
-      fetchExternalAgentsAction(tenantId, projectId),
+      getFullAgentAction(tenantId, projectId, agentId, ref),
+      fetchDataComponentsAction(tenantId, projectId, ref),
+      fetchArtifactComponentsAction(tenantId, projectId, ref),
+      fetchCredentialsAction(tenantId, projectId, ref),
+      fetchToolsAction(tenantId, projectId, ref),
+      fetchExternalAgentsAction(tenantId, projectId, ref),
+      fetchBranchesWithAgent(tenantId, projectId, agentId),
     ]);
 
   if (!agent.success) {
@@ -80,6 +86,8 @@ async function AgentPage({
         toolLookup={toolLookup}
         credentialLookup={credentialLookup}
         externalAgentLookup={externalAgentLookup}
+        availableBranches={branches.data}
+        currentBranch={currentBranch}
       />
     </BodyTemplate>
   );

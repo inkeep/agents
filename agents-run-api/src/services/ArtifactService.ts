@@ -1,8 +1,10 @@
 import {
   type ArtifactComponentApiInsert,
+  executeInBranch,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
+  type ResolvedRef,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
@@ -64,7 +66,10 @@ export class ArtifactService {
   private createdArtifacts: Map<string, any> = new Map();
   private static selectorCache = new Map<string, string>();
 
-  constructor(private context: ArtifactServiceContext) {}
+  constructor(
+    private context: ArtifactServiceContext,
+    private ref: ResolvedRef
+  ) {}
 
   /**
    * Clear static caches to prevent memory leaks between sessions
@@ -87,23 +92,47 @@ export class ArtifactService {
     const artifacts = new Map<string, any>();
 
     try {
-      const taskIds = await listTaskIdsByContextId(dbClient)({
-        contextId: contextId,
-      });
+      const taskIds = await executeInBranch(
+        {
+          dbClient,
+          ref: this.ref,
+        },
+        async (db) => {
+          return await listTaskIdsByContextId(db)({
+            contextId: contextId,
+          });
+        }
+      );
 
       for (const taskId of taskIds) {
-        const task = await getTask(dbClient)({
-          id: taskId,
-        });
+        const task = await executeInBranch(
+          {
+            dbClient,
+            ref: this.ref,
+          },
+          async (db) => {
+            return await getTask(db)({
+              id: taskId,
+            });
+          }
+        );
         if (!task) {
           logger.warn({ taskId }, 'Task not found when fetching artifacts');
           continue;
         }
 
-        const taskArtifacts = await getLedgerArtifacts(dbClient)({
-          scopes: { tenantId: this.context.tenantId, projectId: task.projectId },
-          taskId,
-        });
+        const taskArtifacts = await executeInBranch(
+          {
+            dbClient,
+            ref: this.ref,
+          },
+          async (db) => {
+            return await getLedgerArtifacts(db)({
+              scopes: { tenantId: this.context.tenantId, projectId: task.projectId },
+              taskId,
+            });
+          }
+        );
 
         for (const artifact of taskArtifacts) {
           const toolCallId = artifact.metadata?.toolCallId || '';
@@ -299,21 +328,37 @@ export class ArtifactService {
       }
 
       let artifacts: any[] = [];
-      artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
-        artifactId,
-        toolCallId: toolCallId,
-      });
+      artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref: this.ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId! },
+            artifactId,
+            toolCallId: toolCallId,
+          });
+        }
+      );
 
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
       }
 
-      artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
-        artifactId,
-        taskId: this.context.taskId,
-      });
+      artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref: this.ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId! },
+            artifactId,
+            taskId: this.context.taskId,
+          });
+        }
+      );
 
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
@@ -369,21 +414,37 @@ export class ArtifactService {
 
       let artifacts: any[] = [];
 
-      artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
-        artifactId,
-        toolCallId: toolCallId,
-      });
+      artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref: this.ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId! },
+            artifactId,
+            toolCallId: toolCallId,
+          });
+        }
+      );
 
       if (artifacts.length > 0) {
         return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
       }
 
-      artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
-        artifactId,
-        taskId: this.context.taskId,
-      });
+      artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref: this.ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId! },
+            artifactId,
+            taskId: this.context.taskId,
+          });
+        }
+      );
 
       if (artifacts.length > 0) {
         return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
@@ -832,16 +893,26 @@ export class ArtifactService {
       metadata: artifact.metadata || {},
     };
 
-    const result = await upsertLedgerArtifact(dbClient)({
-      scopes: {
-        tenantId: this.context.tenantId,
-        projectId: this.context.projectId!,
+    const result = await executeInBranch(
+      {
+        dbClient,
+        ref: this.ref,
+        autoCommit: true,
+        commitMessage: 'Save artifact',
       },
-      contextId: this.context.contextId!,
-      taskId: this.context.taskId!,
-      toolCallId: artifact.toolCallId,
-      artifact: artifactToSave,
-    });
+      async (db) => {
+        return await upsertLedgerArtifact(db)({
+          scopes: {
+            tenantId: this.context.tenantId,
+            projectId: this.context.projectId!,
+          },
+          contextId: this.context.contextId!,
+          taskId: this.context.taskId!,
+          toolCallId: artifact.toolCallId,
+          artifact: artifactToSave,
+        });
+      }
+    );
 
     if (!result.created && result.existing) {
       logger.debug(

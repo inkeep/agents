@@ -1,7 +1,18 @@
-import { getAgentById, getProject, type Models, type SubAgentSelect } from '@inkeep/agents-core';
+import {
+  executeInBranch,
+  getAgentById,
+  getProject,
+  type Models,
+  type ResolvedRef,
+  type SubAgentSelect,
+} from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 
-async function resolveModelConfig(agentId: string, subAgent: SubAgentSelect): Promise<Models> {
+async function resolveModelConfig(
+  ref: ResolvedRef,
+  agentId: string,
+  subAgent: SubAgentSelect
+): Promise<Models> {
   // If base model is defined on the agent
   if (subAgent.models?.base?.model) {
     return {
@@ -13,8 +24,10 @@ async function resolveModelConfig(agentId: string, subAgent: SubAgentSelect): Pr
 
   // If base model is not defined on the agent (or models is undefined/null)
   // Check agent model config first
-  const agent = await getAgentById(dbClient)({
-    scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId, agentId },
+  const agent = await executeInBranch({ dbClient, ref }, async (db) => {
+    return await getAgentById(db)({
+      scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId, agentId },
+    });
   });
 
   if (agent?.models?.base?.model) {
@@ -27,8 +40,10 @@ async function resolveModelConfig(agentId: string, subAgent: SubAgentSelect): Pr
   }
 
   // If agent model config not defined, check project level config
-  const project = await getProject(dbClient)({
-    scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId },
+  const project = await executeInBranch({ dbClient, ref }, async (db) => {
+    return await getProject(db)({
+      scopes: { tenantId: subAgent.tenantId, projectId: subAgent.projectId },
+    });
   });
 
   if (project?.models?.base?.model) {

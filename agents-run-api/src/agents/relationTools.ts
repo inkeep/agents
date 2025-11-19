@@ -4,11 +4,11 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  executeInBranch,
   generateId,
   generateServiceToken,
   getCredentialReference,
   headers,
-  type McpTool,
   SPAN_KEYS,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -305,7 +305,8 @@ export function createDelegateToAgentTool({
             tenantId,
             projectId,
             dbClient,
-            credentialStoreRegistry
+            credentialStoreRegistry,
+            delegateConfig.config.ref
           );
           const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
 
@@ -319,13 +320,19 @@ export function createDelegateToAgentTool({
 
           let storeReference: CredentialStoreReference | undefined;
           if (delegateConfig.config.credentialReferenceId) {
-            const credentialReference = await getCredentialReference(dbClient)({
-              scopes: {
-                tenantId,
-                projectId,
-              },
-              id: delegateConfig.config.credentialReferenceId,
-            });
+            const id = delegateConfig.config.credentialReferenceId;
+            const credentialReference = await executeInBranch(
+              { dbClient, ref: delegateConfig.config.ref },
+              async (db) => {
+                return await getCredentialReference(db)({
+                  scopes: {
+                    tenantId,
+                    projectId,
+                  },
+                  id,
+                });
+              }
+            );
             if (credentialReference) {
               storeReference = {
                 credentialStoreId: credentialReference.credentialStoreId,
@@ -344,7 +351,8 @@ export function createDelegateToAgentTool({
           tenantId,
           projectId,
           dbClient,
-          credentialStoreRegistry
+          credentialStoreRegistry,
+          delegateConfig.config.ref
         );
         const context = await contextResolver.resolveHeaders(metadata.conversationId, contextId);
 
@@ -370,6 +378,7 @@ export function createDelegateToAgentTool({
 
       const a2aClient = new A2AClient(delegateConfig.config.baseUrl, {
         headers: resolvedHeaders,
+        ref: delegateConfig.config.ref,
         retryConfig: {
           strategy: 'backoff',
           retryConnectionErrors: true,
@@ -399,23 +408,28 @@ export function createDelegateToAgentTool({
         },
       };
       logger.info({ messageToSend }, 'messageToSend');
+      logger.info({ ref: delegateConfig.config.ref }, 'ref');
 
-      await createMessage(dbClient)({
-        id: generateId(),
-        tenantId: tenantId,
-        projectId: projectId,
-        conversationId: contextId,
-        role: 'agent',
-        content: {
-          text: input.message,
-        },
-        visibility: isInternal ? 'internal' : 'external',
-        messageType: 'a2a-request',
-        fromSubAgentId: callingAgentId,
-        ...(isInternal
-          ? { toSubAgentId: delegateConfig.config.id }
-          : { toExternalAgentId: delegateConfig.config.id }),
+      await executeInBranch({ dbClient, ref: delegateConfig.config.ref }, async (db) => {
+        return await createMessage(db)({
+          id: generateId(),
+          tenantId: tenantId,
+          projectId: projectId,
+          conversationId: contextId,
+          role: 'agent',
+          content: {
+            text: input.message,
+          },
+          visibility: isInternal ? 'internal' : 'external',
+          messageType: 'a2a-request',
+          fromSubAgentId: callingAgentId,
+          ...(isInternal
+            ? { toSubAgentId: delegateConfig.config.id }
+            : { toExternalAgentId: delegateConfig.config.id }),
+        });
       });
+
+      logger.info({ messageToSend }, 'Created message in database');
 
       const response = await a2aClient.sendMessage({
         message: messageToSend,
@@ -425,7 +439,7 @@ export function createDelegateToAgentTool({
         throw new Error(response.error.message);
       }
 
-      await saveA2AMessageResponse(response, {
+      await saveA2AMessageResponse(response, delegateConfig.config.ref, {
         tenantId,
         projectId,
         conversationId: contextId,

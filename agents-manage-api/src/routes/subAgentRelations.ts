@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -23,9 +23,9 @@ import {
   updateAgentRelation,
   validateSubAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -51,6 +51,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page = 1, limit = 10, sourceSubAgentId, targetSubAgentId } = c.req.valid('query');
     const pageNum = Number(page);
@@ -60,21 +61,21 @@ app.openapi(
       let result: { data: SubAgentRelationApiSelect[]; pagination: Pagination };
 
       if (sourceSubAgentId) {
-        const rawResult = await getAgentRelationsBySource(dbClient)({
+        const rawResult = await getAgentRelationsBySource(db)({
           scopes: { tenantId, projectId, agentId },
           sourceSubAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else if (targetSubAgentId) {
-        const rawResult = await getSubAgentRelationsByTarget(dbClient)({
+        const rawResult = await getSubAgentRelationsByTarget(db)({
           scopes: { tenantId, projectId, agentId },
           targetSubAgentId,
           pagination: { page: pageNum, limit: limitNum },
         });
         result = { ...rawResult, data: rawResult.data };
       } else {
-        const rawResult = await listAgentRelations(dbClient)({
+        const rawResult = await listAgentRelations(db)({
           scopes: { tenantId, projectId, agentId },
           pagination: { page: pageNum, limit: limitNum },
         });
@@ -114,8 +115,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const agentRelation = (await getAgentRelationById(dbClient)({
+    const agentRelation = (await getAgentRelationById(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
     })) as SubAgentRelationApiSelect | null;
@@ -161,11 +163,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     if (body.targetSubAgentId) {
-      const subAgentExists = await validateSubAgent(dbClient)({
+      const subAgentExists = await validateSubAgent(db)({
         scopes: { tenantId, projectId, agentId, subAgentId: body.targetSubAgentId },
       });
       if (!subAgentExists) {
@@ -176,7 +179,7 @@ app.openapi(
       }
     }
 
-    const existingRelations = await listAgentRelations(dbClient)({
+    const existingRelations = await listAgentRelations(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page: 1, limit: 1000 },
     });
@@ -206,7 +209,7 @@ app.openapi(
       relationType: body.relationType,
     };
 
-    const agentRelation = await createSubAgentRelation(dbClient)({
+    const agentRelation = await createSubAgentRelation(db)({
       ...relationData,
     });
 
@@ -244,10 +247,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = await c.req.valid('json');
 
-    const updatedAgentRelation = await updateAgentRelation(dbClient)({
+    const updatedAgentRelation = await updateAgentRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
       data: body,
@@ -289,9 +293,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const deleted = await deleteSubAgentRelation(dbClient)({
+    const deleted = await deleteSubAgentRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
     });

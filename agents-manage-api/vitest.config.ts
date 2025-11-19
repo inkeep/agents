@@ -14,7 +14,7 @@ export default defineProject({
     isolate: true, // Ensure test isolation to prevent state leakage
     poolOptions: {
       threads: {
-        maxThreads: 16, // Increase for GitHub Actions runners (have more cores)
+        maxThreads: 10, // Increase for GitHub Actions runners (have more cores)
         minThreads: 4,
       },
     },

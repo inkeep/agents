@@ -19,6 +19,7 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
   const nodeErrors = getNodeErrors(functionToolId);
   const hasErrors = hasNodeErrors(functionToolId);
   const isDelegating = data.status === 'delegating';
+  const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
   return (
     <div className="relative">
@@ -27,7 +28,8 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
         className={cn(
           'rounded-4xl min-w-40 max-w-xs',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing'
+          isExecuting && 'node-executing',
+          isInvertedDelegating && 'node-delegating-inverted'
         )}
       >
         <BaseNodeHeader className="mb-0 py-3">
@@ -38,9 +40,9 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
               </div>
               <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
             </div>
-            {description?.trim() ? (
+            {description && (
               <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
-            ) : null}
+            )}
           </div>
           {hasErrors && (
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />

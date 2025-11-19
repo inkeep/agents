@@ -40,10 +40,13 @@ export type ActionResult<T = void> =
 
 export async function getAllAgentsAction(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  ref?: string
 ): Promise<ActionResult<Agent[]>> {
   try {
-    const response = await apiFetchAgents(tenantId, projectId);
+    const response = await apiFetchAgents(tenantId, projectId, {
+      queryParams: { ref },
+    });
     return {
       success: true,
       data: response.data,
@@ -62,10 +65,13 @@ export async function getAllAgentsAction(
  */
 export async function fetchTeamAgentsAction(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  ref?: string
 ): Promise<ActionResult<TeamAgent[]>> {
   try {
-    const response = await apiFetchTeamAgents(tenantId, projectId);
+    const response = await apiFetchTeamAgents(tenantId, projectId, {
+      queryParams: { ref },
+    });
     return {
       success: true,
       data: response,
@@ -85,10 +91,13 @@ export async function fetchTeamAgentsAction(
 export async function createFullAgentAction(
   tenantId: string,
   projectId: string,
-  agentData: FullAgentDefinition
+  agentData: FullAgentDefinition,
+  ref?: string
 ): Promise<ActionResult<FullAgentDefinition>> {
   try {
-    const response = await apiCreateFullAgent(tenantId, projectId, agentData);
+    const response = await apiCreateFullAgent(tenantId, projectId, agentData, {
+      queryParams: { ref },
+    });
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
@@ -121,10 +130,13 @@ export async function createFullAgentAction(
 export async function getFullAgentAction(
   tenantId: string,
   projectId: string,
-  agentId: string
+  agentId: string,
+  ref?: string
 ): Promise<ActionResult<FullAgentDefinition>> {
   try {
-    const response = await apiGetFullAgent(tenantId, projectId, agentId);
+    const response = await apiGetFullAgent(tenantId, projectId, agentId, {
+      queryParams: { ref },
+    });
 
     return {
       success: true,
@@ -154,7 +166,8 @@ export async function updateFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  agentData: FullAgentDefinition
+  agentData: FullAgentDefinition,
+  ref?: string
 ): Promise<ActionResult<FullAgentDefinition>> {
   try {
     // Ensure the agent ID matches
@@ -166,7 +179,9 @@ export async function updateFullAgentAction(
       };
     }
 
-    const response = await apiUpdateFullAgent(tenantId, projectId, agentId, agentData);
+    const response = await apiUpdateFullAgent(tenantId, projectId, agentId, agentData, {
+      queryParams: { ref },
+    });
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
@@ -199,10 +214,13 @@ export async function updateFullAgentAction(
 export async function deleteFullAgentAction(
   tenantId: string,
   projectId: string,
-  agentId: string
+  agentId: string,
+  ref?: string
 ): Promise<ActionResult<void>> {
   try {
-    await apiDeleteFullAgent(tenantId, projectId, agentId);
+    await apiDeleteFullAgent(tenantId, projectId, agentId, {
+      queryParams: { ref },
+    });
 
     // Revalidate relevant pages
     revalidatePath(`/${tenantId}/projects/${projectId}/agents`);

@@ -1,11 +1,10 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   AgentApiInsertSchema,
   AgentApiUpdateSchema,
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -24,9 +23,9 @@ import {
   TenantProjectParamsSchema,
   updateAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -52,11 +51,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const agent = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
+    const agent = await listAgents(db)({ scopes: { tenantId, projectId } });
     return c.json({
       data: agent,
       pagination: {
@@ -93,7 +93,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const agent = await getAgentById(dbClient)({
+    const db = c.get('db');
+
+    const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
 
@@ -132,8 +134,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
+    const db = c.get('db');
 
-    const relatedAgents = await getAgentSubAgentInfos(dbClient)({
+    const relatedAgents = await getAgentSubAgentInfos(db)({
       scopes: { tenantId, projectId },
       agentId: agentId,
       subAgentId: subAgentId,
@@ -175,8 +178,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
+    const db = c.get('db');
 
-    const fullAgent = await getFullAgentDefinition(dbClient)({
+    const fullAgent = await getFullAgentDefinition(db)({
       scopes: { tenantId, projectId, agentId },
     });
 
@@ -221,10 +225,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const agent = await createAgent(dbClient)({
+    const agent = await createAgent(db)({
       tenantId,
       projectId,
       id: validatedBody.id || generateId(),
@@ -267,10 +272,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const updatedAgent = await updateAgent(dbClient)({
+    const updatedAgent = await updateAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
       data: {
         defaultSubAgentId: validatedBody.defaultSubAgentId,
@@ -314,8 +320,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const deleted = await deleteAgent(dbClient)({
+    const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
 

@@ -54,10 +54,16 @@ vi.mock('../../env.js', () => ({
 describe('API Key Authentication Middleware', () => {
   let app: Hono;
   const originalEnv = process.env.ENVIRONMENT;
+  const mockDbClient = {} as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     app = new Hono();
+    // Set db in context before apiKeyAuth middleware
+    app.use('*', async (c, next) => {
+      c.set('db' as never, mockDbClient);
+      await next();
+    });
     // Override the test environment to allow proper testing
     process.env.ENVIRONMENT = 'production';
   });

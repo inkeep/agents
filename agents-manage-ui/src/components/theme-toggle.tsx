@@ -14,8 +14,8 @@ import {
 type ThemeValue = 'dark' | 'light' | 'system';
 
 const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
-  dark: Moon,
   light: Sun,
+  dark: Moon,
   system: Monitor,
 };
 

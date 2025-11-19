@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiUpdateSchema,
@@ -18,9 +18,9 @@ import {
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -46,11 +46,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listArtifactComponentsPaginated(dbClient)({
+    const result = await listArtifactComponentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -81,8 +82,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const artifactComponent = await getArtifactComponentById(dbClient)({
+    const artifactComponent = await getArtifactComponentById(db)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -128,6 +130,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -155,7 +158,7 @@ app.openapi(
     };
 
     try {
-      const artifactComponent = await createArtifactComponent(dbClient)({
+      const artifactComponent = await createArtifactComponent(db)({
         ...componentData,
       });
 
@@ -205,6 +208,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -234,7 +238,7 @@ app.openapi(
       updateData.props = body.props ?? null;
     }
 
-    const updatedArtifactComponent = await updateArtifactComponent(dbClient)({
+    const updatedArtifactComponent = await updateArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
       data: updateData,
@@ -276,9 +280,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteArtifactComponent(dbClient)({
+    const deleted = await deleteArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
     });

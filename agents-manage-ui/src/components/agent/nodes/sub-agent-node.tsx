@@ -1,6 +1,7 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
+import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
@@ -33,9 +34,7 @@ const ListSection = ({
       </div>
       <div className="flex flex-wrap gap-2">
         {items?.map((name) => (
-          <Badge key={name} className="text-xs" variant="code">
-            {name}
-          </Badge>
+          <TruncateBadge key={name}>{name}</TruncateBadge>
         ))}
       </div>
     </div>
@@ -72,6 +71,7 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
     [data?.artifactComponents, artifactComponentLookup]
   );
   const isDelegating = status === 'delegating';
+  const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';
   return (
     <div className="relative">
@@ -81,7 +81,8 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
         className={cn(
           isDefault && 'rounded-tl-none',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          isExecuting && 'node-executing'
+          isExecuting && 'node-executing',
+          isInvertedDelegating && 'node-delegating-inverted'
         )}
         style={{ width: NODE_WIDTH }}
       >

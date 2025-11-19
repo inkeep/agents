@@ -1,12 +1,18 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
-import { handleApiError } from '@inkeep/agents-core';
+import {
+  branchScopedDbMiddleware,
+  handleApiError,
+  refMiddleware,
+  writeProtectionMiddleware,
+} from '@inkeep/agents-core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
+import dbClient from './data/db/dbClient';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -160,7 +166,7 @@ function createManagementHono(
     createRoute({
       method: 'get',
       path: '/health',
-      tags: ['health'],
+      operationId: 'health',
       summary: 'Health check',
       description: 'Check if the management service is healthy',
       responses: {
@@ -176,6 +182,11 @@ function createManagementHono(
 
   // API Key authentication middleware for protected routes
   app.use('/tenants/*', apiKeyAuth());
+
+  // Ref versioning middleware for all tenant routes
+  app.use('/tenants/*', refMiddleware(dbClient, { apiType: 'manage' }));
+  app.use('/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
+  app.use('/tenants/*', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);

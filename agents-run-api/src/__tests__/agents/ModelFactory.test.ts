@@ -258,7 +258,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+        'Unsupported provider: unsupported. Supported providers are: anthropic, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
       );
     });
 
@@ -288,7 +288,7 @@ describe('ModelFactory', () => {
       };
 
       expect(() => ModelFactory.createModel(config)).toThrow(
-        'Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+        'Unsupported provider: unknown-provider. Supported providers are: anthropic, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
       );
     });
 
@@ -757,7 +757,7 @@ describe('ModelFactory', () => {
     describe('provider validation', () => {
       test('should throw error for unsupported provider', () => {
         expect(() => ModelFactory.parseModelString('unsupported-provider/some-model')).toThrow(
-          'Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway. To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).'
+          'Unsupported provider: unsupported-provider. Supported providers are: anthropic, openai, google, openrouter, gateway, nim, custom. To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).'
         );
       });
 
@@ -822,10 +822,28 @@ describe('ModelFactory', () => {
           modelName: 'llama-3.1-70b',
         });
       });
+
+      test('should support nim provider', () => {
+        const result = ModelFactory.parseModelString(
+          'nim/nvidia/llama-3.3-nemotron-super-49b-v1.5'
+        );
+        expect(result).toEqual({
+          provider: 'nim',
+          modelName: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+        });
+      });
+
+      test('should support custom provider', () => {
+        const result = ModelFactory.parseModelString('custom/my-custom-model');
+        expect(result).toEqual({
+          provider: 'custom',
+          modelName: 'my-custom-model',
+        });
+      });
     });
   });
 
-  describe('Custom Model Providers (OpenRouter and Gateway)', () => {
+  describe('Custom Model Providers (OpenRouter, Gateway, NIM, and Custom)', () => {
     test('should create OpenRouter models without provider options', () => {
       // OpenRouter can route to ANY model - it's a pass-through provider
       const customModels = [
@@ -861,6 +879,50 @@ describe('ModelFactory', () => {
       }
     });
 
+    test('should create NIM models without provider options', () => {
+      // NIM can use NVIDIA models via OpenAI-compatible API
+      const customModels = [
+        'nim/nvidia/llama-3.3-nemotron-super-49b-v1.5',
+        'nim/nvidia/nemotron-4-340b-instruct',
+        'nim/meta/llama-3.1-8b-instruct',
+      ];
+
+      for (const modelString of customModels) {
+        const config: ModelSettings = { model: modelString };
+        const model = ModelFactory.createModel(config);
+        expect(model).toBeDefined();
+        expect(model).toHaveProperty('modelId', modelString.replace('nim/', ''));
+      }
+    });
+
+    test('should create Custom models with provider options', () => {
+      const config: ModelSettings = {
+        model: 'custom/my-custom-model',
+        providerOptions: {
+          custom: {
+            baseURL: 'https://api.example.com/v1',
+            headers: {
+              Authorization: 'Bearer custom-api-key',
+            },
+          },
+        },
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('modelId', 'my-custom-model');
+    });
+
+    test('should throw error for Custom models without baseURL', () => {
+      const config: ModelSettings = {
+        model: 'custom/my-custom-model',
+      };
+
+      expect(() => ModelFactory.createModel(config)).toThrow(
+        'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+      );
+    });
+
     test('should parse complex model paths correctly', () => {
       const testCases = [
         // OpenRouter with nested paths
@@ -872,6 +934,20 @@ describe('ModelFactory', () => {
         {
           input: 'gateway/org-specific-deployment',
           expected: { provider: 'gateway', modelName: 'org-specific-deployment' },
+        },
+        // NIM with NVIDIA model paths
+        {
+          input: 'nim/nvidia/llama-3.3-nemotron-super-49b-v1.5',
+          expected: { provider: 'nim', modelName: 'nvidia/llama-3.3-nemotron-super-49b-v1.5' },
+        },
+        // Custom provider with any model
+        {
+          input: 'custom/my-custom-model',
+          expected: { provider: 'custom', modelName: 'my-custom-model' },
+        },
+        {
+          input: 'custom/llama-3-custom',
+          expected: { provider: 'custom', modelName: 'llama-3-custom' },
         },
       ];
 

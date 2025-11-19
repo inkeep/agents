@@ -436,7 +436,26 @@ export const myProject = project({
 }
 
 async function installDependencies() {
-  await execAsync('pnpm install');
+  try {
+    const { stderr } = await execAsync('pnpm install');
+    if (process.env.CI && stderr) {
+      console.log('pnpm install stderr:', stderr);
+    }
+  } catch (error: any) {
+    // Capture and log full error details for debugging
+    console.error('pnpm install failed!');
+    console.error('Exit code:', error.code);
+    if (error.stdout) {
+      console.error('stdout:', error.stdout);
+    }
+    if (error.stderr) {
+      console.error('stderr:', error.stderr);
+    }
+    if (error.message) {
+      console.error('Error message:', error.message);
+    }
+    throw error;
+  }
 }
 
 async function initializeGit() {

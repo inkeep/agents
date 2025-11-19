@@ -356,6 +356,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent',
       projectId: 'test-project',
+      ref: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for integration testing',
@@ -380,7 +381,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   });
 
   test('should create Agent and use SystemPromptBuilder to generate XML system prompt', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
     expect(systemPromptBuilder).toBeDefined();
@@ -427,7 +428,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should handle Agent with no tools', async () => {
     const configWithNoTools = { ...mockAgentConfig, tools: [] };
-    const agent = new Agent(configWithNoTools);
+    const agent = new Agent(configWithNoTools, configWithNoTools.dbClient);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -450,7 +451,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should handle Agent with undefined tools', async () => {
     const configWithUndefinedTools = { ...mockAgentConfig, tools: undefined };
-    const agent = new Agent(configWithUndefinedTools);
+    const agent = new Agent(configWithUndefinedTools, configWithUndefinedTools.dbClient);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -484,7 +485,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
         } as McpTool,
       ],
     };
-    const agent = new Agent(configWithEmptyAvailableTools);
+    const agent = new Agent(configWithEmptyAvailableTools, configWithEmptyAvailableTools.dbClient);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -506,7 +507,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   });
 
   test('should use v1 version of SystemPromptBuilder by default', () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
     // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
@@ -644,6 +645,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent',
       projectId: 'test-project',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent for conversation history testing',
@@ -671,7 +673,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
   });
 
   test('should apply default conversationHistoryConfig when none provided', () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     const config = (agent as any).config;
 
     expect(config.conversationHistoryConfig).toBeDefined();
@@ -696,7 +698,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       conversationHistoryConfig: customConfig,
     };
 
-    const agent = new Agent(configWithHistory);
+    const agent = new Agent(configWithHistory, configWithHistory.dbClient);
     const config = (agent as any).config;
 
     expect(config.conversationHistoryConfig).toEqual(customConfig);
@@ -714,7 +716,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithNoneMode);
+    const agent = new Agent(configWithNoneMode, configWithNoneMode.dbClient);
     await agent.generate('Test prompt', mockRuntimeContext);
 
     expect(getFormattedConversationHistory).not.toHaveBeenCalled();
@@ -732,7 +734,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithFullMode);
+    const agent = new Agent(configWithFullMode, configWithFullMode.dbClient);
     await agent.generate('Test prompt', mockRuntimeContext);
     expect(getFormattedConversationHistory).toHaveBeenCalled();
 
@@ -742,7 +744,10 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       conversationId: 'test-conversation-id',
       currentMessage: 'Test prompt',
       options: configWithFullMode.conversationHistoryConfig,
-      filters: {},
+      filters: {
+        delegationId: undefined,
+        isDelegated: false,
+      },
     });
   });
 
@@ -758,7 +763,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithScopedMode);
+    const agent = new Agent(configWithScopedMode, configWithScopedMode.dbClient);
     await agent.generate('Test prompt', mockRuntimeContext);
 
     expect(getFormattedConversationHistory).toHaveBeenCalledWith({
@@ -768,9 +773,12 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       currentMessage: 'Test prompt',
       options: configWithScopedMode.conversationHistoryConfig,
       filters: {
+        delegationId: undefined,
+        isDelegated: false,
         subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },
+      dbClient: configWithScopedMode.dbClient,
     });
   });
 });
@@ -849,6 +857,7 @@ describe('Agent Credential Integration', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent',
       projectId: 'test-project',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'A test agent with credentials',
@@ -886,7 +895,7 @@ describe('Agent Credential Integration', () => {
       updatedAt: new Date(),
     };
 
-    const agent = new Agent(mockAgentConfig, mockAgentFramework);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient, mockAgentFramework);
     const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
 
     expect(converted).toEqual({
@@ -926,7 +935,7 @@ describe('Agent Credential Integration', () => {
       updatedAt: new Date(),
     };
 
-    const agent = new Agent(mockAgentConfig, mockAgentFramework);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient, mockAgentFramework);
     const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
 
     expect(converted.mcpType).toBe(MCPServerType.generic);
@@ -964,7 +973,11 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(configWithCredentials, mockAgentFramework);
+    const agent = new Agent(
+      configWithCredentials,
+      configWithCredentials.dbClient,
+      mockAgentFramework
+    );
 
     // Mock the credential stuffer to simulate credential loading
     (agent as any).credentialStuffer = mockCredentialStuffer;
@@ -1026,7 +1039,11 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(configWithoutCredentials, mockAgentFramework);
+    const agent = new Agent(
+      configWithoutCredentials,
+      configWithoutCredentials.dbClient,
+      mockAgentFramework
+    );
 
     // Mock the credential stuffer
     (agent as any).credentialStuffer = {
@@ -1080,6 +1097,7 @@ describe('Agent Credential Integration', () => {
       tenantId: 'context-tenant',
       agentId: 'context-agent',
       projectId: 'test-project',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Context Agent',
       description: 'Agent for testing context',
@@ -1091,7 +1109,7 @@ describe('Agent Credential Integration', () => {
       dataComponents: [],
     };
 
-    const agent = new Agent(contextConfig, mockAgentFramework);
+    const agent = new Agent(contextConfig, contextConfig.dbClient, mockAgentFramework);
     (agent as any).credentialStuffer = mockCredentialStuffer;
 
     await (agent as any).getMcpTool(mockToolConfig);
@@ -1147,6 +1165,7 @@ describe('Two-Pass Generation System', () => {
       tenantId: 'test-tenant',
       agentId: 'test-agent',
       projectId: 'test-project',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent',
@@ -1165,7 +1184,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should only call generateText when no data components configured', async () => {
-    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] });
+    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockAgentConfig.dbClient);
     await agent.generate('Test prompt');
 
     expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
@@ -1173,7 +1192,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should call both generateText and generateObject when data components configured', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     await agent.generate('Test prompt');
 
     expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
@@ -1197,7 +1216,7 @@ describe('Two-Pass Generation System', () => {
       ],
     } as any);
 
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     await agent.generate('Test prompt');
 
     expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
@@ -1205,7 +1224,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should return text response when no data components', async () => {
-    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] });
+    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockAgentConfig.dbClient);
     const result = await agent.generate('Test prompt');
 
     expect(result.text).toBe('Mocked response');
@@ -1213,7 +1232,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should return object response when data components configured', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     const result = await agent.generate('Test prompt');
 
     expect(result.object).toBeDefined();
@@ -1232,6 +1251,7 @@ describe('Agent Model Settings', () => {
       tenantId: 'test-tenant',
       projectId: 'test-project',
       agentId: 'test-agent',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       name: 'Test Agent',
       description: 'Test agent for model settingsuration',
@@ -1248,7 +1268,7 @@ describe('Agent Model Settings', () => {
   });
 
   test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     await agent.generate('Test prompt');
 
     // Get the mocked ModelFactory
@@ -1275,7 +1295,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithModel);
+    const agent = new Agent(configWithModel, configWithModel.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1306,7 +1326,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithModel);
+    const agent = new Agent(configWithModel, configWithModel.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1324,7 +1344,7 @@ describe('Agent Model Settings', () => {
   });
 
   test('should pass generation parameters to generateText', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockAgentConfig.dbClient);
     await agent.generate('Test prompt');
 
     // Get the mocked generateText function
@@ -1364,7 +1384,7 @@ describe('Agent Model Settings', () => {
       ],
     };
 
-    const agent = new Agent(configWithDataComponents);
+    const agent = new Agent(configWithDataComponents, configWithDataComponents.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1396,7 +1416,7 @@ describe('Agent Model Settings', () => {
       ],
     };
 
-    const agent = new Agent(configWithDataComponents);
+    const agent = new Agent(configWithDataComponents, configWithDataComponents.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1422,7 +1442,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithOpenAI);
+    const agent = new Agent(configWithOpenAI, configWithOpenAI.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1442,7 +1462,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithPlainModel);
+    const agent = new Agent(configWithPlainModel, configWithPlainModel.dbClient);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('../../agents/ModelFactory.js');
@@ -1465,6 +1485,7 @@ describe('Agent Conditional Tool Availability', () => {
       description: 'Test agent',
       tenantId: 'test-tenant',
       agentId: 'test-agent-no-components',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       prompt: 'Test instructions',
       subAgentRelations: [],
@@ -1475,7 +1496,7 @@ describe('Agent Conditional Tool Availability', () => {
       functionTools: [],
     };
 
-    const agent = new Agent(config); // No artifact components
+    const agent = new Agent(config, config.dbClient); // No artifact components
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
@@ -1495,6 +1516,7 @@ describe('Agent Conditional Tool Availability', () => {
       description: 'Test agent',
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       prompt: 'Test instructions',
       subAgentRelations: [],
@@ -1506,7 +1528,7 @@ describe('Agent Conditional Tool Availability', () => {
       artifactComponents: [],
     };
 
-    const agent = new Agent(config); // No artifact components
+    const agent = new Agent(config, config.dbClient); // No artifact components
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
@@ -1545,6 +1567,7 @@ describe('Agent Conditional Tool Availability', () => {
       description: 'Test agent',
       tenantId: 'test-tenant',
       agentId: 'test-agent-with-components',
+      dbClient: {} as any,
       baseUrl: 'http://localhost:3000',
       prompt: 'Test instructions',
       subAgentRelations: [],
@@ -1556,7 +1579,7 @@ describe('Agent Conditional Tool Availability', () => {
       artifactComponents: mockArtifactComponents,
     };
 
-    const agent = new Agent(config);
+    const agent = new Agent(config, config.dbClient);
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();

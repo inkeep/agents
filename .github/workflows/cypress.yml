@@ -18,19 +18,18 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
-        image: postgres:18
+      doltgres:
+        image: inkeep/doltgres:latest
         env:
-          POSTGRES_DB: inkeep_agents
-          POSTGRES_USER: appuser
-          POSTGRES_PASSWORD: password
+          DOLTGRES_DATA_DIR: /var/lib/doltgres
+        ports:
+          - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U appuser"
+          --health-cmd "PGPASSWORD=password psql -h localhost -U postgres -d postgres -c 'SELECT 1' || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
+          --health-start-period 20s
 
 
     steps:
@@ -94,3 +93,4 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/inkeep_agents

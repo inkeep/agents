@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useCurrentRef } from '@/hooks/use-current-ref';
 import type { ApiKey } from '@/lib/api/api-keys';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { ApiKeyUpdateForm } from './form/api-key-update-form';
@@ -15,7 +16,7 @@ export function ApiKeyUpdateDialog({ apiKey, setIsOpen }: ApiKeyUpdateDialogProp
     tenantId: string;
     projectId: string;
   }>();
-
+  const ref = useCurrentRef();
   const handleApiKeyUpdated = () => {
     setIsOpen(false);
   };
@@ -33,6 +34,7 @@ export function ApiKeyUpdateDialog({ apiKey, setIsOpen }: ApiKeyUpdateDialogProp
             projectId={projectId}
             apiKey={apiKey}
             onApiKeyUpdated={handleApiKeyUpdated}
+            ref={ref}
           />
         </div>
       </DialogContent>

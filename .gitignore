@@ -2,7 +2,8 @@
 
 inkeep-qa-project
 # dependencies
-node_modules
+node_modules/
+package-lock.json
 /.pnp
 .pnp.*
 .yarn/*
@@ -63,5 +64,4 @@ dist/
 .next/
 out/
 .source/
-drizzle/
 vite.config.d.ts

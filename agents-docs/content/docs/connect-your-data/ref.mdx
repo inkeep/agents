@@ -1,0 +1,73 @@
+---
+title: Connect Your Data with Ref
+sidebarTitle: Ref
+description: Learn how to connect your documentation and code repositories to your agents using Ref
+icon: "brand/Ref"
+keywords: Ref, GitHub, PDF, Markdown, documentation, MCP server, knowledge base, API key
+---
+
+Ref provides a simple and focused solution for connecting your documentation and code repositories to your agents. With support for GitHub repositories, PDFs, and Markdown files, Ref is perfect for teams that need straightforward documentation access.
+
+## Supported data sources
+
+With Ref you can connect:
+
+- **Code Repositories**: GitHub Repositories
+- **Documents**: PDF files
+- **Documentation**: Markdown files
+
+## Getting started
+
+### Step 1: Create an account
+
+1. [Sign up for Ref](https://ref.tools/login)
+2. Complete the account registration process
+
+### Step 2: Upload your resources
+
+1. Log in to your Ref dashboard
+2. Navigate to the [Resources page](https://ref.tools/resources)
+3. Upload your PDFs, Markdown files, or connect your GitHub repositories
+4. Wait for Ref to process and index your content
+
+### Step 3: Get your MCP server URL
+
+1. Navigate to the [Install MCP page](https://ref.tools/install)
+3. Copy the MCP server URL (it will start with `https://api.ref.tools/mcp?apiKey=ref-`)
+
+### Step 4: Register the MCP server
+
+Register the Ref MCP server as a tool in your agent configuration. Replace `<your-api-key>` with your actual API key from Step 3.
+
+**Using TypeScript SDK:**
+
+```typescript
+import { mcpTool, subAgent } from "@inkeep/agents-sdk";
+
+const refTool = mcpTool({
+  id: "ref-documentation",
+  name: "ref_search",
+  description: "Search uploaded documentation and code repositories",
+  serverUrl: "https://api.ref.tools/mcp?apiKey=ref-<your-api-key>",
+});
+
+const docAgent = subAgent({
+  id: "doc-agent",
+  name: "Documentation Assistant",
+  description: "Answers questions using uploaded documentation",
+  prompt: `You are a documentation assistant with access to company documentation`,
+  canUse: () => [refTool],
+});
+```
+
+**Using Visual Builder:**
+
+1. Go to the **MCP Servers** tab in the Visual Builder
+2. Click "New MCP server"
+3. Select "Custom Server"
+4. Enter:
+   - **Name**: `Ref Documentation`
+   - **URL**: `https://api.ref.tools/mcp?apiKey=ref-<your-api-key>` (replace with your API key)
+   - **Transport Type**: `Streamable HTTP`
+5. Save the server
+6. Add it to your agent by dragging it onto your agent canvas

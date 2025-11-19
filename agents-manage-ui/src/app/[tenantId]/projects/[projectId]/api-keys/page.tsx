@@ -10,6 +10,7 @@ import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchApiKeys } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,16 +21,21 @@ const createAgentOptions = (agent: Agent[]): SelectOption[] => {
   }));
 };
 
-async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/api-keys'>) {
+async function ApiKeysPage({
+  params,
+  searchParams,
+}: PageProps<'/[tenantId]/projects/[projectId]/api-keys'>) {
   const { tenantId, projectId } = await params;
-
+  const ref = await getValidSearchParamsAsync(searchParams);
   let apiKeys: Awaited<ReturnType<typeof fetchApiKeys>>;
   let agent: Awaited<ReturnType<typeof fetchAgents>>;
 
+  const options = { queryParams: ref };
+
   try {
     [apiKeys, agent] = await Promise.all([
-      fetchApiKeys(tenantId, projectId),
-      fetchAgents(tenantId, projectId),
+      fetchApiKeys(tenantId, projectId, options),
+      fetchAgents(tenantId, projectId, options),
     ]);
   } catch (error) {
     return <FullPageError error={error as Error} context="API keys" />;
@@ -55,6 +61,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
               tenantId={tenantId}
               projectId={projectId}
               agentsOptions={agentOptions}
+              ref={ref.ref}
             />
           }
         />

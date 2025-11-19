@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -14,12 +14,12 @@ import {
   updateFullProjectServerSide,
 } from '@inkeep/agents-core';
 import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { createAppWithDb } from '../utils/apps';
 
 const logger = getLogger('projectFull');
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -61,13 +61,14 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
     console.log('validatedProjectData', validatedProjectData);
     try {
-      const createdProject = await createFullProjectServerSide(dbClient, logger)(
+      const createdProject = await createFullProjectServerSide(db, logger)(
         { tenantId, projectId: validatedProjectData.id },
         validatedProjectData
       );
@@ -114,11 +115,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
       const project: FullProjectDefinition | null = await getFullProject(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId },
@@ -189,6 +191,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const projectData = c.req.valid('json');
 
@@ -203,7 +206,7 @@ app.openapi(
       }
 
       const existingProject: FullProjectDefinition | null = await getFullProject(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId },
@@ -212,11 +215,11 @@ app.openapi(
 
       // Update/create the full project using server-side data layer operations
       const updatedProject: FullProjectDefinition = isCreate
-        ? await createFullProjectServerSide(dbClient, logger)(
+        ? await createFullProjectServerSide(db, logger)(
             { tenantId, projectId },
             validatedProjectData
           )
-        : await updateFullProjectServerSide(dbClient, logger)(
+        : await updateFullProjectServerSide(db, logger)(
             { tenantId, projectId },
             validatedProjectData
           );
@@ -265,11 +268,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
       const deleted = await deleteFullProject(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId },

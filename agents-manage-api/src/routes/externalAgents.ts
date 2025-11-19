@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -17,9 +17,9 @@ import {
   TenantProjectParamsSchema,
   updateExternalAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -45,10 +45,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const result = await listExternalAgentsPaginated(dbClient)({
+    const result = await listExternalAgentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -88,8 +89,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const externalAgent = await getExternalAgent(dbClient)({
+    const externalAgent = await getExternalAgent(db)({
       scopes: { tenantId, projectId },
       externalAgentId: id,
     });
@@ -141,6 +143,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -154,7 +157,7 @@ app.openapi(
       credentialReferenceId: body.credentialReferenceId || undefined,
     };
 
-    const externalAgent = await createExternalAgent(dbClient)(externalAgentData);
+    const externalAgent = await createExternalAgent(db)(externalAgentData);
 
     // Add type field to the external agent response
     const agentWithType = {
@@ -196,10 +199,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedExternalAgent = await updateExternalAgent(dbClient)({
+    const updatedExternalAgent = await updateExternalAgent(db)({
       scopes: { tenantId, projectId },
       externalAgentId: id,
       data: body,
@@ -247,9 +251,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteExternalAgent(dbClient)({
+    const deleted = await deleteExternalAgent(db)({
       scopes: { tenantId, projectId },
       externalAgentId: id,
     });

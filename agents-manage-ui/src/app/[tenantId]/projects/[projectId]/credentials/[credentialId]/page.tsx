@@ -7,6 +7,7 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
 import { getNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 async function credentialToFormData(credential: Credential): Promise<EditCredentialFormData> {
   let connectionMetadata: Record<string, string> = {};
@@ -26,14 +27,16 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
 
 async function EditCredentialsPage({
   params,
+  searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/[credentialId]'>) {
   const { tenantId, projectId, credentialId } = await params;
+  const { ref } = await getValidSearchParamsAsync(searchParams);
 
   let credential: Credential;
   let initialFormData: EditCredentialFormData;
 
   try {
-    credential = await fetchCredential(tenantId, projectId, credentialId);
+    credential = await fetchCredential(tenantId, projectId, credentialId, { queryParams: { ref } });
     initialFormData = await credentialToFormData(credential);
   } catch (error) {
     return (
@@ -63,6 +66,7 @@ async function EditCredentialsPage({
             projectId={projectId}
             credential={credential}
             initialFormData={initialFormData}
+            ref={ref}
           />
         </div>
       </MainContent>

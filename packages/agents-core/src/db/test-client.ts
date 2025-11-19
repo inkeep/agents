@@ -42,42 +42,32 @@ export function createTestDatabaseClientNoMigrations(): DatabaseClient {
 
 /**
  * Cleans up test database by removing all data but keeping schema
+ * Dynamically gets all tables from the public schema and truncates them
  */
 export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
-  const cleanupTables = [
-    'messages',
-    'conversations',
-    'tasks',
-    'task_relations',
-    'agent_relations',
-    'agent',
-    'agent_tool_relations',
-    'tools',
-    'agents',
-    'api_keys',
-    'context_cache',
-    'ledger_artifacts',
-    'agent_artifact_components',
-    'agent_data_components',
-    'artifact_components',
-    'context_configs',
-    'credential_references',
-    'data_components',
-    'external_agents',
-    'functions',
-    'projects',
-  ];
+  try {
+    // Get all table names from the public schema
+    const result = await db.execute(
+      sql.raw(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+    `)
+    );
 
-  for (const table of cleanupTables) {
-    try {
-      await db.execute(sql.raw(`DELETE FROM "${table}"`));
-    } catch (error) {
-      console.debug(`Could not clean table ${table}:`, error);
+    const tables = result.rows.map((row: any) => row.tablename);
+
+    if (tables.length === 0) {
+      return;
     }
-  }
 
-  // PostgreSQL uses sequences for auto-increment, but we don't need to reset them
-  // for test databases since we create a fresh database for each test
+    // Use TRUNCATE with CASCADE to handle foreign key constraints automatically
+    // RESTART IDENTITY resets any sequences (auto-increment counters)
+    const tableList = tables.map((t: string) => `"${t}"`).join(', ');
+    await db.execute(sql.raw(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`));
+  } catch (error) {
+    console.debug('Could not clean test database:', error);
+  }
 }
 
 /**

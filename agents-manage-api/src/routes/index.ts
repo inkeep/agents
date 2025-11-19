@@ -3,6 +3,7 @@ import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
+import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
 import credentialStoresRoutes from './credentialStores';
 import credentialsRoutes from './credentials';
@@ -25,6 +26,9 @@ const app = new OpenAPIHono();
 
 // Mount projects route first (no projectId in path)
 app.route('/projects', projectsRoutes);
+
+// Mount branches route under project scope
+app.route('/projects/:projectId/branches', branchesRoutes);
 
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);

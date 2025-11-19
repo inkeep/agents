@@ -216,6 +216,7 @@ describe('Integration Tests', () => {
 
       const params = {
         executionContext,
+        dbClient: {} as any,
         conversationId: 'conv-123',
         userMessage: 'Hello',
         initialAgentId: 'default-agent',
@@ -296,6 +297,7 @@ describe('Integration Tests', () => {
       const executionContext = await createTestExecutionContext();
       const params = {
         executionContext,
+        dbClient: {} as any,
         conversationId: 'conv-transfer',
         userMessage: 'I need help with my order',
         initialAgentId: 'router-agent',
@@ -343,6 +345,7 @@ describe('Integration Tests', () => {
       const executionContext = await createTestExecutionContext();
       const params = {
         executionContext,
+        dbClient: {} as any,
         conversationId: 'conv-context',
         userMessage: 'What do I like?',
         initialAgentId: 'context-agent',
@@ -406,6 +409,7 @@ describe('Integration Tests', () => {
       const executionContext = await createTestExecutionContext();
       const params = {
         executionContext,
+        dbClient: {} as any,
         conversationId: 'conv-tools',
         userMessage: 'What is 2+2?',
         initialAgentId: 'tool-agent',
@@ -440,6 +444,7 @@ describe('Integration Tests', () => {
       const executionContext = await createTestExecutionContext();
       const params = {
         executionContext,
+        dbClient: {} as any,
         conversationId: 'conv-error',
         userMessage: 'This will cause an error',
         initialAgentId: 'faulty-agent',

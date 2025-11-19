@@ -1,5 +1,24 @@
 # @inkeep/agents-core
 
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- cd916ee: fix of bug when two MCPs are incorrectly highlighted as `active` in animation
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 7b2db47: added new models
+
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- bbbed5e: improve error message when saving a component with on click handler
+
 ## 0.33.1
 
 ### Patch Changes

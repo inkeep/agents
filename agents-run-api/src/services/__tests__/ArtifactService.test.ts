@@ -48,7 +48,7 @@ describe('ArtifactService', () => {
       ],
     };
 
-    artifactService = new ArtifactService(mockContext);
+    artifactService = new ArtifactService(mockContext, {} as any);
   });
 
   afterEach(() => {
@@ -242,10 +242,13 @@ describe('ArtifactService', () => {
     });
 
     it('should handle missing session ID', async () => {
-      const serviceWithoutSession = new ArtifactService({
-        ...mockContext,
-        sessionId: undefined,
-      });
+      const serviceWithoutSession = new ArtifactService(
+        {
+          ...mockContext,
+          sessionId: undefined,
+        },
+        {} as any
+      );
 
       const result = await serviceWithoutSession.createArtifact(mockRequest);
 
@@ -367,7 +370,7 @@ describe('ArtifactService', () => {
         data: { db: 'data' },
       });
 
-      expect(getLedgerArtifacts).toHaveBeenCalledWith('mock-db-client');
+      expect(getLedgerArtifacts).toHaveBeenCalledWith(expect.any(Object));
     });
 
     it('should return null when artifact not found anywhere', async () => {
@@ -394,11 +397,14 @@ describe('ArtifactService', () => {
     });
 
     it('should return null when missing required context', async () => {
-      const serviceWithoutContext = new ArtifactService({
-        ...mockContext,
-        projectId: undefined,
-        taskId: undefined,
-      });
+      const serviceWithoutContext = new ArtifactService(
+        {
+          ...mockContext,
+          projectId: undefined,
+          taskId: undefined,
+        },
+        {} as any
+      );
 
       vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
 
@@ -526,10 +532,13 @@ describe('ArtifactService', () => {
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
       vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
-      const serviceWithoutComponents = new ArtifactService({
-        ...mockContext,
-        artifactComponents: undefined,
-      });
+      const serviceWithoutComponents = new ArtifactService(
+        {
+          ...mockContext,
+          artifactComponents: undefined,
+        },
+        {} as any
+      );
 
       const testRequest2: ArtifactCreateRequest = {
         artifactId: 'test-artifact',

@@ -9,15 +9,16 @@ export default {
           pages: ['get-started/quick-start', 'get-started/push-pull', 'get-started/traces'],
         },
         'concepts',
+        'pricing',
       ],
     },
     {
       group: 'Typescript SDK',
       icon: 'LuCode',
       pages: [
+        'typescript-sdk/project-management',
         'typescript-sdk/agent-settings',
         'typescript-sdk/models',
-        'typescript-sdk/memory',
         'typescript-sdk/agent-relationships',
         {
           group: 'Tools',
@@ -35,6 +36,7 @@ export default {
             'typescript-sdk/credentials/env-aware-credentials',
           ],
         },
+        'typescript-sdk/memory',
         'typescript-sdk/headers',
         'typescript-sdk/context-fetchers',
         'authentication',
@@ -45,16 +47,6 @@ export default {
             'typescript-sdk/structured-outputs/data-components',
             'typescript-sdk/structured-outputs/artifact-components',
             'typescript-sdk/structured-outputs/status-updates',
-          ],
-        },
-        {
-          group: 'Project Management',
-          icon: 'LuFolderOpen',
-          pages: [
-            'typescript-sdk/project-structure',
-            'typescript-sdk/configuration',
-            'typescript-sdk/environments',
-            'typescript-sdk/push-pull-workflows',
           ],
         },
         'typescript-sdk/data-operations',
@@ -68,6 +60,7 @@ export default {
           ],
         },
         'typescript-sdk/external-agents',
+        'typescript-sdk/workspace-configuration',
         'typescript-sdk/cli-reference',
       ],
     },
@@ -159,7 +152,18 @@ export default {
             'tutorials/mcp-servers/overview',
             'tutorials/mcp-servers/native-mcp-servers',
             'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/gram',
             'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },
+        {
+          group: 'Connect Your Data',
+          icon: 'LuDatabase',
+          pages: [
+            'connect-your-data/overview',
+            'connect-your-data/inkeep',
+            'connect-your-data/context7',
+            'connect-your-data/ref',
           ],
         },
         'tutorials/upgrading',
@@ -180,40 +184,6 @@ export default {
         'api-reference',
       ],
     },
-    /**
-     * TODO: Add back schema validation back in some way
-     */
-    // {
-    //   group: 'UI Components',
-    //   pages: ['ui-components/json-schema-validation'],
-    // },
-    /**
-     * TODO: Add back in and flesh out Connecting your data section
-     */
-    // {
-    //   group: 'Connecting your data',
-    //   pages: [
-    //     {
-    //       group: '3rd Party Tools',
-    //       pages: [
-    //         {
-    //           group: 'Data Scraping',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/exa',
-    //             'connecting-your-data/3rd-party-tools/firecrawl',
-    //           ],
-    //         },
-    //         {
-    //           group: 'Data Stores',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/Pinecone',
-    //             'connecting-your-data/3rd-party-tools/pgVector',
-    //           ],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // },
     {
       group: 'Self-Hosting',
       icon: 'LuServer',

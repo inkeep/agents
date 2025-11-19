@@ -128,6 +128,7 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            dbClient: {} as any,
             relationId: 'test-relation-id',
             relationType: 'test-relation-type',
             id: mockAgentId,
@@ -218,6 +219,7 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            dbClient: {} as any,
             relationId: 'test-relation-id',
             relationType: 'test-relation-type',
             id: mockAgentId,
@@ -292,6 +294,7 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            dbClient: {} as any,
             relationId: 'test-relation-id',
             relationType: 'test-relation-type',
             id: mockAgentId,
@@ -353,6 +356,7 @@ describe('External Agent Credential Handling', () => {
         delegateConfig: {
           type: 'external',
           config: {
+            dbClient: {} as any,
             relationId: 'test-relation-id',
             relationType: 'test-relation-type',
             id: mockAgentId,

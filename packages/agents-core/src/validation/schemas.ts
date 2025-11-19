@@ -658,6 +658,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   createdAt: z.date(),
   updatedAt: z.date(),
   expiresAt: z.date().optional(),
+  relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
 export const MCPToolConfigSchema = McpToolSchema.omit({
@@ -1358,9 +1359,16 @@ export const TenantProjectAgentSubAgentIdParamsSchema =
     id: resourceIdSchema,
   });
 
+export const RefQueryParamSchema = z.object({
+  ref: z.string().optional().describe('Branch name, tag name, or commit hash to query from'),
+});
+
 export const PaginationQueryParamsSchema = z
   .object({
     page: pageNumber,
     limit: limitNumber,
   })
   .openapi('PaginationQueryParams');
+
+export const PaginationWithRefQueryParamsSchema =
+  PaginationQueryParamsSchema.merge(RefQueryParamSchema);

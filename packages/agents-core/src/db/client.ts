@@ -18,13 +18,29 @@ export interface DatabaseConfig {
   logger?: {
     logQuery: (query: string, params: unknown[]) => void;
   };
+  ref?: string;
+}
+
+/**
+ * Appends a ref (branch, tag, or commit) to a database connection URL
+ * Handles URLs with query parameters (e.g., from Neon, Supabase)
+ * Example: postgresql://host/dbname?ssl=true -> postgresql://host/dbname/branch?ssl=true
+ */
+function appendRefToConnectionUrl(connectionString: string, ref: string): string {
+  const url = new URL(connectionString);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+
+  pathParts.push(ref);
+  url.pathname = `/${pathParts.join('/')}`;
+
+  return url.toString();
 }
 
 /**
  * Creates a PostgreSQL database client with connection pooling
  */
 export function createDatabaseClient(config: DatabaseConfig = {}): DatabaseClient {
-  const connectionString = config.connectionString || process.env.DATABASE_URL;
+  let connectionString = config.connectionString || process.env.DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {
     return createTestDatabaseClientNoMigrations();
@@ -34,6 +50,10 @@ export function createDatabaseClient(config: DatabaseConfig = {}): DatabaseClien
     throw new Error(
       'DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
     );
+  }
+
+  if (config.ref) {
+    connectionString = appendRefToConnectionUrl(connectionString, config.ref);
   }
 
   const pool = new Pool({

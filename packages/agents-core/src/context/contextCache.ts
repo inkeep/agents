@@ -8,6 +8,9 @@ import {
   setCacheEntry,
 } from '../data-access/index';
 import type { DatabaseClient } from '../db/client';
+import { executeInBranch } from '../dolt/branch-scoped-execution';
+import type { ResolvedRef } from '../dolt/ref';
+import type { ContextCacheSelect } from '../types/entities';
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 
@@ -33,12 +36,12 @@ export class ContextCache {
   private tenantId: string;
   private projectId: string;
   private dbClient: DatabaseClient;
-
-  constructor(tenantId: string, projectId: string, dbClient: DatabaseClient) {
+  private ref?: ResolvedRef;
+  constructor(tenantId: string, projectId: string, dbClient: DatabaseClient, ref?: ResolvedRef) {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.dbClient = dbClient;
-
+    this.ref = ref;
     logger.info(
       {
         tenantId: this.tenantId,
@@ -62,12 +65,30 @@ export class ContextCache {
     requestHash?: string;
   }): Promise<CacheEntry | null> {
     try {
-      const cacheEntry = await getCacheEntry(this.dbClient)({
-        conversationId,
-        contextConfigId,
-        contextVariableKey,
-        requestHash,
-      });
+      let cacheEntry: ContextCacheSelect | null;
+      if (this.ref) {
+        cacheEntry = await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+          },
+          async (db) => {
+            return await getCacheEntry(db)({
+              conversationId,
+              contextConfigId,
+              contextVariableKey,
+              requestHash,
+            });
+          }
+        );
+      } else {
+        cacheEntry = await getCacheEntry(this.dbClient)({
+          conversationId,
+          contextConfigId,
+          contextVariableKey,
+          requestHash,
+        });
+      }
       if (!cacheEntry) {
         return null;
       }
@@ -116,7 +137,21 @@ export class ContextCache {
         updatedAt: new Date().toISOString(),
       };
 
-      await setCacheEntry(this.dbClient)(cacheData);
+      if (this.ref) {
+        await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+            autoCommit: true,
+            commitMessage: 'Set cache entry',
+          },
+          async (db) => {
+            return await setCacheEntry(db)(cacheData);
+          }
+        );
+      } else {
+        await setCacheEntry(this.dbClient)(cacheData);
+      }
 
       logger.debug(
         {
@@ -149,10 +184,28 @@ export class ContextCache {
     conversationId: string
   ): Promise<void> {
     try {
-      const result = await clearConversationCache(this.dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-      });
+      let result: number | undefined;
+      if (this.ref) {
+        result = await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+            autoCommit: true,
+            commitMessage: 'Clear conversation cache',
+          },
+          async (db) => {
+            return await clearConversationCache(db)({
+              scopes: { tenantId, projectId },
+              conversationId,
+            });
+          }
+        );
+      } else {
+        result = await clearConversationCache(this.dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+        });
+      }
 
       logger.info(
         {
@@ -182,10 +235,28 @@ export class ContextCache {
     contextConfigId: string
   ): Promise<void> {
     try {
-      const result = await clearContextConfigCache(this.dbClient)({
-        scopes: { tenantId, projectId },
-        contextConfigId,
-      });
+      let result: number | undefined;
+      if (this.ref) {
+        result = await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+            autoCommit: true,
+            commitMessage: 'Clear context config cache',
+          },
+          async (db) => {
+            return await clearContextConfigCache(db)({
+              scopes: { tenantId, projectId },
+              contextConfigId,
+            });
+          }
+        );
+      } else {
+        result = await clearContextConfigCache(this.dbClient)({
+          scopes: { tenantId, projectId },
+          contextConfigId,
+        });
+      }
 
       logger.info(
         {
@@ -211,9 +282,26 @@ export class ContextCache {
    */
   async cleanup(): Promise<void> {
     try {
-      const result = await cleanupTenantCache(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      });
+      let result: number | undefined;
+      if (this.ref) {
+        result = await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+            autoCommit: true,
+            commitMessage: 'Cleanup tenant cache',
+          },
+          async (db) => {
+            return await cleanupTenantCache(db)({
+              scopes: { tenantId: this.tenantId, projectId: this.projectId },
+            });
+          }
+        );
+      } else {
+        result = await cleanupTenantCache(this.dbClient)({
+          scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        });
+      }
       logger.info(
         {
           rowsCleared: result,
@@ -238,12 +326,32 @@ export class ContextCache {
     contextConfigId: string,
     definitionIds: string[]
   ): Promise<void> {
-    await invalidateInvocationDefinitionsCache(this.dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      contextConfigId,
-      invocationDefinitionIds: definitionIds,
-    });
+    let result: number | undefined;
+    if (this.ref) {
+      result = await executeInBranch(
+        {
+          dbClient: this.dbClient,
+          ref: this.ref,
+          autoCommit: true,
+          commitMessage: 'Invalidate invocation definitions cache',
+        },
+        async (db) => {
+          return await invalidateInvocationDefinitionsCache(db)({
+            scopes: { tenantId, projectId },
+            conversationId,
+            contextConfigId,
+            invocationDefinitionIds: definitionIds,
+          });
+        }
+      );
+    } else {
+      result = await invalidateInvocationDefinitionsCache(this.dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        contextConfigId,
+        invocationDefinitionIds: definitionIds,
+      });
+    }
   }
 
   async invalidateHeaders(
@@ -252,10 +360,29 @@ export class ContextCache {
     conversationId: string,
     contextConfigId: string
   ): Promise<void> {
-    await invalidateHeadersCache(this.dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      contextConfigId,
-    });
+    let result: number | undefined;
+    if (this.ref) {
+      result = await executeInBranch(
+        {
+          dbClient: this.dbClient,
+          ref: this.ref,
+          autoCommit: true,
+          commitMessage: 'Invalidate headers cache',
+        },
+        async (db) => {
+          return await invalidateHeadersCache(db)({
+            scopes: { tenantId, projectId },
+            conversationId,
+            contextConfigId,
+          });
+        }
+      );
+    } else {
+      result = await invalidateHeadersCache(this.dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        contextConfigId,
+      });
+    }
   }
 }

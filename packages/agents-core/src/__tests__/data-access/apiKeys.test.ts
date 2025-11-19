@@ -717,7 +717,7 @@ describe('API Keys Data Access', () => {
   describe('API Key Utilities', () => {
     describe('generateApiKey', () => {
       it('should generate a valid API key with new format', async () => {
-        const result = await generateApiKey();
+        const result = await generateApiKey('test-tenant', 'test-project');
 
         expect(result.id).toBeDefined();
         expect(result.publicId).toBeDefined();
@@ -731,8 +731,8 @@ describe('API Keys Data Access', () => {
       });
 
       it('should generate unique keys', async () => {
-        const key1 = await generateApiKey();
-        const key2 = await generateApiKey();
+        const key1 = await generateApiKey('test-tenant', 'test-project');
+        const key2 = await generateApiKey('test-tenant', 'test-project');
 
         expect(key1.key).not.toBe(key2.key);
         expect(key1.publicId).not.toBe(key2.publicId);
@@ -742,7 +742,7 @@ describe('API Keys Data Access', () => {
 
     describe('extractPublicId', () => {
       it('should extract publicId from valid key format', async () => {
-        const result = await generateApiKey();
+        const result = await generateApiKey('test-tenant', 'test-project');
         const extractedId = extractPublicId(result.key);
 
         expect(extractedId).toBe(result.publicId);
@@ -787,7 +787,7 @@ describe('API Keys Data Access', () => {
 
     describe('maskApiKey', () => {
       it('should mask API key correctly', async () => {
-        const result = await generateApiKey();
+        const result = await generateApiKey('test-tenant', 'test-project');
         const masked = maskApiKey(result.keyPrefix);
         expect(masked).toBe(`${result.keyPrefix}...`);
       });

@@ -3,14 +3,19 @@
 import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
+import type { ApiRequestOptions } from './api-config';
 import { makeManagementApiRequest } from './api-config';
 import { validateTenantId } from './resource-validation';
 
-export async function fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
+export async function fetchProjects(
+  tenantId: string,
+  options?: ApiRequestOptions
+): Promise<ListResponse<Project>> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<ListResponse<any>>(
-    `tenants/${tenantId}/projects`
+    `tenants/${tenantId}/projects`,
+    options
   );
 
   if (response.data) {
@@ -25,12 +30,14 @@ export async function fetchProjects(tenantId: string): Promise<ListResponse<Proj
 
 export async function fetchProject(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: ApiRequestOptions
 ): Promise<SingleResponse<Project>> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
-    `tenants/${tenantId}/projects/${projectId}`
+    `tenants/${tenantId}/projects/${projectId}`,
+    options
   );
 
   if (response.data) {
@@ -45,13 +52,15 @@ export async function fetchProject(
 
 export async function createProject(
   tenantId: string,
-  project: ProjectFormData
+  project: ProjectFormData,
+  options?: ApiRequestOptions
 ): Promise<SingleResponse<Project>> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects`,
     {
+      ...options,
       method: 'POST',
       body: JSON.stringify(project),
     }
@@ -70,13 +79,15 @@ export async function createProject(
 export async function updateProject(
   tenantId: string,
   projectId: string,
-  project: ProjectFormData
+  project: ProjectFormData,
+  options?: ApiRequestOptions
 ): Promise<SingleResponse<Project>> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects/${projectId}`,
     {
+      ...options,
       method: 'PATCH',
       body: JSON.stringify(project),
     }
@@ -91,10 +102,15 @@ export async function updateProject(
   return response as SingleResponse<Project>;
 }
 
-export async function deleteProject(tenantId: string, projectId: string): Promise<void> {
+export async function deleteProject(
+  tenantId: string,
+  projectId: string,
+  options?: ApiRequestOptions
+): Promise<void> {
   validateTenantId(tenantId);
 
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}`, {
+    ...options,
     method: 'DELETE',
   });
 }

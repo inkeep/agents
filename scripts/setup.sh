@@ -15,6 +15,16 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+DB_HOST="localhost"
+DB_USER="postgres"
+DB_PASSWORD="password"
+DB_NAME="inkeep_agents"
+
+# Function to run psql commands
+run_sql() {
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -t -c "$1"
+}
+
 # Check if we're in the right directory
 if [ ! -f "pnpm-workspace.yaml" ]; then
   echo "❌ Error: Please run this script from the repository root directory"
@@ -88,6 +98,20 @@ fi
 
 pnpm --filter @inkeep/agents-core db:migrate
 echo -e "${GREEN}✓${NC} Database ready"
+
+
+echo "Checking for changes..."
+STATUS=$(run_sql "SELECT COUNT(*) FROM dolt_status;")
+if [ "$STATUS" -gt 0 ]; then
+  echo "Changes detected, staging..."
+  run_sql "SELECT dolt_add('.');"
+  
+  echo "Committing..."
+  COMMIT_HASH=$(run_sql "SELECT dolt_commit('-m', 'Applied database migrations');")
+  echo "Committed: $COMMIT_HASH"
+else
+  echo "No changes to commit"
+fi
 
 echo ""
 echo "================================================"

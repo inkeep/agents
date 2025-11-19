@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '@inkeep/agents-core';
+import type { ExecutionContext, ResolvedRef } from '@inkeep/agents-core';
 
 /**
  * Create execution context from middleware values
@@ -11,6 +11,7 @@ export function createExecutionContext(params: {
   apiKeyId: string;
   subAgentId?: string;
   baseUrl?: string;
+  ref: ResolvedRef;
   metadata?: {
     teamDelegation?: boolean;
     originAgentId?: string;
@@ -25,6 +26,7 @@ export function createExecutionContext(params: {
     apiKeyId: params.apiKeyId,
     subAgentId: params.subAgentId,
     metadata: params.metadata || {},
+    ref: params.ref,
   };
 }
 

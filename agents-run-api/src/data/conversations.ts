@@ -5,8 +5,11 @@ import {
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
+  executeInBranch,
   generateId,
   getConversationHistory,
+  getLedgerArtifacts,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
 import { CONVERSATION_HISTORY_DEFAULT_LIMIT } from '../constants/execution-limits';
 import dbClient from './db/dbClient';
@@ -23,19 +26,30 @@ export function createDefaultConversationHistoryConfig(
     mode,
     limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
     includeInternal: true,
-    messageTypes: ['chat'],
+    messageTypes: ['chat', 'tool-result'],
     maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   };
 }
 
 /**
  * Extracts text content from A2A Message parts array
+ * Escapes control characters to ensure proper JSON serialization for Dolt
  */
 function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): string {
-  return parts
+  const text = parts
     .filter((part) => part.kind === 'text' && part.text)
     .map((part) => part.text)
     .join('');
+
+  // Escape control characters that Dolt's JSON parser rejects
+  // This ensures the text will serialize properly without changing its meaning
+  // We replace literal control characters with their escaped equivalents
+  return text
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\f/g, '\\f') // Escape form feeds
+    .replace(/\b/g, '\\b'); // Escape backspaces
 }
 
 /**
@@ -46,6 +60,7 @@ function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): s
  */
 export async function saveA2AMessageResponse(
   response: any, // SendMessageResponse type
+  ref: ResolvedRef,
   params: {
     tenantId: string;
     projectId: string;
@@ -84,25 +99,33 @@ export async function saveA2AMessageResponse(
     return null;
   }
 
-  return await createMessage(dbClient)({
-    id: generateId(),
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    conversationId: params.conversationId,
-    role: 'agent',
-    content: {
-      text: messageText,
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-    visibility: params.visibility,
-    messageType: params.messageType,
-    fromSubAgentId: params.fromSubAgentId,
-    toSubAgentId: params.toSubAgentId,
-    fromExternalAgentId: params.fromExternalAgentId,
-    toExternalAgentId: params.toExternalAgentId,
-    a2aTaskId: params.a2aTaskId,
-    a2aSessionId: params.a2aSessionId,
-    metadata: params.metadata,
-  });
+    async (db) => {
+      return await createMessage(db)({
+        id: generateId(),
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        conversationId: params.conversationId,
+        role: 'agent',
+        content: {
+          text: messageText,
+        },
+        visibility: params.visibility,
+        messageType: params.messageType,
+        fromSubAgentId: params.fromSubAgentId,
+        toSubAgentId: params.toSubAgentId,
+        fromExternalAgentId: params.fromExternalAgentId,
+        toExternalAgentId: params.toExternalAgentId,
+        a2aTaskId: params.a2aTaskId,
+        a2aSessionId: params.a2aSessionId,
+        metadata: params.metadata,
+      });
+    }
+  );
 }
 
 /**
@@ -115,21 +138,37 @@ export async function getScopedHistory({
   conversationId,
   filters,
   options,
+  ref,
 }: {
   tenantId: string;
   projectId: string;
   conversationId: string;
   filters?: ConversationScopeOptions;
   options?: ConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<any[]> {
   try {
-    const messages = await getConversationHistory(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      options,
-    });
+    const messages = await executeInBranch(
+      {
+        dbClient,
+        ref,
+      },
+      async (db) => {
+        return await getConversationHistory(db)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          options,
+        });
+      }
+    );
 
-    if (!filters || (!filters.subAgentId && !filters.taskId)) {
+    if (
+      !filters ||
+      (!filters.subAgentId &&
+        !filters.taskId &&
+        !filters.delegationId &&
+        filters.isDelegated === undefined)
+    ) {
       return messages;
     }
 
@@ -138,6 +177,7 @@ export async function getScopedHistory({
 
       let matchesAgent = true;
       let matchesTask = true;
+      let matchesDelegation = true;
 
       if (filters.subAgentId) {
         matchesAgent =
@@ -150,19 +190,37 @@ export async function getScopedHistory({
         matchesTask = msg.taskId === filters.taskId || msg.a2aTaskId === filters.taskId;
       }
 
-      if (filters.subAgentId && filters.taskId) {
-        return matchesAgent && matchesTask;
+      // Delegation filtering for tool results
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined) {
+        if (msg.messageType === 'tool-result') {
+          const messageDelegationId = msg.metadata?.a2a_metadata?.delegationId;
+          const messageIsDelegated = msg.metadata?.a2a_metadata?.isDelegated;
+
+          if (filters.delegationId) {
+            // If we have a specific delegation ID, show tool results from that delegation OR no delegation (top-level)
+            matchesDelegation =
+              messageDelegationId === filters.delegationId || !messageDelegationId;
+          } else if (filters.isDelegated === false) {
+            // If we're NOT delegated, only show tool results that aren't delegated
+            matchesDelegation = !messageIsDelegated;
+          } else if (filters.isDelegated === true) {
+            // If we ARE delegated but no specific ID, show any delegated tool results
+            matchesDelegation = messageIsDelegated === true;
+          }
+        }
+        // Non-tool-result messages are not affected by delegation filtering
       }
 
-      if (filters.subAgentId) {
-        return matchesAgent;
-      }
+      // Combine all filters
+      const conditions = [];
+      if (filters.subAgentId) conditions.push(matchesAgent);
+      if (filters.taskId) conditions.push(matchesTask);
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined)
+        conditions.push(matchesDelegation);
 
-      if (filters.taskId) {
-        return matchesTask;
-      }
+      const finalResult = conditions.length === 0 || conditions.every(Boolean);
 
-      return false;
+      return finalResult;
     });
 
     return relevantMessages;
@@ -179,17 +237,26 @@ export async function getUserFacingHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
+  ref: ResolvedRef,
   limit = CONVERSATION_HISTORY_DEFAULT_LIMIT
 ): Promise<any[]> {
-  return await getConversationHistory(dbClient)({
-    scopes: { tenantId, projectId },
-    conversationId,
-    options: {
-      limit,
-      includeInternal: false,
-      messageTypes: ['chat'],
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-  });
+    async (db) => {
+      return await getConversationHistory(db)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: {
+          limit,
+          includeInternal: false,
+          messageTypes: ['chat'],
+        },
+      });
+    }
+  );
 }
 
 /**
@@ -199,17 +266,28 @@ export async function getFullConversationContext(
   tenantId: string,
   projectId: string,
   conversationId: string,
+  ref: ResolvedRef,
   maxTokens?: number
 ): Promise<any[]> {
-  return await getConversationHistory(dbClient)({
-    scopes: { tenantId, projectId },
-    conversationId,
-    options: {
-      limit: 100,
-      includeInternal: true,
-      maxOutputTokens: maxTokens,
+  const defaultConfig = createDefaultConversationHistoryConfig();
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-  });
+    async (db) => {
+      return await getConversationHistory(db)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: {
+          ...defaultConfig,
+          limit: 100,
+          includeInternal: true,
+          maxOutputTokens: maxTokens,
+        },
+      });
+    }
+  );
 }
 
 /**
@@ -222,6 +300,7 @@ export async function getFormattedConversationHistory({
   currentMessage,
   options,
   filters,
+  ref,
 }: {
   tenantId: string;
   projectId: string;
@@ -229,8 +308,9 @@ export async function getFormattedConversationHistory({
   currentMessage?: string;
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
+  ref: ResolvedRef;
 }): Promise<string> {
-  const historyOptions = options ?? { includeInternal: true };
+  const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
   const conversationHistory = await getScopedHistory({
     tenantId,
@@ -238,6 +318,7 @@ export async function getFormattedConversationHistory({
     conversationId,
     filters,
     options: historyOptions,
+    ref,
   });
 
   let messagesToFormat = conversationHistory;
@@ -269,6 +350,10 @@ export async function getFormattedConversationHistory({
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
         const fromSubAgent = msg.fromSubAgentId || 'unknown';
         roleLabel = `${fromSubAgent} to User`;
+      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+        roleLabel = `${fromSubAgent} tool: ${toolName}`;
       } else {
         roleLabel = msg.role || 'system';
       }
@@ -290,8 +375,9 @@ export async function getConversationScopedArtifacts(params: {
   projectId: string;
   conversationId: string;
   historyConfig: AgentConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<Artifact[]> {
-  const { tenantId, projectId, conversationId, historyConfig } = params;
+  const { tenantId, projectId, conversationId, historyConfig, ref } = params;
 
   if (!conversationId) {
     return [];
@@ -307,6 +393,7 @@ export async function getConversationScopedArtifacts(params: {
       projectId,
       conversationId,
       options: historyConfig,
+      ref,
     });
 
     if (visibleMessages.length === 0) {
@@ -327,19 +414,24 @@ export async function getConversationScopedArtifacts(params: {
       return [];
     }
 
-    const { getLedgerArtifacts } = await import('@inkeep/agents-core');
-    const dbClient = (await import('../data/db/dbClient')).default;
-
     const visibleTaskIds = visibleMessages
       .map((msg) => msg.taskId)
       .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
 
     const referenceArtifacts: Artifact[] = [];
     for (const taskId of visibleTaskIds) {
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId, projectId },
-        taskId: taskId,
-      });
+      const artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId, projectId },
+            taskId: taskId,
+          });
+        }
+      );
       referenceArtifacts.push(...artifacts);
     }
 

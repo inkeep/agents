@@ -31,8 +31,7 @@ interface TracesOverviewProps {
 
 export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.projectId;
+  const { tenantId, projectId } = useParams();
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -49,8 +48,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
 
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
@@ -397,7 +396,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               Icon={SparklesIcon}
               onClick={() => {
                 const current = new URLSearchParams(searchParams.toString());
-                const href = `/${params.tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
+                const href = `/${tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
                 router.push(href);
               }}
             />

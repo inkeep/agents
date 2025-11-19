@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -9,7 +9,6 @@ import {
   listProjectsPaginated,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
-  ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
@@ -18,9 +17,9 @@ import {
   updateProject,
 } from '@inkeep/agents-core';
 
-import dbClient from '../data/db/dbClient';
+import { createAppWithDb } from '../utils/apps';
 
-const app = new OpenAPIHono();
+const app = createAppWithDb();
 
 app.openapi(
   createRoute({
@@ -47,11 +46,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listProjectsPaginated(dbClient)({
+    const result = await listProjectsPaginated(db)({
       tenantId,
       pagination: { page, limit },
     });
@@ -83,8 +83,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
-    const project = await getProject(dbClient)({ scopes: { tenantId, projectId: id } });
+    const project = await getProject(db)({ scopes: { tenantId, projectId: id } });
 
     if (!project) {
       throw createApiError({
@@ -136,11 +137,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
-      const project = await createProject(dbClient)({
+      const project = await createProject(db)({
         tenantId,
         ...body,
       });
@@ -190,10 +192,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const project = await updateProject(dbClient)({
+    const project = await updateProject(db)({
       scopes: { tenantId, projectId: id },
       data: body,
     });
@@ -236,10 +239,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, id } = c.req.valid('param');
 
     try {
-      const deleted = await deleteProject(dbClient)({
+      const deleted = await deleteProject(db)({
         scopes: { tenantId, projectId: id },
       });
 

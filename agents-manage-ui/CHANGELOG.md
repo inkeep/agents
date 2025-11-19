@@ -1,5 +1,47 @@
 # @inkeep/agents-manage-ui
 
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- b83ce52: truncate long badges in agent flow
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- cd916ee: fix of bug when two MCPs are incorrectly highlighted as `active` in animation
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 1a3cc67: use `cursor-pointer` for `DropdownMenuItem`
+- f3f999c: revert `SidebarInset` styles changes
+- cd916ee: stop data-operation animation for `delegation_returned` and `tool_result`
+- 62beff0: Fix console warning: [Shiki] 10 instances have been created. Shiki is supposed to be used as a singleton, consider refactoring your code to cache your highlighter instance; Or call `highlighter.dispose()` to release unused instances.
+- 404477b: use agents loader in `[tenantId]/projects/[projectId]`
+- 24db564: fix: unable to save new component when add properties via form builder
+- cd916ee: still show the “parent” that’s waiting for the delegation to return as blue outline
+- 7b2db47: added new models
+- Updated dependencies [d957766]
+- Updated dependencies [9ab5e8b]
+- Updated dependencies [3294024]
+- Updated dependencies [cd916ee]
+- Updated dependencies [8bfac58]
+- Updated dependencies [7eafb29]
+- Updated dependencies [7b2db47]
+  - @inkeep/agents-core@0.33.3
+  - @inkeep/agents-manage-api@0.33.3
+  - @inkeep/agents-run-api@0.33.3
+
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- b9b423a: increase ReactFlow's `minZoom` to `0.3` (default was 0.5)
+- Updated dependencies [4b2fd62]
+- Updated dependencies [bbbed5e]
+  - @inkeep/agents-core@0.33.2
+  - @inkeep/agents-run-api@0.33.2
+  - @inkeep/agents-manage-api@0.33.2
+
 ## 0.33.1
 
 ### Patch Changes

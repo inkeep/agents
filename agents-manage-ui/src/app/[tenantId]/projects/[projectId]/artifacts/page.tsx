@@ -9,17 +9,20 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
+import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 export const dynamic = 'force-dynamic';
 
 async function ArtifactComponentsPage({
   params,
+  searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts'>) {
   const { tenantId, projectId } = await params;
+  const ref = await getValidSearchParamsAsync(searchParams);
 
   let artifacts: Awaited<ReturnType<typeof fetchArtifactComponents>>;
   try {
-    artifacts = await fetchArtifactComponents(tenantId, projectId);
+    artifacts = await fetchArtifactComponents(tenantId, projectId, { queryParams: ref });
   } catch (error) {
     return <FullPageError error={error as Error} context="artifacts" />;
   }

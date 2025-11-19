@@ -38,6 +38,7 @@ interface EditCredentialFormProps {
   projectId: string;
   credential: Credential;
   initialFormData: EditCredentialFormData;
+  ref?: string;
 }
 
 function getCredentialAuthenticationType(credential: Credential): string | undefined {
@@ -75,6 +76,7 @@ export function EditCredentialForm({
   projectId,
   credential,
   initialFormData,
+  ref,
 }: EditCredentialFormProps) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -121,7 +123,7 @@ export function EditCredentialForm({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const result = await deleteCredentialAction(tenantId, projectId, credential.id);
+      const result = await deleteCredentialAction(tenantId, projectId, credential.id, ref);
       if (result.success) {
         setIsDeleteOpen(false);
         toast.success('Credential deleted.');

@@ -587,7 +587,7 @@ export async function validateTempDirectory(
 
       // Clean up any existing listeners
       process.stdin.removeAllListeners('data');
-      
+
       // Ensure stdin is properly configured
       if (!process.stdin.isRaw) {
         process.stdin.setRawMode(true);
@@ -638,7 +638,7 @@ export async function validateTempDirectory(
       // Store handler reference and set flag before adding listener
       currentKeypressHandler = onKeypress;
       isWaitingForInput = true;
-      
+
       // Use 'once' instead of 'on' to ensure handler is only called once
       process.stdin.once('data', onKeypress);
       process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));

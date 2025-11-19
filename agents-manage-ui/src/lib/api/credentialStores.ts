@@ -1,7 +1,7 @@
 'use server';
 
 import type { CredentialStoreType } from '@inkeep/agents-core/client-exports';
-import { makeManagementApiRequest } from './api-config';
+import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface CredentialStoreStatus {
@@ -34,13 +34,15 @@ export interface CreateCredentialInStoreResponse {
  */
 export async function listCredentialStores(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  options?: ApiRequestOptions
 ): Promise<CredentialStoreStatus[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<CredentialStoresListResponse>(
-    `tenants/${tenantId}/projects/${projectId}/credential-stores`
+    `tenants/${tenantId}/projects/${projectId}/credential-stores`,
+    options
   );
 
   return response.data;
@@ -56,6 +58,7 @@ export async function createCredentialInStore({
   key,
   value,
   metadata,
+  options,
 }: {
   tenantId: string;
   projectId: string;
@@ -63,6 +66,7 @@ export async function createCredentialInStore({
   key: string;
   value: string;
   metadata?: Record<string, string>;
+  options?: ApiRequestOptions;
 }): Promise<CreateCredentialInStoreResponse['data']> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -70,6 +74,7 @@ export async function createCredentialInStore({
   const response = await makeManagementApiRequest<CreateCredentialInStoreResponse>(
     `tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
     {
+      ...options,
       method: 'POST',
       body: JSON.stringify({ key, value, metadata }),
     }

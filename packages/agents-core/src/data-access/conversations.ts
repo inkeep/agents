@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { conversations, messages } from '../db/schema';
 import type {
@@ -275,6 +275,7 @@ export const getConversationHistory =
       limit = options.limit ?? 50,
       includeInternal = options.includeInternal ?? false,
       maxOutputTokens,
+      messageTypes,
     } = options;
 
     const whereConditions = [
@@ -286,6 +287,11 @@ export const getConversationHistory =
     // Filter by visibility unless explicitly including internal messages
     if (!includeInternal) {
       whereConditions.push(eq(messages.visibility, 'user-facing'));
+    }
+
+    // Filter by messageTypes if specified
+    if (messageTypes && messageTypes.length > 0) {
+      whereConditions.push(inArray(messages.messageType, messageTypes));
     }
 
     const messageHistory = await db
@@ -331,6 +337,26 @@ export const setActiveAgentForConversation =
     conversationId: string;
     subAgentId: string;
   }): Promise<void> => {
+    // await db
+    //   .insert(conversations)
+    //   .values({
+    //     id: params.conversationId,
+    //     tenantId: params.scopes.tenantId,
+    //     projectId: params.scopes.projectId,
+    //     activeSubAgentId: params.subAgentId,
+    //     createdAt: new Date().toISOString(),
+    //     updatedAt: new Date().toISOString(),
+    //   })
+    //   .onConflictDoUpdate({
+    //     target: [conversations.tenantId, conversations.projectId, conversations.id],
+    //     set: {
+    //       activeSubAgentId: params.subAgentId,
+    //       updatedAt: new Date().toISOString(),
+    //     },
+    //   });
+    // Try insert; ignore if row already exists
+
+    // TEMPORARY: waiting for dolt to support onConflictDoUpdate
     await db
       .insert(conversations)
       .values({
@@ -338,16 +364,20 @@ export const setActiveAgentForConversation =
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         activeSubAgentId: params.subAgentId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       })
-      .onConflictDoUpdate({
-        target: [conversations.tenantId, conversations.projectId, conversations.id],
-        set: {
-          activeSubAgentId: params.subAgentId,
-          updatedAt: new Date().toISOString(),
-        },
-      });
+      .onConflictDoNothing(); // Drizzle has this
+
+    // Then ensure the value is what you want
+    await db
+      .update(conversations)
+      .set({ activeSubAgentId: params.subAgentId })
+      .where(
+        and(
+          eq(conversations.tenantId, params.scopes.tenantId),
+          eq(conversations.projectId, params.scopes.projectId),
+          eq(conversations.id, params.conversationId)
+        )
+      );
   };
 
 export const setActiveAgentForThread =
