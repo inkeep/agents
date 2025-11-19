@@ -98,7 +98,7 @@ export function ArtifactComponentForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-4xl mx-auto py-4 space-y-8">
           <GenericInput
             control={form.control}
             name="name"

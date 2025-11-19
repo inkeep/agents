@@ -27,19 +27,17 @@ export default async function ArtifactComponentPage({
         ]}
       >
         <MainContent>
-          <div className="max-w-2xl mx-auto py-4">
-            <ArtifactComponentForm
-              tenantId={tenantId}
-              projectId={projectId}
-              id={artifactComponentId}
-              initialData={{
-                id: artifactComponentId,
-                name,
-                description: description ?? '',
-                props,
-              }}
-            />
-          </div>
+          <ArtifactComponentForm
+            tenantId={tenantId}
+            projectId={projectId}
+            id={artifactComponentId}
+            initialData={{
+              id: artifactComponentId,
+              name,
+              description: description ?? '',
+              props,
+            }}
+          />
         </MainContent>
       </BodyTemplate>
     );
