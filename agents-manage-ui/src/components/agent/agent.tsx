@@ -439,7 +439,7 @@ export const Agent: FC<AgentProps> = ({
       }
 
       const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject.agents[agent.id];
+      const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
 
       if (!updatedAgent) {
         console.error('Agent not found in project after refresh');
@@ -483,11 +483,11 @@ export const Agent: FC<AgentProps> = ({
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
-        updatedDataComponentLookup,
-        updatedArtifactComponentLookup,
-        updatedToolLookup,
+        updatedDataComponentLookup as Record<string, DataComponent>,
+        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
+        updatedToolLookup as unknown as Record<string, MCPTool>,
         updatedAgentToolConfigLookup,
-        updatedExternalAgentLookup,
+        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
         updatedSubAgentExternalAgentConfigLookup
       );
     } catch (error) {

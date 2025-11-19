@@ -5,7 +5,7 @@
  * management backend for full project operations.
  */
 
-import type { FullProjectDefinition } from '../types/project-full';
+import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';

@@ -7,8 +7,8 @@
  * type-safe functions that can be called from React components.
  */
 
+import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { ApiError, getFullProject as apiGetFullProject } from '../api/project-full';
-import type { FullProjectDefinition } from '../types/project-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
