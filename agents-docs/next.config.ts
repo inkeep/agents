@@ -1,38 +1,29 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { createMDX } from 'fumadocs-mdx/next';
-import { fetchCloudRedirects } from './redirects.mjs';
+import type { NextConfig } from 'next';
+import staticRedirects from './redirects.json' with { type: 'json' };
+import { fetchCloudRedirects } from './fetch-cloud-redirects';
 
 const withMDX = createMDX();
 
 const isProd = process.env.NODE_ENV === 'production';
-const redirectsPath = path.join(process.cwd(), 'redirects.json');
 
-// Read static redirects
-const staticRedirects = JSON.parse(fs.readFileSync(redirectsPath, 'utf8'));
-
-/** @type {import('next').NextConfig} */
-const config = {
+const config: NextConfig = {
   reactStrictMode: true,
-  // Enable Turbopack for faster builds
-  turbopack: {},
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {
     const cloudRedirects = await fetchCloudRedirects();
 
     return [
-      ...staticRedirects.map((item) => ({ ...item, permanent: isProd })),
-      ...cloudRedirects.map((item) => ({ ...item, permanent: isProd })),
+      ...staticRedirects,
+      ...cloudRedirects,
       {
         source: '/cloud',
         destination: '/cloud/overview/ai-for-customers',
-        permanent: true,
       },
-    ];
+    ].map((item) => ({ ...item, permanent: isProd }));
   },
-  async rewrites() {
+  rewrites() {
     return [
       {
         source: '/cloud/:path*',

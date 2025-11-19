@@ -210,11 +210,11 @@ importers:
   agents-docs:
     dependencies:
       '@inkeep/agents-cli':
-        specifier: ^0.33.2
-        version: 0.33.2(@electric-sql/pglite@0.3.13)(@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0)))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(zod@4.1.12)
+        specifier: workspace:^
+        version: link:../agents-cli
       '@inkeep/agents-ui':
-        specifier: ^0.15.3
-        version: 0.15.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: workspace:^
+        version: link:../agents-ui
       '@inkeep/cxkit-react':
         specifier: ^0.5.98
         version: 0.5.104(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@4.1.12)
@@ -2480,20 +2480,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@inkeep/agents-cli@0.33.2':
-    resolution: {integrity: sha512-utbZwH3fQ/CphXo7eRrbEUI4TbdIwodKjR7gCLWX4UWnjVWa7Vb2P+jr2ThRqBkcRMV8sYOjLTPKRed8B/htlw==}
-    engines: {node: '>=22.0.0'}
-    hasBin: true
-    peerDependencies:
-      '@inkeep/agents-manage-ui': '*'
-      zod: ^4.1.11
-
   '@inkeep/agents-core@0.30.4':
     resolution: {integrity: sha512-ngb3lb9Bvagmh7uALQo2dh7i0GeVbkFujKMK4TVxW3gQgNBs9bTz84t+4BhDImjbLcqlJq8UdRY1neTGnkaDSg==}
-    engines: {node: '>=22.0.0'}
-
-  '@inkeep/agents-core@0.33.2':
-    resolution: {integrity: sha512-DJU1uNdaWTOw2dOT+EdD9hvbEtA7Sry0GVMp80uu8tjUfeWYeNspVxF9V7Azw+YlP0QiVGdJZEP5YHrORqTIaw==}
     engines: {node: '>=22.0.0'}
 
   '@inkeep/agents-manage-api@0.30.4':
@@ -2508,18 +2496,11 @@ packages:
     resolution: {integrity: sha512-t4yOP9Wh3nwLgpxNqKg72v95GM7ai+RnZSC12QhE6gg5Q/2wzI+KZ3ZEWfcOOjL4rHYJDl1j5YJ2OEKoLK5grA==}
     engines: {node: '>=22.0.0'}
 
-  '@inkeep/agents-sdk@0.33.2':
-    resolution: {integrity: sha512-mY4EvvLEKL2wjVNXyVXIg1+Er8agHn3HJFT5fsXo8gREK27JPBCESFq7L9fGjrs/xQHhyfBvOdOcvDrccc5+SQ==}
-    engines: {node: '>=22.0.0'}
-
   '@inkeep/agents-ui@0.15.1':
     resolution: {integrity: sha512-SDULVVkXwDwwgpj9yE9sLgVEq9bXzwYiuUtnxPD5i1NYsdOgYi10Xy4INak6o5BZiBKld18aOvH3rnu2DJRA1Q==}
 
   '@inkeep/agents-ui@0.15.2':
     resolution: {integrity: sha512-7oZjlkUTfEqyOu3BF29LbqOvGARpezZPj/Y77FwPg3K5vbAvCkKQV2d+rC4WutP8IfDuGUC88J8PureaX0xHRQ==}
-
-  '@inkeep/agents-ui@0.15.3':
-    resolution: {integrity: sha512-VysrxvjzkOTpDxxt1pkZg2omUL05YQpsPUHadGwIUWoU1ApmPApmpzEMOVr8PHck5FhYa8QYEgY3STeFYDM8ZA==}
 
   '@inkeep/cxkit-color-mode@0.5.104':
     resolution: {integrity: sha512-IFHSCRPRLZzp2FogR0NQx6ukQ8Vg7Azx1BRn+FPHnC+BPjs/tE2bpPleU99JYQUl3FYGfEVr8EMsmTCImXpxXQ==}
@@ -12542,80 +12523,6 @@ snapshots:
   '@img/sharp-win32-x64@0.34.4':
     optional: true
 
-  '@inkeep/agents-cli@0.33.2(@electric-sql/pglite@0.3.13)(@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0)))(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(zod@4.1.12)':
-    dependencies:
-      '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
-      '@ai-sdk/google': 2.0.28(zod@4.1.12)
-      '@ai-sdk/openai': 2.0.11(zod@4.1.12)
-      '@babel/parser': 7.28.5
-      '@babel/types': 7.28.5
-      '@clack/prompts': 0.11.0
-      '@inkeep/agents-core': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
-      '@inkeep/agents-manage-ui': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0))
-      '@inkeep/agents-sdk': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
-      '@opentelemetry/api-logs': 0.206.0
-      '@opentelemetry/instrumentation': 0.206.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-logs': 0.206.0(@opentelemetry/api@1.9.0)
-      '@vercel/otel': 2.1.0(@opentelemetry/api-logs@0.206.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.206.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.206.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))
-      ai: 5.0.11(zod@4.1.12)
-      ast-types: 0.14.2
-      chalk: 5.6.2
-      cli-table3: 0.6.5
-      commander: 14.0.2
-      degit: 2.8.4
-      dotenv: 17.2.3
-      drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
-      find-up: 7.0.0
-      fs-extra: 11.3.2
-      json-schema-to-zod: 2.6.1
-      langfuse-vercel: 3.38.6(ai@5.0.11(zod@4.1.12))
-      open: 10.2.0
-      pg: 8.16.3
-      picocolors: 1.1.1
-      pino: 9.14.0
-      recast: 0.23.11
-      ts-morph: 26.0.0
-      tsx: 4.20.6
-      zod: 4.1.12
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cfworker/json-schema'
-      - '@cloudflare/workers-types'
-      - '@electric-sql/pglite'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/api'
-      - '@opentelemetry/core'
-      - '@opentelemetry/resources'
-      - '@opentelemetry/sdk-metrics'
-      - '@opentelemetry/sdk-trace-base'
-      - '@planetscale/database'
-      - '@prisma/client'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - better-sqlite3
-      - bun-types
-      - debug
-      - encoding
-      - expo-sqlite
-      - gel
-      - knex
-      - kysely
-      - mysql2
-      - pg-native
-      - postgres
-      - prisma
-      - sql.js
-      - sqlite3
-      - supports-color
-
   '@inkeep/agents-core@0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)':
     dependencies:
       '@hono/node-server': 1.19.6(hono@4.10.4)
@@ -12687,77 +12594,6 @@ snapshots:
       - sqlite3
       - supports-color
       - utf-8-validate
-
-  '@inkeep/agents-core@0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)':
-    dependencies:
-      '@electric-sql/pglite': 0.3.13
-      '@hono/node-server': 1.19.6(hono@4.10.4)
-      '@hono/zod-openapi': 1.1.4(hono@4.10.4)(zod@4.1.12)
-      '@modelcontextprotocol/sdk': 1.21.0
-      '@nangohq/node': 0.69.9
-      '@nangohq/types': 0.69.9
-      '@opentelemetry/api': 1.9.0
-      '@opentelemetry/auto-instrumentations-node': 0.62.2(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
-      '@opentelemetry/baggage-span-processor': 0.4.2(@opentelemetry/api@1.9.0)
-      '@opentelemetry/exporter-jaeger': 2.2.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/exporter-trace-otlp-proto': 0.203.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-metrics': 2.2.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-node': 0.203.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/sdk-trace-node': 2.2.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/semantic-conventions': 1.37.0
-      ai: 5.0.11(zod@4.1.12)
-      ajv: 8.17.1
-      ajv-formats: 3.0.1(ajv@8.17.1)
-      dotenv: 17.2.3
-      dotenv-expand: 12.0.3
-      drizzle-orm: 0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
-      drizzle-zod: 0.8.3(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3))(zod@4.1.12)
-      exit-hook: 4.0.0
-      find-up: 7.0.0
-      hono: 4.10.4
-      jmespath: 0.16.0
-      jose: 6.1.0
-      nanoid: 5.1.6
-      pg: 8.16.3
-      pino: 9.14.0
-      pino-pretty: 13.1.2
-      ts-pattern: 5.9.0
-      zod: 4.1.12
-    optionalDependencies:
-      keytar: 7.9.0
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cfworker/json-schema'
-      - '@cloudflare/workers-types'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/core'
-      - '@planetscale/database'
-      - '@prisma/client'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - better-sqlite3
-      - bun-types
-      - debug
-      - encoding
-      - expo-sqlite
-      - gel
-      - knex
-      - kysely
-      - mysql2
-      - pg-native
-      - postgres
-      - prisma
-      - sql.js
-      - sqlite3
-      - supports-color
 
   '@inkeep/agents-manage-api@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)':
     dependencies:
@@ -12936,127 +12772,6 @@ snapshots:
       - use-sync-external-store
       - utf-8-validate
 
-  '@inkeep/agents-manage-ui@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(gel@2.1.1)(pg@8.16.3)(use-sync-external-store@1.6.0(react@19.2.0))':
-    dependencies:
-      '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
-      '@ai-sdk/gateway': 1.0.41(zod@4.1.12)
-      '@ai-sdk/google': 2.0.28(zod@4.1.12)
-      '@ai-sdk/openai': 2.0.11(zod@4.1.12)
-      '@ai-sdk/react': 2.0.11(react@19.1.1)(zod@4.1.12)
-      '@hookform/resolvers': 5.2.2(react-hook-form@7.65.0(react@19.1.1))
-      '@inkeep/agents-core': 0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
-      '@inkeep/agents-manage-api': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)
-      '@inkeep/agents-run-api': 0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)(react@19.1.1)
-      '@inkeep/agents-ui': 0.15.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@lezer/highlight': 1.2.3
-      '@nangohq/frontend': 0.69.5
-      '@nangohq/node': 0.69.9
-      '@nangohq/types': 0.69.9
-      '@openrouter/ai-sdk-provider': 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
-      '@radix-ui/react-alert-dialog': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-collapsible': 1.1.12(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-label': 2.1.7(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-popover': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-radio-group': 1.3.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-scroll-area': 1.2.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-select': 2.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-separator': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.2)(react@19.1.1)
-      '@radix-ui/react-switch': 1.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@shikijs/monaco': 3.14.0
-      '@sinclair/typebox': 0.34.41
-      '@types/dagre': 0.7.53
-      '@xyflow/react': 12.9.1(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      ai: 5.0.11(zod@4.1.12)
-      axios: 1.13.1
-      axios-retry: 4.5.0(axios@1.13.1)
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      cmdk: 1.1.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      dagre: 0.8.5
-      date-fns: 4.1.0
-      lucide-react: 0.539.0(react@19.1.1)
-      monaco-editor: 0.54.0
-      nanoid: 5.1.6
-      next: 15.5.4(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      next-themes: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      nuqs: 2.7.2(next@15.5.4(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
-      pino: 9.14.0
-      pino-pretty: 13.1.2
-      react: 19.1.1
-      react-day-picker: 9.11.1(react@19.1.1)
-      react-dom: 19.1.1(react@19.1.1)
-      react-error-boundary: 6.0.0(react@19.1.1)
-      react-hook-form: 7.65.0(react@19.1.1)
-      react-resizable-panels: 3.0.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      react-runner: 1.0.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      recharts: 2.15.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      remark-supersub: 1.0.0
-      shiki: 3.14.0
-      sonner: 2.0.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      streamdown: 1.4.0(@types/react@19.2.2)(react@19.1.1)
-      tailwind-merge: 3.3.1
-      use-stick-to-bottom: 1.1.1(react@19.1.1)
-      zod: 4.1.12
-      zustand: 5.0.8(@types/react@19.2.2)(react@19.1.1)(use-sync-external-store@1.6.0(react@19.2.0))
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@babel/core'
-      - '@cfworker/json-schema'
-      - '@cloudflare/workers-types'
-      - '@electric-sql/pglite'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/api'
-      - '@opentelemetry/core'
-      - '@planetscale/database'
-      - '@playwright/test'
-      - '@prisma/client'
-      - '@remix-run/react'
-      - '@tanstack/react-router'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/react'
-      - '@types/react-dom'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - babel-plugin-macros
-      - babel-plugin-react-compiler
-      - bare-abort-controller
-      - better-sqlite3
-      - bufferutil
-      - bun-types
-      - debug
-      - encoding
-      - expo-sqlite
-      - gel
-      - immer
-      - knex
-      - kysely
-      - mysql2
-      - pg
-      - postgres
-      - prisma
-      - react-native-b4a
-      - react-router
-      - react-router-dom
-      - sass
-      - sql.js
-      - sqlite3
-      - supports-color
-      - use-sync-external-store
-      - utf-8-validate
-
   '@inkeep/agents-run-api@0.30.4(@electric-sql/pglite@0.3.13)(@libsql/client@0.15.15)(@types/pg@8.15.6)(gel@2.1.1)(pg@8.16.3)(react@19.1.1)':
     dependencies:
       '@ai-sdk/anthropic': 2.0.2(zod@4.1.12)
@@ -13139,49 +12854,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@inkeep/agents-sdk@0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)':
-    dependencies:
-      '@inkeep/agents-core': 0.33.2(@libsql/client@0.15.15)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)
-      '@yarnpkg/lockfile': 1.1.0
-      esbuild: 0.25.9
-      js-yaml: 4.1.0
-      nanoid: 5.1.6
-      typescript: 5.9.3
-      zod: 4.1.12
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cfworker/json-schema'
-      - '@cloudflare/workers-types'
-      - '@libsql/client'
-      - '@libsql/client-wasm'
-      - '@neondatabase/serverless'
-      - '@op-engineering/op-sqlite'
-      - '@opentelemetry/core'
-      - '@planetscale/database'
-      - '@prisma/client'
-      - '@tidbcloud/serverless'
-      - '@types/better-sqlite3'
-      - '@types/pg'
-      - '@types/sql.js'
-      - '@upstash/redis'
-      - '@vercel/postgres'
-      - '@xata.io/client'
-      - better-sqlite3
-      - bun-types
-      - debug
-      - encoding
-      - expo-sqlite
-      - gel
-      - knex
-      - kysely
-      - mysql2
-      - pg-native
-      - postgres
-      - prisma
-      - sql.js
-      - sqlite3
-      - supports-color
-
   '@inkeep/agents-ui@0.15.1(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
@@ -13251,74 +12923,6 @@ snapshots:
       - supports-color
 
   '@inkeep/agents-ui@0.15.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
-    dependencies:
-      '@ai-sdk/openai': 2.0.4(zod@4.1.12)
-      '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.12)
-      '@ai-sdk/ui-utils': 1.2.11(zod@4.1.12)
-      '@radix-ui/number': 1.1.1
-      '@radix-ui/primitive': 1.1.3
-      '@radix-ui/react-avatar': 1.1.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-checkbox': 1.1.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-collection': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-context': 1.1.3(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-direction': 1.1.1(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-dismissable-layer': 1.1.11(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-focus-guards': 1.1.3(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-focus-scope': 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-id': 1.1.1(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-popover': 1.1.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-popper': 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-portal': 1.1.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-presence': 1.1.5(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-scroll-area': 1.2.2(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-tooltip': 1.1.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.2)(react@19.2.0)
-      '@zag-js/focus-trap': 1.27.1
-      '@zag-js/presence': 1.27.1
-      '@zag-js/react': 1.27.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@zag-js/remove-scroll': 1.26.4
-      ai: 5.0.5(zod@4.1.12)
-      altcha-lib: 1.3.0
-      aria-hidden: 1.2.6
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      colorjs.io: 0.5.2
-      dequal: 2.0.3
-      humps: 2.0.1
-      lucide-react: 0.503.0(react@19.2.0)
-      marked: 15.0.12
-      merge-anything: 5.1.7
-      openai: 4.78.1(zod@4.1.12)
-      prism-react-renderer: 2.4.1(react@19.2.0)
-      react-error-boundary: 6.0.0(react@19.2.0)
-      react-hook-form: 7.54.2(react@19.2.0)
-      react-markdown: 9.0.3(@types/react@19.2.2)(react@19.2.0)
-      react-remove-scroll: 2.7.1(@types/react@19.2.2)(react@19.2.0)
-      react-svg: 16.3.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      react-textarea-autosize: 8.5.7(@types/react@19.2.2)(react@19.2.0)
-      rehype-raw: 7.0.0
-      remark-gfm: 4.0.1
-      remark-supersub: 1.0.0
-      tailwind-merge: 2.6.0
-      unist-util-visit: 5.0.0
-      use-sync-external-store: 1.6.0(react@19.2.0)
-      zod: 4.1.12
-    transitivePeerDependencies:
-      - '@types/react'
-      - '@types/react-dom'
-      - encoding
-      - react
-      - react-dom
-      - supports-color
-
-  '@inkeep/agents-ui@0.15.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
       '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.12)
@@ -24511,12 +24115,6 @@ snapshots:
       '@types/react': 19.2.2
       react: 19.1.1
       use-sync-external-store: 1.6.0(react@19.1.1)
-
-  zustand@5.0.8(@types/react@19.2.2)(react@19.1.1)(use-sync-external-store@1.6.0(react@19.2.0)):
-    optionalDependencies:
-      '@types/react': 19.2.2
-      react: 19.1.1
-      use-sync-external-store: 1.6.0(react@19.2.0)
 
   zustand@5.0.8(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0)):
     optionalDependencies:

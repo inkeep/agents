@@ -1,8 +1,7 @@
 /**
  * Fetches cloud redirects from the sitemap
- * @returns Promise<Array<{source: string, destination: string}>>
  */
-export async function fetchCloudRedirects() {
+export async function fetchCloudRedirects(): Promise<{ source: string; destination: string }[]> {
   try {
     const sitemapUrl = 'https://docs.inkeep.com/cloud/sitemap.json';
     console.log('Fetching cloud redirects from sitemap...');
