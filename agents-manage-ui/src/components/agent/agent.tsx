@@ -34,7 +34,7 @@ import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { getFullProjectAction } from '@/lib/actions/project-full';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -430,12 +430,21 @@ export const Agent: FC<AgentProps> = ({
     }
 
     try {
-      const result = await getFullAgentAction(tenantId, projectId, agent.id);
-      if (!result.success) {
-        console.error('Failed to refresh agent graph:', result.error);
+      // Fetch the full project to get all potentially updated resources
+      const fullProjectResult = await getFullProjectAction(tenantId, projectId);
+
+      if (!fullProjectResult.success) {
+        console.error('Failed to refresh agent graph:', fullProjectResult.error);
         return;
       }
-      const updatedAgent = result.data;
+
+      const fullProject = fullProjectResult.data;
+      const updatedAgent = fullProject.agents[agent.id];
+
+      if (!updatedAgent) {
+        console.error('Agent not found in project after refresh');
+        return;
+      }
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -458,21 +467,27 @@ export const Agent: FC<AgentProps> = ({
       // Extract metadata
       const metadata = extractAgentMetadata(updatedAgent);
 
-      // Recompute lookups from the updated agent data using shared helper functions
+      // Create lookups from full project data
+      const updatedDataComponentLookup = fullProject.dataComponents || {};
+      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
+      const updatedToolLookup = fullProject.tools || {};
+      const updatedExternalAgentLookup = fullProject.externalAgents || {};
+
+      // Recompute agent-specific lookups from the updated agent data
       const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
       const updatedSubAgentExternalAgentConfigLookup =
         computeSubAgentExternalAgentConfigLookup(updatedAgent);
 
-      // Update the store with the new graph using existing project-level lookups and recomputed agent-level lookups
+      // Update the store with all refreshed data
       setInitial(
         enrichNodes(nodesWithSelection),
         edgesWithSelection,
         metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        toolLookup,
+        updatedDataComponentLookup,
+        updatedArtifactComponentLookup,
+        updatedToolLookup,
         updatedAgentToolConfigLookup,
-        externalAgentLookup,
+        updatedExternalAgentLookup,
         updatedSubAgentExternalAgentConfigLookup
       );
     } catch (error) {
@@ -485,10 +500,6 @@ export const Agent: FC<AgentProps> = ({
     nodeId,
     edgeId,
     setInitial,
-    dataComponentLookup,
-    artifactComponentLookup,
-    toolLookup,
-    externalAgentLookup,
     computeAgentToolConfigLookup,
     computeSubAgentExternalAgentConfigLookup,
     enrichNodes,
@@ -914,7 +925,6 @@ export const Agent: FC<AgentProps> = ({
     toolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
-    externalAgentLookup,
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
