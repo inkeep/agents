@@ -3004,10 +3004,8 @@ components:
           nullable: true
         "createdAt":
           type: "string"
-          format: "date"
         "updatedAt":
           type: "string"
-          format: "date"
         "availableTools":
           type: "array"
           items:
@@ -3033,9 +3031,6 @@ components:
           default: "unknown"
         "version":
           type: "string"
-        "expiresAt":
-          type: "string"
-          format: "date"
         "relationshipId":
           type: "string"
       required:
@@ -3044,8 +3039,6 @@ components:
         - "projectId"
         - "name"
         - "config"
-        - "createdAt"
-        - "updatedAt"
     "McpToolListResponse":
       type: "object"
       properties:
