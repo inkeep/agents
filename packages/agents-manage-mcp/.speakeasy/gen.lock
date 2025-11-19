@@ -1,12 +1,12 @@
 lockVersion: 2.0.0
 id: bad7ded4-db98-423d-8066-7d288d35ef8f
 management:
-  docChecksum: 14615a8005be1e28fd4dbcbdad77cfd4
+  docChecksum: c5d764421104153cbe7866b37f05ced0
   docVersion: 1.0.0
   speakeasyVersion: 1.658.2
   generationVersion: 2.755.9
-  releaseVersion: 0.0.11
-  configChecksum: 11effd64251b8a8dbe153e59df498a32
+  releaseVersion: 0.0.12
+  configChecksum: 70293f4e5691c82402fe283b48553890
 features:
   mcp-typescript:
     acceptHeaders: 0.1.0
@@ -62,6 +62,7 @@ generatedFiles:
   - src/funcs/contextConfigGetContextConfigById.ts
   - src/funcs/contextConfigListContextConfigs.ts
   - src/funcs/contextConfigUpdateContextConfig.ts
+  - src/funcs/conversationsGetConversation.ts
   - src/funcs/credentialCreateCredential.ts
   - src/funcs/credentialDeleteCredential.ts
   - src/funcs/credentialGetCredentialById.ts
@@ -202,6 +203,7 @@ generatedFiles:
   - src/mcp-server/tools/contextConfigGetContextConfigById.ts
   - src/mcp-server/tools/contextConfigListContextConfigs.ts
   - src/mcp-server/tools/contextConfigUpdateContextConfig.ts
+  - src/mcp-server/tools/conversationsGetConversation.ts
   - src/mcp-server/tools/credentialCreateCredential.ts
   - src/mcp-server/tools/credentialDeleteCredential.ts
   - src/mcp-server/tools/credentialGetCredentialById.ts
@@ -312,6 +314,7 @@ generatedFiles:
   - src/models/contextconfiglistresponse.ts
   - src/models/contextconfigresponse.ts
   - src/models/contextconfigupdate.ts
+  - src/models/conversationwithformattedmessagesresponse.ts
   - src/models/createagentop.ts
   - src/models/createapikeyop.ts
   - src/models/createartifactcomponentop.ts
@@ -395,6 +398,7 @@ generatedFiles:
   - src/models/getartifactcomponentbyidop.ts
   - src/models/getartifactcomponentsforagentop.ts
   - src/models/getcontextconfigbyidop.ts
+  - src/models/getconversationop.ts
   - src/models/getcredentialbyidop.ts
   - src/models/getdatacomponentbyidop.ts
   - src/models/getdatacomponentsforagentop.ts
