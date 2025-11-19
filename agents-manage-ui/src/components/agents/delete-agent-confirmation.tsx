@@ -17,11 +17,10 @@ export function DeleteAgentConfirmation({
   agentName,
   setIsOpen,
 }: DeleteAgentConfirmationProps) {
-  const params = useParams();
-  const { tenantId, projectId } = params as {
+  const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
-  };
+  }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {

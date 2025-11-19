@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
-import './globals.css';
 import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { AppSidebar } from '@/components/sidebar-nav/sidebar-nav';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
+import { SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
 import {
@@ -16,6 +15,7 @@ import {
 } from '@/lib/runtime-config/defaults';
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
+import './globals.css';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -66,15 +66,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
-              <SidebarProvider
-                style={{
-                  '--sidebar-width': 'calc(var(--spacing) * 62)',
-                  '--header-height': 'calc(var(--spacing) * 12)',
-                }}
-              >
-                <AppSidebar />
+              <AppSidebarProvider>
                 <SidebarInset>{children}</SidebarInset>
-              </SidebarProvider>
+              </AppSidebarProvider>
               <Toaster />
             </RuntimeConfigProvider>
           </NuqsAdapter>

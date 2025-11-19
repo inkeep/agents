@@ -20,8 +20,7 @@ export function DeleteProjectConfirmation({
   setIsOpen,
   isOpen,
 }: DeleteProjectConfirmationProps) {
-  const params = useParams();
-  const { tenantId } = params as { tenantId: string };
+  const { tenantId } = useParams<{ tenantId: string }>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {
