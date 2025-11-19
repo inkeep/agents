@@ -2,10 +2,12 @@
 
 import { AlertCircle, Lock, LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -57,6 +59,34 @@ export function ViewMCPServerDetails({
       window.location.reload();
     },
   });
+
+  const isThirdPartyMCPServer = tool.config.mcp.server.url.includes('composio.dev');
+  const [thirdPartyConnectUrl, setThirdPartyConnectUrl] = useState<string>();
+  const [isLoadingThirdParty, setIsLoadingThirdParty] = useState(false);
+
+  useEffect(() => {
+    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
+      const fetchServerDetails = async () => {
+        setIsLoadingThirdParty(true);
+        try {
+          const response = await fetchThirdPartyMCPServer(
+            tenantId,
+            projectId,
+            tool.config.mcp.server.url
+          );
+          if (response.data?.thirdPartyConnectAccountUrl) {
+            setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
+          }
+        } catch (error) {
+          console.error('Failed to fetch third-party MCP server details:', error);
+        } finally {
+          setIsLoadingThirdParty(false);
+        }
+      };
+
+      fetchServerDetails();
+    }
+  }, [isThirdPartyMCPServer, tool.status, tool.config.mcp.server.url, tenantId, projectId]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -138,19 +168,11 @@ export function ViewMCPServerDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{tool.createdAt ? formatDate(tool.createdAt) : 'N/A'}</ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof tool.updatedAt === 'string' ? tool.updatedAt : tool.updatedAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{tool.updatedAt ? formatDate(tool.updatedAt) : 'N/A'}</ItemValue>
           </div>
         </div>
 
@@ -170,10 +192,11 @@ export function ViewMCPServerDetails({
                       toolId: tool.id,
                       mcpServerUrl: tool.config.mcp.server.url,
                       toolName: tool.name,
+                      thirdPartyConnectAccountUrl: thirdPartyConnectUrl,
                     });
                   }}
                 >
-                  Click to Login
+                  {isLoadingThirdParty ? 'Loading...' : 'Click to Login'}
                 </Badge>
               ) : (
                 <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
@@ -240,11 +263,7 @@ export function ViewMCPServerDetails({
                 <ItemLabel>Credential Expires At</ItemLabel>
                 {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
               </div>
-              <ItemValue>
-                {formatDate(
-                  typeof tool.expiresAt === 'string' ? tool.expiresAt : tool.expiresAt.toISOString()
-                )}
-              </ItemValue>
+              <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
             </div>
           )}
         </div>

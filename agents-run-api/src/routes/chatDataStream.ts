@@ -8,6 +8,7 @@ import {
   generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
+  getConversation,
   getConversationId,
   getRequestExecutionContext,
   getSubAgentById,
@@ -21,6 +22,7 @@ import { stream } from 'hono/streaming';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { errorOp } from '../utils/agent-operations';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
@@ -272,6 +274,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
             const executionHandler = new ExecutionHandler();
 
+            // Check if this is a dataset run conversation via header
+            const datasetRunConfigId = c.req.header('x-inkeep-dataset-run-config-id');
+
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
@@ -280,6 +285,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               requestId: `chatds-${Date.now()}`,
               sseHelper: streamHelper,
               emitOperations,
+              datasetRunConfigId: datasetRunConfigId || undefined,
             });
 
             if (!result.success) {
@@ -318,6 +324,155 @@ app.openapi(chatDataStreamRoute, async (c) => {
       message: 'Failed to process chat completion',
     });
   }
+});
+
+// Tool approval endpoint
+const toolApprovalRoute = createRoute({
+  method: 'post',
+  path: '/tool-approvals',
+  tags: ['chat'],
+  summary: 'Approve or deny tool execution',
+  description: 'Handle user approval/denial of tool execution requests during conversations',
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            conversationId: z.string().describe('The conversation ID'),
+            toolCallId: z.string().describe('The tool call ID to respond to'),
+            approved: z.boolean().describe('Whether the tool execution is approved'),
+            reason: z.string().optional().describe('Optional reason for the decision'),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Tool approval response processed successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string().optional(),
+          }),
+        },
+      },
+    },
+    400: {
+      description: 'Bad request - invalid tool call ID or conversation ID',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    404: {
+      description: 'Tool call not found or already processed',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+            message: z.string(),
+          }),
+        },
+      },
+    },
+  },
+});
+
+app.openapi(toolApprovalRoute, async (c) => {
+  const tracer = trace.getTracer('tool-approval-handler');
+
+  return tracer.startActiveSpan('tool_approval_request', async (span) => {
+    try {
+      const executionContext = getRequestExecutionContext(c);
+      const { tenantId, projectId } = executionContext;
+
+      const requestBody = await c.req.json();
+      const { conversationId, toolCallId, approved, reason } = requestBody;
+
+      logger.info(
+        {
+          conversationId,
+          toolCallId,
+          approved,
+          reason,
+          tenantId,
+          projectId,
+        },
+        'Processing tool approval request'
+      );
+
+      // Validate that the conversation exists and belongs to this tenant/project
+      const conversation = await getConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (!conversation) {
+        span.setStatus({ code: 1, message: 'Conversation not found' });
+        return c.json({ error: 'Conversation not found' }, 404);
+      }
+
+      // Process the approval request using PendingToolApprovalManager
+      let success = false;
+      if (approved) {
+        success = pendingToolApprovalManager.approveToolCall(toolCallId);
+      } else {
+        success = pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      }
+
+      if (!success) {
+        span.setStatus({ code: 1, message: 'Tool call not found' });
+        return c.json({ error: 'Tool call not found or already processed' }, 404);
+      }
+
+      logger.info({ conversationId, toolCallId, approved }, 'Tool approval processed successfully');
+
+      span.setStatus({ code: 1, message: 'Success' });
+
+      return c.json({
+        success: true,
+        message: approved ? 'Tool execution approved' : 'Tool execution denied',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error(
+        {
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Failed to process tool approval'
+      );
+
+      span.setStatus({ code: 2, message: errorMessage });
+
+      return c.json(
+        {
+          error: 'Internal server error',
+          message: errorMessage,
+        },
+        500
+      );
+    } finally {
+      span.end();
+    }
+  }) as any;
 });
 
 export default app;

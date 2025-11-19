@@ -19,8 +19,8 @@
     "validate-link": "node scripts/validate-link.mjs"
   },
   "dependencies": {
-    "@inkeep/agents-ui": "^0.15.2",
-    "@inkeep/agents-cli": "^0.33.2",
+    "@inkeep/agents-ui": "^0.15.4",
+    "@inkeep/agents-cli": "workspace:^",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",
@@ -60,8 +60,8 @@
     "@tailwindcss/postcss": "^4.1.11",
     "@types/mdx": "^2.0.13",
     "@types/node": "24.0.7",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
     "fast-glob": "^3.3.3",
     "next-validate-link": "^1.6.3",
     "postcss": "^8.5.6",

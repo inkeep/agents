@@ -5,7 +5,6 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
   createApiError,

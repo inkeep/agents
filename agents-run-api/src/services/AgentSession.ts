@@ -155,6 +155,8 @@ export interface ToolCallData {
   input: any;
   toolCallId: string;
   relationshipId?: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -164,6 +166,7 @@ export interface ToolResultData {
   duration?: number;
   error?: string;
   relationshipId?: string;
+  needsApproval?: boolean;
 }
 
 export interface ErrorEventData {
@@ -259,6 +262,7 @@ export class AgentSession {
    * Send data operation to stream when emit operations is enabled
    */
   private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
+    console.log('sendDataOperation called with event', Date.now());
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {

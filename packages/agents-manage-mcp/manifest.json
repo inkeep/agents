@@ -1,0 +1,466 @@
+{
+  "manifest_version": "0.3",
+  "name": "@inkeep/agents-manage-mcp",
+  "version": "0.0.11",
+  "description": "",
+  "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
+  "author": {
+    "name": "Speakeasy"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "./bin/mcp-server.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/bin/mcp-server.js",
+        "start"
+      ]
+    }
+  },
+  "display_name": "@inkeep/agents Manage Mcp",
+  "tools": [
+    {
+      "name": "health",
+      "description": "Health check\n\nCheck if the management service is healthy"
+    },
+    {
+      "name": "projects-list-projects",
+      "description": "List Projects\n\nList all projects within a tenant with pagination"
+    },
+    {
+      "name": "projects-create-project",
+      "description": "Create Project\n\nCreate a new project"
+    },
+    {
+      "name": "projects-get-project-by-id",
+      "description": "Get Project\n\nGet a single project by ID"
+    },
+    {
+      "name": "projects-update-project",
+      "description": "Update Project\n\nUpdate an existing project"
+    },
+    {
+      "name": "projects-delete-project",
+      "description": "Delete Project\n\nDelete a project. Will fail if the project has existing resources."
+    },
+    {
+      "name": "sub-agent-list-subagents",
+      "description": "List SubAgents"
+    },
+    {
+      "name": "sub-agent-create-subagent",
+      "description": "Create SubAgent"
+    },
+    {
+      "name": "sub-agent-get-subagent-by-id",
+      "description": "Get SubAgent"
+    },
+    {
+      "name": "sub-agent-update-subagent",
+      "description": "Update SubAgent"
+    },
+    {
+      "name": "sub-agent-delete-subagent",
+      "description": "Delete SubAgent"
+    },
+    {
+      "name": "sub-agent-relations-list-sub-agent-relations",
+      "description": "List Sub Agent Relations"
+    },
+    {
+      "name": "sub-agent-relations-create-sub-agent-relation",
+      "description": "Create Sub Agent Relation"
+    },
+    {
+      "name": "sub-agent-relations-get-sub-agent-relation-by-id",
+      "description": "Get Sub Agent Relation"
+    },
+    {
+      "name": "sub-agent-relations-update-sub-agent-relation",
+      "description": "Update Sub Agent Relation"
+    },
+    {
+      "name": "sub-agent-relations-delete-sub-agent-relation",
+      "description": "Delete Sub Agent Relation"
+    },
+    {
+      "name": "sub-agent-external-agent-relations-list-sub-agent-external-agent-relations",
+      "description": "List Sub Agent External Agent Relations"
+    },
+    {
+      "name": "sub-agent-external-agent-relations-create-sub-agent-external-agent-relation",
+      "description": "Create Sub Agent External Agent Relation"
+    },
+    {
+      "name": "sub-agent-external-agent-relations-get-sub-agent-external-agent-relation-by-id",
+      "description": "Get Sub Agent External Agent Relation"
+    },
+    {
+      "name": "sub-agent-external-agent-relations-update-sub-agent-external-agent-relation",
+      "description": "Update Sub Agent External Agent Relation"
+    },
+    {
+      "name": "sub-agent-external-agent-relations-delete-sub-agent-external-agent-relation",
+      "description": "Delete Sub Agent External Agent Relation"
+    },
+    {
+      "name": "sub-agent-team-agent-relations-list-sub-agent-team-agent-relations",
+      "description": "List Sub Agent Team Agent Relations"
+    },
+    {
+      "name": "sub-agent-team-agent-relations-create-sub-agent-team-agent-relation",
+      "description": "Create Sub Agent Team Agent Relation"
+    },
+    {
+      "name": "sub-agent-team-agent-relations-get-sub-agent-team-agent-relation-by-id",
+      "description": "Get Sub Agent Team Agent Relation"
+    },
+    {
+      "name": "sub-agent-team-agent-relations-update-sub-agent-team-agent-relation",
+      "description": "Update Sub Agent Team Agent Relation"
+    },
+    {
+      "name": "sub-agent-team-agent-relations-delete-sub-agent-team-agent-relation",
+      "description": "Delete Sub Agent Team Agent Relation"
+    },
+    {
+      "name": "agents-list-agents",
+      "description": "List Agents"
+    },
+    {
+      "name": "agents-create-agent",
+      "description": "Create Agent"
+    },
+    {
+      "name": "agents-get-agent",
+      "description": "Get Agent"
+    },
+    {
+      "name": "agents-update-agent",
+      "description": "Update Agent"
+    },
+    {
+      "name": "agents-delete-agent",
+      "description": "Delete Agent"
+    },
+    {
+      "name": "agent-get-related-agent-infos",
+      "description": "Get Related Agent Infos"
+    },
+    {
+      "name": "agent-get-full-agent-definition",
+      "description": "Get Full Agent Definition"
+    },
+    {
+      "name": "sub-agent-tool-relations-list-subagent-tool-relations",
+      "description": "List SubAgent Tool Relations"
+    },
+    {
+      "name": "sub-agent-tool-relations-create-subagent-tool-relation",
+      "description": "Create SubAgent Tool Relation"
+    },
+    {
+      "name": "sub-agent-tool-relations-get-subagent-tool-relation",
+      "description": "Get SubAgent Tool Relation"
+    },
+    {
+      "name": "sub-agent-tool-relations-update-subagent-tool-relation",
+      "description": "Update SubAgent Tool Relation"
+    },
+    {
+      "name": "sub-agent-tool-relations-delete-subagent-tool-relation",
+      "description": "Delete SubAgent Tool Relation"
+    },
+    {
+      "name": "sub-agent-tool-relations-get-subagents-for-tool",
+      "description": "Get SubAgents for Tool"
+    },
+    {
+      "name": "agent-artifact-component-relations-get-artifact-components-for-agent",
+      "description": "Get Artifact Components for Agent"
+    },
+    {
+      "name": "agent-artifact-component-relations-get-agents-using-artifact-component",
+      "description": "Get Agents Using Artifact Component"
+    },
+    {
+      "name": "agent-artifact-component-relations-associate-artifact-component-with-agent",
+      "description": "Associate Artifact Component with Agent"
+    },
+    {
+      "name": "agent-artifact-component-relations-remove-artifact-component-from-agent",
+      "description": "Remove Artifact Component from Agent"
+    },
+    {
+      "name": "agent-artifact-component-relations-check-artifact-component-agent-association",
+      "description": "Check if Artifact Component is Associated with Agent"
+    },
+    {
+      "name": "agent-data-component-relations-get-data-components-for-agent",
+      "description": "Get Data Components for Agent"
+    },
+    {
+      "name": "agent-data-component-relations-get-agents-using-data-component",
+      "description": "Get Agents Using Data Component"
+    },
+    {
+      "name": "agent-data-component-relations-associate-data-component-with-agent",
+      "description": "Associate Data Component with Agent"
+    },
+    {
+      "name": "agent-data-component-relations-remove-data-component-from-agent",
+      "description": "Remove Data Component from Agent"
+    },
+    {
+      "name": "agent-data-component-relations-check-data-component-agent-association",
+      "description": "Check if Data Component is Associated with Agent"
+    },
+    {
+      "name": "artifact-component-list-artifact-components",
+      "description": "List Artifact Components"
+    },
+    {
+      "name": "artifact-component-create-artifact-component",
+      "description": "Create Artifact Component"
+    },
+    {
+      "name": "artifact-component-get-artifact-component-by-id",
+      "description": "Get Artifact Component"
+    },
+    {
+      "name": "artifact-component-update-artifact-component",
+      "description": "Update Artifact Component"
+    },
+    {
+      "name": "artifact-component-delete-artifact-component",
+      "description": "Delete Artifact Component"
+    },
+    {
+      "name": "context-config-list-context-configs",
+      "description": "List Context Configurations"
+    },
+    {
+      "name": "context-config-create-context-config",
+      "description": "Create Context Configuration"
+    },
+    {
+      "name": "context-config-get-context-config-by-id",
+      "description": "Get Context Configuration"
+    },
+    {
+      "name": "context-config-update-context-config",
+      "description": "Update Context Configuration"
+    },
+    {
+      "name": "context-config-delete-context-config",
+      "description": "Delete Context Configuration"
+    },
+    {
+      "name": "credential-list-credentials",
+      "description": "List Credentials"
+    },
+    {
+      "name": "credential-create-credential",
+      "description": "Create Credential"
+    },
+    {
+      "name": "credential-get-credential-by-id",
+      "description": "Get Credential"
+    },
+    {
+      "name": "credential-update-credential",
+      "description": "Update Credential"
+    },
+    {
+      "name": "credential-delete-credential",
+      "description": "Delete Credential"
+    },
+    {
+      "name": "credential-store-list-credential-stores",
+      "description": "List Credential Stores"
+    },
+    {
+      "name": "credential-store-create-credential-in-store",
+      "description": "Create Credential in Store"
+    },
+    {
+      "name": "data-component-list-data-components",
+      "description": "List Data Components"
+    },
+    {
+      "name": "data-component-create-data-component",
+      "description": "Create Data Component"
+    },
+    {
+      "name": "data-component-get-data-component-by-id",
+      "description": "Get Data Component"
+    },
+    {
+      "name": "data-component-update-data-component",
+      "description": "Update Data Component"
+    },
+    {
+      "name": "data-component-delete-data-component",
+      "description": "Delete Data Component"
+    },
+    {
+      "name": "external-agents-list-external-agents",
+      "description": "List External Agents"
+    },
+    {
+      "name": "external-agents-create-external-agent",
+      "description": "Create External Agent"
+    },
+    {
+      "name": "external-agents-get-external-agent-by-id",
+      "description": "Get External Agent"
+    },
+    {
+      "name": "external-agents-update-external-agent",
+      "description": "Update External Agent"
+    },
+    {
+      "name": "external-agents-delete-external-agent",
+      "description": "Delete External Agent"
+    },
+    {
+      "name": "function-tools-list-function-tools",
+      "description": "List Function Tools"
+    },
+    {
+      "name": "function-tools-create-function-tool",
+      "description": "Create Function Tool"
+    },
+    {
+      "name": "function-tools-get-function-tool",
+      "description": "Get Function Tool by ID"
+    },
+    {
+      "name": "function-tools-update-function-tool",
+      "description": "Update Function Tool"
+    },
+    {
+      "name": "function-tools-delete-function-tool",
+      "description": "Delete Function Tool"
+    },
+    {
+      "name": "functions-list-functions",
+      "description": "List Functions"
+    },
+    {
+      "name": "functions-create-function",
+      "description": "Create Function"
+    },
+    {
+      "name": "functions-get-function",
+      "description": "Get Function by ID"
+    },
+    {
+      "name": "functions-update-function",
+      "description": "Update Function"
+    },
+    {
+      "name": "functions-delete-function",
+      "description": "Delete Function"
+    },
+    {
+      "name": "tools-list-tools",
+      "description": "List Tools"
+    },
+    {
+      "name": "tools-create-tool",
+      "description": "Create Tool"
+    },
+    {
+      "name": "tools-get-tool",
+      "description": "Get Tool"
+    },
+    {
+      "name": "tools-update-tool",
+      "description": "Update Tool"
+    },
+    {
+      "name": "tools-delete-tool",
+      "description": "Delete Tool"
+    },
+    {
+      "name": "API-keys-list-api-keys",
+      "description": "List API Keys\n\nList all API keys for a tenant with optional pagination"
+    },
+    {
+      "name": "API-keys-create-api-key",
+      "description": "Create API Key\n\nCreate a new API key for an agent. Returns the full key (shown only once)."
+    },
+    {
+      "name": "API-keys-get-api-key-by-id",
+      "description": "Get API Key\n\nGet a specific API key by ID (does not return the actual key)"
+    },
+    {
+      "name": "API-keys-update-api-key",
+      "description": "Update API Key\n\nUpdate an API key (currently only expiration date can be changed)"
+    },
+    {
+      "name": "API-keys-delete-api-key",
+      "description": "Delete API Key\n\nDelete an API key permanently"
+    },
+    {
+      "name": "full-agent-create-full-agent",
+      "description": "Create Full Agent\n\nCreate a complete agent with all agents, tools, and relationships from JSON definition"
+    },
+    {
+      "name": "full-agent-get-full-agent",
+      "description": "Get Full Agent\n\nRetrieve a complete agent definition with all agents, tools, and relationships"
+    },
+    {
+      "name": "full-agent-update-full-agent",
+      "description": "Update Full Agent\n\nUpdate or create a complete agent with all agents, tools, and relationships from JSON definition"
+    },
+    {
+      "name": "full-agent-delete-full-agent",
+      "description": "Delete Full Agent\n\nDelete a complete agent and cascade to all related entities (relationships, not other agents/tools)"
+    },
+    {
+      "name": "MCP-catalog-list-mcp-catalog",
+      "description": "List MCP Server Catalog\n\nGet a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is configured, also includes Composio servers for the tenant/project."
+    },
+    {
+      "name": "third-party-MCP-servers-get-third-party-mcp-server",
+      "description": "Get Third-Party MCP Server Details\n\nFetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL"
+    },
+    {
+      "name": "full-project-create-full-project",
+      "description": "Create Full Project\n\nCreate a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition"
+    },
+    {
+      "name": "full-project-get-full-project",
+      "description": "Get Full Project\n\nRetrieve a complete project definition with all Agents, Sub Agents, tools, and relationships"
+    },
+    {
+      "name": "full-project-update-full-project",
+      "description": "Update Full Project\n\nUpdate or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition"
+    },
+    {
+      "name": "full-project-delete-full-project",
+      "description": "Delete Full Project\n\nDelete a complete project and cascade to all related entities (Agents, Sub Agents, tools, relationships)"
+    },
+    {
+      "name": "O-auth-initiate-oauth-login-public",
+      "description": "Initiate OAuth login for MCP tool\n\nDetects OAuth requirements and redirects to authorization server (public endpoint)"
+    },
+    {
+      "name": "O-auth-oauth-callback",
+      "description": "OAuth authorization callback\n\nHandles OAuth authorization codes and completes the authentication flow"
+    }
+  ],
+  "prompts": [],
+  "keywords": [
+      "@inkeep/agents",
+      "manage",
+      "mcp",
+      "inkeep",
+      "agents",
+      "api",
+      "rest"
+    ]
+}
