@@ -2,19 +2,28 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useProjectActions, useProjectStore } from '@/features/project/state/use-project-store';
 import { fetchProjectAction } from '@/lib/actions/projects';
-import type { Project } from '@/lib/types/project';
 
 export function useProjectData() {
   const params = useParams();
   const { tenantId, projectId } = params;
-  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Read project from store
+  const project = useProjectStore((state) => state.project);
+  const { setProject: setProjectStore } = useProjectActions();
 
   useEffect(() => {
     async function fetchProject() {
       if (!tenantId || !projectId) {
+        setLoading(false);
+        return;
+      }
+
+      // If project is already in store and matches current projectId, skip fetch
+      if (project && project.projectId === projectId) {
         setLoading(false);
         return;
       }
@@ -30,18 +39,26 @@ export function useProjectData() {
           throw new Error(result.error || 'Failed to fetch project');
         }
 
-        setProject(result.data || null);
+        // Update store with fetched project data
+        // This ensures the store is populated even if refreshAgentGraph hasn't been called yet
+        if (result.data) {
+          setProjectStore(result.data);
+        }
       } catch (err) {
         console.error('Error fetching project:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
-        setProject(null);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProject();
-  }, [tenantId, projectId]);
+    // Only fetch if project is not in store or doesn't match current projectId
+    if (!project || project.projectId !== projectId) {
+      fetchProject();
+    } else {
+      setLoading(false);
+    }
+  }, [tenantId, projectId, project, setProjectStore]);
 
   return { project, loading, error };
 }

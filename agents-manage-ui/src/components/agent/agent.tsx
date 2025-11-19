@@ -31,12 +31,12 @@ import {
 } from '@/features/agent/domain';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
+import { useProjectActions } from '@/features/project/state/use-project-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
-
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -47,6 +47,7 @@ import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
+import { convertFullProjectToProject } from '@/lib/utils/project-converter';
 import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
 import {
   agentNodeSourceHandleId,
@@ -324,6 +325,7 @@ export const Agent: FC<AgentProps> = ({
     reset,
     animateGraph,
   } = useAgentActions();
+  const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
   // Always use enriched nodes for ReactFlow
   const nodes = useMemo(() => enrichNodes(storeNodes), [storeNodes, enrichNodes]);
@@ -378,6 +380,8 @@ export const Agent: FC<AgentProps> = ({
     return () => {
       // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
       reset();
+      // Also reset the project store to prevent stale data
+      resetProjectStore();
     };
   }, []);
 
@@ -492,6 +496,10 @@ export const Agent: FC<AgentProps> = ({
           updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
           updatedSubAgentExternalAgentConfigLookup
         );
+
+        // Update project data in store so components using useProjectData get fresh data
+        const convertedProject = convertFullProjectToProject(fullProject, tenantId);
+        setProjectStore(convertedProject);
       } catch (error) {
         console.error('Failed to refresh agent graph:', error);
       }
@@ -506,6 +514,7 @@ export const Agent: FC<AgentProps> = ({
       computeAgentToolConfigLookup,
       computeSubAgentExternalAgentConfigLookup,
       enrichNodes,
+      setProjectStore,
     ]
   );
 
