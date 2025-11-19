@@ -76,7 +76,32 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
 
   const inputs = (
     <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
-      {prefix}
+      {prefix || (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+            <div>
+              <Checkbox
+              // checked={Boolean(field.isRequired)}
+              // onCheckedChange={(checked) =>
+              // updateField(field.id, { isRequired: checked === true })
+              // }
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            Mark this field as{' '}
+            <a
+              target="_blank"
+              rel="noopener"
+              href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#how-to-create-an-artifact-component"
+              className="underline text-primary"
+            >
+              immediately available
+            </a>
+          </TooltipContent>
+        </Tooltip>
+      )}
       <PropertyIcon type={field.type} />
       <SelectType
         value={field.type}
