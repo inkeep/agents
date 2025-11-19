@@ -145,7 +145,11 @@ async function fetchCurrentEntityState(
 ): Promise<Record<string, any> | null> {
   const { toolName, input, tenantId, projectId } = params;
 
-  if (!toolName.includes('update') && !toolName.includes('create')) {
+  if (
+    !toolName.includes('update') &&
+    !toolName.includes('create') &&
+    !toolName.includes('delete')
+  ) {
     return null;
   }
 
@@ -208,7 +212,7 @@ function computeDiff(
 
 export async function fetchToolApprovalDiff(
   params: FetchToolApprovalDiffParams
-): Promise<ActionResult<FieldDiff[]>> {
+): Promise<ActionResult<FieldDiff[]> & { entityData?: Record<string, any> }> {
   try {
     const { toolName, input, tenantId, projectId } = params;
 
@@ -218,6 +222,14 @@ export async function fetchToolApprovalDiff(
       tenantId,
       projectId,
     });
+
+    if (toolName.includes('delete') && currentState) {
+      return {
+        success: true,
+        data: [],
+        entityData: currentState,
+      };
+    }
 
     const newValues = extractFieldsToUpdate(input);
     const diffs = computeDiff(currentState, newValues);

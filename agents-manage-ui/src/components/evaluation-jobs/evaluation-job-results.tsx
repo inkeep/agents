@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import {
   Table,
@@ -17,6 +18,7 @@ import {
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 
 interface EvaluationJobResultsProps {
   tenantId: string;
@@ -84,8 +86,9 @@ export function EvaluationJobResults({
           <Table>
             <TableHeader>
               <TableRow noHover>
-                <TableHead>Conversation ID</TableHead>
+                <TableHead>Input</TableHead>
                 <TableHead>Evaluator</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Output</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
@@ -100,10 +103,12 @@ export function EvaluationJobResults({
                         href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline max-w-md"
                       >
-                        <code className="font-mono">{result.conversationId}</code>
-                        <ExternalLink className="h-4 w-4" />
+                        <span className="truncate">
+                          {result.input || result.conversationId}
+                        </span>
+                        <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -114,6 +119,19 @@ export function EvaluationJobResults({
                       >
                         {getEvaluatorName(result.evaluatorId)}
                       </button>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const evaluator = getEvaluatorById(result.evaluatorId);
+                        const outputData = result.output && typeof result.output === 'object' 
+                          ? result.output as Record<string, unknown>
+                          : {};
+                        const evaluation = evaluatePassCriteria(
+                          evaluator?.passCriteria,
+                          outputData
+                        );
+                        return <EvaluationStatusBadge status={evaluation.status} />;
+                      })()}
                     </TableCell>
                     <TableCell>
                       {result.output ? (

@@ -1,7 +1,9 @@
 import devServer from '@hono/vite-dev-server';
-import { resolve } from 'path';
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 export default defineConfig({
   plugins: [
@@ -17,7 +19,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './src'),
+      '@inkeep/agents-eval-mcp': path.resolve(__dirname, '../packages/agents-eval-mcp'),
     },
   },
 });

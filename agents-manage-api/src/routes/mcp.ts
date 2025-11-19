@@ -1,5 +1,5 @@
 import { StreamableHTTPTransport } from '@hono/mcp';
-import { createConsoleLogger, createMCPServer } from '@inkeep/agents-mcp';
+import { createConsoleLogger, createMCPServer } from '@inkeep/agents-manage-mcp';
 import { Hono } from 'hono';
 
 const app = new Hono();
