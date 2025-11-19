@@ -4905,12 +4905,10 @@
             "nullable": true
           },
           "createdAt": {
-            "type": "string",
-            "format": "date"
+            "type": "string"
           },
           "updatedAt": {
-            "type": "string",
-            "format": "date"
+            "type": "string"
           },
           "availableTools": {
             "type": "array",
@@ -4948,10 +4946,6 @@
           "version": {
             "type": "string"
           },
-          "expiresAt": {
-            "type": "string",
-            "format": "date"
-          },
           "relationshipId": {
             "type": "string"
           }
@@ -4961,9 +4955,7 @@
           "id",
           "projectId",
           "name",
-          "config",
-          "createdAt",
-          "updatedAt"
+          "config"
         ]
       },
       "McpToolListResponse": {

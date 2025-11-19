@@ -55,7 +55,7 @@ import {
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
@@ -409,7 +409,7 @@ export class Agent {
         const needsApproval = options?.needsApproval || false;
 
         if (streamRequestId && !isInternalTool) {
-          const toolCallData: any = {
+          const toolCallData: ToolCallData = {
             toolName,
             input: args,
             toolCallId,
@@ -422,7 +422,7 @@ export class Agent {
             toolCallData.conversationId = this.conversationId;
           }
 
-          agentSessionManager.recordEvent(
+          await agentSessionManager.recordEvent(
             streamRequestId,
             'tool_call',
             this.config.id,
@@ -586,12 +586,9 @@ export class Agent {
       const wrappedTools: ToolSet = {};
       for (const [index, toolSet] of tools.entries()) {
         const relationshipId = mcpTools[index]?.relationshipId;
-        for (const [toolName, toolDef] of Object.entries(toolSet)) {
+        for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
-          const needsApproval =
-            tools.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
-              toolName
-            ]?.needsApproval || false;
+          const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
 
           const enhancedTool = {
             ...toolDef,

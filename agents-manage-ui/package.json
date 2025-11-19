@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.33.2",
+  "version": "0.33.3",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -48,6 +48,7 @@
     "@ai-sdk/gateway": "^1.0.23",
     "@ai-sdk/google": "^2.0.14",
     "@ai-sdk/openai": "2.0.11",
+    "@ai-sdk/openai-compatible": "^1.0.27",
     "@ai-sdk/react": "2.0.11",
     "@hookform/resolvers": "^5.2.1",
     "@inkeep/agents-core": "workspace:^",

@@ -35,12 +35,15 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
+import { fetchToolsAction } from '@/lib/actions/tools';
+
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
+import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
@@ -77,7 +80,7 @@ const CopilotChat = dynamic(() => import('./copilot/copilot-chat').then((mod) =>
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
   toolId: string;
-  toolSelection?: string[];
+  toolSelection?: string[] | null;
   headers?: Record<string, string>;
   toolPolicies?: Record<string, { needsApproval?: boolean }>;
 };
@@ -126,7 +129,6 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
-  externalAgentLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const { isOpen: isCopilotChatOpen } = useCopilotContext();
@@ -211,7 +213,7 @@ export const Agent: FC<AgentProps> = ({
                 toolId: tool.toolId,
               };
 
-              if (tool.toolSelection) {
+              if (tool.toolSelection !== undefined) {
                 config.toolSelection = tool.toolSelection;
               }
 
@@ -423,87 +425,89 @@ export const Agent: FC<AgentProps> = ({
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = useCallback(async () => {
-    if (!agent?.id) {
-      console.log('No agentId available, skipping graph refresh');
-      return;
-    }
-
-    try {
-      // Fetch the full project to get all potentially updated resources
-      const fullProjectResult = await getFullProjectAction(tenantId, projectId);
-
-      if (!fullProjectResult.success) {
-        console.error('Failed to refresh agent graph:', fullProjectResult.error);
+  const refreshAgentGraph = useCallback(
+    async (options?: { fetchTools?: boolean }) => {
+      if (!agent?.id) {
         return;
       }
 
-      const fullProject = fullProjectResult.data;
-      const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
+      try {
+        const [fullProjectResult, toolsResult] = await Promise.all([
+          getFullProjectAction(tenantId, projectId),
+          options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
+        ]);
 
-      if (!updatedAgent) {
-        console.error('Agent not found in project after refresh');
-        return;
+        if (!fullProjectResult.success) {
+          console.error('Failed to refresh agent graph:', fullProjectResult.error);
+          return;
+        }
+        const fullProject = fullProjectResult.data;
+        const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
+
+        // Update tool lookup if tools were fetched
+        const updatedToolLookup = toolsResult?.success
+          ? createLookup(toolsResult.data)
+          : fullProject.tools || {};
+
+        // Deserialize agent data to nodes and edges
+        const { nodes, edges } = deserializeAgentData(updatedAgent);
+
+        // Preserve selection state based on current URL state
+        const nodesWithSelection = nodeId
+          ? nodes.map((node) => ({
+              ...node,
+              selected: node.id === nodeId,
+            }))
+          : nodes;
+
+        const edgesWithSelection = edgeId
+          ? edges.map((edge) => ({
+              ...edge,
+              selected: edge.id === edgeId,
+            }))
+          : edges;
+
+        // Extract metadata
+        const metadata = extractAgentMetadata(updatedAgent);
+
+        // Create lookups from full project data
+        const updatedDataComponentLookup = fullProject.dataComponents || {};
+        const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
+        const updatedExternalAgentLookup = fullProject.externalAgents || {};
+
+        // Recompute agent-specific lookups from the updated agent data
+        const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
+        const updatedSubAgentExternalAgentConfigLookup =
+          computeSubAgentExternalAgentConfigLookup(updatedAgent);
+
+        // Update the store with all refreshed data
+        setInitial(
+          enrichNodes(nodesWithSelection),
+          edgesWithSelection,
+          metadata,
+          updatedDataComponentLookup as Record<string, DataComponent>,
+          updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
+          updatedToolLookup as unknown as Record<string, MCPTool>,
+          updatedAgentToolConfigLookup,
+          updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
+          updatedSubAgentExternalAgentConfigLookup
+        );
+      } catch (error) {
+        console.error('Failed to refresh agent graph:', error);
       }
-
-      // Deserialize agent data to nodes and edges
-      const { nodes, edges } = deserializeAgentData(updatedAgent);
-
-      // Preserve selection state based on current URL state
-      const nodesWithSelection = nodeId
-        ? nodes.map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : nodes;
-
-      const edgesWithSelection = edgeId
-        ? edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : edges;
-
-      // Extract metadata
-      const metadata = extractAgentMetadata(updatedAgent);
-
-      // Create lookups from full project data
-      const updatedDataComponentLookup = fullProject.dataComponents || {};
-      const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
-      const updatedToolLookup = fullProject.tools || {};
-      const updatedExternalAgentLookup = fullProject.externalAgents || {};
-
-      // Recompute agent-specific lookups from the updated agent data
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
-
-      // Update the store with all refreshed data
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        updatedDataComponentLookup as Record<string, DataComponent>,
-        updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
-        updatedToolLookup as unknown as Record<string, MCPTool>,
-        updatedAgentToolConfigLookup,
-        updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
-        updatedSubAgentExternalAgentConfigLookup
-      );
-    } catch (error) {
-      console.error('Failed to refresh agent graph:', error);
-    }
-  }, [
-    agent?.id,
-    tenantId,
-    projectId,
-    nodeId,
-    edgeId,
-    setInitial,
-    computeAgentToolConfigLookup,
-    computeSubAgentExternalAgentConfigLookup,
-    enrichNodes,
-  ]);
+    },
+    [
+      agent?.id,
+      tenantId,
+      projectId,
+      nodeId,
+      edgeId,
+      setInitial,
+      computeAgentToolConfigLookup,
+      computeSubAgentExternalAgentConfigLookup,
+      enrichNodes,
+    ]
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {

@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-eval-mcp",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "",
   "long_description": "Inkeep Agents Evaluation API: REST API for evaluations, datasets, and evaluation runs in the Inkeep Agent Framework.",
   "author": {

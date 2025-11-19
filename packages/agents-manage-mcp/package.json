@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.0.9",
+  "version": "0.0.11",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -12,9 +12,9 @@
     "build": "bun i && bun src/mcp-server/build.mts && tsc",
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
+    "prepublishOnly": "npm run build",
     "format": "biome format --write src",
     "format:check": "biome format src",
-    "prepublishOnly": "npm run build",
     "fetch-openapi": "node scripts/fetch-openapi.mjs",
     "generate": "node scripts/generate.mjs",
     "watch": "node scripts/watch-and-fetch.mjs"
