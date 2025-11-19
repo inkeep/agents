@@ -445,17 +445,26 @@ export const myProject = project({
 
 async function installInkeepCLI() {
   const s = p.spinner();
-  s.start('Installing Inkeep CLI globally...');
+  s.start('Installing Inkeep CLI globally with pnpm...');
 
   try {
-    await execAsync('npm install -g @inkeep/agents-cli');
-    s.stop('✓ Inkeep CLI installed successfully');
-  } catch (_error) {
-    s.stop('⚠️  Could not automatically install Inkeep CLI globally');
-    console.warn('You can install it manually later by running:');
-    console.warn('  npm install -g @inkeep/agents-cli');
-    console.warn('  or');
-    console.warn('  pnpm add -g @inkeep/agents-cli\n');
+    await execAsync('pnpm add -g @inkeep/agents-cli');
+    s.stop('✓ Inkeep CLI installed successfully with pnpm');
+    return;
+  } catch (_pnpmError) {
+    s.message('pnpm failed, trying npm...');
+
+    try {
+      await execAsync('npm install -g @inkeep/agents-cli');
+      s.stop('✓ Inkeep CLI installed successfully with npm');
+      return;
+    } catch (_npmError) {
+      s.stop('⚠️  Could not automatically install Inkeep CLI globally');
+      console.warn('You can install it manually later by running:');
+      console.warn('  npm install -g @inkeep/agents-cli');
+      console.warn('  or');
+      console.warn('  pnpm add -g @inkeep/agents-cli\n');
+    }
   }
 }
 
