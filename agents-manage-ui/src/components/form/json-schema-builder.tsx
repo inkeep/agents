@@ -26,6 +26,7 @@ import {
   useJsonSchemaStore,
 } from '@/features/agent/state/json-schema';
 import { cn } from '@/lib/utils';
+import { useDidUpdate } from '@/hooks/use-did-update';
 import { ArrayIcon, BooleanIcon, EnumIcon, NumberIcon, ObjectIcon, StringIcon } from '../../icons';
 
 const INDENT_PX = 24;
@@ -236,7 +237,8 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
     setFields(parseFieldsFromJson(value));
   }, []);
 
-  useEffect(() => {
+  // Calls only on update to avoid race condition with above useEffect
+  useDidUpdate(() => {
     const root: FieldObject = {
       id: '__root__',
       type: 'object',
