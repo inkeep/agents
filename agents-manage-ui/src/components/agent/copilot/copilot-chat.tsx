@@ -31,7 +31,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
-  // const router = useRouter();
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
