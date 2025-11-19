@@ -9,8 +9,6 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const config: NextConfig = {
   reactStrictMode: true,
-  // Increase timeout for static page generation in CI environments
-  staticPageGenerationTimeout: 180, // 3 minutes instead of default 60 seconds
   async redirects() {
     const cloudRedirects = await fetchCloudRedirects();
 
@@ -39,7 +37,7 @@ const config: NextConfig = {
       },
     ];
   },
-  // Fix build warning
+  // Fix build warnings
   // Package ts-morph can't be external
   // The request ts-morph matches serverExternalPackages (or the default list).
   transpilePackages: ['prettier', 'ts-morph'],
