@@ -6,14 +6,15 @@ import { useProjectActions, useProjectStore } from '@/features/project/state/use
 import { fetchProjectAction } from '@/lib/actions/projects';
 
 export function useProjectData() {
-  const params = useParams();
-  const { tenantId, projectId } = params;
+  const { tenantId, projectId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Read project from store
   const project = useProjectStore((state) => state.project);
   const { setProject: setProjectStore } = useProjectActions();
+
+  const storedProjectId = project?.projectId;
 
   useEffect(() => {
     async function fetchProject() {
@@ -23,7 +24,7 @@ export function useProjectData() {
       }
 
       // If project is already in store and matches current projectId, skip fetch
-      if (project && project.projectId === projectId) {
+      if (storedProjectId && storedProjectId === projectId) {
         setLoading(false);
         return;
       }
@@ -53,12 +54,12 @@ export function useProjectData() {
     }
 
     // Only fetch if project is not in store or doesn't match current projectId
-    if (!project || project.projectId !== projectId) {
+    if (!storedProjectId || storedProjectId !== projectId) {
       fetchProject();
     } else {
       setLoading(false);
     }
-  }, [tenantId, projectId, project, setProjectStore]);
+  }, [tenantId, projectId, storedProjectId, setProjectStore]);
 
   return { project, loading, error };
 }
