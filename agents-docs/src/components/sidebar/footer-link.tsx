@@ -22,7 +22,7 @@ export function FooterLink({ href, iconName, icon: customIcon, label }: FooterLi
     >
       <Link href={href}>
         <span className="sr-only">{label}</span>
-        {customIcon || icon(iconName!)}
+        {customIcon || (iconName && icon(iconName))}
       </Link>
     </Button>
   );
