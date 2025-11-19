@@ -130,6 +130,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             },
           }}
           aiChatSettings={{
+            aiAssistantName: 'Agent Editor',
             components: {
               ...(IkpMessage
                 ? {

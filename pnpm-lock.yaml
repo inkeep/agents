@@ -217,8 +217,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-cli
       '@inkeep/agents-ui':
-        specifier: ^0.15.3
-        version: 0.15.3(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.4
+        version: 0.15.4(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@inkeep/cxkit-react':
         specifier: ^0.5.98
         version: 0.5.104(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@4.1.12)
@@ -582,8 +582,8 @@ importers:
         specifier: workspace:^
         version: link:../agents-run-api
       '@inkeep/agents-ui':
-        specifier: ^0.15.3
-        version: 0.15.3(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.4
+        version: 0.15.4(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.3
@@ -1002,8 +1002,8 @@ importers:
   agents-ui:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.3
-        version: 0.15.3(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.4
+        version: 0.15.4(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       lucide-react:
         specifier: ^0.539.0
         version: 0.539.0(react@19.2.0)
@@ -2800,8 +2800,8 @@ packages:
   '@inkeep/agents-ui@0.15.1':
     resolution: {integrity: sha512-SDULVVkXwDwwgpj9yE9sLgVEq9bXzwYiuUtnxPD5i1NYsdOgYi10Xy4INak6o5BZiBKld18aOvH3rnu2DJRA1Q==}
 
-  '@inkeep/agents-ui@0.15.3':
-    resolution: {integrity: sha512-VysrxvjzkOTpDxxt1pkZg2omUL05YQpsPUHadGwIUWoU1ApmPApmpzEMOVr8PHck5FhYa8QYEgY3STeFYDM8ZA==}
+  '@inkeep/agents-ui@0.15.4':
+    resolution: {integrity: sha512-gybfzh5dNI07grwhOyW5un6cZGYcwcn+i+LlKmafSGzUTS1K8aj42NrNPWUgWFhmlkQBwBRCIa37igYMFc/Vng==}
 
   '@inkeep/cxkit-color-mode@0.5.104':
     resolution: {integrity: sha512-IFHSCRPRLZzp2FogR0NQx6ukQ8Vg7Azx1BRn+FPHnC+BPjs/tE2bpPleU99JYQUl3FYGfEVr8EMsmTCImXpxXQ==}
@@ -13781,7 +13781,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.3(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@inkeep/agents-ui@0.15.4(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.1.12)
       '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.1.12)
