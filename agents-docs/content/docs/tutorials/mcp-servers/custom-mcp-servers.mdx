@@ -30,33 +30,51 @@ This will automatically add a custom MCP server template to your Quick Start wor
 
 #### Using Vercel's Template
 
-If you want to create a custom MCP server, you can use Vercel's [Next.js MCP template](https://vercel.com/templates/next.js/model-context-protocol-mcp-with-next-js) as a starting point.
+If you want to create a custom MCP server, you can use Vercel's [Next.js MCP template](https://vercel.com/templates/next.js/model-context-protocol-mcp-with-next-js) as a starting point:
 
 <Steps>
-<Step>
-Create a new directory in your project's `apps/mcp/app/` directory with your desired server name (e.g. `apps/mcp/app/my-email-mcp/mcp`).
-```bash
-mkdir -p apps/mcp/app/[server-name]/mcp
-```
-</Step>
-<Step>
-Copy the template route.ts file from the [Vercel MCP template](https://github.com/vercel-labs/mcp-for-next.js/blob/main/app/mcp/route.ts) into `apps/mcp/app/[server-name]/mcp/route.ts`.
-</Step>
-<Step>
-Modify the template route.ts file with your desired tools and resources.
-</Step>
-<Step>
-Set the `basePath` of the `createMcpHandler` to `/[server-name]`.
-</Step>
-</Steps>  
+  <Step>
+    From the workspace root, add the Vercel template:
+    ```bash
+    inkeep add --mcp vercel-template
+    ```
+      </Step>
+  <Step>
+    Rename the template to your desired server name:
+    ```bash
+    mv apps/mcp/app/vercel-template apps/mcp/app/[server-name]
+    ```
+      </Step>
+  <Step>
+    Update the `basePath` inside `apps/mcp/app/[server-name]/mcp/route.ts` to `/[server-name]`:
+    ```typescript
+    {
+      basePath: "/[server-name]",
+      verboseLogs: true,
+      maxDuration: 60,
+      disableSse: true,
+    }
+    ```
+    </Step>
+  <Step>
+    Customize the template with your desired tools.
+  </Step>
+  <Step>
+    You can access the server at `http://localhost:3006/[server-name]/mcp`. Register it with your agents using the `mcpTool` function.
+    ```typescript
+    import { mcpTool } from '@inkeep/agents-sdk';
 
-#### Running locally
+    export const mcpTool = mcpTool({
+      id: '[server-name]',
+      name: '[server-name]',
+      description: '[server-name] API',
+      serverUrl: 'http://localhost:3006/[server-name]/mcp',
+    });
+    ```
 
-```bash
-pnpm dev
-```
-
-This will start the server on port 3006.
+    Or you register the MCP server as a tool in the Visual Builder (see [here](/visual-builder/tools/mcp-servers#register-an-mcp-server)).
+  </Step>
+</Steps>
 
 #### Deploying to Vercel
 
