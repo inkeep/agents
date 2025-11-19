@@ -400,8 +400,8 @@ export function serializeAgentData(
         agent: ExtendedAgent,
         relationshipType: 'canTransferTo' | 'canDelegateTo',
         targetId: string,
-        isExternal: boolean = false,
-        isTeamAgent: boolean = false,
+        isExternal = false,
+        isTeamAgent = false,
         headers?: Record<string, string>,
         relationshipId?: string
       ) => {

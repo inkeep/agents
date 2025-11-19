@@ -37,6 +37,7 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
+
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';

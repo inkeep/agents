@@ -42,6 +42,7 @@ import { tool$contextConfigDeleteContextConfig } from './tools/contextConfigDele
 import { tool$contextConfigGetContextConfigById } from './tools/contextConfigGetContextConfigById.js';
 import { tool$contextConfigListContextConfigs } from './tools/contextConfigListContextConfigs.js';
 import { tool$contextConfigUpdateContextConfig } from './tools/contextConfigUpdateContextConfig.js';
+import { tool$conversationsGetConversation } from './tools/conversationsGetConversation.js';
 import { tool$credentialCreateCredential } from './tools/credentialCreateCredential.js';
 import { tool$credentialDeleteCredential } from './tools/credentialDeleteCredential.js';
 import { tool$credentialGetCredentialById } from './tools/credentialGetCredentialById.js';
@@ -129,7 +130,7 @@ export function createMCPServer(deps: {
 }) {
   const server = new McpServer({
     name: 'InkeepAgents',
-    version: '0.0.11',
+    version: '0.0.12',
   });
 
   const getClient =
@@ -217,6 +218,7 @@ export function createMCPServer(deps: {
   tool(tool$contextConfigGetContextConfigById);
   tool(tool$contextConfigUpdateContextConfig);
   tool(tool$contextConfigDeleteContextConfig);
+  tool(tool$conversationsGetConversation);
   tool(tool$credentialListCredentials);
   tool(tool$credentialCreateCredential);
   tool(tool$credentialGetCredentialById);
