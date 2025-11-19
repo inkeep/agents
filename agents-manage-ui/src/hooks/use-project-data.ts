@@ -6,8 +6,7 @@ import { fetchProjectAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
 
 export function useProjectData() {
-  const params = useParams();
-  const { tenantId, projectId } = params;
+  const { tenantId, projectId } = useParams();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
