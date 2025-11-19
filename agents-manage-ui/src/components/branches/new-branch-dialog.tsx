@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -48,7 +48,7 @@ interface NewBranchDialogProps {
   projectId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (newBranchName?: string) => void;
   availableBranches?: string[];
 }
 
@@ -60,7 +60,6 @@ export function NewBranchDialog({
   onSuccess,
   availableBranches = [],
 }: NewBranchDialogProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,14 +93,8 @@ export function NewBranchDialog({
       setOpen(false);
       form.reset();
 
-      // Switch to the new branch
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('ref', data.name);
-      router.push(`?${params.toString()}`);
-      router.refresh(); // Refresh to update server components
-
-      // Reload branches list
-      onSuccess?.();
+      // Reload branches list first, then switch to the new branch
+      onSuccess?.(data.name);
     } catch (error: any) {
       console.error('Failed to create branch:', error);
       const message = error?.message || 'Failed to create branch';

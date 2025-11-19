@@ -123,6 +123,7 @@ export function AgentComparison({
           </div>
           <div className="flex-1 min-h-0">
             <ChatWidget
+              key={compareBranch}
               conversationId={conversationIdCompare}
               setConversationId={setConversationIdCompare}
               startPolling={startPollingCompare}

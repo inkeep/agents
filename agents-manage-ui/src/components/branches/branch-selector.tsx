@@ -66,8 +66,12 @@ export function BranchSelector({ tenantId, projectId }: BranchSelectorProps) {
     router.refresh();
   };
 
-  const handleBranchCreated = () => {
-    loadBranches();
+  const handleBranchCreated = async (newBranchName?: string) => {
+    await loadBranches();
+    // If a new branch name is provided, switch to it after branches are loaded
+    if (newBranchName) {
+      handleBranchChange(newBranchName);
+    }
   };
 
   if (loading) {
