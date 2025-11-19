@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "",
   "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
   "author": {
@@ -255,6 +255,10 @@
     {
       "name": "context-config-delete-context-config",
       "description": "Delete Context Configuration"
+    },
+    {
+      "name": "conversations-get-conversation",
+      "description": "Get Conversation"
     },
     {
       "name": "credential-list-credentials",

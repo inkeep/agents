@@ -5,8 +5,8 @@ management:
   docVersion: 1.0.0
   speakeasyVersion: 1.658.2
   generationVersion: 2.755.9
-  releaseVersion: 0.0.17
-  configChecksum: fba3d8b3f373c2cdd0a340484c3b0c7a
+  releaseVersion: 0.0.18
+  configChecksum: 1103e2315143ddde314b321eb46eef3a
 features:
   mcp-typescript:
     acceptHeaders: 0.1.0

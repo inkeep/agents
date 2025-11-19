@@ -3636,6 +3636,40 @@
           }
         }
       },
+      "ConversationWithFormattedMessagesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "messages": {
+                "type": "array",
+                "items": {
+                  "nullable": true
+                }
+              },
+              "formatted": {
+                "type": "object",
+                "properties": {
+                  "llmContext": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "llmContext"
+                ]
+              }
+            },
+            "required": [
+              "messages",
+              "formatted"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
       "CredentialReference": {
         "type": "object",
         "properties": {
@@ -4944,6 +4978,9 @@
             "default": "unknown"
           },
           "version": {
+            "type": "string"
+          },
+          "expiresAt": {
             "type": "string"
           },
           "relationshipId": {
@@ -12266,6 +12303,142 @@
         "responses": {
           "204": {
             "description": "Context configuration deleted successfully"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/conversations/{id}": {
+      "get": {
+        "summary": "Get Conversation",
+        "operationId": "get-conversation",
+        "tags": [
+          "Conversations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            },
+            "required": true,
+            "description": "Tenant identifier",
+            "name": "tenantId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            },
+            "required": true,
+            "description": "Project identifier",
+            "name": "projectId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "description": "Resource identifier",
+              "example": "resource_789"
+            },
+            "required": true,
+            "description": "Resource identifier",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "nullable": true,
+              "default": false
+            },
+            "required": false,
+            "name": "includeInternal",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation found with formatted messages for LLM use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationWithFormattedMessagesResponse"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
