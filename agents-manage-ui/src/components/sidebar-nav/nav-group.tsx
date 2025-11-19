@@ -1,6 +1,11 @@
 'use client';
 
-import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu } from '@/components/ui/sidebar';
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+} from '@/components/ui/sidebar';
 import { NavItem, type NavItemProps } from './nav-item';
 
 interface NavGroupProps {
@@ -14,7 +19,7 @@ export function NavGroup({ items, label }: NavGroupProps) {
   return (
     <SidebarGroup className="px-2 py-1">
       {label ? (
-        <SidebarGroupLabel className="relative group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100!">
+        <SidebarGroupLabel className="relative group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100! font-mono uppercase">
           <span className="transition-opacity duration-200 ease-linear group-data-[state=collapsed]:opacity-0">
             {label}
           </span>
