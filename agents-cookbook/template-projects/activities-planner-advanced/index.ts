@@ -9,15 +9,4 @@ export const myProject = project({
   description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
   tools: () => [weatherMcpTool, exaMcpTool],
-  models: {
-    'base': {
-      'model': 'anthropic/claude-sonnet-4-5'
-    },
-    'structuredOutput': {
-      'model': 'anthropic/claude-sonnet-4-5'
-    },
-    'summarizer': {
-      'model': 'anthropic/claude-sonnet-4-5'
-    }
-  }
 });
