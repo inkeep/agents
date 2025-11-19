@@ -341,7 +341,13 @@ export const Youtube = () => (
 );
 
 export const Upstash = () => (
-  <svg fill="currentColor" width="16px" height="16px" viewBox="0 0 118 118" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    fill="currentColor"
+    width="16px"
+    height="16px"
+    viewBox="0 0 118 118"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <g clipPath="url(#upstash_icon_dark_bg)">
       <path
         fill="currentColor"

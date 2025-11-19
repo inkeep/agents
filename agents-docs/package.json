@@ -4,8 +4,8 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "build": "NODE_ENV=production next build",
-    "dev": "next dev --turbo -p 3010",
+    "build": "next build",
+    "dev": "next --turbo -p 3010",
     "start": "next start",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@inkeep/agents-ui": "^0.15.3",
-    "@inkeep/agents-cli": "^0.33.2",
+    "@inkeep/agents-cli": "workspace:*",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",
@@ -40,7 +40,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
     "mermaid": "^11.12.0",
-    "next": "16.0.0",
+    "next": "16.0.3",
     "next-themes": "^0.4.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",
@@ -64,12 +64,8 @@
     "@types/react-dom": "19.2.2",
     "fast-glob": "^3.3.3",
     "next-validate-link": "^1.6.3",
-    "postcss": "^8.5.6",
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   }
 }
