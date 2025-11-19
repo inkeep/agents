@@ -21,7 +21,11 @@ export const TextDiff: React.FC<TextDiffProps> = ({ originalValue, newValue, cla
           return (
             <span
               key={index}
-              className="bg-primary/10 dark:bg-sky-blue/30 text-azure-900 dark:text-crystal-blue rounded-sm px-1 py-0.5"
+              className={
+                parts.length > 1
+                  ? 'bg-primary/10 dark:bg-sky-blue/30 text-azure-900 dark:text-crystal-blue rounded-sm px-1 py-0.5'
+                  : 'leading-normal'
+              }
             >
               {part.value}
             </span>
