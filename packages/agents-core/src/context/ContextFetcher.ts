@@ -3,7 +3,10 @@ import type { CredentialStoreRegistry } from '../credential-stores/CredentialSto
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
 import { getCredentialReference } from '../data-access/index';
 import type { DatabaseClient } from '../db/client';
+import { executeInBranch } from '../dolt/branch-scoped-execution';
+import type { ResolvedRef } from '../dolt/ref';
 import { validateAgainstJsonSchema } from '../middleware/index';
+import type { CredentialReferenceSelect } from '../types/entities';
 import type { ContextFetchDefinition } from '../types/utility';
 import { getLogger } from '../utils/logger';
 import { type TemplateContext, TemplateEngine } from './TemplateEngine';
@@ -52,15 +55,18 @@ export class ContextFetcher {
   private defaultTimeout: number;
   private credentialStuffer?: CredentialStuffer;
   private dbClient: DatabaseClient;
+  private ref?: ResolvedRef;
 
   constructor(
     tenantId: string,
     projectId: string,
     dbClient: DatabaseClient,
+    ref?: ResolvedRef,
     credentialStoreRegistry?: CredentialStoreRegistry,
     defaultTimeout = 10000
   ) {
     this.tenantId = tenantId;
+    this.ref = ref;
     this.projectId = projectId;
     this.defaultTimeout = defaultTimeout;
     if (credentialStoreRegistry) {
@@ -160,10 +166,27 @@ export class ContextFetcher {
 
   private async getCredential(credentialReferenceId: string) {
     try {
-      const credentialReference = await getCredentialReference(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-        id: credentialReferenceId,
-      });
+      let credentialReference: CredentialReferenceSelect | undefined;
+      if (this.ref) {
+        credentialReference = await executeInBranch(
+          {
+            dbClient: this.dbClient,
+            ref: this.ref,
+          },
+          async (db) => {
+            return await getCredentialReference(db)({
+              scopes: { tenantId: this.tenantId, projectId: this.projectId },
+              id: credentialReferenceId,
+            });
+          }
+        );
+      } else {
+        credentialReference = await getCredentialReference(this.dbClient)({
+          scopes: { tenantId: this.tenantId, projectId: this.projectId },
+          id: credentialReferenceId,
+        });
+      }
+
       logger.info({ credentialReference }, 'Credential reference');
 
       if (!credentialReference || !this.credentialStuffer) {

@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ServerConfig } from '@inkeep/agents-core';
+import { handleApiError, type ServerConfig, CredentialStoreRegistry } from '@inkeep/agents-core';
 import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
-import type { CredentialStoreRegistry } from '@inkeep/agents-core/credential-stores';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -228,10 +227,9 @@ function createManagementHono(
   app.route('/api/invitations', invitationsRoutes);
 
   // Ref versioning middleware for all tenant routes
-
-  app.use('/tenants/*', refMiddleware);
-  app.use('/tenants/*', writeProtectionMiddleware);
-  app.use('/tenants/*', branchScopedDbMiddleware);
+  app.use('/tenants/*', async (c, next) => refMiddleware(c, next));
+  app.use('/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
+  app.use('/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);

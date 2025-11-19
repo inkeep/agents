@@ -5,6 +5,7 @@ import {
   contextValidationMiddleware,
   createApiError,
   createMessage,
+  executeInBranch,
   generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
@@ -14,6 +15,7 @@ import {
   getSubAgentById,
   handleContextResolution,
   loggerFactory,
+  type ResolvedRef,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
@@ -29,6 +31,7 @@ import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   requestBody?: any;
+  resolvedRef: ResolvedRef;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -96,7 +99,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, agentId } = executionContext;
+    const { tenantId, projectId, agentId, ref } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
@@ -126,9 +129,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     // Execute remaining handler within the baggage context so child spans inherit attributes
     return await otelContext.with(ctxWithBaggage, async () => {
-      const agent = await getAgentWithDefaultSubAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
+      const agent = await executeInBranch({ dbClient, ref }, async (db) => {
+        return await getAgentWithDefaultSubAgent(db)({
+          scopes: { tenantId, projectId, agentId },
+        });
       });
+
       if (!agent) {
         throw createApiError({
           code: 'not_found',
@@ -146,24 +152,35 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
-      const activeAgent = await getActiveAgentForConversation(dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-      });
-      if (!activeAgent) {
-        setActiveAgentForConversation(dbClient)({
+      const activeAgent = await executeInBranch({ dbClient, ref }, async (db) => {
+        return await getActiveAgentForConversation(db)({
           scopes: { tenantId, projectId },
           conversationId,
-          subAgentId: defaultSubAgentId,
         });
+      });
+      if (!activeAgent) {
+        await executeInBranch(
+          { dbClient, ref, autoCommit: true, commitMessage: 'Set active agent for conversation' },
+          async (db) => {
+            return await setActiveAgentForConversation(db)({
+              scopes: { tenantId, projectId },
+              conversationId,
+              subAgentId: defaultSubAgentId,
+            });
+          }
+        );
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await getSubAgentById(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        subAgentId: subAgentId as string,
+      logger.info({ subAgentId }, 'subAgentId');
+      const agentInfo = await executeInBranch({ dbClient, ref }, async (db) => {
+        return await getSubAgentById(db)({
+          scopes: { tenantId, projectId, agentId },
+          subAgentId: subAgentId as string,
+        });
       });
       if (!agentInfo) {
+        logger.error({ subAgentId }, 'subAgentId not found');
         throw createApiError({
           code: 'not_found',
           message: 'Agent not found',
@@ -176,15 +193,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const credentialStores = c.get('credentialStores');
 
       // Context resolution with intelligent conversation state detection
-      await handleContextResolution({
-        tenantId,
-        projectId,
-        agentId,
-        conversationId,
-        headers: validatedContext,
-        dbClient,
-        credentialStores,
-      });
+      await executeInBranch(
+        { dbClient, ref, autoCommit: true, commitMessage: 'Handle context resolution' },
+        async (db) => {
+          return await handleContextResolution({
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            headers: validatedContext,
+            dbClient: db,
+            credentialStores,
+          });
+        }
+      );
 
       // Store last user message
       const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
@@ -207,16 +229,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await createMessage(dbClient)({
-        id: generateId(),
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'user',
-        content: { text: userText },
-        visibility: 'user-facing',
-        messageType: 'chat',
-      });
+      await executeInBranch(
+        { dbClient, ref, autoCommit: true, commitMessage: 'Create user message' },
+        async (db) => {
+          return await createMessage(db)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'user',
+            content: { text: userText },
+            visibility: 'user-facing',
+            messageType: 'chat',
+          });
+        }
+      );
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,

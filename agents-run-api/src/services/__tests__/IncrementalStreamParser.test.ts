@@ -56,13 +56,19 @@ describe('IncrementalStreamParser', () => {
     // Create mock constructor that returns the same mock instance
     vi.mocked(ArtifactParser).mockImplementation(() => mockArtifactParser);
 
-    parser = new IncrementalStreamParser(mockStreamHelper, 'test-tenant', 'test-context', {
-      sessionId: 'test-session',
-      taskId: 'test-task',
-      projectId: 'test-project',
-      subAgentId: 'test-agent',
-      streamRequestId: 'test-stream-request',
-    });
+    parser = new IncrementalStreamParser(
+      mockStreamHelper,
+      'test-tenant',
+      'test-context',
+      {} as any,
+      {
+        sessionId: 'test-session',
+        taskId: 'test-task',
+        projectId: 'test-project',
+        subAgentId: 'test-agent',
+        streamRequestId: 'test-stream-request',
+      }
+    );
 
     // Initialize artifact map
     await parser.initializeArtifactMap();

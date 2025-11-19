@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanupTestData, getIntegrationTestClient } from '../../../db/integration-cleanup';
+// import * as schema from '../../../db/schema';
 import {
   doltActiveBranch,
   doltBranch,
@@ -9,6 +10,9 @@ import {
   doltListBranches,
   doltRenameBranch,
 } from '../../../dolt/branch';
+
+// import { createBranch, listBranchesForAgent } from '../../../dolt/branches-api';
+// import { doltAddAndCommit } from '../../../dolt/commit';
 
 const dbClient = getIntegrationTestClient();
 
@@ -234,4 +238,206 @@ describe('Branch Operations - Integration Tests', () => {
       expect(namespace).toBe('tenant1_project1_feature/branch-name');
     });
   });
+
+  // describe('listBranchesForAgent', () => {
+  //   const testTenantId = `test-tenant-${Date.now()}`;
+  //   const testProjectId = `test-project-${Date.now()}`;
+  //   const testAgentId = `test-agent-${Date.now()}`;
+  //   const testAgentId2 = `test-agent-2-${Date.now()}`;
+
+  //   beforeEach(async () => {
+  //     await doltBranch(dbClient)({ name: `${testTenantId}_main` });
+
+  //     // Create project and agent on main branch
+  //     await dbClient
+  //       .insert(schema.projects)
+  //       .values({
+  //         tenantId: testTenantId,
+  //         id: testProjectId,
+  //         name: 'Test Project',
+  //         description: 'Project for testing',
+  //       })
+  //       .onConflictDoNothing();
+
+  //     await dbClient
+  //       .insert(schema.agents)
+  //       .values({
+  //         tenantId: testTenantId,
+  //         projectId: testProjectId,
+  //         id: testAgentId,
+  //         name: 'Test Agent',
+  //         description: 'Agent for testing',
+  //       })
+  //       .onConflictDoNothing();
+
+  //     // Commit initial data
+  //     await doltAddAndCommit(dbClient)({
+  //       message: 'Initial commit with project and agent',
+  //     });
+  //   });
+
+  //   it('should find agent on main branch', async () => {
+  //     const branches = await listBranchesForAgent(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       agentId: testAgentId,
+  //     });
+
+  //     expect(branches.length).toBeGreaterThan(0);
+  //     const mainBranch = branches.find((b) => b.baseName === 'main');
+  //     expect(mainBranch).toBeDefined();
+  //   });
+
+  //   it('should find agent on multiple branches', async () => {
+  //     // Create branch1 and add agent to it
+  //     const branch1Name = getBranchName('agent-branch1');
+  //     createdBranches.add(branch1Name);
+  //     await createBranch(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       name: branch1Name,
+  //     });
+  //     createdBranches.add(branch1Name);
+
+  //     const branch1FullName = doltGetBranchNamespace({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       branchName: branch1Name,
+  //     })();
+
+  //     await doltCheckout(dbClient)({ branch: branch1FullName });
+  //     await dbClient
+  //       .insert(schema.agents)
+  //       .values({
+  //         tenantId: testTenantId,
+  //         projectId: testProjectId,
+  //         id: testAgentId,
+  //         name: 'Test Agent',
+  //         description: 'Agent for testing',
+  //       })
+  //       .onConflictDoNothing();
+
+  //     await doltAddAndCommit(dbClient)({
+  //       message: 'Add agent to branch1',
+  //     });
+
+  //     // Create branch2 and add agent to it
+  //     const branch2Name = getBranchName('agent-branch2');
+  //     createdBranches.add(branch2Name);
+  //     await createBranch(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       name: branch2Name,
+  //     });
+
+  //     const branch2FullName = doltGetBranchNamespace({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       branchName: branch2Name,
+  //     })();
+
+  //     await doltCheckout(dbClient)({ branch: branch2FullName });
+  //     await dbClient
+  //       .insert(schema.agents)
+  //       .values({
+  //         tenantId: testTenantId,
+  //         projectId: testProjectId,
+  //         id: testAgentId,
+  //         name: 'Test Agent',
+  //         description: 'Agent for testing',
+  //       })
+  //       .onConflictDoNothing();
+
+  //     await doltAddAndCommit(dbClient)({
+  //       message: 'Add agent to branch2',
+  //     });
+
+  //     // Create branch3 without the agent
+  //     const branch3Name = getBranchName('agent-branch3');
+  //     createdBranches.add(branch3Name);
+  //     await createBranch(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       name: branch3Name,
+  //     });
+
+  //     // Checkout back to main
+  //     const mainBranchName = `${testTenantId}_main`;
+  //     await doltCheckout(dbClient)({ branch: mainBranchName });
+
+  //     // Test listBranchesForAgent
+  //     const branches = await listBranchesForAgent(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       agentId: testAgentId,
+  //     });
+
+  //     // Should find agent on main, branch1, and branch2, but not branch3
+  //     const branchNames = branches.map((b) => b.baseName);
+  //     expect(branchNames).toContain('main');
+  //     expect(branchNames).toContain(branch1Name);
+  //     expect(branchNames).toContain(branch2Name);
+  //     expect(branchNames).not.toContain(branch3Name);
+  //   });
+
+  //   it('should not find agent that does not exist', async () => {
+  //     const nonExistentAgentId = `non-existent-${Date.now()}`;
+  //     const branches = await listBranchesForAgent(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       agentId: nonExistentAgentId,
+  //     });
+
+  //     expect(branches.length).toBe(0);
+  //   });
+
+  //   it('should only return branches for the specific agent', async () => {
+  //     // Create branch with a different agent
+  //     const branchName = getBranchName('other-agent-branch');
+  //     createdBranches.add(branchName);
+  //     await createBranch(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       name: branchName,
+  //     });
+
+  //     const branchFullName = doltGetBranchNamespace({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       branchName: branchName,
+  //     })();
+
+  //     await doltCheckout(dbClient)({ branch: branchFullName });
+  //     await dbClient
+  //       .insert(schema.agents)
+  //       .values({
+  //         tenantId: testTenantId,
+  //         projectId: testProjectId,
+  //         id: testAgentId2,
+  //         name: 'Different Agent',
+  //         description: 'Different agent for testing',
+  //       })
+  //       .onConflictDoNothing();
+
+  //     await doltAddAndCommit(dbClient)({
+  //       message: 'Add different agent to branch',
+  //     });
+
+  //     // Checkout back to main
+  //     const mainBranchName = `${testTenantId}_main`;
+  //     await doltCheckout(dbClient)({ branch: mainBranchName });
+
+  //     // Test listBranchesForAgent for testAgentId
+  //     const branches = await listBranchesForAgent(dbClient)({
+  //       tenantId: testTenantId,
+  //       projectId: testProjectId,
+  //       agentId: testAgentId,
+  //     });
+
+  //     // Should not include the branch with the different agent
+  //     const branchNames = branches.map((b) => b.baseName);
+  //     expect(branchNames).not.toContain(branchName);
+  //     expect(branchNames).toContain('main');
+  //   });
+  // });
 });

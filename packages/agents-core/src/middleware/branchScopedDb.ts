@@ -4,8 +4,7 @@ import * as schema from '@inkeep/agents-core/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
 import type { Pool, PoolClient } from 'pg';
-import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('branch-scoped-db');
 
@@ -37,7 +36,11 @@ export function getPoolFromClient(client: DatabaseClient): Pool | null {
  * - Automatic commits for successful writes on branches
  * - Proper connection cleanup
  */
-export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
+export const branchScopedDbMiddleware = async (
+  c: Context,
+  next: Next,
+  dbClient: DatabaseClient
+) => {
   const resolvedRef = c.get('resolvedRef') as ResolvedRef;
   const method = c.req.method;
   const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);

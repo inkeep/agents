@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Doltgres version (check https://github.com/dolthub/doltgresql/releases for latest)
-ARG DOLTGRES_VERSION=0.53.0
+ARG DOLTGRES_VERSION=0.53.1
 
 # Download and install Doltgres
 RUN curl -L "https://github.com/dolthub/doltgresql/releases/download/v${DOLTGRES_VERSION}/doltgresql-linux-amd64.tar.gz" -o doltgres.tar.gz \
@@ -18,16 +18,16 @@ RUN curl -L "https://github.com/dolthub/doltgresql/releases/download/v${DOLTGRES
     && rm -rf doltgres.tar.gz doltgresql-linux-amd64
 
 # Create data directory
-RUN mkdir -p /var/lib/doltgresql
-ENV DOLTGRES_DATA_DIR=/var/lib/doltgresql
+RUN mkdir -p /var/lib/doltgres /docker-entrypoint-initdb.d /etc/doltgres
+ENV DOLTGRES_DATA_DIR=/var/lib/doltgres
 
 # Copy config file
 COPY doltgres-config.yml /etc/doltgres/config.yaml
 
-# Copy entrypoint script
+# Copy entrypoint script and fix line endings in one layer
 COPY docker-doltgres-entrypoint.sh /usr/local/bin/docker-doltgres-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh && \
-    sed -i 's/\r$//' /usr/local/bin/docker-doltgres-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-doltgres-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh
 
 # Copy initialization scripts
 COPY init-dolt.sql /docker-entrypoint-initdb.d/

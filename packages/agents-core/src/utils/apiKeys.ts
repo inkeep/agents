@@ -26,13 +26,16 @@ export type ApiKeyGenerationResult = {
 /**
  * Generate a new API key with secure random bytes
  */
-export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
+export async function generateApiKey(
+  tenantId: string,
+  projectId: string
+): Promise<ApiKeyGenerationResult> {
   const publicId = generatePublicId();
 
   const secretBytes = randomBytes(API_KEY_LENGTH);
   const secret = secretBytes.toString('base64url');
 
-  const key = `sk_${publicId}.${secret}`;
+  const key = `sk_${tenantId}_${projectId}_${publicId}.${secret}`;
 
   const keyPrefix = key.substring(0, 12);
 
@@ -48,6 +51,26 @@ export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
     keyPrefix,
   };
 }
+
+export const getMetadataFromApiKey = (
+  key: string
+): { tenantId: string; projectId: string } | null => {
+  const parts = key.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const prefixPart = parts[0]; // e.g., "sk_test_abc123def456" or "sk_abc123def456"
+  const segments = prefixPart.split('_');
+  if (segments.length < 3) {
+    return null;
+  }
+
+  return {
+    tenantId: segments[1],
+    projectId: segments[2],
+  };
+};
 
 /**
  * Hash an API key using scrypt

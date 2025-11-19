@@ -27,6 +27,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
+import { AgentComparison } from '@/components/agent/comparison/agent-comparison';
 import { useCopilotContext } from '@/components/agent/copilot/copilot-context';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
@@ -106,6 +107,8 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
+  availableBranches?: Array<{ baseName: string; fullName: string; hash: string }>;
+  currentBranch?: string;
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
@@ -127,6 +130,8 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
+  availableBranches = [],
+  currentBranch = 'main',
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -135,6 +140,7 @@ export const Agent: FC<AgentProps> = ({
     isStreaming: isCopilotStreaming,
   } = useCopilotContext();
 
+  const [showComparison, setShowComparison] = useState(false);
   const router = useRouter();
 
   const { tenantId, projectId } = useParams<{
@@ -1043,75 +1049,90 @@ export const Agent: FC<AgentProps> = ({
         defaultSize={100}
         className="relative"
       >
-        {isCopilotStreaming && <CopilotStreamingOverlay />}
-        <DefaultMarker />
-        <SelectedMarker />
-        <ReactFlow
-          defaultEdgeOptions={{
-            // Built-in 'default' edges ignore the `data` prop.
-            // Use a custom edge type instead to access `data` in rendering.
-            type: 'custom',
-          }}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnectWrapped}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          fitView
-          snapToGrid
-          snapGrid={[20, 20]}
-          fitViewOptions={{
-            maxZoom: 1,
-          }}
-          minZoom={0.3}
-          connectionMode={ConnectionMode.Loose}
-          isValidConnection={isValidConnection}
-          onNodeClick={onNodeClick}
-        >
-          <Background color="#a8a29e" gap={20} />
-          <Controls className="text-foreground" showInteractive={false} />
-          {!showEmptyState && (
-            <Panel position="top-left">
-              <NodeLibrary />
-            </Panel>
-          )}
-
-          {showEmptyState && (
-            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
-              <EmptyState onAddInitialNode={onAddInitialNode} />
-            </Panel>
-          )}
-          {!showEmptyState && (
-            <Panel
-              position="top-right"
-              // width of NodeLibrary
-              className="left-40"
+        {showComparison && agent?.id ? (
+          <AgentComparison
+            agentId={agent.id}
+            currentBranch={currentBranch}
+            availableBranches={availableBranches}
+            tenantId={tenantId}
+            projectId={projectId}
+            dataComponentLookup={dataComponentLookup}
+            onClose={() => setShowComparison(false)}
+          />
+        ) : (
+          <>
+            {isCopilotStreaming && <CopilotStreamingOverlay />}
+            <DefaultMarker />
+            <SelectedMarker />
+            <ReactFlow
+              defaultEdgeOptions={{
+                // Built-in 'default' edges ignore the `data` prop.
+                // Use a custom edge type instead to access `data` in rendering.
+                type: 'custom',
+              }}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnectWrapped}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              fitView
+              snapToGrid
+              snapGrid={[20, 20]}
+              fitViewOptions={{
+                maxZoom: 1,
+              }}
+              minZoom={0.3}
+              connectionMode={ConnectionMode.Loose}
+              isValidConnection={isValidConnection}
+              onNodeClick={onNodeClick}
             >
-              <Toolbar
-                onSubmit={onSubmit}
-                toggleSidePane={isOpen ? backToAgent : openAgentPane}
-                setShowPlayground={() => {
-                  closeSidePane();
-                  setShowPlayground(true);
-                }}
-              />
-            </Panel>
-          )}
-          {errors && showErrors && (
-            <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
-              <AgentErrorSummary
-                errorSummary={errors}
-                onClose={() => setShowErrors(false)}
-                onNavigateToNode={handleNavigateToNode}
-                onNavigateToEdge={handleNavigateToEdge}
-              />
-            </Panel>
-          )}
-        </ReactFlow>
+              <Background color="#a8a29e" gap={20} />
+              <Controls className="text-foreground" showInteractive={false} />
+              {!showEmptyState && (
+                <Panel position="top-left">
+                  <NodeLibrary />
+                </Panel>
+              )}
+              {showEmptyState && (
+                <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+                  <EmptyState onAddInitialNode={onAddInitialNode} />
+                </Panel>
+              )}
+              {!showEmptyState && (
+                <Panel
+                  position="top-right"
+                  // width of NodeLibrary
+                  className="left-40"
+                >
+                  <Toolbar
+                    onSubmit={onSubmit}
+                    toggleSidePane={isOpen ? backToAgent : openAgentPane}
+                    setShowPlayground={() => {
+                      closeSidePane();
+                      setShowPlayground(true);
+                    }}
+                    setShowComparison={setShowComparison}
+                    hasMultipleBranches={availableBranches.length > 1}
+                  />
+                </Panel>
+              )}
+              {errors && showErrors && (
+                <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
+                  <AgentErrorSummary
+                    errorSummary={errors}
+                    onClose={() => setShowErrors(false)}
+                    onNavigateToNode={handleNavigateToNode}
+                    onNavigateToEdge={handleNavigateToEdge}
+                  />
+                </Panel>
+              )}
+            </ReactFlow>
+          </>
+        )}
       </ResizablePanel>
 
       {isOpen &&
@@ -1163,6 +1184,7 @@ export const Agent: FC<AgentProps> = ({
               agentId={agent.id}
               projectId={projectId}
               tenantId={tenantId}
+              currentBranch={currentBranch}
               setShowPlayground={setShowPlayground}
               closeSidePane={closeSidePane}
               dataComponentLookup={dataComponentLookup}

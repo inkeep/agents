@@ -54,12 +54,16 @@ export function BranchSelector({ tenantId, projectId }: BranchSelectorProps) {
       return;
     }
 
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('ref', branchName);
+    const newUrl = `?${params.toString()}`;
+
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('ref', branchName);
-      router.push(`?${params.toString()}`);
-      router.refresh(); // Refresh server components with new ref
+      router.push(newUrl);
     });
+
+    // Then refresh after navigation completes
+    router.refresh();
   };
 
   const handleBranchCreated = () => {

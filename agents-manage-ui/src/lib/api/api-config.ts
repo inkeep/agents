@@ -68,7 +68,7 @@ async function makeApiRequestInternal<T>(
        }
      });
      const queryString = params.toString();
-     
+
      if (queryString) {
        // Check if URL already has query parameters
        const separator = url.includes('?') ? '&' : '?';

@@ -176,7 +176,7 @@ app.openapi(
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const keyData = await generateApiKey();
+    const keyData = await generateApiKey(tenantId, projectId);
 
     const { key, ...keyDataWithoutKey } = keyData;
     const insertData = {

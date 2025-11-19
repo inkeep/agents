@@ -32,6 +32,18 @@ export async function fetchBranches(
   );
 }
 
+export async function fetchBranchesWithAgent(
+  tenantId: string,
+  projectId: string,
+  agentId: string
+): Promise<ListResponse<Branch>> {
+  validateTenantId(tenantId);
+
+  return makeManagementApiRequest<ListResponse<Branch>>(
+    `tenants/${tenantId}/projects/${projectId}/branches/agents/${agentId}`
+  );
+}
+
 export async function fetchBranch(
   tenantId: string,
   projectId: string,

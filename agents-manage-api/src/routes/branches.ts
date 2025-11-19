@@ -2,7 +2,6 @@ import { createRoute } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
-  BranchProjectParamsSchema,
   BranchResponseSchema,
   CreateBranchRequestSchema,
   commonGetErrorResponses,
@@ -12,6 +11,9 @@ import {
   ErrorResponseSchema,
   getBranch,
   listBranches,
+  listBranchesForAgent,
+  TenantProjectAgentParamsSchema,
+  TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 
 import { createAppWithDb } from '../utils/apps';
@@ -28,7 +30,7 @@ app.openapi(
     operationId: 'list-branches',
     tags: ['Branches'],
     request: {
-      params: BranchProjectParamsSchema,
+      params: TenantProjectParamsSchema,
     },
     responses: {
       200: {
@@ -92,6 +94,39 @@ app.openapi(
   }
 );
 
+// List branches for an agent
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/agents/{agentId}',
+    summary: 'List Branches for Agent',
+    description: 'List all branches within a project that contain the agent',
+    operationId: 'list-branches-for-agent',
+    tags: ['Branches'],
+    request: {
+      params: TenantProjectAgentParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of branches retrieved successfully',
+        content: {
+          'application/json': {
+            schema: BranchListResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+
+    const branches = await listBranchesForAgent(db)({ tenantId, projectId, agentId });
+    return c.json({ data: branches });
+  }
+);
+
 // Create a new branch
 app.openapi(
   createRoute({
@@ -102,7 +137,7 @@ app.openapi(
     operationId: 'create-branch',
     tags: ['Branches'],
     request: {
-      params: BranchProjectParamsSchema,
+      params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {

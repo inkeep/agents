@@ -1,4 +1,4 @@
-import { Play, Settings } from 'lucide-react';
+import { ArrowLeftRight, Play, Settings } from 'lucide-react';
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -13,9 +13,17 @@ interface ToolbarProps {
   onSubmit: () => MaybePromise<boolean>;
   toggleSidePane: () => void;
   setShowPlayground: (show: boolean) => void;
+  setShowComparison?: (show: boolean) => void;
+  hasMultipleBranches?: boolean;
 }
 
-export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
+export function Toolbar({
+  onSubmit,
+  toggleSidePane,
+  setShowPlayground,
+  setShowComparison,
+  hasMultipleBranches = false,
+}: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -29,6 +37,17 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
     <Button {...commonProps} disabled={dirty} onClick={() => setShowPlayground(true)}>
       <Play className="size-4 text-muted-foreground" />
       Try it
+    </Button>
+  );
+
+  const CompareButton = hasMultipleBranches && setShowComparison && (
+    <Button
+      {...commonProps}
+      disabled={dirty}
+      onClick={() => setShowComparison(true)}
+    >
+      <ArrowLeftRight className="size-4 text-muted-foreground" />
+      Compare
     </Button>
   );
 
@@ -58,22 +77,39 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
     <div className="flex gap-2 flex-wrap justify-end content-start">
       <ShipModal buttonClassName={commonProps.className} />
       {dirty ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/**
-             * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
-             * don’t trigger pointer events in the browser
-             **/}
-            <div>{PreviewButton}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            {dirty
-              ? 'Please save your changes before trying the agent.'
-              : 'Please save the agent to try it.'}
-          </TooltipContent>
-        </Tooltip>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/**
+               * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
+               * don't trigger pointer events in the browser
+               **/}
+              <div>{PreviewButton}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {dirty
+                ? 'Please save your changes before trying the agent.'
+                : 'Please save the agent to try it.'}
+            </TooltipContent>
+          </Tooltip>
+          {CompareButton && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>{CompareButton}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {dirty
+                  ? 'Please save your changes before comparing branches.'
+                  : 'Please save the agent to compare branches.'}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </>
       ) : (
-        PreviewButton
+        <>
+          {PreviewButton}
+          {CompareButton}
+        </>
       )}
       <Button
         {...commonProps}

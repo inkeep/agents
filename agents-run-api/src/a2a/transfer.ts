@@ -1,4 +1,4 @@
-import { setActiveAgentForThread } from '@inkeep/agents-core';
+import { executeInBranch, type ResolvedRef, setActiveAgentForThread } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
@@ -11,11 +11,13 @@ export async function executeTransfer({
   threadId,
   projectId,
   targetSubAgentId,
+  ref,
 }: {
   tenantId: string;
   threadId: string;
   projectId: string;
   targetSubAgentId: string;
+  ref: ResolvedRef;
 }): Promise<{
   success: boolean;
   targetSubAgentId: string;
@@ -31,11 +33,22 @@ export async function executeTransfer({
   );
 
   try {
-    await setActiveAgentForThread(dbClient)({
-      scopes: { tenantId, projectId },
-      threadId,
-      subAgentId: targetSubAgentId,
-    });
+    await executeInBranch(
+      {
+        dbClient,
+        ref,
+        autoCommit: true,
+        commitMessage: 'Update active agent for thread',
+      },
+      async (db) => {
+        await setActiveAgentForThread(db)({
+          scopes: { tenantId, projectId },
+          threadId,
+          subAgentId: targetSubAgentId,
+        });
+      }
+    );
+
     logger.info(
       { targetAgent: targetSubAgentId, threadId },
       'Successfully updated active_sub_agent_id in database'

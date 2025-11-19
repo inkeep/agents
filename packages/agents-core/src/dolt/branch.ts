@@ -1,5 +1,6 @@
-import type { DatabaseClient } from '../db/client';
 import { sql } from 'drizzle-orm';
+import type { DatabaseClient } from '../db/client';
+import { doltHashOf } from './commit';
 
 export type branchScopes = {
   tenantId: string;
@@ -13,7 +14,10 @@ export const doltBranch =
   (db: DatabaseClient) =>
   async (params: { name: string; startPoint?: string }): Promise<void> => {
     if (params.startPoint) {
-      await db.execute(sql.raw(`CALL DOLT_BRANCH('${params.name}', '${params.startPoint}')`));
+      // Get the commit hash of the startPoint (branch, commit, or tag)
+      // Dolt requires a commit hash when creating a branch from a start point
+      const startPointHash = await doltHashOf(db)({ revision: params.startPoint });
+      await db.execute(sql.raw(`CALL DOLT_BRANCH('${params.name}', '${startPointHash}')`));
     } else {
       await db.execute(sql.raw(`CALL DOLT_BRANCH('${params.name}')`));
     }

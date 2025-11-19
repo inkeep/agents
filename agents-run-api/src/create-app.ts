@@ -1,9 +1,11 @@
 import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  branchScopedDbMiddleware,
   type CredentialStoreRegistry,
   type ExecutionContext,
   handleApiError,
+  refMiddleware,
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
@@ -12,6 +14,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
+import dbClient from './data/db/dbClient';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
@@ -183,6 +186,17 @@ function createExecutionHono(
       maxAge: 86400,
     })
   );
+
+  // Ref and branch scoped database middleware
+  app.use('/v1/chat', refMiddleware(dbClient, { apiType: 'run' }));
+  app.use('/api/*', refMiddleware(dbClient, { apiType: 'run' }));
+  app.use('/v1/mcp', refMiddleware(dbClient, { apiType: 'run' }));
+  app.use('/agents/*', refMiddleware(dbClient, { apiType: 'run' }));
+
+  // app.use('/v1/chat', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
+  // app.use('/api/*', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
+  // app.use('/v1/mcp', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
+  // app.use('/agents/*', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
 
   // Apply API key authentication to all routes except health and docs
   app.use('/tenants/*', apiKeyAuth());

@@ -1,6 +1,9 @@
 import {
+  type DatabaseClient,
   type ExecutionContext,
+  executeInBranch,
   getAgentById,
+  type ResolvedRef,
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
@@ -57,6 +60,8 @@ export const apiKeyAuth = () =>
   createMiddleware<{
     Variables: {
       executionContext: ExecutionContext;
+      resolvedRef: ResolvedRef;
+      db: DatabaseClient;
     };
   }>(async (c, next) => {
     if (c.req.method === 'OPTIONS') {
@@ -74,6 +79,7 @@ export const apiKeyAuth = () =>
     const host = fwdHost ?? c.req.header('host');
     const reqUrl = new URL(c.req.url);
 
+    const resolvedRef = c.get('resolvedRef');
     const baseUrl =
       proto && host
         ? `${proto}://${host}`
@@ -98,15 +104,22 @@ export const apiKeyAuth = () =>
 
         // Try regular API key
         try {
-          executionContext = await extractContextFromApiKey(apiKey, baseUrl);
+          executionContext = await extractContextFromApiKey(apiKey, dbClient, resolvedRef, baseUrl);
           if (subAgentId) {
             executionContext.subAgentId = subAgentId;
           }
+          executionContext.ref = c.get('resolvedRef');
           c.set('executionContext', executionContext);
         } catch {
           // Try team agent token
           try {
-            executionContext = await extractContextFromTeamAgentToken(apiKey, baseUrl, subAgentId);
+            executionContext = await extractContextFromTeamAgentToken(
+              apiKey,
+              resolvedRef,
+              baseUrl,
+              subAgentId
+            );
+            executionContext.ref = c.get('resolvedRef');
             c.set('executionContext', executionContext);
           } catch {
             // Fall through to default context
@@ -118,6 +131,7 @@ export const apiKeyAuth = () =>
               apiKeyId: 'test-key',
               baseUrl: baseUrl,
               subAgentId: subAgentId,
+              ref: resolvedRef,
             });
             c.set('executionContext', executionContext);
             logger.info(
@@ -135,6 +149,7 @@ export const apiKeyAuth = () =>
           apiKeyId: 'test-key',
           baseUrl: baseUrl,
           subAgentId: subAgentId,
+          ref: resolvedRef,
         });
         c.set('executionContext', executionContext);
         logger.info(
@@ -142,6 +157,7 @@ export const apiKeyAuth = () =>
           'Development/test environment - no API key provided, using default context'
         );
       }
+
       await next();
       return;
     }
@@ -179,6 +195,7 @@ export const apiKeyAuth = () =>
           apiKeyId: 'bypass',
           baseUrl: baseUrl,
           subAgentId: subAgentId,
+          ref: c.get('resolvedRef'),
         });
 
         c.set('executionContext', executionContext);
@@ -190,17 +207,22 @@ export const apiKeyAuth = () =>
       }
       if (apiKey) {
         try {
-          const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
+          const executionContext = await extractContextFromApiKey(
+            apiKey,
+            dbClient,
+            resolvedRef,
+            baseUrl
+          );
           if (subAgentId) {
             executionContext.subAgentId = subAgentId;
           }
-
           c.set('executionContext', executionContext);
 
           logger.info({}, 'API key authenticated successfully');
         } catch {
           const executionContext = await extractContextFromTeamAgentToken(
             apiKey,
+            resolvedRef,
             baseUrl,
             subAgentId
           );
@@ -222,7 +244,12 @@ export const apiKeyAuth = () =>
     }
 
     try {
-      const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
+      const executionContext = await extractContextFromApiKey(
+        apiKey,
+        dbClient,
+        resolvedRef,
+        baseUrl
+      );
       if (subAgentId) {
         executionContext.subAgentId = subAgentId;
       }
@@ -244,11 +271,12 @@ export const apiKeyAuth = () =>
       try {
         const executionContext = await extractContextFromTeamAgentToken(
           apiKey,
+          resolvedRef,
           baseUrl,
           subAgentId
         );
-        c.set('executionContext', executionContext);
 
+        c.set('executionContext', executionContext);
         await next();
       } catch (error) {
         if (error instanceof HTTPException) {
@@ -263,8 +291,15 @@ export const apiKeyAuth = () =>
     }
   });
 
-export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string) => {
-  const apiKeyRecord = await validateAndGetApiKey(apiKey, dbClient);
+export const extractContextFromApiKey = async (
+  apiKey: string,
+  dbClient: DatabaseClient,
+  ref: ResolvedRef,
+  baseUrl?: string
+) => {
+  const apiKeyRecord = await executeInBranch({ dbClient, ref }, async (db) => {
+    return await validateAndGetApiKey(apiKey, db);
+  });
 
   if (!apiKeyRecord) {
     throw new HTTPException(401, {
@@ -272,12 +307,14 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     });
   }
 
-  const agent = await getAgentById(dbClient)({
-    scopes: {
-      tenantId: apiKeyRecord.tenantId,
-      projectId: apiKeyRecord.projectId,
-      agentId: apiKeyRecord.agentId,
-    },
+  const agent = await executeInBranch({ dbClient, ref }, async (db) => {
+    return await getAgentById(db)({
+      scopes: {
+        tenantId: apiKeyRecord.tenantId,
+        projectId: apiKeyRecord.projectId,
+        agentId: apiKeyRecord.agentId,
+      },
+    });
   });
 
   if (!agent) {
@@ -303,6 +340,7 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
     apiKeyId: apiKeyRecord.id,
     baseUrl: baseUrl,
     subAgentId: agent.defaultSubAgentId || undefined,
+    ref: ref,
   });
 };
 
@@ -312,6 +350,7 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
  */
 export const extractContextFromTeamAgentToken = async (
   token: string,
+  ref: ResolvedRef,
   baseUrl?: string,
   expectedSubAgentId?: string
 ) => {
@@ -364,6 +403,7 @@ export const extractContextFromTeamAgentToken = async (
       teamDelegation: true,
       originAgentId: payload.sub,
     },
+    ref: ref,
   });
 };
 

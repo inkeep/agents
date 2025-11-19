@@ -1,4 +1,4 @@
-import { generateId } from '@inkeep/agents-core';
+import { doltBranch, doltHashOf, generateId } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
@@ -43,11 +43,6 @@ describe('Ref Middleware - Integration Tests', () => {
     return projectId;
   };
 
-  // Helper to create a branch directly using Dolt
-  const createDoltBranch = async (branchName: string) => {
-    await dbClient.execute(sql.raw(`CALL DOLT_BRANCH('${branchName}')`));
-  };
-
   // Helper to create a tag directly using Dolt
   const createDoltTag = async (tagName: string, ref: string = 'HEAD') => {
     createdTags.add(tagName);
@@ -56,8 +51,8 @@ describe('Ref Middleware - Integration Tests', () => {
 
   // Helper to get commit hash
   const getCommitHash = async (ref: string = 'HEAD') => {
-    const result = await dbClient.execute(sql.raw(`SELECT DOLT_HASHOF('${ref}') as hash`));
-    return result.rows[0]?.hash as string;
+    const result = await doltHashOf(dbClient)({ revision: ref });
+    return result;
   };
 
   describe('refMiddleware - Tenant Main Branch', () => {
@@ -66,7 +61,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const projectId = await createTestProject(tenantId);
 
       // First request should create tenant_main
-      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       expect(res.status).toBe(200);
 
       // Verify tenant_main was created
@@ -83,7 +78,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main manually BEFORE making any API requests
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Now create project (this will go through refMiddleware and should reuse the existing branch)
       const projectId = await createTestProject(tenantId);
@@ -92,7 +87,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const hashBefore = await getCommitHash(tenantMain);
 
       // Make another request - hash should stay the same (just reading, not writing)
-      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       expect(res.status).toBe(200);
 
       const hashAfter = await getCommitHash(tenantMain);
@@ -104,7 +99,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const projectId = await createTestProject(tenantId);
 
       // Make request without ref param
-      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
       expect(res.status).toBe(200);
 
       // The middleware should have used tenant_main (no errors means it worked)
@@ -118,12 +113,11 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch
       const customBranch = `${tenantId}_${projectId}_custom`;
-      await createDoltBranch(customBranch);
+      await doltBranch(dbClient)({ name: customBranch, startPoint: `${tenantId}_main` });
 
       // Make request with custom ref
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${customBranch}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=custom`);
+
       expect(res.status).toBe(200);
     });
 
@@ -132,19 +126,17 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main first (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
+
+      // Now create project
+      const projectId = await createTestProject(tenantId);
 
       // Create a tag
       const tagName = 'v1.0.0';
       await createDoltTag(tagName, tenantMain);
 
-      // Now create project
-      const projectId = await createTestProject(tenantId);
-
       // Make request with tag ref
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${tagName}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${tagName}`);
       expect(res.status).toBe(200);
     });
 
@@ -153,7 +145,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Create project (this will create a commit)
       const projectId = await createTestProject(tenantId);
@@ -162,9 +154,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const commitHash = await getCommitHash(tenantMain);
 
       // Make request with commit hash
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${commitHash}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${commitHash}`);
       expect(res.status).toBe(200);
     });
 
@@ -174,7 +164,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Make request with non-existent ref
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=non-existent-ref`
+        `/tenants/${tenantId}/projects/${projectId}?ref=non-existent-ref`
       );
 
       expect(res.status).toBe(404);
@@ -192,16 +182,13 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch to use as ref
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await createDoltBranch(customBranch);
+      await doltBranch(dbClient)({ name: customBranch, startPoint: `${tenantId}_main` });
 
       // POST should be allowed on a branch
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${customBranch}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ name: 'new-branch' }),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=writeable`, {
+        method: 'POST',
+        body: JSON.stringify({ name: 'new-branch' }),
+      });
 
       // Should succeed or get a business logic error (not middleware error)
       expect(res.status).not.toBe(400);
@@ -214,11 +201,11 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch to use as ref
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await createDoltBranch(customBranch);
+      await doltBranch(dbClient)({ name: customBranch, startPoint: `${tenantId}_main` });
 
       // Create a branch to delete
       const res1 = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${customBranch}`,
+        `/tenants/${tenantId}/projects/${projectId}/branches?ref=writeable`,
         {
           method: 'POST',
           body: JSON.stringify({ name: 'temp-branch' }),
@@ -243,16 +230,13 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch to use as ref
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await createDoltBranch(customBranch);
+      await doltBranch(dbClient)({ name: customBranch, startPoint: `${tenantId}_main` });
 
       // PATCH should be allowed on a branch (even if route doesn't exist)
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}?ref=${customBranch}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ name: 'Updated Name' }),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=writeable`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'Updated Name' }),
+      });
 
       // Should not get middleware error (might get 404 if route doesn't exist)
       expect(res.status).not.toBe(400);
@@ -270,7 +254,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main and a tag (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
       const tagName = 'v1.0.0';
       await createDoltTag(tagName, tenantMain);
 
@@ -278,13 +262,10 @@ describe('Ref Middleware - Integration Tests', () => {
       const projectId = await createTestProject(tenantId);
 
       // POST should be blocked on a tag
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${tagName}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ name: 'new-branch' }),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${tagName}`, {
+        method: 'POST',
+        body: JSON.stringify({ name: 'new-branch' }),
+      });
 
       expect(res.status).toBe(400);
       const body = await res.json();
@@ -299,20 +280,17 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main and a tag (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
-      const tagName = 'v1.0.0';
-      await createDoltTag(tagName, tenantMain);
-
+      await doltBranch(dbClient)({ name: tenantMain });
       // Now create project
       const projectId = await createTestProject(tenantId);
 
+      const tagName = 'v1.0.0';
+      await createDoltTag(tagName, tenantMain);
+
       // DELETE should be blocked on a tag
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches/some-branch?ref=${tagName}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${tagName}`, {
+        method: 'DELETE',
+      });
 
       expect(res.status).toBe(400);
       const body = await res.json();
@@ -324,17 +302,16 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main and a tag (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
-      const tagName = 'v1.0.0';
-      await createDoltTag(tagName, tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Now create project
       const projectId = await createTestProject(tenantId);
 
+      const tagName = 'v1.0.0';
+      await createDoltTag(tagName, tenantMain);
+
       // GET should be allowed on a tag
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${tagName}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${tagName}`);
 
       expect(res.status).toBe(200);
     });
@@ -346,7 +323,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Create project (this will create a commit)
       const projectId = await createTestProject(tenantId);
@@ -356,7 +333,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // POST should be blocked on a commit
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${commitHash}`,
+        `/tenants/${tenantId}/projects/${projectId}?ref=${commitHash}`,
         {
           method: 'POST',
           body: JSON.stringify({ name: 'new-branch' }),
@@ -376,7 +353,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Create project (this will create a commit)
       const projectId = await createTestProject(tenantId);
@@ -403,7 +380,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Create project (this will create a commit)
       const projectId = await createTestProject(tenantId);
@@ -412,9 +389,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const commitHash = await getCommitHash(tenantMain);
 
       // GET should be allowed on a commit
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${commitHash}`
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${commitHash}`);
 
       expect(res.status).toBe(200);
     });
@@ -426,7 +401,7 @@ describe('Ref Middleware - Integration Tests', () => {
       const projectId = await createTestProject(tenantId);
 
       // Without explicit ref, should default to tenant main (which is a branch)
-      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`, {
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`, {
         method: 'POST',
         body: JSON.stringify({ name: 'new-branch' }),
       });
@@ -444,7 +419,8 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create tenant main and a tag (BEFORE any API requests)
       const tenantMain = `${tenantId}_main`;
-      await createDoltBranch(tenantMain);
+
+      await doltBranch(dbClient)({ name: tenantMain });
       const tagName = 'v1.0.0';
       await createDoltTag(tagName, tenantMain);
 
@@ -452,12 +428,9 @@ describe('Ref Middleware - Integration Tests', () => {
       const projectId = await createTestProject(tenantId);
 
       // OPTIONS should be allowed on tags
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/branches?ref=${tagName}`,
-        {
-          method: 'OPTIONS',
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=${tagName}`, {
+        method: 'OPTIONS',
+      });
 
       // Should not get write protection error
       expect(res.status).not.toBe(400);

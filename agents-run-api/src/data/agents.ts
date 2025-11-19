@@ -1,8 +1,10 @@
 import {
   type CredentialStoreRegistry,
   type ExecutionContext,
+  executeInBranch,
   getAgentWithDefaultSubAgent,
   getSubAgentById,
+  type ResolvedRef,
   type SubAgentSelect,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
@@ -118,6 +120,7 @@ async function hydrateAgent({
   agentId,
   baseUrl,
   apiKey,
+  ref,
   credentialStoreRegistry,
   sandboxConfig,
   userId,
@@ -126,6 +129,7 @@ async function hydrateAgent({
   agentId: string;
   baseUrl: string;
   apiKey?: string;
+  ref: ResolvedRef;
   credentialStoreRegistry?: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
   userId?: string;
@@ -133,6 +137,7 @@ async function hydrateAgent({
   try {
     // Create task handler for the agent
     const taskHandlerConfig = await createTaskHandlerConfig({
+      ref,
       tenantId: dbAgent.tenantId,
       projectId: dbAgent.projectId,
       agentId: agentId,
@@ -168,17 +173,20 @@ async function hydrateAgent({
 
 export async function getRegisteredAgent(params: {
   executionContext: ExecutionContext;
+  ref: ResolvedRef;
   credentialStoreRegistry?: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
 }): Promise<RegisteredAgent | null> {
-  const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
+  const { executionContext, ref, credentialStoreRegistry, sandboxConfig } = params;
   const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
   const userId = getUserIdFromContext(executionContext);
   let dbAgent: SubAgentSelect;
 
   if (!subAgentId) {
-    const agent = await getAgentWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
+    const agent = await executeInBranch({ dbClient, ref }, async (db) => {
+      return await getAgentWithDefaultSubAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
     });
     logger.info({ agent }, 'agent with default sub agent');
     if (!agent || !agent.defaultSubAgent) {
@@ -187,9 +195,11 @@ export async function getRegisteredAgent(params: {
 
     dbAgent = agent.defaultSubAgent;
   } else {
-    const response = await getSubAgentById(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: subAgentId,
+    const response = await executeInBranch({ dbClient, ref }, async (db) => {
+      return await getSubAgentById(db)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: subAgentId,
+      });
     });
     if (!response) {
       return null;
@@ -206,6 +216,7 @@ export async function getRegisteredAgent(params: {
     dbAgent,
     agentId,
     baseUrl: agentFrameworkBaseUrl,
+    ref,
     credentialStoreRegistry,
     apiKey,
     sandboxConfig,

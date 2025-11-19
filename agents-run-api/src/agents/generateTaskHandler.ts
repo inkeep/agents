@@ -2,6 +2,7 @@ import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
   dbResultToMcpTool,
+  executeInBranch,
   generateId,
   getAgentById,
   getAgentWithDefaultSubAgent,
@@ -14,6 +15,7 @@ import {
   getToolsForAgent,
   type McpTool,
   type Part,
+  type ResolvedRef,
   type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
@@ -33,6 +35,7 @@ const logger = getLogger('generateTaskHandler');
  * Serializable configuration for creating task handlers
  */
 export interface TaskHandlerConfig {
+  ref: ResolvedRef;
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -78,96 +81,124 @@ export const createTaskHandler = (
         dataComponents,
         artifactComponents,
       ] = await Promise.all([
-        getRelatedAgentsForAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
-          },
-          subAgentId: config.subAgentId,
-        }),
-        getExternalAgentsForSubAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getRelatedAgentsForAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+            },
             subAgentId: config.subAgentId,
-          },
+          });
         }),
-        getTeamAgentsForSubAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
-            subAgentId: config.subAgentId,
-          },
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getExternalAgentsForSubAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+              subAgentId: config.subAgentId,
+            },
+          });
         }),
-        getToolsForAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
-            subAgentId: config.subAgentId,
-          },
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getTeamAgentsForSubAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+              subAgentId: config.subAgentId,
+            },
+          });
         }),
-        getDataComponentsForAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
-            subAgentId: config.subAgentId,
-          },
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getToolsForAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+              subAgentId: config.subAgentId,
+            },
+          });
         }),
-        getArtifactComponentsForAgent(dbClient)({
-          scopes: {
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
-            subAgentId: config.subAgentId,
-          },
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getDataComponentsForAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+              subAgentId: config.subAgentId,
+            },
+          });
+        }),
+        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+          return await getArtifactComponentsForAgent(db)({
+            scopes: {
+              tenantId: config.tenantId,
+              projectId: config.projectId,
+              agentId: config.agentId,
+              subAgentId: config.subAgentId,
+            },
+          });
         }),
       ]);
 
       const enhancedInternalRelations = await Promise.all(
         internalRelations.data.map(async (relation) => {
           try {
-            const relatedAgent = await getSubAgentById(dbClient)({
-              scopes: {
-                tenantId: config.tenantId,
-                projectId: config.projectId,
-                agentId: config.agentId,
-              },
-              subAgentId: relation.id,
-            });
+            const relatedAgent = await executeInBranch(
+              { dbClient, ref: config.ref },
+              async (db) => {
+                return await getSubAgentById(db)({
+                  scopes: {
+                    tenantId: config.tenantId,
+                    projectId: config.projectId,
+                    agentId: config.agentId,
+                  },
+                  subAgentId: relation.id,
+                });
+              }
+            );
             if (relatedAgent) {
-              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: config.agentId,
-                },
-                subAgentId: relation.id,
-              });
-
-              const relatedAgentExternalAgentRelations = await getExternalAgentsForSubAgent(
-                dbClient
-              )({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: config.agentId,
-                  subAgentId: relation.id,
-                },
-              });
-              const relatedAgentTeamAgentRelations = await getTeamAgentsForSubAgent(dbClient)({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: config.agentId,
-                  subAgentId: relation.id,
-                },
-              });
-
+              const relatedAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getRelatedAgentsForAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: config.agentId,
+                    },
+                    subAgentId: relation.id,
+                  });
+                }
+              );
+              const relatedAgentExternalAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getExternalAgentsForSubAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: config.agentId,
+                      subAgentId: relation.id,
+                    },
+                  });
+                }
+              );
+              const relatedAgentTeamAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getTeamAgentsForSubAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: config.agentId,
+                      subAgentId: relation.id,
+                    },
+                  });
+                }
+              );
               const enhancedDescription = generateDescriptionWithRelationData(
                 relation.description || '',
                 relatedAgentRelations.data,
@@ -187,48 +218,64 @@ export const createTaskHandler = (
         teamRelations.data.map(async (relation) => {
           try {
             // Get the default sub agent for the team agent
-            const teamAgentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
-              scopes: {
-                tenantId: config.tenantId,
-                projectId: config.projectId,
-                agentId: relation.targetAgentId,
-              },
-            });
-
+            const teamAgentWithDefault = await executeInBranch(
+              { dbClient, ref: config.ref },
+              async (db) => {
+                return await getAgentWithDefaultSubAgent(db)({
+                  scopes: {
+                    tenantId: config.tenantId,
+                    projectId: config.projectId,
+                    agentId: relation.targetAgentId,
+                  },
+                });
+              }
+            );
             if (teamAgentWithDefault?.defaultSubAgent) {
               const defaultSubAgent = teamAgentWithDefault.defaultSubAgent;
 
               // Get related agents for the default sub agent
-              const relatedAgentRelations = await getRelatedAgentsForAgent(dbClient)({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: relation.targetAgentId,
-                },
-                subAgentId: defaultSubAgent.id,
-              });
-
+              const relatedAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getRelatedAgentsForAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: relation.targetAgentId,
+                    },
+                    subAgentId: defaultSubAgent.id,
+                  });
+                }
+              );
               // Get external agents for the default sub agent
-              const relatedAgentExternalAgentRelations = await getExternalAgentsForSubAgent(
-                dbClient
-              )({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: relation.targetAgentId,
-                  subAgentId: defaultSubAgent.id,
-                },
-              });
+              const relatedAgentExternalAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getExternalAgentsForSubAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: relation.targetAgentId,
+                      subAgentId: defaultSubAgent.id,
+                    },
+                  });
+                }
+              );
 
               // Get team agents for the default sub agent
-              const relatedAgentTeamAgentRelations = await getTeamAgentsForSubAgent(dbClient)({
-                scopes: {
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: relation.targetAgentId,
-                  subAgentId: defaultSubAgent.id,
-                },
-              });
+              const relatedAgentTeamAgentRelations = await executeInBranch(
+                { dbClient, ref: config.ref },
+                async (db) => {
+                  return await getTeamAgentsForSubAgent(db)({
+                    scopes: {
+                      tenantId: config.tenantId,
+                      projectId: config.projectId,
+                      agentId: relation.targetAgentId,
+                      subAgentId: defaultSubAgent.id,
+                    },
+                  });
+                }
+              );
 
               const enhancedDescription = generateDescriptionWithRelationData(
                 teamAgentWithDefault.description || '',
@@ -287,6 +334,7 @@ export const createTaskHandler = (
           id: config.subAgentId,
           tenantId: config.tenantId,
           projectId: config.projectId,
+          ref: config.ref,
           agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
@@ -297,6 +345,7 @@ export const createTaskHandler = (
           models: models || undefined,
           stopWhen: stopWhen || undefined,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
+            ref: config.ref,
             id: relation.id,
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -316,14 +365,19 @@ export const createTaskHandler = (
               .map(async (relation) => {
                 // For internal agents, try to fetch tools and relations
                 // For external/team agents, we'll only get tools (if available)
-                const targetToolsForAgent = await getToolsForAgent(dbClient)({
-                  scopes: {
-                    tenantId: config.tenantId,
-                    projectId: config.projectId,
-                    agentId: config.agentId,
-                    subAgentId: relation.id,
-                  },
-                });
+                const targetToolsForAgent = await executeInBranch(
+                  { dbClient, ref: config.ref },
+                  async (db) => {
+                    return await getToolsForAgent(db)({
+                      scopes: {
+                        tenantId: config.tenantId,
+                        projectId: config.projectId,
+                        agentId: config.agentId,
+                        subAgentId: relation.id,
+                      },
+                    });
+                  }
+                );
 
                 // Try to get transfer and delegate relations for internal agents only
                 let targetTransferRelations: any = { data: [] };
@@ -332,21 +386,25 @@ export const createTaskHandler = (
                 try {
                   // Only attempt to get relations for internal agents (same tenant/project/agent)
                   const [transferRel, delegateRel] = await Promise.all([
-                    getRelatedAgentsForAgent(dbClient)({
-                      scopes: {
-                        tenantId: config.tenantId,
-                        projectId: config.projectId,
-                        agentId: config.agentId,
-                      },
-                      subAgentId: relation.id,
-                    }),
-                    getExternalAgentsForSubAgent(dbClient)({
-                      scopes: {
-                        tenantId: config.tenantId,
-                        projectId: config.projectId,
-                        agentId: config.agentId,
+                    executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+                      return await getRelatedAgentsForAgent(db)({
+                        scopes: {
+                          tenantId: config.tenantId,
+                          projectId: config.projectId,
+                          agentId: config.agentId,
+                        },
                         subAgentId: relation.id,
-                      },
+                      });
+                    }),
+                    executeInBranch({ dbClient, ref: config.ref }, async (db) => {
+                      return await getExternalAgentsForSubAgent(db)({
+                        scopes: {
+                          tenantId: config.tenantId,
+                          projectId: config.projectId,
+                          agentId: config.agentId,
+                          subAgentId: relation.id,
+                        },
+                      });
                     }),
                   ]);
                   targetTransferRelations = transferRel;
@@ -389,6 +447,7 @@ export const createTaskHandler = (
                 const targetTransferRelationsConfig = targetTransferRelations.data
                   .filter((rel: any) => rel.relationType === 'transfer')
                   .map((rel: any) => ({
+                    ref: config.ref,
                     baseUrl: config.baseUrl,
                     apiKey: config.apiKey,
                     id: rel.id,
@@ -409,6 +468,7 @@ export const createTaskHandler = (
                   (rel: any) => ({
                     type: 'external' as const,
                     config: {
+                      ref: config.ref,
                       id: rel.externalAgent.id,
                       name: rel.externalAgent.name,
                       description: rel.externalAgent.description || '',
@@ -422,6 +482,7 @@ export const createTaskHandler = (
                 );
 
                 return {
+                  ref: config.ref,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   id: relation.id,
@@ -451,6 +512,7 @@ export const createTaskHandler = (
                   agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
+                  ref: config.ref,
                   name: relation.name,
                   description: relation.description || undefined,
                   prompt: '',
@@ -463,6 +525,7 @@ export const createTaskHandler = (
             ...externalRelations.data.map((relation) => ({
               type: 'external' as const,
               config: {
+                ref: config.ref,
                 id: relation.externalAgent.id,
                 name: relation.externalAgent.name,
                 description: relation.externalAgent.description || '',
@@ -476,6 +539,7 @@ export const createTaskHandler = (
             ...enhancedTeamRelations.map((relation) => ({
               type: 'team' as const,
               config: {
+                ref: config.ref,
                 id: relation.targetAgent.id,
                 name: relation.targetAgent.name,
                 description: relation.targetAgent.description || '',
@@ -493,6 +557,7 @@ export const createTaskHandler = (
           conversationHistoryConfig: config.conversationHistoryConfig,
           sandboxConfig: config.sandboxConfig,
         },
+        config.ref,
         credentialStoreRegistry
       );
 
@@ -728,6 +793,7 @@ export const deserializeTaskHandlerConfig = (configJson: string): TaskHandlerCon
  * Creates a task handler configuration from agent data
  */
 export const createTaskHandlerConfig = async (params: {
+  ref: ResolvedRef;
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -737,31 +803,36 @@ export const createTaskHandlerConfig = async (params: {
   sandboxConfig?: SandboxConfig;
   userId?: string;
 }): Promise<TaskHandlerConfig> => {
-  const subAgent = await getSubAgentById(dbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
-    subAgentId: params.subAgentId,
+  const subAgent = await executeInBranch({ dbClient, ref: params.ref }, async (db) => {
+    return await getSubAgentById(db)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+      subAgentId: params.subAgentId,
+    });
   });
 
-  const agent = await getAgentById(dbClient)({
-    scopes: {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-    },
+  const agent = await executeInBranch({ dbClient, ref: params.ref }, async (db) => {
+    return await getAgentById(db)({
+      scopes: {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+      },
+    });
   });
 
   if (!subAgent) {
     throw new Error(`Agent not found: ${params.subAgentId}`);
   }
 
-  const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
+  const effectiveModels = await resolveModelConfig(params.ref, params.agentId, subAgent);
   const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig;
 
   return {
+    ref: params.ref,
     tenantId: params.tenantId,
     projectId: params.projectId,
     agentId: params.agentId,

@@ -41,17 +41,24 @@ export const getAgentById =
 
 export const getAgentWithDefaultSubAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    const result = await db.query.agents.findFirst({
-      where: and(
-        eq(agents.tenantId, params.scopes.tenantId),
-        eq(agents.projectId, params.scopes.projectId),
-        eq(agents.id, params.scopes.agentId)
-      ),
-      with: {
-        defaultSubAgent: true,
-      },
-    });
-    return result ?? null;
+    const result = await db
+      .select()
+      .from(agents)
+      .innerJoin(subAgents, eq(agents.defaultSubAgentId, subAgents.id))
+      .where(
+        and(
+          eq(agents.tenantId, params.scopes.tenantId),
+          eq(agents.projectId, params.scopes.projectId),
+          eq(agents.id, params.scopes.agentId)
+        )
+      )
+      .limit(1);
+    const agent = result[0]?.agent ?? null;
+    const defaultSubAgent = result[0]?.sub_agents ?? null;
+    if (!agent || !defaultSubAgent) {
+      return null;
+    }
+    return { ...agent, defaultSubAgent };
   };
 
 export const listAgents =

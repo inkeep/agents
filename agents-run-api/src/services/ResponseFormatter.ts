@@ -1,4 +1,4 @@
-import type { MessageContent } from '@inkeep/agents-core';
+import type { MessageContent, ResolvedRef } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
@@ -13,9 +13,11 @@ const logger = getLogger('ResponseFormatter');
 export class ResponseFormatter {
   private artifactParser: ArtifactParser;
   private subAgentId?: string;
+  private ref: ResolvedRef;
 
   constructor(
     tenantId: string,
+    ref: ResolvedRef,
     artifactParserOptions?: {
       sessionId?: string;
       taskId?: string;
@@ -27,6 +29,7 @@ export class ResponseFormatter {
     }
   ) {
     this.subAgentId = artifactParserOptions?.subAgentId;
+    this.ref = ref;
 
     if (artifactParserOptions?.streamRequestId) {
       const sessionParser = agentSessionManager.getArtifactParser(
@@ -51,7 +54,7 @@ export class ResponseFormatter {
       } catch (_error) {}
     }
 
-    this.artifactParser = new ArtifactParser(tenantId, {
+    this.artifactParser = new ArtifactParser(tenantId, this.ref, {
       ...artifactParserOptions,
       artifactService: sharedArtifactService, // Use shared ArtifactService if available
     });

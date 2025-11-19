@@ -5,9 +5,11 @@ import type { CredentialStoreRegistry } from '../credential-stores/CredentialSto
 import { getAgentWithDefaultSubAgent } from '../data-access/agents';
 import { getContextConfigById } from '../data-access/contextConfigs';
 import type { DatabaseClient } from '../db/client';
+import { executeInBranch } from '../dolt/branch-scoped-execution';
 import type { ContextConfigSelect } from '../types/entities';
 import { createApiError } from '../utils/error';
 import { getRequestExecutionContext } from '../utils/execution';
+
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('context-validation');
@@ -290,10 +292,11 @@ export async function validateHeaders({
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ContextValidationResult> {
   try {
+    logger.debug({ tenantId, projectId, agentId }, 'Validating headers');
     const agent = await getAgentWithDefaultSubAgent(dbClient)({
       scopes: { tenantId, projectId, agentId: agentId },
     });
-
+    logger.debug({ agent }, 'Agent found');
     if (!agent?.contextConfigId) {
       logger.debug({ agentId }, 'No context config found for agent, skipping validation');
       return {
@@ -403,7 +406,7 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
   return async (c: Context, next: Next) => {
     try {
       const executionContext = getRequestExecutionContext(c);
-      let { tenantId, projectId, agentId } = executionContext;
+      let { tenantId, projectId, agentId, ref } = executionContext;
       if (!tenantId || !projectId || !agentId) {
         tenantId = c.req.param('tenantId');
         projectId = c.req.param('projectId');
@@ -427,14 +430,16 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
         headers,
       } as ParsedHttpRequest;
 
-      const validationResult = await validateHeaders({
-        tenantId,
-        projectId,
-        agentId,
-        conversationId,
-        parsedRequest,
-        dbClient,
-        credentialStores,
+      const validationResult = await executeInBranch({ dbClient, ref }, async (db) => {
+        return await validateHeaders({
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          parsedRequest,
+          dbClient: db,
+          credentialStores,
+        });
       });
 
       if (!validationResult.valid) {

@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
 // Mock the database client
+const mockDbClient = 'mock-db-client';
 vi.mock('../../data/db/dbClient', () => ({
-  default: 'mock-db-client',
+  default: mockDbClient,
 }));
 
 // Mock the agents-core functions - use importOriginal to preserve existing mocks
@@ -57,7 +58,7 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -80,7 +81,7 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -99,7 +100,7 @@ describe('resolveModelConfig', () => {
         },
       } as SubAgentSelect;
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -130,7 +131,7 @@ describe('resolveModelConfig', () => {
       const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -172,7 +173,7 @@ describe('resolveModelConfig', () => {
       const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -208,7 +209,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-3.5-turbo' },
@@ -253,7 +254,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -286,7 +287,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
@@ -317,7 +318,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
@@ -344,7 +345,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -365,7 +366,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      await expect(resolveModelConfig(mockAgentId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
@@ -394,7 +395,7 @@ describe('resolveModelConfig', () => {
       const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
       mockGetAgentById.mockReturnValue(mockAgentFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -429,7 +430,7 @@ describe('resolveModelConfig', () => {
       mockGetAgentById.mockReturnValue(mockAgentFn);
       mockGetProject.mockReturnValue(mockProjectFn);
 
-      const result = await resolveModelConfig(mockAgentId, agent);
+      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
 
       expect(result).toEqual({
         base: { model: 'base-model' },

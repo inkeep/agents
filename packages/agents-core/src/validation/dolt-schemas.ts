@@ -57,18 +57,9 @@ export const BranchNameParamsSchema = z
   })
   .openapi('BranchNameParams');
 
-// Path parameters for listing branches
-export const BranchProjectParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({ param: { name: 'tenantId', in: 'path' } }),
-    projectId: z.string().openapi({ param: { name: 'projectId', in: 'path' } }),
-  })
-  .openapi('BranchProjectParams');
-
 // Export types
 export type CreateBranchRequest = z.infer<typeof CreateBranchRequestSchema>;
 export type BranchInfo = z.infer<typeof BranchInfoSchema>;
 export type BranchResponse = z.infer<typeof BranchResponseSchema>;
 export type BranchListResponse = z.infer<typeof BranchListResponseSchema>;
 export type BranchNameParams = z.infer<typeof BranchNameParamsSchema>;
-export type BranchProjectParams = z.infer<typeof BranchProjectParamsSchema>;

@@ -61,6 +61,7 @@ describe('A2A Handlers', () => {
     // Mock context with proper get/set methods
     const contextData = new Map();
     contextData.set('executionContext', mockExecutionContext);
+    contextData.set('db', {}); // Mock dbClient
 
     mockContext = {
       req: {

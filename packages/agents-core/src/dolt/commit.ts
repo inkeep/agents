@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { doltListBranches } from './branch';
 /**
  * Stage all changes for commit
  * params: { tables?: string[] }
@@ -129,8 +130,42 @@ export const doltStatus =
 export const doltHashOf =
   (db: DatabaseClient) =>
   async (params: { revision: string }): Promise<string> => {
+    // If it's already a commit hash (base32 encoding: 0-9 and a-v, 32 chars), return it directly
+    if (/^[0-9a-v]{32}$/.test(params.revision)) {
+      return params.revision;
+    }
+
+    // Check if the revision is a branch name
+    const branches = await doltListBranches(db)();
+    const isBranch = branches.some((b) => b.name === params.revision);
+
+    if (isBranch) {
+      // For branches, use DOLT_LOG to get the HEAD commit hash
+      const logResult = await db.execute(
+        sql.raw(`SELECT commit_hash FROM DOLT_LOG('${params.revision}') LIMIT 1`)
+      );
+      const commitHash = logResult.rows[0]?.commit_hash as string;
+      if (!commitHash) {
+        throw new Error(`Could not find commit hash for branch '${params.revision}'`);
+      }
+      return commitHash;
+    }
+
+    // Check if the revision is a tag name
+    const tags = await doltListTags(db)();
+    const tag = tags.find((t) => t.tag_name === params.revision);
+    if (tag) {
+      // For tags, return the tag's commit hash directly
+      return tag.tag_hash;
+    }
+
+    // For other revisions (commits, etc.), use DOLT_HASHOF
     const result = await db.execute(sql.raw(`SELECT DOLT_HASHOF('${params.revision}') as hash`));
-    return result.rows[0]?.hash as string;
+    const hash = result.rows[0]?.hash as string;
+    if (!hash) {
+      throw new Error(`Could not find commit hash for revision '${params.revision}'`);
+    }
+    return hash;
   };
 
 /**

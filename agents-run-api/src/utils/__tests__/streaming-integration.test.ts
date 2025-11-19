@@ -69,13 +69,19 @@ describe('Streaming Integration Tests', () => {
     (ArtifactParser as any).mockReset();
     (ArtifactParser as any).mockImplementation(() => mockArtifactParser);
 
-    parser = new IncrementalStreamParser(mockStreamHelper, 'test-tenant', 'test-context', {
-      sessionId: 'test-session',
-      taskId: 'test-task',
-      projectId: 'test-project',
-      subAgentId: 'test-agent',
-      streamRequestId: 'test-stream-request',
-    });
+    parser = new IncrementalStreamParser(
+      mockStreamHelper,
+      'test-tenant',
+      'test-context',
+      {} as any,
+      {
+        sessionId: 'test-session',
+        taskId: 'test-task',
+        projectId: 'test-project',
+        subAgentId: 'test-agent',
+        streamRequestId: 'test-stream-request',
+      }
+    );
 
     // Initialize artifact map
     await parser.initializeArtifactMap();

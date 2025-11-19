@@ -34,7 +34,7 @@ describe('API Key Utilities', () => {
 
   describe('generateApiKey', () => {
     it('should generate a valid API key with all required properties', async () => {
-      const result = await generateApiKey();
+      const result = await generateApiKey('test-tenant', 'test-project');
 
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('publicId');
@@ -57,7 +57,7 @@ describe('API Key Utilities', () => {
     });
 
     it('should generate keys with the correct format', async () => {
-      const result = await generateApiKey();
+      const result = await generateApiKey('test-tenant', 'test-project');
 
       // Key should match format: sk_<env>_<publicId>.<secret>
       expect(result.key).toMatch(/^sk_[a-zA-Z0-9-]{12}\.[a-zA-Z0-9_-]+$/);

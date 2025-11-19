@@ -6,6 +6,7 @@ import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
 import { subAgentToolRelations, tools } from '../db/schema';
 import type { CredentialReferenceSelect } from '../types/index';
+import type { ResolvedRef } from '../dolt/ref';
 import {
   type AgentScopeConfig,
   CredentialStoreType,
@@ -119,6 +120,7 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
 const discoverToolsFromServer = async (
   tool: ToolSelect,
   dbClient: DatabaseClient,
+  ref?: ResolvedRef,
   credentialStoreRegistry?: CredentialStoreRegistry,
   userId?: string
 ): Promise<McpToolDefinition[]> => {
@@ -157,7 +159,8 @@ const discoverToolsFromServer = async (
         tool.tenantId,
         tool.projectId,
         dbClient,
-        credentialStoreRegistry
+        credentialStoreRegistry,
+        ref
       );
       const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
       serverConfig = await credentialStuffer.buildMcpServerConfig(
@@ -230,7 +233,8 @@ export const dbResultToMcpTool = async (
   dbClient: DatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
-  userId?: string
+  userId?: string,
+  ref?: ResolvedRef
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -282,6 +286,7 @@ export const dbResultToMcpTool = async (
     availableTools = await discoverToolsFromServer(
       dbResult,
       dbClient,
+      ref,
       credentialStoreRegistry,
       userId
     );

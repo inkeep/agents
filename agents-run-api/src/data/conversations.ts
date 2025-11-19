@@ -5,8 +5,11 @@ import {
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
+  executeInBranch,
   generateId,
   getConversationHistory,
+  getLedgerArtifacts,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
 import { CONVERSATION_HISTORY_DEFAULT_LIMIT } from '../constants/execution-limits';
 import dbClient from './db/dbClient';
@@ -30,12 +33,23 @@ export function createDefaultConversationHistoryConfig(
 
 /**
  * Extracts text content from A2A Message parts array
+ * Escapes control characters to ensure proper JSON serialization for Dolt
  */
 function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): string {
-  return parts
+  const text = parts
     .filter((part) => part.kind === 'text' && part.text)
     .map((part) => part.text)
     .join('');
+
+  // Escape control characters that Dolt's JSON parser rejects
+  // This ensures the text will serialize properly without changing its meaning
+  // We replace literal control characters with their escaped equivalents
+  return text
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\f/g, '\\f') // Escape form feeds
+    .replace(/\b/g, '\\b'); // Escape backspaces
 }
 
 /**
@@ -46,6 +60,7 @@ function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): s
  */
 export async function saveA2AMessageResponse(
   response: any, // SendMessageResponse type
+  ref: ResolvedRef,
   params: {
     tenantId: string;
     projectId: string;
@@ -84,25 +99,33 @@ export async function saveA2AMessageResponse(
     return null;
   }
 
-  return await createMessage(dbClient)({
-    id: generateId(),
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    conversationId: params.conversationId,
-    role: 'agent',
-    content: {
-      text: messageText,
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-    visibility: params.visibility,
-    messageType: params.messageType,
-    fromSubAgentId: params.fromSubAgentId,
-    toSubAgentId: params.toSubAgentId,
-    fromExternalAgentId: params.fromExternalAgentId,
-    toExternalAgentId: params.toExternalAgentId,
-    a2aTaskId: params.a2aTaskId,
-    a2aSessionId: params.a2aSessionId,
-    metadata: params.metadata,
-  });
+    async (db) => {
+      return await createMessage(db)({
+        id: generateId(),
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        conversationId: params.conversationId,
+        role: 'agent',
+        content: {
+          text: messageText,
+        },
+        visibility: params.visibility,
+        messageType: params.messageType,
+        fromSubAgentId: params.fromSubAgentId,
+        toSubAgentId: params.toSubAgentId,
+        fromExternalAgentId: params.fromExternalAgentId,
+        toExternalAgentId: params.toExternalAgentId,
+        a2aTaskId: params.a2aTaskId,
+        a2aSessionId: params.a2aSessionId,
+        metadata: params.metadata,
+      });
+    }
+  );
 }
 
 /**
@@ -115,19 +138,29 @@ export async function getScopedHistory({
   conversationId,
   filters,
   options,
+  ref,
 }: {
   tenantId: string;
   projectId: string;
   conversationId: string;
   filters?: ConversationScopeOptions;
   options?: ConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<any[]> {
   try {
-    const messages = await getConversationHistory(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      options,
-    });
+    const messages = await executeInBranch(
+      {
+        dbClient,
+        ref,
+      },
+      async (db) => {
+        return await getConversationHistory(db)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          options,
+        });
+      }
+    );
 
     if (
       !filters ||
@@ -204,17 +237,26 @@ export async function getUserFacingHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
+  ref: ResolvedRef,
   limit = CONVERSATION_HISTORY_DEFAULT_LIMIT
 ): Promise<any[]> {
-  return await getConversationHistory(dbClient)({
-    scopes: { tenantId, projectId },
-    conversationId,
-    options: {
-      limit,
-      includeInternal: false,
-      messageTypes: ['chat'],
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-  });
+    async (db) => {
+      return await getConversationHistory(db)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: {
+          limit,
+          includeInternal: false,
+          messageTypes: ['chat'],
+        },
+      });
+    }
+  );
 }
 
 /**
@@ -224,19 +266,28 @@ export async function getFullConversationContext(
   tenantId: string,
   projectId: string,
   conversationId: string,
+  ref: ResolvedRef,
   maxTokens?: number
 ): Promise<any[]> {
   const defaultConfig = createDefaultConversationHistoryConfig();
-  return await getConversationHistory(dbClient)({
-    scopes: { tenantId, projectId },
-    conversationId,
-    options: {
-      ...defaultConfig,
-      limit: 100,
-      includeInternal: true,
-      maxOutputTokens: maxTokens,
+  return await executeInBranch(
+    {
+      dbClient,
+      ref,
     },
-  });
+    async (db) => {
+      return await getConversationHistory(db)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: {
+          ...defaultConfig,
+          limit: 100,
+          includeInternal: true,
+          maxOutputTokens: maxTokens,
+        },
+      });
+    }
+  );
 }
 
 /**
@@ -249,6 +300,7 @@ export async function getFormattedConversationHistory({
   currentMessage,
   options,
   filters,
+  ref,
 }: {
   tenantId: string;
   projectId: string;
@@ -256,6 +308,7 @@ export async function getFormattedConversationHistory({
   currentMessage?: string;
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
+  ref: ResolvedRef;
 }): Promise<string> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
@@ -265,6 +318,7 @@ export async function getFormattedConversationHistory({
     conversationId,
     filters,
     options: historyOptions,
+    ref,
   });
 
   let messagesToFormat = conversationHistory;
@@ -321,8 +375,9 @@ export async function getConversationScopedArtifacts(params: {
   projectId: string;
   conversationId: string;
   historyConfig: AgentConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<Artifact[]> {
-  const { tenantId, projectId, conversationId, historyConfig } = params;
+  const { tenantId, projectId, conversationId, historyConfig, ref } = params;
 
   if (!conversationId) {
     return [];
@@ -338,6 +393,7 @@ export async function getConversationScopedArtifacts(params: {
       projectId,
       conversationId,
       options: historyConfig,
+      ref,
     });
 
     if (visibleMessages.length === 0) {
@@ -358,19 +414,24 @@ export async function getConversationScopedArtifacts(params: {
       return [];
     }
 
-    const { getLedgerArtifacts } = await import('@inkeep/agents-core');
-    const dbClient = (await import('../data/db/dbClient')).default;
-
     const visibleTaskIds = visibleMessages
       .map((msg) => msg.taskId)
       .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
 
     const referenceArtifacts: Artifact[] = [];
     for (const taskId of visibleTaskIds) {
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId, projectId },
-        taskId: taskId,
-      });
+      const artifacts = await executeInBranch(
+        {
+          dbClient,
+          ref,
+        },
+        async (db) => {
+          return await getLedgerArtifacts(db)({
+            scopes: { tenantId, projectId },
+            taskId: taskId,
+          });
+        }
+      );
       referenceArtifacts.push(...artifacts);
     }
 
