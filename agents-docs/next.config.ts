@@ -1,7 +1,7 @@
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
-import staticRedirects from './redirects.json' with { type: 'json' };
 import { fetchCloudRedirects } from './fetch-cloud-redirects';
+import staticRedirects from './redirects.json' with { type: 'json' };
 
 const withMDX = createMDX();
 
@@ -9,6 +9,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // Increase timeout for static page generation in CI environments
+  staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
   async redirects() {
     const cloudRedirects = await fetchCloudRedirects();
 
