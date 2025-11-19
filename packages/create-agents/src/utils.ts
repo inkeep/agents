@@ -330,6 +330,14 @@ export const createAgents = async (
 
     s.stop();
 
+    const installInkeepCLIResponse = await p.confirm({
+      message: 'Would you like to install the Inkeep CLI globally?',
+    });
+
+    if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+      await installInkeepCLI();
+    }
+
     p.note(
       `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
@@ -432,6 +440,22 @@ export const myProject = project({
   models: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
     await fs.writeFile(`src/projects/${config.projectId}/index.ts`, customIndexContent);
+  }
+}
+
+async function installInkeepCLI() {
+  const s = p.spinner();
+  s.start('Installing Inkeep CLI globally...');
+
+  try {
+    await execAsync('npm install -g @inkeep/agents-cli');
+    s.stop('✓ Inkeep CLI installed successfully');
+  } catch (_error) {
+    s.stop('⚠️  Could not automatically install Inkeep CLI globally');
+    console.warn('You can install it manually later by running:');
+    console.warn('  npm install -g @inkeep/agents-cli');
+    console.warn('  or');
+    console.warn('  pnpm add -g @inkeep/agents-cli\n');
   }
 }
 
