@@ -1,0 +1,227 @@
+{
+  "manifest_version": "0.3",
+  "name": "@inkeep/agents-eval-mcp",
+  "version": "0.0.18",
+  "description": "",
+  "long_description": "Inkeep Agents Evaluation API: REST API for evaluations, datasets, and evaluation runs in the Inkeep Agent Framework.",
+  "author": {
+    "name": "Speakeasy"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "./bin/mcp-server.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/bin/mcp-server.js",
+        "start"
+      ]
+    }
+  },
+  "display_name": "@inkeep/agents Eval Mcp",
+  "tools": [
+    {
+      "name": "health-get-health",
+      "description": "Health check\n\nCheck if the evaluation service is healthy"
+    },
+    {
+      "name": "evaluations-list-datasets",
+      "description": "List Datasets"
+    },
+    {
+      "name": "evaluations-create-dataset",
+      "description": "Create Dataset"
+    },
+    {
+      "name": "evaluations-get-dataset",
+      "description": "Get Dataset by ID"
+    },
+    {
+      "name": "evaluations-update-dataset",
+      "description": "Update Dataset"
+    },
+    {
+      "name": "evaluations-delete-dataset",
+      "description": "Delete Dataset"
+    },
+    {
+      "name": "evaluations-list-dataset-items",
+      "description": "List Dataset Items"
+    },
+    {
+      "name": "evaluations-create-dataset-item",
+      "description": "Create Dataset Item"
+    },
+    {
+      "name": "evaluations-get-dataset-item",
+      "description": "Get Dataset Item by ID"
+    },
+    {
+      "name": "evaluations-update-dataset-item",
+      "description": "Update Dataset Item"
+    },
+    {
+      "name": "evaluations-delete-dataset-item",
+      "description": "Delete Dataset Item"
+    },
+    {
+      "name": "evaluations-create-dataset-items-bulk",
+      "description": "Create Multiple Dataset Items"
+    },
+    {
+      "name": "evaluations-list-evaluators",
+      "description": "List Evaluators"
+    },
+    {
+      "name": "evaluations-create-evaluator",
+      "description": "Create Evaluator"
+    },
+    {
+      "name": "evaluations-get-evaluator",
+      "description": "Get Evaluator by ID"
+    },
+    {
+      "name": "evaluations-update-evaluator",
+      "description": "Update Evaluator"
+    },
+    {
+      "name": "evaluations-delete-evaluator",
+      "description": "Delete Evaluator"
+    },
+    {
+      "name": "evaluations-list-evaluation-suite-configs",
+      "description": "List Evaluation Suite Configs"
+    },
+    {
+      "name": "evaluations-create-evaluation-suite-config",
+      "description": "Create Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-get-evaluation-suite-config",
+      "description": "Get Evaluation Suite Config by ID"
+    },
+    {
+      "name": "evaluations-update-evaluation-suite-config",
+      "description": "Update Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-delete-evaluation-suite-config",
+      "description": "Delete Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-list-evaluation-suite-config-evaluators",
+      "description": "List Evaluators for Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-add-evaluator-to-suite-config",
+      "description": "Add Evaluator to Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-remove-evaluator-from-suite-config",
+      "description": "Remove Evaluator from Evaluation Suite Config"
+    },
+    {
+      "name": "evaluations-list-evaluation-job-configs",
+      "description": "List Evaluation Job Configs"
+    },
+    {
+      "name": "evaluations-create-evaluation-job-config",
+      "description": "Create Evaluation Job Config"
+    },
+    {
+      "name": "evaluations-get-evaluation-job-config",
+      "description": "Get Evaluation Job Config by ID"
+    },
+    {
+      "name": "evaluations-update-evaluation-job-config",
+      "description": "Update Evaluation Job Config"
+    },
+    {
+      "name": "evaluations-delete-evaluation-job-config",
+      "description": "Delete Evaluation Job Config"
+    },
+    {
+      "name": "evaluations-get-evaluation-job-config-results",
+      "description": "Get Evaluation Results by Job Config ID"
+    },
+    {
+      "name": "evaluations-get-evaluation-run-config-results",
+      "description": "Get Evaluation Results by Run Config ID"
+    },
+    {
+      "name": "evaluations-get-evaluation-result",
+      "description": "Get Evaluation Result by ID"
+    },
+    {
+      "name": "evaluations-update-evaluation-result",
+      "description": "Update Evaluation Result"
+    },
+    {
+      "name": "evaluations-delete-evaluation-result",
+      "description": "Delete Evaluation Result"
+    },
+    {
+      "name": "evaluations-create-evaluation-result",
+      "description": "Create Evaluation Result"
+    },
+    {
+      "name": "evaluations-list-dataset-run-configs",
+      "description": "List Dataset Run Configs"
+    },
+    {
+      "name": "evaluations-get-dataset-run-config",
+      "description": "Get Dataset Run Config by ID"
+    },
+    {
+      "name": "evaluations-update-dataset-run-config",
+      "description": "Update Dataset Run Config"
+    },
+    {
+      "name": "evaluations-delete-dataset-run-config",
+      "description": "Delete Dataset Run Config"
+    },
+    {
+      "name": "evaluations-create-dataset-run-config",
+      "description": "Create Dataset Run Config"
+    },
+    {
+      "name": "evaluations-list-dataset-runs",
+      "description": "List Dataset Runs"
+    },
+    {
+      "name": "evaluations-get-dataset-run",
+      "description": "Get Dataset Run"
+    },
+    {
+      "name": "evaluations-list-evaluation-run-configs",
+      "description": "List Evaluation Run Configs"
+    },
+    {
+      "name": "evaluations-create-evaluation-run-config",
+      "description": "Create Evaluation Run Config"
+    },
+    {
+      "name": "evaluations-get-evaluation-run-config",
+      "description": "Get Evaluation Run Config by ID"
+    },
+    {
+      "name": "evaluations-update-evaluation-run-config",
+      "description": "Update Evaluation Run Config"
+    },
+    {
+      "name": "evaluations-delete-evaluation-run-config",
+      "description": "Delete Evaluation Run Config"
+    }
+  ],
+  "prompts": [],
+  "keywords": [
+      "@inkeep/agents",
+      "eval",
+      "mcp",
+      "inkeep",
+      "agents",
+      "evaluation",
+      "api",
+      "rest"
+    ]
+}

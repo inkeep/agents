@@ -43,7 +43,7 @@ inkeep chat
 🔧 Emit operations: ON
 Data operations will be shown during responses.
 
-> operations  
+> operations
 🔧 Emit operations: OFF
 Data operations are hidden.
 ```
@@ -53,6 +53,7 @@ Data operations are hidden.
 ### Agent Events
 
 #### `agent_generate`
+
 Emitted when an agent generates content (text or structured data).
 
 ```json
@@ -79,6 +80,7 @@ Emitted when an agent generates content (text or structured data).
 ```
 
 #### `agent_reasoning`
+
 Emitted when an agent is reasoning through a request or planning its approach.
 
 ```json
@@ -106,6 +108,7 @@ Emitted when an agent is reasoning through a request or planning its approach.
 ### Tool Execution Events
 
 #### `tool_call`
+
 Emitted when an agent starts calling a tool or function.
 
 ```json
@@ -131,7 +134,44 @@ Emitted when an agent starts calling a tool or function.
 }
 ```
 
+**Tool Approval Events**
+
+When a tool requires user approval, the `tool_call` event includes additional fields:
+
+```json
+{
+  "type": "data-operation",
+  "data": {
+    "type": "tool_call",
+    "label": "Tool call: delete_user_data",
+    "details": {
+      "timestamp": 1726247200000,
+      "subAgentId": "data-agent",
+      "data": {
+        "toolName": "delete_user_data",
+        "input": {
+          "userId": "user_123",
+          "confirm": true
+        },
+        "toolCallId": "call_approval_xyz789",
+        "needsApproval": true,
+        "conversationId": "conv_abc123"
+      }
+    }
+  }
+}
+```
+
+**Approval-specific fields:**
+
+- `needsApproval: true` - Indicates this tool requires user approval before execution
+- `conversationId` - The conversation context for sending approval responses
+- Client should show approval UI and call `/api/tool-approvals` endpoint
+
+See [Tool Approvals](/tools/tool-approvals) for complete configuration and integration details.
+
 #### `tool_result`
+
 Emitted when a tool execution completes (success or failure).
 
 ```json
@@ -164,6 +204,7 @@ Emitted when a tool execution completes (success or failure).
 ```
 
 **Error Example:**
+
 ```json
 {
   "type": "data-operation",
@@ -189,6 +230,7 @@ Emitted when a tool execution completes (success or failure).
 ### Agent Interaction Events
 
 #### `transfer`
+
 Emitted when control is transferred from one agent to another.
 
 ```json
@@ -215,6 +257,7 @@ Emitted when control is transferred from one agent to another.
 ```
 
 #### `delegation_sent`
+
 Emitted when an agent delegates a task to another agent.
 
 ```json
@@ -242,6 +285,7 @@ Emitted when an agent delegates a task to another agent.
 ```
 
 #### `delegation_returned`
+
 Emitted when a delegated task is completed and returned.
 
 ```json
@@ -271,6 +315,7 @@ Emitted when a delegated task is completed and returned.
 ### Artifact Events
 
 #### `artifact_saved`
+
 Emitted when an agent creates or saves an artifact (document, chart, file, etc.).
 
 ```json
@@ -308,6 +353,7 @@ Emitted when an agent creates or saves an artifact (document, chart, file, etc.)
 ## System Events
 
 ### `agent_initializing`
+
 Emitted when the agent runtime is starting up.
 
 ```json
@@ -324,6 +370,7 @@ Emitted when the agent runtime is starting up.
 ```
 
 ### `completion`
+
 Emitted when an agent completes its task.
 
 ```json
@@ -340,6 +387,7 @@ Emitted when an agent completes its task.
 ```
 
 ### `error`
+
 Emitted when an error occurs during execution.
 
 ```json
@@ -375,6 +423,7 @@ curl -N \
 ```
 
 **Response Stream:**
+
 ```text
 data: {"type":"agent_initializing","details":{"sessionId":"session_abc123","agentId":"graph_xyz789"}}
 

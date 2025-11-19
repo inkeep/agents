@@ -32,6 +32,7 @@ export function GenericTextarea<T extends FieldValues>({
           placeholder={placeholder}
           className={className}
           {...field}
+          value={field.value ?? ''}
           readOnly={readOnly}
           disabled={disabled}
         />

@@ -5,4 +5,7 @@ export interface RuntimeConfig {
   PUBLIC_SIGNOZ_URL: string;
   PUBLIC_NANGO_SERVER_URL?: string;
   PUBLIC_NANGO_CONNECT_BASE_URL?: string;
+  PUBLIC_INKEEP_COPILOT_AGENT_ID?: string;
+  PUBLIC_INKEEP_COPILOT_PROJECT_ID?: string;
+  PUBLIC_INKEEP_COPILOT_TENANT_ID?: string;
 }

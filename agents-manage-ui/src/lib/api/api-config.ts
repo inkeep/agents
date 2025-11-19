@@ -9,7 +9,9 @@ import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
+let INKEEP_AGENTS_EVAL_API_URL: string | null = null;
 let hasWarnedManageApi = false;
+let hasWarnedEvalApi = false;
 
 function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
@@ -24,6 +26,25 @@ function getManageApiUrl(): string {
     }
   }
   return INKEEP_AGENTS_MANAGE_API_URL;
+}
+
+function getEvalApiUrl(): string {
+  if (INKEEP_AGENTS_EVAL_API_URL === null) {
+    INKEEP_AGENTS_EVAL_API_URL =
+      process.env.INKEEP_AGENTS_EVAL_API_URL ||
+      process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL ||
+      'http://localhost:3005';
+
+    if (
+      !process.env.INKEEP_AGENTS_EVAL_API_URL &&
+      !process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL &&
+      !hasWarnedEvalApi
+    ) {
+      console.warn(`INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`);
+      hasWarnedEvalApi = true;
+    }
+  }
+  return INKEEP_AGENTS_EVAL_API_URL;
 }
 
 async function makeApiRequestInternal<T>(
@@ -47,14 +68,60 @@ async function makeApiRequestInternal<T>(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: { code: 'unknown', message: 'Unknown error occurred' },
-      }));
+      let errorData;
+      try {
+        const text = await response.text();
+        errorData = text ? JSON.parse(text) : null;
+      } catch {
+        errorData = null;
+      }
+
+      // Handle Zod validation errors (400 status with errors array)
+      if (response.status === 400 && errorData?.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors
+          .map(
+            (err: any) =>
+              `${err.name || err.pointer || 'field'}: ${err.detail || err.reason || err.message}`
+          )
+          .join(', ');
+        const errorMessage = `Validation failed: ${validationErrors}`;
+
+        console.error('API Validation Error Response:', {
+          status: response.status,
+          errorData,
+          validationErrors,
+        });
+
+        throw new ApiError(
+          {
+            code: 'validation_error',
+            message: errorMessage,
+          },
+          response.status
+        );
+      }
+
+      const errorMessage =
+        errorData?.error?.message ||
+        errorData?.message ||
+        errorData?.detail ||
+        `HTTP ${response.status}: ${response.statusText}` ||
+        'Unknown error occurred';
+
+      const errorCode = errorData?.error?.code || errorData?.code || 'unknown';
+
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        errorMessage,
+        errorCode,
+      });
 
       throw new ApiError(
-        errorData.error || {
-          code: 'unknown',
-          message: 'Unknown error occurred',
+        {
+          code: errorCode,
+          message: errorMessage,
         },
         response.status
       );
@@ -93,4 +160,12 @@ export async function makeManagementApiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
+}
+
+// Evaluation API requests (evaluations, datasets, evaluation runs)
+export async function makeEvalApiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  return makeApiRequestInternal<T>(getEvalApiUrl(), endpoint, options);
 }

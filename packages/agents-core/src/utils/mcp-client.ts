@@ -231,6 +231,9 @@ export class McpClient {
               case 'array':
                 zodType = z.array(z.any());
                 break;
+              case 'object':
+                zodType = createZodSchema(propDef);
+                break;
               default:
                 zodType = z.any();
             }
@@ -246,7 +249,6 @@ export class McpClient {
 
             zodProperties[key] = zodType;
           }
-
           return z.object(zodProperties);
         };
 

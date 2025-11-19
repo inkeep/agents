@@ -171,7 +171,7 @@ export function MCPToolItem({
           </div>
         </div>
         <ItemCardFooter
-          footerText={`Created ${formatDate(typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString())}`}
+          footerText={tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
         />
       </ItemCardContent>
     </ItemCardRoot>

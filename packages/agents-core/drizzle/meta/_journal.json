@@ -8,6 +8,27 @@
       "when": 1762892536683,
       "tag": "0000_exotic_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762981011691,
+      "tag": "0001_greedy_the_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762983545811,
+      "tag": "0002_add_evaluation_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763504487487,
+      "tag": "0003_brave_micromax",
+      "breakpoints": true
     }
   ]
 }

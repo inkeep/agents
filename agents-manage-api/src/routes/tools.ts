@@ -13,7 +13,6 @@ import {
   type McpTool,
   McpToolListResponse,
   McpToolResponse,
-  McpToolSchema,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,

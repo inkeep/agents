@@ -70,6 +70,11 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/agents-eval-api#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
     "@inkeep/agents-manage-ui#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
@@ -89,6 +94,16 @@
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
+    },
+    "@inkeep/agents-manage-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
+    },
+    "@inkeep/agents-eval-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
     },
     "chat-widget#test": {
       "dependsOn": ["build"],

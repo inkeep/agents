@@ -86,6 +86,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --animate-bounce-dot: bounce-dot 1.5s infinite ease-in-out;
+  --animate-shimmer: shimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes bounce-dot {
     0%,
@@ -93,7 +94,7 @@
       opacity: 0.3;
       transform: translateY(0);
     }
-    100% {
+    50% {
       opacity: 1;
       transform: translateY(-5px);
     }
@@ -109,11 +110,26 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-size: 200% 200%;
+    background-position: 100% 0;
+  }
+  100% {
+    background-size: 200% 200%;
+    background-position: -100% 0;
+  }
+}
+
 .animate-shine {
   animation: shine 2s linear infinite;
   animation-delay: 0s;
 }
 
+.animate-shimmer {
+  animation: shimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 0s;
+}
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

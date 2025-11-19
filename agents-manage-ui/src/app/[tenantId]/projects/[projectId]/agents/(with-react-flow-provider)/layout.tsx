@@ -2,6 +2,7 @@
 
 import { ReactFlowProvider } from '@xyflow/react';
 import { type FC, useEffect } from 'react';
+import { CopilotProvider } from '@/components/agent/copilot/copilot-context';
 import { useSidebar } from '@/components/ui/sidebar';
 
 const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ children }) => {
@@ -17,7 +18,11 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ ch
     };
   }, []);
 
-  return <ReactFlowProvider>{children}</ReactFlowProvider>;
+  return (
+    <ReactFlowProvider>
+      <CopilotProvider>{children}</CopilotProvider>
+    </ReactFlowProvider>
+  );
 };
 
 export default Layout;

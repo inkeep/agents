@@ -12,7 +12,6 @@ import {
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SubAgentToolRelationApiInsertSchema,
-  SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
   SubAgentToolRelationListResponse,
   SubAgentToolRelationResponse,

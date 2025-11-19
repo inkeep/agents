@@ -236,6 +236,7 @@ describe('serializeAgentData', () => {
         toolId: 'mcp1',
         toolSelection: ['tool1', 'tool2'],
         headers: null,
+        toolPolicies: null,
       });
     });
 
@@ -282,6 +283,7 @@ describe('serializeAgentData', () => {
         toolId: 'mcp1',
         toolSelection: null,
         headers: null,
+        toolPolicies: null,
       });
     });
 
@@ -326,6 +328,7 @@ describe('serializeAgentData', () => {
         toolId: 'mcp1',
         toolSelection: [],
         headers: null,
+        toolPolicies: null,
       });
     });
 
@@ -413,6 +416,59 @@ describe('serializeAgentData', () => {
         toolId: 'mcp1',
         toolSelection: null, // null means all tools are selected
         headers: null,
+        toolPolicies: null,
+      });
+    });
+
+    it('should transfer tempToolPolicies from MCP nodes to agent toolPolicies', () => {
+      const nodes: Node[] = [
+        {
+          id: 'agent1',
+          type: NodeType.SubAgent,
+          position: { x: 0, y: 0 },
+          data: {
+            id: 'agent1',
+            name: 'Test Agent',
+            prompt: 'Test instructions',
+          },
+        },
+        {
+          id: 'mcp1',
+          type: NodeType.MCP,
+          position: { x: 200, y: 0 },
+          data: {
+            toolId: 'mcp1',
+            name: 'Test MCP Server',
+            tempSelectedTools: ['tool1', 'tool2'],
+            tempToolPolicies: {
+              tool1: { needsApproval: true },
+              tool2: { needsApproval: false },
+            },
+          } as MCPNodeData,
+        },
+      ];
+
+      const edges: Edge[] = [
+        {
+          id: 'edge1',
+          type: EdgeType.Default,
+          source: 'agent1',
+          target: 'mcp1',
+        },
+      ];
+
+      const result = serializeAgentData(nodes, edges, undefined, {}, {}, {});
+
+      expect((result.subAgents.agent1 as any).canUse).toBeDefined();
+      expect((result.subAgents.agent1 as any).canUse).toHaveLength(1);
+      expect((result.subAgents.agent1 as any).canUse[0]).toEqual({
+        toolId: 'mcp1',
+        toolSelection: ['tool1', 'tool2'],
+        headers: null,
+        toolPolicies: {
+          tool1: { needsApproval: true },
+          tool2: { needsApproval: false },
+        },
       });
     });
   });

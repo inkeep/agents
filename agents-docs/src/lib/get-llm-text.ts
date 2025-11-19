@@ -1,22 +1,34 @@
 import type { InferPageType } from 'fumadocs-core/source';
-import { remark } from 'remark';
-import remarkGfm from 'remark-gfm';
-import remarkMdx from 'remark-mdx';
-import { mdxSnippet } from 'remark-mdx-snippets';
-import { remarkSourceCode } from 'remark-source-code';
 import type { source } from '@/lib/source';
 
-const processor = remark().use(remarkMdx).use(mdxSnippet).use(remarkSourceCode).use(remarkGfm);
+function stripMdxComponents(content: string): string {
+  let cleaned = content;
+
+  cleaned = cleaned.replace(/^---[\s\S]*?---\n/m, '');
+
+  cleaned = cleaned.replace(/import\s+.*?from\s+['"].*?['"];?\n/g, '');
+  cleaned = cleaned.replace(/export\s+.*?\n/g, '');
+  cleaned = cleaned.replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+
+  cleaned = cleaned.replace(/<[A-Z][a-zA-Z0-9]*(\s[^>]*)?>[\s\S]*?<\/[A-Z][a-zA-Z0-9]*>/gs, '');
+  cleaned = cleaned.replace(/<[A-Z][a-zA-Z0-9]*(\s[^>]*)?\/>/g, '');
+  cleaned = cleaned.replace(/<\/[A-Z][a-zA-Z0-9]*>/g, '');
+  cleaned = cleaned.replace(/<>[\s\S]*?<\/>/gs, '');
+  cleaned = cleaned.replace(/<\/>/g, '');
+
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  return cleaned.trim();
+}
 
 export async function getLLMText(page: InferPageType<typeof source>) {
-  const processed = await processor.process({
-    value: await page.data.getText('raw'),
-  });
+  const rawContent = await page.data.getText('raw');
+  const cleanedContent = stripMdxComponents(rawContent);
 
   return `# ${page.data.title}
 URL: ${page.url}
 
-${page.data.description}
+${page.data.description || ''}
 
-${processed.value}`;
+${cleanedContent}`;
 }

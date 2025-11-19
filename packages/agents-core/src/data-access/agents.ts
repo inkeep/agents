@@ -381,6 +381,7 @@ export const getFullAgentDefinition =
             imageUrl: tools.imageUrl,
             selectedTools: subAgentToolRelations.selectedTools,
             headers: subAgentToolRelations.headers,
+            toolPolicies: subAgentToolRelations.toolPolicies,
             agentToolRelationId: subAgentToolRelations.id,
           })
           .from(subAgentToolRelations)
@@ -456,6 +457,7 @@ export const getFullAgentDefinition =
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
           headers: tool.headers || null,
+          toolPolicies: tool.toolPolicies || null,
         }));
 
         const functionToolCanUse = agentFunctionTools.map((tool) => ({
@@ -463,6 +465,7 @@ export const getFullAgentDefinition =
           toolId: tool.id,
           toolSelection: null, // Function tools don't have tool selection
           headers: null, // Function tools don't have headers
+          toolPolicies: null, // Function tools don't have tool policies (yet)
         }));
 
         const canUse = [...mcpToolCanUse, ...functionToolCanUse];

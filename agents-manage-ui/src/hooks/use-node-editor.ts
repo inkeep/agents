@@ -9,7 +9,7 @@ interface UseNodeEditorOptions {
 }
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {
-  const { updateNodeData, setNodes, deleteElements } = useReactFlow();
+  const { updateNodeData, setNodes, deleteElements, getNode } = useReactFlow();
   const { markUnsaved } = useAgentActions();
 
   const deleteNode = useCallback(() => {
@@ -68,10 +68,16 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
   // Simple field update
   const updateField = useCallback(
     (name: string, value: any) => {
-      updateNodeData(selectedNodeId, { [name]: value });
-      markUnsaved();
+      // Check if value actually changed before updating
+      const currentNode = getNode(selectedNodeId);
+      const currentValue = currentNode?.data?.[name];
+      // Only update and mark dirty if the value actually changed
+      if (currentValue !== value) {
+        updateNodeData(selectedNodeId, { [name]: value });
+        markUnsaved();
+      }
     },
-    [selectedNodeId, updateNodeData, markUnsaved]
+    [selectedNodeId, updateNodeData, markUnsaved, getNode]
   );
 
   // Handle input change events
