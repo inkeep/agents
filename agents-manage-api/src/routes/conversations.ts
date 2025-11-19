@@ -11,6 +11,11 @@ import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();
 
+const ConversationQueryParamsSchema = z.object({
+  limit: z.coerce.number().min(1).max(200).default(20).optional(),
+  includeInternal: z.coerce.boolean().default(false).optional(),
+});
+
 const ConversationWithFormattedMessagesResponse = z
   .object({
     data: z.object({
@@ -31,6 +36,7 @@ app.openapi(
     tags: ['Conversations'],
     request: {
       params: TenantProjectIdParamsSchema,
+      query: ConversationQueryParamsSchema,
     },
     responses: {
       200: {
@@ -46,12 +52,14 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
+    const { limit = 20, includeInternal = true } = c.req.valid('query');
+
     const messages = await getConversationHistory(dbClient)({
       scopes: { tenantId, projectId },
       conversationId: id,
       options: {
-        limit: 20,
-        includeInternal: true,
+        limit,
+        includeInternal,
       },
     });
 
