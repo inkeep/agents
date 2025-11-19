@@ -86,10 +86,10 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
-                // checked={Boolean(field.isRequired)}
-                // onCheckedChange={(checked) =>
-                // updateField(field.id, { isRequired: checked === true })
-                // }
+                  checked={Boolean(field.isRequired)}
+                  onCheckedChange={(checked) =>
+                    updateField(field.id, { isPreview: checked === true })
+                  }
                 />
               </div>
             </TooltipTrigger>
@@ -98,7 +98,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               <a
                 target="_blank"
                 rel="noopener"
-                href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#how-to-create-an-artifact-component"
+                href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
                 className="underline text-primary"
               >
                 immediately available

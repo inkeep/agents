@@ -79,15 +79,15 @@ export function ArtifactComponentForm({
           return;
         }
         toast.success('Artifact updated.');
-      } else {
-        const res = await createArtifactComponentAction(tenantId, projectId, payload);
-        if (!res.success) {
-          toast.error(res.error || 'Failed to create artifact');
-          return;
-        }
-        toast.success('Artifact created.');
-        router.push(`/${tenantId}/projects/${projectId}/artifacts`);
+        return;
       }
+      const res = await createArtifactComponentAction(tenantId, projectId, payload);
+      if (!res.success) {
+        toast.error(res.error || 'Failed to create artifact');
+        return;
+      }
+      toast.success('Artifact created.');
+      router.push(`/${tenantId}/projects/${projectId}/artifacts`);
     } catch (error) {
       console.error('Error submitting artifact:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';

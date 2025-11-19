@@ -19,6 +19,8 @@ interface NameAndDescription {
   isRequired?: boolean;
   /** JSON Schema title field */
   title?: string;
+  /** @see https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields */
+  isPreview?: boolean;
 }
 
 type EditableField =
@@ -57,7 +59,7 @@ interface FieldObject extends NameAndDescription {
 }
 
 type FieldPatch = Partial<
-  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title'>
+  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title' | 'isPreview'>
 >;
 
 const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
