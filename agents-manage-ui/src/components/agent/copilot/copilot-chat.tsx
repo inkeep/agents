@@ -4,6 +4,7 @@ import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 import { IkpMessage } from './message-parts/message';
@@ -12,7 +13,7 @@ interface CopilotChatProps {
   agentId?: string;
   projectId: string;
   tenantId: string;
-  refreshAgentGraph: (targetAgentId?: string) => Promise<void>;
+  refreshAgentGraph: (options?: { fetchTools?: boolean; targetAgentId?: string }) => Promise<void>;
 }
 
 const styleOverrides = `
@@ -32,6 +33,14 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
 
+  const { handleOAuthLogin } = useOAuthLogin({
+    tenantId,
+    projectId,
+    onFinish: () => {
+      refreshAgentGraph({ fetchTools: true });
+    },
+  });
+
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
       // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
@@ -40,8 +49,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           const targetAgentId =
             event.detail?.details?.data?.output?.result?.content?.[0]?.text?.AgentResponse?.data
               ?.id;
+          console.log('targetAgentId', targetAgentId);
           if (targetAgentId) {
-            refreshAgentGraph(targetAgentId);
+            refreshAgentGraph({ targetAgentId });
             window.history.pushState(
               null,
               '',
@@ -135,6 +145,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             },
           }}
           aiChatSettings={{
+            aiAssistantName: 'Agent Editor',
             components: {
               ...(IkpMessage
                 ? {
@@ -145,6 +156,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
                         copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
                         runApiUrl: PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+                        targetTenantId: tenantId,
+                        targetProjectId: projectId,
+                        targetAgentId: agentId,
+                        onOAuthLogin: handleOAuthLogin,
                       }),
                   }
                 : {}),

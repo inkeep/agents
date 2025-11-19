@@ -9,4 +9,4 @@
 "@inkeep/ai-sdk-provider": patch
 ---
 
-fix template rendering of '-'
+fix linter errors

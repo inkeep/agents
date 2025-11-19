@@ -24,7 +24,7 @@ export function detectOrphanedToolsAndGetWarning(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,
-    Record<string, { toolId: string; toolSelection?: string[] }>
+    Record<string, { toolId: string; toolSelection?: string[] | null }>
   >,
   toolLookup: Record<string, MCPTool>
 ): string | null {
@@ -40,7 +40,7 @@ function detectOrphanedToolsInAgent(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,
-    Record<string, { toolId: string; toolSelection?: string[] }>
+    Record<string, { toolId: string; toolSelection?: string[] | null }>
   >,
   toolLookup: Record<string, MCPTool>
 ): OrphanedToolsDetectionResult {

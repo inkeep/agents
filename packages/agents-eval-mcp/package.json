@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-eval-mcp",
-  "version": "0.0.16",
+  "version": "0.0.18",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -13,6 +13,8 @@
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
     "prepublishOnly": "npm run build",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
     "fetch-openapi": "node scripts/fetch-openapi.mjs",
     "generate": "node scripts/generate.mjs",
     "watch": "node scripts/watch-and-fetch.mjs"

@@ -356,11 +356,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           });
         }
-
         switch (data.type) {
           case 'agent_initializing': {
             return {
               nodes: updateNodeStatus((node) => {
+                // this prevents the node from highlighting if the copilot triggers this event
+                if (data?.details?.agentId !== state.metadata.id) {
+                  return;
+                }
                 if (node.data.isDefault) {
                   return 'delegating';
                 }

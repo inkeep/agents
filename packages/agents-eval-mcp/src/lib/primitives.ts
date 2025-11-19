@@ -5,7 +5,7 @@
 class InvariantError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "InvariantError";
+    this.name = 'InvariantError';
   }
 }
 
@@ -40,21 +40,21 @@ export function abortSignalAny(signals: AbortSignal[]): AbortSignal {
     for (const signalRef of signalRefs) {
       const signal = signalRef.deref();
       if (signal) {
-        signal.removeEventListener("abort", abort);
+        signal.removeEventListener('abort', abort);
       }
     }
   }
 
   for (const signal of signals) {
     signalRefs.push(new WeakRef(signal));
-    signal.addEventListener("abort", abort);
+    signal.addEventListener('abort', abort);
   }
 
   return result;
 }
 
 export function allRequired<V extends Record<string, unknown>>(
-  v: V,
+  v: V
 ):
   | {
       [K in keyof V]: NonNullable<V[K]>;
@@ -82,20 +82,18 @@ export function combineSignals(
     case 1:
       return filtered[0] || null;
     default:
-      if ("any" in AbortSignal && typeof AbortSignal.any === "function") {
+      if ('any' in AbortSignal && typeof AbortSignal.any === 'function') {
         return AbortSignal.any(filtered);
       }
       return abortSignalAny(filtered);
   }
 }
 
-export function compactMap<T>(
-  values: Record<string, T | undefined>,
-): Record<string, T> {
+export function compactMap<T>(values: Record<string, T | undefined>): Record<string, T> {
   const out: Record<string, T> = {};
 
   for (const [k, v] of Object.entries(values)) {
-    if (typeof v !== "undefined") {
+    if (typeof v !== 'undefined') {
       out[k] = v;
     }
   }
@@ -103,10 +101,7 @@ export function compactMap<T>(
   return out;
 }
 
-export function invariant(
-  condition: unknown,
-  message: string,
-): asserts condition {
+export function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) {
     throw new InvariantError(message);
   }

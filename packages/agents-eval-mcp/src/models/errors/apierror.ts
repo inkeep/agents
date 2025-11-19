@@ -9,13 +9,13 @@ export class APIError extends Error {
       response: Response;
       request: Request;
       body: string;
-    },
+    }
   ) {
     super(
       `${message}: Status ${httpMeta.response.status} Content-Type ${
-        httpMeta.response.headers.get("content-type") || ""
-      } Body: ${httpMeta.body}`,
+        httpMeta.response.headers.get('content-type') || ''
+      } Body: ${httpMeta.body}`
     );
-    this.name = "APIError";
+    this.name = 'APIError';
   }
 }

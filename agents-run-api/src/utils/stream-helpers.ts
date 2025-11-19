@@ -610,7 +610,11 @@ export class VercelDataStreamHelper implements StreamHelper {
     // ALWAYS queue operation if:
     // 1. Text is currently streaming, OR
     // 2. We're within the gap threshold from last text-end (more text might be coming)
-    if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
+    if (
+      operation.type !== 'tool_call' &&
+      operation.type !== 'tool_result' &&
+      (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS)
+    ) {
       this.queuedEvents.push({ type: 'data-operation', event: operation });
       return;
     }

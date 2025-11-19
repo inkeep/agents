@@ -3,6 +3,7 @@ import { Check, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
+import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { DataComponent } from '@/lib/api/data-components';
 import { CitationBadge } from './citation-badge';
@@ -10,6 +11,7 @@ import { Citations } from './citations';
 import { InlineEvent } from './inline-event';
 // import { LoadingIndicator } from './loading';
 import { ToolApproval } from './tool-approval';
+import { ToolResult } from './tool-result';
 import { useProcessedOperations } from './use-processed-operations';
 
 interface IkpMessageProps {
@@ -22,6 +24,10 @@ interface IkpMessageProps {
   copilotProjectId?: string;
   copilotTenantId?: string;
   runApiUrl?: string;
+  targetTenantId?: string;
+  targetProjectId?: string;
+  targetAgentId?: string;
+  onOAuthLogin?: OAuthLoginHandler;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -54,18 +60,18 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
         }
 
         if (part.type === 'data-operation') {
-          // const { type } = part.data as any;
+          const { type } = part.data as any;
           // Only add inline operations for non-top-level operations
-          // const isTopLevelOperation = [
-          //   'agent_initializing',
-          //   'agent_ready',
-          //   'completion',
-          //   'error',
-          // ].includes(type);
-          // if (!isTopLevelOperation) {
-          //   // Add the inline operation
-          //   processed.push({ type: 'inline-operation', operation: part.data });
-          // }
+          const isTopLevelOperation = [
+            'agent_initializing',
+            'agent_ready',
+            'completion',
+            'error',
+          ].includes(type);
+          if (!isTopLevelOperation) {
+            // Add the inline operation
+            processed.push({ type: 'inline-operation', operation: part.data });
+          }
         } else if (part.type === 'data-summary') {
           // Handle data-summary events as inline operations
           processed.push({
@@ -155,6 +161,10 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   copilotProjectId,
   copilotTenantId,
   runApiUrl,
+  targetTenantId,
+  targetProjectId,
+  targetAgentId,
+  onOAuthLogin,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -302,6 +312,26 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                       );
                     }
 
+                    if (group.data.type === 'tool_result') {
+                      return (
+                        <div key={`operation-${index}`}>
+                          {group.data.details.data.output?.result?.content?.length > 0 && (
+                            <ToolResult
+                              data={group.data}
+                              copilotAgentId={copilotAgentId}
+                              copilotProjectId={copilotProjectId}
+                              copilotTenantId={copilotTenantId}
+                              runApiUrl={runApiUrl}
+                              targetTenantId={targetTenantId}
+                              targetProjectId={targetProjectId}
+                              targetAgentId={targetAgentId}
+                              onOAuthLogin={onOAuthLogin}
+                            />
+                          )}
+                        </div>
+                      );
+                    }
+
                     // Handle inline operations in order
                     return (
                       <div key={`operation-${index}`}>
@@ -350,6 +380,10 @@ export const IkpMessage = (props: any) => {
         copilotProjectId={otherProps.copilotProjectId}
         copilotTenantId={otherProps.copilotTenantId}
         runApiUrl={otherProps.runApiUrl}
+        targetTenantId={otherProps.targetTenantId}
+        targetProjectId={otherProps.targetProjectId}
+        targetAgentId={otherProps.targetAgentId}
+        onOAuthLogin={otherProps.onOAuthLogin}
       />
     </div>
   );

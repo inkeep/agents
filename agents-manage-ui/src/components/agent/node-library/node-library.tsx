@@ -14,7 +14,7 @@ const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.FunctionTool],
 ];
 
-export default function NodeLibrary() {
+export default function NodeLibrary({ agentId }: { agentId?: string }) {
   const { openCopilot } = useCopilotContext();
   return (
     <div className="flex flex-col gap-2 max-w-72 w-40 min-w-0">
@@ -28,7 +28,7 @@ export default function NodeLibrary() {
         onClick={openCopilot}
       >
         <SparklesIcon />
-        Build with AI
+        {agentId ? 'Edit with AI' : 'Build with AI'}
       </Button>
     </div>
   );

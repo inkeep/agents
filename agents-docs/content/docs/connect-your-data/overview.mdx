@@ -1,0 +1,39 @@
+---
+title: Connecting Your Data
+sidebarTitle: Overview
+description: Learn how to connect your data sources to your agents through MCP servers
+icon: "LuSparkles"
+keywords: data sources, MCP servers, knowledge base, documentation, GitHub, website integration
+---
+
+Connect your data sources to your agents through MCP servers. Support websites, GitHub repositories, documentation, knowledge bases, PDFs, and more. Your agents can search and access this content in real-time.
+
+## How it works
+
+1. **Set up your data source** - Configure your chosen provider and connect your data sources
+2. **Get your MCP server URL** - Obtain the MCP server endpoint from your provider
+3. **Register the MCP server** - Add it as a tool in your agent configuration
+4. **Use in your agents** - Your agents can now search and access your connected data
+
+## Choose a data provider
+
+Select a provider that supports your data sources:
+
+<Cards>
+  <Card title="Inkeep" icon="brand/Inkeep" href="/connect-your-data/inkeep">
+    Connect 25+ data sources including websites, GitHub, Notion, Slack, Confluence, and more. Comprehensive knowledge base solution.
+  </Card>
+  <Card title="Context7" icon="brand/Upstash" href="/connect-your-data/context7">
+    Connect GitHub, GitLab, BitBucket repositories, OpenAPI specs, and websites. Great for code documentation.
+  </Card>
+  <Card title="Ref" icon="brand/Ref" href="/connect-your-data/ref">
+    Connect GitHub repositories, PDFs, and Markdown files. Simple and focused solution for documentation.
+  </Card>
+</Cards>
+
+
+## Other options
+
+We recommend Inkeep, Context7, or Ref for the easiest setup—they handle MCP server management automatically.
+
+For more advanced use cases, you can use [Reducto](https://reducto.ai/) or [Unstructured](https://unstructured.io/). Both offer self-serve free tiers and allow you to upload documents and access them via their APIs or SDKs. You can either wrap these in your own MCP server or invoke them directly using [function tools](/typescript-sdk/tools/function-tools).

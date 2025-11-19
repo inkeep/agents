@@ -7,17 +7,17 @@ export function isBlobLike(val: unknown): val is Blob {
     return true;
   }
 
-  if (typeof val !== "object" || val == null || !(Symbol.toStringTag in val)) {
+  if (typeof val !== 'object' || val == null || !(Symbol.toStringTag in val)) {
     return false;
   }
 
   const name = val[Symbol.toStringTag];
-  if (typeof name !== "string") {
+  if (typeof name !== 'string') {
     return false;
   }
-  if (name !== "Blob" && name !== "File") {
+  if (name !== 'Blob' && name !== 'File') {
     return false;
   }
 
-  return "stream" in val && typeof val.stream === "function";
+  return 'stream' in val && typeof val.stream === 'function';
 }

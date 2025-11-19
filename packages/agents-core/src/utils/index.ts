@@ -5,6 +5,7 @@ export * from './credential-store-utils';
 export * from './date';
 export * from './error';
 export * from './execution';
+export * from './format-messages';
 export * from './logger';
 export * from './mcp-client';
 export * from './schema-conversion';
