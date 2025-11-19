@@ -34,8 +34,9 @@ import { useAgentShortcuts } from '@/features/agent/ui/use-agent-shortcuts';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
-import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
+
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -128,7 +129,6 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
-  externalAgentLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const { isOpen: isCopilotChatOpen } = useCopilotContext();
@@ -425,83 +425,89 @@ export const Agent: FC<AgentProps> = ({
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = useCallback(async (options?: { fetchTools?: boolean }) => {
-    if (!agent?.id) {
-      return;
-    }
-
-    try {
-      const [agentResult, toolsResult] = await Promise.all([
-        getFullAgentAction(tenantId, projectId, agent.id),
-        options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
-      ]);
-
-      if (!agentResult.success) {
-        console.error('Failed to refresh agent graph:', agentResult.error);
+  const refreshAgentGraph = useCallback(
+    async (options?: { fetchTools?: boolean }) => {
+      if (!agent?.id) {
         return;
       }
-      const updatedAgent = agentResult.data;
 
-      // Update tool lookup if tools were fetched
-      const updatedToolLookup = 
-        toolsResult?.success ? createLookup(toolsResult.data) : toolLookup;
+      try {
+        const [fullProjectResult, toolsResult] = await Promise.all([
+          getFullProjectAction(tenantId, projectId),
+          options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
+        ]);
 
-      // Deserialize agent data to nodes and edges
-      const { nodes, edges } = deserializeAgentData(updatedAgent);
+        if (!fullProjectResult.success) {
+          console.error('Failed to refresh agent graph:', fullProjectResult.error);
+          return;
+        }
+        const fullProject = fullProjectResult.data;
+        const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
 
-      // Preserve selection state based on current URL state
-      const nodesWithSelection = nodeId
-        ? nodes.map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : nodes;
+        // Update tool lookup if tools were fetched
+        const updatedToolLookup = toolsResult?.success
+          ? createLookup(toolsResult.data)
+          : fullProject.tools || {};
 
-      const edgesWithSelection = edgeId
-        ? edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : edges;
+        // Deserialize agent data to nodes and edges
+        const { nodes, edges } = deserializeAgentData(updatedAgent);
 
-      // Extract metadata
-      const metadata = extractAgentMetadata(updatedAgent);
+        // Preserve selection state based on current URL state
+        const nodesWithSelection = nodeId
+          ? nodes.map((node) => ({
+              ...node,
+              selected: node.id === nodeId,
+            }))
+          : nodes;
 
-      // Recompute lookups from the updated agent data using shared helper functions
-      const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
-      const updatedSubAgentExternalAgentConfigLookup =
-        computeSubAgentExternalAgentConfigLookup(updatedAgent);
+        const edgesWithSelection = edgeId
+          ? edges.map((edge) => ({
+              ...edge,
+              selected: edge.id === edgeId,
+            }))
+          : edges;
 
-      // Update the store with the new graph using existing project-level lookups and recomputed agent-level lookups
-      setInitial(
-        enrichNodes(nodesWithSelection),
-        edgesWithSelection,
-        metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
-        updatedToolLookup,
-        updatedAgentToolConfigLookup,
-        externalAgentLookup,
-        updatedSubAgentExternalAgentConfigLookup
-      );
-    } catch (error) {
-      console.error('Failed to refresh agent graph:', error);
-    }
-  }, [
-    agent?.id,
-    tenantId,
-    projectId,
-    nodeId,
-    edgeId,
-    setInitial,
-    dataComponentLookup,
-    artifactComponentLookup,
-    toolLookup,
-    externalAgentLookup,
-    computeAgentToolConfigLookup,
-    computeSubAgentExternalAgentConfigLookup,
-    enrichNodes,
-  ]);
+        // Extract metadata
+        const metadata = extractAgentMetadata(updatedAgent);
+
+        // Create lookups from full project data
+        const updatedDataComponentLookup = fullProject.dataComponents || {};
+        const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
+        const updatedExternalAgentLookup = fullProject.externalAgents || {};
+
+        // Recompute agent-specific lookups from the updated agent data
+        const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
+        const updatedSubAgentExternalAgentConfigLookup =
+          computeSubAgentExternalAgentConfigLookup(updatedAgent);
+
+        // Update the store with all refreshed data
+        setInitial(
+          enrichNodes(nodesWithSelection),
+          edgesWithSelection,
+          metadata,
+          updatedDataComponentLookup as Record<string, DataComponent>,
+          updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
+          updatedToolLookup as unknown as Record<string, MCPTool>,
+          updatedAgentToolConfigLookup,
+          updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
+          updatedSubAgentExternalAgentConfigLookup
+        );
+      } catch (error) {
+        console.error('Failed to refresh agent graph:', error);
+      }
+    },
+    [
+      agent?.id,
+      tenantId,
+      projectId,
+      nodeId,
+      edgeId,
+      setInitial,
+      computeAgentToolConfigLookup,
+      computeSubAgentExternalAgentConfigLookup,
+      enrichNodes,
+    ]
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to add/connect edges once
   const onConnectWrapped: ReactFlowProps['onConnect'] = useCallback((params) => {
