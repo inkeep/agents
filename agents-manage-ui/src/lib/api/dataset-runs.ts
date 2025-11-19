@@ -1,3 +1,5 @@
+'use server';
+
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeEvalApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
