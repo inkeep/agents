@@ -178,7 +178,15 @@ app.openapi(
 
     try {
       const datasets = await listDatasets(dbClient)({ scopes: { tenantId, projectId } });
-      return c.json({ data: datasets as any }) as any;
+      return c.json({
+        data: datasets as any,
+        pagination: {
+          page: 1,
+          limit: datasets.length,
+          total: datasets.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list datasets');
       return c.json(
@@ -426,7 +434,15 @@ app.openapi(
       const items = await listDatasetItems(dbClient)({
         scopes: { tenantId, projectId, datasetId },
       });
-      return c.json({ data: items as any }) as any;
+      return c.json({
+        data: items as any,
+        pagination: {
+          page: 1,
+          limit: items.length,
+          total: items.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset items');
       return c.json(
@@ -600,7 +616,15 @@ app.openapi(
         { tenantId, projectId, datasetId, count: created.length },
         'Dataset items created'
       );
-      return c.json({ data: created as any }, 201) as any;
+      return c.json({
+        data: created as any,
+        pagination: {
+          page: 1,
+          limit: created.length,
+          total: created.length,
+          pages: 1,
+        },
+      }, 201) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset items');
       return c.json(
@@ -753,7 +777,15 @@ app.openapi(
 
     try {
       const evaluators = await listEvaluators(dbClient)({ scopes: { tenantId, projectId } });
-      return c.json({ data: evaluators as any }) as any;
+      return c.json({
+        data: evaluators as any,
+        pagination: {
+          page: 1,
+          limit: evaluators.length,
+          total: evaluators.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list evaluators');
       return c.json(
@@ -1001,7 +1033,15 @@ app.openapi(
       const configs = await listEvaluationSuiteConfigs(dbClient)({
         scopes: { tenantId, projectId },
       });
-      return c.json({ data: configs as any }) as any;
+      return c.json({
+        data: configs as any,
+        pagination: {
+          page: 1,
+          limit: configs.length,
+          total: configs.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list evaluation suite configs');
       return c.json(
@@ -1448,7 +1488,15 @@ app.openapi(
       const configs = await listEvaluationJobConfigs(dbClient)({
         scopes: { tenantId, projectId },
       });
-      return c.json({ data: configs as any }) as any;
+      return c.json({
+        data: configs as any,
+        pagination: {
+          page: 1,
+          limit: configs.length,
+          total: configs.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list evaluation job configs');
       return c.json(
@@ -2300,7 +2348,15 @@ app.openapi(
       const filteredConfigs = configs.filter(
         (config) => (config as any).datasetId === c.req.valid('param').datasetId
       );
-      return c.json({ data: filteredConfigs as any }) as any;
+      return c.json({
+        data: filteredConfigs as any,
+        pagination: {
+          page: 1,
+          limit: filteredConfigs.length,
+          total: filteredConfigs.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list dataset run configs');
       return c.json(
@@ -3089,7 +3145,15 @@ app.openapi(
         })
       );
 
-      return c.json({ data: runsWithNames as any }) as any;
+      return c.json({
+        data: runsWithNames as any,
+        pagination: {
+          page: 1,
+          limit: runsWithNames.length,
+          total: runsWithNames.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset runs');
       return c.json(
@@ -3374,7 +3438,15 @@ app.openapi(
         })
       );
 
-      return c.json({ data: configsWithSuiteConfigs as any }) as any;
+      return c.json({
+        data: configsWithSuiteConfigs as any,
+        pagination: {
+          page: 1,
+          limit: configsWithSuiteConfigs.length,
+          total: configsWithSuiteConfigs.length,
+          pages: 1,
+        },
+      }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId }, 'Failed to list evaluation run configs');
       return c.json(
