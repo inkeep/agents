@@ -16,6 +16,7 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   description?: string;
   readOnly?: boolean;
   isRequired?: boolean;
+  hasInPreview?: boolean;
 }
 
 export function JsonSchemaInput<T extends FieldValues>({
@@ -27,6 +28,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   description,
   readOnly,
   isRequired = false,
+  hasInPreview,
 }: JsonSchemaInputProps<T>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
@@ -53,7 +55,11 @@ export function JsonSchemaInput<T extends FieldValues>({
                 disabled={disabled}
               />
             ) : (
-              <JsonSchemaBuilder value={value} onChange={field.onChange} />
+              <JsonSchemaBuilder
+                value={value}
+                onChange={field.onChange}
+                hasInPreview={hasInPreview}
+              />
             )}
             <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">
               JSON

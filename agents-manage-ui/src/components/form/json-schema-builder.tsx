@@ -60,10 +60,13 @@ interface PropertyProps {
 
 const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
   const selector = useMemo(
-    () => (state: JsonSchemaStateData) => findFieldById(state.fields, fieldId),
+    () => (state: JsonSchemaStateData) => ({
+      field: findFieldById(state.fields, fieldId),
+      hasInPreview: state.hasInPreview,
+    }),
     [fieldId]
   );
-  const field = useJsonSchemaStore(selector);
+  const { field, hasInPreview } = useJsonSchemaStore(selector);
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -76,32 +79,33 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
 
   const inputs = (
     <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
-      {prefix || (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
-            <div>
-              <Checkbox
-              // checked={Boolean(field.isRequired)}
-              // onCheckedChange={(checked) =>
-              // updateField(field.id, { isRequired: checked === true })
-              // }
-              />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            Mark this field as{' '}
-            <a
-              target="_blank"
-              rel="noopener"
-              href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#how-to-create-an-artifact-component"
-              className="underline text-primary"
-            >
-              immediately available
-            </a>
-          </TooltipContent>
-        </Tooltip>
-      )}
+      {prefix ||
+        (hasInPreview && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+              <div>
+                <Checkbox
+                // checked={Boolean(field.isRequired)}
+                // onCheckedChange={(checked) =>
+                // updateField(field.id, { isRequired: checked === true })
+                // }
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              Mark this field as{' '}
+              <a
+                target="_blank"
+                rel="noopener"
+                href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#how-to-create-an-artifact-component"
+                className="underline text-primary"
+              >
+                immediately available
+              </a>
+            </TooltipContent>
+          </Tooltip>
+        ))}
       <PropertyIcon type={field.type} />
       <SelectType
         value={field.type}
@@ -250,16 +254,17 @@ const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   return <Icon className={cn('shrink-0', ClassToUse[type])} />;
 };
 
-export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string) => void }> = ({
-  value,
-  onChange,
-}) => {
+export const JsonSchemaBuilder: FC<{
+  value: string;
+  onChange: (newValue: string) => void;
+  hasInPreview?: boolean;
+}> = ({ value, onChange, hasInPreview }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const { addChild, setFields } = useJsonSchemaActions();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(parseFieldsFromJson(value));
+    setFields(parseFieldsFromJson(value), hasInPreview);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
@@ -279,7 +284,8 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
       <Table>
         <TableHeader>
           <TableRow noHover>
-            <TableHead className="w-[15%] text-center">Type</TableHead>
+            {hasInPreview && <TableHead className="w-px p-0">In Preview</TableHead>}
+            <TableHead className={hasInPreview ? 'w-1/10' : 'w-[15%] text-center'}>Type</TableHead>
             <TableHead className="w-[42%] text-center">Name</TableHead>
             <TableHead className="text-center">Description</TableHead>
             <TableHead className="w-px text-right">Required</TableHead>

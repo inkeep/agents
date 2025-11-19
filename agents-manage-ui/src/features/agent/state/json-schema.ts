@@ -1,6 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
 import { nanoid } from 'nanoid';
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -535,10 +535,11 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
 
 interface JsonSchemaStateData {
   fields: EditableField[];
+  hasInPreview: boolean;
 }
 
 interface JsonSchemaActions {
-  setFields: (fields: EditableField[]) => void;
+  setFields: (fields: EditableField[], hasInPreview?: boolean) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -550,64 +551,65 @@ interface JsonSchemaState extends JsonSchemaStateData {
   actions: JsonSchemaActions;
 }
 
-const jsonSchemaStore = create<JsonSchemaState>()(
-  devtools((set) => ({
-    fields: [],
-    actions: {
-      setFields(fields) {
-        set({ fields });
-      },
-      updateField(id, patch) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) => ({
-            ...candidate,
-            ...patch,
-          }));
-          return changed ? { fields } : state;
-        });
-      },
-      changeType(id, type) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-            changeEditableFieldType(candidate, type)
-          );
-          return changed ? { fields } : state;
-        });
-      },
-      addChild(parentId = ROOT_ID) {
-        set((state) => {
-          const child = createEditableField({
-            type: 'string',
-            id: `${parentId}.${nanoid()}`,
-          });
-          if (parentId === ROOT_ID) {
-            return { fields: [...state.fields, child] };
-          }
-          const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
-          return changed ? { fields } : state;
-        });
-      },
-      removeField(id) {
-        set((state) => {
-          const filtered = state.fields.filter((field) => field.id !== id);
-          if (filtered.length !== state.fields.length) {
-            return { fields: filtered };
-          }
-          const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
-          return changed ? { fields } : state;
-        });
-      },
-      updateEnumValues(id, values) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-            candidate.type === 'enum' ? { ...candidate, values } : candidate
-          );
-          return changed ? { fields } : state;
-        });
-      },
+const jsonSchemaState: StateCreator<JsonSchemaState> = (set) => ({
+  fields: [],
+  hasInPreview: false,
+  actions: {
+    setFields(fields, hasInPreview) {
+      set({ fields, hasInPreview });
     },
-  }))
-);
+    updateField(id, patch) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) => ({
+          ...candidate,
+          ...patch,
+        }));
+        return changed ? { fields } : state;
+      });
+    },
+    changeType(id, type) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+          changeEditableFieldType(candidate, type)
+        );
+        return changed ? { fields } : state;
+      });
+    },
+    addChild(parentId = ROOT_ID) {
+      set((state) => {
+        const child = createEditableField({
+          type: 'string',
+          id: `${parentId}.${nanoid()}`,
+        });
+        if (parentId === ROOT_ID) {
+          return { fields: [...state.fields, child] };
+        }
+        const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
+        return changed ? { fields } : state;
+      });
+    },
+    removeField(id) {
+      set((state) => {
+        const filtered = state.fields.filter((field) => field.id !== id);
+        if (filtered.length !== state.fields.length) {
+          return { fields: filtered };
+        }
+        const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
+        return changed ? { fields } : state;
+      });
+    },
+    updateEnumValues(id, values) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+          candidate.type === 'enum' ? { ...candidate, values } : candidate
+        );
+        return changed ? { fields } : state;
+      });
+    },
+  },
+});
+
+const jsonSchemaStore = create<JsonSchemaState>()(devtools(jsonSchemaState));
 
 /**
  * Actions are functions that update values in your store.

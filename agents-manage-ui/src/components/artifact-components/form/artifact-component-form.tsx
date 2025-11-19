@@ -98,7 +98,7 @@ export function ArtifactComponentForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-4xl mx-auto py-4 space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl mx-auto py-4 space-y-8">
           <GenericInput
             control={form.control}
             name="name"
@@ -114,9 +114,8 @@ export function ArtifactComponentForm({
             disabled={!!id}
             isRequired
             description={
-              id
-                ? ''
-                : 'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
+              !id &&
+              'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
             }
           />
           <GenericTextarea
@@ -133,6 +132,7 @@ export function ArtifactComponentForm({
             label="Properties"
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
+            hasInPreview
           />
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>
