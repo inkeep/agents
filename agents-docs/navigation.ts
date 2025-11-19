@@ -156,6 +156,16 @@ export default {
             'tutorials/mcp-servers/custom-mcp-servers',
           ],
         },
+        {
+          group: 'Connect Your Data',
+          icon: 'LuDatabase',
+          pages: [
+            'connect-your-data/overview',
+            'connect-your-data/inkeep',
+            'connect-your-data/context7',
+            'connect-your-data/ref',
+          ],
+        },
         'tutorials/upgrading',
       ],
     },
@@ -174,40 +184,6 @@ export default {
         'api-reference',
       ],
     },
-    /**
-     * TODO: Add back schema validation back in some way
-     */
-    // {
-    //   group: 'UI Components',
-    //   pages: ['ui-components/json-schema-validation'],
-    // },
-    /**
-     * TODO: Add back in and flesh out Connecting your data section
-     */
-    // {
-    //   group: 'Connecting your data',
-    //   pages: [
-    //     {
-    //       group: '3rd Party Tools',
-    //       pages: [
-    //         {
-    //           group: 'Data Scraping',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/exa',
-    //             'connecting-your-data/3rd-party-tools/firecrawl',
-    //           ],
-    //         },
-    //         {
-    //           group: 'Data Stores',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/Pinecone',
-    //             'connecting-your-data/3rd-party-tools/pgVector',
-    //           ],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // },
     {
       group: 'Self-Hosting',
       icon: 'LuServer',
