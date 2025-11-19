@@ -35,12 +35,14 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { fetchToolsAction } from '@/lib/actions/tools';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
 import type { MCPTool } from '@/lib/types/tools';
+import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
@@ -77,7 +79,7 @@ const CopilotChat = dynamic(() => import('./copilot/copilot-chat').then((mod) =>
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
   toolId: string;
-  toolSelection?: string[];
+  toolSelection?: string[] | null;
   headers?: Record<string, string>;
   toolPolicies?: Record<string, { needsApproval?: boolean }>;
 };
@@ -211,7 +213,7 @@ export const Agent: FC<AgentProps> = ({
                 toolId: tool.toolId,
               };
 
-              if (tool.toolSelection) {
+              if (tool.toolSelection !== undefined) {
                 config.toolSelection = tool.toolSelection;
               }
 
@@ -423,19 +425,26 @@ export const Agent: FC<AgentProps> = ({
   }, [showPlayground, isCopilotChatOpen, fitView]);
 
   // Callback function to fetch and update agent graph from copilot
-  const refreshAgentGraph = useCallback(async () => {
+  const refreshAgentGraph = useCallback(async (options?: { fetchTools?: boolean }) => {
     if (!agent?.id) {
-      console.log('No agentId available, skipping graph refresh');
       return;
     }
 
     try {
-      const result = await getFullAgentAction(tenantId, projectId, agent.id);
-      if (!result.success) {
-        console.error('Failed to refresh agent graph:', result.error);
+      const [agentResult, toolsResult] = await Promise.all([
+        getFullAgentAction(tenantId, projectId, agent.id),
+        options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
+      ]);
+
+      if (!agentResult.success) {
+        console.error('Failed to refresh agent graph:', agentResult.error);
         return;
       }
-      const updatedAgent = result.data;
+      const updatedAgent = agentResult.data;
+
+      // Update tool lookup if tools were fetched
+      const updatedToolLookup = 
+        toolsResult?.success ? createLookup(toolsResult.data) : toolLookup;
 
       // Deserialize agent data to nodes and edges
       const { nodes, edges } = deserializeAgentData(updatedAgent);
@@ -470,7 +479,7 @@ export const Agent: FC<AgentProps> = ({
         metadata,
         dataComponentLookup,
         artifactComponentLookup,
-        toolLookup,
+        updatedToolLookup,
         updatedAgentToolConfigLookup,
         externalAgentLookup,
         updatedSubAgentExternalAgentConfigLookup
@@ -914,7 +923,6 @@ export const Agent: FC<AgentProps> = ({
     toolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
-    externalAgentLookup,
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount

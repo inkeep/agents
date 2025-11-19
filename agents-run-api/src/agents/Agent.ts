@@ -586,12 +586,9 @@ export class Agent {
       const wrappedTools: ToolSet = {};
       for (const [index, toolSet] of tools.entries()) {
         const relationshipId = mcpTools[index]?.relationshipId;
-        for (const [toolName, toolDef] of Object.entries(toolSet)) {
+        for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
-          const needsApproval =
-            tools.find((result) => result.tools && toolName in result.tools)?.toolPolicies?.[
-              toolName
-            ]?.needsApproval || false;
+          const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
 
           const enhancedTool = {
             ...toolDef,

@@ -4,6 +4,7 @@ import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 import { IkpMessage } from './message-parts/message';
@@ -12,7 +13,7 @@ interface CopilotChatProps {
   agentId?: string;
   projectId: string;
   tenantId: string;
-  refreshAgentGraph: () => Promise<void>;
+  refreshAgentGraph: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
 const styleOverrides = `
@@ -31,6 +32,14 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
+
+  const { handleOAuthLogin } = useOAuthLogin({
+    tenantId,
+    projectId,
+    onFinish: () => {
+      refreshAgentGraph({ fetchTools: true });
+    },
+  });
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
@@ -131,6 +140,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
                         copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
                         runApiUrl: PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+                        targetTenantId: tenantId,
+                        targetProjectId: projectId,
+                        targetAgentId: agentId,
+                        onOAuthLogin: handleOAuthLogin,
                       }),
                   }
                 : {}),
