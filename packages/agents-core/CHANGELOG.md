@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.34.0
+
+### Patch Changes
+
+- 7f1b78a: fix linter errors
+
 ## 0.33.3
 
 ### Patch Changes

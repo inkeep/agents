@@ -1,5 +1,17 @@
 # @inkeep/agents-cli
 
+## 0.34.0
+
+### Patch Changes
+
+- 7f1b78a: fix linter errors
+- Updated dependencies [7f1b78a]
+- Updated dependencies [777d8ef]
+- Updated dependencies [8af5738]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-ui@0.34.0
+  - @inkeep/agents-sdk@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

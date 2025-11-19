@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-eval-mcp",
-  "version": "0.0.18",
+  "version": "0.34.0",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,

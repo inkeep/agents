@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-eval-api",
-  "version": "0.32.0",
+  "version": "0.34.0",
   "description": "Agents Evaluation API for Inkeep Agent Framework - handles evaluations, datasets, and evaluation runs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

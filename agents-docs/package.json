@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@inkeep/agents-ui": "^0.15.4",
-    "@inkeep/agents-cli": "^0.33.2",
+    "@inkeep/agents-cli": "^0.34.0",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",

@@ -1,5 +1,21 @@
 # @inkeep/agents-manage-ui
 
+## 0.34.0
+
+### Minor Changes
+
+- 8af5738: - should collapses when opening an agent page and re-expands when returning to other page
+  - should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
+
+### Patch Changes
+
+- 7f1b78a: fix linter errors
+- 777d8ef: UI improvements for Evaluations
+- Updated dependencies [7f1b78a]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-api@0.34.0
+  - @inkeep/agents-run-api@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes
