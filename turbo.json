@@ -3,6 +3,7 @@
   "ui": "tui",
   "globalDependencies": ["**/.env", "**/.env.local", "**/.env.*"],
   "globalEnv": [
+    "ENABLE_EXPERIMENTAL_COREPACK",
     "NODE_ENV",
     "CI",
     "TURBO_TOKEN",
