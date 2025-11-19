@@ -2,12 +2,22 @@ import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel, Provider } from 'ai';
 
 import { getLogger } from '../logger';
 
 const logger = getLogger('ModelFactory');
+
+// NVIDIA NIM default provider instance
+const nimDefault = createOpenAICompatible({
+  name: 'nim',
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.NIM_API_KEY}`,
+  },
+});
 
 export interface ModelSettings {
   model?: string;
@@ -42,6 +52,49 @@ export class ModelFactory {
         };
       case 'gateway':
         return createGateway(config);
+      case 'nim': {
+        // Merge custom config with default NIM configuration
+        const nimConfig = {
+          name: 'nim',
+          baseURL: 'https://integrate.api.nvidia.com/v1',
+          headers: {
+            Authorization: `Bearer ${process.env.NIM_API_KEY}`,
+          },
+          ...config,
+        };
+        return createOpenAICompatible(nimConfig);
+      }
+      case 'custom': {
+        // Custom OpenAI-compatible provider - requires baseURL in config
+        if (!config.baseURL && !config.baseUrl) {
+          throw new Error(
+            'Custom provider requires baseURL. Please provide it in providerOptions.baseURL or providerOptions.baseUrl'
+          );
+        }
+        const customConfig = {
+          name: 'custom',
+          baseURL: (config.baseURL || config.baseUrl) as string,
+          headers: {
+            ...(process.env.CUSTOM_LLM_API_KEY && {
+              Authorization: `Bearer ${process.env.CUSTOM_LLM_API_KEY}`,
+            }),
+            ...((config as any).headers || {}),
+          },
+          ...config,
+        };
+        logger.info(
+          {
+            config: {
+              baseURL: customConfig.baseURL,
+              hasApiKey: !!process.env.CUSTOM_LLM_API_KEY,
+              apiKeyPrefix: process.env.CUSTOM_LLM_API_KEY?.substring(0, 10) + '...',
+              headers: Object.keys(customConfig.headers || {}),
+            },
+          },
+          'Creating custom OpenAI-compatible provider'
+        );
+        return createOpenAICompatible(customConfig);
+      }
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -66,6 +119,14 @@ export class ModelFactory {
 
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
+    }
+
+    if (providerOptions.nim) {
+      Object.assign(providerConfig, providerOptions.nim);
+    }
+
+    if (providerOptions.custom) {
+      Object.assign(providerConfig, providerOptions.custom);
     }
 
     return providerConfig;
@@ -118,11 +179,17 @@ export class ModelFactory {
         return openrouter(modelName);
       case 'gateway':
         return gateway(modelName);
+      case 'nim':
+        return nimDefault(modelName);
+      case 'custom':
+        throw new Error(
+          'Custom provider requires configuration. Please provide baseURL in providerOptions.custom.baseURL or providerOptions.baseURL'
+        );
       default:
         throw new Error(
           `Unsupported provider: ${provider}. ` +
             `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
+            `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
         );
     }
   }
@@ -136,6 +203,8 @@ export class ModelFactory {
     'google',
     'openrouter',
     'gateway',
+    'nim',
+    'custom',
   ] as const;
 
   /**
@@ -153,7 +222,7 @@ export class ModelFactory {
         throw new Error(
           `Unsupported provider: ${normalizedProvider}. ` +
             `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-            `To access other models, use OpenRouter (openrouter/model-id) or Vercel AI Gateway (gateway/model-id).`
+            `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
         );
       }
 

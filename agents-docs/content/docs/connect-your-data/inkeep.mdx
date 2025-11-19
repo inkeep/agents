@@ -1,0 +1,82 @@
+---
+title: Connect Your Data with Inkeep
+sidebarTitle: Inkeep
+description: Learn how to connect your data sources to your agents using Inkeep's comprehensive knowledge base platform
+icon: "brand/Inkeep"
+keywords: Inkeep, knowledge base, data sources, MCP server, documentation integration, website indexing
+---
+
+Inkeep provides a comprehensive platform for connecting and managing your data sources. With support for 25+ data source types, Inkeep makes it easy to create a unified knowledge base that your agents can access.
+
+## Supported data sources
+
+Inkeep supports a wide variety of data sources:
+
+- **Documentation**: OpenAPI Spec, Plain text
+- **Collaboration**: Confluence, Notion, Slack, Discord, Discourse, Missive
+- **Code Repositories**: GitHub
+- **Cloud Storage**: Google Drive
+- **Websites**: Website crawling and indexing
+- **Video**: YouTube
+- **Support Systems**: 
+  - Freshdesk Tickets
+  - HelpScout Docs and Tickets
+  - Zendesk Knowledge Base, Tickets, and Help Center
+- **Project Management**: Jira
+
+## Getting started
+
+### Step 1: Set up your Inkeep account
+
+If you don't have an Inkeep account yet, you can:
+
+- [Try Inkeep on your content](https://inkeep.com/demo) - Test Inkeep with your own content
+- [Schedule a call](https://inkeep.com/schedule-demo) - Get personalized setup assistance
+
+### Step 2: Connect your data sources
+
+1. Log in to your Inkeep dashboard
+2. Navigate to the "Sources" tab
+3. Add and configure your desired data sources (websites, GitHub repos, Notion pages, etc.)
+4. Wait for Inkeep to index your content
+
+### Step 3: Get your MCP server URL
+
+Once your data sources are connected and indexed, obtain your Inkeep MCP server URL from your Inkeep dashboard. This URL will be used to register the MCP server with your agents.
+
+### Step 4: Register the MCP server
+
+Register your Inkeep MCP server as a tool in your agent configuration:
+
+**Using TypeScript SDK:**
+
+```typescript
+import { mcpTool, subAgent } from "@inkeep/agents-sdk";
+
+const inkeepTool = mcpTool({
+  id: "inkeep-knowledge-base",
+  name: "knowledge_base",
+  description: "Search the company knowledge base powered by Inkeep",
+  serverUrl: "YOUR_INKEEP_MCP_SERVER_URL", // From your Inkeep dashboard
+});
+
+const supportAgent = subAgent({
+  id: "support-agent",
+  name: "Support Agent",
+  description: "Answers questions using the company knowledge base",
+  prompt: `You are a support agent with access to the company knowledge base.`,
+  canUse: () => [inkeepTool],
+});
+```
+
+**Using Visual Builder:**
+
+1. Go to the **MCP Servers** tab in the Visual Builder
+2. Click "New MCP server"
+3. Select "Custom Server"
+4. Enter:
+   - **Name**: `Inkeep Knowledge Base`
+   - **URL**: Your Inkeep MCP server URL
+   - **Transport Type**: `Streamable HTTP`
+5. Save the server
+6. Add it to your agent by dragging it onto your agent canvas
