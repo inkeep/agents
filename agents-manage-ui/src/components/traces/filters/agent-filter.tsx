@@ -8,15 +8,15 @@ import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import { FilterTriggerComponent } from './filter-trigger';
 
 interface AgentFilterProps {
-  onSelect: (value: string | undefined) => void;
+  onSelect: (value?: string) => void;
   selectedValue: string | undefined;
 }
 
 export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
-  const { tenantId, projectId } = useParams() as {
+  const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
-  };
+  }>();
   const [agentOptions, setAgentOptions] = useState<OptionType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {

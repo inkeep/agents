@@ -53,9 +53,8 @@ const ExecutionLimitInheritanceInfo = () => {
 };
 
 function MetadataEditor() {
-  const params = useParams();
+  const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
-  const { agentId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
