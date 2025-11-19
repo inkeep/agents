@@ -4,7 +4,7 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "build": "next build --experimental-analyze",
+    "build": "next build",
     "dev": "next --turbo -p 3010",
     "start": "next start",
     "lint": "biome lint",
