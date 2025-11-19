@@ -29,8 +29,8 @@ export const DiffField = ({ originalValue, field, newValue }: DiffFieldProps) =>
         <TextDiff originalValue={originalValue} newValue={newValue} />
       ) : (
         <CodeDiff
-          originalValue={JSON.stringify(originalValue)}
-          newValue={JSON.stringify(newValue)}
+          originalValue={originalValue ? JSON.stringify(originalValue, null, 2) : ''}
+          newValue={JSON.stringify(newValue, null, 2)}
         />
       )}
     </div>

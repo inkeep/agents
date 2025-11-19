@@ -4,6 +4,7 @@ import type * as Monaco from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
+import { MonacoEditor } from '@/components/editors/monaco-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
@@ -29,6 +30,9 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   onMount,
   ...props
 }) => {
+  // If there's no original value, show a regular editor instead of a diff
+  const hasOriginalValue = originalValue && originalValue.trim() !== '';
+
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
@@ -36,21 +40,27 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   const isDark = useTheme().resolvedTheme === 'dark';
 
   useEffect(() => {
+    if (!hasOriginalValue) return;
+
     const originalModel = editorRef.current?.getOriginalEditor().getModel();
     if (originalModel && originalModel.getValue() !== originalValue) {
       originalModel.setValue(originalValue);
     }
-  }, [originalValue]);
+  }, [originalValue, hasOriginalValue]);
 
   useEffect(() => {
+    if (!hasOriginalValue) return;
+
     const modifiedModel = editorRef.current?.getModifiedEditor().getModel();
     if (modifiedModel && modifiedModel.getValue() !== newValue) {
       modifiedModel.setValue(newValue);
     }
-  }, [newValue]);
+  }, [newValue, hasOriginalValue]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Diff Editor (runs only on mount)
   useEffect(() => {
+    if (!hasOriginalValue) return;
+
     const container = containerRef.current;
     if (!container || !monaco) {
       return;
@@ -155,7 +165,14 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     onMount?.(diffEditor);
 
     return cleanupDisposables(disposables);
-  }, [monaco]);
+  }, [monaco, hasOriginalValue]);
+
+  if (!hasOriginalValue) {
+    modifiedUri ??= `new-code.json`;
+    return (
+      <MonacoEditor value={newValue} uri={modifiedUri} readOnly className={className} {...props} />
+    );
+  }
 
   return (
     <div
