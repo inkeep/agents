@@ -9,12 +9,16 @@
  * Simplified evaluator schemas to 3-4 output fields each
  *
  * This script seeds the database with a golden test set of:
- * - 1 dataset for inkeep-facts-project
- * - 10 dataset items for inkeep-facts-project
- * - 4 evaluators for inkeep-facts-project
+ * - 1 dataset
+ * - 10 dataset items
+ * - 4 evaluators
  *
  * Usage:
- *   pnpm tsx scripts/seed-golden-testset.ts
+ *   pnpm tsx scripts/seed-golden-testset.ts <projectId>
+ *   pnpm tsx scripts/seed-golden-testset.ts inkeep-facts-project
+ *
+ * Arguments:
+ *   projectId - The project ID to seed the data for (defaults to 'inkeep-facts-project')
  *
  * Set DATABASE_URL env var or it will use default from docker-compose
  */
@@ -29,19 +33,43 @@ import { createDatabaseClient } from '../packages/agents-core/src/index.js';
 const DATABASE_URL =
   process.env.DATABASE_URL || 'postgresql://appuser:password@localhost:5432/inkeep_agents';
 
+// Parse command-line arguments
+const args = process.argv.slice(2);
+const projectId = args[0] || 'inkeep-facts-project';
+
+// Show help if requested
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`
+Usage: pnpm tsx scripts/seed-golden-testset.ts [projectId]
+
+Arguments:
+  projectId    The project ID to seed the data for (default: inkeep-facts-project)
+
+Environment Variables:
+  DATABASE_URL Database connection string (default: postgresql://appuser:password@localhost:5432/inkeep_agents)
+
+Examples:
+  pnpm tsx scripts/seed-golden-testset.ts
+  pnpm tsx scripts/seed-golden-testset.ts my-custom-project
+  DATABASE_URL=postgresql://user:pass@host:5432/db pnpm tsx scripts/seed-golden-testset.ts my-project
+  `);
+  process.exit(0);
+}
+
 async function seedGoldenTestSet() {
   console.log('🌱 Seeding golden test set...');
   console.log(`   DATABASE_URL: ${DATABASE_URL.replace(/:[^:@]+@/, ':****@')}`);
+  console.log(`   Project ID: ${projectId}`);
 
   const db = createDatabaseClient({ connectionString: DATABASE_URL });
 
   try {
-    // Seed Datasets (only inkeep-facts-project)
+    // Seed Datasets
     console.log('\n📊 Seeding datasets...');
     const datasets = [
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: '0tasi8ottpspzyul3ef41',
         name: 'Golden Test Set',
         description: 'golden test set for inkeep facts agent',
@@ -70,12 +98,12 @@ async function seedGoldenTestSet() {
       }
     }
 
-    // Seed Dataset Items (only inkeep-facts-project)
+    // Seed Dataset Items
     console.log('\n📝 Seeding dataset items...');
     const datasetItems = [
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'mk5et71b9cvlct36uw3xl',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -93,7 +121,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'qu47gs4al3ra51zdgfxkt',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -117,7 +145,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'jjxuf4q3ua2if83kubk08',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -141,7 +169,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'v3bv756otruhr3hpbtvd8',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -165,7 +193,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: '2qm03tbncmipqxwzbyluz',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -189,7 +217,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'zzxpyi4patpxjmxein3e5',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -207,7 +235,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'c5p3jnkfw160phvcyzmia',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -235,7 +263,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: '02ma6gcbnyo5zea1uujf6',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -253,7 +281,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: '7jgekzpot4q0ff0rg2jwg',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -280,7 +308,7 @@ async function seedGoldenTestSet() {
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: '2rke8katm09otmt83pv8w',
         datasetId: '0tasi8ottpspzyul3ef41',
         input: {
@@ -345,12 +373,12 @@ async function seedGoldenTestSet() {
       }
     }
 
-    // Seed Evaluators (only inkeep-facts-project)
+    // Seed Evaluators
     console.log('\n⚡ Seeding evaluators...');
     const evaluators = [
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'completeness-evaluator',
         name: 'Completeness Evaluator',
         description:
@@ -389,12 +417,22 @@ async function seedGoldenTestSet() {
         model: {
           model: 'openai/gpt-4.1-nano',
         },
+        passCriteria: {
+          operator: 'and',
+          conditions: [
+            {
+              field: 'completenessScore',
+              operator: '>=',
+              value: 7,
+            },
+          ],
+        },
         createdAt: '2025-11-17 15:43:08.883',
         updatedAt: '2025-11-17 15:51:43.4',
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'clarity-evaluator',
         name: 'Clarity Evaluator',
         description:
@@ -433,12 +471,22 @@ async function seedGoldenTestSet() {
         model: {
           model: 'openai/gpt-4.1-nano',
         },
+        passCriteria: {
+          operator: 'and',
+          conditions: [
+            {
+              field: 'clarityScore',
+              operator: '>=',
+              value: 7,
+            },
+          ],
+        },
         createdAt: '2025-11-17 15:43:08.887',
         updatedAt: '2025-11-17 15:51:36.41',
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'hallucination-evaluator',
         name: 'Hallucination Evaluator',
         description:
@@ -470,12 +518,22 @@ async function seedGoldenTestSet() {
         model: {
           model: 'openai/gpt-4.1-nano',
         },
+        passCriteria: {
+          operator: 'and',
+          conditions: [
+            {
+              field: 'hallucinationScore',
+              operator: '>=',
+              value: 8,
+            },
+          ],
+        },
         createdAt: '2025-11-17 15:43:08.892',
         updatedAt: '2025-11-17 15:51:49.164',
       },
       {
         tenantId: 'default',
-        projectId: 'inkeep-facts-project',
+        projectId: projectId,
         id: 'zq1w8av7tzliq35uyp88e',
         name: 'Expected Output Similarity Evaluator',
         description:
@@ -514,6 +572,21 @@ async function seedGoldenTestSet() {
         model: {
           model: 'openai/gpt-4.1-nano',
         },
+        passCriteria: {
+          operator: 'or',
+          conditions: [
+            {
+              field: 'hasExpectedOutput',
+              operator: '=',
+              value: 0,
+            },
+            {
+              field: 'similarityScore',
+              operator: '>=',
+              value: 7,
+            },
+          ],
+        },
         createdAt: '2025-11-17 15:49:29.889',
         updatedAt: '2025-11-17 16:12:14.188',
       },
@@ -531,6 +604,7 @@ async function seedGoldenTestSet() {
           prompt: evaluatorRecord.prompt,
           schema: evaluatorRecord.schema as any,
           model: evaluatorRecord.model as any,
+          passCriteria: evaluatorRecord.passCriteria as any,
         });
         console.log(`   ✓ Evaluator: ${evaluatorRecord.name} (${evaluatorRecord.id})`);
       } catch (error: any) {

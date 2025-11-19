@@ -98,6 +98,7 @@ export type McpTool = {
   availableTools?: Array<AvailableTool> | undefined;
   status?: Status | undefined;
   version?: string | undefined;
+  expiresAt?: string | undefined;
   relationshipId?: string | undefined;
 };
 
@@ -108,6 +109,7 @@ export const McpTool$zodSchema: z.ZodType<McpTool, z.ZodTypeDef, unknown> = z.ob
   createdAt: z.string().optional(),
   credentialReferenceId: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  expiresAt: z.string().optional(),
   headers: z.any().nullable().optional(),
   id: z.string(),
   imageUrl: z.string().optional(),

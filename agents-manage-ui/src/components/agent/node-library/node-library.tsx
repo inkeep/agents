@@ -28,7 +28,7 @@ export default function NodeLibrary() {
         onClick={openCopilot}
       >
         <SparklesIcon />
-        Build with AI
+        Edit with AI
       </Button>
     </div>
   );
