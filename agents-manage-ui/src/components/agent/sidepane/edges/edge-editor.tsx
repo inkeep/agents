@@ -20,6 +20,8 @@ type RelationshipOptionProps = {
   checked: boolean;
 };
 
+const REMOVE_DELEGATION_OPTION_ID = 'none';
+
 function RelationshipOption({ id, label, onCheckedChange, checked }: RelationshipOptionProps) {
   return (
     <div className="flex items-start gap-3">
@@ -47,6 +49,7 @@ type RelationshipSectionProps = {
   checkedValues: A2AEdgeData['relationships'];
   useRadio?: boolean;
   onRadioChange?: (value: string) => void;
+  defaultRadioValue?: string;
 };
 
 function RelationshipSection({
@@ -58,12 +61,23 @@ function RelationshipSection({
   checkedValues,
   useRadio = false,
   onRadioChange,
+  defaultRadioValue,
 }: RelationshipSectionProps) {
   const getRadioValue = () => {
     const checkedOption = options.find(
-      (opt) => checkedValues?.[opt.id as keyof A2AEdgeData['relationships']]
+      (opt) =>
+        (!defaultRadioValue || opt.id !== defaultRadioValue) &&
+        checkedValues?.[opt.id as keyof A2AEdgeData['relationships']]
     );
-    return checkedOption?.id || '';
+    if (checkedOption) {
+      return checkedOption.id;
+    }
+    // If no option is checked, return defaultRadioValue if it exists in options
+    if (defaultRadioValue) {
+      const defaultOption = options.find((opt) => opt.id === defaultRadioValue);
+      return defaultOption ? defaultRadioValue : '';
+    }
+    return '';
   };
 
   return (
@@ -210,7 +224,10 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       delegateTargetToSource: false,
     };
 
-    if (value) {
+    if (value === REMOVE_DELEGATION_OPTION_ID) {
+      newRelationships.delegateSourceToTarget = false;
+      newRelationships.delegateTargetToSource = false;
+    } else if (value) {
       if (isSelfLoop && value === 'delegateSourceToTarget') {
         newRelationships.delegateSourceToTarget = true;
         newRelationships.delegateTargetToSource = true;
@@ -218,7 +235,6 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         newRelationships[value as keyof A2AEdgeData['relationships']] = true;
       }
     }
-
     updateRelationships(newRelationships);
   };
 
@@ -285,6 +301,10 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
             </div>
           ),
         },
+        {
+          id: REMOVE_DELEGATION_OPTION_ID,
+          label: <div className="my-0.5 leading-[22px]">None</div>,
+        },
       ]
     : [
         {
@@ -315,6 +335,10 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
             </div>
           ),
         },
+        {
+          id: REMOVE_DELEGATION_OPTION_ID,
+          label: <div className="my-0.5 leading-[22px]">None</div>,
+        },
       ];
 
   return (
@@ -337,6 +361,7 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         checkedValues={selectedEdge.data?.relationships as A2AEdgeData['relationships']}
         useRadio={true}
         onRadioChange={handleDelegateRadioChange}
+        defaultRadioValue={REMOVE_DELEGATION_OPTION_ID}
       />
       <Separator />
       <div className="flex justify-end">

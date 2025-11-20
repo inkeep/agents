@@ -18,6 +18,7 @@ program
   .option('--disable-git', 'Disable git initialization')
   .option('--local-agents-prefix <local-agents-prefix>', 'Local prefix for create-agents-template')
   .option('--local-templates-prefix <local-templates-prefix>', 'Local prefix for project templates')
+  .option('--skip-inkeep-cli', 'Skip installing Inkeep CLI globally')
   .parse();
 
 async function main() {
@@ -34,6 +35,7 @@ async function main() {
       disableGit: options.disableGit,
       localAgentsPrefix: options.localAgentsPrefix,
       localTemplatesPrefix: options.localTemplatesPrefix,
+      skipInkeepCli: options.skipInkeepCli,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

@@ -90,6 +90,7 @@ type FileConfig = {
   customProject?: boolean;
   disableGit?: boolean;
   localPrefix?: string;
+  installInkeepCLI?: boolean;
 };
 
 export const createAgents = async (
@@ -104,6 +105,7 @@ export const createAgents = async (
     disableGit?: boolean;
     localAgentsPrefix?: string;
     localTemplatesPrefix?: string;
+    skipInkeepCli?: boolean;
   } = {}
 ) => {
   let {
@@ -116,7 +118,11 @@ export const createAgents = async (
     disableGit,
     localAgentsPrefix,
     localTemplatesPrefix,
+    skipInkeepCli,
   } = args;
+
+  console.log('skipInkeepCli', skipInkeepCli);
+
   const tenantId = 'default';
 
   let projectId: string;
@@ -330,6 +336,15 @@ export const createAgents = async (
 
     s.stop();
 
+    if (!skipInkeepCli) {
+      const installInkeepCLIResponse = await p.confirm({
+        message: 'Would you like to install the Inkeep CLI globally?',
+      });
+      if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+        await installInkeepCLIGlobally();
+      }
+    }
+
     p.note(
       `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
@@ -432,6 +447,31 @@ export const myProject = project({
   models: ${JSON.stringify(config.modelSettings, null, 2)},
 });`;
     await fs.writeFile(`src/projects/${config.projectId}/index.ts`, customIndexContent);
+  }
+}
+
+async function installInkeepCLIGlobally() {
+  const s = p.spinner();
+  s.start('Installing Inkeep CLI globally with pnpm...');
+
+  try {
+    await execAsync('pnpm add -g @inkeep/agents-cli');
+    s.stop('✓ Inkeep CLI installed successfully with pnpm');
+    return;
+  } catch (_pnpmError) {
+    s.message('pnpm failed, trying npm...');
+
+    try {
+      await execAsync('npm install -g @inkeep/agents-cli');
+      s.stop('✓ Inkeep CLI installed successfully with npm');
+      return;
+    } catch (_npmError) {
+      s.stop('⚠️  Could not automatically install Inkeep CLI globally');
+      console.warn('You can install it manually later by running:');
+      console.warn('  npm install -g @inkeep/agents-cli');
+      console.warn('  or');
+      console.warn('  pnpm add -g @inkeep/agents-cli\n');
+    }
   }
 }
 

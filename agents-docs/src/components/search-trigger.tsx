@@ -2,14 +2,12 @@
 
 import clsx from 'clsx';
 import { SearchIcon } from 'lucide-react';
-import { type ButtonHTMLAttributes, useEffect, useState } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import { Kbd } from '@/components/kbd';
+import { useIsMounted } from './hooks/use-is-mounted';
 
 export function SearchToggle(props: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useIsMounted();
   return (
     <button
       type="button"
