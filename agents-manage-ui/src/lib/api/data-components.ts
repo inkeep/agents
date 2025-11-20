@@ -18,8 +18,8 @@ import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
-// Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
-export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
+// Note: DataComponentApiSelect might have nullable props and render, but UI expects specific types
+export type DataComponent = Omit<DataComponentApiSelect, 'props' | 'render'> & {
   props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
   render?: {
     component: string;
@@ -41,12 +41,13 @@ export async function fetchDataComponents(
     `tenants/${tenantId}/projects/${projectId}/data-components`
   );
 
-  // Transform the response to ensure props is non-nullable
+  // Transform the response to ensure props is non-nullable and render has correct type
   return {
     ...response,
     data: response.data.map((item) => ({
       ...item,
       props: item.props || {},
+      render: item.render as { component: string; mockData: Record<string, unknown> } | null | undefined,
     })),
   };
 }
@@ -66,10 +67,11 @@ export async function fetchDataComponent(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
   );
 
-  // Transform the response to ensure props is non-nullable
+  // Transform the response to ensure props is non-nullable and render has correct type
   return {
     ...response.data,
     props: response.data.props || {},
+    render: response.data.render as { component: string; mockData: Record<string, unknown> } | null | undefined,
   };
 }
 
@@ -92,10 +94,11 @@ export async function createDataComponent(
     }
   );
 
-  // Transform the response to ensure props is non-nullable
+  // Transform the response to ensure props is non-nullable and render has correct type
   return {
     ...response.data,
     props: response.data.props || {},
+    render: response.data.render as { component: string; mockData: Record<string, unknown> } | null | undefined,
   };
 }
 
@@ -118,10 +121,11 @@ export async function updateDataComponent(
     }
   );
 
-  // Transform the response to ensure props is non-nullable
+  // Transform the response to ensure props is non-nullable and render has correct type
   return {
     ...response.data,
     props: response.data.props || {},
+    render: response.data.render as { component: string; mockData: Record<string, unknown> } | null | undefined,
   };
 }
 

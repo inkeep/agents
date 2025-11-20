@@ -486,6 +486,9 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.5
         version: 0.69.9
+      ai:
+        specifier: ^5.0.11
+        version: 5.0.11(zod@4.1.12)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
