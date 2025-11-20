@@ -340,11 +340,28 @@ export const createAgents = async (
     s.stop();
 
     if (!skipInkeepCli) {
-      const installInkeepCLIResponse = await p.confirm({
-        message: 'Would you like to install the Inkeep CLI globally?',
-      });
-      if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
-        await installInkeepCLIGlobally();
+      let isGloballyInstalled = false;
+
+      try {
+        const { stdout } = await execAsync('pnpm list -g @inkeep/agents-cli --json');
+        const result = JSON.parse(stdout);
+        isGloballyInstalled = result?.[0]?.dependencies?.['@inkeep/agents-cli'] !== undefined;
+      } catch (_error) {
+        try {
+          await execAsync('npm list -g @inkeep/agents-cli');
+          isGloballyInstalled = true;
+        } catch (_npmError) {
+          isGloballyInstalled = false;
+        }
+      }
+
+      if (!isGloballyInstalled) {
+        const installInkeepCLIResponse = await p.confirm({
+          message: 'Would you like to install the Inkeep CLI globally?',
+        });
+        if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+          await installInkeepCLIGlobally();
+        }
       }
     }
 
