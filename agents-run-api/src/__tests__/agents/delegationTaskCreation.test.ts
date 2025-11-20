@@ -1,7 +1,7 @@
-import { createTask, generateId, subAgents, tasks } from '@inkeep/agents-core';
+import { agents, createTask, generateId, subAgents, tasks } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
-import { ensureTestProject } from '../utils/testProject';
 
 describe('Delegation Task Creation Fixes', () => {
   const tenantId = 'math-tenant';
@@ -10,7 +10,7 @@ describe('Delegation Task Creation Fixes', () => {
 
   beforeAll(async () => {
     // Ensure project exists for this tenant
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Import necessary modules
     const { agents: agent } = await import('@inkeep/agents-core');
@@ -59,9 +59,10 @@ describe('Delegation Task Creation Fixes', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
+    // Clean up test data in reverse order of creation
     await dbClient.delete(tasks);
     await dbClient.delete(subAgents);
+    await dbClient.delete(agents);
   });
 
   it('should create tasks with correct contextId and message content', async () => {

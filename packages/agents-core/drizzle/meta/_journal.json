@@ -8,6 +8,13 @@
       "when": 1762892536683,
       "tag": "0000_exotic_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763651358903,
+      "tag": "0001_fair_malice",
+      "breakpoints": true
     }
   ]
 }

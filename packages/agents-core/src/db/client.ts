@@ -4,7 +4,6 @@ import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../env';
 import * as schema from './schema';
-import { createTestDatabaseClientNoMigrations } from './test-client';
 
 loadEnvironmentFiles();
 
@@ -25,10 +24,6 @@ export interface DatabaseConfig {
  */
 export function createDatabaseClient(config: DatabaseConfig = {}): DatabaseClient {
   const connectionString = config.connectionString || process.env.DATABASE_URL;
-
-  if (env.ENVIRONMENT === 'test') {
-    return createTestDatabaseClientNoMigrations();
-  }
 
   if (!connectionString) {
     throw new Error(

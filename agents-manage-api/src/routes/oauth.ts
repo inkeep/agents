@@ -13,7 +13,6 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
-  type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
   generateId,
@@ -21,11 +20,11 @@ import {
   getToolById,
   OAuthCallbackQuerySchema,
   OAuthLoginQuerySchema,
-  type ServerConfig,
   updateTool,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import type { PublicAppVariablesWithServerConfig } from '../types/app';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
 
 /**
@@ -66,12 +65,7 @@ async function findOrCreateCredential(
   }
 }
 
-type AppVariables = {
-  serverConfig: ServerConfig;
-  credentialStores: CredentialStoreRegistry;
-};
-
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+const app = new OpenAPIHono<{ Variables: PublicAppVariablesWithServerConfig }>();
 const logger = getLogger('oauth-callback');
 
 /**

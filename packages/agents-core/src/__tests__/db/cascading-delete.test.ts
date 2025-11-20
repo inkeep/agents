@@ -29,7 +29,7 @@ import {
   tasks,
   tools,
 } from '../../db/schema';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { createTestDatabaseClient, createTestProject } from '../../db/test-client';
 import { generateId } from '../../utils/conversations';
 
 describe('Cascading Delete Tests', () => {
@@ -66,14 +66,8 @@ describe('Cascading Delete Tests', () => {
   });
 
   it('should cascade delete all project-related resources when project is deleted', async () => {
-    // Create a project
-    const project = {
-      tenantId,
-      id: projectId,
-      name: 'Test Project',
-      description: 'Test project for cascading delete',
-    };
-    await dbClient.insert(projects).values(project);
+    // Create a project (with organization)
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Create an agent first
     const agentId = generateId();
@@ -418,21 +412,9 @@ describe('Cascading Delete Tests', () => {
     const project1Id = generateId();
     const project2Id = generateId();
 
-    // Create two projects
-    await dbClient.insert(projects).values([
-      {
-        tenantId,
-        id: project1Id,
-        name: 'Project 1',
-        description: 'First project',
-      },
-      {
-        tenantId,
-        id: project2Id,
-        name: 'Project 2',
-        description: 'Second project',
-      },
-    ]);
+    // Create two projects (with organization)
+    await createTestProject(dbClient, tenantId, project1Id);
+    await createTestProject(dbClient, tenantId, project2Id);
 
     // Create agents for both projects
     const agent1Id = generateId();

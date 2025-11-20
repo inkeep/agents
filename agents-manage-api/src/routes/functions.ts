@@ -4,7 +4,6 @@ import {
   createApiError,
   deleteFunction,
   FunctionApiInsertSchema,
-  FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   FunctionListResponse,
   FunctionResponse,
@@ -18,10 +17,30 @@ import {
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('functions');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ function: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ function: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ function: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

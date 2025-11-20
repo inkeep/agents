@@ -16,10 +16,29 @@ import {
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('projectFull');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/project-full', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ project: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/project-full/:projectId', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ project: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ project: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -65,7 +84,6 @@ app.openapi(
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
-    console.log('validatedProjectData', validatedProjectData);
     try {
       const createdProject = await createFullProjectServerSide(dbClient, logger)(
         { tenantId, projectId: validatedProjectData.id },

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createTestTenantId, createTestTenantIds, isTestTenant } from './testTenant';
+import {
+  createTestOrganization,
+  createTestTenantId,
+  createTestTenantIds,
+  createTestTenantWithOrg,
+  isTestTenant,
+} from './testTenant';
 
 describe('Test Tenant Utilities', () => {
   describe('createTestTenantId', () => {
@@ -46,7 +52,7 @@ describe('Test Tenant Utilities', () => {
       const tenantIds = createTestTenantIds(3);
 
       expect(tenantIds).toHaveLength(3);
-      expect(new Set(tenantIds).size).toBe(3); // All should be unique
+      expect(new Set(tenantIds).size).toBe(3);
 
       for (const tenantId of tenantIds) {
         expect(tenantId).toMatch(/^test-tenant-/);
@@ -62,11 +68,31 @@ describe('Test Tenant Utilities', () => {
       const tenantIds = createTestTenantIds(3, 'agents');
 
       expect(tenantIds).toHaveLength(3);
-      expect(new Set(tenantIds).size).toBe(3); // All should be unique
+      expect(new Set(tenantIds).size).toBe(3);
 
       for (const tenantId of tenantIds) {
         expect(tenantId).toMatch(/^test-tenant-agents-/);
       }
+    });
+  });
+
+  describe('createTestOrganization', () => {
+    it('should create an organization in the database', async () => {
+      const tenantId = createTestTenantId('org-test');
+      const org = await createTestOrganization(tenantId);
+
+      expect(org).toBeDefined();
+      expect(org?.id).toBe(tenantId);
+      expect(org?.name).toContain('Test Organization');
+    });
+  });
+
+  describe('createTestTenantWithOrg', () => {
+    it('should create tenant ID and organization', async () => {
+      const tenantId = await createTestTenantWithOrg('with-org');
+
+      expect(tenantId).toMatch(/^test-tenant-with-org-/);
+      expect(isTestTenant(tenantId)).toBe(true);
     });
   });
 
@@ -92,15 +118,12 @@ describe('Test Tenant Utilities', () => {
 
   describe('parallel execution safety', () => {
     it('should generate unique IDs when called in parallel', async () => {
-      // Simulate parallel test execution
-      const promises = Array.from({ length: 10 }, () => Promise.resolve(createTestTenantId()));
+      const promises = Array.from({ length: 10 }, () => createTestTenantWithOrg());
 
       const tenantIds = await Promise.all(promises);
 
-      // All should be unique
       expect(new Set(tenantIds).size).toBe(10);
 
-      // All should be test tenants
       for (const tenantId of tenantIds) {
         expect(isTestTenant(tenantId)).toBe(true);
       }

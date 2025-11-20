@@ -8,9 +8,9 @@ import {
   subAgents,
   tasks,
 } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
-import { ensureTestProject } from '../utils/testProject';
 
 /**
  * Integration tests for the ledger artifact helper functions.
@@ -30,7 +30,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Create agent first
     const agentId = 'test-agent';

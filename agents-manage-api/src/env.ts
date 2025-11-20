@@ -13,6 +13,25 @@ const envSchema = z.object({
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
   NANGO_SECRET_KEY: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
+  BETTER_AUTH_SECRET: z.string().optional(),
+  TENANT_ID: z.string().optional().default('default'),
+  INKEEP_AGENTS_MANAGE_UI_USERNAME: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: 'Invalid email address',
+    }),
+  INKEEP_AGENTS_MANAGE_UI_PASSWORD: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.length >= 8, {
+      message: 'Password must be at least 8 characters',
+    }),
+  DISABLE_AUTH: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((val) => val === 'true'),
 });
 
 const parseEnv = () => {

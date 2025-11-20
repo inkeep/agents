@@ -15,6 +15,7 @@ import {
 import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
+import { createTestOrganization } from '../../../db/test-client';
 import { testDbClient } from '../../setup';
 import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';
 
@@ -27,9 +28,13 @@ describe('Agent Agent Data Access - Integration Tests', () => {
     // Use shared database client (migrations already applied once in setup.ts)
     db = testDbClient;
 
-    // Create test projects for all tenant IDs used in tests
+    // Create test organizations and projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
+      // First ensure organization exists
+      await createTestOrganization(db, tenantId);
+
+      // Then create project
       await db
         .insert(schema.projects)
         .values({
