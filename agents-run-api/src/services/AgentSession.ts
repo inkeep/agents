@@ -1039,9 +1039,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           });
 
           const result = object as any;
+          logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
           for (const [componentId, data] of Object.entries(result)) {
+            logger.info({ componentId, data: JSON.stringify(data) }, 'DEBUG: Component data');
+            // await new Promise((resolve) => setTimeout(resolve, 100000));
             if (componentId === 'no_relevant_updates') {
               continue;
             }
@@ -1704,11 +1707,12 @@ export class AgentSessionManager {
   initializeStatusUpdates(
     sessionId: string,
     config: StatusUpdateSettings,
-    summarizerModel?: ModelSettings
+    summarizerModel?: ModelSettings,
+    baseModel?: ModelSettings
   ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.initializeStatusUpdates(config, summarizerModel);
+      session.initializeStatusUpdates(config, summarizerModel, baseModel);
     } else {
       logger.error(
         {
