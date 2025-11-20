@@ -1,0 +1,50 @@
+{
+  "name": "@inkeep/agents-eval-mcp",
+  "version": "0.0.18",
+  "author": "Speakeasy",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "@inkeep/agents-eval-mcp": "bin/mcp-server.js",
+    "mcp": "bin/mcp-server.js"
+  },
+  "scripts": {
+    "build": "bun i && bun src/mcp-server/build.mts && tsc",
+    "check": "npm run lint",
+    "lint": "eslint --cache --max-warnings=0 src",
+    "prepublishOnly": "npm run build",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
+    "fetch-openapi": "node scripts/fetch-openapi.mjs",
+    "generate": "node scripts/generate.mjs",
+    "watch": "node scripts/watch-and-fetch.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@stricli/core": "^1.1.2",
+    "bun": "^1.2.12",
+    "express": "^5.1.0",
+    "zod": "^3.25.7"
+  },
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^1.2.0",
+    "@eslint/js": "^9.26.0",
+    "@types/bun": "^1.2.13",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.20",
+    "eslint": "^9.26.0",
+    "globals": "^16.0.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.31.1",
+    "dotenv": "^16.4.7",
+    "find-up": "^7.0.0"
+  },
+  "main": "./esm/index.js",
+  "types": "./esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./esm/index.d.ts",
+      "import": "./esm/index.js"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"teamagent.js","sourceRoot":"","sources":["../../src/models/teamagent.ts"],"names":[],"mappings":"AAAA;;GAEG;AAEH,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAIzB,MAAM,CAAC,MAAM,mBAAmB,GAC9B,CAAC,CAAC,MAAM,CAAC;IACP,WAAW,EAAE,CAAC,CAAC,MAAM,EAAE;IACvB,EAAE,EAAE,CAAC,CAAC,MAAM,EAAE;IACd,IAAI,EAAE,CAAC,CAAC,MAAM,EAAE;CACjB,CAAC,CAAC"}
