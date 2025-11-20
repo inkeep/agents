@@ -13910,6 +13910,7 @@
     "/tenants/{tenantId}/projects/{projectId}/data-components/{id}/generate-render-sync": {
       "post": {
         "summary": "Generate Data Component Render (Synchronous)",
+        "description": "Used to generate a UI component for a given data component",
         "operationId": "generate-data-component-render-sync",
         "tags": [
           "Data Component"

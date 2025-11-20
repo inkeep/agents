@@ -12,7 +12,9 @@ const args = {
 
 export const tool$dataComponentGenerateDataComponentRenderSync: ToolDefinition<typeof args> = {
   name: 'data-component-generate-data-component-render-sync',
-  description: `Generate Data Component Render (Synchronous)`,
+  description: `Generate Data Component Render (Synchronous)
+
+Used to generate a UI component for a given data component`,
   annotations: {
     title: '',
     destructiveHint: false,

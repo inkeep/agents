@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "",
   "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
   "author": {
@@ -310,7 +310,7 @@
     },
     {
       "name": "data-component-generate-data-component-render-sync",
-      "description": "Generate Data Component Render (Synchronous)"
+      "description": "Generate Data Component Render (Synchronous)\n\nUsed to generate a UI component for a given data component"
     },
     {
       "name": "external-agents-list-external-agents",

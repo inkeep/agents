@@ -34,6 +34,9 @@ export enum GenerateDataComponentRenderSyncAcceptEnum {
 
 /**
  * Generate Data Component Render (Synchronous)
+ *
+ * @remarks
+ * Used to generate a UI component for a given data component
  */
 export function dataComponentGenerateDataComponentRenderSync(
   client$: InkeepAgentsCore,
