@@ -17,13 +17,21 @@ import {
   updateFullAgentServerSide,
 } from './agentFull';
 import { listAgents } from './agents';
-import { listArtifactComponents, upsertArtifactComponent } from './artifactComponents';
-import { listCredentialReferences, upsertCredentialReference } from './credentialReferences';
-import { listDataComponents, upsertDataComponent } from './dataComponents';
-import { listExternalAgents, upsertExternalAgent } from './externalAgents';
-import { upsertFunction } from './functions';
+import {
+  deleteArtifactComponent,
+  listArtifactComponents,
+  upsertArtifactComponent,
+} from './artifactComponents';
+import {
+  deleteCredentialReference,
+  listCredentialReferences,
+  upsertCredentialReference,
+} from './credentialReferences';
+import { deleteDataComponent, listDataComponents, upsertDataComponent } from './dataComponents';
+import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
+import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import { listTools, upsertTool } from './tools';
+import { deleteTool, listTools, upsertTool } from './tools';
 
 const defaultLogger = getLogger('projectFull');
 
@@ -789,6 +797,218 @@ export const updateFullProjectServerSide =
         );
       }
 
+      const incomingToolIds = new Set(Object.keys(typed.tools || {}));
+      const existingToolsResult = await listTools(db)({
+        scopes: { tenantId, projectId: typed.id },
+        pagination: { page: 1, limit: 1000 },
+      });
+      const existingTools = existingToolsResult.data;
+
+      let deletedToolCount = 0;
+      for (const tool of existingTools) {
+        if (!incomingToolIds.has(tool.id)) {
+          try {
+            await deleteTool(db)({
+              toolId: tool.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedToolCount++;
+            logger.info({ toolId: tool.id }, 'Deleted orphaned tool from project');
+          } catch (error) {
+            logger.error({ toolId: tool.id, error }, 'Failed to delete orphaned tool from project');
+          }
+        }
+      }
+
+      if (deletedToolCount > 0) {
+        logger.info(
+          {
+            deletedToolCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned tools from project'
+        );
+      }
+
+      const incomingFunctionIds = new Set(Object.keys(typed.functions || {}));
+      const existingFunctions = await listFunctions(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      let deletedFunctionCount = 0;
+      for (const func of existingFunctions) {
+        if (!incomingFunctionIds.has(func.id)) {
+          try {
+            await deleteFunction(db)({
+              functionId: func.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedFunctionCount++;
+            logger.info({ functionId: func.id }, 'Deleted orphaned function from project');
+          } catch (error) {
+            logger.error(
+              { functionId: func.id, error },
+              'Failed to delete orphaned function from project'
+            );
+          }
+        }
+      }
+
+      if (deletedFunctionCount > 0) {
+        logger.info(
+          {
+            deletedFunctionCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned functions from project'
+        );
+      }
+
+      const incomingCredentialReferenceIds = new Set(Object.keys(typed.credentialReferences || {}));
+      const existingCredentialReferences = await listCredentialReferences(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      let deletedCredentialReferenceCount = 0;
+      for (const credRef of existingCredentialReferences) {
+        if (!incomingCredentialReferenceIds.has(credRef.id)) {
+          try {
+            await deleteCredentialReference(db)({
+              id: credRef.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedCredentialReferenceCount++;
+            logger.info(
+              { credentialReferenceId: credRef.id },
+              'Deleted orphaned credentialReference from project'
+            );
+          } catch (error) {
+            logger.error(
+              { credentialReferenceId: credRef.id, error },
+              'Failed to delete orphaned credentialReference from project'
+            );
+          }
+        }
+      }
+
+      if (deletedCredentialReferenceCount > 0) {
+        logger.info(
+          {
+            deletedCredentialReferenceCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned credentialReferences from project'
+        );
+      }
+
+      const incomingExternalAgentIds = new Set(Object.keys(typed.externalAgents || {}));
+      const existingExternalAgents = await listExternalAgents(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      let deletedExternalAgentCount = 0;
+      for (const extAgent of existingExternalAgents) {
+        if (!incomingExternalAgentIds.has(extAgent.id)) {
+          try {
+            await deleteExternalAgent(db)({
+              externalAgentId: extAgent.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedExternalAgentCount++;
+            logger.info(
+              { externalAgentId: extAgent.id },
+              'Deleted orphaned externalAgent from project'
+            );
+          } catch (error) {
+            logger.error(
+              { externalAgentId: extAgent.id, error },
+              'Failed to delete orphaned externalAgent from project'
+            );
+          }
+        }
+      }
+
+      if (deletedExternalAgentCount > 0) {
+        logger.info(
+          {
+            deletedExternalAgentCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned externalAgents from project'
+        );
+      }
+
+      const incomingDataComponentIds = new Set(Object.keys(typed.dataComponents || {}));
+      const existingDataComponents = await listDataComponents(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      let deletedDataComponentCount = 0;
+      for (const dataComp of existingDataComponents) {
+        if (!incomingDataComponentIds.has(dataComp.id)) {
+          try {
+            await deleteDataComponent(db)({
+              dataComponentId: dataComp.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedDataComponentCount++;
+            logger.info({ dataComponentId: dataComp.id }, 'Deleted orphaned dataComponent from project');
+          } catch (error) {
+            logger.error(
+              { dataComponentId: dataComp.id, error },
+              'Failed to delete orphaned dataComponent from project'
+            );
+          }
+        }
+      }
+
+      if (deletedDataComponentCount > 0) {
+        logger.info(
+          {
+            deletedDataComponentCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned dataComponents from project'
+        );
+      }
+
+      const incomingArtifactComponentIds = new Set(Object.keys(typed.artifactComponents || {}));
+      const existingArtifactComponents = await listArtifactComponents(db)({
+        scopes: { tenantId, projectId: typed.id },
+      });
+
+      let deletedArtifactComponentCount = 0;
+      for (const artifactComp of existingArtifactComponents) {
+        if (!incomingArtifactComponentIds.has(artifactComp.id)) {
+          try {
+            await deleteArtifactComponent(db)({
+              id: artifactComp.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedArtifactComponentCount++;
+            logger.info(
+              { artifactComponentId: artifactComp.id },
+              'Deleted orphaned artifactComponent from project'
+            );
+          } catch (error) {
+            logger.error(
+              { artifactComponentId: artifactComp.id, error },
+              'Failed to delete orphaned artifactComponent from project'
+            );
+          }
+        }
+      }
+
+      if (deletedArtifactComponentCount > 0) {
+        logger.info(
+          {
+            deletedArtifactComponentCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned artifactComponents from project'
+        );
+      }
+
       const incomingAgentIds = new Set(Object.keys(typed.agents || {}));
 
       const existingAgents = await listAgents(db)({
@@ -1062,39 +1282,26 @@ export const getFullProject =
 
       const projectFunctions: Record<string, any> = {};
       try {
-        // Get all function tools with their associated function data by joining the tables
-        const functionToolsWithFunctions = await db
-          .select({
-            functionToolId: functionTools.id,
-            functionToolName: functionTools.name,
-            functionToolDescription: functionTools.description,
-            functionId: functions.id,
-            inputSchema: functions.inputSchema,
-            executeCode: functions.executeCode,
-            dependencies: functions.dependencies,
-          })
-          .from(functionTools)
-          .innerJoin(functions, eq(functionTools.functionId, functions.id))
-          .where(and(eq(functionTools.tenantId, tenantId), eq(functionTools.projectId, projectId)));
+        const functionsList = await listFunctions(db)({
+          scopes: { tenantId, projectId },
+        });
 
-        for (const item of functionToolsWithFunctions) {
-          projectFunctions[item.functionToolId] = {
-            id: item.functionId,
-            name: item.functionToolName,
-            description: item.functionToolDescription,
-            inputSchema: item.inputSchema,
-            executeCode: item.executeCode,
-            dependencies: item.dependencies,
+        for (const func of functionsList) {
+          projectFunctions[func.id] = {
+            id: func.id,
+            inputSchema: func.inputSchema,
+            executeCode: func.executeCode,
+            dependencies: func.dependencies,
           };
         }
         logger.info(
           { tenantId, projectId, functionCount: Object.keys(projectFunctions).length },
-          'Function tools with function data retrieved for project'
+          'Functions retrieved for project'
         );
       } catch (error) {
         logger.warn(
           { tenantId, projectId, error },
-          'Failed to retrieve function tools for project'
+          'Failed to retrieve functions for project'
         );
       }
 
