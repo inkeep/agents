@@ -90,6 +90,7 @@ type FileConfig = {
   customProject?: boolean;
   disableGit?: boolean;
   localPrefix?: string;
+  installInkeepCLI?: boolean;
 };
 
 export const createAgents = async (
@@ -104,6 +105,7 @@ export const createAgents = async (
     disableGit?: boolean;
     localAgentsPrefix?: string;
     localTemplatesPrefix?: string;
+    skipInkeepCli?: boolean;
   } = {}
 ) => {
   let {
@@ -116,7 +118,11 @@ export const createAgents = async (
     disableGit,
     localAgentsPrefix,
     localTemplatesPrefix,
+    skipInkeepCli,
   } = args;
+
+  console.log('skipInkeepCli', skipInkeepCli);
+
   const tenantId = 'default';
 
   let projectId: string;
@@ -330,12 +336,13 @@ export const createAgents = async (
 
     s.stop();
 
-    const installInkeepCLIResponse = await p.confirm({
-      message: 'Would you like to install the Inkeep CLI globally?',
-    });
-
-    if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
-      await installInkeepCLI();
+    if (!skipInkeepCli) {
+      const installInkeepCLIResponse = await p.confirm({
+        message: 'Would you like to install the Inkeep CLI globally?',
+      });
+      if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+        await installInkeepCLIGlobally();
+      }
     }
 
     p.note(
@@ -443,7 +450,7 @@ export const myProject = project({
   }
 }
 
-async function installInkeepCLI() {
+async function installInkeepCLIGlobally() {
   const s = p.spinner();
   s.start('Installing Inkeep CLI globally with pnpm...');
 
