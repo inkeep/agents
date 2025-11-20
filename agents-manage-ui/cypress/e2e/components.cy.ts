@@ -55,14 +55,12 @@ describe('Components', () => {
         cy.contains('"additionalProperties": false').should('exist');
 
         cy.wrap(null).should(() => {
-          const clonedValue = structuredClone(editorValue);
-          delete clonedValue.properties.num.inPreview;
-
-          const [jsonModel] = win.monaco.editor.getModels();
           const newEditorValue = {
-            ...clonedValue,
+            ...structuredClone(editorValue),
             additionalProperties: false,
           };
+          delete newEditorValue.properties.num.inPreview;
+          const [jsonModel] = win.monaco.editor.getModels();
           expect(jsonModel.getValue()).to.eq(JSON.stringify(newEditorValue, null, 2));
         });
       });
