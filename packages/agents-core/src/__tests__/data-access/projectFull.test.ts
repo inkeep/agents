@@ -375,7 +375,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      await updateFullProjectServerSide(db, logger)({ tenantId, projectId }, updatedProjectWithOneTool);
+      await updateFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        updatedProjectWithOneTool
+      );
 
       result = await getFullProject(
         db,
@@ -426,7 +429,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneFunction: FullProjectDefinition = {
         ...projectWithFunctions,
         functions: {
-          [func1Id]: projectWithFunctions.functions![func1Id],
+          [func1Id]: projectWithFunctions.functions?.[func1Id],
         },
       };
 
@@ -443,8 +446,8 @@ describe('projectFull data access', () => {
       });
       expect(result?.functions).toBeDefined();
       expect(Object.keys(result?.functions || {})).toHaveLength(1);
-      expect(result?.functions![func1Id]).toBeDefined();
-      expect(result?.functions![func2Id]).toBeUndefined();
+      expect(result?.functions?.[func1Id]).toBeDefined();
+      expect(result?.functions?.[func2Id]).toBeUndefined();
     });
 
     it('should delete orphaned credentialReferences when removed from project', async () => {
@@ -489,7 +492,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneCredential: FullProjectDefinition = {
         ...projectWithCredentials,
         credentialReferences: {
-          [cred1Id]: projectWithCredentials.credentialReferences![cred1Id],
+          [cred1Id]: projectWithCredentials.credentialReferences?.[cred1Id],
         },
       };
 
@@ -506,8 +509,8 @@ describe('projectFull data access', () => {
       });
       expect(result?.credentialReferences).toBeDefined();
       expect(Object.keys(result?.credentialReferences || {})).toHaveLength(1);
-      expect(result?.credentialReferences![cred1Id]).toBeDefined();
-      expect(result?.credentialReferences![cred2Id]).toBeUndefined();
+      expect(result?.credentialReferences?.[cred1Id]).toBeDefined();
+      expect(result?.credentialReferences?.[cred2Id]).toBeUndefined();
     });
 
     it('should delete orphaned externalAgents when removed from project', async () => {
@@ -550,7 +553,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneExternalAgent: FullProjectDefinition = {
         ...projectWithExternalAgents,
         externalAgents: {
-          [ext1Id]: projectWithExternalAgents.externalAgents![ext1Id],
+          [ext1Id]: projectWithExternalAgents.externalAgents?.[ext1Id],
         },
       };
 
@@ -567,8 +570,8 @@ describe('projectFull data access', () => {
       });
       expect(result?.externalAgents).toBeDefined();
       expect(Object.keys(result?.externalAgents || {})).toHaveLength(1);
-      expect(result?.externalAgents![ext1Id]).toBeDefined();
-      expect(result?.externalAgents![ext2Id]).toBeUndefined();
+      expect(result?.externalAgents?.[ext1Id]).toBeDefined();
+      expect(result?.externalAgents?.[ext2Id]).toBeUndefined();
     });
 
     it('should delete orphaned dataComponents when removed from project', async () => {
@@ -621,7 +624,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneDataComponent: FullProjectDefinition = {
         ...projectWithDataComponents,
         dataComponents: {
-          [data1Id]: projectWithDataComponents.dataComponents![data1Id],
+          [data1Id]: projectWithDataComponents.dataComponents?.[data1Id],
         },
       };
 
@@ -638,8 +641,8 @@ describe('projectFull data access', () => {
       });
       expect(result?.dataComponents).toBeDefined();
       expect(Object.keys(result?.dataComponents || {})).toHaveLength(1);
-      expect(result?.dataComponents![data1Id]).toBeDefined();
-      expect(result?.dataComponents![data2Id]).toBeUndefined();
+      expect(result?.dataComponents?.[data1Id]).toBeDefined();
+      expect(result?.dataComponents?.[data2Id]).toBeUndefined();
     });
 
     it('should delete orphaned artifactComponents when removed from project', async () => {
@@ -680,7 +683,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneArtifactComponent: FullProjectDefinition = {
         ...projectWithArtifactComponents,
         artifactComponents: {
-          [artifact1Id]: projectWithArtifactComponents.artifactComponents![artifact1Id],
+          [artifact1Id]: projectWithArtifactComponents.artifactComponents?.[artifact1Id],
         },
       };
 
@@ -697,8 +700,8 @@ describe('projectFull data access', () => {
       });
       expect(result?.artifactComponents).toBeDefined();
       expect(Object.keys(result?.artifactComponents || {})).toHaveLength(1);
-      expect(result?.artifactComponents![artifact1Id]).toBeDefined();
-      expect(result?.artifactComponents![artifact2Id]).toBeUndefined();
+      expect(result?.artifactComponents?.[artifact1Id]).toBeDefined();
+      expect(result?.artifactComponents?.[artifact2Id]).toBeUndefined();
     });
 
     it('should delete orphaned agents when removed from project', async () => {
@@ -825,7 +828,10 @@ describe('projectFull data access', () => {
         tools: {},
       };
 
-      await updateFullProjectServerSide(db, logger)({ tenantId, projectId }, updatedProjectWithNoTools);
+      await updateFullProjectServerSide(db, logger)(
+        { tenantId, projectId },
+        updatedProjectWithNoTools
+      );
 
       result = await getFullProject(
         db,

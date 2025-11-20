@@ -4,9 +4,7 @@
  * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
-import { and, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { functions, functionTools } from '../db/schema';
 import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
 import type { ProjectScopeConfig } from '../types/utility';
 import { getLogger } from '../utils/logger';
@@ -952,7 +950,10 @@ export const updateFullProjectServerSide =
               scopes: { tenantId, projectId: typed.id },
             });
             deletedDataComponentCount++;
-            logger.info({ dataComponentId: dataComp.id }, 'Deleted orphaned dataComponent from project');
+            logger.info(
+              { dataComponentId: dataComp.id },
+              'Deleted orphaned dataComponent from project'
+            );
           } catch (error) {
             logger.error(
               { dataComponentId: dataComp.id, error },
@@ -1299,10 +1300,7 @@ export const getFullProject =
           'Functions retrieved for project'
         );
       } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve functions for project'
-        );
+        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve functions for project');
       }
 
       const agents: Record<string, any> = {};
