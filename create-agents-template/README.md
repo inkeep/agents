@@ -35,7 +35,9 @@ workspace-root/
 │   │       └── ...
 ```
 
+</Tip>
 The `src/inkeep.config.ts` file defines workspace configuration for all projects. See [Workspace Configuration](/typescript-sdk/workspace-configuration) for details.
+</Tip>
 
 ## Architecture
 
@@ -190,12 +192,6 @@ export const production = registerEnvironmentSettings({
   },
 });
 ```
-
-How to add a new project using inkeep add
-
-How to push changes inside your project to the VIsual Builder
-
-How to pull changes from the Visual Builder to your project
 
 ## How to add a new project
 
