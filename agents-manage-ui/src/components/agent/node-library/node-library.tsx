@@ -8,8 +8,8 @@ import { NodeItem } from './node-item';
 
 const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.SubAgent],
-  nodeTypeMap[NodeType.ExternalAgentPlaceholder],
   nodeTypeMap[NodeType.TeamAgentPlaceholder],
+  nodeTypeMap[NodeType.ExternalAgentPlaceholder],
   nodeTypeMap[NodeType.MCPPlaceholder],
   nodeTypeMap[NodeType.FunctionTool],
 ];

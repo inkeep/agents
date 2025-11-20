@@ -14,8 +14,6 @@ interface NavGroupProps {
 }
 
 export function NavGroup({ items, label }: NavGroupProps) {
-  const shortLabel = label?.[0] ?? '';
-
   return (
     <SidebarGroup className="px-2 py-1">
       {label ? (
@@ -23,9 +21,7 @@ export function NavGroup({ items, label }: NavGroupProps) {
           <span className="transition-opacity duration-200 ease-linear group-data-[state=collapsed]:opacity-0">
             {label}
           </span>
-          <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-200 ease-linear group-data-[state=collapsed]:opacity-100">
-            {shortLabel}
-          </span>
+          <span className="pointer-events-none absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-muted-foreground/20 opacity-0 transition-opacity duration-200 ease-linear group-data-[state=collapsed]:opacity-100" />
         </SidebarGroupLabel>
       ) : null}
       <SidebarGroupContent className="flex flex-col gap-2">

@@ -94,14 +94,14 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: MCPIcon,
         },
         {
-          title: 'External Agents',
-          url: `/${tenantId}/projects/${projectId}/external-agents`,
-          icon: Globe,
-        },
-        {
           title: 'Credentials',
           url: `/${tenantId}/projects/${projectId}/credentials`,
           icon: Lock,
+        },
+        {
+          title: 'External Agents',
+          url: `/${tenantId}/projects/${projectId}/external-agents`,
+          icon: Globe,
         },
       ]
     : [];
