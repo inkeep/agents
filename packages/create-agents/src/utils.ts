@@ -609,7 +609,7 @@ export async function createCommand(dirName?: string, options?: any) {
 
 export async function addInkeepMcp() {
   const editorChoice = await p.select({
-    message: 'Make your IDE into an Inkeep expert? (Adds Inkeep MCP)',
+    message: 'Give your IDE access to Inkeep docs and types? (Adds Inkeep MCP)',
     options: [
       { value: 'cursor-project', label: 'Cursor (project only)' },
       { value: 'cursor-global', label: 'Cursor (global, all projects)' },
@@ -760,11 +760,6 @@ export async function addInkeepMcp() {
     }
   } catch (error) {
     s.stop();
-    console.error(
-      `${color.yellow('⚠')}  Could not automatically configure MCP server: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-    console.log(
-      `\nYou can configure it manually by visiting: ${color.underline('https://agents.inkeep.com/mcp')}`
-    );
+    console.error(`${color.yellow('⚠')}  Could not automatically configure MCP server: ${error}`);
   }
 }
