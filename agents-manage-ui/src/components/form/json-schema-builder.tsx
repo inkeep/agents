@@ -86,7 +86,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
-                  checked={Boolean(field.isRequired)}
+                  checked={field.isPreview}
                   onCheckedChange={(checked) =>
                     updateField(field.id, { isPreview: checked === true })
                   }
@@ -139,7 +139,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
-                  checked={Boolean(field.isRequired)}
+                  checked={field.isRequired}
                   onCheckedChange={(checked) =>
                     updateField(field.id, { isRequired: checked === true })
                   }
