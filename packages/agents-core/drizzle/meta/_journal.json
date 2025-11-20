@@ -22,13 +22,6 @@
       "when": 1762983545811,
       "tag": "0002_remove_evaluation_features",
       "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1763668119005,
-      "tag": "0003_blue_baron_zemo",
-      "breakpoints": true
     }
   ]
 }
