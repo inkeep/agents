@@ -24,6 +24,7 @@ import {
   type McpServerConfig,
   type McpTool,
   type MessageContent,
+  ModelFactory,
   type ModelSettings,
   type Models,
   type SubAgentStopWhen,
@@ -67,7 +68,6 @@ import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
