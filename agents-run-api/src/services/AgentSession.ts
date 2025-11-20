@@ -15,7 +15,7 @@ import {
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { ModelFactory } from '../agents/ModelFactory';
+import { ModelFactory } from '@inkeep/agents-core';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,

@@ -19,7 +19,7 @@ import {
 } from '@inkeep/agents-core';
 import { generateObject, generateText } from 'ai';
 import { z } from 'zod';
-import { ModelFactory } from '../agents/ModelFactory.js';
+import { ModelFactory } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient.js';
 import { env } from '../env.js';
 import { getLogger } from '../logger.js';
