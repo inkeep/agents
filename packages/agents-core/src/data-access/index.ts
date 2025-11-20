@@ -10,6 +10,7 @@ export * from './contextConfigs';
 export * from './conversations';
 export * from './credentialReferences';
 export * from './dataComponents';
+export * from './eval';
 export * from './externalAgents';
 export * from './functions';
 export * from './functionTools';
