@@ -35,9 +35,7 @@ workspace-root/
 │   │       └── ...
 ```
 
-<Note>
 The `src/inkeep.config.ts` file defines workspace configuration for all projects. See [Workspace Configuration](/typescript-sdk/workspace-configuration) for details.
-</Note>
 
 ## Architecture
 
@@ -225,9 +223,7 @@ Add a specific project template using the `--project` flag:
 inkeep add --project docs-assistant
 ```
 
-<Tip>
 For new projects, we recommend starting with a simple project template like docs-assistant, which you can customize to your needs.
-</Tip>
 
 ## Pushing changes to the Visual Builder
 
@@ -297,9 +293,7 @@ cat agents/my-agent.ts
 
 The file should reflect the updated prompt from the Visual Builder.
 
-<Tip>
 See [CLI Reference](/typescript-sdk/cli-reference#inkeep-pull) for more information about the `inkeep pull` command.
-</Tip>
 
 ## How to add a new MCP server
 
@@ -352,9 +346,7 @@ export const zendeskTool = mcpTool({
 });
 ```
 
-<Tip>
 See [MCP Tools](/typescript-sdk/tools/mcp-tools) for more information about registering MCP servers as tools.
-</Tip>
 
 ## Deployment Guides
 
