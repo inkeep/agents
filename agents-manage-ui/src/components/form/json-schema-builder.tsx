@@ -1,4 +1,4 @@
-import { PlusIcon, TrashIcon, X } from 'lucide-react';
+import { Info, PlusIcon, TrashIcon, X } from 'lucide-react';
 import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -93,17 +93,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent>
-              Mark this field as{' '}
-              <a
-                target="_blank"
-                rel="noopener"
-                href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
-                className="underline text-primary"
-              >
-                immediately available
-              </a>
-            </TooltipContent>
+            <TooltipContent>Mark this field as available immediately in UI</TooltipContent>
           </Tooltip>
         ))}
       <PropertyIcon type={field.type} />
@@ -264,7 +254,7 @@ export const JsonSchemaBuilder: FC<{
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(parseFieldsFromJson(value, hasInPreview), hasInPreview);
+    setFields(parseFieldsFromJson(value), hasInPreview);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
@@ -274,7 +264,7 @@ export const JsonSchemaBuilder: FC<{
       type: 'object',
       properties: fields,
     };
-    const schema = fieldsToJsonSchema(root, hasInPreview);
+    const schema = fieldsToJsonSchema(root);
     const serialized = JSON.stringify(schema, null, 2);
     onChange(serialized);
   }, [fields, hasInPreview, onChange]);
@@ -284,7 +274,30 @@ export const JsonSchemaBuilder: FC<{
       <Table>
         <TableHeader>
           <TableRow noHover>
-            {hasInPreview && <TableHead className="w-px p-0">In Preview</TableHead>}
+            {hasInPreview && (
+              <TableHead className="w-px p-0">
+                <div className="flex items-center">
+                  In Preview
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent className="text-wrap">
+                      Specifies which fields will be immediately available.{' '}
+                      <a
+                        target="_blank"
+                        rel="noopener"
+                        href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
+                        className="underline text-primary"
+                      >
+                        Learn more
+                      </a>
+                      .
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
+            )}
             <TableHead className={hasInPreview ? 'w-1/10' : 'w-[15%] text-center'}>Type</TableHead>
             <TableHead className="w-[42%] text-center">Name</TableHead>
             <TableHead className="text-center">Description</TableHead>
