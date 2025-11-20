@@ -55,7 +55,9 @@ This project follows a workspace structure with the following services:
 
 ### `index.ts`
 
+<Note>
 The project entry point inside each project directory that exports your project definition:
+</Note>
 
 ```typescript file="my-agent-project/index.ts"
 // Located inside project directory (e.g., my-agent-project/index.ts)
@@ -80,7 +82,7 @@ export const myProject = project({
 
 Contains agent definitions. Each file typically exports one agent:
 
-```
+```typescript
 // agents/customer-support.ts
 import { agent, subAgent } from '@inkeep/agents-sdk';
 
