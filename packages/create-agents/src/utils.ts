@@ -345,6 +345,8 @@ export const createAgents = async (
       }
     }
 
+    await addInkeepMcp();
+
     p.note(
       `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
@@ -598,4 +600,170 @@ export async function createCommand(dirName?: string, options?: any) {
     dirName,
     ...options,
   });
+}
+
+async function addInkeepMcp() {
+  const editorChoice = await p.select({
+    message: "Make your IDE into an Inkeep expert? (Installs Inkeep's MCP server)",
+    options: [
+      { value: 'skip', label: 'Skip for now' },
+      { value: 'cursor-project', label: 'Cursor (project only)' },
+      { value: 'cursor-global', label: 'Cursor (global, all projects)' },
+      { value: 'windsurf', label: 'Windsurf' },
+      { value: 'vscode', label: 'VSCode' },
+    ],
+    initialValue: 'cursor-project',
+  });
+
+  if (p.isCancel(editorChoice)) {
+    return;
+  }
+
+  if (editorChoice === 'skip') {
+    return;
+  }
+
+  const s = p.spinner();
+
+  try {
+    const mcpConfig = {
+      mcpServers: {
+        inkeep: {
+          command: 'npx',
+          args: ['-y', '@inkeep/agents-sdk'],
+        },
+      },
+    };
+
+    switch (editorChoice) {
+      case 'cursor-project': {
+        s.start('Adding Inkeep MCP to Cursor (project)...');
+        const cursorDir = path.join(process.cwd(), '.cursor');
+        const configPath = path.join(cursorDir, 'mcp.json');
+
+        await fs.ensureDir(cursorDir);
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to .cursor/mcp.json`);
+        break;
+      }
+
+      case 'cursor-global': {
+        s.start('Adding Inkeep MCP to Cursor (global)...');
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        const configPath = path.join(homeDir, '.cursor', 'mcp.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to global Cursor settings`);
+        break;
+      }
+
+      case 'windsurf': {
+        s.start('Adding Inkeep MCP to Windsurf...');
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        const configPath = path.join(homeDir, '.windsurf', 'mcp.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to Windsurf settings`);
+        break;
+      }
+
+      case 'vscode': {
+        s.start('Adding Inkeep MCP to VSCode...');
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        let configPath: string;
+
+        if (process.platform === 'darwin') {
+          configPath = path.join(
+            homeDir,
+            'Library',
+            'Application Support',
+            'Code',
+            'User',
+            'settings.json'
+          );
+        } else if (process.platform === 'win32') {
+          configPath = path.join(homeDir, 'AppData', 'Roaming', 'Code', 'User', 'settings.json');
+        } else {
+          configPath = path.join(homeDir, '.config', 'Code', 'User', 'settings.json');
+        }
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          'mcp.servers': {
+            ...(existingConfig as any)['mcp.servers'],
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to VSCode settings`);
+        break;
+      }
+    }
+
+    p.note(
+      `${color.cyan('ℹ')} The Inkeep MCP server has been configured for your editor.\n` +
+        `  Learn more at: ${color.underline('https://agents.inkeep.com/mcp')}`,
+      'MCP Server Configured'
+    );
+  } catch (error) {
+    s.stop();
+    console.error(
+      `${color.yellow('⚠')}  Could not automatically configure MCP server: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    console.log(
+      `\nYou can configure it manually by visiting: ${color.underline('https://agents.inkeep.com/mcp')}`
+    );
+  }
 }

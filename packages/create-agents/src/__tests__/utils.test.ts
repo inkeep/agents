@@ -53,6 +53,8 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.pathExists).mockResolvedValue(false as any);
     vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    vi.mocked(fs.readJson).mockResolvedValue({});
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
@@ -464,6 +466,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       );
     });
   });
+
 });
 
 // Helper to setup default mocks
@@ -473,6 +476,8 @@ function setupDefaultMocks() {
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+  vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  vi.mocked(fs.readJson).mockResolvedValue({});
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
   vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
