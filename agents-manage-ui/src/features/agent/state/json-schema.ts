@@ -6,6 +6,10 @@ import { useShallow } from 'zustand/react/shallow';
 
 const ROOT_ID = '__root__';
 
+export interface JSONSchemaWithPreview extends JSONSchema7 {
+  inPreview?: boolean;
+}
+
 type TypeValues = keyof typeof Types;
 
 interface NameAndDescription {
@@ -23,7 +27,7 @@ interface NameAndDescription {
   isPreview?: boolean;
 }
 
-type EditableField =
+export type EditableField =
   | FieldString
   | FieldNumber
   | FieldBoolean
@@ -62,17 +66,27 @@ type FieldPatch = Partial<
   Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title' | 'isPreview'>
 >;
 
-const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
+const applyCommonMetadata = (
+  schema: JSONSchemaWithPreview,
+  field: NameAndDescription,
+  hasInPreview = false
+) => {
   if (field.description) {
     schema.description = field.description;
   }
   if (field.title) {
     schema.title = field.title;
   }
+  if (hasInPreview && field.isPreview) {
+    schema.inPreview = true;
+  }
   return schema;
 };
 
-const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
+const fieldsToJsonSchema = (
+  field: EditableField | undefined,
+  hasInPreview = false
+): JSONSchemaWithPreview => {
   if (!field) {
     return { type: 'string' };
   }
@@ -84,60 +98,60 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
 
       for (const property of field.properties ?? []) {
         if (!property || !property.name) continue;
-        properties[property.name] = fieldsToJsonSchema(property);
+        properties[property.name] = fieldsToJsonSchema(property, hasInPreview);
         if (property.isRequired) {
           required.push(property.name);
         }
       }
 
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'object',
         properties,
         additionalProperties: false,
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       if (required.length > 0) {
         schema.required = required;
       }
       return schema;
     }
     case 'array': {
-      const items = fieldsToJsonSchema(field.items);
-      const schema: JSONSchema7 = {
+      const items = fieldsToJsonSchema(field.items, hasInPreview);
+      const schema: JSONSchemaWithPreview = {
         type: 'array',
         items,
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       return schema;
     }
     case 'enum': {
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'string',
         enum: field.values,
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       return schema;
     }
     case 'number': {
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'number',
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       return schema;
     }
     case 'boolean': {
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'boolean',
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       return schema;
     }
     case 'string':
     default: {
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'string',
       };
-      applyCommonMetadata(schema, field);
+      applyCommonMetadata(schema, field, hasInPreview);
       return schema;
     }
   }

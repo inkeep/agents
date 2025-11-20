@@ -264,7 +264,7 @@ export const JsonSchemaBuilder: FC<{
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(parseFieldsFromJson(value), hasInPreview);
+    setFields(parseFieldsFromJson(value, hasInPreview), hasInPreview);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
@@ -274,10 +274,10 @@ export const JsonSchemaBuilder: FC<{
       type: 'object',
       properties: fields,
     };
-    const schema = fieldsToJsonSchema(root);
+    const schema = fieldsToJsonSchema(root, hasInPreview);
     const serialized = JSON.stringify(schema, null, 2);
     onChange(serialized);
-  }, [fields, onChange]);
+  }, [fields, hasInPreview, onChange]);
 
   return (
     <>
